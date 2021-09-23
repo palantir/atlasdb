@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Asynchronous Initialization &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Asynchronous Initialization &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -85,8 +87,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="asynchronous-initialization">
-<h1>Asynchronous Initialization<a class="headerlink" href="#asynchronous-initialization" title="Permalink to this headline">¶</a></h1>
+  <section id="asynchronous-initialization">
+<h1>Asynchronous Initialization<a class="headerlink" href="#asynchronous-initialization" title="Permalink to this headline"></a></h1>
 <p>If the <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> parameter of the AtlasDB configuration is set to true, AtlasDB will be able to start even when some of
 the necessary resources are not ready yet. The main use of this feature is to avoid race conditions when starting multiple
 services simultaneously and allow AtlasDB to start even if, e.g., the KVS is still starting up.</p>
@@ -96,25 +98,25 @@ that should be executed when ready.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to false, the callback will be run synchronously (blocking until it is done) as the last step in creating the transaction manager.
 If <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to true, the callback will also be run asynchronously:</p>
 <ol class="arabic simple">
-<li>Once all the resources for the transaction manager have become ready, <strong>but before the transaction manager becomes initialized</strong>, the registered callback will be run asynchronously.
-Note that calls to the transaction manager from the callback at this time bypass the initialization checks.</li>
-<li>If the callback fails and should not be retried, the transaction manager will be closed.</li>
-<li>If the callback is successful, the transaction manager then becomes initialized.</li>
+<li><p>Once all the resources for the transaction manager have become ready, <strong>but before the transaction manager becomes initialized</strong>, the registered callback will be run asynchronously.
+Note that calls to the transaction manager from the callback at this time bypass the initialization checks.</p></li>
+<li><p>If the callback fails and should not be retried, the transaction manager will be closed.</p></li>
+<li><p>If the callback is successful, the transaction manager then becomes initialized.</p></li>
 </ol>
-<div class="section" id="using-callbacks">
-<h2>Using Callbacks<a class="headerlink" href="#using-callbacks" title="Permalink to this headline">¶</a></h2>
+<section id="using-callbacks">
+<h2>Using Callbacks<a class="headerlink" href="#using-callbacks" title="Permalink to this headline"></a></h2>
 <p>For an example of using callbacks, refer to <code class="docutils literal notranslate"><span class="pre">TargetedSweeper</span></code>. The simplest way of using this functionality is to
 implement the <code class="docutils literal notranslate"><span class="pre">CallbackInitializable</span></code> interface. The <code class="docutils literal notranslate"><span class="pre">initialize</span></code> method should initialize all the
 resources that require an initialized transaction manager, and the <code class="docutils literal notranslate"><span class="pre">onInitializationFailureCleanup</span></code> should specify any
 cleanup to be done in case of failure, if necessary. The callback that should be passed to the <cite>TransactionManagers</cite>
 builder is then given by the interface:</p>
 <ol class="arabic simple">
-<li>If initialization should not be retried on failure use <code class="docutils literal notranslate"><span class="pre">singleAttemptCallback()</span></code>.</li>
-<li>If initialization should be retried on failure use <code class="docutils literal notranslate"><span class="pre">retryUnlessCleanupThrowsCallback()</span></code>.</li>
-<li>If initialization should be conditionally retried on failure also use <code class="docutils literal notranslate"><span class="pre">retryUnlessCleanupThrowsCallback()</span></code>, but the <code class="docutils literal notranslate"><span class="pre">onInitializationFailureCleanup</span></code> method should throw when the condition is not satisfied.</li>
+<li><p>If initialization should not be retried on failure use <code class="docutils literal notranslate"><span class="pre">singleAttemptCallback()</span></code>.</p></li>
+<li><p>If initialization should be retried on failure use <code class="docutils literal notranslate"><span class="pre">retryUnlessCleanupThrowsCallback()</span></code>.</p></li>
+<li><p>If initialization should be conditionally retried on failure also use <code class="docutils literal notranslate"><span class="pre">retryUnlessCleanupThrowsCallback()</span></code>, but the <code class="docutils literal notranslate"><span class="pre">onInitializationFailureCleanup</span></code> method should throw when the condition is not satisfied.</p></li>
 </ol>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

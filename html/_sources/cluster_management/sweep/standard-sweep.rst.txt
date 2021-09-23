@@ -78,7 +78,7 @@ Priority Overrides
 
 .. warning::
    Specifying ``priorityTables`` can be useful for influencing sweep's behaviour in the short run.
-   However, if any tables are specified as ``priorityTables``, and the number of priority tables is at least ``sweepThreads``, then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
+   However, if any tables are specified as ``priorityTables`` then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
    It is not intended for priority tables to be specified in a steady state, generally speaking.
 
 There may be situations in which the background sweeper's heuristics for selecting tables to sweep may not satisfy one's requirements.

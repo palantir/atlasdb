@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Release Process &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Release Process &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -81,33 +83,33 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="release-process">
-<h1>Release Process<a class="headerlink" href="#release-process" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="release-notes">
-<h2>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this headline">¶</a></h2>
+  <section id="release-process">
+<h1>Release Process<a class="headerlink" href="#release-process" title="Permalink to this headline"></a></h1>
+<section id="release-notes">
+<h2>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this headline"></a></h2>
 <p>When you make a PR to Atlas, a release notes change must be made to record your change or an explicit reason given why it is unnecessary. At the same time, you should consider whether your change is breaking or not and update the version number appropriately based on the previous release number.</p>
-</div>
-<div class="section" id="release-schedule">
-<h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="release-schedule">
+<h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this headline"></a></h2>
 <p>We aim to release once a week, but may release faster to patch bugs or slower if there is low code churn.
 We also publish snapshot builds to <a class="reference external" href="https://oss.jfrog.org/webapp/#/artifacts/browse/simple/General/oss-snapshot-local/com/palantir/atlasdb">JFrog</a> after every PR merges, so if you want to begin testing your changes immediately, you can do so with the snapshot builds rather than waiting until the next release.</p>
-</div>
-<div class="section" id="cutting-for-release">
-<h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="cutting-for-release">
+<h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline"></a></h2>
 <ol class="arabic simple">
-<li>Checkout the commit to tag for release (probably <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).
-Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch (e.g. <code class="docutils literal notranslate"><span class="pre">0.10.x</span></code> for patches to AtlasDB 0.10.0).</li>
-<li>Tag the commit: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</li>
-<li>Push the tag to Github:
-<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</li>
-<li>After a short wait (when the build at circleCI is successful) the artifacts will be published on BinTray
+<li><p>Checkout the commit to tag for release (probably <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).
+Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch (e.g. <code class="docutils literal notranslate"><span class="pre">0.10.x</span></code> for patches to AtlasDB 0.10.0).</p></li>
+<li><p>Tag the commit: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</p></li>
+<li><p>Push the tag to Github:
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</p></li>
+<li><p>After a short wait (when the build at circleCI is successful) the artifacts will be published on BinTray
 to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
-page</a>.</li>
-<li>Edit the release notes that will appear for editing on AtlasDB GitHub <a class="reference external" href="https://github.com/palantir/atlasdb/releases">release
-page</a>.</li>
+page</a>.</p></li>
+<li><p>Edit the release notes that will appear for editing on AtlasDB GitHub <a class="reference external" href="https://github.com/palantir/atlasdb/releases">release
+page</a>.</p></li>
 </ol>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

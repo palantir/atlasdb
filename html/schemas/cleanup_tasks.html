@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cleanup Tasks &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Cleanup Tasks &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -89,8 +91,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="cleanup-tasks">
-<span id="id1"></span><h1>Cleanup Tasks<a class="headerlink" href="#cleanup-tasks" title="Permalink to this headline">¶</a></h1>
+  <section id="cleanup-tasks">
+<span id="id1"></span><h1>Cleanup Tasks<a class="headerlink" href="#cleanup-tasks" title="Permalink to this headline"></a></h1>
 <p>Cleanup tasks allow AtlasDB to essentially implement ON DELETE CASCADE.
 If there is an index that marks usage of a shared resource, effectively
 reference counting this resource, then a cleanup task can be used to see
@@ -98,15 +100,15 @@ if all references are gone and remove the resource if it is no longer
 needed. The original intent of clean up tasks was to clean up shared
 streams when doing a hard delete of media that used these shared
 streams.</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">addCleanupTask</span><span class="p">(</span><span class="n">String</span> <span class="n">tableName</span><span class="p">,</span> <span class="n">OnCleanupTask</span> <span class="n">task</span><span class="p">);</span>
-<span class="n">public</span> <span class="n">void</span> <span class="n">addCleanupTask</span><span class="p">(</span><span class="n">String</span> <span class="n">tableName</span><span class="p">,</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">OnCleanupTask</span><span class="o">&gt;</span> <span class="n">task</span><span class="p">);</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span> <span class="kt">void</span> <span class="nf">addCleanupTask</span><span class="p">(</span><span class="n">String</span> <span class="n">tableName</span><span class="p">,</span> <span class="n">OnCleanupTask</span> <span class="n">task</span><span class="p">);</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">addCleanupTask</span><span class="p">(</span><span class="n">String</span> <span class="n">tableName</span><span class="p">,</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">OnCleanupTask</span><span class="o">&gt;</span> <span class="n">task</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>The table name is the (database) name of the table for which the table
 should be applied. The OnCleanupTask will rely on generated code, and
 therefore should be implemented in a separate class from the schema
 class.</p>
-</div>
+</section>
 
 
            </div>

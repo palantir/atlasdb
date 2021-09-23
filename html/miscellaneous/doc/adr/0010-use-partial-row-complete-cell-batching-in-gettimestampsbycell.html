@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>10. Use partial row complete cell batching in getTimestampsByCell &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <title>10. Use partial row complete cell batching in getTimestampsByCell &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -104,72 +106,72 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="use-partial-row-complete-cell-batching-in-gettimestampsbycell">
-<h1>10. Use partial row complete cell batching in getTimestampsByCell<a class="headerlink" href="#use-partial-row-complete-cell-batching-in-gettimestampsbycell" title="Permalink to this headline">¶</a></h1>
+  <section id="use-partial-row-complete-cell-batching-in-gettimestampsbycell">
+<h1>10. Use partial row complete cell batching in getTimestampsByCell<a class="headerlink" href="#use-partial-row-complete-cell-batching-in-gettimestampsbycell" title="Permalink to this headline"></a></h1>
 <p>Date: 10/03/2017</p>
-<div class="section" id="status">
-<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>## Status</p>
 <p>Accepted</p>
-</div>
-<div class="section" id="context">
-<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
-<p>As of version 0.35.0 , our implementation of <code class="docutils literal notranslate"><span class="pre">DbKvs.getTimestampsByCell</span></code> was creating a MultiMap with all pairs of
+<p>## Context</p>
+<p>As of version 0.35.0 , our implementation of <cite>DbKvs.getTimestampsByCell</cite> was creating a MultiMap with all pairs of
 (Cell, timestamp) from the range determined by the row batch size. In case of wide rows, or simply a row batch size
-that is too large, this could cause us to run out of memory; see <a class="reference external" href="https://github.com/palantir/atlasdb/issues/982">issue #982</a>.</p>
-</div>
-<div class="section" id="decision">
-<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+that is too large, this could cause us to run out of memory; see [issue #982](<a class="reference external" href="https://github.com/palantir/atlasdb/issues/982">https://github.com/palantir/atlasdb/issues/982</a>).</p>
+<p>## Decision</p>
 <p>We decided to use a block (a triple of row name, column name, and timestamp) batch size, defaulting to 1000000 to avoid
 loading too many blocks into memory. The algorithm will fetch blocks by row, column, and increasing timestamp until the
 batch size is met. In that case:</p>
-<ol class="simple">
-<li>If at least one row was fully processed, we return RowResults with all timestamps each of those rows, and continue
-processing from the beginning of current row when more RowResults are necessary.</li>
-<li>If no rows were fully processed, we continue processing blocks until the end of the current cell (row, column),
-fetching all timestamps for that cell. We return a (partial) RowResult that contains all timestamps for that row
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt>If at least one row was fully processed, we return RowResults with all timestamps each of those rows, and continue</dt><dd><p>processing from the beginning of current row when more RowResults are necessary.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>If no rows were fully processed, we continue processing blocks until the end of the current cell (row, column),</dt><dd><p>fetching all timestamps for that cell. We return a (partial) RowResult that contains all timestamps for that row
 until and including the final cell processed. To create the next RowResult we then continue processing the row after
-the last cell processed, effectively splitting the wide row into several RowResults.</li>
+the last cell processed, effectively splitting the wide row into several RowResults.</p>
+</dd>
+</dl>
+</li>
 </ol>
 <p>Example:
 Assuming a batch size of 10 and the following table</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>            <span class="mi">1</span>          <span class="o">|</span>          <span class="mi">2</span>         <span class="o">|</span>     <span class="mi">3</span>     <span class="o">|</span>
-  <span class="o">|</span> <span class="o">------------------</span> <span class="o">|</span> <span class="o">------------------</span> <span class="o">|</span> <span class="o">---------</span> <span class="o">|</span>
-<span class="mi">1</span> <span class="o">|</span>     <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>      <span class="o">|</span>      <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>     <span class="o">|</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span> <span class="o">|</span>
-<span class="mi">2</span> <span class="o">|</span>    <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>    <span class="o">|</span>    <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>    <span class="o">|</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span> <span class="o">|</span>
-<span class="mi">3</span> <span class="o">|</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span> <span class="o">|</span>
-<span class="mi">4</span> <span class="o">|</span>     <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>      <span class="o">|</span>                    <span class="o">|</span>           <span class="o">|</span>
-</pre></div>
+<blockquote>
+<div><div class="line-block">
+<div class="line-block">
+<div class="line">|         1          |          2         |     3     |</div>
+<div class="line">| —————— | —————— | ——— |</div>
 </div>
-<p>The RowResults will be as follows:</p>
-<ul class="simple">
-<li>(1 -&gt; (1 -&gt; (1, 2, 3); 2 -&gt; (4, 5, 6); 3 -&gt; (7, 8, 9)))</li>
-<li>(2 -&gt; (1 -&gt; (1, 2, 3, 4); 2 -&gt; (4, 5, 6, 7); 3 -&gt; (7, 8, 9)))</li>
-<li>(3 -&gt; (1 -&gt; (1, 2, 3, 4, 5, 6); 2 -&gt; (4, 5, 6, 7, 8, 9)))</li>
-<li>(3 -&gt; (3 -&gt; (7, 8, 9)))</li>
-<li>(4 -&gt; (1 -&gt; (1, 2, 3)))</li>
-</ul>
+<div class="line">1 |     (1, 2, 3)      |      (4, 5, 6)     | (7, 8, 9) |</div>
+<div class="line">2 |    (1, 2, 3, 4)    |    (4, 5, 6, 7)    | (7, 8, 9) |</div>
+<div class="line">3 | (1, 2, 3, 4, 5, 6) | (4, 5, 6, 7, 8, 9) | (7, 8, 9) |</div>
+<div class="line">4 |     (1, 2, 3)      |                    |           |</div>
+</div>
+</div></blockquote>
+<p>The RowResults will be as follows:
+- (1 -&gt; (1 -&gt; (1, 2, 3); 2 -&gt; (4, 5, 6); 3 -&gt; (7, 8, 9)))
+- (2 -&gt; (1 -&gt; (1, 2, 3, 4); 2 -&gt; (4, 5, 6, 7); 3 -&gt; (7, 8, 9)))
+- (3 -&gt; (1 -&gt; (1, 2, 3, 4, 5, 6); 2 -&gt; (4, 5, 6, 7, 8, 9)))
+- (3 -&gt; (3 -&gt; (7, 8, 9)))
+- (4 -&gt; (1 -&gt; (1, 2, 3)))</p>
 <p>Other options considered:</p>
-<ol class="simple">
-<li>Partial row batching: fetch up to 1000000 blocks. If the block batch size is hit, stop immediately (cells can be split across multiple batches).</li>
-<li>Full row batching: fetch up to 1000000 blocks. If the block batch size is hit in the middle of a row, continue fetching until the row is exhausted.</li>
-<li>No batching, but throw an error when the block batch hint is reached</li>
+<ol class="arabic simple">
+<li><p>Partial row batching: fetch up to 1000000 blocks. If the block batch size is hit, stop immediately (cells can be split across multiple batches).</p></li>
+<li><p>Full row batching: fetch up to 1000000 blocks. If the block batch size is hit in the middle of a row, continue fetching until the row is exhausted.</p></li>
+<li><p>No batching, but throw an error when the block batch hint is reached</p></li>
 </ol>
 <ul class="simple">
-<li>Option 1 was considered, but was replaced by the modified version above. This is because sweep must ensure that all blocks
+<li><p>Option 1 was considered, but was replaced by the modified version above. This is because sweep must ensure that all blocks
 except for the most recent (before the immutable timestamp) are deleted. This can be achieved by repeating the last
 block from one batch in the next batch, or by keeping this last result in sweep’s memory, so that it knows to remove it,
 if further blocks for the same cell are encountered. Neither option is compelling: the first is hard to reason about,
-and the second reduces the scope for parallelisation, and risks introducing a correctness bug.</li>
-<li>Option 2 was not chosen, because it does not guard well against wide rows (many cells) that have many overwrites.</li>
-<li>Option 3 was considered, but was ultimately discarded because it relies on properties of the code that calls getCellTimestamps.
-In particular, there needs to be retry logic that detects that an error was thrown, and reduces the batch size accordingly.</li>
+and the second reduces the scope for parallelisation, and risks introducing a correctness bug.</p></li>
+<li><p>Option 2 was not chosen, because it does not guard well against wide rows (many cells) that have many overwrites.</p></li>
+<li><p>Option 3 was considered, but was ultimately discarded because it relies on properties of the code that calls getCellTimestamps.
+In particular, there needs to be retry logic that detects that an error was thrown, and reduces the batch size accordingly.</p></li>
 </ul>
-</div>
-<div class="section" id="consequences">
-<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
-<p>For rows wider than the value of the batch size, <code class="docutils literal notranslate"><span class="pre">DbKvs.getTimestampsByCell</span></code> may split them into several RowResults.</p>
-</div>
-</div>
+<p>## Consequences</p>
+<p>For rows wider than the value of the batch size, <cite>DbKvs.getTimestampsByCell</cite> may split them into several RowResults.</p>
+</section>
 
 
            </div>

@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>2. Prevent tables from being created simultaneously in cassandra via a locks table &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <title>2. Prevent tables from being created simultaneously in cassandra via a locks table &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -104,40 +106,32 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table">
-<h1>2. Prevent tables from being created simultaneously in cassandra via a locks table<a class="headerlink" href="#prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table" title="Permalink to this headline">¶</a></h1>
+  <section id="prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table">
+<h1>2. Prevent tables from being created simultaneously in cassandra via a locks table<a class="headerlink" href="#prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table" title="Permalink to this headline"></a></h1>
 <p>Date: 18/05/2016</p>
-<div class="section" id="status">
-<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>## Status</p>
 <p>Accepted</p>
-<p>Superseded by <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3620">PR #3620: Use CQL to create tables</a>.</p>
-</div>
-<div class="section" id="context">
-<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
-<p>Cassandra <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-10699">has an issue</a> which can cause data loss in the situation:</p>
-<ol class="simple">
-<li>Node A and node B concurrently create table “some.table”</li>
-<li>Both table creations succeed, creating tables with column family ids “123” and “456”</li>
-<li>Cassandra picks “123” to be the correct table for “some.table”</li>
-<li>Cassandra is restarted</li>
-<li>After restart Cassandra gossips and decides that “456” is the correct table for “some.table”</li>
-<li>All data that was written to “123” is now lost</li>
+<p>Superseded by [PR #3620: Use CQL to create tables](<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3620">https://github.com/palantir/atlasdb/pull/3620</a>).</p>
+<p>## Context</p>
+<p>Cassandra [has an issue](<a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-10699">https://issues.apache.org/jira/browse/CASSANDRA-10699</a>) which can cause data loss in the situation:</p>
+<ol class="arabic simple">
+<li><p>Node A and node B concurrently create table “some.table”</p></li>
+<li><p>Both table creations succeed, creating tables with column family ids “123” and “456”</p></li>
+<li><p>Cassandra picks “123” to be the correct table for “some.table”</p></li>
+<li><p>Cassandra is restarted</p></li>
+<li><p>After restart Cassandra gossips and decides that “456” is the correct table for “some.table”</p></li>
+<li><p>All data that was written to “123” is now lost</p></li>
 </ol>
 <p>To fix this we must prevent tables from being created at the same time.</p>
-</div>
-<div class="section" id="decision">
-<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>## Decision</p>
 <p>All schema mutations will globally synchronise via a check-and-set operation on a specific cell in a _lock table.</p>
-</div>
-<div class="section" id="consequences">
-<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<p>## Consequences</p>
 <ul class="simple">
-<li>If a node attempts to mutate the schema but dies before releasing the lock, then the lock will never be released. This will require manual intervention.</li>
-<li>We need to ensure that the lock table does not suffer from this bug, so the lock table must be created in a synchronous manner.</li>
-<li>Client startup will become slower as part of the startup will be linearized.</li>
+<li><p>If a node attempts to mutate the schema but dies before releasing the lock, then the lock will never be released. This will require manual intervention.</p></li>
+<li><p>We need to ensure that the lock table does not suffer from this bug, so the lock table must be created in a synchronous manner.</p></li>
+<li><p>Client startup will become slower as part of the startup will be linearized.</p></li>
 </ul>
-</div>
-</div>
+</section>
 
 
            </div>

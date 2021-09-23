@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KVS Migration &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>KVS Migration &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -85,42 +87,42 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="kvs-migration">
-<span id="id1"></span><h1>KVS Migration<a class="headerlink" href="#kvs-migration" title="Permalink to this headline">¶</a></h1>
+  <section id="kvs-migration">
+<span id="id1"></span><h1>KVS Migration<a class="headerlink" href="#kvs-migration" title="Permalink to this headline"></a></h1>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Ensure you have backups before attempting a KVS migration.
+<p class="admonition-title">Danger</p>
+<p>Ensure you have backups before attempting a KVS migration.
 Double check that <code class="docutils literal notranslate"><span class="pre">migrateConfig</span></code> (the target KVS) is specified correctly, since all tables in that KVS will be
 dropped.</p>
 </div>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>KVS migration involves moving all transactional data from one KVS which we call the <em>source KVS</em> to another, which
 we call the <em>destination KVS</em>. Generally speaking, this includes all user data.</p>
 <p>There are some AtlasDB internal tables which will not be migrated, for various reasons:</p>
 <ul class="simple">
-<li>In some cases, correct operation of AtlasDB does not depend on the contents of these tables.</li>
-<li>In some cases, the migration process obviates the need for these tables (e.g. <code class="docutils literal notranslate"><span class="pre">_transactions</span></code> isn’t needed, because
-we simulate writing all of the existing state of the world in a single transaction to the new database).</li>
+<li><p>In some cases, correct operation of AtlasDB does not depend on the contents of these tables.</p></li>
+<li><p>In some cases, the migration process obviates the need for these tables (e.g. <code class="docutils literal notranslate"><span class="pre">_transactions</span></code> isn’t needed, because
+we simulate writing all of the existing state of the world in a single transaction to the new database).</p></li>
 </ul>
 <p>These tables include:</p>
 <ul class="simple">
-<li>Atomic tables, as specified in <code class="docutils literal notranslate"><span class="pre">AtlasDbConstants.ATOMIC_TABLES</span></code>. These tables use check and set, and are not
-transactional.</li>
-<li>Hidden tables, as specified in <code class="docutils literal notranslate"><span class="pre">AtlasDbConstants.HIDDEN_TABLES</span></code>. These tables may or may not be transactional.</li>
-<li>Cassandra-specific hidden tables, as specified in <code class="docutils literal notranslate"><span class="pre">HiddenTables.CASSANDRA_TABLES</span></code>. These are internal tables used
-only by Cassandra KVS, and are not transactional.</li>
-<li>Targeted Sweep tables, as specified in <code class="docutils literal notranslate"><span class="pre">TargetedSweepSchema</span></code>. These tables are not transactional.</li>
-<li>The migration checkpoint table, which is a special table used for checkpointing during migration.</li>
+<li><p>Atomic tables, as specified in <code class="docutils literal notranslate"><span class="pre">AtlasDbConstants.ATOMIC_TABLES</span></code>. These tables use check and set, and are not
+transactional.</p></li>
+<li><p>Hidden tables, as specified in <code class="docutils literal notranslate"><span class="pre">AtlasDbConstants.HIDDEN_TABLES</span></code>. These tables may or may not be transactional.</p></li>
+<li><p>Cassandra-specific hidden tables, as specified in <code class="docutils literal notranslate"><span class="pre">HiddenTables.CASSANDRA_TABLES</span></code>. These are internal tables used
+only by Cassandra KVS, and are not transactional.</p></li>
+<li><p>Targeted Sweep tables, as specified in <code class="docutils literal notranslate"><span class="pre">TargetedSweepSchema</span></code>. These tables are not transactional.</p></li>
+<li><p>The migration checkpoint table, which is a special table used for checkpointing during migration.</p></li>
 </ul>
 <p>Due to legacy reasons, we still drop and create some of the internal non-transactional tables. Although these tables
 are not migrated automatically, this makes implementation simpler; furthermore, this is safe as far as correctness
 is concerned.</p>
 <p>Migration itself is performed as a three-step process.</p>
 <ol class="arabic simple">
-<li><strong>Setup</strong>, which prepares the destination KVS for migration as far as DDL operations are concerned.</li>
-<li><strong>Migrate</strong>, which copies the actual data from the source KVS to the destination KVS.</li>
-<li><strong>Validate</strong>, which verifies that data present in the destination KVS matches that in the source KVS.</li>
+<li><p><strong>Setup</strong>, which prepares the destination KVS for migration as far as DDL operations are concerned.</p></li>
+<li><p><strong>Migrate</strong>, which copies the actual data from the source KVS to the destination KVS.</p></li>
+<li><p><strong>Validate</strong>, which verifies that data present in the destination KVS matches that in the source KVS.</p></li>
 </ol>
 <p>If the migration needs to be restarted from scratch, running setup again will reset any previous migration state and
 allow a fresh migration.</p>
@@ -134,14 +136,14 @@ written at the start timestamp at the commit timestamp.</p>
 <p>When copying data, we then write the newest versions of each cell in the source KVS to the destination KVS at
 the start timestamp. As data is copied over, we also update a checkpoint table, which enables us to continue a failed
 migration without starting from scratch.</p>
-</div>
-<div class="section" id="running-a-kvs-migration">
-<h2>Running a KVS Migration<a class="headerlink" href="#running-a-kvs-migration" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="preconditions">
-<h3>Preconditions<a class="headerlink" href="#preconditions" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="running-a-kvs-migration">
+<h2>Running a KVS Migration<a class="headerlink" href="#running-a-kvs-migration" title="Permalink to this headline"></a></h2>
+<section id="preconditions">
+<h3>Preconditions<a class="headerlink" href="#preconditions" title="Permalink to this headline"></a></h3>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Read this section carefully before performing any migrations! The KVS migration CLI makes some assumptions;
+<p class="admonition-title">Danger</p>
+<p>Read this section carefully before performing any migrations! The KVS migration CLI makes some assumptions;
 failure to ensure that these assumptions are valid may result in <strong>SEVERE DATA CORRUPTION</strong>.</p>
 </div>
 <p>While KVS migration is running, the service that is using AtlasDB must continuously be offline; if the service is
@@ -151,12 +153,12 @@ some data that should be present may not be visible (if the service runs with th
 obtain migration timestamps.</p>
 <p>If you are using embedded services, the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag must be used. This will remove the leader block from your
 configuration for the purposes of migration.</p>
-</div>
-<div class="section" id="migration-cli">
-<h3>Migration CLI<a class="headerlink" href="#migration-cli" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="migration-cli">
+<h3>Migration CLI<a class="headerlink" href="#migration-cli" title="Permalink to this headline"></a></h3>
 <div class="admonition tip">
-<p class="first admonition-title">Tip</p>
-<p class="last">If you are migrating to/from Oracle KVS and are using a version of AtlasDB before 0.240.10, the standard AtlasDB
+<p class="admonition-title">Tip</p>
+<p>If you are migrating to/from Oracle KVS and are using a version of AtlasDB before 0.240.10, the standard AtlasDB
 CLI distribution will not work as it does not contain the requisite Oracle drivers. Please contact the AtlasDB team
 for assistance.</p>
 </div>
@@ -184,17 +186,17 @@ may contain unrelated YAML objects. For example:</p>
 </div>
 <p>Running the migration is typically done by invoking the CLI three times, one for each main stage of the migration.</p>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last"><strong>ALL</strong> three steps (Setup, Migrate, Validate) must be run before the migration can be considered finished, and the
+<p class="admonition-title">Danger</p>
+<p><strong>ALL</strong> three steps (Setup, Migrate, Validate) must be run before the migration can be considered finished, and the
 new KVS used. Failure to do so may result in <strong>SEVERE DATA CORRUPTION</strong>. Please ensure this is the case before
 you restart your service with the new KVS.</p>
 </div>
-</div>
-<div class="section" id="setup">
-<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline"></a></h3>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">All tables in the destination KVS will be dropped as part of setup! Please ensure that data there may be safely
+<p class="admonition-title">Danger</p>
+<p>All tables in the destination KVS will be dropped as part of setup! Please ensure that data there may be safely
 deleted.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --setup
@@ -204,9 +206,9 @@ deleted.</p>
 The CLI will first <strong>drop all tables in the target KVS</strong> except atomic tables and Cassandra hidden tables.
 Then, for each table in the source KVS except atomic tables and Cassandra hidden tables, a table with the same name and
 metadata is created in the target KVS.</p>
-</div>
-<div class="section" id="migrate">
-<h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="migrate">
+<h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this headline"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --migrate
 </pre></div>
 </div>
@@ -221,13 +223,13 @@ may be treated as committed; bear this in mind if one tries to restart the servi
 As data is copied over, we regularly update the checkpoint table, which enables us to continue a failed migration
 without starting from scratch.</p>
 <div class="admonition hint">
-<p class="first admonition-title">Hint</p>
-<p class="last">If a migration fails, it can be restarted from the last checkpoint simply by running the migrate command again.
+<p class="admonition-title">Hint</p>
+<p>If a migration fails, it can be restarted from the last checkpoint simply by running the migrate command again.
 Running setup at this point will reset the migration state and force a fresh migration.</p>
 </div>
-</div>
-<div class="section" id="validate">
-<h3>Validate<a class="headerlink" href="#validate" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="validate">
+<h3>Validate<a class="headerlink" href="#validate" title="Permalink to this headline"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --validate
 </pre></div>
 </div>
@@ -237,16 +239,16 @@ scanned in both KVSs. Cells and the values associated with them are checked to e
 The sweep priority table is excluded from this step because, even though it is migrated, the contents of the table in
 respective KVSs might diverge as a result of the writes performed during the migration.</p>
 <div class="admonition hint">
-<p class="first admonition-title">Hint</p>
-<p class="last">All three commands can be combined in a single invocation of the client, with the caveat that if the migration
+<p class="admonition-title">Hint</p>
+<p>All three commands can be combined in a single invocation of the client, with the caveat that if the migration
 fails, care should be taken to identify which step failed before further actions are determined.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --setup --migrate --validate
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

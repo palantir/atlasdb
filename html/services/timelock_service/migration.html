@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Migration to Timelock Server &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <title>Migration to Timelock Server &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -94,49 +96,49 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="migration-to-timelock-server">
-<span id="timelock-migration"></span><h1>Migration to Timelock Server<a class="headerlink" href="#migration-to-timelock-server" title="Permalink to this headline">¶</a></h1>
+  <section id="migration-to-timelock-server">
+<span id="timelock-migration"></span><h1>Migration to Timelock Server<a class="headerlink" href="#migration-to-timelock-server" title="Permalink to this headline"></a></h1>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">The scope of this document covers migrations of AtlasDB-using services from using an embedded timestamp and lock
+<p class="admonition-title">Warning</p>
+<p>The scope of this document covers migrations of AtlasDB-using services from using an embedded timestamp and lock
 service to using TimeLock. In particular, migrations of the timestamp bound persistence method are NOT covered
 here, and attempting to do this procedure incorrectly runs a risk of <strong>SEVERE DATA CORRUPTION</strong>.</p>
 </div>
-<div class="section" id="why-migration">
-<h2>Why Migration?<a class="headerlink" href="#why-migration" title="Permalink to this headline">¶</a></h2>
+<section id="why-migration">
+<h2>Why Migration?<a class="headerlink" href="#why-migration" title="Permalink to this headline"></a></h2>
 <p>AtlasDB assumes that timestamps returned by the timestamp service are monotonically increasing. In order to preserve
 this guarantee when moving from an embedded timestamp service to an external timestamp service, we need to ensure
 that timestamps issued by the external timestamp service are larger than those issued by the embedded one.
 Otherwise, this can lead to serious data corruption.</p>
-</div>
-<div class="section" id="automated-migration">
-<h2>Automated Migration<a class="headerlink" href="#automated-migration" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="automated-migration">
+<h2>Automated Migration<a class="headerlink" href="#automated-migration" title="Permalink to this headline"></a></h2>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">If your service is highly available, you MUST shut down ALL nodes of your service after step 2 before bringing up any
+<p class="admonition-title">Danger</p>
+<p>If your service is highly available, you MUST shut down ALL nodes of your service after step 2 before bringing up any
 nodes in step 4. Otherwise, there is a risk of <strong>SEVERE DATA CORRUPTION</strong> as timestamps may be given out of order.</p>
 </div>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Automated migrations are only implemented for Cassandra, and from AtlasDB 0.253.2 onwards DbKVS.
+<p class="admonition-title">Warning</p>
+<p>Automated migrations are only implemented for Cassandra, and from AtlasDB 0.253.2 onwards DbKVS.
 If you are using any other KVS, please follow the instructions at <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual Migration to Timelock Server</span></a>.</p>
 </div>
 <ol class="arabic simple">
-<li>Confirm that your AtlasDB installation is backed by Cassandra KVS, or you are using DbKVS and your version of AtlasDB
-is at least 0.253.2.</li>
-<li>(Optional) Take a fresh timestamp from your AtlasDB services, using the fresh timestamp CLI or the
-<code class="docutils literal notranslate"><span class="pre">/timestamp/fresh-timestamp</span></code> endpoint. This step is not strictly required, but may be useful for verification.</li>
-<li>Add the <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a> to your service.</li>
-<li>Starting/re-starting the service will automatically migrate the service.
-Note that the service may not elect a leader until a timestamp or lock request for some client is actually made.</li>
+<li><p>Confirm that your AtlasDB installation is backed by Cassandra KVS, or you are using DbKVS and your version of AtlasDB
+is at least 0.253.2.</p></li>
+<li><p>(Optional) Take a fresh timestamp from your AtlasDB services, using the fresh timestamp CLI or the
+<code class="docutils literal notranslate"><span class="pre">/timestamp/fresh-timestamp</span></code> endpoint. This step is not strictly required, but may be useful for verification.</p></li>
+<li><p>Add the <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a> to your service.</p></li>
+<li><p>Starting/re-starting the service will automatically migrate the service.
+Note that the service may not elect a leader until a timestamp or lock request for some client is actually made.</p></li>
 </ol>
-<div class="section" id="verification">
-<h3>Verification<a class="headerlink" href="#verification" title="Permalink to this headline">¶</a></h3>
+<section id="verification">
+<h3>Verification<a class="headerlink" href="#verification" title="Permalink to this headline"></a></h3>
 <p>It may be useful to verify that an automatic migration was carried out successfully. In addition to simply performing
 smoke tests of your clients and checking that they still work, there are a few other ways of checking that the
 migration occurred correctly.</p>
 <ol class="arabic">
-<li><p class="first"><strong>Request Logs</strong>: Find the TimeLock leader, and search its request logs for calls to the <code class="docutils literal notranslate"><span class="pre">fastForwardTimestamp</span></code>
+<li><p><strong>Request Logs</strong>: Find the TimeLock leader, and search its request logs for calls to the <code class="docutils literal notranslate"><span class="pre">fastForwardTimestamp</span></code>
 endpoint. These should be called with a <code class="docutils literal notranslate"><span class="pre">currentTimestamp</span></code> query parameter, which should be the bound in the
 embedded timestamp bound store before the migration.</p>
 <p>This bound should be noted down before an upgrade, perhaps with <code class="docutils literal notranslate"><span class="pre">cqlsh</span></code> or other interface to the DB:</p>
@@ -153,7 +155,7 @@ cqlsh:keyspace&gt; SELECT * FROM &quot;_timestamp&quot;;
 logged at INFO level by the <a class="reference internal" href="../../configuration/logging.html#debug-logging"><span class="std std-ref">DebugLogger</span></a>, so if you have directed that to a separate
 appender you will need to search in those logs instead.</p>
 </li>
-<li><p class="first"><strong>Key-Value Service table state</strong>: Check the state of the key-value service. For Cassandra, you should expect
+<li><p><strong>Key-Value Service table state</strong>: Check the state of the key-value service. For Cassandra, you should expect
 to see two rows: <code class="docutils literal notranslate"><span class="pre">oldTs</span></code> (the backed up value of the timestamp bound) and
 <code class="docutils literal notranslate"><span class="pre">ts</span></code> (a bogus one byte array indicating that the timestamp table has been invalidated). The <code class="docutils literal notranslate"><span class="pre">oldTs</span></code> value
 should match the <code class="docutils literal notranslate"><span class="pre">currentTimestamp</span></code> values in the request logs.</p>
@@ -173,13 +175,12 @@ they are equal is by converting the <code class="docutils literal notranslate"><
 </pre></div>
 </div>
 </li>
-<li><p class="first"><strong>AtlasDB Client Logs</strong>: Search for <code class="docutils literal notranslate"><span class="pre">[BACKUP]</span> <span class="pre">Backed</span> <span class="pre">up</span> <span class="pre">the</span> <span class="pre">value</span> <span class="pre">{}</span></code> in the AtlasDB client logs. This should
-occur precisely once, and the value should match that as retrieved by the aforementioned methods.</p>
-</li>
+<li><p><strong>AtlasDB Client Logs</strong>: Search for <code class="docutils literal notranslate"><span class="pre">[BACKUP]</span> <span class="pre">Backed</span> <span class="pre">up</span> <span class="pre">the</span> <span class="pre">value</span> <span class="pre">{}</span></code> in the AtlasDB client logs. This should
+occur precisely once, and the value should match that as retrieved by the aforementioned methods.</p></li>
 </ol>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

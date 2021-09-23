@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Overview &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Overview &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -89,31 +91,33 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="overview">
-<span id="schema-overview"></span><h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+  <section id="overview">
+<span id="schema-overview"></span><h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h1>
 <div class="contents local topic" id="contents">
 <ul class="simple">
-<li><a class="reference internal" href="#background" id="id13">Background</a></li>
-<li><a class="reference internal" href="#sample-schema-file" id="id14">Sample Schema File</a><ul>
-<li><a class="reference internal" href="#value-types" id="id15">Value Types</a><ul>
-<li><a class="reference internal" href="#primitive-valuetypes" id="id16">Primitive ValueTypes</a></li>
-<li><a class="reference internal" href="#protobufs-and-persistables" id="id17">Protobufs and Persistables</a></li>
+<li><p><a class="reference internal" href="#background" id="id13">Background</a></p></li>
+<li><p><a class="reference internal" href="#sample-schema-file" id="id14">Sample Schema File</a></p>
+<ul>
+<li><p><a class="reference internal" href="#value-types" id="id15">Value Types</a></p>
+<ul>
+<li><p><a class="reference internal" href="#primitive-valuetypes" id="id16">Primitive ValueTypes</a></p></li>
+<li><p><a class="reference internal" href="#protobufs-and-persistables" id="id17">Protobufs and Persistables</a></p></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#schema-objects" id="id18">Schema Objects</a></li>
+<li><p><a class="reference internal" href="#schema-objects" id="id18">Schema Objects</a></p></li>
 </ul>
 </li>
 </ul>
 </div>
 <p>This guide should give you the basics on:</p>
 <ol class="arabic simple">
-<li>How an AtlasDB schema file is organized.</li>
-<li>What commands are available.</li>
-<li>When they can be used and what they do.</li>
-<li>How they translate to the underlying database.</li>
+<li><p>How an AtlasDB schema file is organized.</p></li>
+<li><p>What commands are available.</p></li>
+<li><p>When they can be used and what they do.</p></li>
+<li><p>How they translate to the underlying database.</p></li>
 </ol>
-<div class="section" id="background">
-<h2><a class="toc-backref" href="#id13">Background</a><a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h2>
+<section id="background">
+<h2><a class="toc-backref" href="#id13">Background</a><a class="headerlink" href="#background" title="Permalink to this headline"></a></h2>
 <p>Data in AtlasDB is stored as a series of key-value pairs, structured
 into tables, grouped into namespaces. An AtlasDB <strong>schema</strong> defines a
 set of named tables, and for each <strong>table</strong> defines the key-value pairs
@@ -154,37 +158,37 @@ between two specified rows or begin with the specified prefix. The
 <strong>put</strong> operation adds or overrides cells with new values as specified
 by the operation arguments, updating any indexes needed. The <strong>delete</strong>
 operation removes the specified cell-value pairs from the table.</p>
-</div>
-<div class="section" id="sample-schema-file">
-<h2><a class="toc-backref" href="#id14">Sample Schema File</a><a class="headerlink" href="#sample-schema-file" title="Permalink to this headline">¶</a></h2>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="k">class</span> <span class="nc">BlankSchema</span> <span class="p">{</span>
-    <span class="n">private</span> <span class="n">BlankSchema</span><span class="p">()</span> <span class="p">{</span>
-        <span class="o">//</span><span class="n">private</span>
+</section>
+<section id="sample-schema-file">
+<h2><a class="toc-backref" href="#id14">Sample Schema File</a><a class="headerlink" href="#sample-schema-file" title="Permalink to this headline"></a></h2>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span> <span class="kd">class</span> <span class="nc">BlankSchema</span> <span class="p">{</span>
+    <span class="kd">private</span> <span class="nf">BlankSchema</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">//private</span>
     <span class="p">}</span>
 
-    <span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">Schema</span> <span class="n">SCHEMA</span> <span class="o">=</span> <span class="n">generateSchema</span><span class="p">();</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">Schema</span> <span class="n">SCHEMA</span> <span class="o">=</span> <span class="n">generateSchema</span><span class="p">();</span>
 
-    <span class="n">private</span> <span class="n">static</span> <span class="n">Schema</span> <span class="n">generateSchema</span><span class="p">()</span> <span class="p">{</span>
-        <span class="o">//</span> <span class="n">Define</span> <span class="n">the</span> <span class="n">prefix</span> <span class="ow">and</span> <span class="n">package</span> <span class="k">for</span> <span class="n">generated</span> <span class="n">code</span>
-        <span class="n">Schema</span> <span class="n">schema</span> <span class="o">=</span> <span class="n">new</span> <span class="n">Schema</span><span class="p">(</span><span class="s2">&quot;BlankSchema&quot;</span><span class="p">,</span> <span class="s2">&quot;com.palantir.atlasdb.blankschema&quot;</span><span class="p">);</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="n">Schema</span> <span class="nf">generateSchema</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// Define the prefix and package for generated code</span>
+        <span class="n">Schema</span> <span class="n">schema</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Schema</span><span class="p">(</span><span class="s">&quot;BlankSchema&quot;</span><span class="p">,</span> <span class="s">&quot;com.palantir.atlasdb.blankschema&quot;</span><span class="p">);</span>
 
-        <span class="o">/*</span> <span class="n">Schema</span> <span class="n">definition</span> <span class="n">start</span> <span class="o">*/</span>
-        <span class="n">schema</span><span class="o">.</span><span class="n">addTableDefinition</span><span class="p">(</span><span class="s2">&quot;TableName&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
-            <span class="o">...</span>
+        <span class="cm">/* Schema definition start */</span>
+        <span class="n">schema</span><span class="p">.</span><span class="na">addTableDefinition</span><span class="p">(</span><span class="s">&quot;TableName&quot;</span><span class="p">,</span> <span class="k">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
+            <span class="p">...</span>
         <span class="p">}});</span>
 
-        <span class="n">schema</span><span class="o">.</span><span class="n">addIndexDefinition</span><span class="p">(</span><span class="s2">&quot;IndexName&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">IndexDefinition</span><span class="p">()</span> <span class="p">{{</span>
-            <span class="o">..</span>
+        <span class="n">schema</span><span class="p">.</span><span class="na">addIndexDefinition</span><span class="p">(</span><span class="s">&quot;IndexName&quot;</span><span class="p">,</span> <span class="k">new</span> <span class="n">IndexDefinition</span><span class="p">()</span> <span class="p">{{</span>
+            <span class="p">..</span>
         <span class="p">}});</span>
-        <span class="o">/*</span> <span class="n">Schema</span> <span class="n">definition</span> <span class="n">end</span> <span class="o">*/</span>
+        <span class="cm">/* Schema definition end */</span>
 
-        <span class="n">schema</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span> <span class="o">//</span> <span class="n">ensure</span> <span class="n">that</span> <span class="n">the</span> <span class="n">schema</span> <span class="k">as</span> <span class="n">constructed</span> <span class="ow">is</span> <span class="n">valid</span><span class="o">.</span>
+        <span class="n">schema</span><span class="p">.</span><span class="na">validate</span><span class="p">()</span> <span class="c1">// ensure that the schema as constructed is valid.</span>
         <span class="k">return</span> <span class="n">schema</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="n">public</span> <span class="n">static</span> <span class="n">void</span> <span class="n">main</span> <span class="p">(</span><span class="n">String</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
-        <span class="o">//</span> <span class="n">generate</span> <span class="n">the</span> <span class="n">java</span> <span class="n">classes</span><span class="p">,</span> <span class="ow">and</span> <span class="n">write</span> <span class="n">them</span> <span class="n">to</span> <span class="n">the</span> <span class="n">specified</span> <span class="n">source</span> <span class="n">folder</span><span class="o">.</span>
-        <span class="n">SCHEMA</span><span class="o">.</span><span class="n">renderTablesWithNamespace</span><span class="p">(</span><span class="n">new</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;src&quot;</span><span class="p">),</span> <span class="n">Namespace</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;pt_met&quot;</span><span class="p">));</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span> <span class="p">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// generate the java classes, and write them to the specified source folder.</span>
+        <span class="n">SCHEMA</span><span class="p">.</span><span class="na">renderTablesWithNamespace</span><span class="p">(</span><span class="k">new</span> <span class="n">File</span><span class="p">(</span><span class="s">&quot;src&quot;</span><span class="p">),</span> <span class="n">Namespace</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="s">&quot;pt_met&quot;</span><span class="p">));</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -193,172 +197,161 @@ operation removes the specified cell-value pairs from the table.</p>
 java, in a java class, as a sequence of calls to a schema builder and
 anonymous inner classes. The java class is then run, which generates
 java classes for creating, accessing, and manipulating these tables.</p>
-<div class="section" id="value-types">
-<h3><a class="toc-backref" href="#id15">Value Types</a><a class="headerlink" href="#value-types" title="Permalink to this headline">¶</a></h3>
+<section id="value-types">
+<h3><a class="toc-backref" href="#id15">Value Types</a><a class="headerlink" href="#value-types" title="Permalink to this headline"></a></h3>
 <p>AtlasDB understands three kinds of data: primitive ValueTypes, protocol
 buffer GeneratedMessages, and palantir Persistables.</p>
-<div class="section" id="primitive-valuetypes">
-<span id="id1"></span><h4><a class="toc-backref" href="#id16">Primitive ValueTypes</a><a class="headerlink" href="#primitive-valuetypes" title="Permalink to this headline">¶</a></h4>
+<section id="primitive-valuetypes">
+<span id="id1"></span><h4><a class="toc-backref" href="#id16">Primitive ValueTypes</a><a class="headerlink" href="#primitive-valuetypes" title="Permalink to this headline"></a></h4>
 <p>AtlasDB represents simple data types by ValueType. Note that a
 Java primitive type can have multiple ValueTypes associated with it.
 Each ValueType represents a different method of storing that type in the
 database, and thus affects storage efficiency and search
 characteristics, among other things. The supported types are:</p>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="36%" />
-<col width="16%" />
-<col width="17%" />
-<col width="19%" />
-<col width="12%" />
+<col style="width: 36%" />
+<col style="width: 16%" />
+<col style="width: 17%" />
+<col style="width: 19%" />
+<col style="width: 12%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Name</th>
-<th class="head">Java Type</th>
-<th class="head">Format</th>
-<th class="head">Anywhere in
-row components?</th>
-<th class="head">Range
-Scans?</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Java Type</p></th>
+<th class="head"><p>Format</p></th>
+<th class="head"><p>Anywhere in
+row components?</p></th>
+<th class="head"><p>Range
+Scans?</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>FIXED_LONG</td>
-<td>long</td>
-<td>byte[8]</td>
-<td>YES</td>
-<td>YES</td>
+<tbody>
+<tr class="row-even"><td><p>FIXED_LONG</p></td>
+<td><p>long</p></td>
+<td><p>byte[8]</p></td>
+<td><p>YES</p></td>
+<td><p>YES</p></td>
 </tr>
-<tr class="row-odd"><td>FIXED_LONG_LITTLE_ENDIAN
-<a class="footnote-reference" href="#id11" id="id2">[3]</a></td>
-<td>long</td>
-<td>byte[8]</td>
-<td>YES</td>
-<td>NO <a class="footnote-reference" href="#id12" id="id3">[4]</a></td>
+<tr class="row-odd"><td><p>FIXED_LONG_LITTLE_ENDIAN
+<a class="footnote-reference brackets" href="#id11" id="id2">3</a></p></td>
+<td><p>long</p></td>
+<td><p>byte[8]</p></td>
+<td><p>YES</p></td>
+<td><p>NO <a class="footnote-reference brackets" href="#id12" id="id3">4</a></p></td>
 </tr>
-<tr class="row-even"><td>NULLABLE_FIXED_LONG</td>
-<td>long</td>
-<td>byte[9]</td>
-<td>YES</td>
-<td>YES</td>
+<tr class="row-even"><td><p>NULLABLE_FIXED_LONG</p></td>
+<td><p>long</p></td>
+<td><p>byte[9]</p></td>
+<td><p>YES</p></td>
+<td><p>YES</p></td>
 </tr>
-<tr class="row-odd"><td>VAR_LONG</td>
-<td>long</td>
-<td>byte[len] <a class="footnote-reference" href="#id9" id="id4">[1]</a></td>
-<td>YES</td>
-<td>YES</td>
+<tr class="row-odd"><td><p>VAR_LONG</p></td>
+<td><p>long</p></td>
+<td><p>byte[len] <a class="footnote-reference brackets" href="#id9" id="id4">1</a></p></td>
+<td><p>YES</p></td>
+<td><p>YES</p></td>
 </tr>
-<tr class="row-even"><td>VAR_SIGNED_LONG</td>
-<td>long</td>
-<td>byte[len]</td>
-<td>YES</td>
-<td>YES</td>
+<tr class="row-even"><td><p>VAR_SIGNED_LONG</p></td>
+<td><p>long</p></td>
+<td><p>byte[len]</p></td>
+<td><p>YES</p></td>
+<td><p>YES</p></td>
 </tr>
-<tr class="row-odd"><td>UUID</td>
-<td>UUID</td>
-<td>byte[16]</td>
-<td>YES</td>
-<td>YES</td>
+<tr class="row-odd"><td><p>UUID</p></td>
+<td><p>UUID</p></td>
+<td><p>byte[16]</p></td>
+<td><p>YES</p></td>
+<td><p>YES</p></td>
 </tr>
-<tr class="row-even"><td>SHA_256_HASH</td>
-<td>Sha256Hash</td>
-<td>byte[32]</td>
-<td>YES</td>
-<td>YES</td>
+<tr class="row-even"><td><p>SHA_256_HASH</p></td>
+<td><p>Sha256Hash</p></td>
+<td><p>byte[32]</p></td>
+<td><p>YES</p></td>
+<td><p>YES</p></td>
 </tr>
-<tr class="row-odd"><td>STRING</td>
-<td>String</td>
-<td>byte[]</td>
-<td>NO <a class="footnote-reference" href="#id10" id="id5">[2]</a></td>
-<td>YES</td>
+<tr class="row-odd"><td><p>STRING</p></td>
+<td><p>String</p></td>
+<td><p>byte[]</p></td>
+<td><p>NO <a class="footnote-reference brackets" href="#id10" id="id5">2</a></p></td>
+<td><p>YES</p></td>
 </tr>
-<tr class="row-even"><td>VAR_STRING</td>
-<td>String</td>
-<td>byte[len]</td>
-<td>YES</td>
-<td>NO <a class="footnote-reference" href="#id12" id="id6">[4]</a></td>
+<tr class="row-even"><td><p>VAR_STRING</p></td>
+<td><p>String</p></td>
+<td><p>byte[len]</p></td>
+<td><p>YES</p></td>
+<td><p>NO <a class="footnote-reference brackets" href="#id12" id="id6">4</a></p></td>
 </tr>
-<tr class="row-odd"><td>BLOB</td>
-<td>byte[]</td>
-<td>byte[]</td>
-<td>NO <a class="footnote-reference" href="#id10" id="id7">[2]</a></td>
-<td>YES</td>
+<tr class="row-odd"><td><p>BLOB</p></td>
+<td><p>byte[]</p></td>
+<td><p>byte[]</p></td>
+<td><p>NO <a class="footnote-reference brackets" href="#id10" id="id7">2</a></p></td>
+<td><p>YES</p></td>
 </tr>
-<tr class="row-even"><td>SIZED_BLOB</td>
-<td>byte[]</td>
-<td>byte[len]</td>
-<td>YES</td>
-<td>NO <a class="footnote-reference" href="#id12" id="id8">[4]</a></td>
+<tr class="row-even"><td><p>SIZED_BLOB</p></td>
+<td><p>byte[]</p></td>
+<td><p>byte[len]</p></td>
+<td><p>YES</p></td>
+<td><p>NO <a class="footnote-reference brackets" href="#id12" id="id8">4</a></p></td>
 </tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="id9" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id4">[1]</a></td><td>All long data types are signed, except for <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code>.</td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id10" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id5">1</a>, <a class="fn-backref" href="#id7">2</a>)</em> A <code class="docutils literal notranslate"><span class="pre">STRING</span></code> or <code class="docutils literal notranslate"><span class="pre">BLOB</span></code> can only be a row component
+<dl class="footnote brackets">
+<dt class="label" id="id9"><span class="brackets"><a class="fn-backref" href="#id4">1</a></span></dt>
+<dd><p>All long data types are signed, except for <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code>.</p>
+</dd>
+<dt class="label" id="id10"><span class="brackets">2</span><span class="fn-backref">(<a href="#id5">1</a>,<a href="#id7">2</a>)</span></dt>
+<dd><p>A <code class="docutils literal notranslate"><span class="pre">STRING</span></code> or <code class="docutils literal notranslate"><span class="pre">BLOB</span></code> can only be a row component
 if it is the last component of the component list.  There is schema validation
-to ensure this is true.</td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id11" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id2">[3]</a></td><td>This type can be useful on some key value stores because keys next
+to ensure this is true.</p>
+</dd>
+<dt class="label" id="id11"><span class="brackets"><a class="fn-backref" href="#id2">3</a></span></dt>
+<dd><p>This type can be useful on some key value stores because keys next
 to each other won’t be written next to each other.  This can be good because
-it will spread out the load of writes to many different ranges.</td></tr>
-</tbody>
-</table>
-<table class="docutils footnote" frame="void" id="id12" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label">[4]</td><td><em>(<a class="fn-backref" href="#id3">1</a>, <a class="fn-backref" href="#id6">2</a>, <a class="fn-backref" href="#id8">3</a>)</em> <p>If a type does not support range-scanning, <strong>range scans will still be available
+it will spread out the load of writes to many different ranges.</p>
+</dd>
+<dt class="label" id="id12"><span class="brackets">4</span><span class="fn-backref">(<a href="#id3">1</a>,<a href="#id6">2</a>,<a href="#id8">3</a>)</span></dt>
+<dd><p>If a type does not support range-scanning, <strong>range scans will still be available
 in the API but will not behave as expected</strong>.
 In particular, range-scanning will exact-match components for <code class="docutils literal notranslate"><span class="pre">VAR_STRING</span></code> and
 <code class="docutils literal notranslate"><span class="pre">SIZED_BLOB</span></code> types.
 For example, if you have a key with components (<code class="docutils literal notranslate"><span class="pre">VAR_STRING</span></code>, <code class="docutils literal notranslate"><span class="pre">FIXED_LONG</span></code>)
 and search for prefix “ab”:</p>
-<blockquote class="last">
+<blockquote>
 <div><ul class="simple">
-<li>(“ab”, 10) will match</li>
-<li>(“ab”, 20) will match</li>
-<li>(“abc”, 30) will not match</li>
+<li><p>(“ab”, 10) will match</p></li>
+<li><p>(“ab”, 20) will match</p></li>
+<li><p>(“abc”, 30) will not match</p></li>
 </ul>
 </div></blockquote>
-</td></tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="protobufs-and-persistables">
-<h4><a class="toc-backref" href="#id17">Protobufs and Persistables</a><a class="headerlink" href="#protobufs-and-persistables" title="Permalink to this headline">¶</a></h4>
+</dd>
+</dl>
+</section>
+<section id="protobufs-and-persistables">
+<h4><a class="toc-backref" href="#id17">Protobufs and Persistables</a><a class="headerlink" href="#protobufs-and-persistables" title="Permalink to this headline"></a></h4>
 <p>For protobufs and persistables, AtlasDB will handle persisting and
 hydrating objects to and from byte arrays. Otherwise, they function
 similarly to ValueType.BLOB. However, for structured data it is
 recommended that you store them as protobufs or persistables rather than
 BLOBs - this is because AtlasDB can then extract component values from
 the structs to create indexes.</p>
-</div>
-</div>
-<div class="section" id="schema-objects">
-<h3><a class="toc-backref" href="#id18">Schema Objects</a><a class="headerlink" href="#schema-objects" title="Permalink to this headline">¶</a></h3>
+</section>
+</section>
+<section id="schema-objects">
+<h3><a class="toc-backref" href="#id18">Schema Objects</a><a class="headerlink" href="#schema-objects" title="Permalink to this headline"></a></h3>
 <p>The AtlasDB schema contains four kinds of top level objects - tables,
 indexes, stream stores, and cleanup tasks.</p>
 <ul class="simple">
-<li><strong>Tables</strong> are the base structure for storing information in AtlasDB.
+<li><p><strong>Tables</strong> are the base structure for storing information in AtlasDB.
 Similar to SQL tables in idea, with base layout described in the
-section above.</li>
-<li><strong>Indexes</strong> are tables which explicitly base their content off of a
+section above.</p></li>
+<li><p><strong>Indexes</strong> are tables which explicitly base their content off of a
 parent table. They are useful for optimizing access patterns on a
-table.</li>
-<li><strong>Stream Stores</strong> store large/oversized binary data. They are similar
-to SQL overflow/LOB stores.</li>
-<li><strong>Cleanup Tasks</strong> are useful for cleaning up tables when the data
-they reference is deleted. Similar to ON DELETE CASCADE in SQL.</li>
+table.</p></li>
+<li><p><strong>Stream Stores</strong> store large/oversized binary data. They are similar
+to SQL overflow/LOB stores.</p></li>
+<li><p><strong>Cleanup Tasks</strong> are useful for cleaning up tables when the data
+they reference is deleted. Similar to ON DELETE CASCADE in SQL.</p></li>
 </ul>
 <p>In this section, we’ll give you a overview of what each object does and
 how to add it to a schema. Stream stores and CleanupTasks will have all
@@ -370,9 +363,9 @@ the high-level constructs (cascades, joins, etc.) are not implemented.
 This is because we practically don’t have the time to replicate every
 conceivable feature and philosophically want to be more explicit with
 our performance than with SQL queries. Things will not map 1:1 with SQL.</p>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

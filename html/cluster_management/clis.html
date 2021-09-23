@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Command Line Utilities &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Command Line Utilities &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -85,122 +87,122 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="command-line-utilities">
-<span id="clis"></span><h1>Command Line Utilities<a class="headerlink" href="#command-line-utilities" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+  <section id="command-line-utilities">
+<span id="clis"></span><h1>Command Line Utilities<a class="headerlink" href="#command-line-utilities" title="Permalink to this headline"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>For certain pieces of common functionality AtlasDB offers command line
 scripts. These scripts can be used to help automate common maintance
 tasks as well as help resolve problems encountered during operation.</p>
-</div>
-<div class="section" id="download-the-cli">
-<h2>Download The CLI<a class="headerlink" href="#download-the-cli" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="download-the-cli">
+<h2>Download The CLI<a class="headerlink" href="#download-the-cli" title="Permalink to this headline"></a></h2>
 <div class="admonition tip">
-<p class="first admonition-title">Tip</p>
-<p class="last">If you are working with Oracle KVS (whether directly, or as part of a migration) and are using a version of
+<p class="admonition-title">Tip</p>
+<p>If you are working with Oracle KVS (whether directly, or as part of a migration) and are using a version of
 AtlasDB before than 0.240.10, the standard AtlasDB CLI distribution will not work as it does not contain the
 requisite Oracle drivers. Please contact the AtlasDB team for assistance.</p>
 </div>
 <p>The CLI now comes prebuilt as an SLS distribution to be used with any AtlasDB-backed product.
 You can find the versions <a class="reference external" href="https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/">here</a> for download.
 You can use the CLI by unpacking the tar ball and running the executable in <code class="docutils literal notranslate"><span class="pre">service/bin/atlasdb-cli</span></code>.</p>
-</div>
-<div class="section" id="general-cli-options">
-<h2>General CLI Options<a class="headerlink" href="#general-cli-options" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="colwidths-given docutils">
+</section>
+<section id="general-cli-options">
+<h2>General CLI Options<a class="headerlink" href="#general-cli-options" title="Permalink to this headline"></a></h2>
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="8%" />
-<col width="67%" />
-<col width="25%" />
+<col style="width: 8%" />
+<col style="width: 67%" />
+<col style="width: 25%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Option</th>
-<th class="head">Description</th>
-<th class="head">Required</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Required</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--config</span></code></td>
-<td>The path to the install config yml file of the service. Usually <code class="docutils literal notranslate"><span class="pre">var/conf/install.yml</span></code>.</td>
-<td>Yes</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--config</span></code></p></td>
+<td><p>The path to the install config yml file of the service. Usually <code class="docutils literal notranslate"><span class="pre">var/conf/install.yml</span></code>.</p></td>
+<td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--runtime-config</span></code></td>
-<td>The path to the runtime config yml file of the service. Usually <code class="docutils literal notranslate"><span class="pre">var/conf/runtime.yml</span></code>. You should always
-specify one if you have a runtime config file.</td>
-<td>No</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--runtime-config</span></code></p></td>
+<td><p>The path to the runtime config yml file of the service. Usually <code class="docutils literal notranslate"><span class="pre">var/conf/runtime.yml</span></code>. You should always
+specify one if you have a runtime config file.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--inline-config</span></code></td>
-<td>Use it if you want to provide the AtlasDB config as a string/json.
-The config string should immediately follow the option.</td>
-<td>No</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--inline-config</span></code></p></td>
+<td><p>Use it if you want to provide the AtlasDB config as a string/json.
+The config string should immediately follow the option.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--config-root</span></code></td>
-<td>The AtlasDB config root for your install config. The CLI will by default look for <code class="docutils literal notranslate"><span class="pre">/atlasdb</span></code>/<code class="docutils literal notranslate"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--config-root</span></code></p></td>
+<td><p>The AtlasDB config root for your install config. The CLI will by default look for <code class="docutils literal notranslate"><span class="pre">/atlasdb</span></code>/<code class="docutils literal notranslate"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
 This can usually be found by cracking open the install config file and searching for parameters defined in
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java">Atlas Install config</a>.
 The parent of these parameters will be the install config root.
-Note that you have to provide the root with a ‘/’ as the first character.</td>
-<td>No</td>
+Note that you have to provide the root with a ‘/’ as the first character.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">--runtime-config-root</span></code></td>
-<td>The AtlasDB config root for your runtime config. The CLI will by default look for <code class="docutils literal notranslate"><span class="pre">/atlasdb</span></code>/<code class="docutils literal notranslate"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--runtime-config-root</span></code></p></td>
+<td><p>The AtlasDB config root for your runtime config. The CLI will by default look for <code class="docutils literal notranslate"><span class="pre">/atlasdb</span></code>/<code class="docutils literal notranslate"><span class="pre">/atlas</span></code> blocks in the config, but services can name these blocks arbitrarily.
 This can usually be found by cracking open the runtime config file and searching for parameters defined in
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java">Atlas Runtime config</a>.
 The parent of these parameters will be the runtime config root. If you do not have any AtlasDB runtime config,
 you should get rid of the <code class="docutils literal notranslate"><span class="pre">runtime-config</span></code> option to the CLI and Atlas will assume the default config.
-Note that you have to provide the root with a ‘/’ as the first character.</td>
-<td>No</td>
+Note that you have to provide the root with a ‘/’ as the first character.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">--offline</span></code></td>
-<td>Some CLIs can only be run in the offline mode. This means that you have to shut down all nodes of the service
-and then pass in this flag to the CLI.</td>
-<td>No</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--offline</span></code></p></td>
+<td><p>Some CLIs can only be run in the offline mode. This means that you have to shut down all nodes of the service
+and then pass in this flag to the CLI.</p></td>
+<td><p>No</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="compiling-the-cli">
-<h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline">¶</a></h2>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli-distribution:distTar
+</section>
+<section id="compiling-the-cli">
+<h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli-distribution:distTar
 </pre></div>
 </div>
 <p>This will create a tar file in <code class="docutils literal notranslate"><span class="pre">atlasdb-cli-distribution/build/distributions</span></code>, which you can untar on the machine where your AtlasDB client is installed.</p>
-</div>
-<div class="section" id="built-in-commands">
-<h2>Built-In Commands<a class="headerlink" href="#built-in-commands" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="built-in-commands">
+<h2>Built-In Commands<a class="headerlink" href="#built-in-commands" title="Permalink to this headline"></a></h2>
 <p>The following useful commands come with the vanilla atlasdb-cli.</p>
-<div class="section" id="sweep">
-<h3>sweep<a class="headerlink" href="#sweep" title="Permalink to this headline">¶</a></h3>
+<section id="sweep">
+<h3>sweep<a class="headerlink" href="#sweep" title="Permalink to this headline"></a></h3>
 <p>Sweep old table rows.
 This can be useful for improving performance if having too many dead cells is impacting read times.
 The command allows you to specify a namespace or a specific set of tables.
 For more information, check out <a class="reference internal" href="sweep/standard/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">the sweep CLI documentation</span></a>, or run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">sweep</span></code>.</p>
-</div>
-<div class="section" id="timestamp">
-<h3>timestamp<a class="headerlink" href="#timestamp" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="timestamp">
+<h3>timestamp<a class="headerlink" href="#timestamp" title="Permalink to this headline"></a></h3>
 <p>Read or recalculate the immutable timestamp. Run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">timestamp</span></code> for more information.</p>
-</div>
-<div class="section" id="migrate">
-<span id="clis-migrate"></span><h3>migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="migrate">
+<span id="clis-migrate"></span><h3>migrate<a class="headerlink" href="#migrate" title="Permalink to this headline"></a></h3>
 <p>Migrate data from one KVS to another. See <a class="reference internal" href="kvs-migration.html#kvs-migration"><span class="std std-ref">KVS migration</span></a> for details.</p>
-</div>
-<div class="section" id="read-punch-table">
-<h3>read-punch-table<a class="headerlink" href="#read-punch-table" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="read-punch-table">
+<h3>read-punch-table<a class="headerlink" href="#read-punch-table" title="Permalink to this headline"></a></h3>
 <p>Given an epoch time, in millis, the CLI reads the timestamp added to the punch table right before it.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --config config.yml read-punch-table --epoch
 </pre></div>
 </div>
-</div>
-</div>
-<div class="section" id="offline-clis">
-<span id="id1"></span><h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="offline-clis">
+<span id="id1"></span><h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline"></a></h2>
 <p>Due to their potentially destructive nature if run concurrently with active AtlasDB services, there are a number of CLIs which can only be run when AtlasDB is offline. These are:</p>
 <blockquote>
 <div><ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">clean-cass-locks-state</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">migrate</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">timestamp</span> <span class="pre">clean-transactions</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">timestamp</span> <span class="pre">fast-forward</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">clean-cass-locks-state</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">migrate</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timestamp</span> <span class="pre">clean-transactions</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timestamp</span> <span class="pre">fast-forward</span></code></p></li>
 </ul>
 </div></blockquote>
 <p>To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag.</p>
@@ -209,20 +211,20 @@ For more information, check out <a class="reference internal" href="sweep/standa
 If using <a class="reference internal" href="../services/timelock_service/index.html#external-timelock-service"><span class="std std-ref">external Timelock Services</span></a>, the Timelock Servers must be up even when running offline CLIs.
 Otherwise, offline CLIs will start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.</p>
-<div class="section" id="running-commands-without-any-servers-being-up">
-<h3>Running commands without any servers being up<a class="headerlink" href="#running-commands-without-any-servers-being-up" title="Permalink to this headline">¶</a></h3>
+<section id="running-commands-without-any-servers-being-up">
+<h3>Running commands without any servers being up<a class="headerlink" href="#running-commands-without-any-servers-being-up" title="Permalink to this headline"></a></h3>
 <p>If you want a command to run without any servers being up, you can either use the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag, or pass in a configuration file without leader, lock, or timestamp blocks.
 Either option will start an embedded timestamp and lock server.
 Note that if you are using external Timelock Services, as stated above we require the Timelock Services to be up when running offline CLIs.
 We do not support running CLIs with Timelock down, as we will not have enough information from the key-value services to determine timestamps.</p>
-</div>
-</div>
-<div class="section" id="writing-your-own">
-<h2>Writing Your Own<a class="headerlink" href="#writing-your-own" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="writing-your-own">
+<h2>Writing Your Own<a class="headerlink" href="#writing-your-own" title="Permalink to this headline"></a></h2>
 <p>You can write a new CLI by extending <code class="docutils literal notranslate"><span class="pre">SingleBackendCommand.java</span></code> which
 offers default AtlasDB configuration and connection out of the box.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

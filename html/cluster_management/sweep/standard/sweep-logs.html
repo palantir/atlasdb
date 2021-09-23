@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Background Sweep Inner Workings and Logs &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <title>Background Sweep Inner Workings and Logs &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -98,37 +100,37 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="background-sweep-inner-workings-and-logs">
-<span id="sweep-logs"></span><h1>Background Sweep Inner Workings and Logs<a class="headerlink" href="#background-sweep-inner-workings-and-logs" title="Permalink to this headline">¶</a></h1>
+  <section id="background-sweep-inner-workings-and-logs">
+<span id="sweep-logs"></span><h1>Background Sweep Inner Workings and Logs<a class="headerlink" href="#background-sweep-inner-workings-and-logs" title="Permalink to this headline"></a></h1>
 <p>At a high level, the background sweep thread works as follows:</p>
 <ol class="arabic simple">
-<li>Select a table to sweep;</li>
-<li>Read a batch of values from the table;</li>
-<li>Determine which values from the batch can be deleted;</li>
-<li>Delete the sweepable values from the table;</li>
-<li>If the table still has values, go to step 2.</li>
-<li>If the table has no new values, go to step 1.</li>
+<li><p>Select a table to sweep;</p></li>
+<li><p>Read a batch of values from the table;</p></li>
+<li><p>Determine which values from the batch can be deleted;</p></li>
+<li><p>Delete the sweepable values from the table;</p></li>
+<li><p>If the table still has values, go to step 2.</p></li>
+<li><p>If the table has no new values, go to step 1.</p></li>
 </ol>
 <p>In order to know if sweep is working, or its current progress, look for the following:</p>
 <ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">Starting</span> <span class="pre">background</span> <span class="pre">sweeper.</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Starting</span> <span class="pre">background</span> <span class="pre">sweeper.</span></code></p></li>
 </ul>
 <p>Logged when the service has started, to indicate that background sweeper thread is running.</p>
 <ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">Beginning</span> <span class="pre">iteration</span> <span class="pre">of</span> <span class="pre">sweep</span> <span class="pre">for</span> <span class="pre">table</span> <span class="pre">{}</span> <span class="pre">starting</span> <span class="pre">at</span> <span class="pre">row</span> <span class="pre">{}</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Beginning</span> <span class="pre">iteration</span> <span class="pre">of</span> <span class="pre">sweep</span> <span class="pre">for</span> <span class="pre">table</span> <span class="pre">{}</span> <span class="pre">starting</span> <span class="pre">at</span> <span class="pre">row</span> <span class="pre">{}</span></code></p></li>
 </ul>
 <p>Logged before we begin an iteration of sweep, after 1 or 5. (note that this could be triggered by background sweep, the sweep CLI, or the <code class="docutils literal notranslate"><span class="pre">SweeperService</span></code> endpoints)</p>
 <ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">Analyzed</span> <span class="pre">{number</span> <span class="pre">of</span> <span class="pre">values</span> <span class="pre">read}</span> <span class="pre">cell+timestamp</span> <span class="pre">pairs</span> <span class="pre">from</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}</span> <span class="pre">...</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Analyzed</span> <span class="pre">{number</span> <span class="pre">of</span> <span class="pre">values</span> <span class="pre">read}</span> <span class="pre">cell+timestamp</span> <span class="pre">pairs</span> <span class="pre">from</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}</span> <span class="pre">...</span></code></p></li>
 </ul>
 <p>Logged when a batch of values has been successfully swept, after 4. Its parameters also contain the number of
 (cell + ts) pairs read and deleted on this batch.</p>
 <ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">Finished</span> <span class="pre">sweeping</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}.</span> <span class="pre">...</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Finished</span> <span class="pre">sweeping</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}.</span> <span class="pre">...</span></code></p></li>
 </ul>
 <p>Logged when a table has been successfully swept, after 6. Its parameters also contain the number of (cell + ts) pairs
 read and deleted when sweeping this table.</p>
-</div>
+</section>
 
 
            </div>

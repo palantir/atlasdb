@@ -1,4 +1,5 @@
-# 3. Tagging for releases and long-term support
+3. Tagging for releases and long-term support
+*********************************************
 
 Date: 20/05/2016
 

@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Leader Configuration &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Leader Configuration &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -89,98 +91,98 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="leader-configuration">
-<span id="leader-config"></span><h1>Leader Configuration<a class="headerlink" href="#leader-configuration" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+  <section id="leader-configuration">
+<span id="leader-config"></span><h1>Leader Configuration<a class="headerlink" href="#leader-configuration" title="Permalink to this headline"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>The leader block is where you specify configurations related to leadership election of your AtlasDB clients.
 It’s good practice to always specify a leader configuration, even if there is a single AtlasDB client in your cluster.
 If no leader configuration is specified, then AtlasDB clients will create an embedded timestamp and lock service.</p>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">If you wish to run more than one AtlasDB client with Cassandra KVS, then you <strong>must</strong> provide a leader block.
+<p class="admonition-title">Warning</p>
+<p>If you wish to run more than one AtlasDB client with Cassandra KVS, then you <strong>must</strong> provide a leader block.
 Failure to do so can lead to data corruption.</p>
 </div>
-</div>
-<div class="section" id="leader">
-<h2>Leader<a class="headerlink" href="#leader" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="leader">
+<h2>Leader<a class="headerlink" href="#leader" title="Permalink to this headline"></a></h2>
 <p>Required parameters:</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="11%" />
-<col width="89%" />
+<col style="width: 11%" />
+<col style="width: 89%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>quorumSize</td>
-<td>Number of AtlasDB clients in your cluster that form a majority.
-This number must be greater than half of the total number of clients.</td>
+<tbody>
+<tr class="row-even"><td><p>quorumSize</p></td>
+<td><p>Number of AtlasDB clients in your cluster that form a majority.
+This number must be greater than half of the total number of clients.</p></td>
 </tr>
-<tr class="row-odd"><td>leaders</td>
-<td>A list of all hosts.
-The protocol must be http/https depending on if ssl is configured.</td>
+<tr class="row-odd"><td><p>leaders</p></td>
+<td><p>A list of all hosts.
+The protocol must be http/https depending on if ssl is configured.</p></td>
 </tr>
-<tr class="row-even"><td>localServer</td>
-<td>The <code class="docutils literal notranslate"><span class="pre">protocol://hostname:port</span></code> eg: <code class="docutils literal notranslate"><span class="pre">https://myhost:3828</span></code> of the host on which this config exists.</td>
+<tr class="row-even"><td><p>localServer</p></td>
+<td><p>The <code class="docutils literal notranslate"><span class="pre">protocol://hostname:port</span></code> eg: <code class="docutils literal notranslate"><span class="pre">https://myhost:3828</span></code> of the host on which this config exists.</p></td>
 </tr>
 </tbody>
 </table>
 <p>Optional parameters:</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="11%" />
-<col width="89%" />
+<col style="width: 11%" />
+<col style="width: 89%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>sslConfiguration</td>
-<td>The security settings to apply to client-side connections to the AtlasDB services at the endpoints, other than <code class="docutils literal notranslate"><span class="pre">localServer</span></code>, listed in the <code class="docutils literal notranslate"><span class="pre">leaders</span></code> array, specified according to the <a class="reference external" href="https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java">palantir/http-remoting</a> library. (defaults to not using SSL)</td>
+<tbody>
+<tr class="row-even"><td><p>sslConfiguration</p></td>
+<td><p>The security settings to apply to client-side connections to the AtlasDB services at the endpoints, other than <code class="docutils literal notranslate"><span class="pre">localServer</span></code>, listed in the <code class="docutils literal notranslate"><span class="pre">leaders</span></code> array, specified according to the <a class="reference external" href="https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java">palantir/http-remoting</a> library. (defaults to not using SSL)</p></td>
 </tr>
-<tr class="row-odd"><td>learnerLogDir</td>
-<td>Path to the paxos learner logs (defaults to var/data/paxos/learner)</td>
+<tr class="row-odd"><td><p>learnerLogDir</p></td>
+<td><p>Path to the paxos learner logs (defaults to var/data/paxos/learner)</p></td>
 </tr>
-<tr class="row-even"><td>acceptorLogDir</td>
-<td>Path to the paxos acceptor logs (defaults to var/data/paxos/acceptor)</td>
+<tr class="row-even"><td><p>acceptorLogDir</p></td>
+<td><p>Path to the paxos acceptor logs (defaults to var/data/paxos/acceptor)</p></td>
 </tr>
-<tr class="row-odd"><td>lockCreator</td>
-<td>The host responsible for creation of the schema mutation lock table.
+<tr class="row-odd"><td><p>lockCreator</p></td>
+<td><p>The host responsible for creation of the schema mutation lock table.
 If specified, this must be same across all hosts.
-This defaults to the first host in the sorted leaders list, so it should be consistent across nodes if not specifed.</td>
+This defaults to the first host in the sorted leaders list, so it should be consistent across nodes if not specifed.</p></td>
 </tr>
-<tr class="row-even"><td>pingRateMs</td>
-<td>Defaults to 5000.</td>
+<tr class="row-even"><td><p>pingRateMs</p></td>
+<td><p>Defaults to 5000.</p></td>
 </tr>
-<tr class="row-odd"><td>randomWaitBeforeProposingLeadershipMs</td>
-<td>Defaults to 1000.</td>
+<tr class="row-odd"><td><p>randomWaitBeforeProposingLeadershipMs</p></td>
+<td><p>Defaults to 1000.</p></td>
 </tr>
-<tr class="row-even"><td>leaderPingResponseWaitMs</td>
-<td>Defaults to 5000.</td>
+<tr class="row-even"><td><p>leaderPingResponseWaitMs</p></td>
+<td><p>Defaults to 5000.</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="leader-configuration-examples">
-<span id="leader-config-examples"></span><h2>Leader Configuration Examples<a class="headerlink" href="#leader-configuration-examples" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="leader-configuration-examples">
+<span id="leader-config-examples"></span><h2>Leader Configuration Examples<a class="headerlink" href="#leader-configuration-examples" title="Permalink to this headline"></a></h2>
 <p>Some example leader block configurations are listed below.
 The use of <cite>cluster</cite> and <cite>nodes</cite> are in reference to AtlasDB clients and are unrelated to your <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config block.</p>
 <div class="contents local topic" id="contents">
 <ul class="simple">
-<li><a class="reference internal" href="#multiple-atlasdb-clients" id="id1">Multiple AtlasDB Clients</a></li>
-<li><a class="reference internal" href="#single-atlasdb-client-or-offline-cli-with-leader-block" id="id2">Single AtlasDB Client or Offline CLI with Leader Block</a></li>
-<li><a class="reference internal" href="#single-atlasdb-client-without-leader-block-deprecated" id="id3">Single AtlasDB Client without Leader Block (DEPRECATED)</a></li>
-<li><a class="reference internal" href="#no-leader-online-cli-only" id="id4">No leader (Online CLI Only)</a></li>
+<li><p><a class="reference internal" href="#multiple-atlasdb-clients" id="id1">Multiple AtlasDB Clients</a></p></li>
+<li><p><a class="reference internal" href="#single-atlasdb-client-or-offline-cli-with-leader-block" id="id2">Single AtlasDB Client or Offline CLI with Leader Block</a></p></li>
+<li><p><a class="reference internal" href="#single-atlasdb-client-without-leader-block-deprecated" id="id3">Single AtlasDB Client without Leader Block (DEPRECATED)</a></p></li>
+<li><p><a class="reference internal" href="#no-leader-online-cli-only" id="id4">No leader (Online CLI Only)</a></p></li>
 </ul>
 </div>
-<div class="section" id="multiple-atlasdb-clients">
-<h3><a class="toc-backref" href="#id1">Multiple AtlasDB Clients</a><a class="headerlink" href="#multiple-atlasdb-clients" title="Permalink to this headline">¶</a></h3>
+<section id="multiple-atlasdb-clients">
+<h3><a class="toc-backref" href="#id1">Multiple AtlasDB Clients</a><a class="headerlink" href="#multiple-atlasdb-clients" title="Permalink to this headline"></a></h3>
 <p>A leader configuration block is required if you are using multiple AtlasDB clients.
 Failure to specify a leader configuration could lead to data corruption.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
@@ -206,9 +208,9 @@ Failure to specify a leader configuration could lead to data corruption.</p>
       <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="single-atlasdb-client-or-offline-cli-with-leader-block">
-<span id="leader-config-single-client-with-leader"></span><h3><a class="toc-backref" href="#id2">Single AtlasDB Client or Offline CLI with Leader Block</a><a class="headerlink" href="#single-atlasdb-client-or-offline-cli-with-leader-block" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="single-atlasdb-client-or-offline-cli-with-leader-block">
+<span id="leader-config-single-client-with-leader"></span><h3><a class="toc-backref" href="#id2">Single AtlasDB Client or Offline CLI with Leader Block</a><a class="headerlink" href="#single-atlasdb-client-or-offline-cli-with-leader-block" title="Permalink to this headline"></a></h3>
 <p>Similar to the above configuration, but with only a single leader specified in <code class="docutils literal notranslate"><span class="pre">leaders</span></code>.
 To run an <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span class="std std-ref">offline CLI</span></a>, you also need to specify a leader block.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
@@ -230,9 +232,9 @@ To run an <a class="reference internal" href="../cluster_management/clis.html#of
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="single-atlasdb-client-without-leader-block-deprecated">
-<h3><a class="toc-backref" href="#id3">Single AtlasDB Client without Leader Block (DEPRECATED)</a><a class="headerlink" href="#single-atlasdb-client-without-leader-block-deprecated" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="single-atlasdb-client-without-leader-block-deprecated">
+<h3><a class="toc-backref" href="#id3">Single AtlasDB Client without Leader Block (DEPRECATED)</a><a class="headerlink" href="#single-atlasdb-client-without-leader-block-deprecated" title="Permalink to this headline"></a></h3>
 <p>If you only have one AtlasDB client, then you may run with no leader block, although this option is deprecated, and will be removed in a future release.
 An example configuration is below.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
@@ -243,9 +245,9 @@ An example configuration is below.</p>
   <span class="c1"># no leader block</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="no-leader-online-cli-only">
-<h3><a class="toc-backref" href="#id4">No leader (Online CLI Only)</a><a class="headerlink" href="#no-leader-online-cli-only" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="no-leader-online-cli-only">
+<h3><a class="toc-backref" href="#id4">No leader (Online CLI Only)</a><a class="headerlink" href="#no-leader-online-cli-only" title="Permalink to this headline"></a></h3>
 <p>When you are running a client that can’t be a leader, for instance an online CLI, it is necessary to specify a remote lock and timestamp service running on your AtlasDB clients.
 If you are running multiple AtlasDB clients, ensure your CLI is pointing at the correct hosts and ports for the service you wish to interact with.
 If you are running an <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span class="std std-ref">offline CLI</span></a> then you must specify a leader block as noted above in the <a class="reference internal" href="#leader-config-single-client-with-leader"><span class="std std-ref">Single AtlasDB Client with Leader Block</span></a> section.</p>
@@ -273,9 +275,9 @@ If you are running an <a class="reference internal" href="../cluster_management/
       <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

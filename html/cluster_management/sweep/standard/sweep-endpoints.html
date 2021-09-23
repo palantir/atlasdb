@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AtlasDB Sweep Endpoints &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <title>AtlasDB Sweep Endpoints &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -98,11 +100,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="atlasdb-sweep-endpoints">
-<span id="id1"></span><h1>AtlasDB Sweep Endpoints<a class="headerlink" href="#atlasdb-sweep-endpoints" title="Permalink to this headline">¶</a></h1>
+  <section id="atlasdb-sweep-endpoints">
+<span id="id1"></span><h1>AtlasDB Sweep Endpoints<a class="headerlink" href="#atlasdb-sweep-endpoints" title="Permalink to this headline"></a></h1>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Sweeps can be resource-intensive (especially if batching parameters are generous and/or cells have very large
+<p class="admonition-title">Warning</p>
+<p>Sweeps can be resource-intensive (especially if batching parameters are generous and/or cells have very large
 values). The sweep endpoints don’t currently support cancellation, so to stop a running sweep you will need to
 bounce your service. This is likely to be acceptable if your service is deployed in an HA configuration, but be
 careful when using the sweep endpoint in non-HA configurations.</p>
@@ -110,62 +112,62 @@ careful when using the sweep endpoint in non-HA configurations.</p>
 <p>If you ever need to force a particular table to be swept immediately, you can run sweep by making a POST request to the
 <code class="docutils literal notranslate"><span class="pre">/sweep/sweep-table</span></code> endpoint. Sweep runs initiated via the endpoint are configurable via standard HTTP query
 parameters.</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="20%" />
-<col width="50%" />
-<col width="30%" />
+<col style="width: 20%" />
+<col style="width: 50%" />
+<col style="width: 30%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Parameter Name</th>
-<th class="head">Description</th>
-<th class="head">Required/Optional</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter Name</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Required/Optional</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">tablename</span></code></td>
-<td>Fully qualified name of table to be swept (inclusive of namespace; e.g. <code class="docutils literal notranslate"><span class="pre">namespace.actualTableName</span></code>).</td>
-<td>Required</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tablename</span></code></p></td>
+<td><p>Fully qualified name of table to be swept (inclusive of namespace; e.g. <code class="docutils literal notranslate"><span class="pre">namespace.actualTableName</span></code>).</p></td>
+<td><p>Required</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">startRow</span></code></td>
-<td>Base16 encoded row where Sweep will start sweeping from.</td>
-<td>Optional (default: empty - i.e. first row of table)</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">startRow</span></code></p></td>
+<td><p>Base16 encoded row where Sweep will start sweeping from.</p></td>
+<td><p>Optional (default: empty - i.e. first row of table)</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">fullSweep</span></code></td>
-<td>Whether to sweep a full table. If set to <code class="docutils literal notranslate"><span class="pre">false</span></code>, we will sweep just one batch.</td>
-<td>Optional (default: true)</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fullSweep</span></code></p></td>
+<td><p>Whether to sweep a full table. If set to <code class="docutils literal notranslate"><span class="pre">false</span></code>, we will sweep just one batch.</p></td>
+<td><p>Optional (default: true)</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">maxCellTsPairsToExamine</span></code></td>
-<td>Total number of cell-timestamp pairs to examine before a batch completes. Note that Sweep may actually read more
-than this value if that is required to complete reading all cell-timestamp pairs in a given row.</td>
-<td>Optional (default: 128)*</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">maxCellTsPairsToExamine</span></code></p></td>
+<td><p>Total number of cell-timestamp pairs to examine before a batch completes. Note that Sweep may actually read more
+than this value if that is required to complete reading all cell-timestamp pairs in a given row.</p></td>
+<td><p>Optional (default: 128)*</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">candidateBatchSize</span></code></td>
-<td>Number of cell-timestamp pairs to query the key value service for at a time.</td>
-<td>Optional (default: 128)*</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">candidateBatchSize</span></code></p></td>
+<td><p>Number of cell-timestamp pairs to query the key value service for at a time.</p></td>
+<td><p>Optional (default: 128)*</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">deleteBatchSize</span></code></td>
-<td>Number of cell-timestamp pairs to delete from the key-value service at a time. Note that Sweep may attempt
-slightly larger deletes than this value, but it is guaranteed that it does not exceed twice this.</td>
-<td>Optional (default: 128)*</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">deleteBatchSize</span></code></p></td>
+<td><p>Number of cell-timestamp pairs to delete from the key-value service at a time. Note that Sweep may attempt
+slightly larger deletes than this value, but it is guaranteed that it does not exceed twice this.</p></td>
+<td><p>Optional (default: 128)*</p></td>
 </tr>
 </tbody>
 </table>
 <p>* Note the the sweep config might be lower if previous sweep runs have failed.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
+<p class="admonition-title">Note</p>
 <p>If using curl from a shell to hit the sweep endpoint, please remember to escape ampersands and/or quote the
 URL provided to curl; otherwise, the ampersand will end the command and run curl in the background with the first
 parameter provided, disregarding all other parameters.</p>
 <p>A correct query could look like this. If the URL was not quoted, this would sweep the table from the beginning.</p>
-<div class="code last highlight-default notranslate"><div class="highlight"><pre><span></span>$ curl -k -XPOST &#39;https://palantir:9999/sweep/sweep-table?tablename=foo.bar&amp;startRow=3141592654&#39;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ curl -k -XPOST &#39;https://palantir:9999/sweep/sweep-table?tablename=foo.bar&amp;startRow=3141592654&#39;
 </pre></div>
 </div>
 </div>
 <p>Using the sweep endpoints to manually kick off sweep will <em>not</em> update the Background Sweeper’s sweep priority table.
 This will publish some metrics (such as the number of cell-timestamp pairs examined and deleted), but not all
 (in particular, sweep outcome metrics are not published).</p>
-</div>
+</section>
 
 
            </div>

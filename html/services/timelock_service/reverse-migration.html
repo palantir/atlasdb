@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reverse Migration &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <title>Reverse Migration &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -94,16 +96,16 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="reverse-migration">
-<span id="timelock-reverse-migration"></span><h1>Reverse Migration<a class="headerlink" href="#reverse-migration" title="Permalink to this headline">¶</a></h1>
+  <section id="reverse-migration">
+<span id="timelock-reverse-migration"></span><h1>Reverse Migration<a class="headerlink" href="#reverse-migration" title="Permalink to this headline"></a></h1>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Many Atlas clients switched to using TimeLock by default many versions after it was first reasonable to use Atlas with TimeLock.
+<p class="admonition-title">Warning</p>
+<p>Many Atlas clients switched to using TimeLock by default many versions after it was first reasonable to use Atlas with TimeLock.
 If you are on this page because you were directed to it by an error stating “This can happen if you attempt to run AtlasDB without a timelock block after having previously migrated to the TimeLock server”, then please <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">configure your service</span></a> to use TimeLock rather than attempting a reverse migration.</p>
 </div>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Improperly executing reverse migration from external timestamp and lock services can result in
+<p class="admonition-title">Danger</p>
+<p>Improperly executing reverse migration from external timestamp and lock services can result in
 <strong>SEVERE DATA CORRUPTION</strong>! Please contact the AtlasDB team before attempting a reverse migration.</p>
 </div>
 <p>While the migration from an embedded to external timelock service is automatic, the reverse is a manual process. The
@@ -113,49 +115,49 @@ embedded service.</p>
 running). We do not currently protect against accidentally not running this process offline.
 Throughout this document, we assume the AtlasDB client you are trying to reverse-migrate is <code class="docutils literal notranslate"><span class="pre">client</span></code> .</p>
 <ol class="arabic simple">
-<li>Shut down your AtlasDB clients for <code class="docutils literal notranslate"><span class="pre">client</span></code> .</li>
-<li>Take a restore timestamp.</li>
-<li>Revert your AtlasDB client configuration.</li>
-<li>Restart the TimeLock servers.</li>
-<li>Update your key-value service to the restore timestamp.</li>
-<li>Start your AtlasDB clients.</li>
+<li><p>Shut down your AtlasDB clients for <code class="docutils literal notranslate"><span class="pre">client</span></code> .</p></li>
+<li><p>Take a restore timestamp.</p></li>
+<li><p>Revert your AtlasDB client configuration.</p></li>
+<li><p>Restart the TimeLock servers.</p></li>
+<li><p>Update your key-value service to the restore timestamp.</p></li>
+<li><p>Start your AtlasDB clients.</p></li>
 </ol>
-<div class="section" id="step-1-shut-down-atlasdb-clients">
-<h2>Step 1: Shut Down AtlasDB Clients<a class="headerlink" href="#step-1-shut-down-atlasdb-clients" title="Permalink to this headline">¶</a></h2>
+<section id="step-1-shut-down-atlasdb-clients">
+<h2>Step 1: Shut Down AtlasDB Clients<a class="headerlink" href="#step-1-shut-down-atlasdb-clients" title="Permalink to this headline"></a></h2>
 <p>Make sure that your AtlasDB clients for <code class="docutils literal notranslate"><span class="pre">client</span></code> are shut down. Failure to do this can result in severe data
 corruption, because we cannot guarantee that the Timelock Server and the embedded AtlasDB timestamp services will
 together issue monotonically increasing timestamps.</p>
-</div>
-<div class="section" id="step-2-take-a-restore-timestamp">
-<h2>Step 2: Take a Restore Timestamp<a class="headerlink" href="#step-2-take-a-restore-timestamp" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="step-2-take-a-restore-timestamp">
+<h2>Step 2: Take a Restore Timestamp<a class="headerlink" href="#step-2-take-a-restore-timestamp" title="Permalink to this headline"></a></h2>
 <p>Obtain a fresh timestamp for <code class="docutils literal notranslate"><span class="pre">client</span></code> from the TimeLock servers. This is important to ensure that the sequence
 of timestamps across TimeLock and the key-value service backed services is monotonically increasing.</p>
 <p>This can be obtained using <code class="docutils literal notranslate"><span class="pre">curl</span></code> as follows. Note that if you obtain an HTTP 503 error, this is because you curled a
 node that was not the leader; please try the other nodes.</p>
 <blockquote>
-<div><div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="o">&lt;</span><span class="n">protocol</span><span class="o">&gt;</span><span class="p">:</span><span class="o">//&lt;</span><span class="n">host</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">port</span><span class="o">&gt;/</span><span class="n">timelock</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">tl</span><span class="o">/</span><span class="n">ts</span><span class="o">/&lt;</span><span class="n">namespace</span><span class="o">&gt;</span> \
-  <span class="o">--</span><span class="n">data</span> <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Authorization: Bearer q&quot;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/&lt;namespace&gt; <span class="se">\</span>
+  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
 <p>Note down the value returned from this call; we’ll refer to it as <code class="docutils literal notranslate"><span class="pre">TS</span></code> from here on.</p>
-</div>
-<div class="section" id="step-3-revert-atlasdb-client-configurations">
-<h2>Step 3: Revert AtlasDB Client Configurations<a class="headerlink" href="#step-3-revert-atlasdb-client-configurations" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="step-3-revert-atlasdb-client-configurations">
+<h2>Step 3: Revert AtlasDB Client Configurations<a class="headerlink" href="#step-3-revert-atlasdb-client-configurations" title="Permalink to this headline"></a></h2>
 <p>Remove the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block from your AtlasDB client configurations. For more detail on options
 for using embedded timestamp and lock services, please consult <a class="reference internal" href="../../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader Config</span></a>.</p>
-</div>
-<div class="section" id="step-4-start-your-timelock-servers">
-<h2>Step 4: Start your TimeLock Servers<a class="headerlink" href="#step-4-start-your-timelock-servers" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="step-4-start-your-timelock-servers">
+<h2>Step 4: Start your TimeLock Servers<a class="headerlink" href="#step-4-start-your-timelock-servers" title="Permalink to this headline"></a></h2>
 <p>Start your TimeLock servers. Other services that were still dependent on TimeLock (if any) should now
 work normally. This step is placed here to minimise downtime for other services that may be running against TimeLock.</p>
-</div>
-<div class="section" id="step-5-update-your-key-value-service">
-<h2>Step 5: Update your Key-Value Service<a class="headerlink" href="#step-5-update-your-key-value-service" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="step-5-update-your-key-value-service">
+<h2>Step 5: Update your Key-Value Service<a class="headerlink" href="#step-5-update-your-key-value-service" title="Permalink to this headline"></a></h2>
 <p>Update the timestamp table in your key value service, such that it is valid and has the bound set to <code class="docutils literal notranslate"><span class="pre">TS</span></code> .
 This will vary depending on your choice of key-value service:</p>
 <ul>
-<li><p class="first">If you are using <strong>Cassandra</strong>, then you can carry out the following steps.
+<li><p>If you are using <strong>Cassandra</strong>, then you can carry out the following steps.
 We suppose that your clients have the keyspace <code class="docutils literal notranslate"><span class="pre">client</span></code> in the examples below; at a high level, we want to truncate
 the timestamp table to remove all entries, and then add a single entry with row and column names <code class="docutils literal notranslate"><span class="pre">0x7473</span></code>
 (case-sensitive) and a blob value indicating the actual timestamp.</p>
@@ -197,26 +199,26 @@ cqlsh:client&gt; SELECT * FROM &quot;_timestamp&quot; ;
 </pre></div>
 </div>
 </li>
-<li><p class="first">If you are using DBKVS and have followed the steps outlined in <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual TimeLock Migration</span></a>,
+<li><p>If you are using DBKVS and have followed the steps outlined in <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual TimeLock Migration</span></a>,
 you will first want to rename the column back to its original name.</p>
-<div class="code sql highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ALTER</span> <span class="n">TABLE</span> <span class="n">timestamp</span> <span class="n">RENAME</span> <span class="n">LEGACY_last_allocated</span> <span class="n">TO</span> <span class="n">last_allocated</span><span class="p">;</span>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span> <span class="k">TABLE</span> <span class="k">timestamp</span> <span class="k">RENAME</span> <span class="n">LEGACY_last_allocated</span> <span class="k">TO</span> <span class="n">last_allocated</span><span class="p">;</span>
 </pre></div>
 </div>
 <p>After that, you will want to set the value stored in that table in the database to be <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
-<div class="code sql highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">a_db</span><span class="o">=</span><span class="c1"># UPDATE _timestamp SET last_allocated = 314159265;</span>
-<span class="n">UPDATE</span> <span class="mi">1</span>
-<span class="n">a_db</span><span class="o">=</span><span class="c1"># SELECT * FROM _timestamp;</span>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="n">a_db</span><span class="o">=#</span> <span class="k">UPDATE</span> <span class="n">_timestamp</span> <span class="k">SET</span> <span class="n">last_allocated</span> <span class="o">=</span> <span class="mi">314159265</span><span class="p">;</span>
+<span class="k">UPDATE</span> <span class="mi">1</span>
+<span class="n">a_db</span><span class="o">=#</span> <span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">_timestamp</span><span class="p">;</span>
  <span class="n">last_allocated</span>
-<span class="o">----------------</span>
+<span class="c1">----------------</span>
       <span class="mi">314159265</span>
-<span class="p">(</span><span class="mi">1</span> <span class="n">row</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">1</span> <span class="k">row</span><span class="p">)</span>
 </pre></div>
 </div>
 </li>
 </ul>
-</div>
-<div class="section" id="step-6-start-your-atlasdb-clients">
-<h2>Step 6: Start your AtlasDB Clients<a class="headerlink" href="#step-6-start-your-atlasdb-clients" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="step-6-start-your-atlasdb-clients">
+<h2>Step 6: Start your AtlasDB Clients<a class="headerlink" href="#step-6-start-your-atlasdb-clients" title="Permalink to this headline"></a></h2>
 <p>Finally, start your AtlasDB clients. At this point, it may be useful to perform a simple smoke test to verify that your
 clients work properly or curl the embedded timestamp service to confirm timestamps are greater than your restore
 timestamp from above.</p>
@@ -227,8 +229,8 @@ timestamp from above.</p>
 </div>
 </div></blockquote>
 <p>This completes the reverse migration process.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

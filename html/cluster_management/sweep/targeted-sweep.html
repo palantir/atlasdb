@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Targeted Sweep &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <title>Targeted Sweep &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -91,75 +93,75 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="targeted-sweep">
-<span id="id1"></span><h1>Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline">¶</a></h1>
+  <section id="targeted-sweep">
+<span id="id1"></span><h1>Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline"></a></h1>
 <p>Targeted sweep persists the information about each transactional write as it is performed, and then uses this information to delete all older versions of each of the cells using a single ranged tombstone.</p>
-<div class="section" id="persisting-to-the-sweep-queue">
-<h2>Persisting to the Sweep Queue<a class="headerlink" href="#persisting-to-the-sweep-queue" title="Permalink to this headline">¶</a></h2>
+<section id="persisting-to-the-sweep-queue">
+<h2>Persisting to the Sweep Queue<a class="headerlink" href="#persisting-to-the-sweep-queue" title="Permalink to this headline"></a></h2>
 <p>As long as <code class="docutils literal notranslate"><span class="pre">enableSweepQueueWrites</span></code> is enabled, whenever a transaction is about to commit, the necessary information for deleting stale versions of cells is persisted to the sweep queue.</p>
-</div>
-<div class="section" id="running-background-targeted-sweep">
-<h2>Running Background Targeted Sweep<a class="headerlink" href="#running-background-targeted-sweep" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="running-background-targeted-sweep">
+<h2>Running Background Targeted Sweep<a class="headerlink" href="#running-background-targeted-sweep" title="Permalink to this headline"></a></h2>
 <p>Background targeted sweep can be enabled in the live reloadable runtime targeted sweep configuration.
 As long as targeted sweep is enabled, background threads will read the information persisted in the sweep queue, and will use ranged tombstones to delete any stale versions of the cells that have been written to.</p>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">While sweep queue writes are disabled, nothing will be persisted to the sweep queue.
+<p class="admonition-title">Warning</p>
+<p>While sweep queue writes are disabled, nothing will be persisted to the sweep queue.
 This can result in targeted sweep being unable to delete older versions of cells written to while sweep queue writes are disabled even if they are later enabled again.
 In this case, running standard sweep may be necessary, to delete any stale versions that targeted sweep has missed.</p>
 </div>
-</div>
-<div class="section" id="configuration-options">
-<h2>Configuration Options<a class="headerlink" href="#configuration-options" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="configuration-options">
+<h2>Configuration Options<a class="headerlink" href="#configuration-options" title="Permalink to this headline"></a></h2>
 <p>Targeted sweep uses a combination of <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">install and runtime AtlasDB configurations</span></a>.
 In both cases, these configuration options are specified within a <code class="docutils literal notranslate"><span class="pre">targetedSweep</span></code> context.</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="25%" />
-<col width="13%" />
-<col width="63%" />
+<col style="width: 25%" />
+<col style="width: 13%" />
+<col style="width: 63%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">AtlasDB Install Config</th>
-<th class="head">Default</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>AtlasDB Install Config</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">enableSweepQueueWrites</span></code></td>
-<td>true</td>
-<td>Whether information about writes should be persisted to the sweep queue. If set to false, the targeted sweep runtime configurations will be ignored.</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enableSweepQueueWrites</span></code></p></td>
+<td><p>true</p></td>
+<td><p>Whether information about writes should be persisted to the sweep queue. If set to false, the targeted sweep runtime configurations will be ignored.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">conservativeThreads</span></code></td>
-<td>1</td>
-<td>Number of threads to use for targeted sweep of tables with sweep strategy conservative. Maximum supported value is 256.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">conservativeThreads</span></code></p></td>
+<td><p>1</p></td>
+<td><p>Number of threads to use for targeted sweep of tables with sweep strategy conservative. Maximum supported value is 256.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">thoroughThreads</span></code></td>
-<td>1</td>
-<td>Number of threads to use for targeted sweep of tables with sweep strategy thorough. Maximum supported value is 256.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">thoroughThreads</span></code></p></td>
+<td><p>1</p></td>
+<td><p>Number of threads to use for targeted sweep of tables with sweep strategy thorough. Maximum supported value is 256.</p></td>
 </tr>
 </tbody>
 </table>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="25%" />
-<col width="13%" />
-<col width="63%" />
+<col style="width: 25%" />
+<col style="width: 13%" />
+<col style="width: 63%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">AtlasDB Runtime Config</th>
-<th class="head">Default</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>AtlasDB Runtime Config</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">enabled</span></code></td>
-<td>true</td>
-<td>Whether targeted sweep should be run by background threads. Note that enableSweepQueueWrites must be set to true before targeted sweep can be run.</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p>true</p></td>
+<td><p>Whether targeted sweep should be run by background threads. Note that enableSweepQueueWrites must be set to true before targeted sweep can be run.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">shards</span></code></td>
-<td>1</td>
-<td>Number of shards to use for persisting information to the sweep queue, enabling better parallelization of targeted sweep. The number of shards should be greater than or equal to the number of threads used for background targeted sweep. Note that this number must be monotonically increasing, and attempts to lower may be ignored. Maximum supported value is 256.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">shards</span></code></p></td>
+<td><p>1</p></td>
+<td><p>Number of shards to use for persisting information to the sweep queue, enabling better parallelization of targeted sweep. The number of shards should be greater than or equal to the number of threads used for background targeted sweep. Note that this number must be monotonically increasing, and attempts to lower may be ignored. Maximum supported value is 256.</p></td>
 </tr>
 </tbody>
 </table>
@@ -176,13 +178,19 @@ thread (which is the default) and 8 shards, one should add the following blocks 
 </div>
 <p>Also note that threads perform targeted sweep serially within the context of a shard, so configuring more threads
 in an attempt to increase parallelism will only work if the number of shards is also increased.</p>
-</div>
-<div class="section" id="changing-sweep-strategy-for-a-table">
-<h2>Changing Sweep Strategy for a Table<a class="headerlink" href="#changing-sweep-strategy-for-a-table" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="changing-sweep-strategy-for-a-table">
+<h2>Changing Sweep Strategy for a Table<a class="headerlink" href="#changing-sweep-strategy-for-a-table" title="Permalink to this headline"></a></h2>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Consult with the AtlasDB team before changing the sweep strategy of a table. Doing this incorrectly can invalidate
+<p class="admonition-title">Danger</p>
+<p>Consult with the AtlasDB team before changing the sweep strategy of a table. Doing this incorrectly can invalidate
 AtlasDB’s correctness guarantees.</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Throughout this section, when distinct sequential steps are indicated to roll the cluster from one version to
+another, it is imperative that each roll is complete before the next roll begins, and also that rolls that skip any
+version in the sequence are not allowed. Failure to follow this may result in <strong>SEVERE DATA CORRUPTION</strong>(TM).</p>
 </div>
 <p>Whenever targeted sweep enqueues a write into the sweep queue, it does so using the latest known sweep strategy for the
 table. If the sweep strategy for that table later changes, <strong>targeted sweep does not recheck the strategy</strong>, and will
@@ -197,47 +205,56 @@ entries are written to the CONSERVATIVE sweep queue, but read transactions are a
 hold the immutable timestamp lock (as if we were using the THOROUGH sweep strategy). This avoids the aforementioned
 correctness implications: any read-only transactions that may ever run concurrently with targeted sweep will also check
 the immutable timestamp lock.</p>
-<div class="section" id="conservative-to-thorough">
-<h3>CONSERVATIVE to THOROUGH<a class="headerlink" href="#conservative-to-thorough" title="Permalink to this headline">¶</a></h3>
-<dl class="docutils">
-<dt>Thus, a way of changing sweep strategy from CONSERVATIVE to THOROUGH while avoiding downtime is as follows:</dt>
-<dd><ol class="first last arabic simple">
-<li>Roll service nodes from a version with CONSERVATIVE sweep strategy to one with THOROUGH_MIGRATION.</li>
-<li>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with THOROUGH.
+<section id="conservative-to-thorough">
+<h3>CONSERVATIVE to THOROUGH<a class="headerlink" href="#conservative-to-thorough" title="Permalink to this headline"></a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>You should not change user transactions from read-only to read-write and the sweep strategy from conservative to
+thorough in the same release. In this case, read-only transactions on old nodes may fail during any state where
+both old and new nodes are simultaneously operating (though there are no correctness implications).</p>
+</div>
+<dl class="simple">
+<dt>Thus, a way of changing sweep strategy from CONSERVATIVE to THOROUGH while avoiding downtime is as follows:</dt><dd><ol class="arabic simple">
+<li><p>Roll service nodes from a version which uses read-only transactions (e.g. <code class="docutils literal notranslate"><span class="pre">runTaskReadOnly</span></code>) to one that uses
+only read-write transactions (e.g. <code class="docutils literal notranslate"><span class="pre">runTaskReadWrite</span></code>). Both versions should still use the CONSERVATIVE sweep
+strategy.</p></li>
+<li><p>Roll service nodes from a version that uses CONSERVATIVE sweep strategy AND only uses read-write transactions to
+one with THOROUGH_MIGRATION.</p></li>
+<li><p>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with THOROUGH.
 During this roll, the queue to which cell references are enqueued will vary depending on the individual node.
 However, all read transactions will check the immutable timestamp lock, so it’s okay for some values to be
-THOROUGH swept.</li>
+THOROUGH swept.</p></li>
 </ol>
 </dd>
 </dl>
 <p>This process may also be performed as a shutdown upgrade from CONSERVATIVE to THOROUGH (where ALL nodes are shut down
-before any is restarted with the new table metadata).</p>
-</div>
-<div class="section" id="thorough-to-conservative">
-<h3>THOROUGH to CONSERVATIVE<a class="headerlink" href="#thorough-to-conservative" title="Permalink to this headline">¶</a></h3>
-<dl class="docutils">
-<dt>The process here needs to account for the existence of old entries written to the THOROUGH sweep queue.</dt>
-<dd><ol class="first last arabic simple">
-<li>Roll service nodes from a version with THOROUGH sweep strategy to one with THOROUGH_MIGRATION.
-This is safe; see step 2 above.</li>
-<li>Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
-consulting the <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> targeted sweep metric.</li>
-<li>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with CONSERVATIVE.</li>
+before any is restarted with the new table metadata). In this case, it is also permissible that this upgrade covers
+moving away from the use of read-only transactions.</p>
+</section>
+<section id="thorough-to-conservative">
+<h3>THOROUGH to CONSERVATIVE<a class="headerlink" href="#thorough-to-conservative" title="Permalink to this headline"></a></h3>
+<dl class="simple">
+<dt>The process here needs to account for the existence of old entries written to the THOROUGH sweep queue.</dt><dd><ol class="arabic simple">
+<li><p>Roll service nodes from a version with THOROUGH sweep strategy to one with THOROUGH_MIGRATION.
+This is safe; see step 2 above.</p></li>
+<li><p>Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
+consulting the <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> targeted sweep metric.</p></li>
+<li><p>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with CONSERVATIVE. If desired,
+the CONSERVATIVE product version may immediately begin using read-only transactions.</p></li>
 </ol>
 </dd>
-<dt>This process may also be performed as a single shutdown upgrade from THOROUGH to CONSERVATIVE:</dt>
-<dd><ol class="first last arabic simple">
-<li>Shut down all the nodes.</li>
-<li>Start AtlasDB with the new table metadata, but <strong>do not use read-only transactions on the table yet</strong>.</li>
-<li>Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
-consulting the <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> targeted sweep metric.</li>
-<li>We are now guaranteed to perform no more thorough sweeps on the table and can run read-only transactions.</li>
+<dt>This process may also be performed as a single shutdown upgrade from THOROUGH to CONSERVATIVE:</dt><dd><ol class="arabic simple">
+<li><p>Shut down all the nodes.</p></li>
+<li><p>Start AtlasDB with the new table metadata, but <strong>do not use read-only transactions on the table yet</strong>.</p></li>
+<li><p>Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
+consulting the <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> targeted sweep metric.</p></li>
+<li><p>We are now guaranteed to perform no more thorough sweeps on the table and can run read-only transactions.</p></li>
 </ol>
 </dd>
 </dl>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

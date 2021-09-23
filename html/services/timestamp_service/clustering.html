@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clusters &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <title>Clusters &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -90,8 +92,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="clusters">
-<h1>Clusters<a class="headerlink" href="#clusters" title="Permalink to this headline">¶</a></h1>
+  <section id="clusters">
+<h1>Clusters<a class="headerlink" href="#clusters" title="Permalink to this headline"></a></h1>
 <p>The Timestamp Service can be run in clustered mode. The main benefit of this is that you get high availability;
 timestamps can be issued as long as a majority of nodes in a cluster are available and can communicate. It may
 be worth noting that there is a performance tradeoff involved here, as distributed consensus requires us to communicate
@@ -102,20 +104,20 @@ it has given out to a persistent store; in practice, we write this to a timestam
 <p>Note that the leader still needs to talk to a quorum of nodes before entertaining a timestamp request, to check
 that it is still the leader. This was a deliberate design decision to maintain safety in the face of clock drift.
 However, this only requires one round trip to a quorum of nodes, as opposed to two for Paxos.</p>
-<div class="section" id="safety">
-<h2>Safety<a class="headerlink" href="#safety" title="Permalink to this headline">¶</a></h2>
+<section id="safety">
+<h2>Safety<a class="headerlink" href="#safety" title="Permalink to this headline"></a></h2>
 <p>Our leader election allows us to guarantee that there will only be one leader at any time. Since only this leader
 is allowed to give out timestamps, and we require that it writes an upper bound <em>before</em> it is allowed to issue any
 timestamps that would take it past the previous upper bound, this is safe. Should the current leader fail mid-way and
 then recover, the cluster will have elected a new leader which would have seen the current leader’s upper bound.</p>
-</div>
-<div class="section" id="liveness">
-<h2>Liveness<a class="headerlink" href="#liveness" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="liveness">
+<h2>Liveness<a class="headerlink" href="#liveness" title="Permalink to this headline"></a></h2>
 <p>We rely on the resilience of our leader election algorithm here. The guarantees our implementation of Paxos gives
 include that as long as a majority quorum (strictly more than half) of the nodes are able to communicate with each
 other, the protocol can make progress (and in that way decide on a leader).</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

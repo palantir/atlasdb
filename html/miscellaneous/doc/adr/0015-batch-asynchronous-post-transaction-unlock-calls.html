@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>15. Batch asynchronous post-transaction unlock calls &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <title>15. Batch asynchronous post-transaction unlock calls &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -104,26 +106,23 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="batch-asynchronous-post-transaction-unlock-calls">
-<h1>15. Batch asynchronous post-transaction unlock calls<a class="headerlink" href="#batch-asynchronous-post-transaction-unlock-calls" title="Permalink to this headline">¶</a></h1>
+  <section id="batch-asynchronous-post-transaction-unlock-calls">
+<h1>15. Batch asynchronous post-transaction unlock calls<a class="headerlink" href="#batch-asynchronous-post-transaction-unlock-calls" title="Permalink to this headline"></a></h1>
 <p>Date: 28/06/2018</p>
-<div class="section" id="status">
-<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>## Status</p>
 <p>Accepted</p>
 <p>Functionally, this decision remains accepted.
 The implementation has been superseded; we now use Disruptor Autobatchers.</p>
-</div>
-<div class="section" id="context">
-<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>## Context</p>
 <p>As part of the AtlasDB transaction protocol, write transactions acquire locks from the lock service. They typically
 acquire two types of locks:</p>
 <ul class="simple">
-<li>An <em>immutable timestamp lock</em>, which AtlasDB uses as an estimate of the oldest running write transaction. The
+<li><p>An <em>immutable timestamp lock</em>, which AtlasDB uses as an estimate of the oldest running write transaction. The
 state of the database at timestamps less than the lowest active immutable timestamp lock is considered immutable, and
-thus eligible for cleanup by Sweep.</li>
-<li><em>Row locks</em> and <em>cell locks</em> (depending on the conflict handler of the tables involved in a write transaction) for
+thus eligible for cleanup by Sweep.</p></li>
+<li><p><em>Row locks</em> and <em>cell locks</em> (depending on the conflict handler of the tables involved in a write transaction) for
 rows or cells being written to. These locks are used to prevent multiple concurrent transactions from simultaneously
-writing to the same rows and committing.</li>
+writing to the same rows and committing.</p></li>
 </ul>
 <p>Transactions may also acquire additional locks as part of AtlasDB’s pre-commit condition framework. These conditions
 are arbitrary and we thus do not focus on optimising these.</p>
@@ -136,69 +135,64 @@ overhead of two lock service calls between a transaction successfully committing
 the user.</p>
 <p>Correctness of the transaction protocol is not compromised even if these locks are not released (though an effort
 should be made to release them for performance reasons). Consider that it is permissible for an AtlasDB client to
-crash after performing <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> into the transactions table, in which case the transaction is considered
+crash after performing <cite>putUnlessExists</cite> into the transactions table, in which case the transaction is considered
 committed.</p>
-</div>
-<div class="section" id="decision">
-<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>## Decision</p>
 <p>Instead of releasing the locks synchronously, release them asynchronously so that control is returned to the user very
 quickly after transaction commit. However, maintaining relatively low latency between transaction commit and unlock
 is important to avoid unnecessarily blocking other writers or sweep.</p>
 <p>Two main designs were considered:</p>
-<ol class="simple">
-<li>Maintain a thread pool of <code class="docutils literal notranslate"><span class="pre">N</span></code> consumer threads and a work queue of tokens to be unlocked. Transactions that commit
+<ol class="arabic simple">
+<li><p>Maintain a thread pool of <cite>N</cite> consumer threads and a work queue of tokens to be unlocked. Transactions that commit
 place their lock tokens on this queue; consumers pull tokens off the queue and make unlock requests to the lock
-service.</li>
-<li>Maintain a concurrent set of tokens that need to be unlocked; transactions that commit place their lock tokens
-in this set, and an executor asynchronously unlocks these tokens.</li>
+service.</p></li>
+<li><p>Maintain a concurrent set of tokens that need to be unlocked; transactions that commit place their lock tokens
+in this set, and an executor asynchronously unlocks these tokens.</p></li>
 </ol>
 <p>Solution 1 is simpler than solution 2 in terms of implementation. However, we opted for solution 2 for various reasons.
-Firstly, the latency provided by solution 1 is very sensitive to choosing <code class="docutils literal notranslate"><span class="pre">N</span></code> well - choosing too small <code class="docutils literal notranslate"><span class="pre">N</span></code> means that
+Firstly, the latency provided by solution 1 is very sensitive to choosing <cite>N</cite> well - choosing too small <cite>N</cite> means that
 there will be a noticeable gap between transaction commit and the relevant locks being unlocked. Conversely, choosing
-too large <code class="docutils literal notranslate"><span class="pre">N</span></code> incurs unnecessary overhead. Choosing a value of <code class="docutils literal notranslate"><span class="pre">N</span></code> in general is difficult and would likely require
+too large <cite>N</cite> incurs unnecessary overhead. Choosing a value of <cite>N</cite> in general is difficult and would likely require
 tuning depending on individual deployment and product read and write patterns, which is unscalable.</p>
 <p>Solution 2 also decreases the load placed on the lock service, as fewer unlock requests need to be made.</p>
 <p>In our implementation of solution 2, we use a single-threaded executor. This means that on average the additional
 latency we incur is about 0.5 RPCs on the lock service (assuming that that makes up a majority of time spent in
 unlocking tokens - it is the only network call involved).</p>
-<div class="section" id="tryunlock-api">
-<h3>tryUnlock() API<a class="headerlink" href="#tryunlock-api" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">TimelockService</span></code> now exposes a <code class="docutils literal notranslate"><span class="pre">tryUnlock()</span></code> API, which functions much like a regular <code class="docutils literal notranslate"><span class="pre">unlock()</span></code> except that the user
+<p>### tryUnlock() API</p>
+<p><cite>TimelockService</cite> now exposes a <cite>tryUnlock()</cite> API, which functions much like a regular <cite>unlock()</cite> except that the user
 does not need to wait for the operation to complete. This API is only exposed in Java (not over HTTP).</p>
-<p>This is implemented as a new default method on the <code class="docutils literal notranslate"><span class="pre">TimelockService</span></code> that delegates to <code class="docutils literal notranslate"><span class="pre">unlock()</span></code>; usefully, remote
-Feign proxies calling <code class="docutils literal notranslate"><span class="pre">tryUnlock()</span></code> will make an RPC for standard <code class="docutils literal notranslate"><span class="pre">unlock()</span></code>. This also gives us backwards
+<p>This is implemented as a new default method on the <cite>TimelockService</cite> that delegates to <cite>unlock()</cite>; usefully, remote
+Feign proxies calling <cite>tryUnlock()</cite> will make an RPC for standard <cite>unlock()</cite>. This also gives us backwards
 compatiblity; a new AtlasDB/TimeLock client can talk to an old TimeLock server that has no knowledge of this endpoint.</p>
-</div>
-<div class="section" id="concurrency-model">
-<h3>Concurrency Model<a class="headerlink" href="#concurrency-model" title="Permalink to this headline">¶</a></h3>
+<p>### Concurrency Model</p>
 <p>It is essential that adding an element to the set of outstanding tokens is efficient; yet, we also need to ensure that
 no token is left behind (at least indefinitely). We thus guard the concurrent set by a (Java) lock that permits both
 exclusive and shared modes of access.</p>
 <p>Transactions that enqueue lock tokens to be unlocked perform the following steps:</p>
-<ol class="simple">
-<li>Acquire the set lock in shared mode.</li>
-<li>Read a reference to the set of tokens to be unlocked.</li>
-<li>Add lock tokens to the set of tokens to be unlocked.</li>
-<li>Release the set lock.</li>
-<li>If no task is scheduled, then schedule a task by setting a ‘task scheduled’ boolean flag.
-This uses compare-and-set, so only one task will be scheduled while no task is running.</li>
+<ol class="arabic simple">
+<li><p>Acquire the set lock in shared mode.</p></li>
+<li><p>Read a reference to the set of tokens to be unlocked.</p></li>
+<li><p>Add lock tokens to the set of tokens to be unlocked.</p></li>
+<li><p>Release the set lock.</p></li>
+<li><p>If no task is scheduled, then schedule a task by setting a ‘task scheduled’ boolean flag.
+This uses compare-and-set, so only one task will be scheduled while no task is running.</p></li>
 </ol>
 <p>For this to be safe, the set used must be a concurrent set.</p>
 <p>The task that unlocks tokens in the set performs the following steps:</p>
-<ol class="simple">
-<li>Un-set the task scheduled flag.</li>
-<li>Acquire the set lock in exclusive mode.</li>
-<li>Read a reference to the set of tokens to be unlocked.</li>
-<li>Write the set reference to point to a new set.</li>
-<li>Release the set lock.</li>
-<li>Unlock all tokens in the set read in step 3.</li>
+<ol class="arabic simple">
+<li><p>Un-set the task scheduled flag.</p></li>
+<li><p>Acquire the set lock in exclusive mode.</p></li>
+<li><p>Read a reference to the set of tokens to be unlocked.</p></li>
+<li><p>Write the set reference to point to a new set.</p></li>
+<li><p>Release the set lock.</p></li>
+<li><p>Unlock all tokens in the set read in step 3.</p></li>
 </ol>
-<p>This model is trivially <em>safe</em>, in that no token that wasn’t enqueued can ever be unlocked, since all tokens that can
+<p>This model is trivially _safe_, in that no token that wasn’t enqueued can ever be unlocked, since all tokens that can
 ever become unlocked must have been added in step 3 of enqueueing, and unlocking a lock token is idempotent modulo
 a UUID clash.</p>
-<p>More interestingly, we can guarantee <em>liveness</em> - every token that was enqueued will be unlocked in the absence of
+<p>More interestingly, we can guarantee _liveness_ - every token that was enqueued will be unlocked in the absence of
 thread death. If an enqueue has a successful compare-and-set in step 5, then the token must be in the set
-(and is visible, because we synchronize on the set lock). If an enqueue does <em>not</em> have a successful compare-and-set,
+(and is visible, because we synchronize on the set lock). If an enqueue does _not_ have a successful compare-and-set,
 then some thread must already be scheduled to perform the unlock, and once it does the token must be in the relevant
 set (and again must be visible, because we synchronize on the set lock).</p>
 <p>To avoid issues with starving unlocks, we use a fair lock scheme. Once the unlocking thread attempts to acquire the set
@@ -206,9 +200,7 @@ lock, enqueues that are still running may finish, but fresh calls to enqueue wil
 after the unlocking thread has acquired and released it. This may have lower throughput than an unfair lock,
 but we deemed it necessary as ‘readers’ (committing transactions) far exceed ‘writers’ (the unlocking thread) -
 otherwise, the unlocking thread might be starved of the lock.</p>
-</div>
-<div class="section" id="timelock-failures">
-<h3>TimeLock Failures<a class="headerlink" href="#timelock-failures" title="Permalink to this headline">¶</a></h3>
+<p>### TimeLock Failures</p>
 <p>In some embodiments, the lock service is provided by a remote TimeLock server that may fail requests. There is retry
 logic at the transport layer underneath us.</p>
 <p>Previously, running a transaction task would throw an exception if unlocking row locks or the immutable timestamp
@@ -219,34 +211,26 @@ assume that locks used by a transaction are free after it commits (since another
 retrying unlocks is safe, as long as we do not continue to attempt to refresh the lock. AtlasDB clients automatically
 refresh locks they acquire; we ensure that a token being unlocked is synchronously removed from the set of locks
 to refresh <em>before</em> it is put on the unlock queue.</p>
-</div>
-</div>
-<div class="section" id="consequences">
-<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="improvements">
-<h3>Improvements<a class="headerlink" href="#improvements" title="Permalink to this headline">¶</a></h3>
+<p>## Consequences</p>
+<p>### Improvements</p>
 <ul class="simple">
-<li>Transactions no longer need to wait for their immutable timestamp lock and row/cell write locks to be unlocked
+<li><p>Transactions no longer need to wait for their immutable timestamp lock and row/cell write locks to be unlocked
 before returning. We anticipate this will make transactions faster (from a user-code perspective) by two
 round-trips to the lock service. In many deployments, the lock service is a remote TimeLock server, meaning that
-we save two network calls.</li>
-<li>Transactions can now succeed even if there were problems when unlocking locks after the transaction committed.</li>
-<li>Load on the TimeLock server will be reduced, as fewer unlock calls need to be made (though each call is larger and
-the total number of tokens is still the same, constant overheads e.g. of the transport layer will be reduced).</li>
+we save two network calls.</p></li>
+<li><p>Transactions can now succeed even if there were problems when unlocking locks after the transaction committed.</p></li>
+<li><p>Load on the TimeLock server will be reduced, as fewer unlock calls need to be made (though each call is larger and
+the total number of tokens is still the same, constant overheads e.g. of the transport layer will be reduced).</p></li>
 </ul>
-</div>
-<div class="section" id="drawbacks">
-<h3>Drawbacks<a class="headerlink" href="#drawbacks" title="Permalink to this headline">¶</a></h3>
+<p>### Drawbacks</p>
 <ul class="simple">
-<li>Transactions may hold row locks for an average of half a round-trip time between an AtlasDB client and TimeLock
+<li><p>Transactions may hold row locks for an average of half a round-trip time between an AtlasDB client and TimeLock
 longer. This is partially mitigated by TimeLock load being lower (feeding in to performance improvement across
-multiple calls in the transaction protocol).</li>
-<li>One background thread is allocated to unlock the locks where needed, which may incur some overhead in deployments
-with small hardware.</li>
+multiple calls in the transaction protocol).</p></li>
+<li><p>One background thread is allocated to unlock the locks where needed, which may incur some overhead in deployments
+with small hardware.</p></li>
 </ul>
-</div>
-</div>
-</div>
+</section>
 
 
            </div>

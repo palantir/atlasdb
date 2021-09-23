@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>9. Load and Read Streams in the Same Transaction &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <title>9. Load and Read Streams in the Same Transaction &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -104,49 +106,41 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="load-and-read-streams-in-the-same-transaction">
-<h1>9. Load and Read Streams in the Same Transaction<a class="headerlink" href="#load-and-read-streams-in-the-same-transaction" title="Permalink to this headline">¶</a></h1>
+  <section id="load-and-read-streams-in-the-same-transaction">
+<h1>9. Load and Read Streams in the Same Transaction<a class="headerlink" href="#load-and-read-streams-in-the-same-transaction" title="Permalink to this headline"></a></h1>
 <p>Date: 20/01/2017</p>
-<div class="section" id="status">
-<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>## Status</p>
 <p>Proposed</p>
-</div>
-<div class="section" id="context">
-<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>## Context</p>
 <p>Reading streams from within the same transaction that calls loadStream() must
 be supported. There are a number of benefits to doing this rather than reading
 streams outside the transaction.</p>
-<ol class="simple">
-<li>If the transaction that calls loadStream() is run with retry, you risk
+<ol class="arabic simple">
+<li><p>If the transaction that calls loadStream() is run with retry, you risk
 leaking resources because multiple streams may be created that never get
 returned to the caller (so the caller has no opportunity to close them).
 The stream can not only be read (entirely) inside the transaction, but
 also closed inside the transaction. This makes it safe to run with retries
-(since the retries can also close the stream they load).</li>
-<li>When the actual stream data is read outside of the transaction, that read
+(since the retries can also close the stream they load).</p></li>
+<li><p>When the actual stream data is read outside of the transaction, that read
 can fail (for example if the stream was then deleted). If instead the read is
 performed inside the transaction, any failed reads would also cause the
 transaction to fail, which could be desired. For example, if as a result of
 reading the stream you want to perform some writes based on the read data, it
-makes sense to perform all of that in a single transaction.</li>
+makes sense to perform all of that in a single transaction.</p></li>
 </ol>
-</div>
-<div class="section" id="decision">
-<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>## Decision</p>
 <p>Reading from a stream inside the same transaction that calls loadStream()
 should be the preferred method unless you have a specific reason that the reads
 must be performed later outside the transaction. Reading from a stream should
 be supported both inside the same transaction where it was loaded and outside
 (after the transaction commits or aborts).</p>
-</div>
-<div class="section" id="consequences">
-<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<p>## Consequences</p>
 <p>Internal products currently rely on being able to read streams in the same
 transaction that loadStream() is called. This must be supported unless you
 first ensure that all internal products have been rewritten to never read
 from a stream in the same transaction that loads it.</p>
-</div>
-</div>
+</section>
 
 
            </div>

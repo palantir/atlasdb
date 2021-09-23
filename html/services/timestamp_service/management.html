@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Service Management &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <title>Service Management &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -90,13 +92,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="service-management">
-<span id="timestamp-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="fast-forward">
-<h2>Fast Forward<a class="headerlink" href="#fast-forward" title="Permalink to this headline">¶</a></h2>
+  <section id="service-management">
+<span id="timestamp-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline"></a></h1>
+<section id="fast-forward">
+<h2>Fast Forward<a class="headerlink" href="#fast-forward" title="Permalink to this headline"></a></h2>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">In general, caution should be used when using Fast Forward, especially with user input data (since fast forwarding
+<p class="admonition-title">Warning</p>
+<p>In general, caution should be used when using Fast Forward, especially with user input data (since fast forwarding
 to <code class="docutils literal notranslate"><span class="pre">Long.MAX_VALUE</span></code> will cause the AtlasDB cluster to become corrupted and require complex manual recovery).</p>
 </div>
 <p>There may be instances where we need to fast forward the Timestamp Service - that is, ensure that all timestamps
@@ -108,16 +110,16 @@ to the Timestamp Service will return a timestamp greater than TS.</p>
 on the Timelock Server. Fast forward operates by updating the last known issued timestamp to the maximum of that and
 TS.</p>
 <p>Note that fast forward is idempotent, since we use maximums. Also, fast forwarding to the past is a no-op.</p>
-<div class="section" id="fast-forward-on-timelock">
-<h3>Fast Forward on TimeLock<a class="headerlink" href="#fast-forward-on-timelock" title="Permalink to this headline">¶</a></h3>
+<section id="fast-forward-on-timelock">
+<h3>Fast Forward on TimeLock<a class="headerlink" href="#fast-forward-on-timelock" title="Permalink to this headline"></a></h3>
 <p>The following command needs to be run on the TimeLock leader, and will fast forward the timestamp to TS.</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>curl -XPOST localhost:8080/timelock/api/namespace/timestamp-management/fast-forward?currentTimestamp=TS
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST localhost:8080/timelock/api/namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
 </pre></div>
 </div>
 <p>On success, timestamps serviced for this namespace will now return values greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

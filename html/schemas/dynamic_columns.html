@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dynamic Columns &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Dynamic Columns &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -89,28 +91,28 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="dynamic-columns">
-<h1>Dynamic Columns<a class="headerlink" href="#dynamic-columns" title="Permalink to this headline">¶</a></h1>
+  <section id="dynamic-columns">
+<h1>Dynamic Columns<a class="headerlink" href="#dynamic-columns" title="Permalink to this headline"></a></h1>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This document discusses AtlasDB’s dynamic columns. This is a separate concept from Cassandra’s dynamic columns;
+<p class="admonition-title">Note</p>
+<p>This document discusses AtlasDB’s dynamic columns. This is a separate concept from Cassandra’s dynamic columns;
 in fact, AtlasDB’s schemas in Cassandra always use two Cassandra dynamic columns, independent of whether
 we are storing a fixed-columns or dynamic columns table! Throughout this document, where “dynamic columns” is
 used unqualified, we refer to AtlasDB dynamic columns.</p>
 </div>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>AtlasDB offers support for <em>dynamic columns</em> - in tables where these are enabled, rows that can have an arbitrary number
 of columns, each with a (typed) column name. A table with dynamic columns may be reasoned about as a
 <code class="docutils literal notranslate"><span class="pre">Map&lt;RowKey,</span> <span class="pre">SortedMap&lt;Tuple&lt;Col1,</span> <span class="pre">Col2...</span> <span class="pre">ColN&gt;,</span> <span class="pre">Value&gt;&gt;</span></code>. It may also be thought of as a collection of key-value
 pairs within a row. For example, a simple schema using dynamic columns may be defined as follows:</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">addTableDefinition</span><span class="p">(</span><span class="s2">&quot;todo&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="p">.</span><span class="na">addTableDefinition</span><span class="p">(</span><span class="s">&quot;todo&quot;</span><span class="p">,</span> <span class="k">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
             <span class="n">rowName</span><span class="p">();</span>
-                <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;person&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">STRING</span><span class="p">);</span>
+                <span class="n">rowComponent</span><span class="p">(</span><span class="s">&quot;person&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="p">.</span><span class="na">STRING</span><span class="p">);</span>
             <span class="n">dynamicColumns</span><span class="p">();</span>
-                <span class="n">columnComponent</span><span class="p">(</span><span class="s2">&quot;taskSize&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span>
-                <span class="n">columnComponent</span><span class="p">(</span><span class="s2">&quot;monetaryCost&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span>
-                <span class="n">value</span><span class="p">(</span><span class="n">ValueType</span><span class="o">.</span><span class="n">STRING</span><span class="p">);</span>
+                <span class="n">columnComponent</span><span class="p">(</span><span class="s">&quot;taskSize&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="p">.</span><span class="na">VAR_LONG</span><span class="p">);</span>
+                <span class="n">columnComponent</span><span class="p">(</span><span class="s">&quot;monetaryCost&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="p">.</span><span class="na">VAR_LONG</span><span class="p">);</span>
+                <span class="n">value</span><span class="p">(</span><span class="n">ValueType</span><span class="p">.</span><span class="na">STRING</span><span class="p">);</span>
         <span class="p">}});</span>
 </pre></div>
 </div>
@@ -118,153 +120,153 @@ pairs within a row. For example, a simple schema using dynamic columns may be de
 Also, key-value pairs in an individual row will be returned in <em>lexicographically</em> sorted order of the key.</p>
 <p>We call the person the <em>row key</em>, the (taskSize, monetaryCost) pair the <em>dynamic column key</em>, and the string (which is
 intended to be a description of the todo) the <em>value</em>.</p>
-</div>
-<div class="section" id="query-capabilities">
-<h2>Query Capabilities<a class="headerlink" href="#query-capabilities" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="query-capabilities">
+<h2>Query Capabilities<a class="headerlink" href="#query-capabilities" title="Permalink to this headline"></a></h2>
 <p>Dynamic Columns are useful for avoiding row range scans, especially in key-value services where these
 are expensive (like Cassandra - its caching optimisations are rendered ineffectual for row range scans). Furthermore,
 when considering whether a query without row range scans will be performant, it is worth considering how each row is
 laid out in the database. Generally, queries for column ranges that are contiguous are more efficient, though there are
 exceptions to this rule (such as query 4).</p>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="50%" />
-<col width="50%" />
+<col style="width: 50%" />
+<col style="width: 50%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Dynamic Column Key</th>
-<th class="head">Dynamic Column Value</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dynamic Column Key</p></th>
+<th class="head"><p>Dynamic Column Value</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>(1, 3000)</td>
-<td>“Buy a bitcoin”</td>
+<tbody>
+<tr class="row-even"><td><p>(1, 3000)</p></td>
+<td><p>“Buy a bitcoin”</p></td>
 </tr>
-<tr class="row-odd"><td>(2, 0)</td>
-<td>“Review pull request”</td>
+<tr class="row-odd"><td><p>(2, 0)</p></td>
+<td><p>“Review pull request”</p></td>
 </tr>
-<tr class="row-even"><td>(2, 1)</td>
-<td>“Get coffee”</td>
+<tr class="row-even"><td><p>(2, 1)</p></td>
+<td><p>“Get coffee”</p></td>
 </tr>
-<tr class="row-odd"><td>(3, 0)</td>
-<td>“Write docs for dynamic columns”</td>
+<tr class="row-odd"><td><p>(3, 0)</p></td>
+<td><p>“Write docs for dynamic columns”</p></td>
 </tr>
-<tr class="row-even"><td>(3, 6)</td>
-<td>“Get lunch”</td>
+<tr class="row-even"><td><p>(3, 6)</p></td>
+<td><p>“Get lunch”</p></td>
 </tr>
-<tr class="row-odd"><td>(5, -1)</td>
-<td>“Complete online survey”</td>
+<tr class="row-odd"><td><p>(5, -1)</p></td>
+<td><p>“Complete online survey”</p></td>
 </tr>
-<tr class="row-even"><td>(5, 0)</td>
-<td>“Resolve merge conflicts”</td>
+<tr class="row-even"><td><p>(5, 0)</p></td>
+<td><p>“Resolve merge conflicts”</p></td>
 </tr>
-<tr class="row-odd"><td>(6, 10)</td>
-<td>“Take a train out of the city”</td>
+<tr class="row-odd"><td><p>(6, 10)</p></td>
+<td><p>“Take a train out of the city”</p></td>
 </tr>
-<tr class="row-even"><td>(7, 2)</td>
-<td>“Do laundry”</td>
+<tr class="row-even"><td><p>(7, 2)</p></td>
+<td><p>“Do laundry”</p></td>
 </tr>
-<tr class="row-odd"><td>(7, 7)</td>
-<td>“Visit the supermarket”</td>
+<tr class="row-odd"><td><p>(7, 7)</p></td>
+<td><p>“Visit the supermarket”</p></td>
 </tr>
-<tr class="row-even"><td>(7, 42)</td>
-<td>“Watch a musical”</td>
+<tr class="row-even"><td><p>(7, 42)</p></td>
+<td><p>“Watch a musical”</p></td>
 </tr>
 </tbody>
 </table>
 <p>For example, for the schema defined above:</p>
 <ol class="arabic simple">
-<li>“Find John’s smallest and cheapest todo” can be answered very efficiently.
+<li><p>“Find John’s smallest and cheapest todo” can be answered very efficiently.
 Elements are stored in sorted order, so the very first key-value pair retrieved from the database is actually the
-correct answer to this query.</li>
-<li>“Find all of Tom’s todos with size up to M, limited to N results” is easy, as this can be
+correct answer to this query.</p></li>
+<li><p>“Find all of Tom’s todos with size up to M, limited to N results” is easy, as this can be
 processed with a natural stopping point, as in query 1, and we are iterating in the right order for this query.
-This can be achieved using the <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code> API.</li>
-<li>“Find all of Tom’s todos with size of 10 to 15, limit to N results” can be performed via a range
-scan on the dynamic column key. This is also readily supported, and does not require a row range scan.</li>
-<li>“Find all of Tom’s largest todos” is somewhat more difficult, as reverse range scans aren’t supported by the
+This can be achieved using the <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code> API.</p></li>
+<li><p>“Find all of Tom’s todos with size of 10 to 15, limit to N results” can be performed via a range
+scan on the dynamic column key. This is also readily supported, and does not require a row range scan.</p></li>
+<li><p>“Find all of Tom’s largest todos” is somewhat more difficult, as reverse range scans aren’t supported by the
 dynamic columns API. If we were more interested in largest todos as opposed to smallest, we could set the
-<code class="docutils literal notranslate"><span class="pre">ValueByteOrder</span></code> of the <code class="docutils literal notranslate"><span class="pre">taskSize</span></code> column component to decreasing.</li>
-<li>“Find all of Tom’s todos which cost less than 5” will be less efficient. We need to retrieve the entire row to do
+<code class="docutils literal notranslate"><span class="pre">ValueByteOrder</span></code> of the <code class="docutils literal notranslate"><span class="pre">taskSize</span></code> column component to decreasing.</p></li>
+<li><p>“Find all of Tom’s todos which cost less than 5” will be less efficient. We need to retrieve the entire row to do
 this, because the map is sorted by task size and then monetary cost. If queries on cost are more common than queries
-on size, flipping the order of the column components could help.</li>
-<li>“Find all of Tom’s todos which have size between 3 and 7, and cost between 5 and 10”. We have to visit column ranges
+on size, flipping the order of the column components could help.</p></li>
+<li><p>“Find all of Tom’s todos which have size between 3 and 7, and cost between 5 and 10”. We have to visit column ranges
 in contiguous order, so if we write a single query we need to scan from (3, 5) to (7, 10 + 1). However, this range
 also includes values we are not interested in (any values with size 4-6 that don’t fit in the cost range, and also
-costly size 3 tasks and cheap size 7 tasks). We can postfilter them out, but we still need to scan through them.</li>
-<li>“Find all of Nathan’s todos that begin with the letter N”. Prefix / range scans are not supported on values, so this
-requires us to scan through the entire row.</li>
-<li>“Find all of John’s and Jeremy’s smallest todos” is easy - this is doing the query “find a person’s smallest todos”
+costly size 3 tasks and cheap size 7 tasks). We can postfilter them out, but we still need to scan through them.</p></li>
+<li><p>“Find all of Nathan’s todos that begin with the letter N”. Prefix / range scans are not supported on values, so this
+requires us to scan through the entire row.</p></li>
+<li><p>“Find all of John’s and Jeremy’s smallest todos” is easy - this is doing the query “find a person’s smallest todos”
 twice. To answer that query, we can scan through the person’s tasks until we find one with a larger size than the
 others we have seen so far. At that point, we know we have seen all the smallest tasks (because it is in sorted
-order).</li>
-<li>“Find the smallest todos for everyone whose name begins with J” is NOT easy. While this
+order).</p></li>
+<li><p>“Find the smallest todos for everyone whose name begins with J” is NOT easy. While this
 conceivably can be split into two parts (a row prefix scan for J, and then the aforementioned
 <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code>),
 the range scan for J is potentially costly, as it needs to iterate through every todo for people whose names
-do indeed begin with J.</li>
+do indeed begin with J.</p></li>
 </ol>
 <p>Notice, though, that all of the queries apart from 9 can be answered without a row range scan.</p>
-</div>
-<div class="section" id="using-dynamic-columns">
-<h2>Using Dynamic Columns<a class="headerlink" href="#using-dynamic-columns" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="storage">
-<h3>Storage<a class="headerlink" href="#storage" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="using-dynamic-columns">
+<h2>Using Dynamic Columns<a class="headerlink" href="#using-dynamic-columns" title="Permalink to this headline"></a></h2>
+<section id="storage">
+<h3>Storage<a class="headerlink" href="#storage" title="Permalink to this headline"></a></h3>
 <p>One can use the standard <code class="docutils literal notranslate"><span class="pre">put</span></code> method. This can be used to add one or more columns to a row.</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="p">.</span><span class="na">of</span><span class="p">().</span><span class="na">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
 
-<span class="n">todoTable</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
-        <span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">person</span><span class="p">),</span>
-        <span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumn</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">size1</span><span class="p">,</span> <span class="n">cost1</span><span class="p">),</span> <span class="n">description1</span><span class="p">),</span>
-        <span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumn</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">size2</span><span class="p">,</span> <span class="n">cost2</span><span class="p">),</span> <span class="n">description2</span><span class="p">));</span>
+<span class="n">todoTable</span><span class="p">.</span><span class="na">put</span><span class="p">(</span>
+        <span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">person</span><span class="p">),</span>
+        <span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumn</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">size1</span><span class="p">,</span> <span class="n">cost1</span><span class="p">),</span> <span class="n">description1</span><span class="p">),</span>
+        <span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumn</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">size2</span><span class="p">,</span> <span class="n">cost2</span><span class="p">),</span> <span class="n">description2</span><span class="p">));</span>
 </pre></div>
 </div>
 <p>Note that if the table already consists of a value for a given row key and dynamic column key, then this put
 will logically overwrite the existing value.</p>
-</div>
-<div class="section" id="retrieval">
-<h3>Retrieval<a class="headerlink" href="#retrieval" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="retrieval">
+<h3>Retrieval<a class="headerlink" href="#retrieval" title="Permalink to this headline"></a></h3>
 <p>Typically, one should use <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code>. This takes a collection of rows and column key ranges, and returns a
 map of row-keys to <code class="docutils literal notranslate"><span class="pre">BatchingVisitables</span></code> of column values. These may in turn be traversed using the
 <code class="docutils literal notranslate"><span class="pre">BatchingVisitable</span></code> API. For example, the code below is an implementation of query 1 for an arbitrary String
 <code class="docutils literal notranslate"><span class="pre">person</span></code>:</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
-<span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span>
-        <span class="n">todoTable</span><span class="o">.</span><span class="n">getRowsColumnRange</span><span class="p">(</span>
-                <span class="n">ImmutableList</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">person</span><span class="p">)),</span>
-                <span class="n">BatchColumnRangeSelection</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                        <span class="n">PtBytes</span><span class="o">.</span><span class="n">EMPTY_BYTE_ARRAY</span><span class="p">,</span> <span class="o">//</span> <span class="n">Empty</span> <span class="n">byte</span> <span class="n">arrays</span> <span class="n">mean</span> <span class="n">unbounded</span><span class="o">.</span>
-                        <span class="n">PtBytes</span><span class="o">.</span><span class="n">EMPTY_BYTE_ARRAY</span><span class="p">,</span>
-                        <span class="mi">1</span><span class="p">));</span> <span class="o">//</span> <span class="n">The</span> <span class="n">batch</span> <span class="n">hint</span> <span class="ow">is</span> <span class="mi">1</span><span class="p">,</span> <span class="n">because</span> <span class="n">we</span> <span class="n">are</span> <span class="n">only</span> <span class="n">interested</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">first</span> <span class="n">result</span><span class="o">.</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="p">.</span><span class="na">of</span><span class="p">().</span><span class="na">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span>
+        <span class="n">todoTable</span><span class="p">.</span><span class="na">getRowsColumnRange</span><span class="p">(</span>
+                <span class="n">ImmutableList</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">person</span><span class="p">)),</span>
+                <span class="n">BatchColumnRangeSelection</span><span class="p">.</span><span class="na">create</span><span class="p">(</span>
+                        <span class="n">PtBytes</span><span class="p">.</span><span class="na">EMPTY_BYTE_ARRAY</span><span class="p">,</span> <span class="c1">// Empty byte arrays mean unbounded.</span>
+                        <span class="n">PtBytes</span><span class="p">.</span><span class="na">EMPTY_BYTE_ARRAY</span><span class="p">,</span>
+                        <span class="mi">1</span><span class="p">));</span> <span class="c1">// The batch hint is 1, because we are only interested in the first result.</span>
 
-<span class="n">AtomicReference</span><span class="o">&lt;</span><span class="n">Todo</span><span class="o">&gt;</span> <span class="n">element</span> <span class="o">=</span> <span class="n">new</span> <span class="n">AtomicReference</span><span class="o">&lt;&gt;</span><span class="p">();</span>
-<span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">&gt;</span> <span class="n">visitable</span> <span class="o">=</span> <span class="n">Iterables</span><span class="o">.</span><span class="n">getOnlyElement</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">values</span><span class="p">());</span>
-<span class="n">visitable</span><span class="o">.</span><span class="n">batchAccept</span><span class="p">(</span>
-        <span class="mi">1</span><span class="p">,</span> <span class="o">//</span> <span class="n">We</span> <span class="n">can</span> <span class="n">consider</span> <span class="n">batches</span> <span class="n">of</span> <span class="mi">1</span> <span class="n">element</span> <span class="n">at</span> <span class="n">a</span> <span class="n">time</span><span class="p">,</span> <span class="n">because</span> <span class="n">we</span> <span class="n">are</span> <span class="n">only</span> <span class="n">interested</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">first</span> <span class="n">element</span><span class="o">.</span>
+<span class="n">AtomicReference</span><span class="o">&lt;</span><span class="n">Todo</span><span class="o">&gt;</span> <span class="n">element</span> <span class="o">=</span> <span class="k">new</span> <span class="n">AtomicReference</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="o">&gt;</span> <span class="n">visitable</span> <span class="o">=</span> <span class="n">Iterables</span><span class="p">.</span><span class="na">getOnlyElement</span><span class="p">(</span><span class="n">results</span><span class="p">.</span><span class="na">values</span><span class="p">());</span>
+<span class="n">visitable</span><span class="p">.</span><span class="na">batchAccept</span><span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span> <span class="c1">// We can consider batches of 1 element at a time, because we are only interested in the first element.</span>
         <span class="n">item</span> <span class="o">-&gt;</span> <span class="p">{</span>
-            <span class="n">element</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">ImmutableTodo</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">getValue</span><span class="p">()));</span>
-            <span class="k">return</span> <span class="n">false</span><span class="p">;</span> <span class="o">//</span> <span class="n">Do</span> <span class="ow">not</span> <span class="n">want</span> <span class="nb">any</span> <span class="n">more</span><span class="p">,</span> <span class="n">since</span> <span class="n">we</span> <span class="n">know</span> <span class="n">our</span> <span class="n">first</span> <span class="n">batch</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">one</span><span class="o">.</span>
+            <span class="n">element</span><span class="p">.</span><span class="na">set</span><span class="p">(</span><span class="n">ImmutableTodo</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="mi">0</span><span class="p">).</span><span class="na">getValue</span><span class="p">()));</span>
+            <span class="k">return</span> <span class="kc">false</span><span class="p">;</span> <span class="c1">// Do not want any more, since we know our first batch contains the one.</span>
         <span class="p">});</span>
-<span class="k">return</span> <span class="n">element</span><span class="o">.</span><span class="n">get</span><span class="p">();</span>
+<span class="k">return</span> <span class="n">element</span><span class="p">.</span><span class="na">get</span><span class="p">();</span>
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">One can also use the <code class="docutils literal notranslate"><span class="pre">getRowsMultimap</span></code> method to retrieve a multimap of rows to column values. However, note
+<p class="admonition-title">Note</p>
+<p>One can also use the <code class="docutils literal notranslate"><span class="pre">getRowsMultimap</span></code> method to retrieve a multimap of rows to column values. However, note
 that this method will call the underlying transaction’s <code class="docutils literal notranslate"><span class="pre">getRows</span></code> method, which eagerly loads the entire row into
 memory!</p>
 </div>
-</div>
-</div>
-<div class="section" id="data-representation-cassandra">
-<h2>Data Representation (Cassandra)<a class="headerlink" href="#data-representation-cassandra" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="data-representation-cassandra">
+<h2>Data Representation (Cassandra)<a class="headerlink" href="#data-representation-cassandra" title="Permalink to this headline"></a></h2>
 <p>A row with dynamic columns is stored as a single Cassandra-level row. Recall the Atlas schema:</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CREATE</span> <span class="n">TABLE</span> <span class="n">atlasete</span><span class="o">.</span><span class="n">default__todo</span> <span class="p">(</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">CREATE</span> <span class="n">TABLE</span> <span class="n">atlasete</span><span class="p">.</span><span class="na">default__todo</span> <span class="p">(</span>
     <span class="n">key</span> <span class="n">blob</span><span class="p">,</span>
     <span class="n">column1</span> <span class="n">blob</span><span class="p">,</span>
     <span class="n">column2</span> <span class="n">bigint</span><span class="p">,</span>
     <span class="n">value</span> <span class="n">blob</span><span class="p">,</span>
-    <span class="n">PRIMARY</span> <span class="n">KEY</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">column1</span><span class="p">,</span> <span class="n">column2</span><span class="p">)</span>
+    <span class="n">PRIMARY</span> <span class="nf">KEY</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">column1</span><span class="p">,</span> <span class="n">column2</span><span class="p">)</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -273,123 +275,123 @@ refers to the Atlas timestamp at which a write occurred. The clustering order of
 <code class="docutils literal notranslate"><span class="pre">ValueByteOrder</span></code> of the relevant column components.</p>
 <p>Conversely, observe that in a conventional (fixed columns) AtlasDB table, <code class="docutils literal notranslate"><span class="pre">column1</span></code> identifies which column is being
 encoded in the <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
-</div>
-<div class="section" id="when-not-to-use-dynamic-columns">
-<h2>When Not To Use Dynamic Columns<a class="headerlink" href="#when-not-to-use-dynamic-columns" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="when-not-to-use-dynamic-columns">
+<h2>When Not To Use Dynamic Columns<a class="headerlink" href="#when-not-to-use-dynamic-columns" title="Permalink to this headline"></a></h2>
 <p>Using (Atlas) dynamic columns creates wide rows in Cassandra, because every dynamic column key and value are stored
 with the same row key. This may add limits to the scalability of the data, because all data for a single row key will
 be stored on a single machine in the cluster.</p>
 <p>Generally, we recommend that row sizes are kept in the tens of MBs at most, and also below one million dynamic column
 keys.</p>
-</div>
-<div class="section" id="appendix-sample-query-implementations">
-<h2>Appendix: Sample Query Implementations<a class="headerlink" href="#appendix-sample-query-implementations" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="appendix-sample-query-implementations">
+<h2>Appendix: Sample Query Implementations<a class="headerlink" href="#appendix-sample-query-implementations" title="Permalink to this headline"></a></h2>
 <p>We present possible implementations of some of the queries (or generalisations of them) described above.
 Note that an implementation of query 1 has been included in the “Retrieval” section.</p>
-<div class="section" id="query-3-size-lower-to-upper-limit-n">
-<h3>Query 3 (Size Lower to Upper, Limit N)<a class="headerlink" href="#query-3-size-lower-to-upper-limit-n" title="Permalink to this headline">¶</a></h3>
+<section id="query-3-size-lower-to-upper-limit-n">
+<h3>Query 3 (Size Lower to Upper, Limit N)<a class="headerlink" href="#query-3-size-lower-to-upper-limit-n" title="Permalink to this headline"></a></h3>
 <p>Assume the existence of variables <code class="docutils literal notranslate"><span class="pre">lower</span></code> and <code class="docutils literal notranslate"><span class="pre">upper</span></code> (inclusive bounds for the size range; 10 and 15 in the
 sample query), <code class="docutils literal notranslate"><span class="pre">person</span></code> (the person to run the query for) and <code class="docutils literal notranslate"><span class="pre">limit</span></code> (the maximum number of records we want to
 return).</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="p">.</span><span class="na">of</span><span class="p">().</span><span class="na">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
 
-<span class="o">//</span> <span class="n">Note</span> <span class="n">that</span> <span class="n">a</span> <span class="n">column</span> <span class="nb">range</span> <span class="n">selection</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">start</span><span class="o">-</span><span class="n">inclusive</span> <span class="n">end</span><span class="o">-</span><span class="n">exclusive</span> <span class="nb">range</span><span class="p">,</span> <span class="n">so</span> <span class="n">using</span> <span class="p">(</span><span class="n">upper</span><span class="p">,</span> <span class="n">Long</span><span class="o">.</span><span class="n">MAX_VALUE</span><span class="p">)</span>
-<span class="o">//</span> <span class="k">as</span> <span class="n">the</span> <span class="n">end</span> <span class="n">of</span> <span class="n">the</span> <span class="n">column</span> <span class="n">selection</span> <span class="ow">is</span> <span class="n">incorrect</span><span class="p">,</span> <span class="n">because</span> <span class="n">it</span> <span class="n">excludes</span> <span class="n">that</span> <span class="n">specific</span> <span class="n">dynamic</span> <span class="n">column</span> <span class="n">key</span><span class="o">.</span>
-<span class="n">BatchColumnRangeSelection</span> <span class="n">selection</span> <span class="o">=</span> <span class="n">BatchColumnRangeSelection</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-        <span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumn</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">lower</span><span class="p">,</span> <span class="n">Long</span><span class="o">.</span><span class="n">MIN_VALUE</span><span class="p">)</span><span class="o">.</span><span class="n">persistToBytes</span><span class="p">(),</span>
-        <span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumn</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">upper</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Long</span><span class="o">.</span><span class="n">MIN_VALUE</span><span class="p">)</span><span class="o">.</span><span class="n">persistToBytes</span><span class="p">(),</span>
+<span class="c1">// Note that a column range selection is a start-inclusive end-exclusive range, so using (upper, Long.MAX_VALUE)</span>
+<span class="c1">// as the end of the column selection is incorrect, because it excludes that specific dynamic column key.</span>
+<span class="n">BatchColumnRangeSelection</span> <span class="n">selection</span> <span class="o">=</span> <span class="n">BatchColumnRangeSelection</span><span class="p">.</span><span class="na">create</span><span class="p">(</span>
+        <span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumn</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">lower</span><span class="p">,</span> <span class="n">Long</span><span class="p">.</span><span class="na">MIN_VALUE</span><span class="p">).</span><span class="na">persistToBytes</span><span class="p">(),</span>
+        <span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumn</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">upper</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Long</span><span class="p">.</span><span class="na">MIN_VALUE</span><span class="p">).</span><span class="na">persistToBytes</span><span class="p">(),</span>
         <span class="n">limit</span><span class="p">)</span>
 
-<span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span>
-        <span class="n">todoTable</span><span class="o">.</span><span class="n">getRowsColumnRange</span><span class="p">(</span><span class="n">ImmutableList</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">person</span><span class="p">)),</span> <span class="n">selection</span><span class="p">);</span>
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span>
+        <span class="n">todoTable</span><span class="p">.</span><span class="na">getRowsColumnRange</span><span class="p">(</span><span class="n">ImmutableList</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">person</span><span class="p">)),</span> <span class="n">selection</span><span class="p">);</span>
 
-<span class="n">List</span><span class="o">&lt;</span><span class="n">Todo</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">Lists</span><span class="o">.</span><span class="n">newArrayList</span><span class="p">();</span>
-<span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">&gt;</span> <span class="n">visitable</span> <span class="o">=</span> <span class="n">Iterables</span><span class="o">.</span><span class="n">getOnlyElement</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">values</span><span class="p">());</span>
-<span class="n">visitable</span><span class="o">.</span><span class="n">batchAccept</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">item</span> <span class="o">-&gt;</span> <span class="p">{</span>
-    <span class="n">item</span><span class="o">.</span><span class="n">forEach</span><span class="p">(</span><span class="n">columnValue</span> <span class="o">-&gt;</span> <span class="n">result</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ImmutableTodo</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">columnValue</span><span class="o">.</span><span class="n">getValue</span><span class="p">())));</span>
-    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">;</span>
+<span class="n">List</span><span class="o">&lt;</span><span class="n">Todo</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">Lists</span><span class="p">.</span><span class="na">newArrayList</span><span class="p">();</span>
+<span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="o">&gt;</span> <span class="n">visitable</span> <span class="o">=</span> <span class="n">Iterables</span><span class="p">.</span><span class="na">getOnlyElement</span><span class="p">(</span><span class="n">results</span><span class="p">.</span><span class="na">values</span><span class="p">());</span>
+<span class="n">visitable</span><span class="p">.</span><span class="na">batchAccept</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">item</span> <span class="o">-&gt;</span> <span class="p">{</span>
+    <span class="n">item</span><span class="p">.</span><span class="na">forEach</span><span class="p">(</span><span class="n">columnValue</span> <span class="o">-&gt;</span> <span class="n">result</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">ImmutableTodo</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">columnValue</span><span class="p">.</span><span class="na">getValue</span><span class="p">())));</span>
+    <span class="k">return</span> <span class="n">result</span><span class="p">.</span><span class="na">size</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">;</span>
 <span class="p">});</span>
-<span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">subList</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">limit</span><span class="p">);</span> <span class="o">//</span> <span class="n">The</span> <span class="n">batch</span> <span class="n">hint</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">always</span> <span class="n">be</span> <span class="n">respected</span> <span class="n">exactly</span><span class="o">.</span>
+<span class="k">return</span> <span class="n">result</span><span class="p">.</span><span class="na">subList</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">limit</span><span class="p">);</span> <span class="c1">// The batch hint may not always be respected exactly.</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost">
-<h3>Query 6 (Size lowerSize to upperSize, Cost lowerCost to upperCost)<a class="headerlink" href="#query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost">
+<h3>Query 6 (Size lowerSize to upperSize, Cost lowerCost to upperCost)<a class="headerlink" href="#query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost" title="Permalink to this headline"></a></h3>
 <p>Assume the existence of variables <code class="docutils literal notranslate"><span class="pre">lowerSize</span></code>, <code class="docutils literal notranslate"><span class="pre">upperSize</span></code>, <code class="docutils literal notranslate"><span class="pre">lowerCost</span></code> and <code class="docutils literal notranslate"><span class="pre">upperCost</span></code> which are inclusive bounds for the
 size and cost ranges respectively. We also assume the existence of <code class="docutils literal notranslate"><span class="pre">person</span></code> (the person to run the query for).</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="o">.</span><span class="n">of</span><span class="p">()</span><span class="o">.</span><span class="n">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
-<span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span>
-        <span class="n">todoTable</span><span class="o">.</span><span class="n">getRowsColumnRange</span><span class="p">(</span>
-                <span class="n">ImmutableList</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoRow</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">person</span><span class="p">)),</span>
-                <span class="n">BatchColumnRangeSelection</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                        <span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumn</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">lowerSize</span><span class="p">,</span> <span class="n">lowerCost</span><span class="p">)</span><span class="o">.</span><span class="n">persistToBytes</span><span class="p">(),</span>
-                        <span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumn</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">upperSize</span><span class="p">,</span> <span class="n">upperCost</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">persistToBytes</span><span class="p">(),</span> <span class="o">//</span> <span class="n">end</span> <span class="ow">is</span> <span class="n">exclusive</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="p">.</span><span class="na">of</span><span class="p">().</span><span class="na">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span>
+        <span class="n">todoTable</span><span class="p">.</span><span class="na">getRowsColumnRange</span><span class="p">(</span>
+                <span class="n">ImmutableList</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">person</span><span class="p">)),</span>
+                <span class="n">BatchColumnRangeSelection</span><span class="p">.</span><span class="na">create</span><span class="p">(</span>
+                        <span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumn</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">lowerSize</span><span class="p">,</span> <span class="n">lowerCost</span><span class="p">).</span><span class="na">persistToBytes</span><span class="p">(),</span>
+                        <span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumn</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">upperSize</span><span class="p">,</span> <span class="n">upperCost</span> <span class="o">+</span> <span class="mi">1</span><span class="p">).</span><span class="na">persistToBytes</span><span class="p">(),</span> <span class="c1">// end is exclusive</span>
                         <span class="mi">100</span><span class="p">));</span>
 
-<span class="n">List</span><span class="o">&lt;</span><span class="n">Todo</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">Lists</span><span class="o">.</span><span class="n">newArrayList</span><span class="p">();</span>
-<span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="o">.</span><span class="n">TodoColumnValue</span><span class="o">&gt;</span> <span class="n">visitable</span> <span class="o">=</span> <span class="n">Iterables</span><span class="o">.</span><span class="n">getOnlyElement</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">values</span><span class="p">());</span>
-<span class="n">visitable</span><span class="o">.</span><span class="n">batchAccept</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">item</span> <span class="o">-&gt;</span> <span class="p">{</span>
-    <span class="n">item</span><span class="o">.</span><span class="n">forEach</span><span class="p">(</span><span class="n">columnValue</span> <span class="o">-&gt;</span> <span class="p">{</span>
-        <span class="o">//</span> <span class="n">needed</span> <span class="n">to</span> <span class="n">ignore</span> <span class="n">values</span> <span class="k">with</span> <span class="n">an</span> <span class="n">intermediate</span> <span class="n">size</span> <span class="n">that</span> <span class="n">are</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">cost</span> <span class="nb">range</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">columnValue</span><span class="o">.</span><span class="n">getColumnName</span><span class="p">()</span><span class="o">.</span><span class="n">getMonetaryCost</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">lowerCost</span> <span class="o">&amp;&amp;</span>
-                <span class="n">columnValue</span><span class="o">.</span><span class="n">getColumnName</span><span class="p">()</span><span class="o">.</span><span class="n">getMonetaryCost</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">upperCost</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">result</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ImmutableTodo</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">columnValue</span><span class="o">.</span><span class="n">getValue</span><span class="p">()));</span>
+<span class="n">List</span><span class="o">&lt;</span><span class="n">Todo</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">Lists</span><span class="p">.</span><span class="na">newArrayList</span><span class="p">();</span>
+<span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="o">&gt;</span> <span class="n">visitable</span> <span class="o">=</span> <span class="n">Iterables</span><span class="p">.</span><span class="na">getOnlyElement</span><span class="p">(</span><span class="n">results</span><span class="p">.</span><span class="na">values</span><span class="p">());</span>
+<span class="n">visitable</span><span class="p">.</span><span class="na">batchAccept</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">item</span> <span class="o">-&gt;</span> <span class="p">{</span>
+    <span class="n">item</span><span class="p">.</span><span class="na">forEach</span><span class="p">(</span><span class="n">columnValue</span> <span class="o">-&gt;</span> <span class="p">{</span>
+        <span class="c1">// needed to ignore values with an intermediate size that are not in the cost range</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">columnValue</span><span class="p">.</span><span class="na">getColumnName</span><span class="p">().</span><span class="na">getMonetaryCost</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">lowerCost</span> <span class="o">&amp;&amp;</span>
+                <span class="n">columnValue</span><span class="p">.</span><span class="na">getColumnName</span><span class="p">().</span><span class="na">getMonetaryCost</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">upperCost</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">result</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">ImmutableTodo</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">columnValue</span><span class="p">.</span><span class="na">getValue</span><span class="p">()));</span>
         <span class="p">}</span>
     <span class="p">});</span>
-    <span class="k">return</span> <span class="n">true</span><span class="p">;</span>
+    <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
 <span class="p">});</span>
 <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="query-8-smallest-for-multiple-row-keys">
-<h3>Query 8 (Smallest for Multiple Row Keys)<a class="headerlink" href="#query-8-smallest-for-multiple-row-keys" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="query-8-smallest-for-multiple-row-keys">
+<h3>Query 8 (Smallest for Multiple Row Keys)<a class="headerlink" href="#query-8-smallest-for-multiple-row-keys" title="Permalink to this headline"></a></h3>
 <p>Assume the existence of a Set of Strings, <code class="docutils literal notranslate"><span class="pre">personSet</span></code>. This corresponds to person identifiers.</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span>Map&lt;String, List&lt;Todo&gt;&gt; results = Maps.newConcurrentMap();
-Map&lt;String, Long&gt; smallestSizes = Maps.newConcurrentMap();
-TodoTable todoTable = TodoSchemaTableFactory.of().getTodoTable(tx);
-Map&lt;TodoTable.TodoRow, BatchingVisitable&lt;TodoTable.TodoColumnValue&gt;&gt; visitables =
-        todoTable.getRowsColumnRange(
-                personSet.stream()
-                        .map(TodoTable.TodoRow::of)
-                        .collect(Collectors.toList()),
-                // This MUST be unbounded because each person could have a different size of smallest task
-                BatchColumnRangeSelection.create(
-                        PtBytes.EMPTY_BYTE_ARRAY,
-                        PtBytes.EMPTY_BYTE_ARRAY,
-                        100)); // Magic number; it&#39;s hard to prescribe a one-size-fits-all value here.
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Todo</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span> <span class="n">Maps</span><span class="p">.</span><span class="na">newConcurrentMap</span><span class="p">();</span>
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">Long</span><span class="o">&gt;</span> <span class="n">smallestSizes</span> <span class="o">=</span> <span class="n">Maps</span><span class="p">.</span><span class="na">newConcurrentMap</span><span class="p">();</span>
+<span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="p">.</span><span class="na">of</span><span class="p">().</span><span class="na">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">,</span> <span class="n">BatchingVisitable</span><span class="o">&lt;</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoColumnValue</span><span class="o">&gt;&gt;</span> <span class="n">visitables</span> <span class="o">=</span>
+        <span class="n">todoTable</span><span class="p">.</span><span class="na">getRowsColumnRange</span><span class="p">(</span>
+                <span class="n">personSet</span><span class="p">.</span><span class="na">stream</span><span class="p">()</span>
+                        <span class="p">.</span><span class="na">map</span><span class="p">(</span><span class="n">TodoTable</span><span class="p">.</span><span class="na">TodoRow</span><span class="p">::</span><span class="n">of</span><span class="p">)</span>
+                        <span class="p">.</span><span class="na">collect</span><span class="p">(</span><span class="n">Collectors</span><span class="p">.</span><span class="na">toList</span><span class="p">()),</span>
+                <span class="c1">// This MUST be unbounded because each person could have a different size of smallest task</span>
+                <span class="n">BatchColumnRangeSelection</span><span class="p">.</span><span class="na">create</span><span class="p">(</span>
+                        <span class="n">PtBytes</span><span class="p">.</span><span class="na">EMPTY_BYTE_ARRAY</span><span class="p">,</span>
+                        <span class="n">PtBytes</span><span class="p">.</span><span class="na">EMPTY_BYTE_ARRAY</span><span class="p">,</span>
+                        <span class="mi">100</span><span class="p">));</span> <span class="c1">// Magic number; it&#39;s hard to prescribe a one-size-fits-all value here.</span>
 
-visitables.entrySet().forEach(entry -&gt; {
-    String person = entry.getKey().getPerson();
-    results.put(person, Lists.newArrayList());
-    entry.getValue().batchAccept(100, columnValues -&gt; {
-        if (columnValues.isEmpty()) {
-            return false;
-        }
+<span class="n">visitables</span><span class="p">.</span><span class="na">entrySet</span><span class="p">().</span><span class="na">forEach</span><span class="p">(</span><span class="n">entry</span> <span class="o">-&gt;</span> <span class="p">{</span>
+    <span class="n">String</span> <span class="n">person</span> <span class="o">=</span> <span class="n">entry</span><span class="p">.</span><span class="na">getKey</span><span class="p">().</span><span class="na">getPerson</span><span class="p">();</span>
+    <span class="n">results</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="n">Lists</span><span class="p">.</span><span class="na">newArrayList</span><span class="p">());</span>
+    <span class="n">entry</span><span class="p">.</span><span class="na">getValue</span><span class="p">().</span><span class="na">batchAccept</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">columnValues</span> <span class="o">-&gt;</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">columnValues</span><span class="p">.</span><span class="na">isEmpty</span><span class="p">())</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+        <span class="p">}</span>
 
-        // Triggers on the first batch.
-        if (!smallestSize.containsKey(person)) {
-            // This suffices, even if the first batch has multiple task sizes, because dynamic columns are
-            // returned in sorted order.
-            smallestSize.put(person, columnValues.get(0).getColumnName().getTaskSize());
-        }
+        <span class="c1">// Triggers on the first batch.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">smallestSize</span><span class="p">.</span><span class="na">containsKey</span><span class="p">(</span><span class="n">person</span><span class="p">))</span> <span class="p">{</span>
+            <span class="c1">// This suffices, even if the first batch has multiple task sizes, because dynamic columns are</span>
+            <span class="c1">// returned in sorted order.</span>
+            <span class="n">smallestSize</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">person</span><span class="p">,</span> <span class="n">columnValues</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="mi">0</span><span class="p">).</span><span class="na">getColumnName</span><span class="p">().</span><span class="na">getTaskSize</span><span class="p">());</span>
+        <span class="p">}</span>
 
-        long smallestSize = smallestSizes.get(person);
-        columnValues.stream()
-                .filter(columnValue -&gt; columnValue.getColumnName().getTaskSize() == smallestSize)
-                .forEach(columnValue -&gt; results.get(person).add(ImmutableTodo.of(columnValue.getValue())));
+        <span class="kt">long</span> <span class="n">smallestSize</span> <span class="o">=</span> <span class="n">smallestSizes</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">person</span><span class="p">);</span>
+        <span class="n">columnValues</span><span class="p">.</span><span class="na">stream</span><span class="p">()</span>
+                <span class="p">.</span><span class="na">filter</span><span class="p">(</span><span class="n">columnValue</span> <span class="o">-&gt;</span> <span class="n">columnValue</span><span class="p">.</span><span class="na">getColumnName</span><span class="p">().</span><span class="na">getTaskSize</span><span class="p">()</span> <span class="o">==</span> <span class="n">smallestSize</span><span class="p">)</span>
+                <span class="p">.</span><span class="na">forEach</span><span class="p">(</span><span class="n">columnValue</span> <span class="o">-&gt;</span> <span class="n">results</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">person</span><span class="p">).</span><span class="na">add</span><span class="p">(</span><span class="n">ImmutableTodo</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">columnValue</span><span class="p">.</span><span class="na">getValue</span><span class="p">())));</span>
 
-        // If the last entry doesn&#39;t have the smallest size, we must have covered all of the smallest todos
-        // in this batch. This works, because dynamic columns are returned in sorted order.
-        return columnValues.get(columnValues.size() - 1).getColumnName().getTaskSize() == smallest;
-    });
-});
-return results;
+        <span class="c1">// If the last entry doesn&#39;t have the smallest size, we must have covered all of the smallest todos</span>
+        <span class="c1">// in this batch. This works, because dynamic columns are returned in sorted order.</span>
+        <span class="k">return</span> <span class="n">columnValues</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">columnValues</span><span class="p">.</span><span class="na">size</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">).</span><span class="na">getColumnName</span><span class="p">().</span><span class="na">getTaskSize</span><span class="p">()</span> <span class="o">==</span> <span class="n">smallest</span><span class="p">;</span>
+    <span class="p">});</span>
+<span class="p">});</span>
+<span class="k">return</span> <span class="n">results</span><span class="p">;</span>
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

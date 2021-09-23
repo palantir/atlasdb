@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AtlasDB Service Api &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>AtlasDB Service Api &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -83,55 +85,55 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="atlasdb-service-api">
-<span id="id1"></span><h1>AtlasDB Service Api<a class="headerlink" href="#atlasdb-service-api" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="table-requests">
-<h2>Table Requests<a class="headerlink" href="#table-requests" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="create-a-table">
-<h3>Create a Table<a class="headerlink" href="#create-a-table" title="Permalink to this headline">¶</a></h3>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">3828</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">/</span><span class="n">create</span><span class="o">-</span><span class="n">table</span><span class="o">/</span><span class="n">my_table</span>
+  <section id="atlasdb-service-api">
+<span id="id1"></span><h1>AtlasDB Service Api<a class="headerlink" href="#atlasdb-service-api" title="Permalink to this headline"></a></h1>
+<section id="table-requests">
+<h2>Table Requests<a class="headerlink" href="#table-requests" title="Permalink to this headline"></a></h2>
+<section id="create-a-table">
+<h3>Create a Table<a class="headerlink" href="#create-a-table" title="Permalink to this headline"></a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl -XPOST http://localhost:3828/atlasdb/create-table/my_table
 </pre></div>
 </div>
-</div>
-<div class="section" id="puts-and-gets-auto-committed">
-<h3>Puts and Gets (Auto-Committed)<a class="headerlink" href="#puts-and-gets-auto-committed" title="Permalink to this headline">¶</a></h3>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">/</span><span class="n">put</span><span class="o">/</span><span class="n">auto</span><span class="o">-</span><span class="n">commit</span> <span class="o">-</span><span class="n">d</span><span class="s1">&#39;{&quot;table&quot;:&quot;my_table&quot;,&quot;data&quot;:[{&quot;row&quot;:[&quot;AAEC&quot;],&quot;col&quot;:[&quot;AwQF&quot;],&quot;val&quot;:&quot;KAA=&quot;}]}&#39;</span>
+</section>
+<section id="puts-and-gets-auto-committed">
+<h3>Puts and Gets (Auto-Committed)<a class="headerlink" href="#puts-and-gets-auto-committed" title="Permalink to this headline"></a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl -XPOST http://localhost/atlasdb/put/auto-commit -d<span class="s1">&#39;{&quot;table&quot;:&quot;my_table&quot;,&quot;data&quot;:[{&quot;row&quot;:[&quot;AAEC&quot;],&quot;col&quot;:[&quot;AwQF&quot;],&quot;val&quot;:&quot;KAA=&quot;}]}&#39;</span>
 </pre></div>
 </div>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">/</span><span class="n">cells</span><span class="o">/</span><span class="n">auto</span><span class="o">-</span><span class="n">commit</span> <span class="o">-</span><span class="n">d</span><span class="s1">&#39;{&quot;table&quot;:&quot;my_table&quot;,&quot;data&quot;:[{&quot;row&quot;:[&quot;AAEC&quot;],&quot;col&quot;:[&quot;AwQF&quot;]}]}&#39;</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl -XPOST http://localhost/atlasdb/cells/auto-commit -d<span class="s1">&#39;{&quot;table&quot;:&quot;my_table&quot;,&quot;data&quot;:[{&quot;row&quot;:[&quot;AAEC&quot;],&quot;col&quot;:[&quot;AwQF&quot;]}]}&#39;</span>
 </pre></div>
 </div>
-</div>
-</div>
-<div class="section" id="transactions">
-<h2>Transactions<a class="headerlink" href="#transactions" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="open-a-transaction">
-<h3>Open a Transaction<a class="headerlink" href="#open-a-transaction" title="Permalink to this headline">¶</a></h3>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">3828</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">/</span><span class="n">transaction</span>
+</section>
+</section>
+<section id="transactions">
+<h2>Transactions<a class="headerlink" href="#transactions" title="Permalink to this headline"></a></h2>
+<section id="open-a-transaction">
+<h3>Open a Transaction<a class="headerlink" href="#open-a-transaction" title="Permalink to this headline"></a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl -XPOST http://localhost:3828/atlasdb/transaction
 </pre></div>
 </div>
 <p>returns this</p>
-<div class="code json highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span><span class="s2">&quot;14f0656a-e5f3-48d7-a15e-6fa3504db797&quot;</span><span class="p">}</span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="s2">&quot;14f0656a-e5f3-48d7-a15e-6fa3504db797&quot;</span><span class="p">}</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="read-and-write-transactionally">
-<h3>Read and Write Transactionally<a class="headerlink" href="#read-and-write-transactionally" title="Permalink to this headline">¶</a></h3>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">/</span><span class="n">put</span><span class="o">/</span><span class="mi">14</span><span class="n">f0656a</span><span class="o">-</span><span class="n">e5f3</span><span class="o">-</span><span class="mi">48</span><span class="n">d7</span><span class="o">-</span><span class="n">a15e</span><span class="o">-</span><span class="mi">6</span><span class="n">fa3504db797</span> <span class="o">-</span><span class="n">d</span><span class="s1">&#39;{&quot;table&quot;:&quot;my_table&quot;,&quot;data&quot;:[{&quot;row&quot;:[&quot;AAEC&quot;],&quot;col&quot;:[&quot;AwQF&quot;],&quot;val&quot;:&quot;KAA=&quot;}]}&#39;</span>
+</section>
+<section id="read-and-write-transactionally">
+<h3>Read and Write Transactionally<a class="headerlink" href="#read-and-write-transactionally" title="Permalink to this headline"></a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl -XPOST http://localhost/atlasdb/put/14f0656a-e5f3-48d7-a15e-6fa3504db797 -d<span class="s1">&#39;{&quot;table&quot;:&quot;my_table&quot;,&quot;data&quot;:[{&quot;row&quot;:[&quot;AAEC&quot;],&quot;col&quot;:[&quot;AwQF&quot;],&quot;val&quot;:&quot;KAA=&quot;}]}&#39;</span>
 </pre></div>
 </div>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">/</span><span class="n">cells</span><span class="o">/</span><span class="mi">14</span><span class="n">f0656a</span><span class="o">-</span><span class="n">e5f3</span><span class="o">-</span><span class="mi">48</span><span class="n">d7</span><span class="o">-</span><span class="n">a15e</span><span class="o">-</span><span class="mi">6</span><span class="n">fa3504db797</span> <span class="o">-</span><span class="n">d</span><span class="s1">&#39;{&quot;table&quot;:&quot;my_table&quot;,&quot;data&quot;:[{&quot;row&quot;:[&quot;AAEC&quot;],&quot;col&quot;:[&quot;AwQF&quot;]}]}&#39;</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl -XPOST http://localhost/atlasdb/cells/14f0656a-e5f3-48d7-a15e-6fa3504db797 -d<span class="s1">&#39;{&quot;table&quot;:&quot;my_table&quot;,&quot;data&quot;:[{&quot;row&quot;:[&quot;AAEC&quot;],&quot;col&quot;:[&quot;AwQF&quot;]}]}&#39;</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="commit-a-transaction">
-<h3>Commit a Transaction<a class="headerlink" href="#commit-a-transaction" title="Permalink to this headline">¶</a></h3>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">3828</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">/</span><span class="n">commit</span><span class="o">/</span><span class="mi">14</span><span class="n">f0656a</span><span class="o">-</span><span class="n">e5f3</span><span class="o">-</span><span class="mi">48</span><span class="n">d7</span><span class="o">-</span><span class="n">a15e</span><span class="o">-</span><span class="mi">6</span><span class="n">fa3504db797</span>
+</section>
+<section id="commit-a-transaction">
+<h3>Commit a Transaction<a class="headerlink" href="#commit-a-transaction" title="Permalink to this headline"></a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl -XPOST http://localhost:3828/atlasdb/commit/14f0656a-e5f3-48d7-a15e-6fa3504db797
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Console &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Console &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -85,10 +87,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="console">
-<span id="id1"></span><h1>Console<a class="headerlink" href="#console" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+  <section id="console">
+<span id="id1"></span><h1>Console<a class="headerlink" href="#console" title="Permalink to this headline"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>The AtlasDB Console is intended for use by engineers interested in
 examining the internals of a running AtlasDB instance. It supports both
 simple and complex queries on all tables in AtlasDB, as well as
@@ -98,56 +100,56 @@ use. You can query AtlasDB Console using a Groovy shell or write
 scripts as needed to obtain the information you are interested in. There
 is a lot of functionality built into this interface and you are able to
 perform both safe and destructive (read dangerous) operations.</p>
-</div>
-<div class="section" id="using-groovy-in-atlasdb-console">
-<h2>Using Groovy in AtlasDB Console<a class="headerlink" href="#using-groovy-in-atlasdb-console" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="using-groovy-in-atlasdb-console">
+<h2>Using Groovy in AtlasDB Console<a class="headerlink" href="#using-groovy-in-atlasdb-console" title="Permalink to this headline"></a></h2>
 <p>This section contains tips and tricks for navigating GroovyShell and
 using Groovy to its fullest extent in AtlasDB Console.</p>
 <ul class="simple">
-<li>Type <code class="docutils literal notranslate"><span class="pre">:help</span></code> or <code class="docutils literal notranslate"><span class="pre">:h</span></code> to get usage help.</li>
-<li>Type <code class="docutils literal notranslate"><span class="pre">help()</span></code> to examine all AtlasDB related functions available.</li>
-<li>Type <code class="docutils literal notranslate"><span class="pre">:exit</span></code> or <code class="docutils literal notranslate"><span class="pre">:x</span></code> to exit GroovyShell.</li>
-<li>Type <code class="docutils literal notranslate"><span class="pre">:clear</span></code> or <code class="docutils literal notranslate"><span class="pre">:c</span></code> to exit a command block.</li>
-<li>To use an external editor to write a script without exiting
+<li><p>Type <code class="docutils literal notranslate"><span class="pre">:help</span></code> or <code class="docutils literal notranslate"><span class="pre">:h</span></code> to get usage help.</p></li>
+<li><p>Type <code class="docutils literal notranslate"><span class="pre">help()</span></code> to examine all AtlasDB related functions available.</p></li>
+<li><p>Type <code class="docutils literal notranslate"><span class="pre">:exit</span></code> or <code class="docutils literal notranslate"><span class="pre">:x</span></code> to exit GroovyShell.</p></li>
+<li><p>Type <code class="docutils literal notranslate"><span class="pre">:clear</span></code> or <code class="docutils literal notranslate"><span class="pre">:c</span></code> to exit a command block.</p></li>
+<li><p>To use an external editor to write a script without exiting
 GroovyShell, type <code class="docutils literal notranslate"><span class="pre">:edit</span></code>. Before you use this command for the
 first time, you will need to set your default editor (either vim or
 emacs) using the command <code class="docutils literal notranslate"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">vim</span></code> or
-<code class="docutils literal notranslate"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">emacs</span></code>.</li>
-<li>To load and run a Groovy script, type
+<code class="docutils literal notranslate"><span class="pre">:set</span> <span class="pre">editor</span> <span class="pre">emacs</span></code>.</p></li>
+<li><p>To load and run a Groovy script, type
 <code class="docutils literal notranslate"><span class="pre">:load</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>. The file you load must
-end with the <code class="docutils literal notranslate"><span class="pre">.groovy</span></code> extension.</li>
-<li>To record your AtlasDB Console session, type
+end with the <code class="docutils literal notranslate"><span class="pre">.groovy</span></code> extension.</p></li>
+<li><p>To record your AtlasDB Console session, type
 <code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">start</span> <span class="pre">&lt;PATH-TO-RECORD-FILE&gt;/&lt;FILENAME&gt;.txt</span></code>. You can also
 just type <code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">start</span></code> and GroovyShell will save your session to
 a .txt file in your <code class="docutils literal notranslate"><span class="pre">/tmp</span></code> directory. GroovyShell will record
 anything typed on the command line or returned by a command to the
 file. You can end the recording by typing <code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">stop</span></code> or review
 the name of the record file and its current size by typing
-<code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">status</span></code>.</li>
-<li>To view a list of all of the commands you have executed so far, type
-<code class="docutils literal notranslate"><span class="pre">:history</span></code>.</li>
-<li>If you want the editor to print out the last result (e.g. printing
+<code class="docutils literal notranslate"><span class="pre">:record</span> <span class="pre">status</span></code>.</p></li>
+<li><p>To view a list of all of the commands you have executed so far, type
+<code class="docutils literal notranslate"><span class="pre">:history</span></code>.</p></li>
+<li><p>If you want the editor to print out the last result (e.g. printing
 the results of a command like <code class="docutils literal notranslate"><span class="pre">table('my_table').getRange()</span></code>
 without a <code class="docutils literal notranslate"><span class="pre">print</span></code> or <code class="docutils literal notranslate"><span class="pre">pp</span></code> command), type
 <code class="docutils literal notranslate"><span class="pre">:set</span> <span class="pre">show-last-result</span> <span class="pre">true</span></code> to turn it on. This option is disabled
-by default.</li>
-<li>You can run scripts on load by setting the –script flag like this:
+by default.</p></li>
+<li><p>You can run scripts on load by setting the –script flag like this:
 <code class="docutils literal notranslate"><span class="pre">./bin/unix/atlasDBConsole-script</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>.
 The script you load must end with the <code class="docutils literal notranslate"><span class="pre">.groovy</span></code> extension. This
 will load the script, run it, and exit the console. To keep the
 console running after the script executes, run
 <code class="docutils literal notranslate"><span class="pre">./bin/unix/atlasDBConsole</span> <span class="pre">&lt;PATH-TO-FILE&gt;/&lt;FILENAME&gt;.groovy</span></code>
-(without the <code class="docutils literal notranslate"><span class="pre">-script</span></code> flag).</li>
+(without the <code class="docutils literal notranslate"><span class="pre">-script</span></code> flag).</p></li>
 </ul>
-<div class="section" id="writing-scripts-in-groovy">
-<h3>Writing Scripts in Groovy<a class="headerlink" href="#writing-scripts-in-groovy" title="Permalink to this headline">¶</a></h3>
+<section id="writing-scripts-in-groovy">
+<h3>Writing Scripts in Groovy<a class="headerlink" href="#writing-scripts-in-groovy" title="Permalink to this headline"></a></h3>
 <p>You can find a quick introduction to Groovy
 <a class="reference external" href="http://learnxinyminutes.com/docs/groovy/">here</a>. For a more in-depth
 guide, see the latest official <a class="reference external" href="http://www.groovy-lang.org/documentation.html">Groovy
 docs</a>.</p>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

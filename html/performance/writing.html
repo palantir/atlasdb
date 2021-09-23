@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Writing Benchmarks &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Writing Benchmarks &mdash; OSS AtlasDB develop documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -83,19 +85,19 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="writing-benchmarks">
-<span id="performance-writing"></span><h1>Writing Benchmarks<a class="headerlink" href="#writing-benchmarks" title="Permalink to this headline">¶</a></h1>
+  <section id="writing-benchmarks">
+<span id="performance-writing"></span><h1>Writing Benchmarks<a class="headerlink" href="#writing-benchmarks" title="Permalink to this headline"></a></h1>
 <p>The benchmarks are written using the <a class="reference external" href="http://openjdk.java.net/projects/code-tools/jmh/">Java Benchmarking Harness</a> (JMH) bundled with OpenJDK.  To get started understanding JMH take a look at the <a class="reference external" href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/">JMH Samples</a>.  Our benchmarks are found in the <code class="docutils literal notranslate"><span class="pre">atlasdb-perf</span></code> project.</p>
 <p>Be sure to read <a class="reference internal" href="understanding.html#understanding"><span class="std std-ref">Understanding Performance Benchmarking</span></a> before attempting to write a benchmark.</p>
-<div class="section" id="how-the-atlasdb-perf-cli-works">
-<h2>How the AtlasDB-Perf CLI Works<a class="headerlink" href="#how-the-atlasdb-perf-cli-works" title="Permalink to this headline">¶</a></h2>
+<section id="how-the-atlasdb-perf-cli-works">
+<h2>How the AtlasDB-Perf CLI Works<a class="headerlink" href="#how-the-atlasdb-perf-cli-works" title="Permalink to this headline"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.java</span></code> contains the main method that the CLI runs.
 It checks the provided options, sets up docker containers (if needed), and gathers the URIs of benchmarks via reflection.
 Once it does all that, it kicks off JMH in the method <code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.runJmh()</span></code>.
 This method is also responsible for setting several important runtime parameters including which benchmarks to run, how many forks and threads to use, the sampling mode, and the time unit.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">If you want to run your benchmark in a debugger, you must set the number of forks to 0.
+<p class="admonition-title">Note</p>
+<p>If you want to run your benchmark in a debugger, you must set the number of forks to 0.
 Do not forget to set set it back to 1 before you push your code!</p>
 </div>
 <p>JMH will then attempt to run a benchmark.
@@ -109,8 +111,8 @@ When JMH runs in SampleTime mode (see <code class="docutils literal notranslate"
 JMH will sample as infrequently as it needs to in order to obtain accurate results.
 Tests with a long runtime (&gt;10ms) tend to be sampled every run.</p>
 <div class="admonition tip">
-<p class="first admonition-title">Tip</p>
-<p class="last">Set the <code class="docutils literal notranslate"><span class="pre">&#64;Measurement</span></code> parameters high enough to get at least 100 runs.
+<p class="admonition-title">Tip</p>
+<p>Set the <code class="docutils literal notranslate"><span class="pre">&#64;Measurement</span></code> parameters high enough to get at least 100 runs.
 The CLI collects percentile statistics and with fewer than 100 samples this data is not particularly useful.</p>
 </div>
 <p>Benchmark method signatures can also indicate other <code class="docutils literal notranslate"><span class="pre">&#64;State</span></code> objects, for example <code class="docutils literal notranslate"><span class="pre">ConsecutiveNarrowTable</span></code>.
@@ -118,9 +120,9 @@ JMH will instantiate these for use in the benchmark.
 State annotations specify a <code class="docutils literal notranslate"><span class="pre">Scope</span></code> which describes when the object is created and destroyed.
 Similarly, methods in a State object can have functions marked as <code class="docutils literal notranslate"><span class="pre">&#64;Setup</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;Teardown</span></code> with a specified <code class="docutils literal notranslate"><span class="pre">Level</span></code> that describes when to run it.
 Check the JMH source code for <code class="docutils literal notranslate"><span class="pre">Scope</span></code> and <code class="docutils literal notranslate"><span class="pre">Level</span></code> for more information.</p>
-</div>
-<div class="section" id="writing-a-new-benchmark">
-<h2>Writing a New Benchmark<a class="headerlink" href="#writing-a-new-benchmark" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="writing-a-new-benchmark">
+<h2>Writing a New Benchmark<a class="headerlink" href="#writing-a-new-benchmark" title="Permalink to this headline"></a></h2>
 <p>When writing a new benchmark, first consider exactly what you want to test.
 If you are looking to test an API endpoint, it might be appropriate to write several benchmarks with each one covering a relevant case.
 A good example is the <code class="docutils literal notranslate"><span class="pre">KvsGetRangeBenchmarks.java</span></code> suite, which tests AtlasDB’s <code class="docutils literal notranslate"><span class="pre">getRange()</span></code> in several different ways.</p>
@@ -129,20 +131,20 @@ Validation not only ensures that your code does what you think it does, it also 
 Validation is often run during the benchmark itself, so care should be taken to avoid expensive operations in it.
 Validation that does not include client/server calls generally has a negligible impact on benchmark runtime.</p>
 <div class="admonition tip">
-<p class="first admonition-title">Tip</p>
-<p class="last">Pass the name of the benchmark you’re working on to the CLI in order to avoid running all benchmarks during development.</p>
+<p class="admonition-title">Tip</p>
+<p>Pass the name of the benchmark you’re working on to the CLI in order to avoid running all benchmarks during development.</p>
 </div>
-</div>
-<div class="section" id="benchmarking-with-a-custom-key-value-store-kvs">
-<h2>Benchmarking With a Custom Key Value Store (KVS)<a class="headerlink" href="#benchmarking-with-a-custom-key-value-store-kvs" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="benchmarking-with-a-custom-key-value-store-kvs">
+<h2>Benchmarking With a Custom Key Value Store (KVS)<a class="headerlink" href="#benchmarking-with-a-custom-key-value-store-kvs" title="Permalink to this headline"></a></h2>
 <p>To run the benchmark suite on a custom KVS, simply follow these steps:</p>
 <ol class="arabic simple">
-<li>Extend <code class="docutils literal notranslate"><span class="pre">KeyValueServiceInstrumentation</span></code> with the proper configurations, e.g., see <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceInstrumentation.java</span></code>.</li>
-<li>Register the new backend: <code class="docutils literal notranslate"><span class="pre">KeyValueServiceInstrumentation.addNewBackendType(new</span> <span class="pre">YourKeyValueServiceInstrumentation())</span></code>.</li>
-<li>Run the <code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.main</span></code> function with the desired arguments.</li>
+<li><p>Extend <code class="docutils literal notranslate"><span class="pre">KeyValueServiceInstrumentation</span></code> with the proper configurations, e.g., see <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceInstrumentation.java</span></code>.</p></li>
+<li><p>Register the new backend: <code class="docutils literal notranslate"><span class="pre">KeyValueServiceInstrumentation.addNewBackendType(new</span> <span class="pre">YourKeyValueServiceInstrumentation())</span></code>.</p></li>
+<li><p>Run the <code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.main</span></code> function with the desired arguments.</p></li>
 </ol>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
