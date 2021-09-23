@@ -29,6 +29,8 @@ import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEnd
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
@@ -36,6 +38,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class TimeLockManagementResource implements UndertowTimeLockManagementService {
+    private static final SafeLogger log = SafeLoggerFactory.get(TimeLockManagementResource.class);
+
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;
@@ -113,6 +117,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
 
     @Override
     public ListenableFuture<Void> forceKillTimeLockServer(AuthHeader authHeader) {
+        log.info("Forcefully stopping TimeLock service.");
         serviceStopper.run();
         return Futures.immediateVoidFuture();
     }
