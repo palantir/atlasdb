@@ -146,6 +146,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         ensureStateRemoved(startTimestamp);
     }
 
+    /**
+     * Retrieval of transaction scoped caches (read-only or otherwise) does not need to be synchronised. The main
+     * reason for this is that, the only race condition that could conceivably occur is for the state to not exist here
+     * when it should. However, in all of these cases, a no-op cache is used instead, and thus the transaction will
+     * simply go ahead but with caching disabled (which is guaranteed to be safe).
+     */
     @Override
     public TransactionScopedCache getTransactionScopedCache(long startTs) {
         return cacheStore.getCache(StartTimestamp.of(startTs));

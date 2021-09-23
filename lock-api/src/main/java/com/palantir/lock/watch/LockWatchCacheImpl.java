@@ -54,7 +54,7 @@ public final class LockWatchCacheImpl implements LockWatchCache {
     }
 
     @Override
-    public void onSuccess(long startTs) {
+    public void onTransactionCommit(long startTs) {
         valueCache.onSuccessfulCommit(startTs);
         eventCache.removeTransactionStateFromCache(startTs);
     }

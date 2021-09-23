@@ -26,7 +26,7 @@ public interface LockWatchCache {
 
     void removeTransactionStateFromCache(long startTs);
 
-    void onSuccess(long startTs);
+    void onTransactionCommit(long startTs);
 
     LockWatchEventCache getEventCache();
 

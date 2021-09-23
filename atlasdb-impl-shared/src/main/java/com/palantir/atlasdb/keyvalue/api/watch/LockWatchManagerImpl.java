@@ -134,7 +134,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
 
     @Override
     public void onSuccess(long startTs) {
-        lockWatchCache.onSuccess(startTs);
+        lockWatchCache.onTransactionCommit(startTs);
     }
 
     @Override

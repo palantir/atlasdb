@@ -438,16 +438,15 @@ public final class LockWatchValueIntegrationTest {
                 throw new RuntimeException("Transaction failed at commit time");
             }
         };
-        try {
-            txnManager.runTaskWithConditionThrowOnConflict(commitFailingCondition, (txn, _unused) -> {
-                startTimestamp.set(txn.getTimestamp());
-                txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_4));
-                txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2, CELL_3));
-                return null;
-            });
-        } catch (Exception e) {
-            // no-op
-        }
+
+        assertThatThrownBy(
+                        () -> txnManager.runTaskWithConditionThrowOnConflict(commitFailingCondition, (txn, _unused) -> {
+                            startTimestamp.set(txn.getTimestamp());
+                            txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_4));
+                            txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2, CELL_3));
+                            return null;
+                        }))
+                .isInstanceOf(RuntimeException.class);
 
         awaitUnlock();
 
