@@ -191,10 +191,10 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(getRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(2)).registerHits(1);
         verify(metrics, times(2)).registerMisses(1);
+        valueCache.onSuccessfulCommit(TIMESTAMP_1);
 
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
-        // noop cache
     }
 
     @Test
@@ -387,8 +387,8 @@ public final class LockWatchValueScopingCacheImplTest {
 
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
-        verify(metrics, times(1)).registerHits(2);
-        verify(metrics, times(1)).registerMisses(0);
+        verify(metrics, times(2)).registerHits(0);
+        verify(metrics, times(2)).registerMisses(2);
     }
 
     private void processSuccessfulCommit(long startTimestamp, long sequence) {

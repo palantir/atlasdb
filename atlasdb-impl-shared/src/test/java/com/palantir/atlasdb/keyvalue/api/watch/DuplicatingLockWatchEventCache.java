@@ -18,12 +18,17 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.lock.watch.*;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.TransactionUpdate;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
-class DuplicatingLockWatchEventCache implements LockWatchEventCache {
+final class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     private final LockWatchEventCache mainCache;
     private final LockWatchEventCache secondaryCache;
 
