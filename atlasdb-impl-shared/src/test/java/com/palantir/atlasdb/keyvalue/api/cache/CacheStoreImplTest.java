@@ -25,7 +25,7 @@ import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import org.junit.Test;
@@ -87,7 +87,7 @@ public final class CacheStoreImplTest {
         cacheStore.createCache(TIMESTAMP_1);
         cacheStore.createCache(timestamp);
         assertThatThrownBy(() -> cacheStore.createCache(TIMESTAMP_2))
-                .isExactlyInstanceOf(TransactionFailedRetriableException.class)
+                .isExactlyInstanceOf(SafeIllegalStateException.class)
                 .hasMessage("Exceeded maximum concurrent caches; transaction can be retried, but with caching "
                         + "disabled");
         assertThat(getTransactionCacheInstanceCount()).isEqualTo(2);
