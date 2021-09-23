@@ -175,6 +175,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -1425,9 +1426,11 @@ public abstract class TransactionManagers {
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             UserAgent userAgent) {
         ServiceCreator creator = ServiceCreator.noPayloadLimiter(
-                metricsManager, () -> config.lock().get(), userAgent, () -> runtimeConfigSupplier
-                        .get()
-                        .remotingClient());
+                metricsManager,
+                Refreshable.only(config.lock()
+                        .orElseThrow(() -> new SafeIllegalArgumentException("lock server list config absent"))),
+                userAgent,
+                () -> runtimeConfigSupplier.get().remotingClient());
         LockService lockService =
                 new RemoteLockServiceAdapter(creator.createService(NamespaceAgnosticLockRpcClient.class));
         TimestampService timeService = creator.createService(TimestampService.class);
