@@ -18,7 +18,12 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
-import com.palantir.lock.watch.*;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Optional;
 import java.util.Set;
 
