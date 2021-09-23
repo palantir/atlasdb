@@ -36,9 +36,7 @@ import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.RequestPattern;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
@@ -49,15 +47,15 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 import java.net.SocketTimeoutException;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -77,7 +75,6 @@ public class AtlasDbHttpClientsTest {
     private static final MappingBuilder POST_MAPPING = post(urlEqualTo(POST_ENDPOINT));
     private static final int TEST_NUMBER_1 = 12;
     private static final int TEST_NUMBER_2 = 123;
-    private static final Duration SLEEP_TIME = Duration.ofSeconds(6L);
 
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
@@ -214,22 +211,25 @@ public class AtlasDbHttpClientsTest {
     public void canLiveReloadServersList() {
         unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        List<String> servers = Lists.newArrayList(getUriForPort(unavailablePort));
-
+        SettableRefreshable<ServerListConfig> serverListRefreshable =
+                Refreshable.create(ImmutableServerListConfig.builder()
+                        .addServers(getUriForPort(unavailablePort))
+                        .sslConfiguration(SSL_CONFIG)
+                        .build());
         TestResource client = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 MetricsManagers.createForTests(),
-                () -> ImmutableServerListConfig.builder()
-                        .servers(servers)
-                        .sslConfiguration(SSL_CONFIG)
-                        .build(),
+                serverListRefreshable,
                 TestResource.class,
                 AUXILIARY_REMOTING_PARAMETERS);
 
         // actually a Feign RetryableException but that's not on our classpath
         assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
 
-        servers.add(getUriForPort(availablePort1));
-        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME);
+        serverListRefreshable.update(ImmutableServerListConfig.builder()
+                .addServers(getUriForPort(unavailablePort))
+                .addServers(getUriForPort(availablePort1))
+                .sslConfiguration(SSL_CONFIG)
+                .build());
 
         int response = client.getTestNumber();
         assertThat(response).isEqualTo(TEST_NUMBER_1);
@@ -238,21 +238,20 @@ public class AtlasDbHttpClientsTest {
 
     @Test
     public void httpProxyCanBeCommissionedAndDecommissionedIfNodeAvailabilityChanges() {
-        AtomicReference<ServerListConfig> config = new AtomicReference<>(ImmutableServerListConfig.builder()
+        SettableRefreshable<ServerListConfig> config = Refreshable.create(ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort1))
                 .sslConfiguration(SSL_CONFIG)
                 .build());
 
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                MetricsManagers.createForTests(), config::get, TestResource.class, AUXILIARY_REMOTING_PARAMETERS);
+                MetricsManagers.createForTests(), config, TestResource.class, AUXILIARY_REMOTING_PARAMETERS);
 
         assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_1);
 
-        config.set(ImmutableServerListConfig.builder()
+        config.update(ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort2))
                 .sslConfiguration(SSL_CONFIG)
                 .build());
-        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME);
         assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_2);
     }
 

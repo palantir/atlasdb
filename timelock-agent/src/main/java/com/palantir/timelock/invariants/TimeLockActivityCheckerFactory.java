@@ -23,6 +23,7 @@ import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import java.util.List;
@@ -50,7 +51,11 @@ public class TimeLockActivityCheckerFactory {
 
     private ServiceCreator createServiceCreatorForRemote(String remoteUrl) {
         return ServiceCreator.withPayloadLimiter(
-                metricsManager, () -> getServerListConfig(remoteUrl), userAgent, () -> RemotingClientConfigs.DEFAULT);
+                metricsManager,
+                // note that this refreshable never updates, even if the cluster configuration is mutable
+                Refreshable.only(getServerListConfig(remoteUrl)),
+                userAgent,
+                () -> RemotingClientConfigs.DEFAULT);
     }
 
     private ServerListConfig getServerListConfig(String remoteUrl) {

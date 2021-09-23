@@ -19,8 +19,8 @@ package com.palantir.atlasdb.http;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.immutables.value.Value;
 
 public interface TargetFactory {
@@ -48,7 +48,9 @@ public interface TargetFactory {
      * {@link #createProxyWithFailover(ServerListConfig, Class, AuxiliaryRemotingParameters)} in that case.
      */
     <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
-            Supplier<ServerListConfig> serverListConfigSupplier, Class<T> type, AuxiliaryRemotingParameters parameters);
+            Refreshable<ServerListConfig> serverListConfigSupplier,
+            Class<T> type,
+            AuxiliaryRemotingParameters parameters);
 
     @Value.Immutable
     interface InstanceAndVersion<T> {

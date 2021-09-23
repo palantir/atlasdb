@@ -26,6 +26,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.ReplaceIfExceptionMatchingProxy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.dialogue.Channel;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
@@ -66,13 +67,13 @@ public final class AtlasDbHttpClients {
 
     public static <T> T createLiveReloadingProxyWithFailover(
             MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfigSupplier,
+            Refreshable<ServerListConfig> serverListConfigRefreshable,
             Class<T> type,
             AuxiliaryRemotingParameters clientParameters) {
         Supplier<T> clientFactory = () -> instrument(
                 metricsManager.getTaggedRegistry(),
                 ConjureJavaRuntimeTargetFactory.DEFAULT.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier, type, clientParameters),
+                        serverListConfigRefreshable, type, clientParameters),
                 type);
         return wrapWithOkHttpBugHandling(type, clientFactory);
     }

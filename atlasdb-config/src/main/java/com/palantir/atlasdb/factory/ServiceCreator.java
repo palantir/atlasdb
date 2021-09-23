@@ -27,16 +27,19 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
-    private final Supplier<ServerListConfig> servers;
+    private final Refreshable<ServerListConfig> servers;
     private final AuxiliaryRemotingParameters parameters;
 
     private ServiceCreator(
-            MetricsManager metricsManager, Supplier<ServerListConfig> servers, AuxiliaryRemotingParameters parameters) {
+            MetricsManager metricsManager,
+            Refreshable<ServerListConfig> servers,
+            AuxiliaryRemotingParameters parameters) {
         this.metricsManager = metricsManager;
         this.servers = servers;
         this.parameters = parameters;
@@ -47,7 +50,7 @@ public final class ServiceCreator {
      */
     public static ServiceCreator noPayloadLimiter(
             MetricsManager metrics,
-            Supplier<ServerListConfig> serverList,
+            Refreshable<ServerListConfig> serverList,
             UserAgent userAgent,
             Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
         return new ServiceCreator(
@@ -61,7 +64,7 @@ public final class ServiceCreator {
      */
     public static ServiceCreator withPayloadLimiter(
             MetricsManager metrics,
-            Supplier<ServerListConfig> serverList,
+            Refreshable<ServerListConfig> serverList,
             UserAgent userAgent,
             Supplier<RemotingClientConfig> remotingClientConfigSupplier) {
         return new ServiceCreator(
@@ -88,11 +91,11 @@ public final class ServiceCreator {
 
     private static <T> T create(
             MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfigSupplier,
+            Refreshable<ServerListConfig> serverListConfigRefreshable,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                metricsManager, serverListConfigSupplier, type, parameters);
+                metricsManager, serverListConfigRefreshable, type, parameters);
     }
 
     public static <T> T instrumentService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {
