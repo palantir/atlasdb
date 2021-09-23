@@ -3,6 +3,7 @@ apply from: '../gradle/shared.gradle'
 dependencies {
   compile project(':commons-executors')
 
+  compile group: 'com.palantir.refreshable', name: 'refreshable'
   compile group: 'com.palantir.conjure.java.api', name: 'service-config'
   compile group: 'com.palantir.conjure.java.runtime', name: 'keystores'
   compile group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'

@@ -20,10 +20,12 @@ import static com.palantir.lock.client.MultiClientTransactionStarter.processBatc
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -135,6 +137,13 @@ public class MultiClientTransactionStarterTest {
         LockCleanupService relevantLockCleanupService = LOCK_CLEANUP_SERVICE_MAP.get(namespace);
         verify(relevantLockCleanupService).refreshLockLeases(any());
         verify(relevantLockCleanupService).unlock(any());
+
+        /*
+         * For one space, all requests are accumulated, and we attempt to fetch as many respones as possible from the
+         * server. Concretely, the queue here contains 25 demands for a response. The first one succeeds, but the
+         * next four fail (and each batch size is five), and thus we get four calls to clean up.
+         */
+        verify(NAMESPACE_CACHE_MAP.get(namespace), times(4)).removeTransactionStateFromCache(anyLong());
     }
 
     @Test
@@ -166,6 +175,10 @@ public class MultiClientTransactionStarterTest {
         verify(LOCK_CLEANUP_SERVICE_MAP.get(alpha), never()).unlock(any());
         verify(LOCK_CLEANUP_SERVICE_MAP.get(beta)).refreshLockLeases(any());
         verify(LOCK_CLEANUP_SERVICE_MAP.get(beta)).unlock(any());
+        verify(NAMESPACE_CACHE_MAP.get(alpha), never()).removeTransactionStateFromCache(anyLong());
+
+        // The size of each batch is 5 here, and thus for a single batch we need to clean up five times
+        verify(NAMESPACE_CACHE_MAP.get(beta), times(5)).removeTransactionStateFromCache(anyLong());
     }
 
     @Test
@@ -198,6 +211,7 @@ public class MultiClientTransactionStarterTest {
                 (ArgumentCaptor<Set<LockToken>>) ArgumentCaptor.forClass((Class) Set.class);
         verify(LOCK_CLEANUP_SERVICE_MAP.get(omega)).refreshLockLeases(refreshArgumentCaptor.capture());
         verify(LOCK_CLEANUP_SERVICE_MAP.get(omega)).unlock(eq(Collections.emptySet()));
+        verify(NAMESPACE_CACHE_MAP.get(omega)).removeTransactionStateFromCache(anyLong());
         Set<LockToken> refreshedTokens = refreshArgumentCaptor.getValue();
 
         LockToken tokenShare = Futures.getUnchecked(requestForOmega.result())

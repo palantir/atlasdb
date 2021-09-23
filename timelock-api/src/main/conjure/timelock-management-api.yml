@@ -29,3 +29,9 @@ services:
           should not interrupt service for other naemspaces. Note that this operation is atomic for each namespace (e.g.
           users will not see two different lock services servicing the same startTransactions request), but not atomic
           as a whole.
+
+      forceKillTimeLockServer:
+        http: POST /forceKillTimeLockServer
+        docs: |
+          Kills TimeLock server i.e. current server will not be able to talk to peer nodes or serve requests. After
+          hitting this endpoint, the server will require external intervention to start up the service again.

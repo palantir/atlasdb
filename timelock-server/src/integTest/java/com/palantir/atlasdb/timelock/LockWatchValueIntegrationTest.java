@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -41,12 +42,20 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
+import com.palantir.lock.AtlasCellLockDescriptor;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.TransactionUpdate;
+import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -54,6 +63,9 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import org.awaitility.Awaitility;
 import org.junit.Before;
@@ -369,15 +381,69 @@ public final class LockWatchValueIntegrationTest {
 
         txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
-            // we read the values previously cached values
+            // these values were cached in the previous transaction, so we confirm that they are recorded as hits
             assertHitValues(
                     txn,
                     ImmutableSet.of(
                             CellReference.of(TABLE_REF, CELL_2), CellReference.of(TABLE_REF, CELL_3), TABLE_CELL_4));
-            // we weren't able to cache our own write so we look this up
+            // we weren't able to cache our own write, so we look this up
             assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
             return read;
         });
+    }
+
+    @Test
+    public void nearbyCommitsDoNotAffectResultsPresentInCache() {
+        createTransactionManager(1.0);
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3));
+            return null;
+        });
+
+        awaitUnlock();
+
+        AtomicLong startTs = new AtomicLong(-1L);
+        AtomicReference<LockWatchCache> lwCache = new AtomicReference<>(null);
+        PreCommitCondition condition = timestamp -> {
+            if (timestamp != startTs.get()) {
+                simulateOverlappingWriteTransaction(lwCache, timestamp);
+            }
+        };
+
+        assertThatCode(() -> txnManager.runTaskWithConditionThrowOnConflict(condition, (txn, _unused) -> {
+                    startTs.set(txn.getTimestamp());
+                    lwCache.set(((LockWatchManagerInternal) txnManager.getLockWatchManager()).getCache());
+
+                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+                    // A write forces this to go through serializable conflict checking
+                    txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_1));
+
+                    return null;
+                }))
+                .doesNotThrowAnyException();
+    }
+
+    private void simulateOverlappingWriteTransaction(
+            AtomicReference<LockWatchCache> lwCache, long theirCommitTimestamp) {
+        LockToken lockToken = LockToken.of(UUID.randomUUID());
+        LockWatchVersion lastKnownVersion =
+                lwCache.get().getEventCache().lastKnownVersion().get();
+
+        lwCache.get()
+                .processStartTransactionsUpdate(
+                        ImmutableSet.of(theirCommitTimestamp - 1),
+                        createLockSuccessUpdate(lockToken, lastKnownVersion));
+        lwCache.get()
+                .processCommitTimestampsUpdate(
+                        ImmutableSet.of(TransactionUpdate.builder()
+                                .startTs(theirCommitTimestamp - 1)
+                                .commitTs(theirCommitTimestamp + 1)
+                                .writesToken(lockToken)
+                                .build()),
+                        createUnlockSuccessUpdate(lastKnownVersion));
+
+        txnManager.getKeyValueService().put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), theirCommitTimestamp - 1);
+        txnManager.getTransactionService().putUnlessExists(theirCommitTimestamp - 1, theirCommitTimestamp + 1);
     }
 
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
@@ -491,6 +557,27 @@ public final class LockWatchValueIntegrationTest {
                         Optional.empty(),
                         createSchema())
                 .transactionManager();
+    }
+
+    private static LockWatchStateUpdate.Success createUnlockSuccessUpdate(LockWatchVersion lastKnownVersion) {
+        return LockWatchStateUpdate.success(
+                lastKnownVersion.id(),
+                lastKnownVersion.version() + 2,
+                ImmutableList.of(UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(
+                                TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())))
+                        .build(lastKnownVersion.version() + 2)));
+    }
+
+    private static LockWatchStateUpdate.Success createLockSuccessUpdate(
+            LockToken lockToken, LockWatchVersion lastKnownVersion) {
+        return LockWatchStateUpdate.success(
+                lastKnownVersion.id(),
+                lastKnownVersion.version() + 1,
+                ImmutableList.of(LockEvent.builder(
+                                ImmutableSet.of(AtlasCellLockDescriptor.of(
+                                        TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())),
+                                lockToken)
+                        .build(lastKnownVersion.version() + 1)));
     }
 
     private static Schema createSchema() {

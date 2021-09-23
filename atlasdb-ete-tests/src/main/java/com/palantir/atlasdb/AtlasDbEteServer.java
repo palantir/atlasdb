@@ -33,9 +33,7 @@ import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.lock.SimpleEteLockWatchResource;
 import com.palantir.atlasdb.lock.SimpleLockResource;
-import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.sweep.CellsSweeper;
-import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
@@ -50,7 +48,6 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -132,12 +129,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         TransactionService txnService =
                 TransactionServices.createRaw(kvs, transactionManager.getTimestampService(), false);
         SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(); // maybe createDefault
-        PersistentLockManager noLocks = new PersistentLockManager(
-                MetricsManagers.of(metricRegistry, taggedMetricRegistry),
-                new NoOpPersistentLockService(),
-                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS);
-        CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, noLocks, ImmutableList.of(follower));
+        CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower));
         return new SweepTaskRunner(kvs, ts, ts, txnService, ssm, cellsSweeper);
     }
 
