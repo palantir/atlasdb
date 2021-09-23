@@ -124,6 +124,7 @@ public class TimeLockAgent {
     private final FeedbackHandler feedbackHandler;
     private final LeaderElectionMetricAggregator leaderElectionAggregator;
     private final TimeLockCorruptionComponents corruptionComponents;
+    private final Runnable serviceStopper;
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
 
@@ -138,7 +139,8 @@ public class TimeLockAgent {
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            Runnable serviceStopper) {
 
         verifyConfigurationSanity(install, cluster);
 
@@ -182,7 +184,8 @@ public class TimeLockAgent {
                 paxosResources,
                 userAgent,
                 persistedSchemaVersion,
-                installationContext.sqliteDataSource());
+                installationContext.sqliteDataSource(),
+                serviceStopper);
         agent.createAndRegisterResources();
         return agent;
     }
@@ -226,7 +229,8 @@ public class TimeLockAgent {
             PaxosResources paxosResources,
             UserAgent userAgent,
             PersistedSchemaVersion persistedSchemaVersion,
-            HikariDataSource sqliteDataSource) {
+            HikariDataSource sqliteDataSource,
+            Runnable serviceStopper) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
@@ -235,9 +239,11 @@ public class TimeLockAgent {
         this.registrar = registrar;
         this.paxosResources = paxosResources;
         this.sqliteDataSource = sqliteDataSource;
+        this.serviceStopper = serviceStopper;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.timestampStorage = getTimestampStorage();
         this.persistedSchemaVersion = persistedSchemaVersion;
+
         LockLog lockLog = new LockLog(
                 metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
@@ -388,10 +394,16 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
                     TimeLockManagementResource.undertow(
-                            timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter()));
+                            timestampStorage.persistentNamespaceContext(),
+                            namespaces,
+                            redirectRetryTargeter(),
+                            serviceStopper));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter()));
+                    timestampStorage.persistentNamespaceContext(),
+                    namespaces,
+                    redirectRetryTargeter(),
+                    serviceStopper));
         }
     }
 

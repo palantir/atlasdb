@@ -51,6 +51,9 @@ public class DiskNamespaceLoaderTest {
     @Mock
     private Supplier<Integer> maxNumberOfClientsSupplier;
 
+    @Mock
+    private Runnable serviceStopper;
+
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private TimeLockManagementResource timeLockManagementResource;
 
@@ -69,8 +72,8 @@ public class DiskNamespaceLoaderTest {
         TimelockNamespaces namespaces =
                 new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
 
-        timeLockManagementResource =
-                TimeLockManagementResource.create(persistentNamespaceContext, namespaces, redirectRetryTargeter);
+        timeLockManagementResource = TimeLockManagementResource.create(
+                persistentNamespaceContext, namespaces, redirectRetryTargeter, serviceStopper);
 
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
         createDirectoryInRootDataDirectory(NAMESPACE_2);

@@ -18,9 +18,6 @@ package com.palantir.atlasdb.sweep;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
-import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -92,14 +89,6 @@ public final class SweepTestUtils {
         setupTables(kvs);
         writer.initialize(txManager);
         return txManager;
-    }
-
-    public static PersistentLockService getPersistentLockService(KeyValueService kvs) {
-        if (kvs.supportsCheckAndSet()) {
-            return KvsBackedPersistentLockService.create(kvs);
-        } else {
-            return new NoOpPersistentLockService();
-        }
     }
 
     static void setupTables(KeyValueService kvs) {

@@ -5793,7 +5793,7 @@ v0.32.0
     *    - |new|
          - Sweep now takes out a lock to ensure data is not corrupted during online backups.
 
-           Users performing :ref:`live backups <backup-restore>` should grab this lock before performing a backup of the underlying KVS, and then release the lock once the backup is complete.
+           Users performing live backups should grab this lock before performing a backup of the underlying KVS, and then release the lock once the backup is complete.
            This enables the backup to safely run alongside either the :ref:`background sweeper <background-sweep>` or the :ref:`sweep CLI <atlasdb-sweep-cli>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1509>`__)
 
@@ -6877,7 +6877,7 @@ v0.12.0
 
     *    - |new|
          - There is now a Dropwizard bundle which can be added to Dropwizard applications.
-           This will add startup commands to launch the AtlasDB console and :ref:`CLIs <clis>` suchs as ``sweep`` and ``timestamp``, which is needed to perform :ref:`live backups <backup-restore>`.
+           This will add startup commands to launch the AtlasDB console and :ref:`CLIs <clis>` suchs as ``sweep`` and ``timestamp``, which is needed to perform backup-restore.
            These commands will only work if the server is started with a leader block in its configuration.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/629>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/696>`__)
 

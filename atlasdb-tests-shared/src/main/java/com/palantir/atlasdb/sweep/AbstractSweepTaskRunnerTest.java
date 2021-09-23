@@ -65,7 +65,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         super.setup();
         tsSupplier = sweepTimestamp::get;
 
-        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
     }
 
