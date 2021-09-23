@@ -87,6 +87,10 @@ public final class CacheMetrics {
         cacheSize.dec(removed);
     }
 
+    public void resetCacheSize() {
+        cacheSize.dec(cacheSize.getCount());
+    }
+
     public void increaseGetRowsHits(long number) {
         getRowsCellsHit.inc(number);
     }

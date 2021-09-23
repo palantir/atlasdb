@@ -80,6 +80,7 @@ final class ValueStoreImpl implements ValueStore {
         values.resetToInitialValue();
         loadedValues.invalidateAll();
         watchedTables.resetToInitialValue();
+        metrics.resetCacheSize();
     }
 
     @Override
