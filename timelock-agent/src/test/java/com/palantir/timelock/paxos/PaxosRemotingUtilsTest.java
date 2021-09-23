@@ -28,7 +28,6 @@ import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.junit.Test;
 
 public class PaxosRemotingUtilsTest {
@@ -99,8 +98,7 @@ public class PaxosRemotingUtilsTest {
 
     @Test
     public void canGetSslConfiguration() {
-        assertThat(PaxosRemotingUtils.getSslConfigurationOptional(SSL_CLUSTER))
-                .isEqualTo(Optional.of(SSL_CONFIGURATION));
+        assertThat(PaxosRemotingUtils.getSslConfigurationOptional(SSL_CLUSTER)).contains(SSL_CONFIGURATION);
         assertThat(PaxosRemotingUtils.getSslConfigurationOptional(NO_SSL_CLUSTER))
                 .isNotPresent();
     }

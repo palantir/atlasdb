@@ -33,7 +33,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.Before;
@@ -117,7 +116,7 @@ public class LocalPaxosComponentsTest {
     public void returnsTimeLockVersionWithIsLeaderBoolean() {
         // return default when timeLock version not provided
         PingableLeader pingableLeader = paxosComponents.pingableLeader(CLIENT);
-        assertThat(pingableLeader.pingV2().timeLockVersion()).isEqualTo(Optional.of(DEFAULT_TIME_LOCK_VERSION));
+        assertThat(pingableLeader.pingV2().timeLockVersion()).contains(DEFAULT_TIME_LOCK_VERSION);
         assertThat(pingableLeader.pingV2().isLeader()).isNotNull();
 
         pingableLeader = createPaxosComponents(true, TIMELOCK_VERSION).pingableLeader(CLIENT);
