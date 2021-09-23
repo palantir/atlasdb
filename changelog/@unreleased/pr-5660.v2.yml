@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix lock watch cache size metrics sometimes reporting a negative size.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5660
