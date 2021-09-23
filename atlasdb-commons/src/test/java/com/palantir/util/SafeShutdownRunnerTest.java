@@ -79,9 +79,8 @@ public class SafeShutdownRunnerTest {
         runner.shutdownSafely(blockingUninterruptibleRunnable);
         runner.shutdownSafely(blockingUninterruptibleRunnable);
 
-        verify(blockingUninterruptibleRunnable, times(2)).run();
-
         closeAndAssertNumberOfTimeouts(runner, 2);
+        verify(blockingUninterruptibleRunnable, times(2)).run();
     }
 
     @Test
