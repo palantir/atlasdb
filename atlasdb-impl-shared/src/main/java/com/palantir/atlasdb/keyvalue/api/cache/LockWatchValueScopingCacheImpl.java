@@ -114,6 +114,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     public synchronized void onSuccessfulCommit(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         TransactionScopedCache cache = cacheStore.getCache(startTs);
+        cache.finalise();
 
         Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
         if (cachedValues.isEmpty()) {
