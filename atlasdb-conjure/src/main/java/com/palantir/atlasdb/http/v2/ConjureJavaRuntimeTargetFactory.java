@@ -29,19 +29,10 @@ import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.okhttp.NoOpHostEventsSink;
 import com.palantir.refreshable.Refreshable;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
-    private static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
-            .connectTimeout(Duration.ofMillis(100))
-            .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(5))
-            .failedUrlCooldown(Duration.ofMillis(1))
-            .maxNumRetries(5)
-            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
-            .build();
 
     public static final ConjureJavaRuntimeTargetFactory DEFAULT = new ConjureJavaRuntimeTargetFactory();
     public static final String CLIENT_VERSION_STRING = "Conjure-Java-Runtime";
@@ -86,11 +77,6 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 NoOpHostEventsSink.INSTANCE,
                 options.serverListToClient(serverListConfig)));
         return decorateFailoverProxy(type, refreshableClient);
-    }
-
-    public <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
-            ServerListConfig serverListConfig, Class<T> type, AuxiliaryRemotingParameters parameters) {
-        return createFailoverProxy(serverListConfig, type, parameters, FAST_RETRYING_FOR_TEST);
     }
 
     private <T> InstanceAndVersion<T> createFailoverProxy(
