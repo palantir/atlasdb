@@ -126,7 +126,7 @@ public class SpecificTableSweeper {
 
     SweepResults runOneIteration(
             TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig, SweepTaskRunner.RunType runType) {
-        while (true) {
+        for (int attempts = 0; attempts < 100; attempts++) {
             try {
                 SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow, runType);
                 logSweepPerformance(tableRef, startRow, results);
