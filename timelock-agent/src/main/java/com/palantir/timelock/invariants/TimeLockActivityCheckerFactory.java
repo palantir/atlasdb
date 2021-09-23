@@ -52,6 +52,7 @@ public class TimeLockActivityCheckerFactory {
     private ServiceCreator createServiceCreatorForRemote(String remoteUrl) {
         return ServiceCreator.withPayloadLimiter(
                 metricsManager,
+                // note that this refreshable never updates, even if the cluster configuration is mutable
                 Refreshable.only(getServerListConfig(remoteUrl)),
                 userAgent,
                 () -> RemotingClientConfigs.DEFAULT);
