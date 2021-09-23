@@ -20,6 +20,10 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +32,9 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe
 final class SnapshotStoreImpl implements SnapshotStore {
+    private static final SafeLogger log = SafeLoggerFactory.get(SnapshotStoreImpl.class);
+    private static final int MAXIMUM_SIZE = 20_000;
+
     private final Map<Sequence, ValueCacheSnapshot> snapshotMap;
     private final SetMultimap<Sequence, StartTimestamp> liveSequences;
     private final Map<StartTimestamp, Sequence> timestampMap;
@@ -40,6 +47,8 @@ final class SnapshotStoreImpl implements SnapshotStore {
 
     @Override
     public void storeSnapshot(Sequence sequence, Collection<StartTimestamp> timestamps, ValueCacheSnapshot snapshot) {
+        validateStateSize();
+
         if (!timestamps.isEmpty()) {
             snapshotMap.put(sequence, snapshot);
             timestamps.forEach(timestamp -> {
@@ -74,5 +83,19 @@ final class SnapshotStoreImpl implements SnapshotStore {
     @Override
     public Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence) {
         return Optional.ofNullable(snapshotMap.get(sequence));
+    }
+
+    private void validateStateSize() {
+        if (snapshotMap.size() > MAXIMUM_SIZE
+                || liveSequences.size() > MAXIMUM_SIZE
+                || timestampMap.size() > MAXIMUM_SIZE) {
+            log.warn(
+                    "Snapshot store has exceeded its maximum size. This likely indicates a memory leak.",
+                    SafeArg.of("snapshotMapSize", snapshotMap.size()),
+                    SafeArg.of("liveSequencesSize", liveSequences.size()),
+                    SafeArg.of("timestampMapSize", timestampMap.size()),
+                    SafeArg.of("maximumSize", MAXIMUM_SIZE));
+            throw new SafeIllegalStateException("Exceeded max snapshot store size");
+        }
     }
 }

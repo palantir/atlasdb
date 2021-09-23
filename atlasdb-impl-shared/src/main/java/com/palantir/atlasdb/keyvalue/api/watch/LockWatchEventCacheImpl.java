@@ -36,7 +36,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    // The minimum number of events should be the same as Timelocks' LockEventLogImpl.
+    // The minimum number of events should be the same as Timelock's LockEventLogImpl.
     private static final int MIN_EVENTS = 1000;
     private static final int MAX_EVENTS = 10_000;
 
