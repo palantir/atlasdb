@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Lock-watch transaction caches now correctly flush loaded values to
+    the central cache after the transaction has completed the commit phase, instead
+    of doing so eagerly at commit timestamp time.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5652
