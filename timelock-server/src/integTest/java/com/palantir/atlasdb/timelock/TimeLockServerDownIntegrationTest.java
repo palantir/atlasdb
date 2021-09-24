@@ -26,10 +26,13 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
@@ -45,7 +48,11 @@ public class TimeLockServerDownIntegrationTest {
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
+    @Rule
+    public FlakeRetryingRule flakeRetryingRule = new FlakeRetryingRule();
+
     @Test
+    @ShouldRetry // Occasionally fails to connect instead of timing out
     public void getsDependencyExceptionFromTransactionsWhenDown() throws ExecutionException {
         TransactionManager txnManager = TimeLockTestUtils.createTransactionManager(CLUSTER);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
