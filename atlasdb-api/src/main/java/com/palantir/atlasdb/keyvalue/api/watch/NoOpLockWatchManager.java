@@ -64,7 +64,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    public void onSuccess(long startTs) {
+    public void onTransactionCommit(long startTs) {
         cache.onTransactionCommit(startTs);
     }
 
