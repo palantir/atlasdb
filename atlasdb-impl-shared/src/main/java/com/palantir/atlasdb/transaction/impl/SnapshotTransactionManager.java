@@ -53,6 +53,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.StartTransactionFailedException;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -182,8 +183,13 @@ import javax.validation.constraints.NotNull;
             return ImmutableList.of();
         }
 
-        List<StartIdentifiedAtlasDbTransactionResponse> responses =
-                timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
+        final List<StartIdentifiedAtlasDbTransactionResponse> responses;
+        try {
+            responses = timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
+        } catch (StartTransactionFailedException e) {
+            throw new TransactionFailedRetriableException("Failed to start a batch of transactions", e);
+        }
+
         Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
             long immutableTs = responses.stream()
