@@ -90,6 +90,10 @@ public final class TableReference {
         return namespace;
     }
 
+    public String getTablename() {
+        return getTableName();
+    }
+
     public String getTableName() {
         return tableName;
     }
