@@ -25,6 +25,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
@@ -41,6 +42,23 @@ public class AutobatchersTests {
         assertThatThrownBy(response::get)
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(SafeIllegalStateException.class);
+    }
+
+    @Test
+    public void testTimeoutThrowsHandlerException() {
+        RuntimeException runtimeException = new RuntimeException("Caught exception");
+
+        DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(
+                        list -> Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS))
+                .batchFunctionTimeout(Duration.ofSeconds(1))
+                .safeLoggablePurpose("testing")
+                .timeoutHandler(_exception -> runtimeException)
+                .build();
+
+        ListenableFuture<Object> response = autobatcher.apply(new Object());
+
+        // Ensure that the exception is exactly the one that the handler returns
+        assertThatThrownBy(response::get).isInstanceOf(ExecutionException.class).hasCause(runtimeException);
     }
 
     @Test
