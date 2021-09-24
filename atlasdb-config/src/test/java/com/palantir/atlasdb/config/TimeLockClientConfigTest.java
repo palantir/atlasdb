@@ -51,7 +51,7 @@ public class TimeLockClientConfigTest {
     @Test
     public void preservesSslOnConversionToNamespacedServerListIfPresent() {
         ServerListConfig namespacedConfig = CLIENT_CONFIG.toNamespacedServerList();
-        assertThat(namespacedConfig.sslConfiguration()).isEqualTo(Optional.of(SSL_CONFIGURATION));
+        assertThat(namespacedConfig.sslConfiguration()).contains(SSL_CONFIGURATION);
     }
 
     @Test
