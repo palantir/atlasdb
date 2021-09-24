@@ -25,10 +25,10 @@ import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.ThreadingOptions;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.LatencyAwarePolicy;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -137,12 +137,15 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
             Cluster.Builder builder, CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
         // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
         // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
-        // Note we are being purposely datacenter-irreverent here, instead relying on latency alone
-        // to approximate what DCAwareRR would do;
-        // this is because DCs for Atlas are always quite latency-close and should be used this way,
-        // not as if we have some cross-country backup DC.
-        LoadBalancingPolicy policy =
-                LatencyAwarePolicy.builder(new RoundRobinPolicy()).build();
+        //
+        // The DCAware RR policy prevents auto-discovery of remote datacenter contact points in a multi-DC setup,
+        // which we are using to orchestrate migrations across datacenters.  We don't expect the policy to be helpful
+        // for latency improvements.
+        //
+        // Since the local DC isn't specified, it will get set based on the contact points we provide.
+        LoadBalancingPolicy policy = LatencyAwarePolicy.builder(
+                        DCAwareRoundRobinPolicy.builder().build())
+                .build();
 
         // If user wants, do not automatically add in new nodes to pool (useful during DC migrations / rebuilds)
         if (!config.autoRefreshNodes()) {
