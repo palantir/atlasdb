@@ -43,6 +43,7 @@ public class AssertUtils {
      * this will stay, just deprecated.
      */
     @Deprecated
+    @SuppressWarnings("PreferSafeLogger") // API exposures accept arbitrary Objects which may not be Args
     private static final Logger log = LoggerFactory.getLogger(AssertUtils.class);
 
     public static <T> boolean nonNullItems(Collection<T> c) {

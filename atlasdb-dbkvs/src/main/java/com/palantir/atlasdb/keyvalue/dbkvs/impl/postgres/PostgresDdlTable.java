@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 public class PostgresDdlTable implements DbDdlTable {
-    @SuppressWarnings("ConsistentLoggerName")
+    @SuppressWarnings({"ConsistentLoggerName", "PreferSafeLogger"})
     private static final Logger oldLog = LoggerFactory.getLogger(PostgresDdlTable.class);
 
     private static final SafeLogger log = SafeLoggerFactory.get(PostgresDdlTable.class);

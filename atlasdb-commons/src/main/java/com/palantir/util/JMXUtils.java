@@ -151,7 +151,7 @@ public final class JMXUtils {
             final ObjectName on = new ObjectName(objectName);
             server.unregisterMBean(on);
         } catch (final Exception e) {
-            log.info("Failed to unregister mbean for name {}", e);
+            log.info("Failed to unregister mbean", e);
         }
     }
 
