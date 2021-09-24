@@ -1772,7 +1772,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             commitWrites(transactionService);
             if (perfLogger.isDebugEnabled()) {
                 long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
-                perfLogger.debug("Committed transaction {} in {}ms",
+                perfLogger.debug(
+                        "Committed transaction {} in {}ms",
                         SafeArg.of("startTimestamp", getStartTimestamp()),
                         SafeArg.of("transactionTimeMillis", transactionMillis));
             }
