@@ -111,7 +111,10 @@ final class TimestampStateStore {
                     "Timestamp state store has exceeded its maximum size. This likely indicates a memory leak",
                     SafeArg.of("timestampMapSize", timestampMap.size()),
                     SafeArg.of("livingVersionsSize", livingVersions.size()),
-                    SafeArg.of("maximumSize", MAXIMUM_SIZE));
+                    SafeArg.of("maximumSize", MAXIMUM_SIZE),
+                    SafeArg.of("minimumLiveTimestamp", timestampMap.firstEntry()),
+                    SafeArg.of("maximumLiveTimestamp", timestampMap.lastEntry()),
+                    SafeArg.of("minimumLiveVersion", getEarliestLiveSequence()));
             throw new SafeIllegalStateException("Exceeded maximum timestamp state store size");
         }
     }
