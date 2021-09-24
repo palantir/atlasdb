@@ -78,8 +78,12 @@ final class ValueStoreImpl implements ValueStore {
     @Override
     public void reset() {
         values.resetToInitialValue();
-        loadedValues.invalidateAll();
         watchedTables.resetToInitialValue();
+        loadedValues.invalidateAll();
+
+        // Forcing the cache to run cleanup here guarantees that the metrics are not affected after they have been reset
+        loadedValues.cleanUp();
+        metrics.resetCacheSize();
     }
 
     @Override

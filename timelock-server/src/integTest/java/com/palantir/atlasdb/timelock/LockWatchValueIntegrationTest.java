@@ -406,7 +406,7 @@ public final class LockWatchValueIntegrationTest {
         AtomicReference<LockWatchCache> lwCache = new AtomicReference<>(null);
         PreCommitCondition condition = timestamp -> {
             if (timestamp != startTs.get()) {
-                simulateOverlappingWriteTransaction(lwCache, timestamp);
+                simulateOverlappingWriteTransaction(lwCache, startTs.get(), timestamp);
             }
         };
 
@@ -424,20 +424,21 @@ public final class LockWatchValueIntegrationTest {
     }
 
     private void simulateOverlappingWriteTransaction(
-            AtomicReference<LockWatchCache> lwCache, long theirCommitTimestamp) {
+            AtomicReference<LockWatchCache> lwCache, long theirStartTimestamp, long theirCommitTimestamp) {
         LockToken lockToken = LockToken.of(UUID.randomUUID());
         LockWatchVersion lastKnownVersion =
                 lwCache.get().getEventCache().lastKnownVersion().get();
 
+        long ourStartTimestamp = theirStartTimestamp + 1;
+        long ourCommitTimestamp = theirCommitTimestamp + 1;
         lwCache.get()
                 .processStartTransactionsUpdate(
-                        ImmutableSet.of(theirCommitTimestamp - 1),
-                        createLockSuccessUpdate(lockToken, lastKnownVersion));
+                        ImmutableSet.of(ourStartTimestamp), createLockSuccessUpdate(lockToken, lastKnownVersion));
         lwCache.get()
                 .processCommitTimestampsUpdate(
                         ImmutableSet.of(TransactionUpdate.builder()
-                                .startTs(theirCommitTimestamp - 1)
-                                .commitTs(theirCommitTimestamp + 1)
+                                .startTs(ourStartTimestamp)
+                                .commitTs(ourCommitTimestamp)
                                 .writesToken(lockToken)
                                 .build()),
                         createUnlockSuccessUpdate(lastKnownVersion));
