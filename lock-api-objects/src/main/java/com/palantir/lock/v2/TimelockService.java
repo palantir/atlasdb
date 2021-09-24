@@ -53,7 +53,7 @@ public interface TimelockService {
     LockResponse lock(LockRequest request);
 
     /**
-     * Similar to {@link this#lock(LockRequest)}, but will attempt to respect the provided
+     * Similar to {@link #lock(LockRequest)}, but will attempt to respect the provided
      * {@link ClientLockingOptions}. Support for these options is not guaranteed in legacy lock configurations.
      */
     LockResponse lock(LockRequest lockRequest, ClientLockingOptions options);

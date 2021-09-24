@@ -24,7 +24,7 @@ public final class CassandraMutationTimestampProviders {
     }
 
     /**
-     * As far as possible, users should switch to {@link this#singleLongSupplierBacked(LongSupplier)} with a
+     * As far as possible, users should switch to {@link #singleLongSupplierBacked(LongSupplier)} with a
      * fresh timestamp source from AtlasDB to promote better Cassandra compaction behaviour.
      *
      * @return {@link CassandraMutationTimestampProvider} which behaves in line with existing behaviour
