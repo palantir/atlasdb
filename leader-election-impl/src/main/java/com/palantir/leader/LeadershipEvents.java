@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 class LeadershipEvents {
 
     private static final String LEADER_LOG_NAME = "leadership";
+    @SuppressWarnings("PreferSafeLogger") // Some refactoring required
     private static final Logger leaderLog = LoggerFactory.getLogger(LEADER_LOG_NAME);
     private final Object[] contextArgs;
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics;
