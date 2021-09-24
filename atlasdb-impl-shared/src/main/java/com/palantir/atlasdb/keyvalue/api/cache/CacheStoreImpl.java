@@ -23,6 +23,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,7 +103,8 @@ final class CacheStoreImpl implements CacheStore {
                     "Transaction cache store has exceeded maximum concurrent caches. This likely indicates a memory"
                             + " leak",
                     SafeArg.of("cacheMapSize", cacheMap.size()),
-                    SafeArg.of("maxCacheCount", maxCacheCount));
+                    SafeArg.of("maxCacheCount", maxCacheCount),
+                    SafeArg.of("earliestTimestamp", cacheMap.keySet().stream().min(Comparator.naturalOrder())));
             throw new SafeIllegalStateException(
                     "Exceeded maximum concurrent caches; transaction can be retried, but with caching disabled");
         }

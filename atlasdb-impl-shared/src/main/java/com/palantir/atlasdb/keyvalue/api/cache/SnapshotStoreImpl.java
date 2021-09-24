@@ -24,10 +24,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe
@@ -94,6 +91,14 @@ final class SnapshotStoreImpl implements SnapshotStore {
                     SafeArg.of("snapshotMapSize", snapshotMap.size()),
                     SafeArg.of("liveSequencesSize", liveSequences.size()),
                     SafeArg.of("timestampMapSize", timestampMap.size()),
+                    SafeArg.of(
+                            "earliestTimestamp", timestampMap.keySet().stream().min(Comparator.naturalOrder())),
+                    SafeArg.of(
+                            "earliestSnapshotSequence",
+                            snapshotMap.keySet().stream().min(Comparator.naturalOrder())),
+                    SafeArg.of(
+                            "earliestLiveSequence",
+                            liveSequences.keySet().stream().min(Comparator.naturalOrder())),
                     SafeArg.of("maximumSize", MAXIMUM_SIZE));
             throw new SafeIllegalStateException("Exceeded max snapshot store size");
         }
