@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class IterablePartitioner {
+    @SuppressWarnings("PreferSafeLogger") // Nontrivial refactor
     private static final Logger log = LoggerFactory.getLogger(IterablePartitioner.class);
 
     private static final String ENTRY_TOO_BIG_MESSAGE = "Encountered an entry of approximate size {} bytes,"

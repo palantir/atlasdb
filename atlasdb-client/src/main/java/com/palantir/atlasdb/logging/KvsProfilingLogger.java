@@ -37,7 +37,9 @@ public class KvsProfilingLogger {
 
     public static final String SLOW_LOGGER_NAME = "kvs-slow-log-2";
 
+    @SuppressWarnings("PreferSafeLogger") // May be used externally. Don't force an api break
     public static final Logger slowlogger = LoggerFactory.getLogger(SLOW_LOGGER_NAME);
+    @SuppressWarnings("PreferSafeLogger") // Nontrivial refactoring
     private static final Logger log = LoggerFactory.getLogger(KvsProfilingLogger.class);
 
     public static final int DEFAULT_THRESHOLD_MILLIS = 1000;
