@@ -63,7 +63,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
     public void testMigrationToDifferentKvs() throws TableMappingNotFoundException {
         final TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
         final TableReference namespacedTableRef =
-                TableReference.createFromFullyQualifiedName("namespace." + tableRef.getTablename());
+                TableReference.createFromFullyQualifiedName("namespace." + tableRef.getTableName());
         TableDefinition definition = new TableDefinition() {
             {
                 rowName();

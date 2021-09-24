@@ -138,7 +138,7 @@ public class Schema {
     }
 
     public TableDefinition getTableDefinition(TableReference tableRef) {
-        return tableDefinitions.get(tableRef.getTablename());
+        return tableDefinitions.get(tableRef.getTableName());
     }
 
     public Map<TableReference, TableMetadata> getAllTablesAndIndexMetadata() {
@@ -237,7 +237,7 @@ public class Schema {
     }
 
     public IndexDefinition getIndex(TableReference indexRef) {
-        return indexDefinitions.get(indexRef.getTablename());
+        return indexDefinitions.get(indexRef.getTableName());
     }
 
     /**

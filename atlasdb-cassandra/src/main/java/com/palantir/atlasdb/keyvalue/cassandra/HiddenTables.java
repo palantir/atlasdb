@@ -32,6 +32,6 @@ public final class HiddenTables {
     public static boolean isHidden(TableReference tableReference) {
         return CASSANDRA_TABLES.contains(tableReference)
                 || AtlasDbConstants.DEPRECATED_SWEEP_TABLES_WITH_NO_METADATA.contains(tableReference)
-                || tableReference.getTablename().startsWith(AtlasDbConstants.LOCK_TABLE_PREFIX);
+                || tableReference.getTableName().startsWith(AtlasDbConstants.LOCK_TABLE_PREFIX);
     }
 }
