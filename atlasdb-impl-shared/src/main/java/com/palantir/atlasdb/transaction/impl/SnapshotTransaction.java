@@ -175,8 +175,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -192,7 +190,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SnapshotTransaction extends AbstractTransaction implements ConstraintCheckingTransaction {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
-    private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
+    private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
@@ -404,10 +402,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug(
                     "getRows({}, {} rows) found {} rows, took {} ms",
-                    tableRef,
-                    Iterables.size(rows),
-                    results.size(),
-                    getRowsMillis);
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("numRows", Iterables.size(rows)),
+                    SafeArg.of("resultSize", results.size()),
+                    SafeArg.of("timeTakenMillis", getRowsMillis));
         }
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return results;
@@ -916,7 +914,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug(
-                    "Passed {} ranges to getRanges({}, {})", Iterables.size(rangeRequests), tableRef, rangeRequests);
+                    "Passed {} ranges to getRanges({}, {})",
+                    SafeArg.of("numRanges", Iterables.size(rangeRequests)),
+                    LoggingArgs.tableRef(tableRef),
+                    UnsafeArg.of("rangeRequests", rangeRequests));
         }
         if (!Iterables.isEmpty(rangeRequests)) {
             hasReads = true;
@@ -1771,7 +1772,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             commitWrites(transactionService);
             if (perfLogger.isDebugEnabled()) {
                 long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
-                perfLogger.debug("Committed transaction {} in {}ms", getStartTimestamp(), transactionMillis);
+                perfLogger.debug(
+                        "Committed transaction {} in {}ms",
+                        SafeArg.of("startTimestamp", getStartTimestamp()),
+                        SafeArg.of("transactionTimeMillis", transactionMillis));
             }
             success = true;
         } finally {

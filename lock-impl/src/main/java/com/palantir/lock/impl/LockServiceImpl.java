@@ -1190,7 +1190,7 @@ public final class LockServiceImpl
         try {
             logAllHeldAndOutstandingLocks();
         } catch (IOException e) {
-            log.error("Can't dump state to Yaml: [{}]", e);
+            log.error("Can't dump state to Yaml", e);
             throw new IllegalStateException(e);
         }
     }
