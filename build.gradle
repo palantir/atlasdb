@@ -105,7 +105,6 @@ allprojects {
         options.errorprone.disable 'CloseableProvides',
                 'DangerousCompletableFutureUsage',
                 'DnsLookup',
-                'EmptyBlockTag',
                 'EqualsGetClass',
                 'ExtendsErrorOrThrowable',
                 'FutureReturnValueIgnored',

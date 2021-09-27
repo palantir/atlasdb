@@ -23,6 +23,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -74,9 +75,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      * This method should be over-ridden by subclasses to change
      * the underlying cache implementation and implement features
      * like LRU caches...
-     *
-     * @param initialSize
-     * @return
      */
     protected Map<K, CacheEntry<V>> createCache(int initialSize) {
         return Maps.newHashMapWithExpectedSize(initialSize);
@@ -128,9 +126,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * Adds an object to the cache.
-     *
-     * @param key
-     * @param value
      */
     @Override
     public synchronized V put(K key, V value) {
@@ -143,9 +138,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * If the specified key is not already associated with a value, associate it with the given value. This is equivalent to
-     *
-     * @param key
-     * @param value
      * @return The value that was in the cache, null if none was there before
      */
     public synchronized V putIfAbsent(K key, V value) {
@@ -175,8 +167,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * Gets an object from the cache.
-     *
-     * @param key
      */
     @Override
     public synchronized V get(K key) {
@@ -214,8 +204,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * Removes an object from the cache.
-     *
-     * @param key
      */
     public synchronized V remove(K key) {
         CacheEntry<V> entry = cacheEntries.remove(key);
