@@ -44,7 +44,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
-    private static final int MAX_CACHE_COUNT = 100_000;
+    private static final int MAX_CACHE_COUNT = 20_000;
     private final LockWatchEventCache eventCache;
     private final CacheStore cacheStore;
     private final ValueStore valueStore;
