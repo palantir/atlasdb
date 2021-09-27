@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -44,6 +39,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -57,21 +53,35 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Predicate;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public final class LockWatchValueIntegrationTest {
     private static final String TEST_PACKAGE = "package";
@@ -104,6 +114,14 @@ public final class LockWatchValueIntegrationTest {
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     private TransactionManager txnManager;
+    public static final byte[] ROW_1 = PtBytes.toBytes("final");
+    public static final byte[] ROW_2 = PtBytes.toBytes("destination");
+    public static final byte[] ROW_3 = PtBytes.toBytes("awaits");
+    public static final byte[][] ROWS = new byte[][] {ROW_1, ROW_2, ROW_3};
+    public static final byte[] COL_1 = PtBytes.toBytes("parthenon");
+    public static final byte[] COL_2 = PtBytes.toBytes("had");
+    public static final byte[] COL_3 = PtBytes.toBytes("columns");
+    public static final byte[][] COLS = new byte[][] {COL_1, COL_2, COL_3};
 
     @Before
     public void before() {
@@ -421,6 +439,81 @@ public final class LockWatchValueIntegrationTest {
                     return null;
                 }))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void valueStressTest() {
+        createTransactionManager(1.0);
+        int numThreads = 200;
+        int numTransactions = 20_000;
+
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        List<Exception> failedTransactions = new ArrayList<>();
+
+        for (int attempt = 0; attempt < numTransactions; ++attempt) {
+            executor.execute(() -> {
+                try {
+                    randomTask();
+                } catch (Exception e) {
+                    if (!(e instanceof TransactionFailedRetriableException)) {
+                        failedTransactions.add(e);
+                        throw e;
+                    }
+                }
+            });
+        }
+
+        try {
+            executor.shutdown();
+            executor.awaitTermination(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+
+        assertThat(failedTransactions).isEmpty();
+    }
+
+    private void randomTask() {
+        txnManager.runTaskThrowOnConflict(txn -> {
+            while (chance()) {
+                txn.put(TABLE_REF, ImmutableMap.of(randomCell(), randomData()));
+            }
+
+            while (chance()) {
+                txn.delete(TABLE_REF, ImmutableSet.of(randomCell()));
+            }
+
+            while (chance()) {
+                txn.get(TABLE_REF, ImmutableSet.of(randomCell()));
+            }
+
+            while (chance()) {
+                txn.getRows(
+                        TABLE_REF,
+                        Stream.of(ROWS).filter(_unused -> chance()).collect(Collectors.toSet()),
+                        ColumnSelection.create(
+                                Stream.of(COLS).filter(_unused -> chance()).collect(Collectors.toSet())));
+            }
+
+            return null;
+        });
+    }
+
+    private Cell randomCell() {
+        return Cell.create(ROWS[random()], COLS[random()]);
+    }
+
+    private int random() {
+        return ThreadLocalRandom.current().nextInt(0, 3);
+    }
+
+    private boolean chance() {
+        return ThreadLocalRandom.current().nextDouble() < 0.5;
+    }
+
+    private byte[] randomData() {
+        return PtBytes.toBytes(ThreadLocalRandom.current().nextLong(0, 1_000_000));
     }
 
     private void simulateOverlappingWriteTransaction(
