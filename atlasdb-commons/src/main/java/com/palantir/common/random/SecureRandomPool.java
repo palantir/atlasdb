@@ -19,6 +19,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -34,7 +35,6 @@ public class SecureRandomPool {
 
     /**
      * Creates a SecureRandomPool using the specified algorithm.
-     * @param algorithm
      */
     public SecureRandomPool(String algorithm, int poolSize) {
         this(algorithm, poolSize, null);
@@ -43,8 +43,6 @@ public class SecureRandomPool {
     /**
      * Creates a SecureRandomPool using the specified algorithm.  The provided
      * SecureRandom is used to seed each new SecureRandom in the pool.
-     * @param algorithm
-     * @param seed
      */
     public SecureRandomPool(String algorithm, int poolSize, SecureRandom seed) {
         if (algorithm == null) {
@@ -81,9 +79,6 @@ public class SecureRandomPool {
      * 3. The source seed is then used to seed all of the SecureRandoms in the
      * pool.  If the algorithm is fast, then initialization of the pool should
      * fast as well.<br/>
-     * @param algorithm
-     * @param seed
-     * @return
      */
     private SecureRandom getSeedSource(String algorithm, SecureRandom seed) {
         try {

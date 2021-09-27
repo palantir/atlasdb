@@ -16,6 +16,11 @@
 package com.palantir.util.debug;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+
+import javax.management.JMException;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+import javax.management.openmbean.CompositeData;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
@@ -33,10 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.management.JMException;
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
-import javax.management.openmbean.CompositeData;
 
 @SuppressWarnings("checkstyle")
 // WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great
@@ -348,9 +349,6 @@ public final class StackTraceUtils {
      * Pluralizes a word if count != 1. In the future, could use a
      * dictionary-based (perhaps even locale-sensitive) approach to get proper
      * pluralization for many words.
-     *
-     * @param s
-     * @param count
      */
     public static String pluralizeWord(String s, int count) {
         if (count == 1) {

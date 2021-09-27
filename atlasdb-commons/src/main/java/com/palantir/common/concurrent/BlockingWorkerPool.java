@@ -17,6 +17,7 @@ package com.palantir.common.concurrent;
 
 import com.google.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
+
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -81,8 +82,6 @@ public class BlockingWorkerPool {
 
     /**
      * Waits until the number of tasks drops below the concurrent task limit.
-     *
-     * @throws InterruptedException
      */
     public synchronized void waitForAvailability() throws InterruptedException {
         if (currentTaskCount.get() >= concurrentTaskLimit) {
