@@ -28,6 +28,10 @@ import com.palantir.docker.compose.execution.DockerExecutionException;
 import com.palantir.docker.compose.execution.ImmutableDockerComposeExecArgument;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,11 +41,9 @@ import org.immutables.value.Value;
 import org.joda.time.Duration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DockerClientOrchestrationRule extends ExternalResource {
-    private static final Logger log = LoggerFactory.getLogger(DockerClientOrchestrationRule.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DockerClientOrchestrationRule.class);
 
     private static final String CONTAINER = "ete1";
     private static final Duration WAIT_TIMEOUT = Duration.standardMinutes(5);
@@ -135,7 +137,9 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     private String dockerExecOnClient(String... arguments) {
         for (int i = 1; i <= MAX_EXEC_TRIES; i++) {
             try {
-                log.info("Attempting docker-exec with arguments: {}", Arrays.asList(arguments));
+                log.info(
+                        "Attempting docker-exec with arguments: {}",
+                        UnsafeArg.of("arguments", Arrays.asList(arguments)));
                 return dockerComposeRule.exec(
                         DockerComposeExecOption.noOptions(),
                         CONTAINER,
@@ -146,9 +150,13 @@ public class DockerClientOrchestrationRule extends ExternalResource {
                 if (i != MAX_EXEC_TRIES) {
                     // I have seen very odd flakes where exec terminates with exit code 129
                     // i.e. they are interrupted with the hangup signal.
-                    log.warn("Encountered error in docker-exec, retrying (attempt {} of {})", i, MAX_EXEC_TRIES, e);
+                    log.warn(
+                            "Encountered error in docker-exec, retrying (attempt {} of {})",
+                            SafeArg.of("attempt", i),
+                            SafeArg.of("maxAttempts", MAX_EXEC_TRIES),
+                            e);
                 } else {
-                    log.error("Made {} attempts, and now giving up", MAX_EXEC_TRIES, e);
+                    log.error("Made {} attempts, and now giving up", SafeArg.of("maxAttempts", MAX_EXEC_TRIES), e);
                     throw e;
                 }
             }

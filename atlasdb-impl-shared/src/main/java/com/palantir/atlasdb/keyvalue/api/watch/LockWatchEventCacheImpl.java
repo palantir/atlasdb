@@ -26,6 +26,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
@@ -35,7 +36,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    // The minimum number of events should be the same as Timelocks' LockEventLogImpl.
+    // The minimum number of events should be the same as Timelock's LockEventLogImpl.
     private static final int MIN_EVENTS = 1000;
     private static final int MAX_EVENTS = 10_000;
 
@@ -80,21 +81,29 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized CommitUpdate getCommitUpdate(long startTs) {
+        return getSpanningCommitUpdate(startTs).transactionCommitUpdate();
+    }
+
+    @Override
+    public SpanningCommitUpdate getSpanningCommitUpdate(long startTs) {
         Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
         Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
 
         assertTrue(
-                maybeCommitInfo.isPresent() && startVersion.isPresent(),
-                "start or commit info not processed for start timestamp");
+                maybeCommitInfo.isPresent()
+                        && startVersion.isPresent()
+                        && eventLog.getLatestKnownVersion().isPresent(),
+                "start or commit info not processed for start timestamp, or current version missing");
 
+        LockWatchVersion currentVersion = eventLog.getLatestKnownVersion().get();
         CommitInfo commitInfo = maybeCommitInfo.get();
-
         VersionBounds versionBounds = VersionBounds.builder()
                 .startVersion(startVersion)
-                .endVersion(commitInfo.commitVersion())
+                .endVersion(currentVersion)
                 .build();
 
-        return eventLog.getEventsBetweenVersions(versionBounds).toCommitUpdate(startVersion.get(), commitInfo);
+        return eventLog.getEventsBetweenVersions(versionBounds)
+                .toSpanningCommitUpdate(startVersion.get(), commitInfo, currentVersion);
     }
 
     @Override

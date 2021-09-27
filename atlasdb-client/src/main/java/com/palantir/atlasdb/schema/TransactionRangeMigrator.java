@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -30,15 +31,17 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TransactionRangeMigrator implements RangeMigrator {
-    private static final Logger log = LoggerFactory.getLogger(TransactionRangeMigrator.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TransactionRangeMigrator.class);
 
     private final TableReference srcTable;
     private final TableReference destTable;
@@ -79,15 +82,18 @@ public class TransactionRangeMigrator implements RangeMigrator {
             if (checkpoint != null) {
                 log.info(
                         "({}/{}) Migration from table {} to table {} will start/resume at {}",
-                        rangeId,
-                        numRangeBoundaries,
-                        srcTable,
-                        destTable,
-                        PtBytes.encodeHexString(checkpoint));
+                        SafeArg.of("rangeId", rangeId),
+                        SafeArg.of("numRangeBoundaries", numRangeBoundaries),
+                        LoggingArgs.tableRef("srcTable", srcTable),
+                        LoggingArgs.tableRef("destTable", destTable),
+                        UnsafeArg.of("checkpoint", PtBytes.encodeHexString(checkpoint)));
                 return;
             }
         }
-        log.info("Migration from table {} to {} has already been completed", srcTable, destTable);
+        log.info(
+                "Migration from table {} to {} has already been completed",
+                LoggingArgs.tableRef("srcTable", srcTable),
+                LoggingArgs.tableRef("destTable", destTable));
     }
 
     @Override

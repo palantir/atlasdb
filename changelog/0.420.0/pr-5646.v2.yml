@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Resolve a lock-watch memory leak that can occur while starting transactions.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5646

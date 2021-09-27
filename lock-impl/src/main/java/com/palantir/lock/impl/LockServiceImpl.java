@@ -22,7 +22,6 @@ import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -110,8 +109,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 /**
@@ -127,7 +124,7 @@ public final class LockServiceImpl
                 RemoteLockService,
                 LockServiceImplMBean {
 
-    private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LockServiceImpl.class);
     private static final SafeLogger requestLogger = SafeLoggerFactory.get("lock.request");
     private static final String GRANT_MESSAGE = "Lock client {} tried to use a lock grant that"
             + " doesn't correspond to any held locks (grantId: {});"
@@ -144,9 +141,6 @@ public final class LockServiceImpl
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
-
-    private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
-            from -> from.getTokenId().toString(Character.MAX_RADIX);
 
     @Immutable
     public static class HeldLocks<T extends ExpiringToken> {
@@ -253,7 +247,7 @@ public final class LockServiceImpl
 
     private static LockServiceImpl create(LockServerOptions options, Ownable<ExecutorService> executor) {
         if (log.isTraceEnabled()) {
-            log.trace("Creating LockService with options={}", options);
+            log.trace("Creating LockService with options={}", SafeArg.of("options", options));
         }
         final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
         LockServiceImpl lockService = new LockServiceImpl(
@@ -574,16 +568,12 @@ public final class LockServiceImpl
                     UnsafeArg.of("lockId", lockId),
                     SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
-            log.debug(slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
+            log.debug(
+                    slowLockLogMessage,
+                    SafeArg.of("durationMillis", durationMillis),
+                    UnsafeArg.of("lockId", lockId),
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
         }
-    }
-
-    private Object[] constructSlowLockLogParams(String lockId, LockClient currentHolder, long durationMillis) {
-        return ImmutableList.of(
-                        SafeArg.of("durationMillis", durationMillis),
-                        UnsafeArg.of("lockId", lockId),
-                        SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"))
-                .toArray();
     }
 
     @VisibleForTesting
@@ -619,7 +609,7 @@ public final class LockServiceImpl
         com.palantir.logsafe.Preconditions.checkNotNull(token);
         boolean success = unlockInternal(token, heldLocksTokenMap);
         if (log.isTraceEnabled()) {
-            log.trace(".unlock({}) returns {}", token, success);
+            log.trace(".unlock({}) returns {}", UnsafeArg.of("token", token), SafeArg.of("success", success));
         }
         return success;
     }
@@ -647,7 +637,7 @@ public final class LockServiceImpl
         @Nullable HeldLocks<HeldLocksToken> heldLocks = heldLocksTokenMap.remove(token);
         if (heldLocks == null) {
             if (log.isTraceEnabled()) {
-                log.trace(".unlockAndFreeze({}) returns false", token);
+                log.trace(".unlockAndFreeze({}) returns false", UnsafeArg.of("token", token));
             }
             return false;
         }
@@ -655,7 +645,7 @@ public final class LockServiceImpl
         if (client.isAnonymous()) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            log.warn(UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT, heldLocks.realToken);
+            log.warn(UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT, UnsafeArg.of("token", heldLocks.realToken));
             throw new IllegalArgumentException(
                     MessageFormatter.format(UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT, heldLocks.realToken)
                             .getMessage());
@@ -663,7 +653,7 @@ public final class LockServiceImpl
         if (heldLocks.locks.hasReadLock()) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            log.warn(UNLOCK_AND_FREEZE, heldLocks.realToken);
+            log.warn(UNLOCK_AND_FREEZE, UnsafeArg.of("token", heldLocks.realToken));
             throw new IllegalArgumentException(MessageFormatter.format(UNLOCK_AND_FREEZE, heldLocks.realToken)
                     .getMessage());
         }
@@ -675,7 +665,7 @@ public final class LockServiceImpl
             versionIdMap.remove(client, heldLocks.realToken.getVersionId());
         }
         if (log.isTraceEnabled()) {
-            log.trace(".unlockAndFreeze({}) returns true", token);
+            log.trace(".unlockAndFreeze({}) returns true", UnsafeArg.of("token", token));
         }
         return true;
     }
@@ -727,7 +717,10 @@ public final class LockServiceImpl
         }
         ImmutableSet<HeldLocksToken> tokenSet = tokens.build();
         if (log.isTraceEnabled()) {
-            log.trace(".getTokens({}) returns {}", client, Collections2.transform(tokenSet, TOKEN_TO_ID));
+            log.trace(
+                    ".getTokens({}) returns {}",
+                    UnsafeArg.of("client", client),
+                    UnsafeArg.of("tokens", Collections2.transform(tokenSet, LockServiceImpl::tokenToId)));
         }
         return tokenSet;
     }
@@ -746,8 +739,8 @@ public final class LockServiceImpl
         if (log.isTraceEnabled()) {
             log.trace(
                     ".refreshTokens({}) returns {}",
-                    Iterables.transform(tokens, TOKEN_TO_ID),
-                    Collections2.transform(refreshedTokenSet, TOKEN_TO_ID));
+                    UnsafeArg.of("oldTokens", Iterables.transform(tokens, LockServiceImpl::tokenToId)),
+                    UnsafeArg.of("newTokens", Collections2.transform(refreshedTokenSet, LockServiceImpl::tokenToId)));
         }
         return refreshedTokenSet;
     }
@@ -811,7 +804,9 @@ public final class LockServiceImpl
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.get(grant);
         if (heldLocks == null) {
             if (log.isTraceEnabled()) {
-                log.trace(".refreshGrant({}) returns null", grant.getGrantId().toString(Character.MAX_RADIX));
+                log.trace(
+                        ".refreshGrant({}) returns null",
+                        UnsafeArg.of("grant", grant.getGrantId().toString(Character.MAX_RADIX)));
             }
             return null;
         }
@@ -824,7 +819,9 @@ public final class LockServiceImpl
         heldLocks = heldLocksGrantMap.get(grant);
         if (heldLocks == null) {
             if (log.isTraceEnabled()) {
-                log.trace(".refreshGrant({}) returns null", grant.getGrantId().toString(Character.MAX_RADIX));
+                log.trace(
+                        ".refreshGrant({}) returns null",
+                        UnsafeArg.of("grant", grant.getGrantId().toString(Character.MAX_RADIX)));
             }
             return null;
         }
@@ -833,8 +830,8 @@ public final class LockServiceImpl
         if (log.isTraceEnabled()) {
             log.trace(
                     ".refreshGrant({}) returns {}",
-                    grant.getGrantId().toString(Character.MAX_RADIX),
-                    refreshedGrant.getGrantId().toString(Character.MAX_RADIX));
+                    UnsafeArg.of("oldGrant", grant.getGrantId().toString(Character.MAX_RADIX)),
+                    UnsafeArg.of("newGrant", refreshedGrant.getGrantId().toString(Character.MAX_RADIX)));
         }
         return refreshedGrant;
     }
@@ -969,7 +966,10 @@ public final class LockServiceImpl
         HeldLocksGrant grant = new HeldLocksGrant(grantId);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
         if (heldLocks == null) {
-            log.warn(GRANT_MESSAGE, client, grantId.toString(Character.MAX_RADIX));
+            log.warn(
+                    GRANT_MESSAGE,
+                    UnsafeArg.of("client", client),
+                    UnsafeArg.of("grant", grantId.toString(Character.MAX_RADIX)));
             String formattedMessage = MessageFormatter.format(
                             GRANT_MESSAGE, client, grantId.toString(Character.MAX_RADIX))
                     .getMessage();
@@ -985,7 +985,11 @@ public final class LockServiceImpl
                 realGrant.getVersionId(),
                 "Converted from Grant, Missing Thread Name");
         if (log.isTraceEnabled()) {
-            log.trace(".useGrant({}, {}) returns {}", client, grantId.toString(Character.MAX_RADIX), token);
+            log.trace(
+                    ".useGrant({}, {}) returns {}",
+                    UnsafeArg.of("client", client),
+                    UnsafeArg.of("grant", grantId.toString(Character.MAX_RADIX)),
+                    UnsafeArg.of("token", token));
         }
         return token;
     }
@@ -1052,7 +1056,7 @@ public final class LockServiceImpl
             }
         }
         if (log.isTraceEnabled()) {
-            log.trace(".getMinLockedInVersionId() returns {}", versionId);
+            log.trace(".getMinLockedInVersionId() returns {}", UnsafeArg.of("versionId", versionId));
         }
         return versionId;
     }
@@ -1134,7 +1138,7 @@ public final class LockServiceImpl
                 .build();
 
         if (log.isTraceEnabled()) {
-            log.trace(".getLockServerOptions() returns {}", options);
+            log.trace(".getLockServerOptions() returns {}", SafeArg.of("options", options));
         }
         return options;
     }
@@ -1148,19 +1152,17 @@ public final class LockServiceImpl
 
         LockServerSync sync = readWriteLock.getSync();
         List<LockClient> readHolders;
-        LockClient writeHolders;
+        Optional<LockClient> writeHolder;
         boolean isFrozen;
-        boolean writeMode;
         synchronized (sync) {
             readHolders = sync.getReadClients();
-            writeHolders = sync.getLockHolder();
+            writeHolder = sync.getWriteClient();
             isFrozen = sync.isFrozen();
-            writeMode = readHolders.isEmpty();
         }
 
-        List<LockClient> lockHolders = getLockHolders(readHolders, writeHolders);
+        List<LockClient> lockHolders = getLockHolders(readHolders, writeHolder);
         ImmutableLockState.Builder lockState = ImmutableLockState.builder()
-                .isWriteLocked(writeMode)
+                .isWriteLocked(writeHolder.isPresent())
                 .exactCurrentLockHolders(lockHolders)
                 .isFrozen(isFrozen);
         heldLocksTokenMap.keySet().stream()
@@ -1172,10 +1174,8 @@ public final class LockServiceImpl
         return lockState.build();
     }
 
-    private List<LockClient> getLockHolders(List<LockClient> readHolders, LockClient writeHolders) {
-        return readHolders.isEmpty()
-                ? Optional.ofNullable(writeHolders).map(ImmutableList::of).orElseGet(ImmutableList::of)
-                : readHolders;
+    private List<LockClient> getLockHolders(List<LockClient> readHolders, Optional<LockClient> writeHolder) {
+        return readHolders.isEmpty() ? writeHolder.map(ImmutableList::of).orElseGet(ImmutableList::of) : readHolders;
     }
 
     /**
@@ -1185,12 +1185,12 @@ public final class LockServiceImpl
     @Override
     public void logCurrentState() {
         StringBuilder logString = getGeneralLockStats();
-        log.info("Current State: {}", logString.toString());
+        log.info("Current State: {}", SafeArg.of("state", logString.toString()));
 
         try {
             logAllHeldAndOutstandingLocks();
         } catch (IOException e) {
-            log.error("Can't dump state to Yaml: [{}]", e);
+            log.error("Can't dump state to Yaml", e);
             throw new IllegalStateException(e);
         }
     }
@@ -1285,6 +1285,10 @@ public final class LockServiceImpl
         } catch (SecurityException ex) {
             requestLogger.error("Cannot rename LockServer threads", ex);
         }
+    }
+
+    private static String tokenToId(HeldLocksToken from) {
+        return from.getTokenId().toString(Character.MAX_RADIX);
     }
 
     private final class LockReapRunner implements AutoCloseable {

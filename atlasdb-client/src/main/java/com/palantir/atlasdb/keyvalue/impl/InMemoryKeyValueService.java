@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -304,7 +305,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        Map<byte[], RowColumnRangeIterator> result = new HashMap<>();
+        IdentityHashMap<byte[], RowColumnRangeIterator> result = new IdentityHashMap<>();
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
 
         ColumnRangeSelection columnRangeSelection = new ColumnRangeSelection(

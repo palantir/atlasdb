@@ -7,7 +7,10 @@ install:
   paxos:
     data-directory: "${dataDirectory}"
     is-new-service: false
-  cluster:
+  timestampBoundPersistence:
+
+runtime:
+  cluster-config-not-live-reloaded:
     cluster:
       security:
         trustStorePath: "var/security/trustStore.jks"
@@ -19,9 +22,6 @@ install:
       - "localhost:${localServerPort?c}"
     local-server: "localhost:${localServerPort?c}"
     enableNonstandardAndPossiblyDangerousTopology: true
-  timestampBoundPersistence:
-
-runtime:
   paxos:
     timestamp-paxos:
       use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}

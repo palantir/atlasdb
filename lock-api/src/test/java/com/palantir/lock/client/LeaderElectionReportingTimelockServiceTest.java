@@ -340,6 +340,7 @@ public class LeaderElectionReportingTimelockServiceTest {
         verify(mockedClock, times(2)).instant();
     }
 
+    @SuppressWarnings("DoNotMock") // I know what I am doing (TM)
     private void executeCalls(SingleCall firstCall, SingleCall... otherCalls) {
         LockWatchStateUpdate updateMock = mock(LockWatchStateUpdate.class);
         when(startTransactionsResponse.getLockWatchUpdate()).thenReturn(updateMock);

@@ -106,4 +106,5 @@ public final class AtlasDbMetricNames {
     public static final String LW_CACHE_RATIO_USED = "lockWatchCacheRatioUsed";
     public static final String LW_EVENT_CACHE_FALLBACK_COUNT = "lockWatchEventCacheFallbackCount";
     public static final String LW_VALUE_CACHE_FALLBACK_COUNT = "lockWatchValueCacheFallbackCount";
+    public static final String LW_TRANSACTION_CACHE_INSTANCE_COUNT = "lockWatchTransactionCacheInstanceCount";
 }

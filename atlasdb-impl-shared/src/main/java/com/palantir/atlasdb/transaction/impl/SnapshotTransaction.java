@@ -167,6 +167,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -174,8 +175,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -190,8 +189,8 @@ import org.slf4j.LoggerFactory;
  * different rows and using range scans.
  */
 public class SnapshotTransaction extends AbstractTransaction implements ConstraintCheckingTransaction {
-    private static final Logger log = LoggerFactory.getLogger(SnapshotTransaction.class);
-    private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
+    private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
+    private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
@@ -403,10 +402,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug(
                     "getRows({}, {} rows) found {} rows, took {} ms",
-                    tableRef,
-                    Iterables.size(rows),
-                    results.size(),
-                    getRowsMillis);
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("numRows", Iterables.size(rows)),
+                    SafeArg.of("resultSize", results.size()),
+                    SafeArg.of("timeTakenMillis", getRowsMillis));
         }
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return results;
@@ -915,7 +914,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug(
-                    "Passed {} ranges to getRanges({}, {})", Iterables.size(rangeRequests), tableRef, rangeRequests);
+                    "Passed {} ranges to getRanges({}, {})",
+                    SafeArg.of("numRanges", Iterables.size(rangeRequests)),
+                    LoggingArgs.tableRef(tableRef),
+                    UnsafeArg.of("rangeRequests", rangeRequests));
         }
         if (!Iterables.isEmpty(rangeRequests)) {
             hasReads = true;
@@ -1462,12 +1464,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
                         .collectToSetMultimap();
                 try {
-                    deleteExecutor.execute(() -> keyValueService.delete(table, sentinels));
+                    runTaskOnDeleteExecutor(kvs -> kvs.delete(table, sentinels));
                 } catch (Throwable th) {
                     // best effort
                 }
             }
         });
+    }
+
+    /**
+     * This method exists to ensure that tasks run on the delete executor do not have references to the
+     * SnapshotTransaction that spawned the task (so that it can be garbage collected, which may be significant as
+     * large write or serializable read transactions may have allocated a lot of memory).
+     */
+    private void runTaskOnDeleteExecutor(Consumer<KeyValueService> task) {
+        // Do not inline this without thinking carefully about exactly what this means
+        KeyValueService theKeyValueService = keyValueService;
+        deleteExecutor.execute(() -> task.accept(theKeyValueService));
     }
 
     private static boolean isSweepSentinel(Value value) {
@@ -1759,7 +1772,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             commitWrites(transactionService);
             if (perfLogger.isDebugEnabled()) {
                 long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
-                perfLogger.debug("Committed transaction {} in {}ms", getStartTimestamp(), transactionMillis);
+                perfLogger.debug(
+                        "Committed transaction {} in {}ms",
+                        SafeArg.of("startTimestamp", getStartTimestamp()),
+                        SafeArg.of("transactionTimeMillis", transactionMillis));
             }
             success = true;
         } finally {
@@ -1952,7 +1968,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             final String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
-            log.warn(baseMsg + "{}", expiredLocksErrorString, ex);
+            log.warn(baseMsg + "{}", UnsafeArg.of("expiredLocksErrorString", expiredLocksErrorString), ex);
             transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
@@ -2115,7 +2131,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Cell key = e.getKey();
             long theirStartTimestamp = e.getValue();
             AssertUtils.assertAndLog(
-                    log, theirStartTimestamp != getStartTimestamp(), "Timestamp reuse is bad:%d", getStartTimestamp());
+                    log, theirStartTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
 
             Long theirCommitTimestamp = commitTimestamps.get(theirStartTimestamp);
             if (theirCommitTimestamp == null || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
@@ -2126,7 +2142,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
 
             AssertUtils.assertAndLog(
-                    log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:%d", getStartTimestamp());
+                    log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
             if (theirStartTimestamp > getStartTimestamp()) {
                 dominatingWrites.add(Cells.createConflictWithMetadata(
                         keyValueService, tableRef, key, theirStartTimestamp, theirCommitTimestamp));
@@ -2170,7 +2186,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            deleteExecutor.execute(() -> deleteCells(keyValueService, tableRef, keysToDelete));
+            runTaskOnDeleteExecutor(kvs -> deleteCells(kvs, tableRef, keysToDelete));
         } catch (RejectedExecutionException rejected) {
             log.info(
                     "Could not delete keys {} for table {}, because the delete executor's queue was full."
@@ -2182,10 +2198,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return true;
     }
 
-    /**
-     * This method is made static so it loses reference to the SnapshotTransaction reference when passed to
-     * deleteExecutor::execute in a lambda reducing its retained memory size.
-     */
     private static void deleteCells(
             KeyValueService keyValueService, TableReference tableRef, Map<Cell, Long> keysToDelete) {
         try {

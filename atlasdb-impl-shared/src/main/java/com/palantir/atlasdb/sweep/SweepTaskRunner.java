@@ -47,8 +47,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 
 /**
  * Sweeps one individual table.
@@ -62,6 +65,7 @@ public class SweepTaskRunner {
     private final CellsSweeper cellsSweeper;
     private final Optional<LegacySweepMetrics> metricsManager;
     private final CommitTsCache commitTsCache;
+    private final BooleanSupplier skipCellVersion;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
@@ -77,7 +81,8 @@ public class SweepTaskRunner {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper,
-                null);
+                null,
+                () -> ThreadLocalRandom.current().nextInt(100) == 0);
     }
 
     public SweepTaskRunner(
@@ -87,19 +92,21 @@ public class SweepTaskRunner {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper,
-            LegacySweepMetrics metricsManager) {
+            LegacySweepMetrics metricsManager,
+            BooleanSupplier skipCellVersion) {
         this.keyValueService = keyValueService;
         this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
         this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
         this.metricsManager = Optional.ofNullable(metricsManager);
         this.commitTsCache = CommitTsCache.create(transactionService);
+        this.skipCellVersion = skipCellVersion;
     }
 
     /**
      * Represents the type of run to be conducted by the sweep runner.
      */
-    private enum RunType {
+    public enum RunType {
         /**
          * A DRY run is expect to not mutate any tables (with the exception of the sweep.progress table)
          * but will determine and report back all the values that *would* have been swept.
@@ -110,15 +117,22 @@ public class SweepTaskRunner {
          * A FULL run will execute all followers / sentinel additions / and deletions on the
          * cells that qualify for sweeping.
          */
-        FULL
+        FULL,
+
+        /**
+         * A WAS_CONSERVATIVE_NOW_THOROUGH run is a FULL run that will intentionally retain ~1% of entries for cells
+         * to avoid issues that could arise due to too many consecutive deletes in the underlying KVS from sweep
+         * potentially deleting many consecutive legacy sentinels.
+         */
+        WAS_CONSERVATIVE_NOW_THOROUGH
     }
 
     public SweepResults dryRun(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow) {
         return runInternal(tableRef, batchConfig, startRow, RunType.DRY);
     }
 
-    public SweepResults run(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow) {
-        return runInternal(tableRef, batchConfig, startRow, RunType.FULL);
+    public SweepResults run(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow, RunType runType) {
+        return runInternal(tableRef, batchConfig, startRow, runType);
     }
 
     public long getConservativeSweepTimestamp() {
@@ -149,6 +163,11 @@ public class SweepTaskRunner {
         SweepStrategy sweepStrategy = SweepStrategy.from(
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
+        if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
+            Preconditions.checkState(
+                    sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.THOROUGH)),
+                    "it is not safe to run this type of sweep on conservatively swept tables");
+        }
         return maybeSweeper
                 .map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
                 .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
@@ -254,31 +273,72 @@ public class SweepTaskRunner {
             List<Long> currentCellTimestamps = ImmutableList.copyOf(cell.sortedTimestamps());
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
-                currentBatch.putAll(cell.cell(), currentCellTimestamps);
+                boolean safeToDeleteLast =
+                        addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
             } else {
+                boolean safeToDeleteLast = true;
                 while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
                     int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
 
-                    currentBatch.putAll(cell.cell(), currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch));
-                    if (runType == RunType.FULL) {
+                    safeToDeleteLast = safeToDeleteLast
+                            && addCurrentCellTimestamps(
+                                    currentBatch,
+                                    cell.cell(),
+                                    currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch),
+                                    runType);
+
+                    if (runType != RunType.DRY) {
+                        removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
                         cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
                     }
-                    numberOfSweptCells += currentBatch.size();
 
+                    numberOfSweptCells += currentBatch.size();
                     currentBatch.clear();
                     currentBatchSentinels.clear();
                     currentCellTimestamps =
                             currentCellTimestamps.subList(numberOfTimestampsForThisBatch, currentCellTimestamps.size());
                 }
-                currentBatch.putAll(cell.cell(), currentCellTimestamps);
+                if (!currentCellTimestamps.isEmpty()) {
+                    safeToDeleteLast = safeToDeleteLast
+                            && addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                    removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
+                }
             }
         }
 
-        if (!currentBatch.isEmpty() && runType == RunType.FULL) {
+        if (!currentBatch.isEmpty() && runType != RunType.DRY) {
             cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
         }
         numberOfSweptCells += currentBatch.size();
 
         return numberOfSweptCells;
+    }
+
+    private void removeLatestVersionIfNecessary(
+            Multimap<Cell, Long> currentBatch,
+            CellToSweep cell,
+            List<Long> currentCellTimestamps,
+            boolean safeToDeleteLast) {
+        if (!safeToDeleteLast) {
+            currentBatch.remove(cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
+        }
+    }
+
+    /**
+     * @return true, if it is safe to delete the last entry for this cell; in case it's a delete. This is not safe if
+     * any entry for this cell has been skipped
+     */
+    private boolean addCurrentCellTimestamps(
+            Multimap<Cell, Long> currentBatch, Cell currentCell, List<Long> currentCellTimestamps, RunType runType) {
+        if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
+            List<Long> versionsToDelete = currentCellTimestamps.stream()
+                    .filter(_ignore -> !skipCellVersion.getAsBoolean())
+                    .collect(Collectors.toList());
+            currentBatch.putAll(currentCell, versionsToDelete);
+            return versionsToDelete.size() == currentCellTimestamps.size();
+        }
+        currentBatch.putAll(currentCell, currentCellTimestamps);
+        return true;
     }
 }

@@ -23,6 +23,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import io.dropwizard.Application;
@@ -48,16 +49,19 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
 
     @Override
     public void run(CombinedTimeLockServerConfiguration configuration, Environment environment) throws Exception {
+        TimeLockRuntimeConfiguration runtime = configuration.runtime();
         TimeLockAgent.create(
                 MetricsManagers.of(environment.metrics(), SharedTaggedMetricRegistries.getSingleton()),
                 configuration.install(),
-                Refreshable.only(configuration.runtime()), // This won't actually live reload.
+                Refreshable.only(runtime), // This won't actually live reload.
+                runtime.clusterSnapshot(),
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 environment.jersey()::register,
                 Optional.empty(),
                 OrderableSlsVersion.valueOf("0.0.0"),
-                ObjectMappers.newServerObjectMapper());
+                ObjectMappers.newServerObjectMapper(),
+                () -> System.exit(0));
     }
 }

@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -181,7 +182,7 @@ public final class KeyValueServices {
             rowsToColumns.get(rowHash).put(e.getKey().getColumnName(), e.getValue());
         }
 
-        Map<byte[], RowColumnRangeIterator> results = new HashMap<>();
+        IdentityHashMap<byte[], RowColumnRangeIterator> results = new IdentityHashMap<>();
         for (Map.Entry<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> row : rowsToColumns.entrySet()) {
             SortedMap<byte[], Value> map = row.getValue().build();
             Set<Map.Entry<byte[], Value>> subMap;

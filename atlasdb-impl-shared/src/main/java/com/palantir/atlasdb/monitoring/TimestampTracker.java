@@ -20,12 +20,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class TimestampTracker {
-    private static final Logger log = LoggerFactory.getLogger(TimestampTracker.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TimestampTracker.class);
 
     private TimestampTracker() {}
 

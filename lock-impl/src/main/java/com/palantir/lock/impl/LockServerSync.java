@@ -21,6 +21,7 @@ import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -266,5 +267,12 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         }
         return Collections.unmodifiableList(
                 readLockHolders.keysView().collect(clients::fromIndex, new ArrayList<>(readLockHolders.size())));
+    }
+
+    synchronized Optional<LockClient> getWriteClient() {
+        if (getState() <= 0) {
+            return Optional.empty();
+        }
+        return Optional.of(clients.fromIndex(writeLockHolder));
     }
 }

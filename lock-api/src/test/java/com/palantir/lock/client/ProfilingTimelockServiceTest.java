@@ -33,6 +33,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.logger.SafeLogger;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -40,7 +41,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.slf4j.Logger;
 
 public class ProfilingTimelockServiceTest {
     private static final Duration SHORT_DURATION = ProfilingTimelockService.SLOW_THRESHOLD.dividedBy(5);
@@ -49,7 +49,7 @@ public class ProfilingTimelockServiceTest {
             ChronoUnit.CENTURIES.getDuration().multipliedBy(2);
 
     @SuppressWarnings("PreferStaticLoggers")
-    private final Logger logger = mock(Logger.class);
+    private final SafeLogger logger = mock(SafeLogger.class);
 
     private final TimelockService delegate = mock(TimelockService.class);
 
@@ -199,13 +199,20 @@ public class ProfilingTimelockServiceTest {
 
     @SuppressWarnings({
         "unchecked", // Captors of generics
-        "Slf4jConstantLogMessage"
+        "CompileTimeConstant"
     }) // Logger verify
     private void verifyLoggerInvokedOnceWithSpecificProfile(String operation, Duration duration) {
         // XXX Maybe there's a better way? The approaches I tried didn't work because of conflict with other methods
         ArgumentCaptor<Arg<String>> messageCaptor = ArgumentCaptor.forClass(Arg.class);
         ArgumentCaptor<Arg<Duration>> durationCaptor = ArgumentCaptor.forClass(Arg.class);
-        verify(logger).info(any(String.class), messageCaptor.capture(), durationCaptor.capture(), any(), any(), any());
+        verify(logger)
+                .info(
+                        any(String.class),
+                        messageCaptor.capture(),
+                        durationCaptor.capture(),
+                        any(),
+                        any(),
+                        any(Arg.class));
 
         assertThat(messageCaptor.getValue().getValue()).isEqualTo(operation);
         assertThat(durationCaptor.getValue().getValue()).isEqualTo(duration);
@@ -213,7 +220,7 @@ public class ProfilingTimelockServiceTest {
 
     @SuppressWarnings({
         "unchecked", // Captors of generics
-        "Slf4jConstantLogMessage"
+        "CompileTimeConstant"
     }) // Logger verify
     private void verifyLoggerInvokedOnceWithException(Exception exception) {
         ArgumentCaptor<Arg<Optional<Exception>>> exceptionCaptor = ArgumentCaptor.forClass(Arg.class);
@@ -221,9 +228,9 @@ public class ProfilingTimelockServiceTest {
         assertThat(exceptionCaptor.getValue().getValue()).contains(exception);
     }
 
-    @SuppressWarnings("Slf4jConstantLogMessage") // only for tests
+    @SuppressWarnings("CompileTimeConstant") // only for tests
     private void verifyLoggerInvokedSpecificNumberOfTimes(int times) {
-        verify(logger, times(times)).info(any(String.class), any(), any(), any(), any(), any());
+        verify(logger, times(times)).info(any(String.class), any(), any(), any(), any(), any(Arg.class));
     }
 
     private void makeOperationsTakeSpecifiedDuration(Duration duration) {

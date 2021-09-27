@@ -44,6 +44,23 @@ public class AutobatchersTests {
     }
 
     @Test
+    public void testTimeoutThrowsHandlerException() {
+        RuntimeException runtimeException = new RuntimeException("Caught exception");
+
+        DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(
+                        list -> Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30)))
+                .batchFunctionTimeout(Duration.ofSeconds(1))
+                .safeLoggablePurpose("testing")
+                .timeoutHandler(_exception -> runtimeException)
+                .build();
+
+        ListenableFuture<Object> response = autobatcher.apply(new Object());
+
+        // Ensure that the exception is exactly the one that the handler returns
+        assertThatThrownBy(response::get).isInstanceOf(ExecutionException.class).hasCause(runtimeException);
+    }
+
+    @Test
     public void testTimeoutAndRetryOperations() throws InterruptedException {
         AtomicLong guard = new AtomicLong(0);
         CountDownLatch enqueueLatch = new CountDownLatch(1);

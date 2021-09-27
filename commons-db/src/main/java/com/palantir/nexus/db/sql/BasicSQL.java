@@ -737,7 +737,7 @@ public abstract class BasicSQL {
         PreparedStatementVisitor<AgnosticLightResultSet> preparedStatementVisitor = ps -> {
             final ResultSetVisitor<AgnosticLightResultSet> resultSetVisitor = rs -> {
                 try {
-                    return new AgnosticLightResultSetImpl(
+                    AgnosticLightResultSet resultSet = new AgnosticLightResultSetImpl(
                             rs,
                             dbType,
                             rs.getMetaData(),
@@ -745,6 +745,10 @@ public abstract class BasicSQL {
                             "selectList", //$NON-NLS-1$
                             sql,
                             getSqlTimer());
+                    if (fetchSize != null) {
+                        resultSet.setFetchSize(fetchSize);
+                    }
+                    return resultSet;
                 } catch (Exception e) {
                     closeSilently(rs);
                     BasicSQLUtils.throwUncheckedIfSQLException(e);

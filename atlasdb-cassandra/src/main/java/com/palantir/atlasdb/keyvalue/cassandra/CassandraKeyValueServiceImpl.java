@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
@@ -114,6 +113,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -858,7 +858,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Map<byte[], Map<Cell, Value>> results = firstPage.getResults();
             Map<byte[], Column> rowsToLastCompositeColumns = firstPage.getRowsToLastCompositeColumns();
-            Map<byte[], byte[]> incompleteRowsToNextColumns = new HashMap<>();
+            IdentityHashMap<byte[], byte[]> incompleteRowsToNextColumns = new IdentityHashMap<>();
             for (Map.Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
                 byte[] row = e.getKey();
                 byte[] col =
@@ -1138,7 +1138,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
         }
         Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost =
-                HostPartitioner.partitionByHost(clientPool, flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
+                HostPartitioner.partitionByHost(clientPool, flattened, TableCellAndValue::extractRowName);
 
         List<Callable<Void>> callables = new ArrayList<>();
         for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
@@ -1154,7 +1154,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 getMultiPutBatchCount(),
                 getMultiPutBatchSizeBytes(),
                 extractTableNames(values).toString(),
-                TableCellAndValue.SIZING_FUNCTION);
+                TableCellAndValue::getSize);
         List<Callable<Void>> tasks = new ArrayList<>();
         for (final List<TableCellAndValue> batch : partitioned) {
             final Set<TableReference> tableRefs = extractTableNames(batch);
@@ -2033,11 +2033,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static class TableCellAndValue {
-        private static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
-                input -> input.cell.getRowName();
 
-        private static final Function<TableCellAndValue, Long> SIZING_FUNCTION =
-                input -> input.value.length + Cells.getApproxSizeOfCell(input.cell);
+        private static byte[] extractRowName(TableCellAndValue input) {
+            return input.cell.getRowName();
+        }
+
+        private static Long getSize(TableCellAndValue input) {
+            return input.value.length + Cells.getApproxSizeOfCell(input.cell);
+        }
 
         private final TableReference tableRef;
         private final Cell cell;

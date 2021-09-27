@@ -48,6 +48,8 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
                 Autobatchers.independent(consumer(lockLeaseService, cache))
                         .safeLoggablePurpose("transaction-starter")
                         .batchFunctionTimeout(Duration.ofSeconds(30))
+                        .timeoutHandler(exception -> new StartTransactionFailedException(
+                                "Timed out while attempting to start transactions", exception))
                         .build();
         return new BatchingIdentifiedAtlasDbTransactionStarter(autobatcher);
     }
@@ -86,9 +88,10 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
                         cache.getEventCache().lastKnownVersion();
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
                         requestedVersion, numberOfTransactions - result.size());
-                TransactionStarterHelper.updateCacheWithStartTransactionResponse(cache, requestedVersion, response);
+                TransactionStarterHelper.updateCacheWithStartTransactionResponse(cache, response);
                 result.addAll(TransactionStarterHelper.split(response));
             } catch (Throwable t) {
+                TransactionStarterHelper.cleanUpCaches(cache, result);
                 TransactionStarterHelper.unlock(
                         result.stream()
                                 .map(response -> response.immutableTimestamp().getLock())

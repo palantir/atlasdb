@@ -44,7 +44,8 @@ public class SweepBenchmarks {
                 .candidateBatchSize(RegeneratingTable.SWEEP_DUPLICATES * uniqueCellsToSweep + 1)
                 .maxCellTsPairsToExamine(RegeneratingTable.SWEEP_DUPLICATES * uniqueCellsToSweep)
                 .build();
-        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), batchConfig, PtBytes.EMPTY_BYTE_ARRAY);
+        SweepResults sweepResults = sweepTaskRunner.run(
+                table.getTableRef(), batchConfig, PtBytes.EMPTY_BYTE_ARRAY, SweepTaskRunner.RunType.FULL);
         assertThat(sweepResults.getStaleValuesDeleted()).isEqualTo((long) DELETED_COUNT * uniqueCellsToSweep);
         return sweepResults;
     }
@@ -59,7 +60,8 @@ public class SweepBenchmarks {
                     .candidateBatchSize(1)
                     .maxCellTsPairsToExamine(RegeneratingTable.SWEEP_DUPLICATES)
                     .build();
-            sweepResults = sweepTaskRunner.run(table.getTableRef(), batchConfig, nextStartRow);
+            sweepResults =
+                    sweepTaskRunner.run(table.getTableRef(), batchConfig, nextStartRow, SweepTaskRunner.RunType.FULL);
             nextStartRow = sweepResults.getNextStartRow().get();
             assertThat(sweepResults.getStaleValuesDeleted()).isEqualTo((long) DELETED_COUNT);
         }

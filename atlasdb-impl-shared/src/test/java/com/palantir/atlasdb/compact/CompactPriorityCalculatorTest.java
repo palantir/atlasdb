@@ -52,7 +52,7 @@ public class CompactPriorityCalculatorTest {
         when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_2, 3L));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
-        assertThat(table).isEqualTo(Optional.of(TABLE_1));
+        assertThat(table).contains(TABLE_1);
     }
 
     @Test
@@ -63,7 +63,7 @@ public class CompactPriorityCalculatorTest {
         when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 1L, TABLE_2, 4L));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
-        assertThat(table).isEqualTo(Optional.of(TABLE_1));
+        assertThat(table).contains(TABLE_1);
     }
 
     @Test
@@ -74,7 +74,7 @@ public class CompactPriorityCalculatorTest {
                 .thenReturn(ImmutableMap.of(TABLE_1, System.currentTimeMillis(), TABLE_2, 5L));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
-        assertThat(table).isEqualTo(Optional.of(TABLE_2));
+        assertThat(table).contains(TABLE_2);
     }
 
     @Test

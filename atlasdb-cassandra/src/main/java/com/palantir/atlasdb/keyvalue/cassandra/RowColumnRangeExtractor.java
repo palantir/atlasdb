@@ -24,8 +24,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,10 +68,10 @@ class RowColumnRangeExtractor {
         }
     }
 
-    private final Map<byte[], LinkedHashMap<Cell, Value>> collector = new HashMap<>();
-    private final Map<byte[], Column> rowsToLastCompositeColumns = new HashMap<>();
-    private final Map<byte[], Integer> rowsToRawColumnCount = new HashMap<>();
-    private final Set<byte[]> emptyRows = new HashSet<>();
+    private final IdentityHashMap<byte[], LinkedHashMap<Cell, Value>> collector = new IdentityHashMap<>();
+    private final IdentityHashMap<byte[], Column> rowsToLastCompositeColumns = new IdentityHashMap<>();
+    private final IdentityHashMap<byte[], Integer> rowsToRawColumnCount = new IdentityHashMap<>();
+    private final Set<byte[]> emptyRows = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Counter notLatestVisibleValueCellFilterCounter;
 
     RowColumnRangeExtractor(MetricsManager metricsManager) {

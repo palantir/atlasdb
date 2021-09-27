@@ -33,6 +33,10 @@ package com.palantir.atlasdb.config;
 
 import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
 import com.google.common.collect.ImmutableList;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,8 +46,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A Jackson subtype resolver which discovers subtypes via the META-INF/services directory
@@ -51,7 +53,7 @@ import org.slf4j.LoggerFactory;
  */
 class DiscoverableSubtypeResolver extends StdSubtypeResolver {
     private static final long serialVersionUID = 1L;
-    private static final Logger log = LoggerFactory.getLogger(DiscoverableSubtypeResolver.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DiscoverableSubtypeResolver.class);
 
     private final ImmutableList<Class<?>> discoveredSubtypes;
 
@@ -91,13 +93,13 @@ class DiscoverableSubtypeResolver extends StdSubtypeResolver {
                         try {
                             serviceClasses.add(getClassLoader().loadClass(line.trim()));
                         } catch (ClassNotFoundException e) {
-                            log.info("Unable to load {}", line, e);
+                            log.info("Unable to load {}", UnsafeArg.of("line", line), e);
                         }
                     }
                 }
             }
         } catch (IOException e) {
-            log.warn("Unable to load META-INF/services/{}", className, e);
+            log.warn("Unable to load META-INF/services/{}", SafeArg.of("className", className), e);
         }
         return serviceClasses;
     }

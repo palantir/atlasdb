@@ -28,6 +28,10 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimplifyingLockService;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,12 +39,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class LockRefreshingLockService extends SimplifyingLockService {
     public static final int REFRESH_BATCH_SIZE = 500_000;
-    private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LockRefreshingLockService.class);
     private static final ScheduledExecutorService executor =
             PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
 
@@ -65,13 +67,13 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
                         if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
                             log.warn(
                                     "Refreshing locks took {} milliseconds" + " for tokens: {}",
-                                    elapsed,
-                                    ret.toRefresh);
+                                    SafeArg.of("elapsed", elapsed),
+                                    UnsafeArg.of("tokens", ret.toRefresh));
                         } else if (elapsed > ret.refreshFrequencyMillis) {
                             log.info(
                                     "Refreshing locks took {} milliseconds" + " for tokens: {}",
-                                    elapsed,
-                                    ret.toRefresh);
+                                    SafeArg.of("elapsed", elapsed),
+                                    UnsafeArg.of("tokens", ret.toRefresh));
                         }
                     }
                 },
@@ -143,7 +145,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
         }
         for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token) && toRefresh.contains(token)) {
-                log.warn("failed to refresh lock: {}", token);
+                log.warn("failed to refresh lock: {}", UnsafeArg.of("token", token));
                 toRefresh.remove(token);
             }
         }

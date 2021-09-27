@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Refactor Logger to SafeLogger, part 1
+  links:
+  - https://github.com/palantir/atlasdb/pull/5619

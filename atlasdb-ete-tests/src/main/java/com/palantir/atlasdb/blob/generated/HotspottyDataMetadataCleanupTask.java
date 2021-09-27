@@ -42,7 +42,7 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
         }
         HotspottyDataStreamIdxTable indexTable = tables.getHotspottyDataStreamIdxTable(t);
         Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rowsWithNoIndexEntries =
-                        executeUnreferencedStreamDiagnostics(indexTable, rows);
+                        getUnreferencedStreamsByIterator(indexTable, rows);
         Set<Long> toDelete = new HashSet<>();
         Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> currentMetadata =
                 metaTable.getMetadatas(rows);
@@ -55,58 +55,19 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
         return false;
     }
 
-    private static HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow convertFromIndexRow(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow idxRow) {
-        return HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow.of(idxRow.getId());
-    }
-    private static Set<Long> convertToIdsForLogging(Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> iteratorExcess) {
-        return iteratorExcess.stream()
+    private static Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> getUnreferencedStreamsByIterator(HotspottyDataStreamIdxTable indexTable, Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> metadataRows) {
+        Set<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow> indexRows = metadataRows.stream()
                 .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::getId)
+                .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::of)
                 .collect(Collectors.toSet());
-    }
-
-    private static Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> getUnreferencedStreamsByMultimap(HotspottyDataStreamIdxTable indexTable, Set<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow> indexRows) {
-        Multimap<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue> indexValues = indexTable.getRowsMultimap(indexRows);
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> presentMetadataRows
-                = indexValues.keySet().stream()
-                .map(HotspottyDataMetadataCleanupTask::convertFromIndexRow)
-                .collect(Collectors.toSet());
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> queriedMetadataRows
-                = indexRows.stream()
-                .map(HotspottyDataMetadataCleanupTask::convertFromIndexRow)
-                .collect(Collectors.toSet());
-        return Sets.difference(queriedMetadataRows, presentMetadataRows);
-    }
-
-    private static Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> getUnreferencedStreamsByIterator(HotspottyDataStreamIdxTable indexTable, Set<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow> indexRows) {
         Map<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, Iterator<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> unreferencedStreamMetadata
-                = KeyedStream.stream(referenceIteratorByStream)
+        return KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys() // (authorized)
                 .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::getId)
                 .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::of)
                 .collect(Collectors.toSet());
-        return unreferencedStreamMetadata;
-    }
-
-    private static Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> executeUnreferencedStreamDiagnostics(HotspottyDataStreamIdxTable indexTable, Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> metadataRows) {
-        Set<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow> indexRows = metadataRows.stream()
-                .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::getId)
-                .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::of)
-                .collect(Collectors.toSet());
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> unreferencedStreamsByIterator = getUnreferencedStreamsByIterator(indexTable, indexRows);
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> unreferencedStreamsByMultimap = getUnreferencedStreamsByMultimap(indexTable, indexRows);
-        if (!unreferencedStreamsByIterator.equals(unreferencedStreamsByMultimap)) {
-            log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
-                    SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
-                    SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
-            return new HashSet<>();
-        } else {
-            log.info("We searched for unreferenced streams and consistently found {}.",
-                    SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
-            return unreferencedStreamsByIterator;
-        }
     }
 }

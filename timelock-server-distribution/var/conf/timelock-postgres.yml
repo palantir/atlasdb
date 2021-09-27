@@ -2,12 +2,6 @@ install:
   paxos:
     data-directory: "var/data/paxos"
     is-new-service: false
-  cluster:
-    cluster:
-      uris:
-      - "localhost:8421"
-    enableNonstandardAndPossiblyDangerousTopology: true
-    local-server: "localhost:8421"
   timestampBoundPersistence:
     type: database
     key-value-service:
@@ -23,6 +17,12 @@ install:
         dbPassword: "palantir"
 
 runtime:
+  cluster-config-not-live-reloaded:
+    cluster:
+      uris:
+        - "localhost:8421"
+    enableNonstandardAndPossiblyDangerousTopology: true
+    local-server: "localhost:8421"
   paxos:
 
 server:

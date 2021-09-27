@@ -17,6 +17,10 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.Span;
 import com.palantir.tracing.api.SpanObserver;
@@ -28,15 +32,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.ClassRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TracingKvsTest extends AbstractKeyValueServiceTest {
     @ClassRule
     public static final TestResourceManager TRM =
             new TestResourceManager(() -> TracingKeyValueService.create(new InMemoryKeyValueService(false)));
 
-    private static final Logger log = LoggerFactory.getLogger(TracingKvsTest.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TracingKvsTest.class);
     private static final String TEST_OBSERVER_NAME = TracingKvsTest.class.getName();
 
     public TracingKvsTest() {
@@ -60,8 +62,8 @@ public class TracingKvsTest extends AbstractKeyValueServiceTest {
             List<Span> spans = ((TestSpanObserver) observer).spans();
             log.warn(
                     "{} spans: {}",
-                    spans.size(),
-                    spans.stream().map(Span::getOperation).collect(Collectors.toList()));
+                    SafeArg.of("spanCount", spans.size()),
+                    UnsafeArg.of("spans", spans.stream().map(Span::getOperation).collect(Collectors.toList())));
             if (Tracer.isTraceObservable()) {
                 assertThat(finishedSpan).isPresent();
                 assertThat(finishedSpan.get().getOperation()).isEqualTo("test");
@@ -89,7 +91,7 @@ public class TracingKvsTest extends AbstractKeyValueServiceTest {
 
         @Override
         public void consume(Span span) {
-            log.warn("{}", span);
+            log.warn("{}", UnsafeArg.of("span", span));
             spans.add(span);
         }
 

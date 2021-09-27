@@ -86,7 +86,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class KvDynamicColumnsTable implements
         AtlasDbDynamicMutablePersistentTable<KvDynamicColumnsTable.KvDynamicColumnsRow,
                                                 KvDynamicColumnsTable.KvDynamicColumnsColumn,
@@ -833,5 +833,5 @@ public final class KvDynamicColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "AUHX2d91IINW6dxAajKwcA==";
+    static String __CLASS_HASH = "afiyTnltfesp99pfyrOGSg==";
 }

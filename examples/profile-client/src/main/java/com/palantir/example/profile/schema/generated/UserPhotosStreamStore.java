@@ -1,6 +1,5 @@
 package com.palantir.example.profile.schema.generated;
 
-import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -13,6 +12,8 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -71,7 +72,7 @@ import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     public static final int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
     public static final int IN_MEMORY_THRESHOLD = 4194304; // streams under this size are kept in memory when loaded
@@ -83,7 +84,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     private final ProfileTableFactory tables;
 
     private UserPhotosStreamStore(TransactionManager txManager, ProfileTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
     }
 
     private UserPhotosStreamStore(TransactionManager txManager, ProfileTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
@@ -140,8 +141,8 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         UserPhotosStreamMetadataTable mdTable = tables.getUserPhotosStreamMetadataTable(t);
         Map<Long, StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());
 
-        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
-        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
+        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = new HashMap<>();
+        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = new HashMap<>();
         for (Entry<Long, StreamMetadata> e : streamIdsToMetadata.entrySet()) {
             long streamId = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -162,7 +163,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
+        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -205,7 +206,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         }
         UserPhotosStreamMetadataTable table = tables.getUserPhotosStreamMetadataTable(t);
         Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = Maps.newHashMap();
+        Map<Long, StreamMetadata> ret = new HashMap<>();
         for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -221,7 +222,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         Set<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMap();
+        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
         for (UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow r : m.keySet()) {
             for (UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -234,7 +235,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         }
         Map<Long, StreamMetadata> metadata = getMetadata(t, hashForStreams.keySet());
 
-        Map<Sha256Hash, Long> ret = Maps.newHashMap();
+        Map<Sha256Hash, Long> ret = new HashMap<>();
         for (Map.Entry<Long, StreamMetadata> e : metadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED) {
                 continue;
@@ -247,7 +248,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow> rows = Sets.newHashSet();
+        Set<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow> rows = new HashSet<>();
         for (Sha256Hash h : hashes) {
             rows.add(UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow.of(h));
         }
@@ -255,7 +256,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> getMetadataRowsForIds(final Iterable<Long> ids) {
-        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rows = Sets.newHashSet();
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of(id));
         }
@@ -291,14 +292,14 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         if (streamIds.isEmpty()) {
             return;
         }
-        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> smRows = Sets.newHashSet();
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> smRows = new HashSet<>();
         Multimap<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumn> shToDelete = HashMultimap.create();
         for (Long streamId : streamIds) {
             smRows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of(streamId));
         }
         UserPhotosStreamMetadataTable table = tables.getUserPhotosStreamMetadataTable(t);
         Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(smRows);
-        Set<UserPhotosStreamValueTable.UserPhotosStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        Set<UserPhotosStreamValueTable.UserPhotosStreamValueRow> streamValueToDelete = new HashSet<>();
         for (Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             Long streamId = e.getKey().getId();
             long blocks = getNumberOfBlocksFromMetadata(e.getValue());
@@ -357,7 +358,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) {
         UserPhotosStreamMetadataTable metaTable = tables.getUserPhotosStreamMetadataTable(t);
-        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rows = Sets.newHashSet();
+        Set<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow.of(id));
         }
@@ -404,7 +405,9 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link FileOutputStream}
      * {@link Functions}
      * {@link Generated}
+     * {@link HashMap}
      * {@link HashMultimap}
+     * {@link HashSet}
      * {@link IOException}
      * {@link ImmutableMap}
      * {@link ImmutableSet}

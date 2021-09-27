@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: '[PDS-202945] Key value service load should be reduced when sweeping
+    tables that have highly referenced streams; the check for whether a stream was
+    referenced now only loads one cell into memory, while it would previously load
+    the entire row of references.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5620

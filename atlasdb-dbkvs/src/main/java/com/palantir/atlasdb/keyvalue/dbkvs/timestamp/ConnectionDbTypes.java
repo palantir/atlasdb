@@ -15,15 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class ConnectionDbTypes {
-    private static final Logger log = LoggerFactory.getLogger(ConnectionDbTypes.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ConnectionDbTypes.class);
 
     private ConnectionDbTypes() {
         // Utility class
@@ -40,7 +41,9 @@ public final class ConnectionDbTypes {
             } else if (driverName.contains("h2")) {
                 return DBType.H2_MEMORY;
             } else {
-                log.error("Could not determine database type from connection with driver name {}", driverName);
+                log.error(
+                        "Could not determine database type from connection with driver name {}",
+                        SafeArg.of("driverName", driverName));
                 return null;
             }
         } catch (SQLException e) {

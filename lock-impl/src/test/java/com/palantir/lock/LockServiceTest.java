@@ -579,6 +579,34 @@ public abstract class LockServiceTest {
         assertThat(Iterables.getOnlyElement(state2.requesters()).versionId()).hasValue(100L);
     }
 
+    @Test
+    public void testGetLockStateOfReadWriteReentrancy() throws Exception {
+        LockResponse response1 = server.lockWithFullLockResponse(
+                client,
+                LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
+                        .build());
+        assertThat(response1.success()).isTrue();
+        assertThat(server.getLockState(lock1).isWriteLocked()).isTrue();
+
+        LockResponse response2 = server.lockWithFullLockResponse(
+                client,
+                LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ)).build());
+        assertThat(response2.success()).isTrue();
+        assertThat(server.getLockState(lock1).isWriteLocked()).isTrue();
+    }
+
+    @Test
+    public void testGetLockStateQuicklyAfterReadRelease() throws Exception {
+        LockResponse response1 = server.lockWithFullLockResponse(
+                client,
+                LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ)).build());
+        assertThat(response1.success()).isTrue();
+        assertThat(server.getLockState(lock1).isWriteLocked()).isFalse();
+
+        assertThat(server.unlock(response1.getLockRefreshToken())).isTrue();
+        assertThat(server.getLockState(lock1).isWriteLocked()).isFalse();
+    }
+
     /**
      * Tests lock responses
      */

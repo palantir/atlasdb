@@ -21,14 +21,15 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.util.concurrent.ExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class TableValueStyleCache {
-    private static final Logger log = LoggerFactory.getLogger(TableValueStyleCache.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TableValueStyleCache.class);
 
     private final Cache<TableReference, TableValueStyle> valueStyleByTableRef =
             CacheBuilder.newBuilder().build();
@@ -49,7 +50,10 @@ public final class TableValueStyleCache {
                         Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
             });
         } catch (ExecutionException e) {
-            log.error("TableValueStyle for the table {} could not be retrieved.", tableRef.getQualifiedName(), e);
+            log.error(
+                    "TableValueStyle for the table {} could not be retrieved.",
+                    LoggingArgs.safeInternalTableName(tableRef.getQualifiedName()),
+                    e);
             throw Throwables.propagate(e);
         }
     }

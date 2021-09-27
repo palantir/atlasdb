@@ -19,14 +19,17 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
+import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public final class CacheStoreImplTest {
     private static final StartTimestamp TIMESTAMP_1 = StartTimestamp.of(1L);
@@ -49,6 +52,7 @@ public final class CacheStoreImplTest {
                 ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
         cacheStore.createCache(TIMESTAMP_2);
         assertThat(cacheStore.getCache(TIMESTAMP_2)).isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(1);
     }
 
     @Test
@@ -66,6 +70,7 @@ public final class CacheStoreImplTest {
         TransactionScopedCache cache2 = cacheStore.getCache(TIMESTAMP_2);
 
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isEqualTo(cache1).isNotEqualTo(cache2);
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(2);
     }
 
     @Test
@@ -82,9 +87,10 @@ public final class CacheStoreImplTest {
         cacheStore.createCache(TIMESTAMP_1);
         cacheStore.createCache(timestamp);
         assertThatThrownBy(() -> cacheStore.createCache(TIMESTAMP_2))
-                .isExactlyInstanceOf(TransactionFailedRetriableException.class)
+                .isExactlyInstanceOf(SafeIllegalStateException.class)
                 .hasMessage("Exceeded maximum concurrent caches; transaction can be retried, but with caching "
                         + "disabled");
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(2);
     }
 
     @Test
@@ -99,6 +105,7 @@ public final class CacheStoreImplTest {
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
         cacheStore.createCache(TIMESTAMP_1);
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(1);
     }
 
     @Test
@@ -110,5 +117,13 @@ public final class CacheStoreImplTest {
         cacheStore.createCache(TIMESTAMP_2);
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
         assertThat(cacheStore.getCache(TIMESTAMP_2)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(0);
+    }
+
+    @SuppressWarnings("unchecked")
+    private int getTransactionCacheInstanceCount() {
+        ArgumentCaptor<Gauge<Integer>> cacheInstanceCount = ArgumentCaptor.forClass(Gauge.class);
+        verify(metrics).setTransactionCacheInstanceCountGauge(cacheInstanceCount.capture());
+        return cacheInstanceCount.getValue().getValue();
     }
 }

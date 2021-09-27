@@ -28,8 +28,9 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -152,7 +153,7 @@ public class TableMigrator {
      * If a table doesn't support partitioning, we'll make fake partitions and hope it helps.
      */
     private List<byte[]> getRangeBoundaries() {
-        Set<byte[]> rangeBoundaries = new HashSet<>();
+        Set<byte[]> rangeBoundaries = Collections.newSetFromMap(new IdentityHashMap<>());
         // Must use PtBytes.EMPTY_BYTE_ARRAY to avoid duplicate when adding from UniformRowNamePartitioner
         rangeBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
 

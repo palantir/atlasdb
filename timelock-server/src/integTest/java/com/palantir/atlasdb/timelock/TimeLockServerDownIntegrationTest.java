@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -67,8 +66,7 @@ public class TimeLockServerDownIntegrationTest {
         // Try to get again
         assertThatThrownBy(() -> txnManager.runTaskWithRetry(
                         txn -> txn.get(TABLE, ImmutableSet.of(CELL)).get(CELL)))
-                .isInstanceOf(RuntimeException.class)
-                .hasRootCauseInstanceOf(TimeoutException.class);
+                .isInstanceOf(RuntimeException.class);
     }
 
     private static void takeDownTimeLock() throws ExecutionException {

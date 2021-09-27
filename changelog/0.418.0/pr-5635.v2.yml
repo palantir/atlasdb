@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Resolved an edge case in the lock watch value cache whereby loaded
+    values where not invalidated if the write happened after the commit timestamp
+    but before the commit was completed.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5635

@@ -28,11 +28,11 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Comparator;
 import java.util.List;
@@ -44,7 +44,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
-    private static final int MAX_CACHE_COUNT = 100_000;
+    private static final int MAX_CACHE_COUNT = 20_000;
     private final LockWatchEventCache eventCache;
     private final CacheStore cacheStore;
     private final ValueStore valueStore;
@@ -131,10 +131,10 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             return;
         }
 
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
-        cacheStore.createReadOnlyCache(startTs, commitUpdate);
+        SpanningCommitUpdate spanningCommitUpdate = eventCache.getSpanningCommitUpdate(startTimestamp);
+        cacheStore.createReadOnlyCache(startTs, spanningCommitUpdate.transactionCommitUpdate());
 
-        commitUpdate.accept(new Visitor<Void>() {
+        spanningCommitUpdate.spanningCommitUpdate().accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in

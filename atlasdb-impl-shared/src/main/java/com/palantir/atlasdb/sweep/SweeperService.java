@@ -66,4 +66,33 @@ public interface SweeperService {
             @Safe @QueryParam("maxCellTsPairsToExamine") Optional<Integer> maxCellTsPairsToExamine,
             @Safe @QueryParam("candidateBatchSize") Optional<Integer> candidateBatchSize,
             @Safe @QueryParam("deleteBatchSize") Optional<Integer> deleteBatchSize);
+
+    /**
+     * Sweeps a table, but intentionally probabilistically skips a fraction of eligible entries to prevent issues that
+     * might arise from having too many consecutive deletes in the underlying KVS. This is expected to be safe to
+     * invoke at least twice without cleanup at the KVS level, but generally the expected usage is to run once, and
+     * then invoke {@link #sweepTable(String, Optional, Optional, Optional, Optional, Optional)} to clean any
+     * skipped values once KVS cleanup, such as compactions, is done.
+     *
+     * Implementation must respect the usual sweep guarantee: no (possibly in-flight) transaction may as a result of
+     * this operation read a version (or lack of one) of a cell different than it would have read if this operation had
+     * not run, and still succeed. In particular, this means that if any version of a cell is retained, then also the
+     * latest version prior to the sweep timestamp of the same cell must not be removed (even if it is a delete).
+     *
+     * @param tableName the table to sweep, in the format namespace.table_name (e.g. myapp.users)
+     * @param startRow (Optional) the row to start from, encoded as a hex string (e.g. 12345abcde)
+     * @param fullSweep (Optional; default true) whether to sweep the full table; if false just runs one batch
+     * @param maxCellTsPairsToExamine (Optional) see {@link SweepBatchConfig#maxCellTsPairsToExamine()}
+     * @param candidateBatchSize (Optional) see {@link SweepBatchConfig#candidateBatchSize()}
+     * @param deleteBatchSize (Optional) see {@link SweepBatchConfig#deleteBatchSize()}
+     */
+    @POST
+    @Path("sweep-previously-conservative-now-thorough-table")
+    SweepTableResponse sweepPreviouslyConservativeNowThoroughTable(
+            @QueryParam("tablename") String tableName,
+            @QueryParam("startRow") Optional<String> startRow,
+            @Safe @QueryParam("fullSweep") Optional<Boolean> fullSweep,
+            @Safe @QueryParam("maxCellTsPairsToExamine") Optional<Integer> maxCellTsPairsToExamine,
+            @Safe @QueryParam("candidateBatchSize") Optional<Integer> candidateBatchSize,
+            @Safe @QueryParam("deleteBatchSize") Optional<Integer> deleteBatchSize);
 }

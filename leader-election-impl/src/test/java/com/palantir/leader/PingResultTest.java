@@ -25,7 +25,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -51,7 +50,7 @@ public class PingResultTest {
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
             PingResult deserializedPingResult = (PingResult) in.readObject();
             assertThat(deserializedPingResult.isLeader()).isTrue();
-            assertThat(deserializedPingResult.timeLockVersion()).isEqualTo(Optional.of(timeLockVersion));
+            assertThat(deserializedPingResult.timeLockVersion()).contains(timeLockVersion);
         }
     }
 }

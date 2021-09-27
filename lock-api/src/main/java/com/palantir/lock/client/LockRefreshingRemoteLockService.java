@@ -22,17 +22,19 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService {
-    private static final Logger log = LoggerFactory.getLogger(LockRefreshingRemoteLockService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LockRefreshingRemoteLockService.class);
 
     final RemoteLockService delegate;
     final Set<LockRefreshToken> toRefresh;
@@ -55,13 +57,13 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
                         if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
                             log.warn(
                                     "Refreshing locks took {} milliseconds" + " for tokens: {}",
-                                    elapsed,
-                                    ret.toRefresh);
+                                    SafeArg.of("elapsed", elapsed),
+                                    UnsafeArg.of("tokens", ret.toRefresh));
                         } else if (elapsed > ret.refreshFrequencyMillis) {
                             log.info(
                                     "Refreshing locks took {} milliseconds" + " for tokens: {}",
-                                    elapsed,
-                                    ret.toRefresh);
+                                    SafeArg.of("elapsed", elapsed),
+                                    UnsafeArg.of("tokens", ret.toRefresh));
                         }
                     }
                 },
@@ -114,7 +116,7 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
         Set<LockRefreshToken> refreshedTokens = delegate().refreshLockRefreshTokens(refreshCopy);
         for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token) && toRefresh.contains(token)) {
-                log.warn("failed to refresh lock: {}", token);
+                log.warn("failed to refresh lock: {}", UnsafeArg.of("token", token));
                 toRefresh.remove(token);
             }
         }

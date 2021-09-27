@@ -81,10 +81,6 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
-import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
-import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
@@ -95,7 +91,6 @@ import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
-import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -180,6 +175,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -201,6 +197,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -470,8 +467,6 @@ public abstract class TransactionManagers {
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
-        PersistentLockService persistentLockService =
-                createAndRegisterPersistentLockService(keyValueService, registrar(), config().initializeAsync());
 
         TransactionComponents components = createTransactionComponents(
                 closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime);
@@ -563,12 +558,6 @@ public abstract class TransactionManagers {
                 .ifPresent(installer -> transactionManager.registerClosingCallback(installer::close));
         transactionManager.registerClosingCallback(targetedSweep::close);
 
-        PersistentLockManager persistentLockManager = initializeCloseable(
-                () -> new PersistentLockManager(
-                        metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
-                closeables);
-        transactionManager.registerClosingCallback(persistentLockManager::close);
-
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
                         metricsManager,
@@ -580,7 +569,6 @@ public abstract class TransactionManagers {
                         sweepStrategyManager,
                         follower,
                         transactionManager,
-                        persistentLockManager,
                         runBackgroundSweepProcess()),
                 closeables);
         initializeCloseable(
@@ -847,10 +835,8 @@ public abstract class TransactionManagers {
             SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
             TransactionManager transactionManager,
-            PersistentLockManager persistentLockManager,
             boolean runInBackground) {
-        CellsSweeper cellsSweeper =
-                new CellsSweeper(transactionManager, kvs, persistentLockManager, ImmutableList.of(follower));
+        CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower));
 
         LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
 
@@ -861,7 +847,8 @@ public abstract class TransactionManagers {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper,
-                sweepMetrics);
+                sweepMetrics,
+                () -> ThreadLocalRandom.current().nextInt(100) == 0);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(
                 metricsManager,
@@ -925,18 +912,6 @@ public abstract class TransactionManagers {
                         sweepConfig.candidateBatchHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .deleteBatchSize(sweepConfig.deleteBatchHint())
                 .build();
-    }
-
-    private static PersistentLockService createAndRegisterPersistentLockService(
-            KeyValueService kvs, Consumer<Object> env, boolean initializeAsync) {
-        if (!kvs.supportsCheckAndSet()) {
-            return new NoOpPersistentLockService();
-        }
-
-        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs, initializeAsync);
-        env.accept(pls);
-        env.accept(new CheckAndSetExceptionMapper());
-        return pls;
     }
 
     private static Callback<TransactionManager> timelockConsistencyCheckCallback(
@@ -1451,9 +1426,11 @@ public abstract class TransactionManagers {
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             UserAgent userAgent) {
         ServiceCreator creator = ServiceCreator.noPayloadLimiter(
-                metricsManager, () -> config.lock().get(), userAgent, () -> runtimeConfigSupplier
-                        .get()
-                        .remotingClient());
+                metricsManager,
+                Refreshable.only(config.lock()
+                        .orElseThrow(() -> new SafeIllegalArgumentException("lock server list config absent"))),
+                userAgent,
+                () -> runtimeConfigSupplier.get().remotingClient());
         LockService lockService =
                 new RemoteLockServiceAdapter(creator.createService(NamespaceAgnosticLockRpcClient.class));
         TimestampService timeService = creator.createService(TimestampService.class);
