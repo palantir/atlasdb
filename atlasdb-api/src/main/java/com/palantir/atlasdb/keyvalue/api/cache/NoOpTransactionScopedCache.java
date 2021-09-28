@@ -56,7 +56,7 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
             TableReference tableReference,
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        return valueLoader.apply(tableReference, cells);
+        return valueLoader.apply(cells);
     }
 
     @Override

@@ -94,11 +94,11 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         if (shouldValidate()) {
-            ListenableFuture<Map<Cell, byte[]>> remoteReads = valueLoader.apply(tableReference, cells);
+            ListenableFuture<Map<Cell, byte[]>> remoteReads = valueLoader.apply(cells);
             ListenableFuture<Map<Cell, byte[]>> cacheReads = delegate.getAsync(
                     tableReference,
                     cells,
-                    (table, cellsToRead) -> Futures.transform(
+                    cellsToRead -> Futures.transform(
                             remoteReads, reads -> getCells(reads, cellsToRead), MoreExecutors.directExecutor()));
 
             return Futures.transform(
