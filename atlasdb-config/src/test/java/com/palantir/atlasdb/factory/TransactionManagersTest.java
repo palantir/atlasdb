@@ -331,7 +331,7 @@ public class TransactionManagersTest {
 
         InMemoryTimestampService ts = new InMemoryTimestampService();
         TransactionManagers.LockAndTimestampServices lockAndTimestamp =
-                TransactionManagers.createLockAndTimestampServices(
+                LockAndTimestampServiceFactory.createLockAndTimestampServices(
                         metricsManager,
                         config,
                         Refreshable.only(mockAtlasDbRuntimeConfig),
@@ -878,7 +878,7 @@ public class TransactionManagersTest {
 
     private TransactionManagers.LockAndTimestampServices getLockAndTimestampServices() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        return TransactionManagers.createLockAndTimestampServices(
+        return LockAndTimestampServiceFactory.createLockAndTimestampServices(
                 metricsManager,
                 config,
                 Refreshable.only(mockAtlasDbRuntimeConfig),
@@ -901,7 +901,7 @@ public class TransactionManagersTest {
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
         InMemoryTimestampService ts = new InMemoryTimestampService();
         TransactionManagers.LockAndTimestampServices lockAndTimestamp =
-                TransactionManagers.createLockAndTimestampServices(
+                LockAndTimestampServiceFactory.createLockAndTimestampServices(
                         metricsManager,
                         config,
                         Refreshable.only(mockAtlasDbRuntimeConfig),
