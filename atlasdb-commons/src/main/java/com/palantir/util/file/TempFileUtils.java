@@ -61,7 +61,6 @@ public final class TempFileUtils {
 
     /**
      * Ensures that the file exists
-     * @throws IOException
      */
     public static void ensureFileExists(File file) throws IOException {
         if (!file.exists()) {
@@ -71,8 +70,6 @@ public final class TempFileUtils {
 
     /**
      * Ensures that the tmp directory in the java.io.tmpdir system property exists
-     *
-     * @throws IOException
      */
     public static void ensureTempDirectoryExists() throws IOException {
         String tmpDirectoryPath = System.getProperty("java.io.tmpdir");
@@ -81,8 +78,6 @@ public final class TempFileUtils {
 
     /**
      * Ensures that the directory specified by the path exists
-     *
-     * @throws IOException
      */
     public static void ensureDirectoryExists(String path) throws IOException {
         File tmpDirectory = new File(path);

@@ -38,9 +38,6 @@ public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> i
     /**
      *
      * @author manthony
-     *
-     * @param <T>
-     * @param <P>
      */
     public static class PagingIterator<T, P extends BasicResultsPage<T>> extends AbstractIterator<T> {
         private final AbstractPagingIterable<T, P> iterable;
@@ -93,8 +90,6 @@ public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> i
          * This value will be null until this iterator has passed the first page.
          * <p>
          * This value may be used even if this iterator throws an Exception.
-         *
-         * @return
          */
         public P getLastFullPageProcessed() {
             return lastPageProcessedInFull;

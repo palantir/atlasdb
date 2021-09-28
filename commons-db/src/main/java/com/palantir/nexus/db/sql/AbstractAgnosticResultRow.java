@@ -147,7 +147,6 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
      * types of NUMBER, or HSQLDB column types of BIGINT
      *
      * @param col Zero-based column index
-     * @throws PalantirSqlException
      */
     @Deprecated
     // use the get by colname variant instead

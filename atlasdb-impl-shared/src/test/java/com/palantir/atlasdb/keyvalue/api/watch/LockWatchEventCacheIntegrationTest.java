@@ -528,7 +528,7 @@ public class LockWatchEventCacheIntegrationTest {
 
         assertThatThrownBy(() -> eventCache.getCommitUpdate(START_TS_1))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
-                .hasMessage("start or commit info not processed for start timestamp, or current version missing");
+                .hasMessage("start or commit info not processed for start timestamp");
     }
 
     @Test

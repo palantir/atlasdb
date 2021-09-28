@@ -21,7 +21,9 @@ import java.util.Set;
 public interface LockWatchValueCache {
     void processStartTransactions(Set<Long> startTimestamps);
 
-    void updateCacheOnCommit(Set<Long> startTimestamps);
+    void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps);
 
-    void removeTransactionState(long startTimestamp);
+    void ensureStateRemoved(long startTimestamp);
+
+    void onSuccessfulCommit(long startTimestamp);
 }
