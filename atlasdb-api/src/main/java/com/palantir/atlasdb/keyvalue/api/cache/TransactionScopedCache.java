@@ -26,7 +26,6 @@ import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -59,12 +58,12 @@ public interface TransactionScopedCache {
     Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
     ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
     /**
      * The cache will try to fulfil as much of the request as possible with cached values. In the case where some of the

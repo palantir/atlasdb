@@ -21,15 +21,18 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -41,12 +44,19 @@ public final class ReadOnlyTransactionScopedCacheTest {
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("sanity"));
     private static final ImmutableSet<Cell> CELLS = ImmutableSet.of(CELL);
     private static final byte[] VALUE = PtBytes.toBytes("valuable");
-    private static final BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> VALUE_LOADER =
-            (_table, _cells) -> Futures.immediateFuture(ImmutableMap.of());
     private static final CommitUpdate COMMIT_UPDATE = CommitUpdate.invalidateAll();
 
     @Mock
     public TransactionScopedCache delegate;
+
+    @Mock
+    public Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader;
+
+    @Mock
+    public Function<Set<Cell>, Map<Cell, byte[]>> immediateValueLoader;
+
+    @Mock
+    public Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader;
 
     @Test
     public void nonReadMethodsThrow() {
@@ -81,10 +91,15 @@ public final class ReadOnlyTransactionScopedCacheTest {
     public void readMethodsPassThrough() {
         TransactionScopedCache readOnlyCache = ReadOnlyTransactionScopedCache.create(delegate);
 
-        readOnlyCache.get(TABLE, CELLS, VALUE_LOADER);
-        verify(delegate).get(TABLE, CELLS, VALUE_LOADER);
+        readOnlyCache.get(TABLE, CELLS, valueLoader);
+        verify(delegate).get(TABLE, CELLS, valueLoader);
 
-        readOnlyCache.getAsync(TABLE, CELLS, VALUE_LOADER);
-        verify(delegate).getAsync(TABLE, CELLS, VALUE_LOADER);
+        readOnlyCache.getAsync(TABLE, CELLS, valueLoader);
+        verify(delegate).getAsync(TABLE, CELLS, valueLoader);
+
+        Set<byte[]> rows = CELLS.stream().map(Cell::getRowName).collect(Collectors.toSet());
+        ColumnSelection columnSelection = ColumnSelection.all();
+        readOnlyCache.getRows(TABLE, rows, columnSelection, immediateValueLoader, rowLoader);
+        verify(delegate).getRows(TABLE, rows, columnSelection, immediateValueLoader, rowLoader);
     }
 }

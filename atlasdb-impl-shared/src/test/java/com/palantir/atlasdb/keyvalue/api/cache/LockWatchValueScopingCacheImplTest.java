@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -222,7 +223,7 @@ public final class LockWatchValueScopingCacheImplTest {
         processSuccessfulCommit(TIMESTAMP_2, 1L);
         assertThat(scopedCache2.getHitDigest().hitCells()).containsExactly(CellReference.of(TABLE, CELL_3));
 
-        processStartTransactionsUpdate(LOCK_WATCH_UNLOCK_SUCCESS, TIMESTAMP_2);
+        processStartTransactionsUpdate(LOCK_WATCH_UNLOCK_SUCCESS, TIMESTAMP_3);
 
         TransactionScopedCache scopedCache3 = valueCache.getTransactionScopedCache(TIMESTAMP_3);
         assertThatRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3).containsExactlyInAnyOrder(CELL_1);
@@ -302,7 +303,7 @@ public final class LockWatchValueScopingCacheImplTest {
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
         assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         assertThatThrownBy(() -> scopedCache1.get(
-                        TABLE, ImmutableSet.of(CELL_1), (_table, _cells) -> Futures.immediateFuture(ImmutableMap.of())))
+                        TABLE, ImmutableSet.of(CELL_1), _cells -> Futures.immediateFuture(ImmutableMap.of())))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Failed lock watch cache validation - will retry without caching");
 
@@ -399,7 +400,15 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Test
     public void moreEventsThanTimestampsCreatesOnlyNecessarySnapshots() {
-        processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT);
+        processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1);
+        processStartTransactionsUpdate(
+                LockWatchStateUpdate.success(LEADER, 2L, ImmutableList.of(LOCK_EVENT, UNLOCK_EVENT)),
+                TIMESTAMP_2,
+                TIMESTAMP_3);
+
+        Stream.of(TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3)
+                .forEach(timestamp -> assertThatCode(() -> valueCache.getTransactionScopedCache(timestamp))
+                        .doesNotThrowAnyException());
     }
 
     private void processStartTransactionsUpdate(LockWatchStateUpdate update, long... timestamps) {
@@ -437,7 +446,7 @@ public final class LockWatchValueScopingCacheImplTest {
     private static Iterable<Cell> getRemotelyReadCells(
             TransactionScopedCache cache, TableReference table, Cell... cells) {
         Set<Cell> remoteReads = new HashSet<>();
-        cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
+        cache.get(table, Stream.of(cells).collect(Collectors.toSet()), cellsToRead -> {
             remoteReads.addAll(cellsToRead);
             return remoteRead(cellsToRead);
         });

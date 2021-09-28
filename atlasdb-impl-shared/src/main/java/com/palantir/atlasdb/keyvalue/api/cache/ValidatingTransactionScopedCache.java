@@ -45,7 +45,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -85,7 +84,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     public Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
     }
 
@@ -93,7 +92,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     public ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         if (shouldValidate()) {
             ListenableFuture<Map<Cell, byte[]>> remoteReads = valueLoader.apply(tableReference, cells);
             ListenableFuture<Map<Cell, byte[]>> cacheReads = delegate.getAsync(

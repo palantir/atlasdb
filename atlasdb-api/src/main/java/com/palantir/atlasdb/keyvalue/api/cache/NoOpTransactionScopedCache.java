@@ -28,7 +28,6 @@ import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public final class NoOpTransactionScopedCache implements TransactionScopedCache {
@@ -48,7 +47,7 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     public Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
     }
 
@@ -56,7 +55,7 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     public ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return valueLoader.apply(tableReference, cells);
     }
 
