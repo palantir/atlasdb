@@ -28,18 +28,14 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Map;
 import javax.annotation.CheckReturnValue;
 import org.assertj.core.api.AbstractAssert;
-import org.assertj.core.api.WritableAssertionInfo;
 import org.assertj.core.data.Offset;
 import org.assertj.core.internal.Doubles;
 import org.assertj.core.internal.LongArrays;
-import org.assertj.core.internal.Objects;
 
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
     private final MetricsManager metrics;
-    private final Objects objects = Objects.instance();
     private final LongArrays arrays = LongArrays.instance();
     private final Doubles doubles = Doubles.instance();
-    private final WritableAssertionInfo info = new WritableAssertionInfo();
 
     public SweepMetricsAssert(MetricsManager actual) {
         super(actual, SweepMetricsAssert.class);
