@@ -15,6 +15,7 @@
  */
 package com.palantir.async.initializer;
 
+@SuppressWarnings("InvalidLink") // Type parameters
 /**
  * An interface simplifying the creation of initialization Callbacks. If a class C requires a resource R to initialize
  * some of its components, but R may not be ready yet at the time of C's creation, C should implement this interface

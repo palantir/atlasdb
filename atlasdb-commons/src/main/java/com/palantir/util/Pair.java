@@ -24,7 +24,6 @@ import javax.annotation.concurrent.Immutable;
 
 /**
  * A generic class for handling pairs of things.
- * @serial exclude
  * @author cfreeland
  * In general, it is good practice to make a usefully named class that holds the two
  *             things you care about. Typically, you'll find soon after you use this class that you

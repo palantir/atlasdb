@@ -73,8 +73,7 @@ public final class SqlConnectionHelper {
      * Returns true if at least one row comes back for the provided Otherwise, returns false.
      *
      * @param c
-     * @param sql
-     * @param vs
+     * @param tableName
      * @return
      * @throws PalantirSqlException
      */

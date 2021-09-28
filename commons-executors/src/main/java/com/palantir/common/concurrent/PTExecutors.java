@@ -280,8 +280,9 @@ public final class PTExecutors {
 
     /**
      * Creates a thread pool that can schedule commands to run after a given delay, or to execute
-     * periodically.  @param corePoolSize the number of threads to keep in the pool, even if they
-     * are idle.
+     * periodically.
+     *
+     * @param corePoolSize the number of threads to keep in the pool, even if they are idle.
      *
      * @return a newly created scheduled thread pool
      * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
