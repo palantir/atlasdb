@@ -21,6 +21,7 @@ import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.factory.ImmutableLockAndTimestampServices;
+import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
@@ -107,7 +108,7 @@ public class TestFastForwardTimestampCommand {
         private static InMemoryTimestampService timestampService = new InMemoryTimestampService();
 
         @Override
-        public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(
+        public LockAndTimestampServices provideLockAndTimestampServices(
                 MetricsManager metricsManager, ServicesConfig config) {
             LockService lockService = LockServiceImpl.create();
             return ImmutableLockAndTimestampServices.builder()
