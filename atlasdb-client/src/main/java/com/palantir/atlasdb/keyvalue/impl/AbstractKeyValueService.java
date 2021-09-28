@@ -70,10 +70,10 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     /**
-     * Creates a thread pool with number of threads between {@code corePoolSize} and {@code maxPoolSize}.
+     * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
      *
      * @param threadNamePrefix thread name prefix
-     * @param corePoolSize size of the core pool
+     * @param _corePoolSize size of the core pool
      * @param maxPoolSize maximum size of the pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */

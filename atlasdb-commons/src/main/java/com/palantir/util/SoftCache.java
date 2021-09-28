@@ -414,8 +414,8 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * Registering your cache will hold a weak ref to it and for as long as it is still referenced,
-     * it will be cleaned up on a separate thread.  This eliminates the need of using {@link #startCleanupThread()}
-     * and {@link #stopCleanupThread()}
+     * it will be cleaned up on a separate thread.  This eliminates the need of manually managing that thread's life
+     * cycle.
      *
      * @deprecated this is deprecated, because it is done automatically from now on, so it will be made private soon
      */

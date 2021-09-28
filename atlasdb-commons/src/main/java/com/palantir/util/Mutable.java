@@ -23,8 +23,6 @@ import java.io.Serializable;
  * is also volatile so it can be used for cross-thread purposes.
  *
  * @author carrino
- * @serial exclude
- *
  * @param <T> the type of the value being enclosed
  */
 public class Mutable<T> implements Serializable {

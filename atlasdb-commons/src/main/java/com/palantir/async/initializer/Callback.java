@@ -23,6 +23,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.stream.IntStream;
 
+@SuppressWarnings("InvalidLink") // Type parameters
 /**
  * A Callback is a potentially retryable operation on a resource R. The intended use is to specify a task to be run on
  * an uninitialized resource R once it becomes ready by calling {@link #runWithRetry(R)}.

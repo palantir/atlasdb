@@ -39,7 +39,7 @@ enum SimpleSqlProfiler implements SqlProfiler {
      * Presumably, the rather obscure {@link CopyOnWriteArrayList} collection was chosen here to
      * ensure that profilers can be registered and removed in a thread-safe way and that they are
      * always executed in the same order, without requiring that {@link SqlProfilerListener}
-     * implement {@link Comparable}, and at the expense of making {@line
+     * implement {@link Comparable}, and at the expense of making {@link
      * #removeSqlProfilerListener(SqlProfilerListener)} O(N). (jweel)
      */
     private final Collection<SqlProfilerListener> sqlProfilerListeners = new CopyOnWriteArrayList<>();
