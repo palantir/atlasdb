@@ -120,10 +120,6 @@ final class CacheStoreImpl implements CacheStore {
 
         Optional<TransactionScopedCache> readOnlyCache();
 
-        static Caches createNoOp() {
-            return create(NoOpTransactionScopedCache.create());
-        }
-
         static Caches create(TransactionScopedCache mainCache) {
             return ImmutableCaches.builder().mainCache(mainCache).build();
         }

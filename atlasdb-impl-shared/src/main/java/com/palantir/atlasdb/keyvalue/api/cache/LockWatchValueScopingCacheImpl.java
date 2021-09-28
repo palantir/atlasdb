@@ -33,6 +33,7 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -180,8 +181,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
      *     don't bother storing a snapshot for those sequences. Also note that we know that each call here will only
      *     ever have new events, and that consecutive calls to this method will *always* have increasing sequences
      *     (without this last guarantee, we'd need to store snapshots for all sequences).
-     *  3. For each transaction, we must create a transaction scoped cache. We do this at start transaction time as we
-     *     have tighter guarantees around when the cache is created, and thus deleted.
+     *  3. For each transaction, we must create a transaction scoped cache. We do this now as we have tighter guarantees
+     *     around when the cache is created, and thus deleted.
      */
     private synchronized void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
@@ -203,7 +204,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .keySet()
                 .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
 
-        assertNoSnapshotsMissing(reversedMap.keySet());
+        assertNoSnapshotsMissing(reversedMap.values());
     }
 
     private synchronized boolean isNewEvent(LockWatchEvent event) {
@@ -213,11 +214,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .orElse(true);
     }
 
-    private synchronized void assertNoSnapshotsMissing(Set<Sequence> sequences) {
-        if (sequences.stream()
-                .map(snapshotStore::getSnapshotForSequence)
-                .anyMatch(maybeSnapshot -> !maybeSnapshot.isPresent())) {
-            throw new TransactionLockWatchFailedException("snapshots were not taken for all sequences; this update "
+    private synchronized void assertNoSnapshotsMissing(Collection<StartTimestamp> timestamps) {
+        if (timestamps.stream().map(snapshotStore::getSnapshot).anyMatch(Optional::isEmpty)) {
+            throw new TransactionLockWatchFailedException("snapshots were not taken for all timestamps; this update "
                     + "must have been lost and is now too old to process. Transactions should be retried.");
         }
     }
@@ -232,7 +231,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     private synchronized boolean shouldUpdateVersion(LockWatchVersion updateVersion) {
-        return !currentVersion.isPresent() || currentVersion.get().version() < updateVersion.version();
+        return currentVersion.isEmpty() || currentVersion.get().version() < updateVersion.version();
     }
 
     private synchronized void clearCache() {

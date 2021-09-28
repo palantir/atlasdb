@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.assertj.core.api.IterableAssert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -99,8 +100,8 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
 
         TransactionScopedCache scopedCache = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
-        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         scopedCache.finalise();
         assertThat(scopedCache.getHitDigest().hitCells()).isEmpty();
         assertThat(scopedCache.getValueDigest().loadedValues()).isEmpty();
@@ -116,11 +117,11 @@ public final class LockWatchValueScopingCacheImplTest {
         TransactionScopedCache scopedCache = valueCache.getTransactionScopedCache(TIMESTAMP_1);
 
         // This confirms that we always read from remote when validation is set to 1.0.
-        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(0);
         verify(metrics, times(1)).registerMisses(1);
 
-        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(1);
         verify(metrics, times(1)).registerMisses(0);
     }
@@ -131,7 +132,7 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
 
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(0);
         verify(metrics, times(1)).registerMisses(1);
 
@@ -141,7 +142,7 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
 
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1)).isEmpty();
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1).isEmpty();
         verify(metrics, times(1)).registerHits(1);
         verify(metrics, times(1)).registerMisses(0);
     }
@@ -152,7 +153,7 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
 
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         processSuccessfulCommit(TIMESTAMP_1, 0L);
 
         eventCache.processStartTransactionsUpdate(
@@ -173,7 +174,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
         scopedCache1.write(TABLE, ImmutableMap.of(CELL_2, VALUE_2.value().get()));
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(1);
         verify(metrics, times(1)).registerMisses(1);
 
@@ -188,13 +189,13 @@ public final class LockWatchValueScopingCacheImplTest {
         // cache only contains those published values from the first cache - and since one was a write, and the other
         // had a lock taken out during the transaction, none of the values were actually pushed centrally.
         TransactionScopedCache readOnlyCache = valueCache.getReadOnlyTransactionScopedCacheForCommit(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(2)).registerHits(1);
         verify(metrics, times(2)).registerMisses(1);
         valueCache.onSuccessfulCommit(TIMESTAMP_1);
 
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1, CELL_2);
     }
 
     @Test
@@ -203,7 +204,7 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
 
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3).containsExactlyInAnyOrder(CELL_1, CELL_3);
         processSuccessfulCommit(TIMESTAMP_1, 0L);
         assertThat(scopedCache1.getHitDigest().hitCells()).isEmpty();
         verify(metrics, times(1)).registerHits(0);
@@ -214,13 +215,12 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
 
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3))
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3)
                 .containsExactlyInAnyOrder(CELL_1, CELL_2);
         verify(metrics, times(1)).registerHits(1);
         verify(metrics, times(2)).registerMisses(2);
 
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3))
-                .containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(2);
         verify(metrics, times(1)).registerMisses(1);
 
@@ -232,13 +232,11 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_3));
 
         TransactionScopedCache scopedCache3 = valueCache.getTransactionScopedCache(TIMESTAMP_3);
-        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3))
-                .containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(2)).registerHits(2);
         verify(metrics, times(2)).registerMisses(1);
 
-        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3))
-                .isEmpty();
+        assertThatRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3).isEmpty();
         verify(metrics, times(1)).registerHits(3);
         verify(metrics, times(1)).registerMisses(0);
 
@@ -270,9 +268,9 @@ public final class LockWatchValueScopingCacheImplTest {
     @Test
     public void createTransactionScopedCacheWithMissingSnapshotReturnsNoOpCache() {
         TransactionScopedCache scopedCache = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1, CELL_2, CELL_3))
+        assertThatRemotelyReadCells(scopedCache, TABLE, CELL_1, CELL_2, CELL_3)
                 .containsExactlyInAnyOrder(CELL_1, CELL_2, CELL_3);
-        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1, CELL_2, CELL_3))
+        assertThatRemotelyReadCells(scopedCache, TABLE, CELL_1, CELL_2, CELL_3)
                 .containsExactlyInAnyOrder(CELL_1, CELL_2, CELL_3);
 
         assertThat(scopedCache.getValueDigest().loadedValues()).isEmpty();
@@ -286,7 +284,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
         // Stores CELL_1 -> VALUE_1 in central cache
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         processSuccessfulCommit(TIMESTAMP_1, 0L);
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), SUCCESS_WITH_NO_UPDATES);
@@ -294,7 +292,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
         // Confirms entry is present
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1)).isEmpty();
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1).isEmpty();
         processSuccessfulCommit(TIMESTAMP_2, 0L);
 
         UUID newLeader = UUID.randomUUID();
@@ -305,7 +303,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
         // Confirms entry is no longer present
         TransactionScopedCache scopedCache3 = valueCache.getTransactionScopedCache(TIMESTAMP_3);
-        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache3, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
     }
 
     @Test
@@ -316,7 +314,7 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
 
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         assertThatThrownBy(() -> scopedCache1.get(
                         TABLE, ImmutableSet.of(CELL_1), (_table, _cells) -> Futures.immediateFuture(ImmutableMap.of())))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
@@ -325,8 +323,8 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
 
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         assertThat(scopedCache2).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
     }
 
@@ -336,7 +334,7 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
 
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3).containsExactlyInAnyOrder(CELL_1, CELL_3);
         processEventCacheCommit(TIMESTAMP_1, 0L);
         valueCache.updateCacheWithCommitTimestampsInformation(ImmutableSet.of(TIMESTAMP_1));
         verify(metrics, times(1)).registerHits(0);
@@ -349,13 +347,13 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
 
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_3).containsExactlyInAnyOrder(CELL_1, CELL_3);
         verify(metrics, times(2)).registerHits(0);
         verify(metrics, times(2)).registerMisses(2);
 
         // Confirm that the read only cache ignores the new lock, since it happened after commit time
         TransactionScopedCache readOnlyCache1 = valueCache.getReadOnlyTransactionScopedCacheForCommit(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(readOnlyCache1, TABLE, CELL_1, CELL_3)).isEmpty();
+        assertThatRemotelyReadCells(readOnlyCache1, TABLE, CELL_1, CELL_3).isEmpty();
 
         // Finally, the first transaction commits, but only after a lock has been taken out on one of the cached cells
         valueCache.onSuccessfulCommit(TIMESTAMP_1);
@@ -366,7 +364,7 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_3));
         TransactionScopedCache scopedCache3 = valueCache.getTransactionScopedCache(TIMESTAMP_3);
 
-        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1);
+        assertThatRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_3).containsExactlyInAnyOrder(CELL_1);
     }
 
     @Test
@@ -375,7 +373,7 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
 
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3).containsExactlyInAnyOrder(CELL_1, CELL_3);
         processEventCacheCommit(TIMESTAMP_1, 0L);
         valueCache.updateCacheWithCommitTimestampsInformation(ImmutableSet.of(TIMESTAMP_1));
         valueCache.ensureStateRemoved(TIMESTAMP_1);
@@ -386,9 +384,45 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
 
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_3).containsExactlyInAnyOrder(CELL_1, CELL_3);
         verify(metrics, times(2)).registerHits(0);
         verify(metrics, times(2)).registerMisses(2);
+    }
+
+    @Test
+    public void leaderElectionsCauseValuesToNotBeFlushedToCentralCache() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), LOCK_WATCH_SNAPSHOT);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
+
+        TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_2, CELL_3)
+                .containsExactlyInAnyOrder(CELL_1, CELL_2, CELL_3);
+        verify(metrics, times(1)).registerHits(0);
+        verify(metrics, times(1)).registerMisses(3);
+
+        processEventCacheCommit(TIMESTAMP_1, 0L);
+        valueCache.updateCacheWithCommitTimestampsInformation(ImmutableSet.of(TIMESTAMP_1));
+
+        eventCache.processStartTransactionsUpdate(
+                ImmutableSet.of(TIMESTAMP_2),
+                LockWatchStateUpdate.snapshot(
+                        UUID.randomUUID(),
+                        -1L,
+                        ImmutableSet.of(),
+                        ImmutableSet.of(LockWatchReferences.entireTable(TABLE.getQualifiedName()))));
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
+        valueCache.onSuccessfulCommit(TIMESTAMP_1);
+
+        TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3)
+                .containsExactlyInAnyOrder(CELL_1, CELL_2, CELL_3);
+        verify(metrics, times(2)).registerHits(0);
+        verify(metrics, times(2)).registerMisses(3);
+    }
+
+    private static IterableAssert<Cell> assertThatRemotelyReadCells(
+            TransactionScopedCache scopedCache, TableReference table, Cell... cells) {
+        return assertThat(getRemotelyReadCells(scopedCache, table, cells));
     }
 
     private void processSuccessfulCommit(long startTimestamp, long sequence) {
@@ -407,7 +441,8 @@ public final class LockWatchValueScopingCacheImplTest {
                 LockWatchStateUpdate.success(LEADER, sequence, ImmutableList.of()));
     }
 
-    private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
+    private static Iterable<Cell> getRemotelyReadCells(
+            TransactionScopedCache cache, TableReference table, Cell... cells) {
         Set<Cell> remoteReads = new HashSet<>();
         cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
             remoteReads.addAll(cellsToRead);
