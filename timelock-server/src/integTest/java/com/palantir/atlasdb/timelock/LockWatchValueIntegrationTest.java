@@ -423,6 +423,54 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    public void lateAbortingTransactionDoesNotFlushValuesToCentralCache() {
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3));
+            return null;
+        });
+
+        awaitUnlock();
+
+        AtomicLong startTimestamp = new AtomicLong(-1L);
+        PreCommitCondition commitFailingCondition = timestamp -> {
+            if (timestamp != startTimestamp.get()) {
+                throw new RuntimeException("Transaction failed at commit time");
+            }
+        };
+
+        assertThatThrownBy(
+                        () -> txnManager.runTaskWithConditionThrowOnConflict(commitFailingCondition, (txn, _unused) -> {
+                            startTimestamp.set(txn.getTimestamp());
+                            txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_4));
+                            txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2, CELL_3));
+                            return null;
+                        }))
+                .isInstanceOf(RuntimeException.class);
+
+        awaitUnlock();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            // Confirm that the previous transaction did not commit writes
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_4))).isEmpty();
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2, CELL_3));
+
+            assertLoadedValues(
+                    txn,
+                    ImmutableMap.of(
+                            TABLE_CELL_1,
+                            CacheValue.of(DATA_1),
+                            TABLE_CELL_2,
+                            CacheValue.of(DATA_2),
+                            TABLE_CELL_3,
+                            CacheValue.of(DATA_3),
+                            TABLE_CELL_4,
+                            CacheValue.empty()));
+            assertHitValues(txn, ImmutableSet.of());
+            return null;
+        });
+    }
+
     private void simulateOverlappingWriteTransaction(
             AtomicReference<LockWatchCache> lwCache, long theirStartTimestamp, long theirCommitTimestamp) {
         LockToken lockToken = LockToken.of(UUID.randomUUID());

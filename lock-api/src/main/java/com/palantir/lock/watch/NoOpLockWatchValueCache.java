@@ -27,8 +27,11 @@ public class NoOpLockWatchValueCache implements LockWatchValueCache {
     public void processStartTransactions(Set<Long> startTimestamps) {}
 
     @Override
-    public void updateCacheOnCommit(Set<Long> startTimestamps) {}
+    public void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {}
 
     @Override
-    public void removeTransactionState(long startTimestamp) {}
+    public void ensureStateRemoved(long startTimestamp) {}
+
+    @Override
+    public void onSuccessfulCommit(long startTimestamp) {}
 }

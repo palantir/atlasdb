@@ -28,11 +28,10 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.CommitUpdate.Visitor;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Comparator;
 import java.util.List;
@@ -100,28 +99,19 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void updateCacheOnCommit(Set<Long> startTimestamps) {
+    public synchronized void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {
         startTimestamps.forEach(this::processCommitUpdate);
     }
 
     @Override
-    public synchronized void removeTransactionState(long startTimestamp) {
+    public synchronized void ensureStateRemoved(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         snapshotStore.removeTimestamp(startTs);
         cacheStore.removeCache(startTs);
     }
 
     @Override
-    public TransactionScopedCache getTransactionScopedCache(long startTs) {
-        return cacheStore.getCache(StartTimestamp.of(startTs));
-    }
-
-    @Override
-    public TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs) {
-        return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
-    }
-
-    private synchronized void processCommitUpdate(long startTimestamp) {
+    public synchronized void onSuccessfulCommit(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         TransactionScopedCache cache = cacheStore.getCache(startTs);
         cache.finalise();
@@ -131,10 +121,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             return;
         }
 
-        SpanningCommitUpdate spanningCommitUpdate = eventCache.getSpanningCommitUpdate(startTimestamp);
-        cacheStore.createReadOnlyCache(startTs, spanningCommitUpdate.transactionCommitUpdate());
-
-        spanningCommitUpdate.spanningCommitUpdate().accept(new Visitor<Void>() {
+        CommitUpdate commitUpdate = eventCache.getEventUpdate(startTimestamp);
+        commitUpdate.accept(new CommitUpdate.Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in
@@ -155,6 +143,31 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 return null;
             }
         });
+        ensureStateRemoved(startTimestamp);
+    }
+
+    /**
+     * Retrieval of transaction scoped caches (read-only or otherwise) does not need to be synchronised. The main
+     * reason for this is that the only race condition that could conceivably occur is for the state to not exist here
+     * when it should. However, in all of these cases, a no-op cache is used instead, and thus the transaction will
+     * simply go ahead but with caching disabled (which is guaranteed to be safe).
+     */
+    @Override
+    public TransactionScopedCache getTransactionScopedCache(long startTs) {
+        return cacheStore.getCache(StartTimestamp.of(startTs));
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs) {
+        return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
+    }
+
+    private synchronized void processCommitUpdate(long startTimestamp) {
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        TransactionScopedCache cache = cacheStore.getCache(startTs);
+        cache.finalise();
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        cacheStore.createReadOnlyCache(startTs, commitUpdate);
     }
 
     /**

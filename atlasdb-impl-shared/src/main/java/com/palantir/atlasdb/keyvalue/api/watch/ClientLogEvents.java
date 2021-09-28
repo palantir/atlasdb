@@ -29,7 +29,6 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.SafeArg;
@@ -81,31 +80,20 @@ interface ClientLogEvents {
                 .build();
     }
 
-    default SpanningCommitUpdate toSpanningCommitUpdate(
-            LockWatchVersion startVersion, CommitInfo commitInfo, LockWatchVersion endVersion) {
+    default CommitUpdate toCommitUpdate(
+            LockWatchVersion startVersion, LockWatchVersion endVersion, Optional<CommitInfo> commitInfo) {
         if (clearCache()) {
-            return SpanningCommitUpdate.invalidateAll();
+            return CommitUpdate.invalidateAll();
         }
 
         // We want to ensure that we do not miss any versions, but we do not care about the event with the same version
         // as the start version.
         verifyReturnedEventsEnclosesTransactionVersions(startVersion.version() + 1, endVersion.version());
 
-        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
-        Set<LockDescriptor> transactionLocks = new HashSet<>();
-        Set<LockDescriptor> spanningLocks = new HashSet<>();
-        events().events().forEach(event -> {
-            Set<LockDescriptor> descriptors = event.accept(eventVisitor);
-            spanningLocks.addAll(descriptors);
-
-            if (event.sequence() <= commitInfo.commitVersion().version()) {
-                transactionLocks.addAll(descriptors);
-            }
-        });
-        return SpanningCommitUpdate.builder()
-                .transactionCommitUpdate(CommitUpdate.invalidateSome(transactionLocks))
-                .spanningCommitUpdate(CommitUpdate.invalidateSome(spanningLocks))
-                .build();
+        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.map(CommitInfo::commitLockToken));
+        Set<LockDescriptor> locksTakenOut = new HashSet<>();
+        events().events().forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
+        return CommitUpdate.invalidateSome(locksTakenOut);
     }
 
     default void verifyReturnedEventsEnclosesTransactionVersions(long lowerBound, long upperBound) {
@@ -130,13 +118,11 @@ interface ClientLogEvents {
     final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         private final Optional<UUID> commitRequestId;
 
-        private LockEventVisitor(LockToken commitLocksToken) {
-            if (commitLocksToken instanceof LeasedLockToken) {
-                commitRequestId = Optional.of(
-                        ((LeasedLockToken) commitLocksToken).serverToken().getRequestId());
-            } else {
-                commitRequestId = Optional.empty();
-            }
+        private LockEventVisitor(Optional<LockToken> commitLocksToken) {
+            commitRequestId = commitLocksToken
+                    .filter(lockToken -> lockToken instanceof LeasedLockToken)
+                    .map(lockToken ->
+                            ((LeasedLockToken) lockToken).serverToken().getRequestId());
         }
 
         @Override

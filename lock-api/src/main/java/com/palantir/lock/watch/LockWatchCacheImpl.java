@@ -43,14 +43,20 @@ public final class LockWatchCacheImpl implements LockWatchCache {
     public void processCommitTimestampsUpdate(
             Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {
         eventCache.processGetCommitTimestampsUpdate(transactionUpdates, update);
-        valueCache.updateCacheOnCommit(
+        valueCache.updateCacheWithCommitTimestampsInformation(
                 transactionUpdates.stream().map(TransactionUpdate::startTs).collect(Collectors.toSet()));
     }
 
     @Override
-    public void removeTransactionStateFromCache(long startTimestamp) {
-        eventCache.removeTransactionStateFromCache(startTimestamp);
-        valueCache.removeTransactionState(startTimestamp);
+    public void removeTransactionStateFromCache(long startTs) {
+        eventCache.removeTransactionStateFromCache(startTs);
+        valueCache.ensureStateRemoved(startTs);
+    }
+
+    @Override
+    public void onTransactionCommit(long startTs) {
+        valueCache.onSuccessfulCommit(startTs);
+        eventCache.removeTransactionStateFromCache(startTs);
     }
 
     @Override

@@ -22,7 +22,6 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
@@ -69,11 +68,6 @@ final class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public SpanningCommitUpdate getSpanningCommitUpdate(long startTs) {
-        return mainCache.getSpanningCommitUpdate(startTs);
-    }
-
-    @Override
     public TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return mainCache.getUpdateForTransactions(startTimestamps, version);
@@ -82,6 +76,11 @@ final class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         mainCache.removeTransactionStateFromCache(startTimestamp);
+    }
+
+    @Override
+    public CommitUpdate getEventUpdate(long startTs) {
+        return mainCache.getEventUpdate(startTs);
     }
 
     private void validateVersionEquality() {
