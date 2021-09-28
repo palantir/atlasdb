@@ -119,14 +119,10 @@ interface ClientLogEvents {
         private final Optional<UUID> commitRequestId;
 
         private LockEventVisitor(Optional<LockToken> commitLocksToken) {
-            commitRequestId = commitLocksToken.flatMap(lockToken -> {
-                if (lockToken instanceof LeasedLockToken) {
-                    return Optional.of(
+            commitRequestId = commitLocksToken
+                    .filter(lockToken -> lockToken instanceof LeasedLockToken)
+                    .map(lockToken ->
                             ((LeasedLockToken) lockToken).serverToken().getRequestId());
-                } else {
-                    return Optional.empty();
-                }
-            });
         }
 
         @Override
