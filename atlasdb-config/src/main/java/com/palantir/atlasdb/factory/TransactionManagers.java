@@ -48,7 +48,6 @@ import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
-import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -59,8 +58,6 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -112,7 +109,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
-import com.palantir.common.annotations.ImmutablesStyles.NoStagedBuilderStyle;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
@@ -130,21 +126,16 @@ import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -942,36 +933,6 @@ public abstract class TransactionManagers {
             return MultiTableSweepQueueWriter.NO_OP;
         }
         return TargetedSweeper.createUninitialized(metricsManager, runtime, install, ImmutableList.of(follower));
-    }
-
-    @Value.Immutable
-    @NoStagedBuilderStyle
-    public interface LockAndTimestampServices {
-        LockService lock();
-
-        TimestampService timestamp();
-
-        TimestampManagementService timestampManagement();
-
-        TimelockService timelock();
-
-        Optional<TimeLockMigrator> migrator();
-
-        @Value.Default
-        default LockWatchManagerInternal lockWatcher() {
-            return NoOpLockWatchManager.create();
-        }
-
-        @Value.Derived
-        default ManagedTimestampService managedTimestampService() {
-            return new DelegatingManagedTimestampService(timestamp(), timestampManagement());
-        }
-
-        @SuppressWarnings("checkstyle:WhitespaceAround")
-        @Value.Default
-        default List<Runnable> resources() {
-            return Collections.emptyList();
-        }
     }
 
     @Value.Immutable
