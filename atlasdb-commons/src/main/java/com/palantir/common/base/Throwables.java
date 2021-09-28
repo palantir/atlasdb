@@ -250,7 +250,6 @@ public final class Throwables {
 
     /**
      * Returns a dump of all threads.
-     * @return
      */
     public static String getThreadDump() {
         return printThreadDump(Thread.getAllStackTraces());
@@ -259,8 +258,6 @@ public final class Throwables {
     /**
      * This method prints a series of stack traces.  It is meant to be used with the output from
      * Threads.getAllStackTraces.
-     * @param map
-     * @return
      */
     private static String printThreadDump(Map<Thread, StackTraceElement[]> map) {
         StringWriter stringWriter = new StringWriter();

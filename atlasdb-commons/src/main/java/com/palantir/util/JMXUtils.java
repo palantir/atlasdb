@@ -274,8 +274,6 @@ public final class JMXUtils {
 
     /**
      *
-     * @param <T>
-     * @param mbeanClazz
      * @return proxy interfaces to all beans registered to the server implementing the class mbeanClazz.
      */
     public static <T> Iterable<T> getInstanceBeanProxies(final Class<T> mbeanClazz) {

@@ -29,7 +29,6 @@ public final class ExceptionCheck {
 
     /**
      * Check if throwable contains message about unique constraint violation.
-     * @param e
      * @return true if unique constraint violation
      */
     public static boolean isUniqueConstraintViolation(Throwable e) {
@@ -50,7 +49,6 @@ public final class ExceptionCheck {
 
     /**
      * Check if throwable contains message about foreign key constraint violation.
-     * @param e
      * @return true if foreign key constraint violation
      */
     public static boolean isForeignKeyConstraintViolation(Throwable e) {
@@ -78,7 +76,6 @@ public final class ExceptionCheck {
 
     /**
      * Check if throwable contains message about invalid time zone.
-     * @param e
      * @return true if timezone invalid
      */
     public static boolean isTimezoneInvalid(Throwable e) {

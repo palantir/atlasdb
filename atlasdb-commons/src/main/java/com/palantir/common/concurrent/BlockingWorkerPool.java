@@ -81,8 +81,6 @@ public class BlockingWorkerPool {
 
     /**
      * Waits until the number of tasks drops below the concurrent task limit.
-     *
-     * @throws InterruptedException
      */
     public synchronized void waitForAvailability() throws InterruptedException {
         if (currentTaskCount.get() >= concurrentTaskLimit) {

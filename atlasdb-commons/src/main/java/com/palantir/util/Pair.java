@@ -84,7 +84,6 @@ public final class Pair<V, W> implements Serializable {
 
     /**
      * Returns a pair with the left and right reversed.
-     * @return
      */
     public Pair<W, V> getReversed() {
         return create(rhSide, lhSide);
