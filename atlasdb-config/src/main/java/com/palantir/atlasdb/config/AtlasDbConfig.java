@@ -251,9 +251,9 @@ public abstract class AtlasDbConfig {
 
     /**
      * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()}
-     * @{@link SweepConfig#readLimit()},
-     * @{@link SweepConfig#candidateBatchHint()}, and
-     * @{@link SweepConfig#deleteBatchHint()}.
+     * {@link SweepConfig#readLimit()},
+     * {@link SweepConfig#candidateBatchHint()}, and
+     * {@link SweepConfig#deleteBatchHint()}.
      */
     @Deprecated
     @Nullable
@@ -261,9 +261,9 @@ public abstract class AtlasDbConfig {
 
     /**
      * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()}
-     * @{@link SweepConfig#readLimit()},
-     * @{@link SweepConfig#candidateBatchHint()}, and
-     * @{@link SweepConfig#deleteBatchHint()}.
+     * {@link SweepConfig#readLimit()},
+     * {@link SweepConfig#candidateBatchHint()}, and
+     * {@link SweepConfig#deleteBatchHint()}.
      */
     @Deprecated
     @Nullable
