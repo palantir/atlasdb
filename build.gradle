@@ -109,7 +109,6 @@ allprojects {
                 'ExtendsErrorOrThrowable',
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
-                'HidingField',
                 'ImmutableEnumChecker',
                 'ImmutablesBuilderMissingInitialization',
                 'InconsistentCapitalization',
