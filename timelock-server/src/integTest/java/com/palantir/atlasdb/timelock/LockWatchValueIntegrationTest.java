@@ -75,7 +75,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -116,11 +115,11 @@ public final class LockWatchValueIntegrationTest {
     public static final byte[] ROW_1 = PtBytes.toBytes("final");
     public static final byte[] ROW_2 = PtBytes.toBytes("destination");
     public static final byte[] ROW_3 = PtBytes.toBytes("awaits");
-    public static final byte[][] ROWS = new byte[][] {ROW_1, ROW_2, ROW_3};
+    public static final ImmutableList<byte[]> ROWS = ImmutableList.of(ROW_1, ROW_2, ROW_3);
     public static final byte[] COL_1 = PtBytes.toBytes("parthenon");
     public static final byte[] COL_2 = PtBytes.toBytes("had");
     public static final byte[] COL_3 = PtBytes.toBytes("columns");
-    public static final byte[][] COLS = new byte[][] {COL_1, COL_2, COL_3};
+    public static final ImmutableList<byte[]> COLS = ImmutableList.of(COL_1, COL_2, COL_3);
 
     @Before
     public void before() {
@@ -444,7 +443,7 @@ public final class LockWatchValueIntegrationTest {
     public void valueStressTest() {
         createTransactionManager(1.0);
         int numThreads = 200;
-        int numTransactions = 20_000;
+        int numTransactions = 10_000;
 
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         List<Exception> failedTransactions = new ArrayList<>();
@@ -452,7 +451,7 @@ public final class LockWatchValueIntegrationTest {
         for (int attempt = 0; attempt < numTransactions; ++attempt) {
             executor.execute(() -> {
                 try {
-                    randomTask();
+                    randomTransactionTask();
                 } catch (Exception e) {
                     if (!(e instanceof TransactionFailedRetriableException)) {
                         failedTransactions.add(e);
@@ -473,7 +472,7 @@ public final class LockWatchValueIntegrationTest {
         assertThat(failedTransactions).isEmpty();
     }
 
-    private void randomTask() {
+    private void randomTransactionTask() {
         txnManager.runTaskThrowOnConflict(txn -> {
             while (chance()) {
                 txn.put(TABLE_REF, ImmutableMap.of(randomCell(), randomData()));
@@ -488,31 +487,11 @@ public final class LockWatchValueIntegrationTest {
             }
 
             while (chance()) {
-                txn.getRows(
-                        TABLE_REF,
-                        Stream.of(ROWS).filter(_unused -> chance()).collect(Collectors.toSet()),
-                        ColumnSelection.create(
-                                Stream.of(COLS).filter(_unused -> chance()).collect(Collectors.toSet())));
+                txn.getRows(TABLE_REF, randomSelection(ROWS), ColumnSelection.create(randomSelection(COLS)));
             }
 
             return null;
         });
-    }
-
-    private Cell randomCell() {
-        return Cell.create(ROWS[random()], COLS[random()]);
-    }
-
-    private int random() {
-        return ThreadLocalRandom.current().nextInt(0, 3);
-    }
-
-    private boolean chance() {
-        return ThreadLocalRandom.current().nextDouble() < 0.5;
-    }
-
-    private byte[] randomData() {
-        return PtBytes.toBytes(ThreadLocalRandom.current().nextLong(0, 1_000_000));
     }
 
     private void simulateOverlappingWriteTransaction(
@@ -650,6 +629,26 @@ public final class LockWatchValueIntegrationTest {
                         Optional.empty(),
                         createSchema())
                 .transactionManager();
+    }
+
+    private static Set<byte[]> randomSelection(ImmutableList<byte[]> rows) {
+        return rows.stream().filter(_unused -> chance()).collect(Collectors.toSet());
+    }
+
+    private static Cell randomCell() {
+        return Cell.create(ROWS.get(randomIndex()), COLS.get(randomIndex()));
+    }
+
+    private static int randomIndex() {
+        return ThreadLocalRandom.current().nextInt(0, ROWS.size());
+    }
+
+    private static boolean chance() {
+        return ThreadLocalRandom.current().nextBoolean();
+    }
+
+    private static byte[] randomData() {
+        return PtBytes.toBytes(ThreadLocalRandom.current().nextLong(0, 1_000_000));
     }
 
     private static LockWatchStateUpdate.Success createUnlockSuccessUpdate(LockWatchVersion lastKnownVersion) {
