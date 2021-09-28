@@ -348,9 +348,6 @@ public final class StackTraceUtils {
      * Pluralizes a word if count != 1. In the future, could use a
      * dictionary-based (perhaps even locale-sensitive) approach to get proper
      * pluralization for many words.
-     *
-     * @param s
-     * @param count
      */
     public static String pluralizeWord(String s, int count) {
         if (count == 1) {

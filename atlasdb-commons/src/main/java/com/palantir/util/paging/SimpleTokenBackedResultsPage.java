@@ -20,9 +20,6 @@ import java.io.Serializable;
 /**
  *
  * @author manthony
- *
- * @param <T>
- * @param <TOKEN>
  */
 public class SimpleTokenBackedResultsPage<T, TOKEN> extends SimpleResultsPage<T>
         implements TokenBackedBasicResultsPage<T, TOKEN>, Serializable {
@@ -30,21 +27,11 @@ public class SimpleTokenBackedResultsPage<T, TOKEN> extends SimpleResultsPage<T>
 
     private final TOKEN tokenForNextPage;
 
-    /**
-     * @param token
-     * @param chunks
-     * @param moreAvailable
-     */
     public SimpleTokenBackedResultsPage(TOKEN token, Iterable<T> chunks, boolean moreAvailable) {
         super(chunks, moreAvailable);
         tokenForNextPage = token;
     }
 
-    /**
-     *
-     * @param token
-     * @param chunks
-     */
     public SimpleTokenBackedResultsPage(TOKEN token, Iterable<T> chunks) {
         super(chunks);
         tokenForNextPage = token;

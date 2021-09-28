@@ -42,7 +42,6 @@ public interface AgnosticResultRow {
      * databases store counts differently. Specifically HSQL is
      * lame.
      * @param colname name of the column for the count. May not be null
-     * @throws PalantirSqlException
      */
     long getCount(String colname) throws PalantirSqlException;
 

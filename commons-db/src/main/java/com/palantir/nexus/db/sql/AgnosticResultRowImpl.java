@@ -50,8 +50,6 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
      *                   You can obtain this value by retrieving a "length(my_blob)" column in
      *                   your ResultSet.
      * @return bytes of the blob
-     * @throws PalantirSqlException
-     * @deprecated
      */
     @Deprecated
     @Override
@@ -116,7 +114,6 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
      *
      * @param col      Zero-based column index
      * @param fallback long value to return if value not present (e.g. null in db)
-     * @throws PalantirSqlException
      * @deprecated use getLong by colname instead.
      */
     @Override

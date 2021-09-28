@@ -22,8 +22,6 @@ import java.util.Iterator;
 /**
  * This queue is empty and will neither return nor accept any elements
  * @author carrino
- *
- * @param <E>
  */
 public final class EmptyQueue<E> extends AbstractQueue<E> {
     private static final EmptyQueue<?> INSTANCE = new EmptyQueue<Object>();

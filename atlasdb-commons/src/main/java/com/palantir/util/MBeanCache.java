@@ -30,8 +30,6 @@ public abstract class MBeanCache<K, V> implements NonDistributedCache<K, V> {
     /**
      * Sets the name for this cache.  Useful
      * for debugging.
-     *
-     * @param name
      */
     public void setName(String name) {
         this.name = name;

@@ -103,7 +103,6 @@ public class BasicSQLString {
 
         /**
          * This will be null if this is not a registered query
-         * @return
          */
         public String getKey() {
             return delegate.getKey();

@@ -93,7 +93,6 @@ public interface BatchPaxosAcceptor {
      * In addition to the updates, a new {@code cacheKey} is provided to use on the next invocation of this method to
      * minimise on payload size as this method is on the hot path.
      *
-     * @param cacheKey
      * @return {@link Optional#empty()} if there is no update, a digest containing updates plus a new cache key, or a
      * {@link InvalidAcceptorCacheKeyException} being thrown if the cache key is not valid.
      */
