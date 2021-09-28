@@ -102,7 +102,7 @@ import javax.ws.rs.ClientErrorException;
 public final class LockAndTimestampServiceFactory {
     private static final SafeLogger log = SafeLoggerFactory.get(LockAndTimestampServiceFactory.class);
 
-    private static final int LOGGING_INTERVAL = 60;
+    private static final int ATTEMPTS_BEFORE_LOGGING_FAILURE_TO_READ_REMOTE_TIMESTAMP_SERVER_ID = 60;
 
     private LockAndTimestampServiceFactory() {}
 
@@ -457,7 +457,7 @@ public final class LockAndTimestampServiceFactory {
             // Determine asynchronously whether the remote services are talking to our local services.
             CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
             TransactionManagers.runAsync.accept(() -> {
-                int logAfter = LOGGING_INTERVAL;
+                int attemptsLeftBeforeLog = ATTEMPTS_BEFORE_LOGGING_FAILURE_TO_READ_REMOTE_TIMESTAMP_SERVER_ID;
                 while (true) {
                     try {
                         String remoteServerId = remotePingableLeader.getUUID();
@@ -473,9 +473,9 @@ public final class LockAndTimestampServiceFactory {
                             useLocalServicesFuture.complete(false);
                             return;
                         }
-                        logAfter = logFailureToReadRemoteTimestampServerId(logAfter, e);
+                        attemptsLeftBeforeLog = logFailureToReadRemoteTimestampServerId(attemptsLeftBeforeLog, e);
                     } catch (Throwable e) {
-                        logAfter = logFailureToReadRemoteTimestampServerId(logAfter, e);
+                        attemptsLeftBeforeLog = logFailureToReadRemoteTimestampServerId(attemptsLeftBeforeLog, e);
                     }
                     Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(1));
                 }
@@ -538,12 +538,12 @@ public final class LockAndTimestampServiceFactory {
         };
     }
 
-    private static int logFailureToReadRemoteTimestampServerId(int logAfter, Throwable th) {
-        if (logAfter == 0) {
+    private static int logFailureToReadRemoteTimestampServerId(int attemptsLeftBeforeLog, Throwable th) {
+        if (attemptsLeftBeforeLog == 0) {
             log.warn("Failed to read remote timestamp server ID", th);
-            return LOGGING_INTERVAL;
+            return ATTEMPTS_BEFORE_LOGGING_FAILURE_TO_READ_REMOTE_TIMESTAMP_SERVER_ID;
         }
-        return logAfter - 1;
+        return attemptsLeftBeforeLog - 1;
     }
 
     private static LockAndTimestampServices createRawRemoteServices(
