@@ -88,7 +88,6 @@ public class BasicSQLString {
         /**
          * Should only be called inside SQLString because this class essentially verifies that we've
          * checked for updates.
-         * @param delegate
          */
         public FinalSQLString(BasicSQLString sqlstring) {
             this.delegate = sqlstring;
@@ -104,7 +103,6 @@ public class BasicSQLString {
 
         /**
          * This will be null if this is not a registered query
-         * @return
          */
         public String getKey() {
             return delegate.getKey();

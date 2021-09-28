@@ -22,7 +22,6 @@ import com.palantir.sql.Clobs;
 import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Clob;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -51,8 +50,6 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
      *                   You can obtain this value by retrieving a "length(my_blob)" column in
      *                   your ResultSet.
      * @return bytes of the blob
-     * @throws SQLException
-     * @deprecated
      */
     @Deprecated
     @Override
@@ -117,7 +114,6 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
      *
      * @param col      Zero-based column index
      * @param fallback long value to return if value not present (e.g. null in db)
-     * @throws SQLException
      * @deprecated use getLong by colname instead.
      */
     @Override

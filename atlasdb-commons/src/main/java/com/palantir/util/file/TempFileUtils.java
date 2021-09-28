@@ -17,7 +17,6 @@ package com.palantir.util.file;
 
 import com.google.common.io.BaseEncoding;
 import com.palantir.logsafe.exceptions.SafeIoException;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;

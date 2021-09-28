@@ -51,7 +51,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
      *                   You can obtain this value by retrieving a "length(my_blob)" column in
      *                   your ResultSet.
      * @return bytes of the blob
-     * @throws PalantirSqlException
      */
     @Override
     @Deprecated // use the get by colname variant instead
@@ -120,8 +119,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     /**
      * This one isn't as fast, probably.  If the Long or BigDecimal
      * doesn't need to be instantiated, it'll probably run faster.
-     *
-     * @throws PalantirSqlException
      */
     @Override
     @Deprecated // use the get by colname variant instead
@@ -176,8 +173,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     /**
      * Returns the string value for the column. If the column value is null,
      * return null.
-     *
-     * @throws PalantirSqlException
      */
     @Override
     @Deprecated // use the get by colname variant instead

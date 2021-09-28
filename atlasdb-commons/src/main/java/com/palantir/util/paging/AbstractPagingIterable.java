@@ -18,7 +18,6 @@ package com.palantir.util.paging;
 import com.google.common.collect.AbstractIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
-
 import java.util.Iterator;
 
 /**

@@ -71,12 +71,6 @@ public final class SqlConnectionHelper {
 
     /**
      * Returns true if at least one row comes back for the provided Otherwise, returns false.
-     *
-     * @param c
-     * @param sql
-     * @param vs
-     * @return
-     * @throws PalantirSqlException
      */
     long selectCount(Connection c, String tableName) throws PalantirSqlException, PalantirInterruptedException {
         return selectCount(c, tableName, null, new Object[] {});
@@ -93,12 +87,6 @@ public final class SqlConnectionHelper {
 
     /**
      * Returns true if at least one row comes back for the provided Otherwise, returns false.
-     *
-     * @param c
-     * @param sql
-     * @param vs
-     * @return
-     * @throws PalantirSqlException
      */
     boolean selectExistsUnregisteredQuery(Connection c, String sql, Object... vs)
             throws PalantirSqlException, PalantirInterruptedException {
