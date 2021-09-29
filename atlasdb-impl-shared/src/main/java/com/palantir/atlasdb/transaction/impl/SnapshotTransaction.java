@@ -799,7 +799,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 .get(
                         tableRef,
                         cells,
-                        (table, uncached) -> getInternal(
+                        uncached -> getInternal(
                                 "get", tableRef, uncached, immediateKeyValueService, immediateTransactionService));
     }
 
@@ -810,7 +810,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 .getAsync(
                         tableRef,
                         cells,
-                        (table, uncached) -> getInternal(
+                        uncached -> getInternal(
                                 "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)));
     }
 

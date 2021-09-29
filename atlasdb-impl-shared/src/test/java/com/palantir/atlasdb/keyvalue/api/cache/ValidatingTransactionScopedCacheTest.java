@@ -49,11 +49,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class ValidatingTransactionScopedCacheTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");
     private static final Cell CELL_1 = createCell(1);
@@ -67,22 +69,19 @@ public final class ValidatingTransactionScopedCacheTest {
             .build();
 
     private final CacheMetrics metrics = mock(CacheMetrics.class);
-    private BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader;
 
-    @Before
-    public void before() {
-        valueLoader = mock(BiFunction.class);
-    }
+    @Mock
+    public Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader;
 
     @Test
     public void validationCausesAllCellsToBeReadRemotely() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
-        when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
+        when(valueLoader.apply(CELLS)).thenReturn(remoteRead(CELLS));
 
         validatingCache.get(TABLE, CELLS, valueLoader);
-        verify(valueLoader).apply(TABLE, CELLS);
+        verify(valueLoader).apply(CELLS);
     }
 
     @Test
@@ -91,7 +90,7 @@ public final class ValidatingTransactionScopedCacheTest {
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 0.0, () -> {});
 
         validatingCache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader);
-        verify(valueLoader, never()).apply(any(), any());
+        verify(valueLoader, never()).apply(any());
     }
 
     @Test
@@ -99,7 +98,7 @@ public final class ValidatingTransactionScopedCacheTest {
         TransactionScopedCache delegate = mock(TransactionScopedCache.class);
         Runnable failureCallback = mock(Runnable.class);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, failureCallback);
-        when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
+        when(valueLoader.apply(CELLS)).thenReturn(remoteRead(CELLS));
 
         when(delegate.getAsync(eq(TABLE), eq(CELLS), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         assertThatThrownBy(() -> validatingCache.get(TABLE, CELLS, valueLoader))
@@ -113,15 +112,15 @@ public final class ValidatingTransactionScopedCacheTest {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
-        when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
+        when(valueLoader.apply(CELLS)).thenReturn(remoteRead(CELLS));
 
         validatingCache.get(TABLE, CELLS, valueLoader);
-        verify(valueLoader).apply(TABLE, CELLS);
+        verify(valueLoader).apply(CELLS);
 
         TransactionScopedCache readOnlyCache =
                 validatingCache.createReadOnlyCache(CommitUpdate.invalidateSome(ImmutableSet.of()));
         readOnlyCache.get(TABLE, CELLS, valueLoader);
-        verify(valueLoader, times(2)).apply(TABLE, CELLS);
+        verify(valueLoader, times(2)).apply(CELLS);
     }
 
     @Test
@@ -129,7 +128,7 @@ public final class ValidatingTransactionScopedCacheTest {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
-        when(valueLoader.apply(TABLE, CELLS))
+        when(valueLoader.apply(CELLS))
                 .thenReturn(Futures.immediateFuture(ImmutableMap.of(
                         CELL_1,
                         createValue(10).value().get(),

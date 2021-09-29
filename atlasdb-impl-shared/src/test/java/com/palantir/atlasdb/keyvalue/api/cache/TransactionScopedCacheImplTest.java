@@ -61,7 +61,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -109,7 +109,7 @@ public final class TransactionScopedCacheImplTest {
 
         cache.delete(TABLE, ImmutableSet.of(CELL_1));
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactly(CELL_2);
-        assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1), (_unused, cells) -> remoteRead(cells)))
+        assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1), TransactionScopedCacheImplTest::remoteRead))
                 .isEmpty();
     }
 
@@ -120,7 +120,7 @@ public final class TransactionScopedCacheImplTest {
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_6)).isEmpty();
 
-        assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1, CELL_6), (_unused, cells) -> remoteRead(cells)))
+        assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1, CELL_6), TransactionScopedCacheImplTest::remoteRead))
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
 
@@ -151,7 +151,7 @@ public final class TransactionScopedCacheImplTest {
     public void allValuesReadFromCachePreventsReadToDb() {
         TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
-        BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader = mock(BiFunction.class);
+        Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader = mock(Function.class);
         assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader))
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
@@ -311,8 +311,8 @@ public final class TransactionScopedCacheImplTest {
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Cannot get or write to a transaction scoped cache that has already been closed");
 
-        BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> noOpLoader =
-                (_table, _cells) -> Futures.immediateFuture(ImmutableMap.of());
+        Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> noOpLoader =
+                _cells -> Futures.immediateFuture(ImmutableMap.of());
         assertThatThrownBy(() -> cache.get(TABLE, ImmutableSet.of(), noOpLoader))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Cannot get or write to a transaction scoped cache that has already been closed");
@@ -360,7 +360,7 @@ public final class TransactionScopedCacheImplTest {
             CountDownLatch latch = new CountDownLatch(1);
 
             Future<Map<Cell, byte[]>> slowRead =
-                    executor.submit(() -> cache.get(TABLE, ImmutableSet.of(CELL_2), (_table, _cells) -> {
+                    executor.submit(() -> cache.get(TABLE, ImmutableSet.of(CELL_2), _cells -> {
                         latch.countDown();
                         return remoteReads;
                     }));
@@ -396,7 +396,7 @@ public final class TransactionScopedCacheImplTest {
 
     private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
         Set<Cell> remoteReads = new java.util.HashSet<>();
-        cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
+        cache.get(table, Stream.of(cells).collect(Collectors.toSet()), cellsToRead -> {
             remoteReads.addAll(cellsToRead);
             return remoteRead(cellsToRead);
         });

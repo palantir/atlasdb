@@ -25,7 +25,6 @@ import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public final class ReadOnlyTransactionScopedCache implements TransactionScopedCache {
@@ -53,7 +52,7 @@ public final class ReadOnlyTransactionScopedCache implements TransactionScopedCa
     public Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return delegate.get(tableReference, cells, valueLoader);
     }
 
@@ -61,7 +60,7 @@ public final class ReadOnlyTransactionScopedCache implements TransactionScopedCa
     public ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return delegate.getAsync(tableReference, cells, valueLoader);
     }
 

@@ -318,7 +318,7 @@ public final class LockWatchValueScopingCacheImplTest {
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         assertThatThrownBy(() -> scopedCache1.get(
-                        TABLE, ImmutableSet.of(CELL_1), (_table, _cells) -> Futures.immediateFuture(ImmutableMap.of())))
+                        TABLE, ImmutableSet.of(CELL_1), _cells -> Futures.immediateFuture(ImmutableMap.of())))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Failed lock watch cache validation - will retry without caching");
 
@@ -409,7 +409,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
         Set<Cell> remoteReads = new HashSet<>();
-        cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
+        cache.get(table, Stream.of(cells).collect(Collectors.toSet()), cellsToRead -> {
             remoteReads.addAll(cellsToRead);
             return remoteRead(cellsToRead);
         });
