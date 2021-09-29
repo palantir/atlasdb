@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.paxos;
+package com.palantir.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
+import com.palantir.lock.LockService;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.ClusterInstallConfiguration;
@@ -30,14 +33,18 @@ import com.palantir.timelock.config.ImmutableClusterInstallConfiguration;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
-import com.palantir.timelock.paxos.TimeLockAgent;
+import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import org.awaitility.Awaitility;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -56,11 +63,15 @@ public class TimeLockInMemoryTest {
     private TimeLockRuntimeConfiguration runtime;
 
     private TimeLockAgent timeLockAgent;
+    private LockService lockService;
+    private TimestampService timestampService;
+    private AsyncTimelockService timelockService;
 
     @Before
     public void setup() throws IOException {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
-                .dataDirectory(tempFolder.getRoot())
+                .dataDirectory(tempFolder.newFolder())
+                .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)
                 .isNewService(false)
                 .build();
 
@@ -88,13 +99,32 @@ public class TimeLockInMemoryTest {
                 USER_AGENT,
                 THREAD_POOL_SIZE,
                 BLOCKING_TIMEOUT_MS,
-                _unused -> {}, // TODO(gs): what is registrar used for?
+                _unused -> {},
                 Optional.empty(),
                 OrderableSlsVersion.valueOf("0.0.0"),
                 ObjectMappers.newServerObjectMapper(),
                 () -> System.exit(0));
+
+        TimeLockServices services = timeLockAgent.createInvalidatingTimeLockServices("client");
+        lockService = services.getLockService();
+        timestampService = services.getTimestampService();
+        timelockService = services.getTimelockService();
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(10L))
+                .pollInterval(Duration.ofSeconds(1L))
+                .ignoreExceptions()
+                .until(() -> timestampService.getFreshTimestamp() > 0);
     }
 
+    @Test
+    public void canGetTimestamp() {
+        long ts1 = timestampService.getFreshTimestamp();
+        long ts2 = timelockService.getFreshTimestamp();
+        assertThat(ts1).isLessThan(ts2);
+    }
+
+    @Ignore // Need to move before stuff so that initialisation only happens once
     @Test
     public void comesUpHealthy() {
         assertThat(timeLockAgent.getStatus())

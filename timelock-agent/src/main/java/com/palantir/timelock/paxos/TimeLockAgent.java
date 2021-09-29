@@ -560,7 +560,8 @@ public class TimeLockAgent {
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
-    private TimeLockServices createInvalidatingTimeLockServices(String client) {
+    @VisibleForTesting // TODO(gs): figure out how to expose this nicely
+    TimeLockServices createInvalidatingTimeLockServices(String client) {
         LeaderConfig leaderConfig = createLeaderConfig();
 
         Client typedClient = Client.of(client);
