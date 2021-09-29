@@ -190,6 +190,11 @@ public class TimeLockAgent {
         return agent;
     }
 
+    @VisibleForTesting
+    void close() {
+        sqliteDataSource.close();
+    }
+
     private static void verifyConfigurationSanity(TimeLockInstallConfiguration install, ClusterConfiguration cluster) {
         verifyTopologyOffersHighAvailability(install, cluster);
         verifyIsNewServiceInvariant(install, cluster);

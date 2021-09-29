@@ -43,6 +43,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -117,8 +118,20 @@ public class TimeLockInMemoryTest {
                 .until(() -> timestampService.getFreshTimestamp() > 0);
     }
 
+    @After
+    public void tearDown() {
+        timeLockAgent.close();
+    }
+
     @Test
     public void canGetTimestamp() {
+        long ts1 = timestampService.getFreshTimestamp();
+        long ts2 = timelockService.getFreshTimestamp();
+        assertThat(ts1).isLessThan(ts2);
+    }
+
+    @Test
+    public void canGetTimestampAgain() {
         long ts1 = timestampService.getFreshTimestamp();
         long ts2 = timelockService.getFreshTimestamp();
         assertThat(ts1).isLessThan(ts2);
