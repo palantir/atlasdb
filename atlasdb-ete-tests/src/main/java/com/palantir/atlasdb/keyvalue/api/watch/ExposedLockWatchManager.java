@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,25 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Optional;
 import java.util.Set;
 
 public class ExposedLockWatchManager {
-    private final LockWatchManager delegate;
+    private final LockWatchManagerInternal delegate;
 
     public ExposedLockWatchManager(LockWatchManager delegate) {
-        this.delegate = delegate;
+        this.delegate = (LockWatchManagerInternal) delegate;
     }
 
     public CommitUpdate getCommitUpdate(long startTs) {
         return delegate.getCommitUpdate(startTs);
+    }
+
+    public LockWatchCache getCache() {
+        return delegate.getCache();
     }
 
     public TransactionsLockWatchUpdate getUpdateForTransactions(

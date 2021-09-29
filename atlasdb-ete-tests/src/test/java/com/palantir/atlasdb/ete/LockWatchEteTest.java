@@ -114,7 +114,6 @@ public final class LockWatchEteTest {
     }
 
     @Test
-    @ShouldRetry
     public void upToDateVersionReturnsOnlyNecessaryEvents() {
         LockWatchVersion baseVersion = seedCacheAndGetVersion();
 

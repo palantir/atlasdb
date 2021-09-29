@@ -33,12 +33,15 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import org.awaitility.Awaitility;
 import org.immutables.value.Value;
 
 public final class SimpleEteLockWatchResource implements EteLockWatchResource {
@@ -76,6 +79,21 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
         txnAndCondition.transaction().commit();
         txnAndCondition.transaction().finish(unused -> null);
         txnAndCondition.condition().cleanup();
+
+        // Wait until the unlock request, which is async, is processed
+        Awaitility.await("unlock requests processed")
+                .atMost(Duration.ofSeconds(5))
+                .until(() -> {
+                    // Empty transaction will still get an update for lock watches
+                    transactionManager.runTaskThrowOnConflict(txn -> null);
+                    return lockWatchManager
+                            .getCache()
+                            .getEventCache()
+                            .lastKnownVersion()
+                            .map(LockWatchVersion::version)
+                            .filter(version -> version % 2 == 0)
+                            .isPresent();
+                });
         return Optional.ofNullable(txnAndCondition.condition().getCommitUpdate());
     }
 

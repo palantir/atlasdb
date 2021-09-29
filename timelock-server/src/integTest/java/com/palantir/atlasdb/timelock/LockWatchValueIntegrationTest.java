@@ -20,6 +20,7 @@ import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeT
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Fail.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -60,21 +61,24 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -494,30 +498,23 @@ public final class LockWatchValueIntegrationTest {
         int numTransactions = 10_000;
 
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        List<Exception> failedTransactions = new ArrayList<>();
 
-        for (int attempt = 0; attempt < numTransactions; ++attempt) {
-            executor.execute(() -> {
-                try {
-                    randomTransactionTask();
-                } catch (Exception e) {
-                    if (!(e instanceof TransactionFailedRetriableException)) {
-                        failedTransactions.add(e);
-                        throw e;
-                    }
-                }
-            });
+        List<Future<?>> transactions = IntStream.range(0, numTransactions)
+                .mapToObj(_num -> executor.submit(this::randomTransactionTask))
+                .collect(Collectors.toList());
+        for (Future<?> transaction : transactions) {
+            try {
+                transaction.get(60, TimeUnit.SECONDS);
+            } catch (TransactionFailedRetriableException e) {
+                // Retriable exceptions are acceptable
+            } catch (InterruptedException | TimeoutException e) {
+                fail("Transaction took too long", e);
+            } catch (ExecutionException e) {
+                fail("Encountered nonretriable exception", e);
+            }
         }
 
-        try {
-            executor.shutdown();
-            executor.awaitTermination(60, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
-
-        assertThat(failedTransactions).isEmpty();
+        executor.shutdown();
     }
 
     private void randomTransactionTask() {
