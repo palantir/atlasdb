@@ -22,7 +22,6 @@ dependencies {
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
 
-  testCompile project(":atlasdb-tests-shared")
   testCompile group: 'junit', name: 'junit'
   testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
