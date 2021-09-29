@@ -26,10 +26,12 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchEventCacheImpl;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -107,6 +109,10 @@ public final class LockWatchValueScopingCacheImplTest {
         TransactionScopedCache scopedCache = valueCache.getTransactionScopedCache(TIMESTAMP_1);
         assertThatRemotelyReadCells(scopedCache, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
         assertThatRemotelyReadCells(scopedCache, TABLE, CELL_1).containsExactlyInAnyOrder(CELL_1);
+
+        assertNoRowsCached(scopedCache);
+        assertNoRowsCached(scopedCache);
+
         scopedCache.finalise();
         assertThat(scopedCache.getHitDigest().hitCells()).isEmpty();
         assertThat(scopedCache.getValueDigest().loadedValues()).isEmpty();
@@ -409,6 +415,25 @@ public final class LockWatchValueScopingCacheImplTest {
         Stream.of(TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3)
                 .forEach(timestamp -> assertThatCode(() -> valueCache.getTransactionScopedCache(timestamp))
                         .doesNotThrowAnyException());
+    }
+
+    private static void assertNoRowsCached(TransactionScopedCache scopedCache) {
+        Set<Cell> remoteReads = new HashSet<>();
+        Set<byte[]> remoteRowReads = new HashSet<>();
+        scopedCache.getRows(
+                TABLE,
+                ImmutableSet.of(CELL_1.getRowName(), CELL_2.getRowName()),
+                ColumnSelection.all(),
+                cells -> {
+                    remoteReads.addAll(cells);
+                    return ImmutableMap.of();
+                },
+                rows -> {
+                    rows.forEach(remoteRowReads::add);
+                    return ImmutableSortedMap.of();
+                });
+        assertThat(remoteReads).isEmpty();
+        assertThat(remoteRowReads).containsExactlyInAnyOrder(CELL_1.getRowName(), CELL_2.getRowName());
     }
 
     private void processStartTransactionsUpdate(LockWatchStateUpdate update, long... timestamps) {
