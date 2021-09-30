@@ -45,10 +45,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
@@ -56,10 +57,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -93,7 +96,7 @@ public abstract class TransactionTestSetup {
     private final TransactionManagerManager tmManager;
 
     protected LockClient lockClient;
-    protected LockServiceImpl lockService;
+    protected LockService lockService;
     protected TimelockService timelockService;
     protected LockWatchManagerInternal lockWatchManager;
 
@@ -108,13 +111,18 @@ public abstract class TransactionTestSetup {
 
     protected TimestampCache timestampCache;
 
+    private InMemoryTimelockServices inMemoryTimelockServices;
+
     protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
         this.tmManager = tmManager;
     }
 
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentStore);
 
         lockService = LockServiceImpl.create(
@@ -153,15 +161,20 @@ public abstract class TransactionTestSetup {
         keyValueService.truncateTable(TEST_TABLE);
         keyValueService.truncateTable(TEST_TABLE_SERIALIZABLE);
 
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        timestampService = ts;
-        timestampManagementService = ts;
+        inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder.newFolder());
+        timestampService = inMemoryTimelockServices.getTimestampService();
+        timestampManagementService = inMemoryTimelockServices.getTimestampManagementService();
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         lockWatchManager = NoOpLockWatchManager.create();
         transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = getManager();
+    }
+
+    @After
+    public void tearDown() {
+        inMemoryTimelockServices.close();
     }
 
     protected KeyValueService getKeyValueService() {
