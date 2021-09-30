@@ -41,7 +41,6 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
-import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
@@ -56,13 +55,6 @@ public final class SweepTestUtils {
         TimestampManagementService tms = timelock.getTimestampManagementService();
         return setupTxManager(
                 kvs, ts, tms, SweepStrategyManagers.createDefault(kvs), TransactionServices.createRaw(kvs, ts, false));
-    }
-
-    // TODO(gs): check if can remove
-    public static TransactionManager setupTxManager(KeyValueService kvs) {
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        return setupTxManager(
-                kvs, ts, ts, SweepStrategyManagers.createDefault(kvs), TransactionServices.createRaw(kvs, ts, false));
     }
 
     public static TransactionManager setupTxManager(
