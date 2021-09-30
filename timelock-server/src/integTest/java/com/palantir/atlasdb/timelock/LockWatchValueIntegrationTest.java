@@ -505,12 +505,12 @@ public final class LockWatchValueIntegrationTest {
         for (Future<?> transaction : transactions) {
             try {
                 transaction.get(60, TimeUnit.SECONDS);
-            } catch (TransactionFailedRetriableException e) {
-                // Retriable exceptions are acceptable
+            } catch (ExecutionException e) {
+                if (!(e.getCause() instanceof TransactionFailedRetriableException)) {
+                    fail("Encountered nonretriable exception");
+                }
             } catch (InterruptedException | TimeoutException e) {
                 fail("Transaction took too long", e);
-            } catch (ExecutionException e) {
-                fail("Encountered nonretriable exception", e);
             }
         }
 
