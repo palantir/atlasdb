@@ -79,7 +79,7 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     private static InMemoryTimelockServices create(File dataDirectory) {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
                 .dataDirectory(dataDirectory)
-                .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)
+                .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
                 .isNewService(false)
                 .build();
 
