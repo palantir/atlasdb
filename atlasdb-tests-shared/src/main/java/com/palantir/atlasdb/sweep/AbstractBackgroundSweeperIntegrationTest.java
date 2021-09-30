@@ -46,7 +46,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timestamp.TimestampService;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -57,7 +58,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -78,9 +81,15 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     PeriodicTrueSupplier skipCellVersion = new PeriodicTrueSupplier();
 
+    private InMemoryTimelockServices services;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     @Before
     public void setup() {
-        InMemoryTimestampService tsService = new InMemoryTimestampService();
+        services = InMemoryTimelockServices.create(tempFolder);
+        TimestampService tsService = services.getTimestampService();
         kvs = SweepStatsKeyValueService.create(
                 getKeyValueService(),
                 tsService,
@@ -89,7 +98,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 () -> true);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createV1TransactionService(kvs);
-        txManager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
+        txManager =
+                SweepTestUtils.setupTxManager(kvs, tsService, services.getTimestampManagementService(), ssm, txService);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
@@ -129,6 +139,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     @After
     public void closeTransactionManager() {
         txManager.close();
+        services.close();
     }
 
     @Test

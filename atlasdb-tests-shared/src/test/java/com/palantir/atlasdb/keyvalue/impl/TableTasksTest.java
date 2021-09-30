@@ -46,7 +46,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
@@ -54,7 +54,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TableTasksTest {
     private MetricsManager metricsManager;
@@ -62,15 +64,20 @@ public class TableTasksTest {
     private LockServiceImpl lockService;
     private TransactionManager txManager;
     private TransactionService txService;
+    private InMemoryTimelockServices timelockServices;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
-        InMemoryTimestampService tsService = new InMemoryTimestampService();
+        timelockServices = InMemoryTimelockServices.create(tempFolder);
+
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
-        txService = TransactionServices.createRaw(kvs, tsService, false);
+        txService = TransactionServices.createRaw(kvs, timelockServices.getTimestampService(), false);
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
@@ -80,8 +87,8 @@ public class TableTasksTest {
         TransactionManager transactionManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,
-                tsService,
-                tsService,
+                timelockServices.getTimestampService(),
+                timelockServices.getTimestampManagementService(),
                 lockClient,
                 lockService,
                 txService,
@@ -99,6 +106,7 @@ public class TableTasksTest {
     public void teardown() {
         lockService.close();
         kvs.close();
+        timelockServices.close();
     }
 
     @Test

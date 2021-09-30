@@ -38,15 +38,18 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public abstract class AbstractSweepTest {
     protected static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
@@ -77,6 +80,8 @@ public abstract class AbstractSweepTest {
     protected TransactionService txService;
     protected SweepStrategyManager ssm;
 
+    private InMemoryTimelockServices services;
+
     protected AbstractSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
         this.tmManager = tmManager;
@@ -86,13 +91,22 @@ public abstract class AbstractSweepTest {
         return CacheWarming.FULL;
     }
 
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     @Before
     public void setup() {
         kvs = kvsManager.getDefaultKvs();
         ssm = SweepStrategyManagers.create(kvs, getSsmCacheWarming());
-        txManager = getManager();
+        services = InMemoryTimelockServices.create(tempFolder);
+        txManager = createAndRegisterManager();
         txService = TransactionServices.createRaw(kvs, txManager.getTimestampService(), false);
         SweepTestUtils.setupTables(kvs);
+    }
+
+    @After
+    public void tearDown() {
+        services.close();
     }
 
     protected TransactionManager getManager() {
@@ -100,8 +114,8 @@ public abstract class AbstractSweepTest {
     }
 
     protected TransactionManager createAndRegisterManager() {
-        InMemoryTimestampService tsService = new InMemoryTimestampService();
-        TransactionManager manager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
+        TransactionManager manager = SweepTestUtils.setupTxManager(
+                kvs, services.getTimestampService(), services.getTimestampManagementService(), ssm, txService);
         tmManager.registerTransactionManager(manager);
         return manager;
     }
