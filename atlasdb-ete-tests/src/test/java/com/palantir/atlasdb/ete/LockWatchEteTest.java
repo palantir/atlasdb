@@ -114,6 +114,7 @@ public final class LockWatchEteTest {
     }
 
     @Test
+    @ShouldRetry // TODO(jshah): Unlocks are async, and thus not always registered
     public void upToDateVersionReturnsOnlyNecessaryEvents() {
         LockWatchVersion baseVersion = seedCacheAndGetVersion();
 
