@@ -122,7 +122,7 @@ public abstract class TransactionTestSetup {
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() {
         timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentStore);
 
         lockService = LockServiceImpl.create(
@@ -161,7 +161,7 @@ public abstract class TransactionTestSetup {
         keyValueService.truncateTable(TEST_TABLE);
         keyValueService.truncateTable(TEST_TABLE_SERIALIZABLE);
 
-        inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder.newFolder());
+        inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder);
         timestampService = inMemoryTimelockServices.getTimestampService();
         timestampManagementService = inMemoryTimelockServices.getTimestampManagementService();
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);

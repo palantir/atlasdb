@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.timestamp.TimestampService;
-import java.io.IOException;
 import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -39,8 +38,8 @@ public class TimeLockInMemoryTest {
     private AsyncTimelockService timelockService;
 
     @Before
-    public void setup() throws IOException {
-        inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder.newFolder());
+    public void setup() {
+        inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder);
         timestampService = inMemoryTimelockServices.getTimestampService();
         timelockService = inMemoryTimelockServices.getTimelockService();
 

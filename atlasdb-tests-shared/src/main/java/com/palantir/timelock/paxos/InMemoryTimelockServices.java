@@ -76,7 +76,7 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
         }
     }
 
-    public static InMemoryTimelockServices create(File dataDirectory) {
+    private static InMemoryTimelockServices create(File dataDirectory) {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
                 .dataDirectory(dataDirectory)
                 .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)

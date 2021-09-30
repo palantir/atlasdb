@@ -27,7 +27,6 @@ import com.palantir.atlasdb.sweep.SweepTestUtils;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
-import java.io.IOException;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.concurrent.ExecutorService;
@@ -48,10 +47,10 @@ public class SweepPriorityStoreTest {
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
-    public void setup() throws IOException {
+    public void setup() {
         exec = PTExecutors.newCachedThreadPool();
         KeyValueService kvs = new InMemoryKeyValueService(false, exec);
-        timelock = InMemoryTimelockServices.create(tempFolder.newFolder());
+        timelock = InMemoryTimelockServices.create(tempFolder);
         txManager = SweepTestUtils.setupTxManager(kvs, timelock);
         priorityStore = SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false);
     }
