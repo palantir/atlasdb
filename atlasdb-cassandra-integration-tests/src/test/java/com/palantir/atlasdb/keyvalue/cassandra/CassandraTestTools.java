@@ -18,7 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.common.base.Throwables;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timestamp.TimestampService;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -28,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Utilities for ETE tests
@@ -55,9 +59,19 @@ public final class CassandraTestTools {
         executorService.shutdown();
     }
 
-    public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(long timestamp) {
-        InMemoryTimestampService timestampService = new InMemoryTimestampService();
-        timestampService.fastForwardTimestamp(timestamp);
+    public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(
+            long timestamp, TemporaryFolder tempFolder) {
+        InMemoryTimelockServices timelockServices = InMemoryTimelockServices.create(getNewTempFolder(tempFolder));
+        TimestampService timestampService = timelockServices.getTimestampService();
+        timelockServices.getTimestampManagementService().fastForwardTimestamp(timestamp);
         return CassandraMutationTimestampProviders.singleLongSupplierBacked(timestampService::getFreshTimestamp);
+    }
+
+    private static File getNewTempFolder(TemporaryFolder tempFolder) {
+        try {
+            return tempFolder.newFolder();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

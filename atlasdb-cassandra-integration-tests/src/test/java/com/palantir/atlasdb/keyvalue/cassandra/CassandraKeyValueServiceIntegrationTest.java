@@ -84,6 +84,7 @@ import org.apache.thrift.TException;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
@@ -118,11 +119,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @ClassRule
+    public static TemporaryFolder tempFolder = new TemporaryFolder();
+
+    @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
             MetricsManagers.createForTests(),
             getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
             RUNTIME_CONFIG_SUPPLIER,
-            CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
+            CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, tempFolder),
             logger,
             AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC));
 
@@ -483,7 +487,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, tempFolder),
                 testLogger);
     }
 
