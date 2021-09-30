@@ -40,8 +40,10 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.io.File;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import org.awaitility.Awaitility;
 
 public final class InMemoryTimelockServices implements TimeLockServices, Closeable {
     private static final String USER_AGENT_NAME = "user-agent";
@@ -101,6 +103,14 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
                 () -> System.exit(0));
 
         TimeLockServices services = timeLockAgent.createInvalidatingTimeLockServices("client");
+
+        // Wait for leadership
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(30L))
+                .pollInterval(Duration.ofMillis(250))
+                .ignoreExceptions()
+                .until(() -> services.getTimestampService().getFreshTimestamp() > 0);
+
         return new InMemoryTimelockServices(services, timeLockAgent);
     }
 
