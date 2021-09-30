@@ -62,7 +62,7 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
 
     @Override
     public void close() {
-        timeLockAgent.close();
+        timeLockAgent.shutdown();
     }
 
     public static InMemoryTimelockServices create(File dataDirectory) {
