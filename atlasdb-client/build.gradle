@@ -102,6 +102,7 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-core'
   implementation 'com.palantir.tritium:tritium-slf4j'
   implementation 'com.squareup.okio:okio'
+  implementation 'commons-io:commons-io'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'jakarta.annotation:jakarta.annotation-api'
   implementation 'org.apache.commons:commons-lang3'

@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -326,6 +327,8 @@ public class Schema {
     public void renderTables(File srcDir) throws IOException {
         com.palantir.logsafe.Preconditions.checkNotNull(name, "schema name not set");
         com.palantir.logsafe.Preconditions.checkNotNull(packageName, "package name not set");
+
+        FileUtils.deleteDirectory(srcDir);
 
         TableRenderer tableRenderer = new TableRenderer(packageName, namespace, optionalType);
         TableRendererV2 tableRendererV2 = new TableRendererV2(packageName, namespace);
