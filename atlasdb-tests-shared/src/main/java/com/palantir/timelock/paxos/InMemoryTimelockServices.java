@@ -118,7 +118,7 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
         // Wait for leadership
         Awaitility.await()
                 .atMost(Duration.ofSeconds(30L))
-                .pollInterval(Duration.ofMillis(250))
+                .pollInterval(Duration.ofMillis(50))
                 .ignoreExceptions()
                 .until(() -> services.getTimestampService().getFreshTimestamp() > 0);
 
