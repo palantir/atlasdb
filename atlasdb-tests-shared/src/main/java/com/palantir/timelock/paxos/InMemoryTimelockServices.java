@@ -40,10 +40,12 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.awaitility.Awaitility;
+import org.junit.rules.TemporaryFolder;
 
 public final class InMemoryTimelockServices implements TimeLockServices, Closeable {
     private static final String USER_AGENT_NAME = "user-agent";
@@ -63,6 +65,15 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     @Override
     public void close() {
         timeLockAgent.shutdown();
+    }
+
+    public static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
+        try {
+            File dataDirectory = tempFolder.newFolder();
+            return create(dataDirectory);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static InMemoryTimelockServices create(File dataDirectory) {

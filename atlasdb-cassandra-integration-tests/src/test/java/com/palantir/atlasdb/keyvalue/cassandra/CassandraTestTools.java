@@ -20,8 +20,6 @@ import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.common.base.Throwables;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampService;
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -61,17 +59,9 @@ public final class CassandraTestTools {
 
     public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(
             long timestamp, TemporaryFolder tempFolder) {
-        InMemoryTimelockServices timelockServices = InMemoryTimelockServices.create(getNewTempFolder(tempFolder));
+        InMemoryTimelockServices timelockServices = InMemoryTimelockServices.create(tempFolder);
         TimestampService timestampService = timelockServices.getTimestampService();
         timelockServices.getTimestampManagementService().fastForwardTimestamp(timestamp);
         return CassandraMutationTimestampProviders.singleLongSupplierBacked(timestampService::getFreshTimestamp);
-    }
-
-    private static File getNewTempFolder(TemporaryFolder tempFolder) {
-        try {
-            return tempFolder.newFolder();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
