@@ -49,6 +49,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -430,7 +431,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     private static void assertNoRowsCached(TransactionScopedCache scopedCache) {
         Set<Cell> remoteReads = new HashSet<>();
-        Set<byte[]> remoteRowReads = new IdentityHashMap<byte[], Object>().keySet();
+        Set<byte[]> remoteRowReads = Collections.newSetFromMap(new IdentityHashMap<>());
         scopedCache.getRows(
                 TABLE,
                 ImmutableSet.of(CELL_1.getRowName(), CELL_2.getRowName()),
