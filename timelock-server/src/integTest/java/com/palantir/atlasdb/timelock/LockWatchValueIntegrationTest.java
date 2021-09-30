@@ -20,6 +20,7 @@ import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeT
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Fail.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +45,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -59,14 +61,24 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -96,7 +108,7 @@ public final class LockWatchValueIntegrationTest {
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9090, builder -> builder.clientPaxosBuilder(
+            generateThreeNodeTimelockCluster(9096, builder -> builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                     .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
@@ -104,6 +116,14 @@ public final class LockWatchValueIntegrationTest {
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     private TransactionManager txnManager;
+    public static final byte[] ROW_1 = PtBytes.toBytes("final");
+    public static final byte[] ROW_2 = PtBytes.toBytes("destination");
+    public static final byte[] ROW_3 = PtBytes.toBytes("awaits");
+    public static final ImmutableList<byte[]> ROWS = ImmutableList.of(ROW_1, ROW_2, ROW_3);
+    public static final byte[] COL_1 = PtBytes.toBytes("parthenon");
+    public static final byte[] COL_2 = PtBytes.toBytes("had");
+    public static final byte[] COL_3 = PtBytes.toBytes("columns");
+    public static final ImmutableList<byte[]> COLS = ImmutableList.of(COL_1, COL_2, COL_3);
 
     @Before
     public void before() {
@@ -471,6 +491,54 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @Test
+    public void valueStressTest() {
+        createTransactionManager(1.0);
+        int numThreads = 200;
+        int numTransactions = 10_000;
+
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+
+        List<Future<?>> transactions = IntStream.range(0, numTransactions)
+                .mapToObj(_num -> executor.submit(this::randomTransactionTask))
+                .collect(Collectors.toList());
+        for (Future<?> transaction : transactions) {
+            try {
+                transaction.get(60, TimeUnit.SECONDS);
+            } catch (ExecutionException e) {
+                if (!(e.getCause() instanceof TransactionFailedRetriableException)) {
+                    fail("Encountered nonretriable exception");
+                }
+            } catch (InterruptedException | TimeoutException e) {
+                fail("Transaction took too long", e);
+            }
+        }
+
+        executor.shutdown();
+    }
+
+    private void randomTransactionTask() {
+        txnManager.runTaskThrowOnConflict(txn -> {
+            while (chance()) {
+                txn.put(TABLE_REF, ImmutableMap.of(randomCell(), randomData()));
+            }
+
+            while (chance()) {
+                txn.delete(TABLE_REF, ImmutableSet.of(randomCell()));
+            }
+
+            while (chance()) {
+                txn.get(TABLE_REF, ImmutableSet.of(randomCell()));
+            }
+
+            while (chance()) {
+                txn.getRows(TABLE_REF, randomSelection(ROWS), ColumnSelection.create(randomSelection(COLS)));
+            }
+
+            return null;
+        });
+    }
+
     private void simulateOverlappingWriteTransaction(
             AtomicReference<LockWatchCache> lwCache, long theirStartTimestamp, long theirCommitTimestamp) {
         LockToken lockToken = LockToken.of(UUID.randomUUID());
@@ -606,6 +674,26 @@ public final class LockWatchValueIntegrationTest {
                         Optional.empty(),
                         createSchema())
                 .transactionManager();
+    }
+
+    private static Set<byte[]> randomSelection(ImmutableList<byte[]> rows) {
+        return rows.stream().filter(_unused -> chance()).collect(Collectors.toSet());
+    }
+
+    private static Cell randomCell() {
+        return Cell.create(ROWS.get(randomIndex()), COLS.get(randomIndex()));
+    }
+
+    private static int randomIndex() {
+        return ThreadLocalRandom.current().nextInt(0, ROWS.size());
+    }
+
+    private static boolean chance() {
+        return ThreadLocalRandom.current().nextBoolean();
+    }
+
+    private static byte[] randomData() {
+        return PtBytes.toBytes(ThreadLocalRandom.current().nextLong(0, 1_000_000));
     }
 
     private static LockWatchStateUpdate.Success createUnlockSuccessUpdate(LockWatchVersion lastKnownVersion) {
