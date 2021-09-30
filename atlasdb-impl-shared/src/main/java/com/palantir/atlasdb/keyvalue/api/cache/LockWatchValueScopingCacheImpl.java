@@ -33,7 +33,6 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -206,7 +205,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .keySet()
                 .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
 
-        assertNoSnapshotsMissing(reversedMap.values());
+        assertNoSnapshotsMissing(reversedMap.keySet());
     }
 
     private synchronized boolean isNewEvent(LockWatchEvent event) {
@@ -216,9 +215,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .orElse(true);
     }
 
-    private synchronized void assertNoSnapshotsMissing(Collection<StartTimestamp> timestamps) {
-        if (timestamps.stream().map(snapshotStore::getSnapshot).anyMatch(Optional::isEmpty)) {
-            throw new TransactionLockWatchFailedException("snapshots were not taken for all timestamps; this update "
+    private synchronized void assertNoSnapshotsMissing(Set<Sequence> sequences) {
+        if (sequences.stream()
+                .map(snapshotStore::getSnapshotForSequence)
+                .anyMatch(maybeSnapshot -> !maybeSnapshot.isPresent())) {
+            throw new TransactionLockWatchFailedException("snapshots were not taken for all sequences; this update "
                     + "must have been lost and is now too old to process. Transactions should be retried.");
         }
     }
