@@ -34,6 +34,8 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchEventCacheImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
+import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasCellLockDescriptor;
@@ -94,17 +96,20 @@ public final class LockWatchValueScopingCacheImplTest {
     private final CacheMetrics metrics = mock(CacheMetrics.class);
     private LockWatchEventCache eventCache;
     private LockWatchValueScopingCache valueCache;
+    private SnapshotStore snapshotStore;
 
     @Before
     public void before() {
+        snapshotStore = new SnapshotStoreImpl();
         eventCache = LockWatchEventCacheImpl.create(metrics);
-        valueCache =
-                new LockWatchValueScopingCacheImpl(eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), () -> {}, metrics);
+        valueCache = new LockWatchValueScopingCacheImpl(
+                eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
     }
 
     @Test
     public void tableNotWatchedInSchemaDoesNotCache() {
-        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 0.0, ImmutableSet.of(), () -> {}, metrics);
+        valueCache = new LockWatchValueScopingCacheImpl(
+                eventCache, 20_000, 0.0, ImmutableSet.of(), snapshotStore, () -> {}, metrics);
         processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1, TIMESTAMP_2);
 
         TransactionScopedCache scopedCache = valueCache.getTransactionScopedCache(TIMESTAMP_1);
@@ -121,8 +126,8 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Test
     public void valueCacheCreatesValidatingTransactionCaches() {
-        valueCache =
-                new LockWatchValueScopingCacheImpl(eventCache, 20_000, 1.0, ImmutableSet.of(TABLE), () -> {}, metrics);
+        valueCache = new LockWatchValueScopingCacheImpl(
+                eventCache, 20_000, 1.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
         processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1, TIMESTAMP_2);
 
         TransactionScopedCache scopedCache = valueCache.getTransactionScopedCache(TIMESTAMP_1);
@@ -413,9 +418,14 @@ public final class LockWatchValueScopingCacheImplTest {
                 TIMESTAMP_2,
                 TIMESTAMP_3);
 
-        Stream.of(TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3)
-                .forEach(timestamp -> assertThatCode(() -> valueCache.getTransactionScopedCache(timestamp))
-                        .doesNotThrowAnyException());
+        Stream.of(TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3).forEach(timestamp -> {
+            assertThatCode(() -> valueCache.getTransactionScopedCache(timestamp))
+                    .doesNotThrowAnyException();
+            assertThat(snapshotStore.getSnapshot(StartTimestamp.of(timestamp))).isPresent();
+        });
+
+        assertThat(snapshotStore.getSnapshotForSequence(Sequence.of(LOCK_EVENT.sequence())))
+                .isEmpty();
     }
 
     private static void assertNoRowsCached(TransactionScopedCache scopedCache) {
