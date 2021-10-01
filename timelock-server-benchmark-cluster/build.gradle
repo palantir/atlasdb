@@ -7,7 +7,6 @@ apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
     compile project(':timelock-server')
-    runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
 
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
@@ -26,5 +25,4 @@ distribution {
     serviceName "timelock-benchmark-server"
     mainClass 'com.palantir.atlasdb.timelock.benchmarks.server.TimelockBenchmarkServerLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-Xms512m", "-Xmx4096m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
 }

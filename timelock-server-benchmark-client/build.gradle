@@ -40,13 +40,10 @@ dependencies {
     implementation project(':atlasdb-remoting-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
-
-    runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
 }
 
 distribution {
     serviceName "timelock-benchmark-client"
     mainClass 'com.palantir.atlasdb.timelock.benchmarks.TimelockBenchmarkClientLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-Xms4096m", "-Xmx4096m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
 }

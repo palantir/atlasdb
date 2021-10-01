@@ -8,19 +8,16 @@ apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
     runtime project(':timelock-server')
-    runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
 }
 
 distribution {
     serviceName "timelock-server"
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-Xms512m", "-Xmx512m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
 }
 
 task runTimeLock(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
     main = "com.palantir.atlasdb.timelock.TimeLockServerLauncher"
-    jvmArgs = ["-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"]
     args "server", "var/conf/timelock-http2.yml"
 }
