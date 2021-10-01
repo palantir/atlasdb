@@ -57,11 +57,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             long maxCacheSize,
             double validationProbability,
             Set<TableReference> watchedTablesFromSchema,
+            SnapshotStore snapshotStore,
             Runnable failureCallback,
             CacheMetrics metrics) {
         this.eventCache = eventCache;
+        this.snapshotStore = snapshotStore;
         this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize, metrics);
-        this.snapshotStore = SnapshotStoreImpl.create();
         this.cacheStore =
                 new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT);
     }
@@ -79,6 +80,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 maxCacheSize,
                 validationProbability,
                 watchedTablesFromSchema,
+                SnapshotStoreImpl.create(),
                 proxyFactory::fallback,
                 metrics);
         proxyFactory.setDelegate(defaultCache);
@@ -180,8 +182,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
      *     don't bother storing a snapshot for those sequences. Also note that we know that each call here will only
      *     ever have new events, and that consecutive calls to this method will *always* have increasing sequences
      *     (without this last guarantee, we'd need to store snapshots for all sequences).
-     *  3. For each transaction, we must create a transaction scoped cache. We do this at start transaction time as we
-     *     have tighter guarantees around when the cache is created, and thus deleted.
+     *  3. For each transaction, we must create a transaction scoped cache. We do this now as we have tighter guarantees
+     *     around when the cache is created, and thus deleted.
      */
     private synchronized void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
@@ -232,7 +234,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     private synchronized boolean shouldUpdateVersion(LockWatchVersion updateVersion) {
-        return !currentVersion.isPresent() || currentVersion.get().version() < updateVersion.version();
+        return currentVersion.isEmpty() || currentVersion.get().version() < updateVersion.version();
     }
 
     private synchronized void clearCache() {

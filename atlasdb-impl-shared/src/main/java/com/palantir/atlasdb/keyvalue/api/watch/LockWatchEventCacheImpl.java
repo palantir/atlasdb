@@ -28,6 +28,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -118,6 +119,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public synchronized TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
+        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get update for empty set of transactions");
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
 
         VersionBounds versionBounds = VersionBounds.builder()
