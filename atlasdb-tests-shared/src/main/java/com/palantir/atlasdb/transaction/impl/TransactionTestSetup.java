@@ -175,7 +175,6 @@ public abstract class TransactionTestSetup {
     @After
     public void tearDown() {
         inMemoryTimelockServices.close();
-        tmManager.registerTransactionManager(null); // reusing a TM between tests causes NotCurrentLeader failures
     }
 
     protected KeyValueService getKeyValueService() {
