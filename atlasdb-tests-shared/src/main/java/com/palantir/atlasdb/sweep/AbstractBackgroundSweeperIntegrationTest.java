@@ -47,7 +47,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
-import com.palantir.timestamp.TimestampService;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -89,17 +88,16 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     @Before
     public void setup() {
         services = InMemoryTimelockServices.create(tempFolder);
-        TimestampService tsService = services.getTimestampService();
         kvs = SweepStatsKeyValueService.create(
                 getKeyValueService(),
-                tsService,
+                services.getTimestampService(),
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD,
                 () -> true);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createV1TransactionService(kvs);
-        txManager =
-                SweepTestUtils.setupTxManager(kvs, tsService, services.getTimestampManagementService(), ssm, txService);
+        txManager = SweepTestUtils.setupTxManager(
+                kvs, services.getTimestampService(), services.getTimestampManagementService(), ssm, txService);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,

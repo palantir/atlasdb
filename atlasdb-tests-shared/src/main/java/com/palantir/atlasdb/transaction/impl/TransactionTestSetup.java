@@ -174,9 +174,7 @@ public abstract class TransactionTestSetup {
 
     @After
     public void tearDown() {
-        if (inMemoryTimelockServices != null) {
-            inMemoryTimelockServices.close();
-        }
+        inMemoryTimelockServices.close();
     }
 
     protected KeyValueService getKeyValueService() {

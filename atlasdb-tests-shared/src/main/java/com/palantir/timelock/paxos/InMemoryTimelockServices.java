@@ -25,6 +25,7 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.ClusterInstallConfiguration;
@@ -68,11 +69,14 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     }
 
     public static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
+        return create(tryCreateSubFolder(tempFolder));
+    }
+
+    private static File tryCreateSubFolder(TemporaryFolder tempFolder) {
         try {
-            File dataDirectory = tempFolder.newFolder();
-            return create(dataDirectory);
+            return tempFolder.newFolder();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new SafeRuntimeException("Failed to create temporary folder", e);
         }
     }
 
