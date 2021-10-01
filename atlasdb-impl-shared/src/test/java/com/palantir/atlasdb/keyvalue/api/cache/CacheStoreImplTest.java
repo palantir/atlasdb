@@ -40,7 +40,7 @@ public final class CacheStoreImplTest {
 
     @Test
     public void updatesToSnapshotStoreReflectedInCacheStore() {
-        SnapshotStore snapshotStore = new SnapshotStoreImpl();
+        SnapshotStore snapshotStore = SnapshotStoreImpl.create();
         CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 100);
 
         cacheStore.createCache(TIMESTAMP_1);
@@ -57,7 +57,7 @@ public final class CacheStoreImplTest {
 
     @Test
     public void multipleCallsToGetReturnsTheSameCache() {
-        SnapshotStore snapshotStore = new SnapshotStoreImpl();
+        SnapshotStore snapshotStore = SnapshotStoreImpl.create();
         CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 100);
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
@@ -75,7 +75,7 @@ public final class CacheStoreImplTest {
 
     @Test
     public void cachesExceedingMaximumCountThrows() {
-        SnapshotStore snapshotStore = new SnapshotStoreImpl();
+        SnapshotStore snapshotStore = SnapshotStoreImpl.create();
         CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 1);
 
         StartTimestamp timestamp = StartTimestamp.of(22222L);
@@ -95,7 +95,7 @@ public final class CacheStoreImplTest {
 
     @Test
     public void getCacheDoesNotPersistAnything() {
-        SnapshotStore snapshotStore = new SnapshotStoreImpl();
+        SnapshotStore snapshotStore = SnapshotStoreImpl.create();
         CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 100);
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
@@ -110,7 +110,7 @@ public final class CacheStoreImplTest {
 
     @Test
     public void noOpCachesAreNotStored() {
-        SnapshotStore snapshotStore = new SnapshotStoreImpl();
+        SnapshotStore snapshotStore = SnapshotStoreImpl.create();
         CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 0);
 
         cacheStore.createCache(TIMESTAMP_1);
