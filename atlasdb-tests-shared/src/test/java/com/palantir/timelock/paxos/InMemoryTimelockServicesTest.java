@@ -28,7 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class TimeLockInMemoryTest {
+public class InMemoryTimelockServicesTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -63,17 +63,10 @@ public class TimeLockInMemoryTest {
     }
 
     @Test
-    public void canGetTimestampAgain() {
+    public void canFastForwardTimestamp() {
+        long target = 1234567L;
+        timelockService.fastForwardTimestamp(target);
         long ts1 = timestampService.getFreshTimestamp();
-        long ts2 = timelockService.getFreshTimestamp();
-        assertThat(ts1).isLessThan(ts2);
+        assertThat(ts1).isGreaterThan(target);
     }
-
-    // @Ignore // Need to move before stuff so that initialisation only happens once
-    // @Test
-    // public void comesUpHealthy() {
-    //     assertThat(timeLockAgent.getStatus())
-    //             .hasValueSatisfying(
-    //                     digest -> assertThat(digest.statusesToClient().size()).isGreaterThan(0));
-    // }
 }
