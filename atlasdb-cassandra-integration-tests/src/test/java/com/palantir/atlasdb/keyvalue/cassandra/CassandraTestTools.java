@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.rules.TemporaryFolder;
 
 /**
  * Utilities for ETE tests
@@ -56,11 +55,9 @@ public final class CassandraTestTools {
         executorService.shutdown();
     }
 
-    public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(
-            long timestamp, TemporaryFolder _tempFolder) {
+    public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(long timestamp) {
+        // TODO(gs): replace with InMemoryTimelockServices
         InMemoryTimestampService timestampService = new InMemoryTimestampService();
-        // InMemoryTimelockServices timelockServices = InMemoryTimelockServices.create(tempFolder);
-        // TimestampService timestampService = timelockServices.getTimestampService();
         timestampService.fastForwardTimestamp(timestamp);
         return CassandraMutationTimestampProviders.singleLongSupplierBacked(timestampService::getFreshTimestamp);
     }

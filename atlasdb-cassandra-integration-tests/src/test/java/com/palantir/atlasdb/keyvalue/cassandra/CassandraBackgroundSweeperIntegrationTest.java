@@ -20,15 +20,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
 import com.palantir.atlasdb.util.MetricsManagers;
 import org.junit.ClassRule;
-import org.junit.rules.TemporaryFolder;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     @ClassRule
     public static final CassandraResource CASSANDRA =
             new CassandraResource(CassandraBackgroundSweeperIntegrationTest::createKeyValueService);
-
-    @ClassRule
-    public static TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Override
     protected KeyValueService getKeyValueService() {
@@ -39,6 +35,6 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, tempFolder));
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 }

@@ -26,15 +26,11 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
     public static final CassandraResource CASSANDRA =
             new CassandraResource(CassandraKeyValueServiceSweepTaskRunnerIntegrationTest::createKeyValueService);
-
-    @ClassRule
-    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     public CassandraKeyValueServiceSweepTaskRunnerIntegrationTest() {
         super(CASSANDRA, CASSANDRA);
@@ -56,7 +52,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, temporaryFolder));
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 
     private void insertMultipleValues(long numInsertions) {
