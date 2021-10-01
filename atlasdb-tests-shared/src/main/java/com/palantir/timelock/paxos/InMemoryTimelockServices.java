@@ -72,14 +72,6 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
         return create(tryCreateSubFolder(tempFolder));
     }
 
-    private static File tryCreateSubFolder(TemporaryFolder tempFolder) {
-        try {
-            return tempFolder.newFolder();
-        } catch (IOException e) {
-            throw new SafeRuntimeException("Failed to create temporary folder", e);
-        }
-    }
-
     private static InMemoryTimelockServices create(File dataDirectory) {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
                 .dataDirectory(dataDirectory)
@@ -127,6 +119,14 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
                 .until(() -> services.getTimestampService().getFreshTimestamp() > 0);
 
         return new InMemoryTimelockServices(services, timeLockAgent);
+    }
+
+    private static File tryCreateSubFolder(TemporaryFolder tempFolder) {
+        try {
+            return tempFolder.newFolder();
+        } catch (IOException e) {
+            throw new SafeRuntimeException("Failed to create temporary folder", e);
+        }
     }
 
     @Override
