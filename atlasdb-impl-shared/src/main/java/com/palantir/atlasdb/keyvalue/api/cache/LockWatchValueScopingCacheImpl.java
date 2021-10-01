@@ -80,7 +80,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 maxCacheSize,
                 validationProbability,
                 watchedTablesFromSchema,
-                new SnapshotStoreImpl(),
+                SnapshotStoreImpl.create(),
                 proxyFactory::fallback,
                 metrics);
         proxyFactory.setDelegate(defaultCache);

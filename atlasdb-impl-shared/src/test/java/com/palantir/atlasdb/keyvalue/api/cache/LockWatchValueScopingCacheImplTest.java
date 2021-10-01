@@ -101,7 +101,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Before
     public void before() {
-        snapshotStore = new SnapshotStoreImpl();
+        snapshotStore = SnapshotStoreImpl.create();
         eventCache = LockWatchEventCacheImpl.create(metrics);
         valueCache = new LockWatchValueScopingCacheImpl(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
