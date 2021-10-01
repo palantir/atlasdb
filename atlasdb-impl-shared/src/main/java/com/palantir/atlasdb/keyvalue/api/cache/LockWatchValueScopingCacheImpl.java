@@ -61,7 +61,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             CacheMetrics metrics) {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize, metrics);
-        this.snapshotStore = new SnapshotStoreImpl();
+        this.snapshotStore = SnapshotStoreImpl.create();
         this.cacheStore =
                 new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT);
     }
