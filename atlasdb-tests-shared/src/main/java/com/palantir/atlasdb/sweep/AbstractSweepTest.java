@@ -106,7 +106,9 @@ public abstract class AbstractSweepTest {
 
     @After
     public void tearDown() {
-        services.close();
+        if (services != null) {
+            services.close();
+        }
     }
 
     protected TransactionManager getManager() {
