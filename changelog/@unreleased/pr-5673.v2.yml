@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Retain a minimum number of lock watch snapshots in memory to reduce
+    the chance of old updates failing when starting transactions.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5673
