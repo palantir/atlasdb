@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
+import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
@@ -74,6 +75,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
@@ -134,7 +136,7 @@ public final class LockWatchValueIntegrationTest {
     @Test
     public void readOnlyTransactionsDoNotUseCaching() {
         putValue();
-        loadValue();
+        readValueAndAssertLoadedFromRemote();
 
         txnManager.runTaskReadOnly(txn -> {
             Map<Cell, byte[]> cellMap = txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
@@ -223,7 +225,7 @@ public final class LockWatchValueIntegrationTest {
     @Test
     public void serializableTransactionsDoNotThrowWhenOverwritingAPreviouslyCachedValue() {
         putValue();
-        loadValue();
+        readValueAndAssertLoadedFromRemote();
 
         assertThatCode(() -> txnManager.runTaskThrowOnConflict(txn -> {
                     txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
@@ -251,7 +253,7 @@ public final class LockWatchValueIntegrationTest {
     @Test
     public void putsCauseInvalidationsInSubsequentTransactions() {
         putValue();
-        loadValue();
+        readValueAndAssertLoadedFromRemote();
 
         txnManager.runTaskThrowOnConflict(txn -> {
             // Read gives the old value due to it being cached; these direct KVS overwrites would be corruption normally
@@ -280,17 +282,72 @@ public final class LockWatchValueIntegrationTest {
     @Test
     public void leaderElectionFlushesCache() {
         putValue();
-        loadValue();
+        readValueAndAssertLoadedFromRemote();
 
         CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
         awaitTableWatched();
 
+        readValueAndAssertLoadedFromRemote();
+    }
+
+    @Test
+    public void leaderElectionDuringReadOnlyTransactionDoesNotCauseItToFail() {
+        putValue();
+        readValueAndAssertLoadedFromRemote();
+
         txnManager.runTaskThrowOnConflict(txn -> {
             assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
+
+            // Calling these finalises the underlying cache, which normally means that no more operations should be
+            // carried out on the cache. However, since this cache should be cleared after the election, it is OK to
+            // do this earlier
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1));
+            assertLoadedValues(txn, ImmutableMap.of());
+
+            CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
+            awaitTableWatched();
+
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
+            assertThat(extractTransactionCache(txn)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
             assertHitValues(txn, ImmutableSet.of());
-            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_1)));
+            assertLoadedValues(txn, ImmutableMap.of());
             return null;
         });
+
+        // Confirm nothing was flushed to central cache after election
+        readValueAndAssertLoadedFromRemote();
+
+        // Finally, check that the value from above was flushed to the central cache
+        txnManager.runTaskThrowOnConflict(txn -> {
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1));
+            assertLoadedValues(txn, ImmutableMap.of());
+            return null;
+        });
+    }
+
+    @Test
+    public void leaderElectionDuringWriteTransactionCausesTransactionToRetry() {
+        putValue();
+        readValueAndAssertLoadedFromRemote();
+
+        AtomicBoolean firstAttempt = new AtomicBoolean(true);
+
+        assertThatCode(() -> txnManager.runTaskWithRetry(txn -> {
+                    assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
+
+                    if (firstAttempt.getAndSet(false)) {
+                        CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
+                        awaitTableWatched();
+                    }
+
+                    txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
+                    assertHitValues(txn, ImmutableSet.of());
+                    return null;
+                }))
+                .doesNotThrowAnyException();
+
+        assertThat(firstAttempt).isFalse();
     }
 
     @Test
@@ -298,7 +355,7 @@ public final class LockWatchValueIntegrationTest {
         createTransactionManager(1.0);
 
         putValue();
-        loadValue();
+        readValueAndAssertLoadedFromRemote();
 
         assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
                     overwriteValueViaKvs(txn, ImmutableMap.of(CELL_1, DATA_2));
@@ -570,9 +627,9 @@ public final class LockWatchValueIntegrationTest {
                 .putUnlessExists(transaction.getTimestamp() - 2, transaction.getTimestamp() - 1);
     }
 
-    private void loadValue() {
+    private void readValueAndAssertLoadedFromRemote() {
         txnManager.runTaskThrowOnConflict(txn -> {
-            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
             assertHitValues(txn, ImmutableSet.of());
             assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_1)));
             return null;
