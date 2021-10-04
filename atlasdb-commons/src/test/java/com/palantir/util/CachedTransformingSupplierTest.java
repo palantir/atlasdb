@@ -59,15 +59,22 @@ public class CachedTransformingSupplierTest {
     }
 
     @Test
-    public void throwsIfSupplierThrows() {
-        RuntimeException ex = new RuntimeException();
-        when(STRING_SUPPLIER.get()).thenThrow(ex);
-        assertThatThrownBy(TRANSFORMING_SUPPLIER::get).isEqualTo(ex);
+    public void throwsAndRetriesIfSupplierThrows() {
+        RuntimeException ex1 = new RuntimeException();
+        RuntimeException ex2 = new RuntimeException();
+        when(STRING_SUPPLIER.get()).thenThrow(ex1).thenThrow(ex2);
+        assertThatThrownBy(TRANSFORMING_SUPPLIER::get).isEqualTo(ex1);
+        assertThatThrownBy(TRANSFORMING_SUPPLIER::get).isEqualTo(ex2);
+
+        verify(STRING_SUPPLIER, times(2)).get();
     }
 
     @Test
-    public void throwsIfMappingFunctionThrows() {
+    public void throwsAndRetriesIfMappingFunctionThrows() {
         when(STRING_SUPPLIER.get()).thenReturn("42!)*()");
         assertThatThrownBy(TRANSFORMING_SUPPLIER::get).isInstanceOf(NumberFormatException.class);
+        assertThatThrownBy(TRANSFORMING_SUPPLIER::get).isInstanceOf(NumberFormatException.class);
+
+        verify(STRING_SUPPLIER, times(2)).get();
     }
 }

@@ -49,7 +49,7 @@ public class CachedTransformingSupplier<T, U> implements Supplier<U> {
             return cachedOutput;
         }
 
-        cachedOutput = outputFunction.apply(cachedInput);
+        cachedOutput = outputFunction.apply(currentInput);
         cachedInput = currentInput;
         return cachedOutput;
     }
