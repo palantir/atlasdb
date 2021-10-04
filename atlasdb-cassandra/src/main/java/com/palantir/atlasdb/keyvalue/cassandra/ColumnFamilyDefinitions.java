@@ -233,8 +233,7 @@ final class ColumnFamilyDefinitions {
         }
 
         // consider null and empty map equivalent
-        if ((client == null && ImmutableMap.of().equals(cluster))
-                || (cluster == null && ImmutableMap.of().equals(client))) {
+        if ((client == null && cluster.isEmpty()) || (cluster == null && client.isEmpty())) {
             return true;
         }
 
