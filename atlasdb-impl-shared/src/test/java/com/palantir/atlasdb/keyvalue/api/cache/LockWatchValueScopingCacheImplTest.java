@@ -429,6 +429,30 @@ public final class LockWatchValueScopingCacheImplTest {
                 .isEmpty();
     }
 
+    @Test
+    public void missingSnapshotsForSequenceDoesNotThrow() {
+        snapshotStore = new SnapshotStoreImpl(0, 20_000);
+        valueCache = new LockWatchValueScopingCacheImpl(
+                eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
+
+        // This should cause the cache to progress to version 1 but without a snapshot stored at version 0
+        processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1);
+        processStartTransactionsUpdate(LOCK_WATCH_LOCK_SUCCESS, 99L);
+        processSuccessfulCommit(TIMESTAMP_1, 1L);
+        processSuccessfulCommit(99L, 1L);
+
+        // There are timestamps at version 0 (before we have a snapshot) and at version 1; this would previously throw,
+        // but now it just causes the transaction to not cache.
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), successWithNoUpdates(0L));
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_3), successWithNoUpdates(1L));
+        assertThatCode(() -> valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2, TIMESTAMP_3)))
+                .doesNotThrowAnyException();
+        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_2))
+                .isExactlyInstanceOf(NoOpTransactionScopedCache.class);
+        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_3))
+                .isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
+    }
+
     private static void assertNoRowsCached(TransactionScopedCache scopedCache) {
         Set<Cell> remoteReads = new HashSet<>();
         Set<byte[]> remoteRowReads = Collections.newSetFromMap(new IdentityHashMap<>());
