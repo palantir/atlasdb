@@ -26,4 +26,6 @@ public interface ValueCacheSnapshot {
     boolean isUnlocked(CellReference cellReference);
 
     boolean isWatched(TableReference tableReference);
+
+    boolean hasAnyTablesWatched();
 }

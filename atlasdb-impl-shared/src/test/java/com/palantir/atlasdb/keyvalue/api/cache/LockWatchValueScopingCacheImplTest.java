@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchEventCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasCellLockDescriptor;
@@ -430,7 +431,33 @@ public final class LockWatchValueScopingCacheImplTest {
     }
 
     @Test
-    public void missingSnapshotsForSequenceDoesNotThrow() {
+    public void missingSnapshotsForSequenceDoesNotThrowWhenNoTablesAreWatched() {
+        snapshotStore = new SnapshotStoreImpl(0, 20_000);
+        valueCache = new LockWatchValueScopingCacheImpl(
+                eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
+
+        // This should cause the cache to progress to version 1 but without a snapshot stored at version 0
+        processStartTransactionsUpdate(
+                LockWatchStateUpdate.snapshot(LEADER, 0L, ImmutableSet.of(), ImmutableSet.of()), TIMESTAMP_1);
+        long timestamp4 = 99L;
+        processStartTransactionsUpdate(LOCK_WATCH_LOCK_SUCCESS, timestamp4);
+        processSuccessfulCommit(TIMESTAMP_1, 1L);
+        processSuccessfulCommit(timestamp4, 1L);
+
+        // There are timestamps at version 0 (before we have a snapshot) and at version 1; this would previously throw,
+        // but now it just causes the transaction to not cache.
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), successWithNoUpdates(0L));
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_3), successWithNoUpdates(1L));
+        assertThatCode(() -> valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2, TIMESTAMP_3)))
+                .doesNotThrowAnyException();
+        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_2))
+                .isExactlyInstanceOf(NoOpTransactionScopedCache.class);
+        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_3))
+                .isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
+    }
+
+    @Test
+    public void missingSnapshotsForSequenceThrowsWhenTablesAreWatched() {
         snapshotStore = new SnapshotStoreImpl(0, 20_000);
         valueCache = new LockWatchValueScopingCacheImpl(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
@@ -445,12 +472,11 @@ public final class LockWatchValueScopingCacheImplTest {
         // but now it just causes the transaction to not cache.
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), successWithNoUpdates(0L));
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_3), successWithNoUpdates(1L));
-        assertThatCode(() -> valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2, TIMESTAMP_3)))
-                .doesNotThrowAnyException();
-        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_2))
-                .isExactlyInstanceOf(NoOpTransactionScopedCache.class);
-        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_3))
-                .isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
+        assertThatThrownBy(() -> valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2, TIMESTAMP_3)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("snapshots were not taken for all sequences; this update must have been lost and is now too"
+                        + " old to process. Transactions should be retried.");
     }
 
     private static void assertNoRowsCached(TransactionScopedCache scopedCache) {
