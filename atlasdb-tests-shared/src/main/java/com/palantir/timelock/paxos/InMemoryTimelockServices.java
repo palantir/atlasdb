@@ -109,6 +109,8 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
                 ObjectMappers.newServerObjectMapper(),
                 () -> System.exit(0));
 
+        // TODO(gs): Currently hard-coded to one client.
+        //  We might want to refactor this to allow us to write a test that uses multiple clients
         TimeLockServices services = timeLockAgent.createInvalidatingTimeLockServices("client");
 
         // Wait for leadership
