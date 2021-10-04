@@ -348,6 +348,14 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
 
         assertThat(firstAttempt).isFalse();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
+
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1));
+            assertLoadedValues(txn, ImmutableMap.of());
+            return null;
+        });
     }
 
     @Test
