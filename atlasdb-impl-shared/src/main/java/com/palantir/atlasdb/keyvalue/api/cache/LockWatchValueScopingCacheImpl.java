@@ -119,32 +119,31 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         cache.finalise();
 
         Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
-        if (cachedValues.isEmpty()) {
-            return;
+        if (!cachedValues.isEmpty()) {
+
+            CommitUpdate commitUpdate = eventCache.getEventUpdate(startTimestamp);
+            commitUpdate.accept(new CommitUpdate.Visitor<Void>() {
+                @Override
+                public Void invalidateAll() {
+                    // This might happen due to an election or if we exceeded the maximum number of events held in
+                    // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
+                    // because of read-write conflicts, that is handled in the PreCommitCondition.
+                    return null;
+                }
+
+                @Override
+                public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                    Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                            .map(AtlasLockDescriptorUtils::candidateCells)
+                            .flatMap(List::stream)
+                            .collect(Collectors.toSet());
+                    KeyedStream.stream(cachedValues)
+                            .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
+                            .forEach(valueStore::putValue);
+                    return null;
+                }
+            });
         }
-
-        CommitUpdate commitUpdate = eventCache.getEventUpdate(startTimestamp);
-        commitUpdate.accept(new CommitUpdate.Visitor<Void>() {
-            @Override
-            public Void invalidateAll() {
-                // This might happen due to an election or if we exceeded the maximum number of events held in
-                // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
-                // because of read-write conflicts, that is handled in the PreCommitCondition.
-                return null;
-            }
-
-            @Override
-            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                        .map(AtlasLockDescriptorUtils::candidateCells)
-                        .flatMap(List::stream)
-                        .collect(Collectors.toSet());
-                KeyedStream.stream(cachedValues)
-                        .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                        .forEach(valueStore::putValue);
-                return null;
-            }
-        });
         ensureStateRemoved(startTimestamp);
     }
 
@@ -205,7 +204,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .keySet()
                 .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
 
-        assertNoSnapshotsMissing(reversedMap.keySet());
+        if (valueStore.getSnapshot().hasAnyTablesWatched()) {
+            assertNoSnapshotsMissing(reversedMap.keySet());
+        }
     }
 
     private synchronized boolean isNewEvent(LockWatchEvent event) {
