@@ -25,7 +25,6 @@ import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
-import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
@@ -203,8 +202,6 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .startTsToSequence()
                 .keySet()
                 .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
-
-        //        assertNoSnapshotsMissing(reversedMap.keySet());
     }
 
     private synchronized boolean isNewEvent(LockWatchEvent event) {
@@ -212,13 +209,6 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .map(LockWatchVersion::version)
                 .map(current -> current < event.sequence())
                 .orElse(true);
-    }
-
-    private synchronized void assertNoSnapshotsMissing(Set<Sequence> sequences) {
-        if (sequences.stream().map(snapshotStore::getSnapshotForSequence).anyMatch(Optional::isEmpty)) {
-            throw new TransactionLockWatchFailedException("snapshots were not taken for all sequences; this update "
-                    + "must have been lost and is now too old to process. Transactions should be retried.");
-        }
     }
 
     private synchronized void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
