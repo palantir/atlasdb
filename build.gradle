@@ -106,7 +106,6 @@ allprojects {
                 'DangerousCompletableFutureUsage',
                 'DnsLookup',
                 'EqualsGetClass',
-                'ExtendsErrorOrThrowable',
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
                 'ImmutableEnumChecker',
