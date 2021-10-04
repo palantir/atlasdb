@@ -390,7 +390,7 @@ public class CassandraClientPoolTest {
 
     static class HostBuilder {
         private InetSocketAddress address;
-        private List<Exception> exceptions = new LinkedList<>();
+        private List<Exception> exceptions = new ArrayList<>();
         private boolean returnsValue = true;
 
         HostBuilder(InetSocketAddress address) {

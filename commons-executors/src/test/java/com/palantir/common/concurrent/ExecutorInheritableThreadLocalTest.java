@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Callables;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -34,7 +34,7 @@ import org.junit.Test;
 
 public class ExecutorInheritableThreadLocalTest {
     private static final String orig = "Yo";
-    private static List<Integer> outputList = new LinkedList<>();
+    private static final List<Integer> outputList = new ArrayList<>();
     private final ExecutorService exec = PTExecutors.newCachedThreadPool();
     private static final ExecutorInheritableThreadLocal<String> local = new ExecutorInheritableThreadLocal<String>() {
         @Override
