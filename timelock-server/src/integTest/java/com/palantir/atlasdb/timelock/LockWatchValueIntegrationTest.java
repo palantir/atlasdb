@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Fail.fail;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -59,6 +53,12 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
+import org.awaitility.Awaitility;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
@@ -79,11 +79,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.awaitility.Awaitility;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+
+import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Fail.fail;
 
 public final class LockWatchValueIntegrationTest {
     private static final String TEST_PACKAGE = "package";
@@ -111,19 +112,19 @@ public final class LockWatchValueIntegrationTest {
             generateThreeNodeTimelockCluster(9096, builder -> builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                     .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+    private static final byte[] ROW_1 = PtBytes.toBytes("final");
+    private static final byte[] ROW_2 = PtBytes.toBytes("destination");
+    private static final byte[] ROW_3 = PtBytes.toBytes("awaits");
+    private static final ImmutableList<byte[]> ROWS = ImmutableList.of(ROW_1, ROW_2, ROW_3);
+    private static final byte[] COL_1 = PtBytes.toBytes("parthenon");
+    private static final byte[] COL_2 = PtBytes.toBytes("had");
+    private static final byte[] COL_3 = PtBytes.toBytes("columns");
+    private static final ImmutableList<byte[]> COLS = ImmutableList.of(COL_1, COL_2, COL_3);
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     private TransactionManager txnManager;
-    public static final byte[] ROW_1 = PtBytes.toBytes("final");
-    public static final byte[] ROW_2 = PtBytes.toBytes("destination");
-    public static final byte[] ROW_3 = PtBytes.toBytes("awaits");
-    public static final ImmutableList<byte[]> ROWS = ImmutableList.of(ROW_1, ROW_2, ROW_3);
-    public static final byte[] COL_1 = PtBytes.toBytes("parthenon");
-    public static final byte[] COL_2 = PtBytes.toBytes("had");
-    public static final byte[] COL_3 = PtBytes.toBytes("columns");
-    public static final ImmutableList<byte[]> COLS = ImmutableList.of(COL_1, COL_2, COL_3);
 
     @Before
     public void before() {
