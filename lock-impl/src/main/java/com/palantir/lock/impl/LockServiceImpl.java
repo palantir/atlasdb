@@ -83,12 +83,12 @@ import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -998,7 +998,7 @@ public final class LockServiceImpl
             LockCollection<? extends ClientAwareReadWriteLock> locks, LockClient oldClient, LockClient newClient) {
         com.palantir.logsafe.Preconditions.checkArgument(
                 INTERNAL_LOCK_GRANT_CLIENT.equals(oldClient) != INTERNAL_LOCK_GRANT_CLIENT.equals(newClient));
-        Collection<KnownClientLock> locksToRollback = new LinkedList<>();
+        Collection<KnownClientLock> locksToRollback = new ArrayDeque<>();
         try {
             for (Map.Entry<? extends ClientAwareReadWriteLock, LockMode> entry : locks.entries()) {
                 ClientAwareReadWriteLock lock = entry.getKey();
