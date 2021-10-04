@@ -464,9 +464,10 @@ public final class LockWatchValueScopingCacheImplTest {
 
         // This should cause the cache to progress to version 1 but without a snapshot stored at version 0
         processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1);
-        processStartTransactionsUpdate(LOCK_WATCH_LOCK_SUCCESS, 99L);
+        long timestamp4 = 99L;
+        processStartTransactionsUpdate(LOCK_WATCH_LOCK_SUCCESS, timestamp4);
         processSuccessfulCommit(TIMESTAMP_1, 1L);
-        processSuccessfulCommit(99L, 1L);
+        processSuccessfulCommit(timestamp4, 1L);
 
         // There are timestamps at version 0 (before we have a snapshot) and at version 1; this would previously throw,
         // but now it just causes the transaction to not cache.
