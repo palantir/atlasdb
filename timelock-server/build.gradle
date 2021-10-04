@@ -142,7 +142,6 @@ dependencies {
     testCommonImplementation 'io.dropwizard.metrics:metrics-core'
     testCommonImplementation 'io.dropwizard:dropwizard-jackson'
     testCommonImplementation 'org.awaitility:awaitility'
-    testCommonImplementation 'org.mortbay.jetty.alpn:jetty-alpn-agent'
     testCommonImplementation project(':atlasdb-api')
     testCommonImplementation project(':atlasdb-client')
     testCommonImplementation project(':atlasdb-commons')

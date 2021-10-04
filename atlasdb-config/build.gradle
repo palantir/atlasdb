@@ -69,10 +69,6 @@ dependencies {
 
     api 'com.palantir.dialogue:dialogue-clients'
 
-    // This is added so that AtlasDB clients can specify the javaAgent as a JVM argument to load jars needed for HTTP/2
-    // in the boot classpath
-    runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
-
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'com.google.auto.service:auto-service'
