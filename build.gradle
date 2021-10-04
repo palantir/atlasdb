@@ -121,7 +121,6 @@ allprojects {
                 'MockitoInternalUsage',
                 'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
-                'OperatorPrecedence',
                 'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',

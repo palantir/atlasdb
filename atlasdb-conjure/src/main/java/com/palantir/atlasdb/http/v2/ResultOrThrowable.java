@@ -30,8 +30,8 @@ interface ResultOrThrowable {
 
     @Value.Check
     default void exactlyOneSet() {
-        Preconditions.checkState(result().isPresent() ^ throwable().isPresent()
-                || isSuccessful() && !throwable().isPresent());
+        Preconditions.checkState((result().isPresent() ^ throwable().isPresent())
+                || (isSuccessful() && throwable().isEmpty()));
     }
 
     static ResultOrThrowable success(Object result) {
