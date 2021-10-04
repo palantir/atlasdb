@@ -25,4 +25,5 @@ distribution {
     serviceName "timelock-benchmark-server"
     mainClass 'com.palantir.atlasdb.timelock.benchmarks.server.TimelockBenchmarkServerLauncher'
     args 'server', 'var/conf/timelock.yml'
+    defaultJvmOpts "-Xms512m", "-Xmx4096m"
 }

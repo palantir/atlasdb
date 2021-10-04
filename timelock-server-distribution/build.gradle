@@ -14,6 +14,7 @@ distribution {
     serviceName "timelock-server"
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
     args 'server', 'var/conf/timelock.yml'
+    defaultJvmOpts "-Xms512m", "-Xmx512m"
 }
 
 task runTimeLock(type: JavaExec) {
