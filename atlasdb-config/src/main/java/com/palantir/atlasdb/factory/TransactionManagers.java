@@ -287,21 +287,16 @@ public abstract class TransactionManagers {
      * purposes only.
      */
     public static TransactionManager createInMemory(Set<Schema> schemas) {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(new InMemoryAtlasDbConfig())
-                .build();
-        return builder()
-                .config(config)
-                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
-                .globalMetricsRegistry(new MetricRegistry())
-                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .addAllSchemas(schemas)
-                .build()
-                .serializable();
+        return createInMemory(schemas, Optional.empty());
     }
 
-    // TODO(gs): reuse code
     public static TransactionManager createInMemory(Schema schema, LockAndTimestampServiceFactory factory) {
+        return createInMemory(Set.of(schema), Optional.of(factory));
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static TransactionManager createInMemory(
+            Set<Schema> schemas, Optional<LockAndTimestampServiceFactory> maybeFactory) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .build();
@@ -310,8 +305,8 @@ public abstract class TransactionManagers {
                 .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .lockAndTimestampServiceFactory(Optional.of(factory))
-                .addSchemas(schema)
+                .lockAndTimestampServiceFactory(maybeFactory)
+                .addAllSchemas(schemas)
                 .build()
                 .serializable();
     }
