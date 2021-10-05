@@ -15,23 +15,11 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -329,20 +317,21 @@ public class TransactionManagersTest {
         };
 
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        LockAndTimestampServices lockAndTimestamp = LockAndTimestampServiceFactory.createLockAndTimestampServices(
-                metricsManager,
-                config,
-                Refreshable.only(mockAtlasDbRuntimeConfig),
-                environment,
-                lockServiceSupplier,
-                () -> ts,
-                invalidator,
-                USER_AGENT,
-                Optional.empty(),
-                reloadingFactory,
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableSet.of());
+        LockAndTimestampServices lockAndTimestamp = new DefaultLockAndTimestampServiceFactory(
+                        metricsManager,
+                        config,
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
+                        environment,
+                        lockServiceSupplier,
+                        () -> ts,
+                        invalidator,
+                        USER_AGENT,
+                        Optional.empty(),
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty(),
+                        ImmutableSet.of())
+                .createLockAndTimestampServices();
 
         LockRequest lockRequest = LockRequest.builder(
                         ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
@@ -876,20 +865,21 @@ public class TransactionManagersTest {
 
     private LockAndTimestampServices getLockAndTimestampServices() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        return LockAndTimestampServiceFactory.createLockAndTimestampServices(
-                metricsManager,
-                config,
-                Refreshable.only(mockAtlasDbRuntimeConfig),
-                environment,
-                LockServiceImpl::create,
-                () -> ts,
-                invalidator,
-                USER_AGENT,
-                Optional.empty(),
-                reloadingFactory,
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableSet.of());
+        return new DefaultLockAndTimestampServiceFactory(
+                        metricsManager,
+                        config,
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
+                        environment,
+                        LockServiceImpl::create,
+                        () -> ts,
+                        invalidator,
+                        USER_AGENT,
+                        Optional.empty(),
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty(),
+                        ImmutableSet.of())
+                .createLockAndTimestampServices();
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -898,20 +888,21 @@ public class TransactionManagersTest {
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        LockAndTimestampServices lockAndTimestamp = LockAndTimestampServiceFactory.createLockAndTimestampServices(
-                metricsManager,
-                config,
-                Refreshable.only(mockAtlasDbRuntimeConfig),
-                environment,
-                LockServiceImpl::create,
-                () -> ts,
-                invalidator,
-                USER_AGENT,
-                Optional.empty(),
-                reloadingFactory,
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableSet.of());
+        LockAndTimestampServices lockAndTimestamp = new DefaultLockAndTimestampServiceFactory(
+                        metricsManager,
+                        config,
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
+                        environment,
+                        LockServiceImpl::create,
+                        () -> ts,
+                        invalidator,
+                        USER_AGENT,
+                        Optional.empty(),
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty(),
+                        ImmutableSet.of())
+                .createLockAndTimestampServices();
 
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
