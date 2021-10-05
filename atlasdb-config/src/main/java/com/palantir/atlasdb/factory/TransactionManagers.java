@@ -196,10 +196,7 @@ public abstract class TransactionManagers {
         return false;
     }
 
-    @Value.Default
-    Optional<LockAndTimestampServiceFactory> lockAndTimestampServiceFactory() {
-        return Optional.empty();
-    }
+    abstract Optional<LockAndTimestampServiceFactory> lockAndTimestampServiceFactory();
 
     abstract UserAgent userAgent();
 
