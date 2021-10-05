@@ -434,6 +434,8 @@ public final class LockWatchValueIntegrationTest {
                     startTs.set(txn.getTimestamp());
                     lwCache.set(((LockWatchManagerInternal) txnManager.getLockWatchManager()).getCache());
 
+                    txnManager.getTimestampManagementService().fastForwardTimestamp(txn.getTimestamp() + 1_000_000);
+
                     txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
                     // A write forces this to go through serializable conflict checking
                     txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_1));
