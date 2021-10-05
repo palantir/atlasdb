@@ -41,7 +41,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockEvent;
@@ -132,9 +132,9 @@ public final class LockWatchEventIntegrationTest {
         CommitUpdate firstUpdate = firstCondition.getCommitUpdate();
         CommitUpdate secondUpdate = secondCondition.getCommitUpdate();
 
-        assertThat(extractDescriptorsFromUpdate(firstUpdate)).isEmpty();
-        assertThat(extractDescriptorsFromUpdate(secondUpdate))
-                .containsExactlyInAnyOrderElementsOf(getDescriptors(ROW_1));
+        assertThat(extractDescriptorsFromUpdate(firstUpdate))
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(CELL_2));
+        assertThat(extractDescriptorsFromUpdate(secondUpdate)).isEmpty();
     }
     //
     //    @Test
@@ -245,9 +245,10 @@ public final class LockWatchEventIntegrationTest {
                 .collect(Collectors.toSet());
     }
 
-    private Set<LockDescriptor> getDescriptors(byte[]... rows) {
-        return Stream.of(rows)
-                .map(row -> AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), row))
+    private Set<LockDescriptor> getDescriptors(Cell... cells) {
+        return Stream.of(cells)
+                .map(cell -> AtlasCellLockDescriptor.of(
+                        TABLE_REF.getQualifiedName(), cell.getRowName(), cell.getColumnName()))
                 .collect(Collectors.toSet());
     }
 
