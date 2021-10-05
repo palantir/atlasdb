@@ -68,7 +68,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -562,7 +561,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .setName(tableName)
                 .setComment("")
                 .setColumn_metadata(new ArrayList<>())
-                .setTriggers(new LinkedList<>())
+                .setTriggers(new ArrayList<>())
                 .setKey_alias(new byte[] {0x6B, 0x65, 0x79})
                 .setComparator_type("org.apache.cassandra.db.marshal.CompositeType"
                         + "(org.apache.cassandra.db.marshal.BytesType,org.apache.cassandra.db.marshal.LongType)")

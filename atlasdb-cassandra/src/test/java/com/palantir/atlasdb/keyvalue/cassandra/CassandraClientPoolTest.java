@@ -42,7 +42,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -390,7 +389,7 @@ public class CassandraClientPoolTest {
 
     static class HostBuilder {
         private InetSocketAddress address;
-        private List<Exception> exceptions = new LinkedList<>();
+        private List<Exception> exceptions = new ArrayList<>();
         private boolean returnsValue = true;
 
         HostBuilder(InetSocketAddress address) {
