@@ -62,19 +62,19 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 public final class LockWatchEventIntegrationTest {
-    private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] DATA_3 = "canis est in via".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] DATA_4 = "Quintus Caecilius Iucundus".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] DATA_1 = "snooping".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] DATA_2 = "as".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] DATA_3 = "usual".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] DATA_4 = "I see".getBytes(StandardCharsets.UTF_8);
     private static final Cell CELL_1 =
-            Cell.create("bar".getBytes(StandardCharsets.UTF_8), "baz".getBytes(StandardCharsets.UTF_8));
+            Cell.create("never".getBytes(StandardCharsets.UTF_8), "gonna".getBytes(StandardCharsets.UTF_8));
     private static final Cell CELL_2 =
-            Cell.create("bar".getBytes(StandardCharsets.UTF_8), "spam".getBytes(StandardCharsets.UTF_8));
+            Cell.create("never".getBytes(StandardCharsets.UTF_8), "give".getBytes(StandardCharsets.UTF_8));
     private static final Cell CELL_3 =
-            Cell.create("eggs".getBytes(StandardCharsets.UTF_8), "baz".getBytes(StandardCharsets.UTF_8));
+            Cell.create("you".getBytes(StandardCharsets.UTF_8), "gonna".getBytes(StandardCharsets.UTF_8));
     private static final Cell CELL_4 =
-            Cell.create("eggs".getBytes(StandardCharsets.UTF_8), "spam".getBytes(StandardCharsets.UTF_8));
-    private static final String TABLE = "table";
+            Cell.create("you".getBytes(StandardCharsets.UTF_8), "give".getBytes(StandardCharsets.UTF_8));
+    private static final String TABLE = "fable";
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final String NAMESPACE =
             String.valueOf(ThreadLocalRandom.current().nextLong());
