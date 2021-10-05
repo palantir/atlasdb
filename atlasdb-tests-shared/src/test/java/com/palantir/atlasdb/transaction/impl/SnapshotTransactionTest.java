@@ -335,7 +335,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 metricsManager,
                 keyValueService,
                 timestampService,
-                timestampService,
+                timelockServices.getTimestampManagementService(),
                 lockClient,
                 lockService,
                 transactionService,
@@ -456,7 +456,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 metricsManager,
                 unstableKvs,
                 timestampService,
-                timestampService,
+                timelockServices.getTimestampManagementService(),
                 lockClient,
                 lockService,
                 transactionService,
@@ -944,7 +944,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 metricsManager,
                 keyValueService,
                 timestampService,
-                timestampService,
+                timelockServices.getTimestampManagementService(),
                 lockClient,
                 lockService,
                 transactionService,
@@ -1263,7 +1263,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction snapshot =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP);
 
-        when(timestampServiceSpy.getFreshTimestamp()).thenReturn(10000000L);
+        when(timestampServiceSpy.getFreshTimestamp()).thenReturn(transactionTs + 1);
 
         // forcing to try to commit a transaction that is already committed
         transactionService.putUnlessExists(transactionTs, timelockService.getFreshTimestamp());

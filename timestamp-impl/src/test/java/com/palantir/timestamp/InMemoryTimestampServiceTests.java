@@ -15,8 +15,6 @@
  */
 package com.palantir.timestamp;
 
-import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
-
 public class InMemoryTimestampServiceTests extends AbstractTimestampServiceTests {
     private InMemoryTimestampService inMemoryTimestampService;
 

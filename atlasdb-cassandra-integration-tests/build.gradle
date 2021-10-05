@@ -23,6 +23,7 @@ dependencies {
     testCompile project(":atlasdb-tests-shared")
     testCompile project(":atlasdb-container-test-utils")
     testCompile project(":atlasdb-ete-test-utils")
+    testCompile project(":timelock-impl")
 
     testCompile('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
         exclude module: 'junit'
