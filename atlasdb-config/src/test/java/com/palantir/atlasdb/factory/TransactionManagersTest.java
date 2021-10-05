@@ -18,8 +18,8 @@ package com.palantir.atlasdb.factory;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
