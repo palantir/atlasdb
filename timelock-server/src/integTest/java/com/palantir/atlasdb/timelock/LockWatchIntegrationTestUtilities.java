@@ -95,7 +95,7 @@ public final class LockWatchIntegrationTestUtilities {
     }
 
     private static Schema createSchema() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+        Schema schema = new Schema("table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         TableDefinition tableDef = new TableDefinition() {
             {
                 rowName();
