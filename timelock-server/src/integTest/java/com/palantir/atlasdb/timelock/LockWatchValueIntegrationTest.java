@@ -75,7 +75,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
@@ -113,6 +112,8 @@ public final class LockWatchValueIntegrationTest {
             generateThreeNodeTimelockCluster(9096, builder -> builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                     .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+    private static final String NAMESPACE =
+            String.valueOf(ThreadLocalRandom.current().nextLong());
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
@@ -284,7 +285,7 @@ public final class LockWatchValueIntegrationTest {
         putValue();
         readValueAndAssertLoadedFromRemote();
 
-        CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
+        CLUSTER.failoverToNewLeader(NAMESPACE);
         awaitTableWatched();
 
         readValueAndAssertLoadedFromRemote();
@@ -304,7 +305,7 @@ public final class LockWatchValueIntegrationTest {
             assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1));
             assertLoadedValues(txn, ImmutableMap.of());
 
-            CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
+            CLUSTER.failoverToNewLeader(NAMESPACE);
             awaitTableWatched();
 
             assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
@@ -331,23 +332,19 @@ public final class LockWatchValueIntegrationTest {
         putValue();
         readValueAndAssertLoadedFromRemote();
 
-        AtomicBoolean firstAttempt = new AtomicBoolean(true);
-
-        assertThatCode(() -> txnManager.runTaskWithRetry(txn -> {
+        assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
                     assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
 
-                    if (firstAttempt.getAndSet(false)) {
-                        CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
-                        awaitTableWatched();
-                    }
+                    CLUSTER.failoverToNewLeader(NAMESPACE);
+                    awaitTableWatched();
 
                     txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
                     assertHitValues(txn, ImmutableSet.of());
                     return null;
                 }))
-                .doesNotThrowAnyException();
+                .isInstanceOf(TransactionFailedRetriableException.class);
 
-        assertThat(firstAttempt).isFalse();
+        readValueAndAssertLoadedFromRemote();
 
         txnManager.runTaskThrowOnConflict(txn -> {
             assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
@@ -730,7 +727,7 @@ public final class LockWatchValueIntegrationTest {
     private void createTransactionManager(double validationProbability) {
         txnManager = TimeLockTestUtils.createTransactionManager(
                         CLUSTER,
-                        Namespace.DEFAULT_NAMESPACE.getName(),
+                        NAMESPACE,
                         AtlasDbRuntimeConfig.defaultRuntimeConfig(),
                         ImmutableAtlasDbConfig.builder()
                                 .lockWatchCaching(LockWatchCachingConfig.builder()
