@@ -30,10 +30,13 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.lock.TransactionId;
+import com.palantir.atlasdb.lock.WriteRequest;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.flake.ShouldRetry;
@@ -58,6 +61,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -113,8 +117,17 @@ public final class LockWatchEventIntegrationTest {
         awaitTableWatched();
     }
 
+    final class CommitUpdateExtractingCondition implements PreCommitCondition {
+        private final AtomicLong startTimestamp = new AtomicLong(-1L);
+        private CommitUpdate commitUpdate;
+
+        @Override
+        public void throwIfConditionInvalid(long timestamp) {}
+    }
+
     @Test
     public void commitUpdatesDoNotContainTheirOwnCommitLocks() {
+
         TransactionId firstTxn = lockWatcher.startTransaction();
         lockWatcher.write(WriteRequest.of(firstTxn, ROW_1));
 
