@@ -27,21 +27,15 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampRange;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 final class DelegatingTimelockService implements TimelockService {
     private final AsyncTimelockService timelock;
@@ -68,32 +62,6 @@ final class DelegatingTimelockService implements TimelockService {
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
         return timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
-    }
-
-    // TODO(gs): copied from LegacyTimelockService
-    @Override
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        // Track these separately in the case that getFreshTimestamp fails but lockImmutableTimestamp succeeds
-        List<LockImmutableTimestampResponse> immutableTimestampLocks = new ArrayList<>();
-        List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
-        try {
-            IntStream.range(0, count).forEach($ -> {
-                LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
-                immutableTimestampLocks.add(immutableTimestamp);
-                responses.add(StartIdentifiedAtlasDbTransactionResponse.of(
-                        immutableTimestamp, TimestampAndPartition.of(getFreshTimestamp(), 0)));
-            });
-            return responses;
-        } catch (RuntimeException | Error throwable) {
-            try {
-                unlock(immutableTimestampLocks.stream()
-                        .map(LockImmutableTimestampResponse::getLock)
-                        .collect(Collectors.toSet()));
-            } catch (Throwable unlockThrowable) {
-                throwable.addSuppressed(unlockThrowable);
-            }
-            throw throwable;
-        }
     }
 
     @Override
