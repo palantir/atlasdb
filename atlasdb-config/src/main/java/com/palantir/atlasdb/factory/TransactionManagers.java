@@ -196,6 +196,11 @@ public abstract class TransactionManagers {
         return false;
     }
 
+    @Value.Default
+    Optional<Supplier<ManagedTimestampService>> managedTimestampServiceSupplier() {
+        return Optional.empty();
+    }
+
     abstract UserAgent userAgent();
 
     abstract Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders();
@@ -295,6 +300,23 @@ public abstract class TransactionManagers {
                 .serializable();
     }
 
+    // TODO(gs): reuse code
+    public static TransactionManager createInMemory(
+            Schema schema, Supplier<ManagedTimestampService> managedTimestampServiceSupplier) {
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+        return builder()
+                .config(config)
+                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .addSchemas(schema)
+                .managedTimestampServiceSupplier(Optional.of(managedTimestampServiceSupplier))
+                .build()
+                .serializable();
+    }
+
     @JsonIgnore
     @Value.Derived
     public TransactionManager serializable() {
@@ -353,7 +375,8 @@ public abstract class TransactionManagers {
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config().getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
 
-        Supplier<ManagedTimestampService> managedTimestampSupplier = atlasFactory::getManagedTimestampService;
+        Supplier<ManagedTimestampService> managedTimestampSupplier =
+                managedTimestampServiceSupplier().orElse(atlasFactory::getManagedTimestampService);
 
         LockAndTimestampServices lockAndTimestampServices =
                 LockAndTimestampServiceFactory.createLockAndTimestampServices(
