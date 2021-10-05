@@ -16,7 +16,11 @@
 
 package com.palantir.atlasdb.timelock;
 
+import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -30,8 +34,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.lock.TransactionId;
-import com.palantir.atlasdb.lock.WriteRequest;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -39,7 +41,6 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
@@ -47,15 +48,8 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
-import org.awaitility.Awaitility;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collection;
@@ -65,9 +59,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.awaitility.Awaitility;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 public final class LockWatchEventIntegrationTest {
     private static final String TEST_PACKAGE = "package";
@@ -117,95 +113,99 @@ public final class LockWatchEventIntegrationTest {
         awaitTableWatched();
     }
 
-    final class CommitUpdateExtractingCondition implements PreCommitCondition {
-        private final AtomicLong startTimestamp = new AtomicLong(-1L);
-        private CommitUpdate commitUpdate;
-
-        @Override
-        public void throwIfConditionInvalid(long timestamp) {}
-    }
-
     @Test
     public void commitUpdatesDoNotContainTheirOwnCommitLocks() {
+        CommitUpdateExtractingCondition firstCondition = new CommitUpdateExtractingCondition();
+        CommitUpdateExtractingCondition secondCondition = new CommitUpdateExtractingCondition();
 
-        TransactionId firstTxn = lockWatcher.startTransaction();
-        lockWatcher.write(WriteRequest.of(firstTxn, ROW_1));
+        txnManager.runTaskWithConditionThrowOnConflict(firstCondition, (outerTxn, _unused1) -> {
+            firstCondition.setStartTimestamp(outerTxn.getTimestamp());
+            outerTxn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
+            txnManager.runTaskWithConditionThrowOnConflict(secondCondition, (innerTxn, _unused2) -> {
+                secondCondition.setStartTimestamp(innerTxn.getTimestamp());
+                innerTxn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
+                return null;
+            });
+            return null;
+        });
 
-        TransactionId secondTxn = lockWatcher.startTransaction();
-        lockWatcher.write(WriteRequest.of(secondTxn, ROW_2));
-
-        CommitUpdate firstUpdate = lockWatcher.endTransaction(firstTxn).get();
-        CommitUpdate secondUpdate = lockWatcher.endTransaction(secondTxn).get();
+        CommitUpdate firstUpdate = firstCondition.getCommitUpdate();
+        CommitUpdate secondUpdate = secondCondition.getCommitUpdate();
 
         assertThat(extractDescriptorsFromUpdate(firstUpdate)).isEmpty();
         assertThat(extractDescriptorsFromUpdate(secondUpdate))
                 .containsExactlyInAnyOrderElementsOf(getDescriptors(ROW_1));
     }
-
-    @Test
-    @ShouldRetry
-    public void multipleTransactionVersionsReturnsSnapshotAndOnlyRelevantRecentEvents() {
-        LockWatchVersion baseVersion = seedCacheAndGetVersion();
-
-        writeValues(ROW_1, ROW_2);
-        TransactionId secondTxn = lockWatcher.startTransaction();
-
-        writeValues(row(3));
-        TransactionId fourthTxn = lockWatcher.startTransaction();
-
-        TransactionsLockWatchUpdate update = lockWatcher.getUpdate(GetLockWatchUpdateRequest.of(
-                ImmutableSet.of(secondTxn.startTs(), fourthTxn.startTs()), Optional.empty()));
-
-        assertThat(update.clearCache()).isTrue();
-        assertThat(update.startTsToSequence().get(secondTxn.startTs()).version())
-                .isEqualTo(baseVersion.version() + 2);
-        assertThat(update.startTsToSequence().get(fourthTxn.startTs()).version())
-                .isEqualTo(baseVersion.version() + 4);
-        assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
-        assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
-        assertThat(watchDescriptors(update.events())).isEmpty();
-
-        lockWatcher.endTransaction(secondTxn);
-        lockWatcher.endTransaction(fourthTxn);
-    }
-
-    @Test
-    @ShouldRetry // TODO(jshah): Unlocks are async, and thus not always registered
-    public void upToDateVersionReturnsOnlyNecessaryEvents() {
-        LockWatchVersion baseVersion = seedCacheAndGetVersion();
-
-        writeValues(ROW_1);
-        TransactionId firstTxn = lockWatcher.startTransaction();
-        writeValues(ROW_2);
-        LockWatchVersion currentVersion = getCurrentVersion();
-        writeValues(ROW_3);
-        TransactionId secondTxn = lockWatcher.startTransaction();
-
-        TransactionsLockWatchUpdate update = lockWatcher.getUpdate(GetLockWatchUpdateRequest.of(
-                ImmutableSet.of(firstTxn.startTs(), secondTxn.startTs()), Optional.of(currentVersion)));
-
-        assertThat(update.clearCache()).isFalse();
-        assertThat(update.startTsToSequence().get(firstTxn.startTs()).version()).isEqualTo(baseVersion.version() + 2);
-        assertThat(update.startTsToSequence().get(secondTxn.startTs()).version())
-                .isEqualTo(currentVersion.version() + 2);
-        assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
-        assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
-        assertThat(watchDescriptors(update.events())).isEmpty();
-    }
-
-    private void writeValues(String... rows) {
-        TransactionId txn = lockWatcher.startTransaction();
-        lockWatcher.write(WriteRequest.of(txn, rows));
-        lockWatcher.endTransaction(txn);
-    }
-
-    private LockWatchVersion seedCacheAndGetVersion() {
-        TransactionId txn = lockWatcher.startTransaction();
-        lockWatcher.write(WriteRequest.of(txn, SEED));
-        lockWatcher.endTransaction(txn);
-
-        return getCurrentVersion();
-    }
+    //
+    //    @Test
+    //    @ShouldRetry
+    //    public void multipleTransactionVersionsReturnsSnapshotAndOnlyRelevantRecentEvents() {
+    //        LockWatchVersion baseVersion = seedCacheAndGetVersion();
+    //
+    //        writeValues(ROW_1, ROW_2);
+    //        TransactionId secondTxn = lockWatcher.startTransaction();
+    //
+    //        writeValues(row(3));
+    //        TransactionId fourthTxn = lockWatcher.startTransaction();
+    //
+    //        TransactionsLockWatchUpdate update = lockWatcher.getUpdate(GetLockWatchUpdateRequest.of(
+    //                ImmutableSet.of(secondTxn.startTs(), fourthTxn.startTs()), Optional.empty()));
+    //
+    //        assertThat(update.clearCache()).isTrue();
+    //        assertThat(update.startTsToSequence().get(secondTxn.startTs()).version())
+    //                .isEqualTo(baseVersion.version() + 2);
+    //        assertThat(update.startTsToSequence().get(fourthTxn.startTs()).version())
+    //                .isEqualTo(baseVersion.version() + 4);
+    //
+    // assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
+    //
+    // assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
+    //        assertThat(watchDescriptors(update.events())).isEmpty();
+    //
+    //        lockWatcher.endTransaction(secondTxn);
+    //        lockWatcher.endTransaction(fourthTxn);
+    //    }
+    //
+    //    @Test
+    //    @ShouldRetry // TODO(jshah): Unlocks are async, and thus not always registered
+    //    public void upToDateVersionReturnsOnlyNecessaryEvents() {
+    //        LockWatchVersion baseVersion = seedCacheAndGetVersion();
+    //
+    //        writeValues(ROW_1);
+    //        TransactionId firstTxn = lockWatcher.startTransaction();
+    //        writeValues(ROW_2);
+    //        LockWatchVersion currentVersion = getCurrentVersion();
+    //        writeValues(ROW_3);
+    //        TransactionId secondTxn = lockWatcher.startTransaction();
+    //
+    //        TransactionsLockWatchUpdate update = lockWatcher.getUpdate(GetLockWatchUpdateRequest.of(
+    //                ImmutableSet.of(firstTxn.startTs(), secondTxn.startTs()), Optional.of(currentVersion)));
+    //
+    //        assertThat(update.clearCache()).isFalse();
+    //        assertThat(update.startTsToSequence().get(firstTxn.startTs()).version()).isEqualTo(baseVersion.version() +
+    // 2);
+    //        assertThat(update.startTsToSequence().get(secondTxn.startTs()).version())
+    //                .isEqualTo(currentVersion.version() + 2);
+    //
+    // assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
+    //
+    // assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
+    //        assertThat(watchDescriptors(update.events())).isEmpty();
+    //    }
+    //
+    //    private void writeValues(String... rows) {
+    //        TransactionId txn = lockWatcher.startTransaction();
+    //        lockWatcher.write(WriteRequest.of(txn, rows));
+    //        lockWatcher.endTransaction(txn);
+    //    }
+    //
+    //    private LockWatchVersion seedCacheAndGetVersion() {
+    //        TransactionId txn = lockWatcher.startTransaction();
+    //        lockWatcher.write(WriteRequest.of(txn, SEED));
+    //        lockWatcher.endTransaction(txn);
+    //
+    //        return getCurrentVersion();
+    //    }
 
     private Set<LockDescriptor> lockedDescriptors(Collection<LockWatchEvent> events) {
         return getDescriptorsFromLockWatchEvent(events, LockEventVisitor.INSTANCE);
@@ -226,28 +226,28 @@ public final class LockWatchEventIntegrationTest {
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet()));
     }
-
-    private LockWatchVersion getCurrentVersion() {
-        TransactionId emptyTxn = lockWatcher.startTransaction();
-        TransactionsLockWatchUpdate update = lockWatcher.getUpdate(
-                GetLockWatchUpdateRequest.of(ImmutableSet.of(emptyTxn.startTs()), Optional.empty()));
-        LockWatchVersion version = update.startTsToSequence().get(emptyTxn.startTs());
-        lockWatcher.endTransaction(emptyTxn);
-        return version;
-    }
-
+    //
+    //    private LockWatchVersion getCurrentVersion() {
+    //        TransactionId emptyTxn = lockWatcher.startTransaction();
+    //        TransactionsLockWatchUpdate update = lockWatcher.getUpdate(
+    //                GetLockWatchUpdateRequest.of(ImmutableSet.of(emptyTxn.startTs()), Optional.empty()));
+    //        LockWatchVersion version = update.startTsToSequence().get(emptyTxn.startTs());
+    //        lockWatcher.endTransaction(emptyTxn);
+    //        return version;
+    //    }
+    //
     private Set<LockDescriptor> filterDescriptors(Set<LockDescriptor> descriptors) {
         return descriptors.stream()
                 .filter(desc -> AtlasLockDescriptorUtils.tryParseTableRef(desc)
                         .get()
                         .tableRef()
-                        .equals(tableReference))
+                        .equals(TABLE_REF))
                 .collect(Collectors.toSet());
     }
 
-    private Set<LockDescriptor> getDescriptors(String... rows) {
+    private Set<LockDescriptor> getDescriptors(byte[]... rows) {
         return Stream.of(rows)
-                .map(row -> AtlasRowLockDescriptor.of(this.tableReference.getQualifiedName(), PtBytes.toBytes(row)))
+                .map(row -> AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), row))
                 .collect(Collectors.toSet());
     }
 
@@ -401,5 +401,26 @@ public final class LockWatchEventIntegrationTest {
         };
         schema.addTableDefinition(TABLE, tableDef);
         return schema;
+    }
+
+    final class CommitUpdateExtractingCondition implements PreCommitCondition {
+        private final AtomicLong startTimestamp = new AtomicLong(-1L);
+        private CommitUpdate commitUpdate;
+
+        void setStartTimestamp(long startTs) {
+            startTimestamp.set(startTs);
+        }
+
+        CommitUpdate getCommitUpdate() {
+            return commitUpdate;
+        }
+
+        @Override
+        public void throwIfConditionInvalid(long timestamp) {
+            if (timestamp != startTimestamp.get()) {
+                LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
+                commitUpdate = lockWatchManager.getCache().getEventCache().getCommitUpdate(startTimestamp.get());
+            }
+        }
     }
 }
