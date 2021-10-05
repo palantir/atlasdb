@@ -378,8 +378,7 @@ public abstract class TransactionManagers {
         Supplier<ManagedTimestampService> managedTimestampSupplier =
                 managedTimestampServiceSupplier().orElse(atlasFactory::getManagedTimestampService);
 
-        LockAndTimestampServices lockAndTimestampServices =
-                LockAndTimestampServiceFactory.createLockAndTimestampServices(
+        LockAndTimestampServices lockAndTimestampServices = new DefaultLockAndTimestampServiceFactory(
                         metricsManager,
                         config(),
                         runtime,
@@ -392,7 +391,8 @@ public abstract class TransactionManagers {
                         reloadingFactory(),
                         timeLockFeedbackBackgroundTask,
                         timelockRequestBatcherProviders(),
-                        schemas());
+                        schemas())
+                .createLockAndTimestampServices();
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -594,7 +594,7 @@ public abstract class TransactionManagers {
             UserAgent userAgent,
             DialogueClients.ReloadingFactory reloadingFactory) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
-                LockAndTimestampServiceFactory.getServerListConfigSupplierForTimeLock(config, runtimeConfig);
+                DefaultLockAndTimestampServiceFactory.getServerListConfigSupplierForTimeLock(config, runtimeConfig);
 
         BroadcastDialogueClientFactory broadcastDialogueClientFactory = BroadcastDialogueClientFactory.create(
                 reloadingFactory,
@@ -924,7 +924,7 @@ public abstract class TransactionManagers {
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
-                LockAndTimestampServiceFactory.createRawInstrumentedServices(
+                DefaultLockAndTimestampServiceFactory.createRawInstrumentedServices(
                         metricsManager,
                         config,
                         runtimeConfigSupplier,
