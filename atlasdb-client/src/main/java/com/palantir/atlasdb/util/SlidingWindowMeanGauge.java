@@ -39,6 +39,7 @@ public class SlidingWindowMeanGauge implements Gauge<Double> {
         histogram.update(entry);
     }
 
+    @SuppressWarnings("VisibleForTestingPackagePrivate") // used in SweepMetricsAssert
     @VisibleForTesting
     public Snapshot getSnapshot() {
         return histogram.getSnapshot();

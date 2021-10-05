@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
+@SuppressWarnings("VisibleForTestingPackagePrivate") // used in LockServiceStateLoggerTest
 @VisibleForTesting
 public class LockClientIndices {
     private final Map<LockClient, Integer> indexByClient = new ConcurrentHashMap<>();

@@ -147,6 +147,7 @@ public final class LockServiceImpl
         final T realToken;
         final LockCollection<? extends ClientAwareReadWriteLock> locks;
 
+        @SuppressWarnings("VisibleForTestingPackagePrivate") // used in LockServiceStateLoggerTest
         @VisibleForTesting
         public static <T extends ExpiringToken> HeldLocks<T> of(
                 T token, LockCollection<? extends ClientAwareReadWriteLock> locks) {
@@ -557,7 +558,7 @@ public final class LockServiceImpl
     }
 
     @VisibleForTesting
-    protected void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+    void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
         final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
 
         // Note: The construction of params is pushed into the branches, as it may be expensive.
@@ -577,7 +578,7 @@ public final class LockServiceImpl
     }
 
     @VisibleForTesting
-    protected boolean isSlowLogEnabled() {
+    boolean isSlowLogEnabled() {
         return slowLogTriggerMillis > 0;
     }
 

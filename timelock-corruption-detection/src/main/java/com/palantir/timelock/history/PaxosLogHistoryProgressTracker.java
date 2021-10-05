@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
 
 public class PaxosLogHistoryProgressTracker {
+    @SuppressWarnings("VisibleForTestingPackagePrivate") // used in corruption-detection tests
     @VisibleForTesting
     public static final int MAX_ROWS_ALLOWED = 250;
 
