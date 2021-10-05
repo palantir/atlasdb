@@ -30,7 +30,7 @@ public final class LockTokenConverter {
         return new LockRefreshToken(toBigInteger(tokenV2.getRequestId()), Long.MIN_VALUE);
     }
 
-    public static LockToken toTokenV2(LockRefreshToken legacyToken) {
+    static LockToken toTokenV2(LockRefreshToken legacyToken) {
         return LockToken.of(toUuid(legacyToken.getTokenId()));
     }
 
