@@ -22,7 +22,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-final class LockTokenConverter {
+public final class LockTokenConverter {
 
     private LockTokenConverter() {}
 
@@ -30,7 +30,7 @@ final class LockTokenConverter {
         return new LockRefreshToken(toBigInteger(tokenV2.getRequestId()), Long.MIN_VALUE);
     }
 
-    static LockToken toTokenV2(LockRefreshToken legacyToken) {
+    public static LockToken toTokenV2(LockRefreshToken legacyToken) {
         return LockToken.of(toUuid(legacyToken.getTokenId()));
     }
 

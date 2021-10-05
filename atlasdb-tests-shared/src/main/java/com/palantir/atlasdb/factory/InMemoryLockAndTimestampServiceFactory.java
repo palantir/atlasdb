@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.factory;
 
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampService;
 
@@ -37,8 +35,7 @@ public class InMemoryLockAndTimestampServiceFactory implements LockAndTimestampS
                 .lock(lock)
                 .timestamp(time)
                 .timestampManagement(services.getTimestampManagementService())
-                // TODO(gs): pass client name from IMTS
-                .timelock(new LegacyTimelockService(time, lock, LockClient.of("client")))
+                .timelock(services.getLegacyTimelockService())
                 .build();
     }
 }
