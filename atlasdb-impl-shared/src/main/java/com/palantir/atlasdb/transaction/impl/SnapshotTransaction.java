@@ -1347,6 +1347,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).inc(rawResults.size());
 
         // LinkedList is chosen for fast append operation since we just add to this collection.
+        @SuppressWarnings("JdkObsolete")
         Collection<Map.Entry<Cell, T>> resultsAccumulator = new LinkedList<>();
 
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {

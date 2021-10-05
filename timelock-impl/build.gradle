@@ -88,7 +88,6 @@ dependencies {
     compileOnly 'org.derive4j:derive4j-annotation'
 
     testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
-    testCompile project(":atlasdb-tests-shared")
 
     testCompile group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
     testCompile group: 'com.palantir.conjure.java.api', name: 'test-utils'

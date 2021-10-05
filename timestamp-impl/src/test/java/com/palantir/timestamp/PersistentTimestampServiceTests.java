@@ -18,7 +18,6 @@ package com.palantir.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import org.junit.Test;
 

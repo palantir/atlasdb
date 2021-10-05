@@ -53,6 +53,11 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
         return enabledTables().contains(tableReference);
     }
 
+    @Override
+    default boolean hasAnyTablesWatched() {
+        return !enabledTables().isEmpty();
+    }
+
     static ValueCacheSnapshot of(
             Map<CellReference, CacheEntry> values,
             Set<TableReference> enabledTables,

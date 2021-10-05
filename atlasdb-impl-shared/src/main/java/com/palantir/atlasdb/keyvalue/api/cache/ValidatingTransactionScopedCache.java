@@ -39,11 +39,11 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -134,7 +134,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                             .filter(Objects::nonNull)
                             .collectToMap(),
                     rowsToRead -> {
-                        SortedSet<byte[]> toReadSorted = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
+                        NavigableSet<byte[]> toReadSorted = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
                         rowsToRead.forEach(toReadSorted::add);
                         return Maps.filterKeys(remoteReads, toReadSorted::contains);
                     });

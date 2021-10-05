@@ -44,10 +44,6 @@ public class TimeLockServerHolder extends ExternalResource {
 
     static final String ALL_NAMESPACES = "/[a-zA-Z0-9_-]+/.*";
 
-    static {
-        Http2Agent.install();
-    }
-
     static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
 
     private final Supplier<String> configFilePathSupplier;

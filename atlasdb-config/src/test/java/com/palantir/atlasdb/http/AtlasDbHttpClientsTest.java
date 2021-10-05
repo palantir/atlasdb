@@ -51,7 +51,7 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.net.SocketTimeoutException;
 import java.nio.file.Paths;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -261,7 +261,7 @@ public class AtlasDbHttpClientsTest {
 
     private static final class RetryOtherFirstResponseTransformer extends ResponseTransformer {
 
-        private final List<String> urls = new LinkedList<>();
+        private final List<String> urls = new ArrayList<>();
 
         private final AtomicBoolean firstRequestDone = new AtomicBoolean(false);
 

@@ -22,11 +22,14 @@ import static org.mockito.Mockito.when;
 import com.google.common.base.Suppliers;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampService;
 import java.util.function.LongSupplier;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class AsyncPuncherTest {
 
@@ -39,10 +42,20 @@ public class AsyncPuncherTest {
     };
 
     private TimestampService timestampService;
+    private InMemoryTimelockServices timelockServices;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
     public void setup() {
-        timestampService = new InMemoryTimestampService();
+        timelockServices = InMemoryTimelockServices.create(tempFolder);
+        timestampService = timelockServices.getTimestampService();
+    }
+
+    @After
+    public void tearDown() {
+        timelockServices.close();
     }
 
     private AsyncPuncher setupPuncher(LongSupplier backupTimestampSupplier) {

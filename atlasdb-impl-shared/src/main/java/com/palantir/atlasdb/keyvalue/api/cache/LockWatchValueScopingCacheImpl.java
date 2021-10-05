@@ -33,6 +33,9 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
+    private static final SafeLogger log = SafeLoggerFactory.get(LockWatchValueScopingCacheImpl.class);
     private static final int MAX_CACHE_COUNT = 20_000;
     private final LockWatchEventCache eventCache;
     private final CacheStore cacheStore;
@@ -119,32 +123,31 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         cache.finalise();
 
         Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
-        if (cachedValues.isEmpty()) {
-            return;
+        if (!cachedValues.isEmpty()) {
+
+            CommitUpdate commitUpdate = eventCache.getEventUpdate(startTimestamp);
+            commitUpdate.accept(new CommitUpdate.Visitor<Void>() {
+                @Override
+                public Void invalidateAll() {
+                    // This might happen due to an election or if we exceeded the maximum number of events held in
+                    // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
+                    // because of read-write conflicts, that is handled in the PreCommitCondition.
+                    return null;
+                }
+
+                @Override
+                public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                    Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                            .map(AtlasLockDescriptorUtils::candidateCells)
+                            .flatMap(List::stream)
+                            .collect(Collectors.toSet());
+                    KeyedStream.stream(cachedValues)
+                            .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
+                            .forEach(valueStore::putValue);
+                    return null;
+                }
+            });
         }
-
-        CommitUpdate commitUpdate = eventCache.getEventUpdate(startTimestamp);
-        commitUpdate.accept(new CommitUpdate.Visitor<Void>() {
-            @Override
-            public Void invalidateAll() {
-                // This might happen due to an election or if we exceeded the maximum number of events held in
-                // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
-                // because of read-write conflicts, that is handled in the PreCommitCondition.
-                return null;
-            }
-
-            @Override
-            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                        .map(AtlasLockDescriptorUtils::candidateCells)
-                        .flatMap(List::stream)
-                        .collect(Collectors.toSet());
-                KeyedStream.stream(cachedValues)
-                        .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                        .forEach(valueStore::putValue);
-                return null;
-            }
-        });
         ensureStateRemoved(startTimestamp);
     }
 
@@ -205,7 +208,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .keySet()
                 .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
 
-        assertNoSnapshotsMissing(reversedMap.keySet());
+        if (valueStore.getSnapshot().hasAnyTablesWatched()) {
+            assertNoSnapshotsMissing(reversedMap);
+        }
     }
 
     private synchronized boolean isNewEvent(LockWatchEvent event) {
@@ -215,10 +220,17 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .orElse(true);
     }
 
-    private synchronized void assertNoSnapshotsMissing(Set<Sequence> sequences) {
-        if (sequences.stream()
-                .map(snapshotStore::getSnapshotForSequence)
-                .anyMatch(maybeSnapshot -> !maybeSnapshot.isPresent())) {
+    private synchronized void assertNoSnapshotsMissing(Multimap<Sequence, StartTimestamp> reversedMap) {
+        Set<Sequence> sequences = reversedMap.keySet();
+        if (sequences.stream().map(snapshotStore::getSnapshotForSequence).anyMatch(Optional::isEmpty)) {
+            log.warn(
+                    "snapshots were not taken for all sequences; logging additional information",
+                    SafeArg.of("numSequences", sequences),
+                    SafeArg.of(
+                            "firstHundredSequences",
+                            sequences.stream().limit(100).collect(Collectors.toSet())),
+                    SafeArg.of("currentVersion", currentVersion),
+                    SafeArg.of("numTransactions", reversedMap.values().size()));
             throw new TransactionLockWatchFailedException("snapshots were not taken for all sequences; this update "
                     + "must have been lost and is now too old to process. Transactions should be retried.");
         }

@@ -1293,7 +1293,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testReadMyWritesManager() {
-        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+        createAndRegisterManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
             put(t, "row1", "col1", "v1");
             put(t, "row1", "col2", "v2");
             put(t, "row2", "col1", "v3");
@@ -1322,7 +1322,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testDelete() {
-        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+        createAndRegisterManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
             put(t, "row1", "col1", "v1");
             assertThat(get(t, "row1", "col1")).isEqualTo("v1");
             delete(t, "row1", "col1");

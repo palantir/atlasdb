@@ -114,7 +114,6 @@ allprojects {
                 'InconsistentCapitalization',
                 'InlineFormatString',
                 'JavaTimeDefaultTimeZone',
-                'JdkObsolete',
                 'LogSafePreconditionsMessageFormat',
                 'MissingSummary',
                 'MixedMutabilityReturnType',

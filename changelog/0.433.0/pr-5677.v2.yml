@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Relax a lock-watch-based constraint when starting transactions. The
+    impact of this change is that starting transactions should succeed more often,
+    but some transactions may not be eligible to use the cache.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5677
