@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.factory.InMemoryLockAndTimestampServiceFactory;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -57,7 +58,7 @@ public class ProfileStoreTest {
     public void before() {
         services = InMemoryTimelockServices.create(tempFolder);
         txnMgr = TransactionManagers.createInMemory(
-                ProfileSchema.INSTANCE.getLatestSchema(), services::getTimelockService);
+                ProfileSchema.INSTANCE.getLatestSchema(), new InMemoryLockAndTimestampServiceFactory(services));
     }
 
     @After
