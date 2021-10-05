@@ -25,18 +25,14 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.impl.LockTokenConverter;
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
@@ -67,8 +63,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -245,12 +239,18 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
 
         @Override
         public LockResponse lock(LockRequest request) {
-            LockRefreshToken legacyToken = lockAnonymous(toLegacyLockRequest(request));
-            if (legacyToken == null) {
-                return LockResponse.timedOut();
-            } else {
-                return LockResponse.successful(LockTokenConverter.toTokenV2(legacyToken));
-            }
+            LockResponseV2 lockResponseV2 = tryGet(timelock.lock(IdentifiedLockRequest.from(request)));
+            return lockResponseV2.accept(new LockResponseV2.Visitor<>() {
+                @Override
+                public LockResponse visit(LockResponseV2.Successful successful) {
+                    return LockResponse.successful(successful.getToken());
+                }
+
+                @Override
+                public LockResponse visit(LockResponseV2.Unsuccessful failure) {
+                    return LockResponse.timedOut();
+                }
+            });
         }
 
         @Override
@@ -291,33 +291,6 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new SafeRuntimeException("Async request failed", e);
             }
-        }
-
-        // TODO(gs): utilities copied from LegacyTimelockService
-        private LockRefreshToken lockAnonymous(com.palantir.lock.LockRequest request) {
-            try {
-                // TODO(gs): use fixed client
-                return getLockService().lock(LockClient.ANONYMOUS.getClientId(), request);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(ex);
-            }
-        }
-
-        private com.palantir.lock.LockRequest toLegacyLockRequest(LockRequest request) {
-            SortedMap<LockDescriptor, LockMode> locks = buildLockMap(request.getLockDescriptors(), LockMode.WRITE);
-            return com.palantir.lock.LockRequest.builder(locks)
-                    .blockForAtMost(SimpleTimeDuration.of(request.getAcquireTimeoutMs(), TimeUnit.MILLISECONDS))
-                    .build();
-        }
-
-        private SortedMap<LockDescriptor, LockMode> buildLockMap(
-                Set<LockDescriptor> lockDescriptors, LockMode lockMode) {
-            SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
-            for (LockDescriptor descriptor : lockDescriptors) {
-                locks.put(descriptor, lockMode);
-            }
-            return locks;
         }
     }
 }
