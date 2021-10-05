@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.config;
 
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestRuntimeConfig;
 import java.util.Optional;
 
 public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfiguration {
