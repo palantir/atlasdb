@@ -80,10 +80,10 @@ public final class LockWatchIntegrationTestUtilities {
     }
 
     public static TransactionManager createTransactionManager(
-            double validationProbability, TestableTimelockCluster timelockCluster) {
+            double validationProbability, TestableTimelockCluster timelockCluster, String namespace) {
         return TimeLockTestUtils.createTransactionManager(
                         timelockCluster,
-                        Namespace.DEFAULT_NAMESPACE.getName(),
+                        namespace,
                         AtlasDbRuntimeConfig.defaultRuntimeConfig(),
                         ImmutableAtlasDbConfig.builder()
                                 .lockWatchCaching(LockWatchCachingConfig.builder()

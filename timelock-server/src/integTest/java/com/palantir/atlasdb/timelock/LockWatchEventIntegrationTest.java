@@ -24,20 +24,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.table.description.TableDefinition;
-import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.lock.AtlasCellLockDescriptor;
@@ -49,6 +43,7 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -57,6 +52,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -66,7 +62,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 public final class LockWatchEventIntegrationTest {
-    private static final String TEST_PACKAGE = "package";
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_3 = "canis est in via".getBytes(StandardCharsets.UTF_8);
@@ -81,10 +76,12 @@ public final class LockWatchEventIntegrationTest {
             Cell.create("eggs".getBytes(StandardCharsets.UTF_8), "spam".getBytes(StandardCharsets.UTF_8));
     private static final String TABLE = "table";
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
+    private static final String NAMESPACE =
+            String.valueOf(ThreadLocalRandom.current().nextLong());
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9100, builder -> builder.clientPaxosBuilder(
+            generateThreeNodeTimelockCluster(9106, builder -> builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                     .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)));
 
@@ -95,7 +92,7 @@ public final class LockWatchEventIntegrationTest {
 
     @Before
     public void before() {
-        createTransactionManager(0.0);
+        txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager);
     }
 
@@ -141,11 +138,7 @@ public final class LockWatchEventIntegrationTest {
         OpenTransaction fourthTxn =
                 Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
 
-        TransactionsLockWatchUpdate update = extractInternalLockWatchManager()
-                .getCache()
-                .getEventCache()
-                .getUpdateForTransactions(
-                        ImmutableSet.of(secondTxn.getTimestamp(), fourthTxn.getTimestamp()), Optional.empty());
+        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.empty(), secondTxn, fourthTxn);
 
         assertThat(update.clearCache()).isTrue();
         assertThat(update.startTsToSequence().get(secondTxn.getTimestamp()).version())
@@ -181,12 +174,7 @@ public final class LockWatchEventIntegrationTest {
         OpenTransaction secondTxn =
                 Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
 
-        TransactionsLockWatchUpdate update = extractInternalLockWatchManager()
-                .getCache()
-                .getEventCache()
-                .getUpdateForTransactions(
-                        ImmutableSet.of(firstTxn.getTimestamp(), secondTxn.getTimestamp()),
-                        Optional.of(currentVersion));
+        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, secondTxn);
 
         assertThat(update.clearCache()).isFalse();
         assertThat(update.startTsToSequence().get(firstTxn.getTimestamp()).version())
@@ -219,8 +207,18 @@ public final class LockWatchEventIntegrationTest {
         Uninterruptibles.awaitUninterruptibly(inCommitBlock);
     }
 
+    private TransactionsLockWatchUpdate getUpdateForTransactions(
+            Optional<LockWatchVersion> currentVersion, OpenTransaction... transactions) {
+        return LockWatchIntegrationTestUtilities.extractInternalLockWatchManager(txnManager)
+                .getCache()
+                .getEventCache()
+                .getUpdateForTransactions(
+                        Stream.of(transactions).map(Transaction::getTimestamp).collect(Collectors.toSet()),
+                        currentVersion);
+    }
+
     private LockWatchVersion getCurrentVersion() {
-        return extractInternalLockWatchManager()
+        return LockWatchIntegrationTestUtilities.extractInternalLockWatchManager(txnManager)
                 .getCache()
                 .getEventCache()
                 .lastKnownVersion()
@@ -275,7 +273,7 @@ public final class LockWatchEventIntegrationTest {
         return filterDescriptors(commitUpdate.accept(new CommitUpdate.Visitor<>() {
             @Override
             public Set<LockDescriptor> invalidateAll() {
-                return ImmutableSet.of();
+                throw new SafeIllegalStateException("Should not be visiting invalidateAll update");
             }
 
             @Override
@@ -342,39 +340,6 @@ public final class LockWatchEventIntegrationTest {
         }
     }
 
-    private LockWatchManagerInternal extractInternalLockWatchManager() {
-        return (LockWatchManagerInternal) txnManager.getLockWatchManager();
-    }
-
-    private void createTransactionManager(double validationProbability) {
-        txnManager = TimeLockTestUtils.createTransactionManager(
-                        CLUSTER,
-                        Namespace.DEFAULT_NAMESPACE.getName(),
-                        AtlasDbRuntimeConfig.defaultRuntimeConfig(),
-                        ImmutableAtlasDbConfig.builder()
-                                .lockWatchCaching(LockWatchCachingConfig.builder()
-                                        .validationProbability(validationProbability)
-                                        .build()),
-                        Optional.empty(),
-                        createSchema())
-                .transactionManager();
-    }
-
-    private static Schema createSchema() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
-        TableDefinition tableDef = new TableDefinition() {
-            {
-                rowName();
-                rowComponent("key", ValueType.BLOB);
-                noColumns();
-                enableCaching();
-                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
-            }
-        };
-        schema.addTableDefinition(TABLE, tableDef);
-        return schema;
-    }
-
     private final class CommitUpdateExtractingCondition implements PreCommitCondition {
         private final AtomicLong startTimestamp = new AtomicLong(-1L);
         private CommitUpdate commitUpdate;
@@ -390,7 +355,8 @@ public final class LockWatchEventIntegrationTest {
         @Override
         public void throwIfConditionInvalid(long timestamp) {
             if (timestamp != startTimestamp.get()) {
-                LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
+                LockWatchManagerInternal lockWatchManager =
+                        LockWatchIntegrationTestUtilities.extractInternalLockWatchManager(txnManager);
                 commitUpdate = lockWatchManager.getCache().getEventCache().getCommitUpdate(startTimestamp.get());
             }
         }
