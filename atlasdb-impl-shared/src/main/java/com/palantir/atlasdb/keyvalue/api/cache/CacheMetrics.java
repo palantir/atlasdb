@@ -137,8 +137,7 @@ public final class CacheMetrics {
     }
 
     private static CurrentValueMetric<Integer> registerCurrentValueMetric(
-            MetricsManager metricsManager, String lwEventCacheFallbackCount) {
-        return metricsManager.registerOrGetGauge(
-                CacheMetrics.class, lwEventCacheFallbackCount, CurrentValueMetric::new);
+            MetricsManager metricsManager, String metricName) {
+        return metricsManager.registerOrGetGauge(CacheMetrics.class, metricName, CurrentValueMetric::new);
     }
 }
