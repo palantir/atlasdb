@@ -64,10 +64,8 @@ public final class CacheMetrics {
                         CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_GET_ROWS_CELLS_LOADED),
                 metricsManager.registerOrGetCounter(
                         CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_GET_ROWS_ROWS_LOADED),
-                metricsManager.registerOrGetGauge(
-                        CacheMetrics.class, AtlasDbMetricNames.LW_EVENT_CACHE_FALLBACK_COUNT, CurrentValueMetric::new),
-                metricsManager.registerOrGetGauge(
-                        CacheMetrics.class, AtlasDbMetricNames.LW_VALUE_CACHE_FALLBACK_COUNT, CurrentValueMetric::new),
+                registerCurrentValueMetric(metricsManager, AtlasDbMetricNames.LW_EVENT_CACHE_FALLBACK_COUNT),
+                registerCurrentValueMetric(metricsManager, AtlasDbMetricNames.LW_VALUE_CACHE_FALLBACK_COUNT),
                 metricsManager);
     }
 
@@ -121,5 +119,26 @@ public final class CacheMetrics {
     public void setTransactionCacheInstanceCountGauge(Gauge<Integer> getCacheMapCount) {
         metricsManager.registerOrGetGauge(
                 CacheMetrics.class, AtlasDbMetricNames.LW_TRANSACTION_CACHE_INSTANCE_COUNT, () -> getCacheMapCount);
+    }
+
+    public void setEventsHeldInMemory(Gauge<Integer> eventsGauge) {
+        metricsManager.registerOrGetGauge(
+                CacheMetrics.class, AtlasDbMetricNames.LW_EVENTS_HELD_IN_MEMORY, () -> eventsGauge);
+    }
+
+    public void setSnapshotsHeldInMemory(Gauge<Integer> snapshotGauge) {
+        metricsManager.registerOrGetGauge(
+                CacheMetrics.class, AtlasDbMetricNames.LW_SNAPSHOTS_HELD_IN_MEMORY, () -> snapshotGauge);
+    }
+
+    public void setSequenceDifference(Gauge<Long> differenceGauge) {
+        metricsManager.registerOrGetGauge(
+                CacheMetrics.class, AtlasDbMetricNames.LW_SEQUENCE_DIFFERENCE, () -> differenceGauge);
+    }
+
+    private static CurrentValueMetric<Integer> registerCurrentValueMetric(
+            MetricsManager metricsManager, String lwEventCacheFallbackCount) {
+        return metricsManager.registerOrGetGauge(
+                CacheMetrics.class, lwEventCacheFallbackCount, CurrentValueMetric::new);
     }
 }

@@ -19,6 +19,8 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.Optional;
@@ -41,12 +43,13 @@ public final class VersionedEventStoreTest {
     private static final Sequence SEQ_2 = Sequence.of(2L);
     private static final Sequence SEQ_3 = Sequence.of(3L);
     private static final Sequence SEQ_4 = Sequence.of(4L);
+    private static final CacheMetrics CACHE_METRICS = CacheMetrics.create(MetricsManagers.createForTests());
 
     private VersionedEventStore eventStore;
 
     @Before
     public void before() {
-        eventStore = new VersionedEventStore(2, 20);
+        eventStore = new VersionedEventStore(2, 20, CACHE_METRICS);
     }
 
     @Test
@@ -85,7 +88,7 @@ public final class VersionedEventStoreTest {
 
     @Test
     public void retentionEventsClearsEventsOverMaxBound() {
-        eventStore = new VersionedEventStore(1, 3);
+        eventStore = new VersionedEventStore(1, 3, CACHE_METRICS);
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         assertThat(eventStore.retentionEvents(Optional.of(SEQ_MIN)).events().stream()
                         .map(LockWatchEvent::sequence))

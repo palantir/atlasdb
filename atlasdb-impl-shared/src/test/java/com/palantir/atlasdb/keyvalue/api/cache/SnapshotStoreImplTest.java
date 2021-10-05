@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.atlasdb.util.MetricsManagers;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.stream.Stream;
@@ -48,12 +49,13 @@ public final class SnapshotStoreImplTest {
     private static final ValueCacheSnapshot SNAPSHOT_3 = createSnapshot(3);
     private static final ValueCacheSnapshot SNAPSHOT_4 = createSnapshot(4);
     private static final ValueCacheSnapshot SNAPSHOT_5 = createSnapshot(5);
+    private static final CacheMetrics CACHE_METRICS = CacheMetrics.create(MetricsManagers.createForTests());
 
     private SnapshotStore snapshotStore;
 
     @Before
     public void before() {
-        snapshotStore = SnapshotStoreImpl.create();
+        snapshotStore = SnapshotStoreImpl.create(CACHE_METRICS);
     }
 
     @Test
@@ -78,7 +80,7 @@ public final class SnapshotStoreImplTest {
 
     @Test
     public void removeTimestampRemovesSnapshotWhenThereAreNoMoreLiveTimestampsForSequence() {
-        snapshotStore = new SnapshotStoreImpl(0, 20_000);
+        snapshotStore = new SnapshotStoreImpl(0, 20_000, CACHE_METRICS);
         snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3), SNAPSHOT_1);
         snapshotStore.storeSnapshot(SEQUENCE_2, ImmutableSet.of(TIMESTAMP_4), SNAPSHOT_2);
 
@@ -101,7 +103,7 @@ public final class SnapshotStoreImplTest {
 
     @Test
     public void removeTimestampOnlyRetentionsDownToMinimumSize() {
-        snapshotStore = new SnapshotStoreImpl(2, 20_000);
+        snapshotStore = new SnapshotStoreImpl(2, 20_000, CACHE_METRICS);
         snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_1);
         snapshotStore.storeSnapshot(SEQUENCE_2, ImmutableSet.of(TIMESTAMP_2), SNAPSHOT_2);
         snapshotStore.storeSnapshot(SEQUENCE_3, ImmutableSet.of(TIMESTAMP_3), SNAPSHOT_3);
