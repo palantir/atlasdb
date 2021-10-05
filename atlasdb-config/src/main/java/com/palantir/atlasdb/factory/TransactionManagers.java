@@ -197,7 +197,7 @@ public abstract class TransactionManagers {
     }
 
     @Value.Default
-    Optional<Supplier<ManagedTimestampService>> managedTimestampServiceSupplier() {
+    Optional<LockAndTimestampServiceFactory> lockAndTimestampServiceFactory() {
         return Optional.empty();
     }
 
@@ -301,8 +301,7 @@ public abstract class TransactionManagers {
     }
 
     // TODO(gs): reuse code
-    public static TransactionManager createInMemory(
-            Schema schema, Supplier<ManagedTimestampService> managedTimestampServiceSupplier) {
+    public static TransactionManager createInMemory(Schema schema, LockAndTimestampServiceFactory factory) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .build();
@@ -311,8 +310,8 @@ public abstract class TransactionManagers {
                 .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .lockAndTimestampServiceFactory(Optional.of(factory))
                 .addSchemas(schema)
-                .managedTimestampServiceSupplier(Optional.of(managedTimestampServiceSupplier))
                 .build()
                 .serializable();
     }
@@ -375,24 +374,22 @@ public abstract class TransactionManagers {
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config().getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
 
-        Supplier<ManagedTimestampService> managedTimestampSupplier =
-                managedTimestampServiceSupplier().orElse(atlasFactory::getManagedTimestampService);
-
-        LockAndTimestampServices lockAndTimestampServices = new DefaultLockAndTimestampServiceFactory(
+        LockAndTimestampServiceFactory factory = lockAndTimestampServiceFactory()
+                .orElseGet(() -> new DefaultLockAndTimestampServiceFactory(
                         metricsManager,
                         config(),
                         runtime,
                         registrar(),
                         () -> LockServiceImpl.create(lockServerOptions()),
-                        managedTimestampSupplier,
+                        atlasFactory::getManagedTimestampService,
                         atlasFactory.getTimestampStoreInvalidator(),
                         userAgent(),
                         lockDiagnosticComponents(),
                         reloadingFactory(),
                         timeLockFeedbackBackgroundTask,
                         timelockRequestBatcherProviders(),
-                        schemas())
-                .createLockAndTimestampServices();
+                        schemas()));
+        LockAndTimestampServices lockAndTimestampServices = factory.createLockAndTimestampServices();
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
