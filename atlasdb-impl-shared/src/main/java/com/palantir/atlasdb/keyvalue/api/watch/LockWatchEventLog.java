@@ -41,7 +41,7 @@ final class LockWatchEventLog {
 
     private LockWatchEventLog(ClientLockWatchSnapshot snapshot, CacheMetrics metrics, int minEvents, int maxEvents) {
         this.snapshot = snapshot;
-        this.eventStore = new VersionedEventStore(minEvents, maxEvents, metrics);
+        this.eventStore = new VersionedEventStore(metrics, minEvents, maxEvents);
     }
 
     CacheUpdate processUpdate(LockWatchStateUpdate update) {

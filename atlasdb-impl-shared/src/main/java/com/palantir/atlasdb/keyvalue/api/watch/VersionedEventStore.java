@@ -39,7 +39,7 @@ final class VersionedEventStore {
     private final int maxEvents;
     private final NavigableMap<Sequence, LockWatchEvent> eventMap = new TreeMap<>();
 
-    VersionedEventStore(int minEvents, int maxEvents, CacheMetrics cacheMetrics) {
+    VersionedEventStore(CacheMetrics cacheMetrics, int minEvents, int maxEvents) {
         Preconditions.checkArgument(minEvents > 0, "minEvents must be positive", SafeArg.of("minEvents", minEvents));
         Preconditions.checkArgument(
                 maxEvents >= minEvents,

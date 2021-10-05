@@ -49,7 +49,7 @@ public final class VersionedEventStoreTest {
 
     @Before
     public void before() {
-        eventStore = new VersionedEventStore(2, 20, CACHE_METRICS);
+        eventStore = new VersionedEventStore(CACHE_METRICS, 2, 20);
     }
 
     @Test
@@ -88,7 +88,7 @@ public final class VersionedEventStoreTest {
 
     @Test
     public void retentionEventsClearsEventsOverMaxBound() {
-        eventStore = new VersionedEventStore(1, 3, CACHE_METRICS);
+        eventStore = new VersionedEventStore(CACHE_METRICS, 1, 3);
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         assertThat(eventStore.retentionEvents(Optional.of(SEQ_MIN)).events().stream()
                         .map(LockWatchEvent::sequence))
