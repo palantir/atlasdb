@@ -29,9 +29,16 @@ interface ResultOrThrowable {
     Optional<Throwable> throwable();
 
     @Value.Check
-    default void exactlyOneSet() {
-        Preconditions.checkState((result().isPresent() ^ throwable().isPresent())
-                || (isSuccessful() && throwable().isEmpty()));
+    default void check() {
+        Preconditions.checkState(exactlyOneSet() || successWithoutThrowable());
+    }
+
+    default boolean exactlyOneSet() {
+        return result().isPresent() ^ throwable().isPresent();
+    }
+
+    default boolean successWithoutThrowable() {
+        return isSuccessful() && throwable().isEmpty();
     }
 
     static ResultOrThrowable success(Object result) {
