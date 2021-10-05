@@ -24,15 +24,13 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Test;
 
 public class MetricsManagerTest {
-    private static final Class<List> LIST_CLASS = List.class;
-    private static final Class<ListIterator> LIST_ITERATOR_CLASS = ListIterator.class;
+    private static final Class<Integer> INTEGER_CLASS = Integer.class;
+    private static final Class<Boolean> BOOLEAN_CLASS = Boolean.class;
 
     private static final String ERROR_PREFIX = "error";
     private static final String OUT_OF_BOUNDS = "outofbounds";
@@ -42,7 +40,7 @@ public class MetricsManagerTest {
     private static final String RUNTIME = "runtime";
     private static final String METER_NAME = "meterName";
 
-    private static final Gauge GAUGE = () -> 1L;
+    private static final Gauge<Long> GAUGE = () -> 1L;
 
     private final MetricRegistry registry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
@@ -53,32 +51,33 @@ public class MetricsManagerTest {
 
     @Test
     public void registersMetricsByName() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OOM, GAUGE);
+        metricsManager.registerMetric(INTEGER_CLASS, ERROR_OOM, GAUGE);
 
-        assertThat(registry.getNames()).containsExactly(MetricRegistry.name(LIST_CLASS, ERROR_OOM));
+        assertThat(registry.getNames()).containsExactly(MetricRegistry.name(INTEGER_CLASS, ERROR_OOM));
     }
 
     @Test
     public void registersMeters() {
-        metricsManager.registerOrGetMeter(LIST_CLASS, RUNTIME, METER_NAME);
+        metricsManager.registerOrGetMeter(INTEGER_CLASS, RUNTIME, METER_NAME);
 
-        assertThat(registry.getMeters().keySet()).containsExactly(MetricRegistry.name(LIST_CLASS, RUNTIME, METER_NAME));
+        assertThat(registry.getMeters().keySet())
+                .containsExactly(MetricRegistry.name(INTEGER_CLASS, RUNTIME, METER_NAME));
     }
 
     @Test
     public void registersSameMetricNameAcrossClasses() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
-        metricsManager.registerMetric(LIST_ITERATOR_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
+        metricsManager.registerMetric(INTEGER_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
+        metricsManager.registerMetric(BOOLEAN_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
 
         assertThat(registry.getNames())
                 .containsExactly(
-                        MetricRegistry.name(LIST_CLASS, ERROR_OUT_OF_BOUNDS),
-                        MetricRegistry.name(LIST_ITERATOR_CLASS, ERROR_OUT_OF_BOUNDS));
+                        MetricRegistry.name(INTEGER_CLASS, ERROR_OUT_OF_BOUNDS),
+                        MetricRegistry.name(BOOLEAN_CLASS, ERROR_OUT_OF_BOUNDS));
     }
 
     @Test
     public void registerOrGetMeterMeterRegistersTheFullyQualifiedClassNameMetric() {
-        metricsManager.registerOrGetMeter(LIST_CLASS, ERROR_OUT_OF_BOUNDS);
+        metricsManager.registerOrGetMeter(INTEGER_CLASS, ERROR_OUT_OF_BOUNDS);
 
         assertThat(registry.getNames()).containsExactly("java.util.List.error.outofbounds");
     }

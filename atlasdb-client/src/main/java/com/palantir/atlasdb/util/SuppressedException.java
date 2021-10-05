@@ -17,7 +17,7 @@ package com.palantir.atlasdb.util;
 
 final class SuppressedException extends RuntimeException {
     static final long serialVersionUID = 1L;
-    private static final Class[] namedThrowables = {Error.class, RuntimeException.class, Exception.class};
+    private static final Class<?>[] namedThrowables = {Error.class, RuntimeException.class, Exception.class};
 
     SuppressedException(String message) {
         super(message);
@@ -44,7 +44,7 @@ final class SuppressedException extends RuntimeException {
     }
 
     private static String highLevelType(Throwable throwable) {
-        for (Class namedClass : namedThrowables) {
+        for (Class<?> namedClass : namedThrowables) {
             if (namedClass.isInstance(throwable)) {
                 return namedClass.getSimpleName();
             }

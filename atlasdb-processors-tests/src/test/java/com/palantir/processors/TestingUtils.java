@@ -25,11 +25,11 @@ import java.util.stream.Collectors;
 final class TestingUtils {
     private TestingUtils() {}
 
-    static Set<String> extractMethods(Class klass) {
+    static <T> Set<String> extractMethods(Class<T> klass) {
         return extractMethodsSatisfyingPredicate(klass, unused -> true);
     }
 
-    static Set<String> extractMethodsSatisfyingPredicate(Class klass, Predicate<Method> predicate) {
+    static <T> Set<String> extractMethodsSatisfyingPredicate(Class<T> klass, Predicate<Method> predicate) {
         return Arrays.stream(klass.getDeclaredMethods())
                 .filter(predicate)
                 .map(TestingUtils::methodToString)
@@ -47,7 +47,7 @@ final class TestingUtils {
                 .toString();
     }
 
-    static Set<String> extractNonStaticMethods(Class klass) {
+    static <T> Set<String> extractNonStaticMethods(Class<T> klass) {
         return extractMethodsSatisfyingPredicate(klass, method -> !Modifier.isStatic(method.getModifiers()));
     }
 }

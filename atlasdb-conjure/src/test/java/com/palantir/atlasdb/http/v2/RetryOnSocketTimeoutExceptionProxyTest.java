@@ -18,7 +18,6 @@ package com.palantir.atlasdb.http.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.SocketException;
@@ -26,10 +25,19 @@ import java.net.SocketTimeoutException;
 import java.util.function.BinaryOperator;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class RetryOnSocketTimeoutExceptionProxyTest {
 
-    private final BinaryOperator<Integer> binaryOperator = mock(BinaryOperator.class);
+    @Mock
+    private BinaryOperator<Integer> binaryOperator;
+
+    @Mock
+    private BinaryOperator<Integer> binaryOperator2;
+
     private BinaryOperator<Integer> proxy;
 
     @Before
@@ -119,8 +127,7 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
 
     @Test
     public void twoProxies() {
-        BinaryOperator<Integer> binaryOperator2 = mock(BinaryOperator.class);
-        BinaryOperator<Integer> proxy2 =
+        BinaryOperator<Integer> proxy2 = (BinaryOperator<Integer>)
                 RetryOnSocketTimeoutExceptionProxy.newProxyInstance(BinaryOperator.class, () -> binaryOperator2);
 
         RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
@@ -145,6 +152,7 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
     }
 
     private void createProxy() {
-        proxy = RetryOnSocketTimeoutExceptionProxy.newProxyInstance(BinaryOperator.class, () -> binaryOperator);
+        proxy = (BinaryOperator<Integer>)
+                RetryOnSocketTimeoutExceptionProxy.newProxyInstance(BinaryOperator.class, () -> binaryOperator);
     }
 }

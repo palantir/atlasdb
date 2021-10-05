@@ -99,7 +99,7 @@ public abstract class AbstractSchemaApiTest {
 
         putSingleRowFirstColumn(transaction, TEST_ROW_KEY, TEST_VALUE_LONG);
 
-        ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<Cell, byte[]>> argument = ArgumentCaptor.forClass(Map.class);
         verify(transaction, times(1)).put(eq(tableRef), argument.capture());
 
         Map<Cell, byte[]> foundMap = argument.getValue();
@@ -121,7 +121,7 @@ public abstract class AbstractSchemaApiTest {
         long value = getSingleRowFirstColumn(transaction, TEST_ROW_KEY);
 
         assertThat(value).isEqualTo(TEST_VALUE_LONG);
-        ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<byte[]>> argument = ArgumentCaptor.forClass(Iterable.class);
         verify(transaction, times(1)).getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         Iterable<byte[]> argumentRows = argument.getValue();
@@ -142,7 +142,7 @@ public abstract class AbstractSchemaApiTest {
         Map<String, Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(TEST_ROW_KEY, TEST_ROW_KEY2));
 
         assertThat(result).isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_LONG, TEST_ROW_KEY2, TEST_VALUE_LONG2));
-        ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<byte[]>> argument = ArgumentCaptor.forClass(Iterable.class);
         verify(transaction, times(1)).getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
