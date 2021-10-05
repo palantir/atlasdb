@@ -17,7 +17,6 @@
 package com.palantir.timelock.paxos;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -26,20 +25,7 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
-import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.ClientLockingOptions;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.v2.TimestampAndPartition;
-import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -52,22 +38,14 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
 import org.junit.rules.TemporaryFolder;
 
@@ -180,117 +158,6 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     }
 
     public TimelockService getLegacyTimelockService() {
-        return new DelegatingTimelockService();
-    }
-
-    private class DelegatingTimelockService implements TimelockService {
-        private final AsyncTimelockService timelock = getTimelockService();
-
-        @Override
-        public long getFreshTimestamp() {
-            return timelock.getFreshTimestamp();
-        }
-
-        @Override
-        public long getCommitTimestamp(long _startTs, LockToken _commitLocksToken) {
-            return getFreshTimestamp();
-        }
-
-        @Override
-        public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-            return timelock.getFreshTimestamps(numTimestampsRequested);
-        }
-
-        @Override
-        public LockImmutableTimestampResponse lockImmutableTimestamp() {
-            return timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
-        }
-
-        // TODO(gs): copied from LegacyTimelockService
-        @Override
-        public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-            // Track these separately in the case that getFreshTimestamp fails but lockImmutableTimestamp succeeds
-            List<LockImmutableTimestampResponse> immutableTimestampLocks = new ArrayList<>();
-            List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
-            try {
-                IntStream.range(0, count).forEach($ -> {
-                    LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
-                    immutableTimestampLocks.add(immutableTimestamp);
-                    responses.add(StartIdentifiedAtlasDbTransactionResponse.of(
-                            immutableTimestamp, TimestampAndPartition.of(getFreshTimestamp(), 0)));
-                });
-                return responses;
-            } catch (RuntimeException | Error throwable) {
-                try {
-                    unlock(immutableTimestampLocks.stream()
-                            .map(LockImmutableTimestampResponse::getLock)
-                            .collect(Collectors.toSet()));
-                } catch (Throwable unlockThrowable) {
-                    throwable.addSuppressed(unlockThrowable);
-                }
-                throw throwable;
-            }
-        }
-
-        @Override
-        public long getImmutableTimestamp() {
-            return timelock.getImmutableTimestamp();
-        }
-
-        @Override
-        public LockResponse lock(LockRequest request) {
-            LockResponseV2 lockResponseV2 = tryGet(timelock.lock(IdentifiedLockRequest.from(request)));
-            return lockResponseV2.accept(new LockResponseV2.Visitor<>() {
-                @Override
-                public LockResponse visit(LockResponseV2.Successful successful) {
-                    return LockResponse.successful(successful.getToken());
-                }
-
-                @Override
-                public LockResponse visit(LockResponseV2.Unsuccessful failure) {
-                    return LockResponse.timedOut();
-                }
-            });
-        }
-
-        @Override
-        public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
-            return lock(lockRequest);
-        }
-
-        @Override
-        public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-            return tryGet(timelock.waitForLocks(request));
-        }
-
-        @Override
-        public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-            ListenableFuture<RefreshLockResponseV2> future = timelock.refreshLockLeases(tokens);
-            return tryGet(future).refreshedTokens();
-        }
-
-        @Override
-        public Set<LockToken> unlock(Set<LockToken> tokens) {
-            return tryGet(timelock.unlock(tokens));
-        }
-
-        @Override
-        public void tryUnlock(Set<LockToken> tokens) {
-            // TODO(gs): swallow exceptions?
-            unlock(tokens);
-        }
-
-        @Override
-        public long currentTimeMillis() {
-            return timelock.currentTimeMillis();
-        }
-
-        private <T> T tryGet(ListenableFuture<T> future) {
-            try {
-                return future.get(5L, TimeUnit.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                throw new SafeRuntimeException("Async request failed", e);
-            }
-        }
+        return new DelegatingTimelockService(getTimelockService());
     }
 }
