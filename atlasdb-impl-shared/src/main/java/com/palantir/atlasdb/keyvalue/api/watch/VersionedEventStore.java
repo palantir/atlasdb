@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -38,7 +39,7 @@ final class VersionedEventStore {
     private final int maxEvents;
     private final NavigableMap<Sequence, LockWatchEvent> eventMap = new TreeMap<>();
 
-    VersionedEventStore(int minEvents, int maxEvents) {
+    VersionedEventStore(CacheMetrics cacheMetrics, int minEvents, int maxEvents) {
         Preconditions.checkArgument(minEvents > 0, "minEvents must be positive", SafeArg.of("minEvents", minEvents));
         Preconditions.checkArgument(
                 maxEvents >= minEvents,
@@ -47,6 +48,7 @@ final class VersionedEventStore {
                 SafeArg.of("maxEvents", maxEvents));
         this.maxEvents = maxEvents;
         this.minEvents = minEvents;
+        cacheMetrics.setEventsHeldInMemory(eventMap::size);
     }
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {

@@ -102,7 +102,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Before
     public void before() {
-        snapshotStore = SnapshotStoreImpl.create();
+        snapshotStore = SnapshotStoreImpl.create(metrics);
         eventCache = LockWatchEventCacheImpl.create(metrics);
         valueCache = new LockWatchValueScopingCacheImpl(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
@@ -432,7 +432,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Test
     public void missingSnapshotsForSequenceDoesNotThrowWhenNoTablesAreWatched() {
-        snapshotStore = new SnapshotStoreImpl(0, 20_000);
+        snapshotStore = new SnapshotStoreImpl(0, 20_000, metrics);
         valueCache = new LockWatchValueScopingCacheImpl(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
 
@@ -458,7 +458,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Test
     public void missingSnapshotsForSequenceThrowsWhenTablesAreWatched() {
-        snapshotStore = new SnapshotStoreImpl(0, 20_000);
+        snapshotStore = new SnapshotStoreImpl(0, 20_000, metrics);
         valueCache = new LockWatchValueScopingCacheImpl(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
 
