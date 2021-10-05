@@ -110,34 +110,34 @@ public final class CacheMetrics {
     }
 
     public void setMaximumCacheSize(long maximumCacheSize) {
-        metricsManager.registerOrGetGauge(
+        metricsManager.registerMetric(
                 CacheMetrics.class,
                 AtlasDbMetricNames.LW_CACHE_RATIO_USED,
-                () -> () -> cacheSize.getCount() / (double) maximumCacheSize);
+                () -> cacheSize.getCount() / (double) maximumCacheSize);
     }
 
     public void setTransactionCacheInstanceCountGauge(Gauge<Integer> getCacheMapCount) {
-        metricsManager.registerOrGetGauge(
+        metricsManager.registerMetric(
                 CacheMetrics.class, AtlasDbMetricNames.LW_TRANSACTION_CACHE_INSTANCE_COUNT, () -> getCacheMapCount);
     }
 
     public void setEventsHeldInMemory(Gauge<Integer> eventsGauge) {
-        metricsManager.registerOrGetGauge(
-                CacheMetrics.class, AtlasDbMetricNames.LW_EVENTS_HELD_IN_MEMORY, () -> eventsGauge);
+        metricsManager.registerMetric(CacheMetrics.class, AtlasDbMetricNames.LW_EVENTS_HELD_IN_MEMORY, eventsGauge);
     }
 
     public void setSnapshotsHeldInMemory(Gauge<Integer> snapshotGauge) {
-        metricsManager.registerOrGetGauge(
-                CacheMetrics.class, AtlasDbMetricNames.LW_SNAPSHOTS_HELD_IN_MEMORY, () -> snapshotGauge);
+        metricsManager.registerMetric(
+                CacheMetrics.class, AtlasDbMetricNames.LW_SNAPSHOTS_HELD_IN_MEMORY, snapshotGauge);
     }
 
     public void setSequenceDifference(Gauge<Long> differenceGauge) {
-        metricsManager.registerOrGetGauge(
-                CacheMetrics.class, AtlasDbMetricNames.LW_SEQUENCE_DIFFERENCE, () -> differenceGauge);
+        metricsManager.registerMetric(CacheMetrics.class, AtlasDbMetricNames.LW_SEQUENCE_DIFFERENCE, differenceGauge);
     }
 
     private static CurrentValueMetric<Integer> registerCurrentValueMetric(
             MetricsManager metricsManager, String metricName) {
-        return metricsManager.registerOrGetGauge(CacheMetrics.class, metricName, CurrentValueMetric::new);
+        CurrentValueMetric<Integer> metric = new CurrentValueMetric<>();
+        metricsManager.registerMetric(CacheMetrics.class, metricName, metric);
+        return metric;
     }
 }
