@@ -49,16 +49,24 @@ final class SnapshotStoreImpl implements SnapshotStore {
     private final int maximumSize;
 
     @VisibleForTesting
-    SnapshotStoreImpl(int minimumSize, int maximumSize) {
+    SnapshotStoreImpl(int minimumSize, int maximumSize, CacheMetrics cacheMetrics) {
         this.snapshotMap = new TreeMap<>();
         this.timestampMap = new HashMap<>();
         this.liveSequences = MultimapBuilder.treeKeys().hashSetValues().build();
         this.minimumSize = minimumSize;
         this.maximumSize = maximumSize;
+        cacheMetrics.setSnapshotsHeldInMemory(snapshotMap::size);
+        cacheMetrics.setSequenceDifference(() -> {
+            if (snapshotMap.isEmpty()) {
+                return 0L;
+            } else {
+                return snapshotMap.lastKey().value() - snapshotMap.firstKey().value();
+            }
+        });
     }
 
-    static SnapshotStore create() {
-        return new SnapshotStoreImpl(1_000, 20_000);
+    static SnapshotStore create(CacheMetrics cacheMetrics) {
+        return new SnapshotStoreImpl(1_000, 20_000, cacheMetrics);
     }
 
     @Override

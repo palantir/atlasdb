@@ -29,8 +29,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -107,6 +109,8 @@ public class LockWatchEventCacheIntegrationTest {
             .build());
     private static final ImmutableSet<Long> TIMESTAMPS = ImmutableSet.of(START_TS_1);
     private static final ImmutableSet<Long> TIMESTAMPS_2 = ImmutableSet.of(START_TS_2);
+
+    private static final CacheMetrics CACHE_METRICS = CacheMetrics.create(MetricsManagers.createForTests());
     private static final String BASE = "src/test/resources/lockwatch-event-cache-output/";
     private static final Mode MODE = Mode.CI;
 
@@ -617,7 +621,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     private void createEventCache(int minSize, int maxSize) {
         fakeCache = NoOpLockWatchEventCache.create();
-        realEventCache = new LockWatchEventCacheImpl(LockWatchEventLog.create(minSize, maxSize));
+        realEventCache = new LockWatchEventCacheImpl(LockWatchEventLog.create(CACHE_METRICS, minSize, maxSize));
         eventCache = new DuplicatingLockWatchEventCache(realEventCache, fakeCache);
     }
 
