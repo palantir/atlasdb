@@ -20,7 +20,6 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Snapshot;
-import com.google.common.annotations.VisibleForTesting;
 import java.util.concurrent.TimeUnit;
 
 public class SlidingWindowMeanGauge implements Gauge<Double> {
@@ -39,8 +38,7 @@ public class SlidingWindowMeanGauge implements Gauge<Double> {
         histogram.update(entry);
     }
 
-    @SuppressWarnings("VisibleForTestingPackagePrivate") // used in SweepMetricsAssert
-    @VisibleForTesting
+    // VisibleForTesting
     public Snapshot getSnapshot() {
         return histogram.getSnapshot();
     }

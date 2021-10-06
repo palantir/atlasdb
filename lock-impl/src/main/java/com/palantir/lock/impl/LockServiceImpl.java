@@ -147,8 +147,7 @@ public final class LockServiceImpl
         final T realToken;
         final LockCollection<? extends ClientAwareReadWriteLock> locks;
 
-        @SuppressWarnings("VisibleForTestingPackagePrivate") // used in LockServiceStateLoggerTest
-        @VisibleForTesting
+        // VisibleForTesting
         public static <T extends ExpiringToken> HeldLocks<T> of(
                 T token, LockCollection<? extends ClientAwareReadWriteLock> locks) {
             return new HeldLocks<T>(token, locks);
