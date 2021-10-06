@@ -43,8 +43,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
-    private final RateLimiter rateLimiter =
-            RateLimiter.create(1.0);
+    private final RateLimiter rateLimiter = RateLimiter.create(1.0);
 
     public static LockWatchEventCache create(CacheMetrics metrics) {
         return ResilientLockWatchProxy.newEventCacheProxy(
