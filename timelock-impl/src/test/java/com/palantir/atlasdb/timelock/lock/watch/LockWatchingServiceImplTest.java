@@ -89,7 +89,7 @@ public class LockWatchingServiceImplTest {
         LockWatchRequest request = tableRequest();
         lockWatcher.startWatching(request);
 
-        ExecutorService executor = Executors.newFixedThreadPool(5);
+        ExecutorService executor = Executors.newFixedThreadPool(3);
         CountDownLatch runTaskStarted = new CountDownLatch(1);
         CountDownLatch otherTaskCompleted = new CountDownLatch(1);
 
