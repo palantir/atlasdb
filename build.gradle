@@ -144,8 +144,7 @@ allprojects {
                 'TypeParameterUnusedInFormals',
                 'UndefinedEquals',
                 'UseCorrectAssertInTests',
-                'ValidateConstantMessage',
-                'VisibleForTestingPackagePrivate'
+                'ValidateConstantMessage'
     }
 }
 

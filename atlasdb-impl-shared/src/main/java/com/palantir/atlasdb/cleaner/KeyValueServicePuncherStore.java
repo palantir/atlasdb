@@ -226,7 +226,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
      * was punched. The result is not guaranteed to be the greatest such value.
      */
     @VisibleForTesting
-    public static MillisAndMaybeTimestamp findOlder(KeyValueService kvs, long timestamp, long upperBound) {
+    static MillisAndMaybeTimestamp findOlder(KeyValueService kvs, long timestamp, long upperBound) {
         long candidate = upperBound;
         long offset = MAX_RANGE_SCAN_SIZE;
 
@@ -249,7 +249,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
      * denoting that millis can be used as a lower bound for any range scan.
      */
     @VisibleForTesting
-    public static MillisAndMaybeTimestamp getOlder(KeyValueService kvs, long millis) {
+    static MillisAndMaybeTimestamp getOlder(KeyValueService kvs, long millis) {
         try (ClosableIterator<RowResult<Value>> result = getFirstRowBefore(kvs, millis)) {
             return extract(result).orElseGet(() -> ImmutableMillisAndMaybeTimestamp.builder()
                     .millis(millis)

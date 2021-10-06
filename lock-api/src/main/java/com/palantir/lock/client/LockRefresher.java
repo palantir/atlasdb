@@ -53,7 +53,7 @@ public class LockRefresher implements AutoCloseable {
     }
 
     @VisibleForTesting
-    public LockRefresher(
+    LockRefresher(
             ScheduledExecutorService executor,
             TimelockService timelockService,
             long refreshIntervalMillis,
