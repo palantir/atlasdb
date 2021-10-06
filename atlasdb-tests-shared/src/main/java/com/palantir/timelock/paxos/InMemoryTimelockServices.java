@@ -37,6 +37,7 @@ import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -155,6 +156,10 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     @Override
     public TimestampManagementService getTimestampManagementService() {
         return delegate.getTimestampManagementService();
+    }
+
+    public ManagedTimestampService getManagedTimestampService() {
+        return delegate.getTimelockService();
     }
 
     public TimelockService getLegacyTimelockService() {

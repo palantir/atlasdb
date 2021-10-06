@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,20 +23,37 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
 
-    private final InMemoryTimestampService timestamps = new InMemoryTimestampService();
-    private final TransactionSchemaManager manager = createTransactionSchemaManager(timestamps);
+    private ManagedTimestampService timestamps;
+    private InMemoryTimelockServices services;
+    private TransactionSchemaManager manager;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
     public void setUp() {
+        services = InMemoryTimelockServices.create(tempFolder);
+        timestamps = services.getManagedTimestampService();
+        manager = createTransactionSchemaManager(timestamps);
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();
+    }
+
+    @After
+    public void after() {
+        services.close();
     }
 
     @Test
