@@ -89,7 +89,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tokens.auth.AuthHeader;
@@ -157,14 +157,15 @@ public class TransactionManagersTest {
     private int availablePort;
 
     private TimeLockRuntimeConfig timeLockRuntimeConfig;
-
     private ServerListConfig rawRemoteServerConfig;
-
     private AtlasDbConfig config;
     private AtlasDbRuntimeConfig mockAtlasDbRuntimeConfig;
+
     private Consumer<Object> environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
+
+    private InMemoryTimelockServices services;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder(Files.currentFolder());
@@ -172,6 +173,9 @@ public class TransactionManagersTest {
     @Rule
     public WireMockRule availableServer =
             new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+
+    @Rule
+    public TemporaryFolder inMemoryTimeLockFolder = new TemporaryFolder();
 
     @Before
     public void setup() {
@@ -213,11 +217,15 @@ public class TransactionManagersTest {
                 .addServers(getUriForPort(availablePort))
                 .sslConfiguration(SSL_CONFIGURATION)
                 .build();
+
+        services = InMemoryTimelockServices.create(inMemoryTimeLockFolder);
     }
 
     @After
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
+        services.close();
+        ;
     }
 
     @Test
@@ -315,22 +323,7 @@ public class TransactionManagersTest {
             };
         };
 
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        LockAndTimestampServices lockAndTimestamp = new DefaultLockAndTimestampServiceFactory(
-                        metricsManager,
-                        config,
-                        Refreshable.only(mockAtlasDbRuntimeConfig),
-                        environment,
-                        lockServiceSupplier,
-                        () -> ts,
-                        invalidator,
-                        USER_AGENT,
-                        Optional.empty(),
-                        reloadingFactory,
-                        Optional.empty(),
-                        Optional.empty(),
-                        ImmutableSet.of())
-                .createLockAndTimestampServices();
+        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
 
         LockRequest lockRequest = LockRequest.builder(
                         ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
@@ -864,22 +857,7 @@ public class TransactionManagersTest {
     }
 
     private LockAndTimestampServices getLockAndTimestampServices() {
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        return new DefaultLockAndTimestampServiceFactory(
-                        metricsManager,
-                        config,
-                        Refreshable.only(mockAtlasDbRuntimeConfig),
-                        environment,
-                        LockServiceImpl::create,
-                        () -> ts,
-                        invalidator,
-                        USER_AGENT,
-                        Optional.empty(),
-                        reloadingFactory,
-                        Optional.empty(),
-                        Optional.empty(),
-                        ImmutableSet.of())
-                .createLockAndTimestampServices();
+        return new InMemoryLockAndTimestampServiceFactory(services).createLockAndTimestampServices();
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -887,23 +865,7 @@ public class TransactionManagersTest {
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        LockAndTimestampServices lockAndTimestamp = new DefaultLockAndTimestampServiceFactory(
-                        metricsManager,
-                        config,
-                        Refreshable.only(mockAtlasDbRuntimeConfig),
-                        environment,
-                        LockServiceImpl::create,
-                        () -> ts,
-                        invalidator,
-                        USER_AGENT,
-                        Optional.empty(),
-                        reloadingFactory,
-                        Optional.empty(),
-                        Optional.empty(),
-                        ImmutableSet.of())
-                .createLockAndTimestampServices();
-
+        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
