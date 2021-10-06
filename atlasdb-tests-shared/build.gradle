@@ -43,6 +43,7 @@ dependencies {
   implementation project(':timelock-agent')
   implementation project(':timestamp-api')
 
+  testImplementation 'com.github.tomakehurst:wiremock-standalone'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.google.protobuf:protobuf-java'
   testImplementation 'com.palantir.common:streams'
