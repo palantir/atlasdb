@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,19 +22,40 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timestamp.ManagedTimestampService;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class ReadOnlyTransactionServiceIntegrationTest {
     private static final long COORDINATION_QUANTUM = 100_000_000L;
 
     private final InMemoryKeyValueService keyValueService = new InMemoryKeyValueService(true);
-    private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
-    private final TransactionService writeTransactionService =
-            TransactionServices.createRaw(keyValueService, timestampService, false);
     private final TransactionService readOnlyTransactionService =
             TransactionServices.createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
                     keyValueService, MetricsManagers.createForTests());
+
+    private ManagedTimestampService timestampService;
+    private InMemoryTimelockServices services;
+    private TransactionService writeTransactionService;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    @Before
+    public void setUp() {
+        services = InMemoryTimelockServices.create(tempFolder);
+        timestampService = services.getManagedTimestampService();
+        writeTransactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
+    }
+
+    @After
+    public void after() {
+        services.close();
+    }
 
     @Test
     public void canReadAlreadyAgreedValuesEvenAfterAdditionalCoordinations() {
