@@ -26,8 +26,6 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -38,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -47,9 +46,8 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
     private static final int NUM_THREADS = 8;
 
     private final ExecutorService service = Executors.newFixedThreadPool(NUM_THREADS);
-
     private final KeyValueService kvs = new InMemoryKeyValueService(true);
-    private final TimestampService timestampService = new InMemoryTimestampService();
+    private final AtomicLong localTimestamp = new AtomicLong(1L);
 
     @Test
     public void reasonableStateAfterAggressiveConcurrentUpdatesToOneManager() {
@@ -77,8 +75,8 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
     }
 
     private TransactionSchemaManager createTransactionSchemaManager() {
-        return new TransactionSchemaManager(
-                CoordinationServices.createDefault(kvs, timestampService, MetricsManagers.createForTests(), false));
+        return new TransactionSchemaManager(CoordinationServices.createDefault(
+                kvs, localTimestamp::getAndIncrement, MetricsManagers.createForTests(), false));
     }
 
     private static TransactionSchemaManager getRandomManager(List<TransactionSchemaManager> managers) {
