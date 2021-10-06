@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,13 +51,18 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timestamp.ManagedTimestampService;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.InOrder;
 
 public class SnapshotTransactionManagerTest {
@@ -73,29 +78,45 @@ public class SnapshotTransactionManagerTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
-    private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
-    private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
-            metricsManager,
-            keyValueService,
-            new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")),
-            NoOpLockWatchManager.create(),
-            timestampService,
-            closeableLockService,
-            mock(TransactionService.class),
-            () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-            null,
-            null,
-            cleaner,
-            false,
-            TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
-            TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-            DefaultTimestampCache.createForTests(),
-            MultiTableSweepQueueWriter.NO_OP,
-            deleteExecutor,
-            true,
-            () -> ImmutableTransactionConfig.builder().build(),
-            ConflictTracer.NO_OP,
-            DefaultMetricsFilterEvaluationContext.createDefault());
+    private InMemoryTimelockServices services;
+    private ManagedTimestampService timestampService;
+    private SnapshotTransactionManager snapshotTransactionManager;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    @Before
+    public void setUp() {
+        services = InMemoryTimelockServices.create(tempFolder);
+        timestampService = services.getManagedTimestampService();
+        snapshotTransactionManager = new SnapshotTransactionManager(
+                metricsManager,
+                keyValueService,
+                services.getLegacyTimelockService(),
+                NoOpLockWatchManager.create(),
+                timestampService,
+                closeableLockService,
+                mock(TransactionService.class),
+                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
+                null,
+                null,
+                cleaner,
+                false,
+                TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
+                TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
+                DefaultTimestampCache.createForTests(),
+                MultiTableSweepQueueWriter.NO_OP,
+                deleteExecutor,
+                true,
+                () -> ImmutableTransactionConfig.builder().build(),
+                ConflictTracer.NO_OP,
+                DefaultMetricsFilterEvaluationContext.createDefault());
+    }
+
+    @After
+    public void after() {
+        services.close();
+    }
 
     @Test
     public void isAlwaysInitialized() {
@@ -128,13 +149,12 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
-        InMemoryTimestampService ts = new InMemoryTimestampService();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(ts, closeableLockService, LockClient.of("lock")),
+                services.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
-                ts,
+                services.getManagedTimestampService(),
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
                 null,
@@ -248,6 +268,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void startEmptyBatchOfTransactionsDoesNotCallTimelockService() {
+        // TODO(gs): also kill LegacyTimelockService?
         TimelockService timelockService =
                 spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);

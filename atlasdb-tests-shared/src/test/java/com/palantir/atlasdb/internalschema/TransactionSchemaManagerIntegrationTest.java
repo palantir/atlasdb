@@ -24,9 +24,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
-import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.TimestampService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -47,7 +45,7 @@ public class TransactionSchemaManagerIntegrationTest {
     public void setUp() {
         services = InMemoryTimelockServices.create(tempFolder);
         timestamps = services.getManagedTimestampService();
-        manager = createTransactionSchemaManager(timestamps);
+        manager = createTransactionSchemaManager();
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();
     }
 
@@ -83,7 +81,7 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Test
     public void canFailToInstallNewVersions() {
-        TransactionSchemaManager newManager = createTransactionSchemaManager(new InMemoryTimestampService());
+        TransactionSchemaManager newManager = createTransactionSchemaManager();
         // Always need to seed the default value, if it's not there
         assertThat(newManager.tryInstallNewTransactionsSchemaVersion(5)).isFalse();
         assertThat(newManager.tryInstallNewTransactionsSchemaVersion(5)).isTrue();
@@ -96,7 +94,7 @@ public class TransactionSchemaManagerIntegrationTest {
                 .hasMessageContaining("was never given out by the timestamp service");
     }
 
-    private TransactionSchemaManager createTransactionSchemaManager(TimestampService ts) {
+    private TransactionSchemaManager createTransactionSchemaManager() {
         return new TransactionSchemaManager(CoordinationServices.createDefault(
                 new InMemoryKeyValueService(true), timestamps, MetricsManagers.createForTests(), false));
     }
