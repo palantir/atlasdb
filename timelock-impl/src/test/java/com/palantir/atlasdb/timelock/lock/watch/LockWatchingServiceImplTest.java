@@ -96,7 +96,7 @@ public class LockWatchingServiceImplTest {
         Future<?> runTask = executor.submit(() -> lockWatcher.runTask(Optional.empty(), () -> {
             runTaskStarted.countDown();
             Uninterruptibles.awaitUninterruptibly(otherTaskCompleted);
-            return null;
+            return Optional.empty();
         }));
 
         // runTask started
