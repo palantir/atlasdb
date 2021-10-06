@@ -160,8 +160,7 @@ public class TransactionManagersTest {
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
 
     private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
-    private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-            mock(TransactionManagers.LockAndTimestampServices.class);
+    private final LockAndTimestampServices lockAndTimestampServices = mock(LockAndTimestampServices.class);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
             Refreshable.only(ServicesConfigBlock.builder().build()));
@@ -270,7 +269,7 @@ public class TransactionManagersTest {
         setUpForRemoteServices();
         setUpLeaderBlockInConfig();
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestamp.timelock().getFreshTimestamp();
@@ -288,7 +287,7 @@ public class TransactionManagersTest {
         setUpForLocalServices();
         setUpLeaderBlockInConfig();
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestamp.timelock().getFreshTimestamp();
@@ -330,21 +329,20 @@ public class TransactionManagersTest {
         };
 
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        TransactionManagers.LockAndTimestampServices lockAndTimestamp =
-                TransactionManagers.createLockAndTimestampServices(
-                        metricsManager,
-                        config,
-                        Refreshable.only(mockAtlasDbRuntimeConfig),
-                        environment,
-                        lockServiceSupplier,
-                        () -> ts,
-                        invalidator,
-                        USER_AGENT,
-                        Optional.empty(),
-                        reloadingFactory,
-                        Optional.empty(),
-                        Optional.empty(),
-                        ImmutableSet.of());
+        LockAndTimestampServices lockAndTimestamp = LockAndTimestampServiceFactory.createLockAndTimestampServices(
+                metricsManager,
+                config,
+                Refreshable.only(mockAtlasDbRuntimeConfig),
+                environment,
+                lockServiceSupplier,
+                () -> ts,
+                invalidator,
+                USER_AGENT,
+                Optional.empty(),
+                reloadingFactory,
+                Optional.empty(),
+                Optional.empty(),
+                ImmutableSet.of());
 
         LockRequest lockRequest = LockRequest.builder(
                         ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
@@ -797,7 +795,7 @@ public class TransactionManagersTest {
                 .isEqualTo(0L);
         assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(0L);
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
@@ -820,7 +818,7 @@ public class TransactionManagersTest {
         assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount())
                 .isEqualTo(0L);
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
@@ -876,9 +874,9 @@ public class TransactionManagersTest {
                         .build()));
     }
 
-    private TransactionManagers.LockAndTimestampServices getLockAndTimestampServices() {
+    private LockAndTimestampServices getLockAndTimestampServices() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        return TransactionManagers.createLockAndTimestampServices(
+        return LockAndTimestampServiceFactory.createLockAndTimestampServices(
                 metricsManager,
                 config,
                 Refreshable.only(mockAtlasDbRuntimeConfig),
@@ -900,21 +898,20 @@ public class TransactionManagersTest {
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        TransactionManagers.LockAndTimestampServices lockAndTimestamp =
-                TransactionManagers.createLockAndTimestampServices(
-                        metricsManager,
-                        config,
-                        Refreshable.only(mockAtlasDbRuntimeConfig),
-                        environment,
-                        LockServiceImpl::create,
-                        () -> ts,
-                        invalidator,
-                        USER_AGENT,
-                        Optional.empty(),
-                        reloadingFactory,
-                        Optional.empty(),
-                        Optional.empty(),
-                        ImmutableSet.of());
+        LockAndTimestampServices lockAndTimestamp = LockAndTimestampServiceFactory.createLockAndTimestampServices(
+                metricsManager,
+                config,
+                Refreshable.only(mockAtlasDbRuntimeConfig),
+                environment,
+                LockServiceImpl::create,
+                () -> ts,
+                invalidator,
+                USER_AGENT,
+                Optional.empty(),
+                reloadingFactory,
+                Optional.empty(),
+                Optional.empty(),
+                ImmutableSet.of());
 
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
