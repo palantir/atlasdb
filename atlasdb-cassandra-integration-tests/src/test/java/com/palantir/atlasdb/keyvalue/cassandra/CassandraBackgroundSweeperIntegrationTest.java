@@ -30,11 +30,11 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
     private InMemoryTimelockServices services;
 
     @Rule
-    public TemporaryFolder inMemoryTimelockFolder = new TemporaryFolder();
+    public TemporaryFolder inMemoryTimeLockFolder = new TemporaryFolder();
 
     @Before
     public void setUp() {
-        services = InMemoryTimelockServices.create(inMemoryTimelockFolder);
+        services = InMemoryTimelockServices.create(inMemoryTimeLockFolder);
         cassandra = new CassandraResource(() -> createKeyValueService(services));
     }
 
