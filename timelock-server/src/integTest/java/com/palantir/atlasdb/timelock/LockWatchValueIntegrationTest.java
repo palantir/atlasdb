@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -98,9 +99,11 @@ public final class LockWatchValueIntegrationTest {
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9096, builder -> builder.clientPaxosBuilder(
-                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
-                    .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(
+                    TestableTimeLockClusterPorts.LOCK_WATCH_VALUE_INTEGRATION_TEST,
+                    builder -> builder.clientPaxosBuilder(
+                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
+                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
     private static final String NAMESPACE =
             String.valueOf(ThreadLocalRandom.current().nextLong());
     private static final byte[] ROW_1 = PtBytes.toBytes("final");

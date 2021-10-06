@@ -42,43 +42,26 @@ public final class LockWatchIntegrationTestUtilities {
 
     /**
      * At commit time, transactions take out locks for all of their writes. However, these locks are released
-     * asynchronously so as not to block execution of the transaction. Thus, we need to explicitly
-     *
-     *
-     * Lock watch events tend to come in pairs - a lock and an unlock event. However, unlocks are asynchronous, and
-     * thus we need to wait until we have received the unlock event before proceeding for deterministic testing
-     * behaviour.
+     * asynchronously so as not to block execution of the transaction. Thus, we need to actively wait for unlock events,
+     * and since each event increments the version by 1, we know that the version should be a multiple of two (assuming
+     * no concurrent locks).
      */
     public static void awaitUnlock(TransactionManager txnManager) {
-        LockWatchIntegrationTestUtilities.awaitLockWatches(txnManager, version -> version % 2 == 0);
+        LockWatchIntegrationTestUtilities.awaitUntilLockWatchVersionSatifies(txnManager, version -> version % 2 == 0);
     }
 
     /**
      * The lock watch manager registers watch events every five seconds - therefore, tables may not be watched
-     * immediately after a Timelock leader election.
+     * immediately after a TimeLock leader election.
      */
     public static void awaitTableWatched(TransactionManager txnManager) {
-        LockWatchIntegrationTestUtilities.awaitLockWatches(txnManager, version -> version > -1);
+        LockWatchIntegrationTestUtilities.awaitUntilLockWatchVersionSatifies(txnManager, version -> version > -1);
     }
 
-    public static void awaitLockWatches(TransactionManager txnManager, Predicate<Long> versionPredicate) {
-        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(5))
-                .pollDelay(Duration.ofMillis(100))
-                .until(() -> {
-                    // Empty transaction will still get an update for lock watches
-                    txnManager.runTaskThrowOnConflict(txn -> null);
-                    return lockWatchManager
-                            .getCache()
-                            .getEventCache()
-                            .lastKnownVersion()
-                            .map(LockWatchVersion::version)
-                            .filter(versionPredicate)
-                            .isPresent();
-                });
-    }
-
+    /**
+     * The internal version of the lock watch manager is hidden from the user, both to reduce API surface area, and
+     * because certain classes aren't visible everywhere.
+     */
     public static LockWatchManagerInternal extractInternalLockWatchManager(TransactionManager txnManager) {
         return (LockWatchManagerInternal) txnManager.getLockWatchManager();
     }
@@ -96,6 +79,25 @@ public final class LockWatchIntegrationTestUtilities {
                         Optional.empty(),
                         createSchema())
                 .transactionManager();
+    }
+
+    private static void awaitUntilLockWatchVersionSatifies(
+            TransactionManager txnManager, Predicate<Long> versionPredicate) {
+        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> {
+                    // Empty transaction will still get an update for lock watches
+                    txnManager.runTaskThrowOnConflict(txn -> null);
+                    return lockWatchManager
+                            .getCache()
+                            .getEventCache()
+                            .lastKnownVersion()
+                            .map(LockWatchVersion::version)
+                            .filter(versionPredicate)
+                            .isPresent();
+                });
     }
 
     private static Schema createSchema() {

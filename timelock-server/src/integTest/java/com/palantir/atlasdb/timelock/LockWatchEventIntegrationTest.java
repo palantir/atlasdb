@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -81,9 +82,11 @@ public final class LockWatchEventIntegrationTest {
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9106, builder -> builder.clientPaxosBuilder(
-                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
-                    .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(
+                    TestableTimeLockClusterPorts.LOCK_WATCH_EVENT_INTEGRATION_TEST,
+                    builder -> builder.clientPaxosBuilder(
+                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
+                            .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)));
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
