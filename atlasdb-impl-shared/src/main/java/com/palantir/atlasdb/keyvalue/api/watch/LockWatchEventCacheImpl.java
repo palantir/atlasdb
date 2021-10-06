@@ -30,7 +30,6 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.Preconditions;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -45,7 +44,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
     private final RateLimiter rateLimiter =
-            RateLimiter.create(1.0 / Duration.ofSeconds(5).getSeconds());
+            RateLimiter.create(1.0);
 
     public static LockWatchEventCache create(CacheMetrics metrics) {
         return ResilientLockWatchProxy.newEventCacheProxy(
