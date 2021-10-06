@@ -41,6 +41,10 @@ public final class LockWatchIntegrationTestUtilities {
     }
 
     /**
+     * At commit time, transactions take out locks for all of their writes. However, these locks are released
+     * asynchronously so as not to block execution of the transaction. Thus, we need to explicitly
+     *
+     *
      * Lock watch events tend to come in pairs - a lock and an unlock event. However, unlocks are asynchronous, and
      * thus we need to wait until we have received the unlock event before proceeding for deterministic testing
      * behaviour.
