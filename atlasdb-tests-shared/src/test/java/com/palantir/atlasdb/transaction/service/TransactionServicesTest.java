@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,30 +39,47 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Map;
 import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 
 public class TransactionServicesTest {
     private final KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
-    private final TimestampService timestampService = new InMemoryTimestampService();
-    private final CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-            keyValueService, timestampService, MetricsManagers.createForTests(), false);
-    private final TransactionService transactionService = TransactionServices.createTransactionService(
-            keyValueService, new TransactionSchemaManager(coordinationService));
+
+    private InMemoryTimelockServices services;
+    private TimestampService timestampService;
+    private CoordinationService<InternalSchemaMetadata> coordinationService;
+    private TransactionService transactionService;
 
     private long startTs;
     private long commitTs;
 
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     @Before
     public void setup() {
         TransactionTables.createTables(keyValueService);
+        services = InMemoryTimelockServices.create(tempFolder);
+        timestampService = services.getTimestampService();
+        coordinationService = CoordinationServices.createDefault(
+                keyValueService, timestampService, MetricsManagers.createForTests(), false);
+        transactionService = TransactionServices.createTransactionService(
+                keyValueService, new TransactionSchemaManager(coordinationService));
+    }
+
+    @After
+    public void after() {
+        services.close();
     }
 
     @Test
