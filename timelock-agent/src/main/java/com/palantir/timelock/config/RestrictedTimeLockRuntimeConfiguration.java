@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.config;
 
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestRuntimeConfig;
 import java.util.Optional;
 
 public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfiguration {
@@ -44,11 +43,6 @@ public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfi
     @Override
     public long slowLockLogTriggerMillis() {
         return runtime.slowLockLogTriggerMillis();
-    }
-
-    @Override
-    public LockWatchTestRuntimeConfig lockWatchTestConfig() {
-        return runtime.lockWatchTestConfig();
     }
 
     @Override
