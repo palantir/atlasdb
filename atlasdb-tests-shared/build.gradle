@@ -44,6 +44,7 @@ dependencies {
   implementation project(':timestamp-api')
 
   testImplementation 'com.github.tomakehurst:wiremock-standalone'
+  testImplementation 'com.google.auto.service:auto-service-annotations'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.google.protobuf:protobuf-java'
   testImplementation 'com.palantir.common:streams'
