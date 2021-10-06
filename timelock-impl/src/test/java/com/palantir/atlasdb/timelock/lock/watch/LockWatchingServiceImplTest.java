@@ -84,19 +84,50 @@ public class LockWatchingServiceImplTest {
     }
 
     @Test
-    public void runTaskRunsExclusivelyOnLockLog() {
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        CountDownLatch withinTask = new CountDownLatch(1);
+    public void runTaskRunsExclusivelyOnLockLog() throws InterruptedException {
+        LockWatchRequest request = tableRequest();
+        lockWatcher.startWatching(request);
 
-        // This task will deadlock and thus must never complete
-        Future<?> submit = executor.submit(() -> lockWatcher.runTask(Optional.empty(), () -> {
-            Future<?> inner = executor.submit(() -> lockWatcher.runTask(Optional.empty(), () -> null));
-            withinTask.countDown();
-            return Futures.getUnchecked(inner);
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+        CountDownLatch runTaskStarted = new CountDownLatch(1);
+        CountDownLatch otherTaskCompleted = new CountDownLatch(1);
+
+        Future<?> runTask = executor.submit(() -> lockWatcher.runTask(Optional.empty(), () -> {
+            runTaskStarted.countDown();
+            Uninterruptibles.awaitUninterruptibly(otherTaskCompleted);
+            return Optional.empty();
         }));
 
-        Uninterruptibles.awaitUninterruptibly(withinTask);
-        assertThat(submit).isNotDone();
+        // runTask started
+        Uninterruptibles.awaitUninterruptibly(runTaskStarted);
+        ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR);
+
+        Future<?> registerLock = executor.submit(() -> {
+            lockWatcher.registerLock(locks, TOKEN);
+            otherTaskCompleted.countDown();
+            return null;
+        });
+        Future<?> registerUnlock = executor.submit(() -> {
+            lockWatcher.registerUnlock(locks);
+            otherTaskCompleted.countDown();
+            return null;
+        });
+
+        // lock tasks are blocked
+        assertThat(otherTaskCompleted.await(2, TimeUnit.SECONDS)).isFalse();
+
+        assertThat(runTask).isNotDone();
+        assertThat(registerLock).isNotDone();
+        assertThat(registerUnlock).isNotDone();
+
+        // unblock runTask
+        otherTaskCompleted.countDown();
+
+        // all tasks complete
+        assertThatCode(() -> runTask.get(2, TimeUnit.SECONDS)).doesNotThrowAnyException();
+        assertThatCode(() -> registerLock.get(2, TimeUnit.SECONDS)).doesNotThrowAnyException();
+        assertThatCode(() -> registerUnlock.get(2, TimeUnit.SECONDS)).doesNotThrowAnyException();
+
         executor.shutdownNow();
     }
 
