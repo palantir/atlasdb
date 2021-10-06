@@ -22,6 +22,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -46,6 +48,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,6 +81,23 @@ public class LockWatchingServiceImplTest {
         when(heldLocks.getLocks()).thenReturn(ImmutableList.of(LOCK, LOCK_2));
         when(heldLocks.getToken()).thenReturn(TOKEN);
         when(locks.locksHeld()).thenReturn(ImmutableSet.of(heldLocks));
+    }
+
+    @Test
+    public void runTaskRunsExclusivelyOnLockLog() {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch withinTask = new CountDownLatch(1);
+
+        // This task will deadlock and thus must never complete
+        Future<?> submit = executor.submit(() -> lockWatcher.runTask(Optional.empty(), () -> {
+            Future<?> inner = executor.submit(() -> lockWatcher.runTask(Optional.empty(), () -> null));
+            withinTask.countDown();
+            return Futures.getUnchecked(inner);
+        }));
+
+        Uninterruptibles.awaitUninterruptibly(withinTask);
+        assertThat(submit).isNotDone();
+        executor.shutdownNow();
     }
 
     @Test
