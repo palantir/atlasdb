@@ -101,7 +101,7 @@ public class LockWatchingServiceImplTest {
 
         // runTask started
         Uninterruptibles.awaitUninterruptibly(runTaskStarted);
-        ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR);
+        Set<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR);
 
         Future<?> registerLock = executor.submit(() -> {
             lockWatcher.registerLock(locks, TOKEN);
