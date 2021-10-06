@@ -19,22 +19,39 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
 import com.palantir.atlasdb.util.MetricsManagers;
-import org.junit.ClassRule;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
-    @ClassRule
-    public static final CassandraResource CASSANDRA =
-            new CassandraResource(CassandraBackgroundSweeperIntegrationTest::createKeyValueService);
+    private CassandraResource cassandra;
+    private InMemoryTimelockServices services;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    @Before
+    public void setUp() {
+        services = InMemoryTimelockServices.create(tempFolder);
+        cassandra = new CassandraResource(() -> createKeyValueService(services));
+    }
+
+    @After
+    public void after() {
+        services.close();
+    }
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CASSANDRA.getDefaultKvs();
+        return cassandra.getDefaultKvs();
     }
 
-    private static KeyValueService createKeyValueService() {
+    private KeyValueService createKeyValueService(InMemoryTimelockServices services) {
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
-                CASSANDRA.getConfig(),
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
+                cassandra.getConfig(),
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, services));
     }
 }

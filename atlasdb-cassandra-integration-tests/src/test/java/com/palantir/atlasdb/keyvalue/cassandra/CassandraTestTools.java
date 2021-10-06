@@ -18,7 +18,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.common.base.Throwables;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -58,6 +60,13 @@ public final class CassandraTestTools {
     public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(long timestamp) {
         // TODO(gs): replace with InMemoryTimelockServices
         InMemoryTimestampService timestampService = new InMemoryTimestampService();
+        timestampService.fastForwardTimestamp(timestamp);
+        return CassandraMutationTimestampProviders.singleLongSupplierBacked(timestampService::getFreshTimestamp);
+    }
+
+    public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(
+            long timestamp, InMemoryTimelockServices services) {
+        ManagedTimestampService timestampService = services.getManagedTimestampService();
         timestampService.fastForwardTimestamp(timestamp);
         return CassandraMutationTimestampProviders.singleLongSupplierBacked(timestampService::getFreshTimestamp);
     }
