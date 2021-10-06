@@ -46,11 +46,6 @@ public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfi
     }
 
     @Override
-    public LockWatchTestRuntimeConfig lockWatchTestConfig() {
-        return runtime.lockWatchTestConfig();
-    }
-
-    @Override
     public TimeLockAdjudicationConfiguration adjudication() {
         return runtime.adjudication();
     }
