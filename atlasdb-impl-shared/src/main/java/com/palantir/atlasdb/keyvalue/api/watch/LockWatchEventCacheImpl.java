@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
@@ -29,6 +30,7 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -42,6 +44,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
+    private final RateLimiter rateLimiter =
+            RateLimiter.create(1 / Duration.ofSeconds(5).getSeconds());
 
     public static LockWatchEventCache create(CacheMetrics metrics) {
         return ResilientLockWatchProxy.newEventCacheProxy(
@@ -133,9 +137,11 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
-        timestampStateStore.remove(startTimestamp);
-        retentionEvents();
+    public void removeTransactionStateFromCache(long startTimestamp) {
+        removeFromTimestampState(startTimestamp);
+        if (rateLimiter.tryAcquire()) {
+            retentionEvents();
+        }
     }
 
     @VisibleForTesting
@@ -144,6 +150,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .timestampStoreState(timestampStateStore.getStateForTesting())
                 .logState(eventLog.getStateForTesting())
                 .build();
+    }
+
+    private synchronized void removeFromTimestampState(long startTimestamp) {
+        timestampStateStore.remove(startTimestamp);
     }
 
     private synchronized TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
