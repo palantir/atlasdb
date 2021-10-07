@@ -54,15 +54,18 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Map;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 
-public class KeyValueServiceMigratorsTest {
+public class KeyValueServiceMigratorsTest extends AbstractTestWithInMemoryTimeLock {
     private static final long FUTURE_TIMESTAMP = 3141592653589L;
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("test.table");
     private static final TableReference CHECKPOINT_TABLE_NO_NAMESPACE =
@@ -79,17 +82,39 @@ public class KeyValueServiceMigratorsTest {
     private static final byte[] TEST_VALUE1 = {2};
     private static final byte[] TEST_VALUE2 = {3};
 
-    private final AtlasDbServices fromServices = createMock(spy(new InMemoryKeyValueService(false)));
-    private final AtlasDbServices toServices = createMock(spy(new InMemoryKeyValueService(false)));
-    private final KeyValueService fromKvs = fromServices.getKeyValueService();
-    private final TransactionManager fromTxManager = fromServices.getTransactionManager();
-    private final KeyValueService toKvs = toServices.getKeyValueService();
-    private final TransactionManager toTxManager = toServices.getTransactionManager();
+    private InMemoryTimelockServices toTimeLockServices;
+    private AtlasDbServices fromServices;
+    private AtlasDbServices toServices;
+    private KeyValueService fromKvs;
+    private TransactionManager fromTxManager;
+    private KeyValueService toKvs;
+    private TransactionManager toTxManager;
+    private ImmutableMigratorSpec migratorSpec;
 
-    private final ImmutableMigratorSpec migratorSpec = ImmutableMigratorSpec.builder()
-            .fromServices(fromServices)
-            .toServices(toServices)
-            .build();
+    @Rule
+    public TemporaryFolder toTempFolder = new TemporaryFolder();
+
+    @Before
+    public void setUp() {
+        super.setUp();
+        toTimeLockServices = InMemoryTimelockServices.create(toTempFolder);
+        fromServices = createMock(spy(new InMemoryKeyValueService(false)), services);
+        toServices = createMock(spy(new InMemoryKeyValueService(false)), toTimeLockServices);
+        fromKvs = fromServices.getKeyValueService();
+        fromTxManager = fromServices.getTransactionManager();
+        toKvs = toServices.getKeyValueService();
+        toTxManager = toServices.getTransactionManager();
+        migratorSpec = ImmutableMigratorSpec.builder()
+                .fromServices(fromServices)
+                .toServices(toServices)
+                .build();
+    }
+
+    @After
+    public void after() {
+        super.after();
+        toTimeLockServices.close();
+    }
 
     @Test
     public void setupMigratorFastForwardsTimestamp() {
@@ -288,7 +313,7 @@ public class KeyValueServiceMigratorsTest {
                 ImmutableList.of(new InMemoryKeyValueService(false), fromKvs),
                 ImmutableMap.of(FAKE_ATOMIC_TABLE, fromKvs));
 
-        AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs);
+        AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs, toTimeLockServices);
         ImmutableMigratorSpec spec = ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
                 .toServices(toSplittingServices)
@@ -313,7 +338,7 @@ public class KeyValueServiceMigratorsTest {
                 ImmutableList.of(new InMemoryKeyValueService(false), fromKvs),
                 Maps.toMap(AtlasDbConstants.HIDDEN_TABLES, ignore -> fromKvs));
 
-        AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs);
+        AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs, toTimeLockServices);
         ImmutableMigratorSpec spec = ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
                 .toServices(toSplittingServices)
@@ -327,8 +352,8 @@ public class KeyValueServiceMigratorsTest {
         assertThat(toSplittingServices.getTransactionService().get(100_000)).isEqualTo(100_001L);
     }
 
-    private static AtlasDbServices createMock(KeyValueService kvs) {
-        ManagedTimestampService timestampService = new InMemoryTimestampService();
+    private AtlasDbServices createMock(KeyValueService kvs, InMemoryTimelockServices inMemoryTimeLock) {
+        ManagedTimestampService timestampService = inMemoryTimeLock.getManagedTimestampService();
 
         TransactionTables.createTables(kvs);
         TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
@@ -343,9 +368,8 @@ public class KeyValueServiceMigratorsTest {
                 kvs,
                 timestampService,
                 timestampService,
-                LockClient.of("test"),
-                LockServiceImpl.create(
-                        LockServerOptions.builder().isStandaloneServer(false).build()),
+                LockClient.of("test"), // TODO(gs): fetch from services?
+                inMemoryTimeLock.getLockService(),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 ConflictDetectionManagers.createWithoutWarmingCache(kvs),
