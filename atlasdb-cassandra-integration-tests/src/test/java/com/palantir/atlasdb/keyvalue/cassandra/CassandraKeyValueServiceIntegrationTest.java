@@ -63,6 +63,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,6 +84,7 @@ import org.apache.thrift.TException;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
@@ -116,14 +118,24 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return Arrays.asList(data);
     }
 
+    private static InMemoryTimelockServices services;
+
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
-            MetricsManagers.createForTests(),
-            getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
-            RUNTIME_CONFIG_SUPPLIER,
-            CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
-            logger,
-            AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC));
+    public static final TemporaryFolder timeLockFolder = new TemporaryFolder();
+
+    @ClassRule
+    public static final CassandraResource CASSANDRA = new CassandraResource(() -> {
+        if (services == null) {
+            services = InMemoryTimelockServices.create(timeLockFolder);
+        }
+        return CassandraKeyValueServiceImpl.create(
+                MetricsManagers.createForTests(),
+                getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
+                RUNTIME_CONFIG_SUPPLIER,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
+                logger,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    });
 
     private final String name;
 
@@ -482,7 +494,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 testLogger);
     }
 
