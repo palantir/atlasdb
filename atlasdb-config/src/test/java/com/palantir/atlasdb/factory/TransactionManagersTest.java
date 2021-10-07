@@ -329,20 +329,21 @@ public class TransactionManagersTest {
         };
 
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        LockAndTimestampServices lockAndTimestamp = LockAndTimestampServiceFactory.createLockAndTimestampServices(
-                metricsManager,
-                config,
-                Refreshable.only(mockAtlasDbRuntimeConfig),
-                environment,
-                lockServiceSupplier,
-                () -> ts,
-                invalidator,
-                USER_AGENT,
-                Optional.empty(),
-                reloadingFactory,
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableSet.of());
+        LockAndTimestampServices lockAndTimestamp = new DefaultLockAndTimestampServiceFactory(
+                        metricsManager,
+                        config,
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
+                        environment,
+                        lockServiceSupplier,
+                        () -> ts,
+                        invalidator,
+                        USER_AGENT,
+                        Optional.empty(),
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty(),
+                        ImmutableSet.of())
+                .createLockAndTimestampServices();
 
         LockRequest lockRequest = LockRequest.builder(
                         ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
@@ -876,20 +877,21 @@ public class TransactionManagersTest {
 
     private LockAndTimestampServices getLockAndTimestampServices() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        return LockAndTimestampServiceFactory.createLockAndTimestampServices(
-                metricsManager,
-                config,
-                Refreshable.only(mockAtlasDbRuntimeConfig),
-                environment,
-                LockServiceImpl::create,
-                () -> ts,
-                invalidator,
-                USER_AGENT,
-                Optional.empty(),
-                reloadingFactory,
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableSet.of());
+        return new DefaultLockAndTimestampServiceFactory(
+                        metricsManager,
+                        config,
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
+                        environment,
+                        LockServiceImpl::create,
+                        () -> ts,
+                        invalidator,
+                        USER_AGENT,
+                        Optional.empty(),
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty(),
+                        ImmutableSet.of())
+                .createLockAndTimestampServices();
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -898,20 +900,21 @@ public class TransactionManagersTest {
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        LockAndTimestampServices lockAndTimestamp = LockAndTimestampServiceFactory.createLockAndTimestampServices(
-                metricsManager,
-                config,
-                Refreshable.only(mockAtlasDbRuntimeConfig),
-                environment,
-                LockServiceImpl::create,
-                () -> ts,
-                invalidator,
-                USER_AGENT,
-                Optional.empty(),
-                reloadingFactory,
-                Optional.empty(),
-                Optional.empty(),
-                ImmutableSet.of());
+        LockAndTimestampServices lockAndTimestamp = new DefaultLockAndTimestampServiceFactory(
+                        metricsManager,
+                        config,
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
+                        environment,
+                        LockServiceImpl::create,
+                        () -> ts,
+                        invalidator,
+                        USER_AGENT,
+                        Optional.empty(),
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty(),
+                        ImmutableSet.of())
+                .createLockAndTimestampServices();
 
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
