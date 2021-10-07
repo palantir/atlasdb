@@ -81,6 +81,7 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
+import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -136,6 +137,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 logger,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     });
+
+    @AfterClass
+    public static void afterClass() {
+        services.close();
+    }
 
     private final String name;
 
