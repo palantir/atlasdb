@@ -19,21 +19,22 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import org.junit.ClassRule;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
-    private CassandraResource cassandra;
+    @ClassRule
+    public static final CassandraResource CASSANDRA =
+            new CassandraResource(CassandraBackgroundSweeperIntegrationTest::createKeyValueService);
 
     @Override
     protected KeyValueService getKeyValueService() {
-        cassandra = new CassandraResource(() -> createKeyValueService(services));
-        return cassandra.getDefaultKvs();
+        return CASSANDRA.getDefaultKvs();
     }
 
-    private KeyValueService createKeyValueService(InMemoryTimelockServices services) {
+    private static KeyValueService createKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
-                cassandra.getConfig(),
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, services));
+                CASSANDRA.getConfig(),
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 }
