@@ -46,7 +46,7 @@ public class NonBlockingFileAppenderFactory<E extends ch.qos.logback.core.spi.De
                 "The Dropwizard logging factory returned an unexpected appender of type " + appender.getClass()
                         + ". NonBlockingFileAppenderFactory requires an async appender to set the neverBlock "
                         + "property.");
-        ((ch.qos.logback.core.AsyncAppenderBase) appender).setNeverBlock(true);
+        ((ch.qos.logback.core.AsyncAppenderBase<?>) appender).setNeverBlock(true);
 
         return appender;
     }

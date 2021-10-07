@@ -68,9 +68,9 @@ public class MultiClientConjureTimelockResourceTest {
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
     private static final int DUMMY_COMMIT_TS_COUNT = 5;
 
-    private Map<String, AsyncTimelockService> namespaces = new HashMap();
-    private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap();
-    private Map<String, Integer> namespaceToCommitTsLowerBound = new HashMap();
+    private Map<String, AsyncTimelockService> namespaces = new HashMap<>();
+    private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap<>();
+    private Map<String, Integer> namespaceToCommitTsLowerBound = new HashMap<>();
 
     private MultiClientConjureTimelockResource resource;
 

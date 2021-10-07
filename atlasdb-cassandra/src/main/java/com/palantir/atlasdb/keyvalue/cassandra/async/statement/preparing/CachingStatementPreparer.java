@@ -49,7 +49,7 @@ public final class CachingStatementPreparer implements StatementPreparer {
     }
 
     @Override
-    public PreparedStatement prepare(CqlQuerySpec querySpec) {
+    public PreparedStatement prepare(CqlQuerySpec<?> querySpec) {
         CacheKey cacheKey = ImmutableCacheKey.builder()
                 .cqlQueryContext(querySpec.cqlQueryContext())
                 .queryType(querySpec.queryType())
