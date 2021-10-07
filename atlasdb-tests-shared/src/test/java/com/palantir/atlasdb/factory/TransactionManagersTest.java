@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -52,14 +51,11 @@ import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
-import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
-import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
-import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -71,7 +67,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.dialogue.clients.DialogueClients;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.AutoDelegate_LockService;
@@ -115,7 +110,6 @@ import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -677,31 +671,32 @@ public class TransactionManagersTest {
         assertThat(tm.getTimelockServiceStatus().isHealthy()).isTrue();
     }
 
-    @Ignore // TODO(gs): move config class to correct place or add to classpath
-    @Test
-    public void asyncInitializationEventuallySucceeds() {
-        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
-                .keyValueService(new InMemoryAsyncAtlasDbConfig())
-                .initializeAsync(true)
-                .build();
-
-        TransactionManager manager = TransactionManagers.builder()
-                .config(atlasDbConfig)
-                .userAgent(USER_AGENT)
-                .globalMetricsRegistry(new MetricRegistry())
-                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
-                .addSchemas(GenericTestSchema.getSchema())
-                .build()
-                .serializable();
-
-        assertThat(manager.isInitialized()).isFalse();
-        assertThatThrownBy(() -> manager.runTaskWithRetry(unused -> null)).isInstanceOf(NotInitializedException.class);
-
-        Awaitility.await().atMost(Duration.ofSeconds(12)).until(manager::isInitialized);
-
-        performTransaction(manager);
-    }
+    //    @Ignore // TODO(gs): move config class to correct place or add to classpath
+    //    @Test
+    //    public void asyncInitializationEventuallySucceeds() {
+    //        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+    //                .keyValueService(new InMemoryAsyncAtlasDbConfig())
+    //                .initializeAsync(true)
+    //                .build();
+    //
+    //        TransactionManager manager = TransactionManagers.builder()
+    //                .config(atlasDbConfig)
+    //                .userAgent(USER_AGENT)
+    //                .globalMetricsRegistry(new MetricRegistry())
+    //                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+    //                .registrar(environment)
+    //                .addSchemas(GenericTestSchema.getSchema())
+    //                .build()
+    //                .serializable();
+    //
+    //        assertThat(manager.isInitialized()).isFalse();
+    //        assertThatThrownBy(() -> manager.runTaskWithRetry(unused ->
+    // null)).isInstanceOf(NotInitializedException.class);
+    //
+    //        Awaitility.await().atMost(Duration.ofSeconds(12)).until(manager::isInitialized);
+    //
+    //        performTransaction(manager);
+    //    }
 
     @Test
     public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
@@ -762,17 +757,18 @@ public class TransactionManagersTest {
         return services.stream().anyMatch(TransactionManagersTest::isSweepStatsKvsPresentInDelegatingChain);
     }
 
-    private static void performTransaction(TransactionManager manager) {
-        RangeScanTestTable.RangeScanTestRow testRow = RangeScanTestTable.RangeScanTestRow.of("foo");
-        manager.runTaskWithRetry(tx -> {
-            GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).putColumn1(testRow, 12345L);
-            return null;
-        });
-        Map<RangeScanTestTable.RangeScanTestRow, Long> result = manager.runTaskWithRetry(tx ->
-                GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).getColumn1s(ImmutableSet.of(testRow)));
-
-        assertThat(Iterables.getOnlyElement(result.entrySet()).getValue()).isEqualTo(12345L);
-    }
+    //    private static void performTransaction(TransactionManager manager) {
+    //        RangeScanTestTable.RangeScanTestRow testRow = RangeScanTestTable.RangeScanTestRow.of("foo");
+    //        manager.runTaskWithRetry(tx -> {
+    //            GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).putColumn1(testRow, 12345L);
+    //            return null;
+    //        });
+    //        Map<RangeScanTestTable.RangeScanTestRow, Long> result = manager.runTaskWithRetry(tx ->
+    //
+    // GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).getColumn1s(ImmutableSet.of(testRow)));
+    //
+    //        assertThat(Iterables.getOnlyElement(result.entrySet()).getValue()).isEqualTo(12345L);
+    //    }
 
     private void assertThatTimeAndLockMetricsAreNotRecorded(String timestampMetric, String lockMetric) {
         assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount())
