@@ -80,7 +80,7 @@ public abstract class AbstractSweepTest {
     protected TransactionService txService;
     protected SweepStrategyManager ssm;
 
-    private InMemoryTimelockServices services;
+    protected static InMemoryTimelockServices services;
 
     protected AbstractSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;

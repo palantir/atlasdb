@@ -52,7 +52,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, services));
     }
 
     private void insertMultipleValues(long numInsertions) {
