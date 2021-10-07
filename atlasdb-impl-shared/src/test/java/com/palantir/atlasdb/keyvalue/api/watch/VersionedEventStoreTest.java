@@ -69,7 +69,13 @@ public final class VersionedEventStoreTest {
     }
 
     @Test
-    public void getEventsBetweenVersionsDoesNotIncludeFirstKeyIfEndVersionPrecedesIt() {
+    public void getEventsBetweenVersionsReturnsNothingIfStartIsAfterLastEvent() {
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.of(9L), 11L)).isEmpty();
+    }
+
+    @Test
+    public void getEventsBetweenVersionsDoesNotIncludeFirstKeyIfStartNotSpecifiedAndEndVersionPrecedesIt() {
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), 0L)).isEmpty();
     }
