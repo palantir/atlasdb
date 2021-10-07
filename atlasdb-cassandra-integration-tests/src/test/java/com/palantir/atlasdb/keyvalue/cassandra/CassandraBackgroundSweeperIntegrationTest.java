@@ -20,31 +20,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     private CassandraResource cassandra;
-    private InMemoryTimelockServices services;
-
-    @Rule
-    public TemporaryFolder inMemoryTimeLockFolder = new TemporaryFolder();
-
-    @Before
-    public void setUp() {
-        services = InMemoryTimelockServices.create(inMemoryTimeLockFolder);
-        cassandra = new CassandraResource(() -> createKeyValueService(services));
-    }
-
-    @After
-    public void after() {
-        services.close();
-    }
 
     @Override
     protected KeyValueService getKeyValueService() {
+        cassandra = new CassandraResource(() -> createKeyValueService(services));
         return cassandra.getDefaultKvs();
     }
 
