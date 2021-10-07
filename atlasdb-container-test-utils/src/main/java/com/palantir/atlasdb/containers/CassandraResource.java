@@ -44,6 +44,8 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
 
     public CassandraResource(Supplier<KeyValueService> supplier) {
         this.supplier = supplier;
+        this.testResourceManager = new TestResourceManager(supplier);
+        this.socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
     }
 
     @Override

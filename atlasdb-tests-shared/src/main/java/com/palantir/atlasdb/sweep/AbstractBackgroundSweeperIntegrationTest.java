@@ -80,7 +80,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     PeriodicTrueSupplier skipCellVersion = new PeriodicTrueSupplier();
 
-    private InMemoryTimelockServices services;
+    protected InMemoryTimelockServices services;
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
