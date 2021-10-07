@@ -32,6 +32,7 @@ import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.ClusterInstallConfiguration;
 import com.palantir.timelock.config.ImmutableClusterInstallConfiguration;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
+import com.palantir.timelock.config.ImmutableSqlitePaxosPersistenceConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
@@ -71,13 +72,20 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     }
 
     public static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
-        return create(tryCreateSubFolder(tempFolder));
+        return create(tryCreateSubFolder(tempFolder), "client");
     }
 
-    private static InMemoryTimelockServices create(File dataDirectory) {
+    public static InMemoryTimelockServices create(TemporaryFolder tempFolder, String client) {
+        return create(tryCreateSubFolder(tempFolder), client);
+    }
+
+    private static InMemoryTimelockServices create(File dataDirectory, String client) {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
                 .dataDirectory(dataDirectory)
                 .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
+                .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
+                        .dataDirectory(new File("var/data/sqlitePaxos-" + client))
+                        .build())
                 .isNewService(false)
                 .build();
 
@@ -111,9 +119,7 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
                 ObjectMappers.newServerObjectMapper(),
                 () -> System.exit(0));
 
-        // TODO(gs): Currently hard-coded to one client.
-        //  We might want to refactor this to allow us to write a test that uses multiple clients
-        TimeLockServices services = timeLockAgent.createInvalidatingTimeLockServices("client");
+        TimeLockServices services = timeLockAgent.createInvalidatingTimeLockServices(client);
 
         // Wait for leadership
         Awaitility.await()
