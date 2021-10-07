@@ -90,6 +90,7 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tokens.auth.AuthHeader;
@@ -857,7 +858,23 @@ public class TransactionManagersTest {
     }
 
     private LockAndTimestampServices getLockAndTimestampServices() {
-        return new InMemoryLockAndTimestampServiceFactory(services).createLockAndTimestampServices();
+        ManagedTimestampService ts = services.getManagedTimestampService();
+        return new DefaultLockAndTimestampServiceFactory(
+                        metricsManager,
+                        config,
+                        Refreshable.only(mockAtlasDbRuntimeConfig),
+                        environment,
+                        LockServiceImpl::create,
+                        () -> ts,
+                        invalidator,
+                        USER_AGENT,
+                        Optional.empty(),
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty(),
+                        ImmutableSet.of())
+                .createLockAndTimestampServices();
+        //        return new InMemoryLockAndTimestampServiceFactory(services).createLockAndTimestampServices();
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
