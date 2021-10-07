@@ -236,18 +236,19 @@ public final class TimestampStateStoreTest {
 
     @Test
     public void preventsAdditionsWhenTimestampStateStoreSizeExceeded() {
-        Set<Long> overlyLargeTimestampSet =
-                LongStream.range(0, TimestampStateStore.MAXIMUM_SIZE + 1).boxed().collect(Collectors.toSet());
+        Set<Long> overlyLargeTimestampSet = LongStream.range(0, TimestampStateStore.MAXIMUM_SIZE + 1)
+                .boxed()
+                .collect(Collectors.toSet());
         timestampStateStore.putStartTimestamps(overlyLargeTimestampSet, VERSION_1);
-        assertThatThrownBy(() -> timestampStateStore.putStartTimestamps(ImmutableSet.of(
-                TimestampStateStore.MAXIMUM_SIZE + 1L), VERSION_2))
+        assertThatThrownBy(() -> timestampStateStore.putStartTimestamps(
+                        ImmutableSet.of(TimestampStateStore.MAXIMUM_SIZE + 1L), VERSION_2))
                 .as("Cannot add a timestamp when the store has exceeded its maximum size")
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessage("Exceeded maximum timestamp state store size");
 
         timestampStateStore.remove(0L);
         assertThatCode(() -> timestampStateStore.putStartTimestamps(
-                ImmutableSet.of(TimestampStateStore.MAXIMUM_SIZE + 1L), VERSION_2))
+                        ImmutableSet.of(TimestampStateStore.MAXIMUM_SIZE + 1L), VERSION_2))
                 .as("Can add a timestamp, now that the store no longer exceeds its maximum size")
                 .doesNotThrowAnyException();
     }
