@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -53,8 +54,7 @@ final class VersionedEventStore {
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
         Optional<Long> startVersion = maybeStartVersion
-                .map(Optional::of)
-                .orElseGet(this::getFirstKey)
+                .or(this::getFirstKey)
                 .filter(version -> version <= endVersion);
 
         return startVersion
@@ -121,16 +121,11 @@ final class VersionedEventStore {
     }
 
     private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, long startVersion) {
-        return eventMap.subMap(Sequence.of(startVersion), INCLUSIVE, Sequence.of(endVersion), INCLUSIVE)
-                .values();
+        return eventMap.subMap(Sequence.of(startVersion), INCLUSIVE, Sequence.of(endVersion), INCLUSIVE).values();
     }
 
     private Optional<Long> getFirstKey() {
-        if (eventMap.isEmpty()) {
-            return Optional.empty();
-        } else {
-            return Optional.of(eventMap.firstKey()).map(Sequence::value);
-        }
+        return Optional.ofNullable(eventMap.firstEntry()).map(Entry::getKey).map(Sequence::value);
     }
 
     private long getLastKey() {

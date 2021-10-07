@@ -17,12 +17,14 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,26 +55,6 @@ public final class VersionedEventStoreTest {
     }
 
     @Test
-    public void retentionEventsDoesNotRetentionAfterEarliestVersion() {
-        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
-        LockWatchEvents emptyEvents = eventStore.retentionEvents(Optional.of(SEQ_MIN));
-        assertThat(emptyEvents.events()).isEmpty();
-        assertThat(eventStore.getStateForTesting().eventMap().keySet())
-                .containsExactlyInAnyOrder(SEQ_1, SEQ_2, SEQ_3, SEQ_4);
-
-        LockWatchEvents events = eventStore.retentionEvents(Optional.empty());
-        assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
-        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(SEQ_3);
-    }
-
-    @Test
-    public void containsReturnsTrueForValuesLargerThanFirstKey() {
-        eventStore.putAll(makeEvents(EVENT_4));
-        assertThat(eventStore.containsEntryLessThanOrEqualTo(1L)).isFalse();
-        assertThat(eventStore.containsEntryLessThanOrEqualTo(5L)).isTrue();
-    }
-
-    @Test
     public void getEventsBetweenVersionsReturnsInclusiveOnBounds() {
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.of(2L), 3L))
@@ -84,6 +66,71 @@ public final class VersionedEventStoreTest {
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), 3L))
                 .containsExactly(EVENT_1, EVENT_2, EVENT_3);
+    }
+
+    @Test
+    public void getEventsBetweenVersionsDoesNotIncludeFirstKeyIfEndVersionPrecedesIt() {
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), 0L)).isEmpty();
+    }
+
+    @Test
+    public void getEventsBetweenVersionsReturnsAllEventsWhenQueriedPastEnd() {
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), Long.MAX_VALUE))
+                .containsExactly(EVENT_1, EVENT_2, EVENT_3, EVENT_4);
+    }
+
+    @Test
+    public void getEventsBetweenVersionsReturnsEmptyForEmptyEventStore() {
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), Long.MAX_VALUE)).isEmpty();
+    }
+
+    @Test
+    public void containsEntryLessThanOrEqualToOperatesCorrectlyForFilledStore() {
+        eventStore.putAll(makeEvents(EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(1L)).isFalse();
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(2L)).isTrue();
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(5L)).isTrue();
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(Long.MAX_VALUE)).isTrue();
+    }
+
+    @Test
+    public void containsEntryLessThanOrEqualToOperatesCorrectlyForEmptyStore() {
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(Long.MIN_VALUE)).isFalse();
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(Long.MAX_VALUE)).isFalse();
+    }
+
+    @Test
+    // TODO (jkong): If we don't want to support this case, we should explicitly reject it rather than relying on an
+    //  SISE.
+    public void puttingNoEventsThrowsException() {
+        assertThatThrownBy(() -> eventStore.putAll(makeEvents()))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessage("Cannot get last key from empty map");
+    }
+
+    @Test
+    public void putAllReturnsLastIndexAfterAddition() {
+        assertThat(eventStore.putAll(makeEvents(EVENT_1))).isEqualTo(EVENT_1.sequence());
+        assertThat(eventStore.putAll(makeEvents(EVENT_2, EVENT_3))).isEqualTo(EVENT_3.sequence());
+        assertThat(eventStore.putAll(makeEvents(EVENT_4))).isEqualTo(EVENT_4.sequence());
+    }
+
+    // TODO (jkong): What's next is to test retention.
+    retention <3
+
+    @Test
+    public void retentionEventsDoesNotRetentionAfterEarliestVersion() {
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        LockWatchEvents emptyEvents = eventStore.retentionEvents(Optional.of(SEQ_MIN));
+        assertThat(emptyEvents.events()).isEmpty();
+        assertThat(eventStore.getStateForTesting().eventMap().keySet())
+                .containsExactlyInAnyOrder(SEQ_1, SEQ_2, SEQ_3, SEQ_4);
+
+        LockWatchEvents events = eventStore.retentionEvents(Optional.empty());
+        assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
+        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(SEQ_3);
     }
 
     @Test
