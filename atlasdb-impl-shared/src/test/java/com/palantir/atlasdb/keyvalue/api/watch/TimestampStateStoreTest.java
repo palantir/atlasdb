@@ -85,6 +85,27 @@ public final class TimestampStateStoreTest {
     }
 
     @Test
+    public void startTimestampAndCommitUpdateNoLongerReadableAfterRemoval() {
+        LockToken token = LockToken.of(UUID.randomUUID());
+        TransactionUpdate update = TransactionUpdate.builder()
+                .startTs(TIMESTAMP_1)
+                .commitTs(TIMESTAMP_2)
+                .writesToken(token)
+                .build();
+
+        timestampStateStore.putStartTimestamps(ImmutableSet.of(TIMESTAMP_1), VERSION_1);
+        timestampStateStore.putCommitUpdates(ImmutableSet.of(update), VERSION_2);
+
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_1)).hasValue(VERSION_1);
+        assertThat(timestampStateStore.getCommitInfo(TIMESTAMP_1)).hasValue(CommitInfo.of(token, VERSION_2));
+
+        timestampStateStore.remove(TIMESTAMP_1);
+
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_1)).isEmpty();
+        assertThat(timestampStateStore.getCommitInfo(TIMESTAMP_1)).isEmpty();
+    }
+
+    @Test
     public void earliestLiveSequenceMovesForwardWithSequentialRemovals() {
         timestampStateStore.putStartTimestamps(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), VERSION_1);
         timestampStateStore.putStartTimestamps(ImmutableSet.of(TIMESTAMP_3, TIMESTAMP_4), VERSION_2);
