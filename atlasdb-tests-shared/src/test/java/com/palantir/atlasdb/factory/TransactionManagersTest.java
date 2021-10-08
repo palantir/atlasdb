@@ -84,7 +84,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -114,7 +114,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class TransactionManagersTest {
+public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
     private static final String USER_AGENT_NAME = "user-agent";
     private static final String USER_AGENT_VERSION = "3.1415926.5358979";
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
@@ -161,8 +161,6 @@ public class TransactionManagersTest {
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
 
-    private InMemoryTimelockServices services;
-
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder(Files.currentFolder());
 
@@ -170,11 +168,11 @@ public class TransactionManagersTest {
     public WireMockRule availableServer =
             new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
-    @Rule
-    public TemporaryFolder inMemoryTimeLockFolder = new TemporaryFolder();
-
+    @Override
     @Before
-    public void setup() {
+    public void setUp() {
+        super.setUp();
+
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
         TransactionManagers.runAsync =
@@ -213,14 +211,11 @@ public class TransactionManagersTest {
                 .addServers(getUriForPort(availablePort))
                 .sslConfiguration(SSL_CONFIGURATION)
                 .build();
-
-        services = InMemoryTimelockServices.create(inMemoryTimeLockFolder);
     }
 
     @After
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
-        services.close();
     }
 
     @Test
@@ -670,33 +665,6 @@ public class TransactionManagersTest {
         assertThat(tm.getTimelockServiceStatus().isHealthy()).isTrue();
     }
 
-    //    @Ignore // TODO(gs): move config class to correct place or add to classpath
-    //    @Test
-    //    public void asyncInitializationEventuallySucceeds() {
-    //        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
-    //                .keyValueService(new InMemoryAsyncAtlasDbConfig())
-    //                .initializeAsync(true)
-    //                .build();
-    //
-    //        TransactionManager manager = TransactionManagers.builder()
-    //                .config(atlasDbConfig)
-    //                .userAgent(USER_AGENT)
-    //                .globalMetricsRegistry(new MetricRegistry())
-    //                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-    //                .registrar(environment)
-    //                .addSchemas(GenericTestSchema.getSchema())
-    //                .build()
-    //                .serializable();
-    //
-    //        assertThat(manager.isInitialized()).isFalse();
-    //        assertThatThrownBy(() -> manager.runTaskWithRetry(unused ->
-    // null)).isInstanceOf(NotInitializedException.class);
-    //
-    //        Awaitility.await().atMost(Duration.ofSeconds(12)).until(manager::isInitialized);
-    //
-    //        performTransaction(manager);
-    //    }
-
     @Test
     public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
@@ -755,19 +723,6 @@ public class TransactionManagersTest {
         Collection<? extends KeyValueService> services = keyValueService.getDelegates();
         return services.stream().anyMatch(TransactionManagersTest::isSweepStatsKvsPresentInDelegatingChain);
     }
-
-    //    private static void performTransaction(TransactionManager manager) {
-    //        RangeScanTestTable.RangeScanTestRow testRow = RangeScanTestTable.RangeScanTestRow.of("foo");
-    //        manager.runTaskWithRetry(tx -> {
-    //            GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).putColumn1(testRow, 12345L);
-    //            return null;
-    //        });
-    //        Map<RangeScanTestTable.RangeScanTestRow, Long> result = manager.runTaskWithRetry(tx ->
-    //
-    // GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).getColumn1s(ImmutableSet.of(testRow)));
-    //
-    //        assertThat(Iterables.getOnlyElement(result.entrySet()).getValue()).isEqualTo(12345L);
-    //    }
 
     private void assertThatTimeAndLockMetricsAreNotRecorded(String timestampMetric, String lockMetric) {
         assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount())
