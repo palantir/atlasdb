@@ -39,23 +39,19 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Map;
 import org.awaitility.Awaitility;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 
-public class TransactionServicesTest {
+public class TransactionServicesTest extends AbstractTestWithInMemoryTimeLock {
     private final KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
 
-    private InMemoryTimelockServices services;
     private TimestampService timestampService;
     private CoordinationService<InternalSchemaMetadata> coordinationService;
     private TransactionService transactionService;
@@ -63,23 +59,16 @@ public class TransactionServicesTest {
     private long startTs;
     private long commitTs;
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
-
+    @Override
     @Before
-    public void setup() {
+    public void setUp() {
+        super.setUp();
         TransactionTables.createTables(keyValueService);
-        services = InMemoryTimelockServices.create(tempFolder);
         timestampService = services.getTimestampService();
         coordinationService = CoordinationServices.createDefault(
                 keyValueService, timestampService, MetricsManagers.createForTests(), false);
         transactionService = TransactionServices.createTransactionService(
                 keyValueService, new TransactionSchemaManager(coordinationService));
-    }
-
-    @After
-    public void after() {
-        services.close();
     }
 
     @Test

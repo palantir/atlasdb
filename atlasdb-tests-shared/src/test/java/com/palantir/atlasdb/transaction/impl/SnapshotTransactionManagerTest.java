@@ -51,21 +51,18 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.InOrder;
 
-public class SnapshotTransactionManagerTest {
+public class SnapshotTransactionManagerTest extends AbstractTestWithInMemoryTimeLock {
     private static final String SETUP_TASK_METRIC_NAME =
             SnapshotTransactionManager.class.getCanonicalName() + ".setupTask";
     private static final String FINISH_TASK_METRIC_NAME =
@@ -78,16 +75,13 @@ public class SnapshotTransactionManagerTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
-    private InMemoryTimelockServices services;
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
-
+    @Override
     @Before
     public void setUp() {
-        services = InMemoryTimelockServices.create(tempFolder);
+        super.setUp();
         timestampService = services.getManagedTimestampService();
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
@@ -111,11 +105,6 @@ public class SnapshotTransactionManagerTest {
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault());
-    }
-
-    @After
-    public void after() {
-        services.close();
     }
 
     @Test
