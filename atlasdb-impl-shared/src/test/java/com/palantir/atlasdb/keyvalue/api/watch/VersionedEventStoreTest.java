@@ -134,9 +134,11 @@ public final class VersionedEventStoreTest {
 
     @Test
     public void retentionDoesNotClearEventsBelowMinimumSize() {
+        eventStore.putAll(makeEvents(EVENT_1));
         LockWatchEvents events = eventStore.retentionEvents(Optional.empty());
         assertThat(events.events()).isEmpty();
         assertThat(events.versionRange()).isEmpty();
+        assertThat(eventStore.getStateForTesting().eventMap().keySet()).containsExactlyInAnyOrder(SEQ_1);
     }
 
     @Test
