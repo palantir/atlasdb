@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timestamp;
+package com.palantir.atlasdb.memory;
 
+import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.timestamp.TimestampRange;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -24,7 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author bdorne
  *
  */
-public class InMemoryTimestampService implements ManagedTimestampService {
+class InMemoryTimestampService implements ManagedTimestampService {
     private final AtomicLong counter = new AtomicLong(0);
 
     @Override
