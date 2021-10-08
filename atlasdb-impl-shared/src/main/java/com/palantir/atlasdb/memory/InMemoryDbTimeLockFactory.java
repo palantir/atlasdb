@@ -29,7 +29,6 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.HashMap;
 import java.util.Map;
