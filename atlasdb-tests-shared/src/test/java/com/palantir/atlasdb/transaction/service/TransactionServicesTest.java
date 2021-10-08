@@ -148,7 +148,7 @@ public class TransactionServicesTest {
 
     private void forceInstallV2() {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> {
+        Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> {
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(2);
             ((TimestampManagementService) timestampService)
                     .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);
