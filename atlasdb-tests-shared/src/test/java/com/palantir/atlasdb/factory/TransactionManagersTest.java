@@ -221,7 +221,6 @@ public class TransactionManagersTest {
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
         services.close();
-        ;
     }
 
     @Test
