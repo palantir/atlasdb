@@ -53,9 +53,7 @@ final class VersionedEventStore {
     }
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
-        Optional<Long> startVersion = maybeStartVersion
-                .or(this::getFirstKey)
-                .filter(version -> version <= endVersion);
+        Optional<Long> startVersion = maybeStartVersion.or(this::getFirstKey).filter(version -> version <= endVersion);
 
         return startVersion
                 .map(version -> getValuesBetweenInclusive(endVersion, version))
@@ -121,7 +119,8 @@ final class VersionedEventStore {
     }
 
     private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, long startVersion) {
-        return eventMap.subMap(Sequence.of(startVersion), INCLUSIVE, Sequence.of(endVersion), INCLUSIVE).values();
+        return eventMap.subMap(Sequence.of(startVersion), INCLUSIVE, Sequence.of(endVersion), INCLUSIVE)
+                .values();
     }
 
     private Optional<Long> getFirstKey() {
