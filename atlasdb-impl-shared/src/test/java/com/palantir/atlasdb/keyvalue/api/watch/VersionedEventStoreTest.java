@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
@@ -26,9 +23,13 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public final class VersionedEventStoreTest {
 
@@ -117,12 +118,10 @@ public final class VersionedEventStoreTest {
     }
 
     @Test
-    // TODO (jkong): If we don't want to support this case, we should explicitly reject it rather than relying on an
-    //  SISE.
     public void puttingNoEventsThrowsException() {
         assertThatThrownBy(() -> eventStore.putAll(makeEvents()))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessage("Cannot get last key from empty map");
+                .hasMessageContaining("Not expecting addition of empty lock watch events");
     }
 
     @Test
