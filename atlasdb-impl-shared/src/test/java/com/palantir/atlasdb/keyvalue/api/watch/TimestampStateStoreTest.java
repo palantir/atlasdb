@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import static com.palantir.logsafe.testing.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -28,12 +24,17 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.junit.Before;
-import org.junit.Test;
+
+import static com.palantir.logsafe.testing.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public final class TimestampStateStoreTest {
     private static final UUID LEADER = UUID.randomUUID();
@@ -273,12 +274,6 @@ public final class TimestampStateStoreTest {
                 .as("Cannot add a timestamp when the store has exceeded its maximum size")
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessage("Exceeded maximum timestamp state store size");
-
-        timestampStateStore.remove(0L);
-        assertThatCode(() -> timestampStateStore.putStartTimestamps(
-                        ImmutableSet.of(TimestampStateStore.MAXIMUM_SIZE + 1L), VERSION_2))
-                .as("Can add a timestamp, now that the store no longer exceeds its maximum size")
-                .doesNotThrowAnyException();
     }
 
     private void removeAndAssertEarliestVersion(long timestamp, LockWatchVersion version) {
