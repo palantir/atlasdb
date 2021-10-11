@@ -25,6 +25,7 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -154,5 +155,9 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     @Override
     public TimestampManagementService getTimestampManagementService() {
         return delegate.getTimestampManagementService();
+    }
+
+    public TimelockService getLegacyTimelockService() {
+        return new DelegatingTimelockService(getTimelockService());
     }
 }
