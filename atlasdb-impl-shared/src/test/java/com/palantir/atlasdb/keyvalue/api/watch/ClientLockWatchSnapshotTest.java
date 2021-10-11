@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -28,13 +32,9 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import org.junit.Test;
-
 import java.util.Set;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.Test;
 
 public class ClientLockWatchSnapshotTest {
     private static final LockDescriptor LOCK_DESCRIPTOR_1 = StringLockDescriptor.of("lock-one");
@@ -42,10 +42,10 @@ public class ClientLockWatchSnapshotTest {
     private static final Set<LockDescriptor> ONLY_LOCK_DESCRIPTOR_1 = ImmutableSet.of(LOCK_DESCRIPTOR_1);
     private static final LockToken LOCK_TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken LOCK_TOKEN_2 = LockToken.of(UUID.randomUUID());
-    private static final LockWatchReferences.LockWatchReference LOCK_WATCH_REFERENCE_1
-            = LockWatchReferences.entireTable("table.water");
-    private static final LockWatchReferences.LockWatchReference LOCK_WATCH_REFERENCE_2
-            = LockWatchReferences.entireTable("table.salt");
+    private static final LockWatchReferences.LockWatchReference LOCK_WATCH_REFERENCE_1 =
+            LockWatchReferences.entireTable("table.water");
+    private static final LockWatchReferences.LockWatchReference LOCK_WATCH_REFERENCE_2 =
+            LockWatchReferences.entireTable("table.salt");
     private static final long SEQUENCE_1 = 1L;
     private static final long SEQUENCE_2 = 2L;
     private static final long SEQUENCE_3 = 3L;
@@ -55,7 +55,7 @@ public class ClientLockWatchSnapshotTest {
     private final ClientLockWatchSnapshot snapshot = ClientLockWatchSnapshot.create();
 
     @Test
-    public void noInitialVersion() {
+    public void noInitialSnapshotVersion() {
         assertThat(snapshot.getSnapshotVersion()).isEmpty();
     }
 
@@ -63,22 +63,25 @@ public class ClientLockWatchSnapshotTest {
     public void lockEventAddsDescriptors() {
         LockWatchEvents events = singleLockEvent(LOCK_DESCRIPTOR_1, SEQUENCE_1);
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_1)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_1))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_1)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_1))
+                        .build());
     }
 
     @Test
     public void singleLockEventCanAddMultipleDescriptors() {
         LockWatchEvents events = LockWatchEvents.builder()
-                .addEvents(LockEvent.builder(ImmutableSet.of(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2), LOCK_TOKEN_1).build(SEQUENCE_1))
+                .addEvents(LockEvent.builder(ImmutableSet.of(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2), LOCK_TOKEN_1)
+                        .build(SEQUENCE_1))
                 .build();
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_1))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_1))
+                        .build());
     }
 
     @Test
@@ -86,13 +89,15 @@ public class ClientLockWatchSnapshotTest {
         LockWatchEvents events = LockWatchEvents.builder()
                 .addEvents(
                         LockEvent.builder(ONLY_LOCK_DESCRIPTOR_1, LOCK_TOKEN_1).build(SEQUENCE_1),
-                        LockEvent.builder(ImmutableSet.of(LOCK_DESCRIPTOR_2), LOCK_TOKEN_2).build(SEQUENCE_2))
+                        LockEvent.builder(ImmutableSet.of(LOCK_DESCRIPTOR_2), LOCK_TOKEN_2)
+                                .build(SEQUENCE_2))
                 .build();
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
+                        .build());
     }
 
     @Test
@@ -116,10 +121,11 @@ public class ClientLockWatchSnapshotTest {
         LockWatchEvents secondEvent = singleLockEvent(LOCK_DESCRIPTOR_2, SEQUENCE_2);
         snapshot.processEvents(secondEvent, INITIAL_LEADER_ID);
 
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
+                        .build());
     }
 
     @Test
@@ -130,9 +136,10 @@ public class ClientLockWatchSnapshotTest {
                         UnlockEvent.builder(ONLY_LOCK_DESCRIPTOR_1).build(SEQUENCE_2))
                 .build();
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
+                        .build());
     }
 
     @Test
@@ -143,69 +150,77 @@ public class ClientLockWatchSnapshotTest {
                         LockEvent.builder(ONLY_LOCK_DESCRIPTOR_1, LOCK_TOKEN_1).build(SEQUENCE_2))
                 .build();
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_1)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_1)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
+                        .build());
     }
 
     @Test
     public void partialUnlockDoesNotUnlockUntouchedLocks() {
         LockWatchEvents events = LockWatchEvents.builder()
                 .addEvents(
-                        LockEvent.builder(ImmutableSet.of(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2), LOCK_TOKEN_1).build(SEQUENCE_1),
+                        LockEvent.builder(ImmutableSet.of(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2), LOCK_TOKEN_1)
+                                .build(SEQUENCE_1),
                         UnlockEvent.builder(ONLY_LOCK_DESCRIPTOR_1).build(SEQUENCE_2))
                 .build();
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_2)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_2)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
+                        .build());
     }
 
     @Test
     public void lockWatchEventTracked() {
         LockWatchEvents events = LockWatchEvents.builder()
-                .addEvents(
-                        ImmutableLockWatchCreatedEvent.builder().addReferences(LOCK_WATCH_REFERENCE_1)
-                                .addLockDescriptors(LOCK_DESCRIPTOR_1)
-                                .sequence(SEQUENCE_1)
-                                .build())
+                .addEvents(ImmutableLockWatchCreatedEvent.builder()
+                        .addReferences(LOCK_WATCH_REFERENCE_1)
+                        .addLockDescriptors(LOCK_DESCRIPTOR_1)
+                        .sequence(SEQUENCE_1)
+                        .build())
                 .build();
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addWatches(LOCK_WATCH_REFERENCE_1)
-                .addLocked(LOCK_DESCRIPTOR_1)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_1))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addWatches(LOCK_WATCH_REFERENCE_1)
+                        .addLocked(LOCK_DESCRIPTOR_1)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_1))
+                        .build());
     }
 
     @Test
     public void aggregatesDescriptorsAndReferencesAcrossWatchEvents() {
         LockWatchEvents events = LockWatchEvents.builder()
                 .addEvents(
-                        ImmutableLockWatchCreatedEvent.builder().addReferences(LOCK_WATCH_REFERENCE_1)
+                        ImmutableLockWatchCreatedEvent.builder()
+                                .addReferences(LOCK_WATCH_REFERENCE_1)
                                 .addLockDescriptors(LOCK_DESCRIPTOR_1)
                                 .sequence(SEQUENCE_1)
                                 .build(),
-                        ImmutableLockWatchCreatedEvent.builder().addReferences(LOCK_WATCH_REFERENCE_2)
+                        ImmutableLockWatchCreatedEvent.builder()
+                                .addReferences(LOCK_WATCH_REFERENCE_2)
                                 .addLockDescriptors(LOCK_DESCRIPTOR_2)
                                 .sequence(SEQUENCE_2)
                                 .build())
                 .build();
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addWatches(LOCK_WATCH_REFERENCE_1, LOCK_WATCH_REFERENCE_2)
-                .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addWatches(LOCK_WATCH_REFERENCE_1, LOCK_WATCH_REFERENCE_2)
+                        .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
+                        .build());
     }
 
     @Test
     public void mixedEventTypes() {
         LockWatchEvents events = LockWatchEvents.builder()
                 .addEvents(
-                        ImmutableLockWatchCreatedEvent.builder().addReferences(LOCK_WATCH_REFERENCE_1)
+                        ImmutableLockWatchCreatedEvent.builder()
+                                .addReferences(LOCK_WATCH_REFERENCE_1)
                                 .addLockDescriptors(LOCK_DESCRIPTOR_2)
                                 .sequence(SEQUENCE_1)
                                 .build(),
@@ -213,19 +228,22 @@ public class ClientLockWatchSnapshotTest {
                         UnlockEvent.builder(ImmutableSet.of(LOCK_DESCRIPTOR_2)).build(SEQUENCE_3))
                 .build();
         snapshot.processEvents(events, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addWatches(LOCK_WATCH_REFERENCE_1)
-                .addLocked(LOCK_DESCRIPTOR_1)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_3))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addWatches(LOCK_WATCH_REFERENCE_1)
+                        .addLocked(LOCK_DESCRIPTOR_1)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_3))
+                        .build());
     }
 
     @Test
     public void resetClearsAllTrackedState() {
         snapshot.processEvents(singleLockEvent(LOCK_DESCRIPTOR_1, SEQUENCE_1), INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isNotEqualTo(ImmutableClientLockWatchSnapshotState.builder().build());
+        assertThat(snapshot.getStateForTesting())
+                .isNotEqualTo(ImmutableClientLockWatchSnapshotState.builder().build());
         snapshot.reset();
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder().build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder().build());
     }
 
     @Test
@@ -240,15 +258,24 @@ public class ClientLockWatchSnapshotTest {
     }
 
     @Test
+    public void canProcessSameEventMultipleTimes() {
+        LockWatchEvents initialEvent = singleLockEvent(LOCK_DESCRIPTOR_1, SEQUENCE_1);
+        snapshot.processEvents(initialEvent, INITIAL_LEADER_ID);
+        assertThatCode(() -> snapshot.processEvents(initialEvent, INITIAL_LEADER_ID))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     public void canBeginFromEventWithHighSequenceNumber() {
         long sequenceNumber = 6021023L;
 
         LockWatchEvents initialEvent = singleLockEvent(LOCK_DESCRIPTOR_1, sequenceNumber);
         snapshot.processEvents(initialEvent, INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_1)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, sequenceNumber))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_1)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, sequenceNumber))
+                        .build());
     }
 
     @Test
@@ -270,35 +297,48 @@ public class ClientLockWatchSnapshotTest {
         snapshot.reset();
         LockWatchEvents eventFromDifferentLeader = singleLockEvent(LOCK_DESCRIPTOR_2, SEQUENCE_1);
         snapshot.processEvents(eventFromDifferentLeader, DIFFERENT_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_2)
-                .snapshotVersion(LockWatchVersion.of(DIFFERENT_LEADER_ID, SEQUENCE_1))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_2)
+                        .snapshotVersion(LockWatchVersion.of(DIFFERENT_LEADER_ID, SEQUENCE_1))
+                        .build());
+    }
+
+    @Test
+    public void cannotGetSnapshotViewIfPreviousStateWasReset() {
+        assertThatThrownBy(() -> snapshot.getSnapshotWithEvents(
+                        singleLockEvent(LOCK_DESCRIPTOR_1, SEQUENCE_1), INITIAL_LEADER_ID))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessage("Snapshot was reset on fail and has not been seeded since");
     }
 
     @Test
     public void resetWithSnapshotSetsState() {
         snapshot.processEvents(singleLockEvent(LOCK_DESCRIPTOR_1, SEQUENCE_1), INITIAL_LEADER_ID);
 
-        LockWatchStateUpdate.Snapshot snapshotWithBothLocked = snapshot.getSnapshotWithEvents(singleLockEvent(LOCK_DESCRIPTOR_2, SEQUENCE_2), INITIAL_LEADER_ID);
+        LockWatchStateUpdate.Snapshot snapshotWithBothLocked =
+                snapshot.getSnapshotWithEvents(singleLockEvent(LOCK_DESCRIPTOR_2, SEQUENCE_2), INITIAL_LEADER_ID);
 
         snapshot.processEvents(singleLockEvent(LOCK_DESCRIPTOR_2, SEQUENCE_2), INITIAL_LEADER_ID);
         snapshot.processEvents(singleUnlockEvent(LOCK_DESCRIPTOR_2, SEQUENCE_3), INITIAL_LEADER_ID);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_1)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_3))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_1)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_3))
+                        .build());
 
         snapshot.resetWithSnapshot(snapshotWithBothLocked);
-        assertThat(snapshot.getStateForTesting()).isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
-                .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
-                .build());
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
+                        .build());
     }
 
     private static LockWatchEvents singleLockEvent(LockDescriptor lockDescriptor, long sequence) {
         return LockWatchEvents.builder()
-                .addEvents(LockEvent.builder(ImmutableSet.of(lockDescriptor), LOCK_TOKEN_1).build(sequence))
+                .addEvents(LockEvent.builder(ImmutableSet.of(lockDescriptor), LOCK_TOKEN_1)
+                        .build(sequence))
                 .build();
     }
 
