@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.performance.backend;
 
 import com.google.common.base.Splitter;
-
 import java.net.InetSocketAddress;
 import java.util.List;
 

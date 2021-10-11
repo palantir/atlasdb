@@ -19,7 +19,6 @@ import com.google.common.base.Splitter;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

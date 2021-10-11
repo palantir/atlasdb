@@ -15,15 +15,15 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import static com.palantir.atlasdb.table.description.render.ComponentRenderers.TypeName;
+import static com.palantir.atlasdb.table.description.render.ComponentRenderers.varName;
+
 import com.google.common.base.Splitter;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
-
-import static com.palantir.atlasdb.table.description.render.ComponentRenderers.TypeName;
-import static com.palantir.atlasdb.table.description.render.ComponentRenderers.varName;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class DynamicColumnValueRenderer extends Renderer {

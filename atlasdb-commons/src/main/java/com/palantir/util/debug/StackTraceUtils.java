@@ -29,13 +29,17 @@ import java.lang.management.ThreadInfo;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@SuppressWarnings({
-        "checkstyle",
-        "StringSplitter" // There but for the grace of God go I
+@SuppressWarnings({"checkstyle", "StringSplitter" // There but for the grace of God go I
 })
 // WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great
 // and we lack tests, however this is covered by testing in the internal product
