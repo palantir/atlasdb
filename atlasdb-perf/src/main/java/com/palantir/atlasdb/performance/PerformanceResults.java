@@ -87,7 +87,7 @@ public class PerformanceResults {
     }
 
     private static String formatBenchmarkString(String benchmark, Optional<String> uriSuffix) {
-        List<String> benchmarkParts = Splitter.on(".").splitToList(benchmark);
+        List<String> benchmarkParts = Splitter.on('.').splitToList(benchmark);
         String benchmarkSuite = benchmarkParts.get(benchmarkParts.size() - 2);
         String benchmarkName = benchmarkParts.get(benchmarkParts.size() - 1);
 
