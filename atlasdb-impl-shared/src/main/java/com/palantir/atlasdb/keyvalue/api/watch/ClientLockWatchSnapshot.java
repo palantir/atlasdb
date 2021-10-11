@@ -20,14 +20,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.lock.watch.*;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -68,6 +63,8 @@ final class ClientLockWatchSnapshot {
     }
 
     void processEvents(LockWatchEvents events, UUID versionId) {
+        snapshotVersion.ifPresent(snapshot -> validateSnapshotUpdate(snapshot, versionId));
+
         if (events.events().isEmpty()) {
             return;
         }
@@ -104,8 +101,15 @@ final class ClientLockWatchSnapshot {
                 .build();
     }
 
-    private final class EventVisitor implements LockWatchEvent.Visitor<Void> {
+    private static void validateSnapshotUpdate(LockWatchVersion snapshot, UUID versionId) {
+        Preconditions.checkState(
+                snapshot.id().equals(versionId),
+                "Attempted to update a snapshot to a different version ID",
+                SafeArg.of("snapshotVersion", snapshot),
+                SafeArg.of("attemptedUpdateVersionId", versionId));
+    }
 
+    private final class EventVisitor implements LockWatchEvent.Visitor<Void> {
         @Override
         public Void visit(LockEvent lockEvent) {
             locked.addAll(lockEvent.lockDescriptors());
