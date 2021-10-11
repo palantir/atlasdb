@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.factory;
 
-import com.palantir.lock.LockService;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
-import com.palantir.timestamp.TimestampService;
 
 public class InMemoryLockAndTimestampServiceFactory implements LockAndTimestampServiceFactory {
     private final InMemoryTimelockServices services;
@@ -29,11 +27,9 @@ public class InMemoryLockAndTimestampServiceFactory implements LockAndTimestampS
 
     @Override
     public LockAndTimestampServices createLockAndTimestampServices() {
-        TimestampService time = services.getTimestampService();
-        LockService lock = services.getLockService();
         return ImmutableLockAndTimestampServices.builder()
-                .lock(lock)
-                .timestamp(time)
+                .lock(services.getLockService())
+                .timestamp(services.getTimestampService())
                 .timestampManagement(services.getTimestampManagementService())
                 .timelock(services.getLegacyTimelockService())
                 .build();
