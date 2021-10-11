@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import static com.palantir.logsafe.testing.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -24,17 +28,12 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
-import static com.palantir.logsafe.testing.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.Before;
+import org.junit.Test;
 
 public final class TimestampStateStoreTest {
     private static final UUID LEADER = UUID.randomUUID();
