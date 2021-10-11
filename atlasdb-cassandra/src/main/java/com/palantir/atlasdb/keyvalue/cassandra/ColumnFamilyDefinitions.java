@@ -222,7 +222,7 @@ final class ColumnFamilyDefinitions {
 
     private static String getLastElementOfClasspath(String classpath) {
         if (classpath.contains(".")) {
-            List<String> periodDelimitedClasspath = Splitter.on("\\.").splitToList(classpath);
+            List<String> periodDelimitedClasspath = Splitter.on(".").splitToList(classpath);
             return periodDelimitedClasspath.get(periodDelimitedClasspath.size() - 1);
         } else {
             return classpath;
