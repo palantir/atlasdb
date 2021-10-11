@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import com.google.common.base.Splitter;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
-
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.TypeName;
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.long_name;
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.short_name;
+
+import com.google.common.base.Splitter;
+import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class NamedColumnValueRenderer extends Renderer {

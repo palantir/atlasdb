@@ -26,13 +26,12 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import org.apache.cassandra.thrift.CfDef;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.cassandra.thrift.CfDef;
 
 final class ColumnFamilyDefinitions {
     private static final SafeLogger log = SafeLoggerFactory.get(ColumnFamilyDefinitions.class);

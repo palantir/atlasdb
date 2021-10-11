@@ -18,16 +18,13 @@ package com.palantir.atlasdb.cli.command;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.base.Splitter;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.GlobalClock;
-import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
-import com.palantir.atlasdb.cleaner.Puncher;
-import com.palantir.atlasdb.cleaner.PuncherStore;
-import com.palantir.atlasdb.cleaner.SimplePuncher;
+import com.palantir.atlasdb.cleaner.*;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
@@ -36,13 +33,7 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.common.time.Clock;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
-import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.*;
 import com.palantir.timestamp.TimestampService;
 import java.io.File;
 import java.io.IOException;
@@ -277,16 +268,16 @@ public class TestTimestampCommand {
 
     private long getWallClockTimestamp(Scanner scanner) {
         String line = scanner.findInLine(".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
-        String[] parts = line.split(" ");
+        List<String> parts = Splitter.on(' ').splitToList(line);
         return ISODateTimeFormat.dateTime()
-                .parseDateTime(parts[parts.length - 1])
+                .parseDateTime(parts.get(parts.size() - 1))
                 .getMillis();
     }
 
     private long getTimestampFromStdout(Scanner scanner) {
         String line = scanner.findInLine(".*timestamp\\sis\\:\\s(\\d+.*)");
-        String[] parts = line.split(" ");
-        return Long.parseLong(parts[parts.length - 1]);
+        List<String> parts = Splitter.on(' ').splitToList(line);
+        return Long.parseLong(parts.get(parts.size() - 1));
     }
 
     private long getTimestampFromFile(String fileString) throws IOException {

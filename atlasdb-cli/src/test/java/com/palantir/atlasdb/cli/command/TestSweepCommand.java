@@ -17,16 +17,14 @@ package com.palantir.atlasdb.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.*;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.ServicesConfigModule;
@@ -40,12 +38,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.timestamp.TimestampService;
 import io.airlift.airline.Command;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -114,9 +107,9 @@ public class TestSweepCommand {
 
             Scanner scanner = new Scanner(stdout);
             final long cellValuesExamined =
-                    Long.parseLong(scanner.findInLine("\\d+ cell values").split(" ")[0]);
-            final long deletedCells = Long.parseLong(scanner.findInLine("deleted \\d+ stale versions of those cells")
-                    .split(" ")[1]);
+                    Long.parseLong(Iterables.get(Splitter.on(' ').split(scanner.findInLine("\\d+ cell values")), 0));
+            final long deletedCells = Long.parseLong(Iterables.get(
+                    Splitter.on(' ').split(scanner.findInLine("deleted \\d+ stale versions of those cells")), 1));
             assertThat(cellValuesExamined).isEqualTo(2);
             assertThat(deletedCells).isEqualTo(1);
 

@@ -16,11 +16,6 @@
 package com.palantir.util.debug;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-
-import javax.management.JMException;
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
-import javax.management.openmbean.CompositeData;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
@@ -38,6 +33,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.management.JMException;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+import javax.management.openmbean.CompositeData;
 
 @SuppressWarnings({"checkstyle", "StringSplitter" // There but for the grace of God go I
 })
