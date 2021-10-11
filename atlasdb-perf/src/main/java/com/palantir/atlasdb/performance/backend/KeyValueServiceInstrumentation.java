@@ -16,7 +16,10 @@
 package com.palantir.atlasdb.performance.backend;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+
 import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -107,6 +110,6 @@ public abstract class KeyValueServiceInstrumentation {
     public abstract String toString();
 
     public String getClassName() {
-        return this.getClass().toString().split(" ")[1];
+        return Iterables.get(Splitter.on(' ').split(this.getClass().toString()), 1);
     }
 }

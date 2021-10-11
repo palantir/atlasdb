@@ -17,15 +17,18 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
 import com.google.common.io.CharStreams;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -62,8 +65,8 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
         // The result of this parsing must match Cassandra's as closely as possible, as the output is later matched.
 
         // Split strings such as "us-east-1a" into "us-east" and "1a"
-        String[] splitResponse = responseBody.split("-");
-        String rack = splitResponse[splitResponse.length - 1];
+        List<String> splitResponse = Splitter.on('-').splitToList(responseBody);
+        String rack = splitResponse.get(splitResponse.size() - 1);
 
         // this hack accounts for certain Cassandra cases
         String datacenter = responseBody.substring(0, responseBody.length() - 1);

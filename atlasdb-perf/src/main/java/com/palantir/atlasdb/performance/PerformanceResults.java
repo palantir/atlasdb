@@ -19,13 +19,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import org.immutables.value.Value;
+import org.openjdk.jmh.infra.BenchmarkParams;
+import org.openjdk.jmh.results.RunResult;
+import org.openjdk.jmh.util.Multiset;
+import org.openjdk.jmh.util.Statistics;
+import org.openjdk.jmh.util.TreeMultiset;
+
+import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -34,12 +37,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.immutables.value.Value;
-import org.openjdk.jmh.infra.BenchmarkParams;
-import org.openjdk.jmh.results.RunResult;
-import org.openjdk.jmh.util.Multiset;
-import org.openjdk.jmh.util.Statistics;
-import org.openjdk.jmh.util.TreeMultiset;
 
 public class PerformanceResults {
     @VisibleForTesting
@@ -86,9 +83,9 @@ public class PerformanceResults {
     }
 
     private static String formatBenchmarkString(String benchmark, Optional<String> uriSuffix) {
-        String[] benchmarkParts = benchmark.split("\\.");
-        String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
-        String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
+        List<String> benchmarkParts = Splitter.on("\\.").splitToList(benchmark);
+        String benchmarkSuite = benchmarkParts.get(benchmarkParts.size() - 2);
+        String benchmarkName = benchmarkParts.get(benchmarkParts.size() - 1);
 
         return String.format("%s#%s-%s", benchmarkSuite, benchmarkName, uriSuffix.orElse(KVS_AGNOSTIC_SUFFIX));
     }

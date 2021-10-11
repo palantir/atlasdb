@@ -25,6 +25,10 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SQLConstants;
 import com.palantir.nexus.db.ThreadConfinedProxy;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
+import org.apache.commons.lang3.StringUtils;
+import org.joda.time.format.DateTimeFormat;
+
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -34,9 +38,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import javax.annotation.Nullable;
-import org.apache.commons.lang3.StringUtils;
-import org.joda.time.format.DateTimeFormat;
 
 public class BasicSQLUtils {
 
@@ -195,6 +196,7 @@ public class BasicSQLUtils {
     private static final String ORACLE_SINGLE_ID_COLUMN = "%s.nextval"; // $NON-NLS-1$
     private static final String POSTGRESQL_SINGLE_ID_COLUMN = "nextval('%s')"; // $NON-NLS-1$
 
+    @SuppressWarnings("StringSplitter") // Legacy code, uncertainty of full implications of change
     public static String qualifyFields(String fieldList, String tableName) {
         String fields[] = fieldList.split("\\s*,\\s*"); // $NON-NLS-1$
         StringBuilder out = new StringBuilder();
@@ -234,6 +236,7 @@ public class BasicSQLUtils {
      *
      * @param fieldList - in form of "field1, field2,..."
      */
+    @SuppressWarnings("StringSplitter") // Legacy code, uncertainty of full implications of change
     public static String generateUpdateString(String fieldList) {
         String fields[] = fieldList.split("\\s*,\\s*"); // $NON-NLS-1$
         StringBuilder out = new StringBuilder();

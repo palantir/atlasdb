@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import static com.palantir.atlasdb.table.description.render.ColumnRenderers.TypeName;
-import static com.palantir.atlasdb.table.description.render.ColumnRenderers.long_name;
-import static com.palantir.atlasdb.table.description.render.ColumnRenderers.short_name;
-
+import com.google.common.base.Splitter;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+
+import static com.palantir.atlasdb.table.description.render.ColumnRenderers.*;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class NamedColumnValueRenderer extends Renderer {
@@ -70,7 +69,7 @@ public class NamedColumnValueRenderer extends Renderer {
         if (col.getValue().getProtoDescriptor() != null) {
             String protoDescription =
                     col.getValue().getProtoDescriptor().toProto().toString();
-            for (String line : protoDescription.split("\n")) {
+            for (String line : Splitter.on('\n').split(protoDescription)) {
                 line(" *   ", line, "");
             }
         }
