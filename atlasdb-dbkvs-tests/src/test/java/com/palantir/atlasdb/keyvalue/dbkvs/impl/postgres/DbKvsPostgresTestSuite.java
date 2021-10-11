@@ -29,16 +29,15 @@ import com.palantir.nexus.db.pool.HikariCpConnectionManagerTest;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 import com.palantir.nexus.db.pool.config.PostgresConnectionConfig;
+import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
-
-import java.net.InetSocketAddress;
-import java.time.Duration;
-import java.util.concurrent.Callable;
 
 @RunWith(Suite.class)
 @SuiteClasses({
