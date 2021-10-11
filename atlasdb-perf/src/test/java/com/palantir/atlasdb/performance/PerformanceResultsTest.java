@@ -46,17 +46,17 @@ public class PerformanceResultsTest {
             FORMATTED_BENCHMARK_NAME + "-" + new CassandraKeyValueServiceInstrumentation().toString();
 
     private static final RunResult mockRunResult = Mockito.mock(RunResult.class);
-    private static final Result mockResult = Mockito.mock(Result.class);
+    private static final Result<?> mockResult = Mockito.mock(Result.class);
     private static final List<Double> SMALL_SAMPLE = Lists.newArrayList();
     private static final List<Double> LARGE_SAMPLE = Lists.newArrayList();
 
     static {
         Mockito.when(mockRunResult.getPrimaryResult()).thenReturn(mockResult);
         for (int i = 0; i < PerformanceResults.DOWNSAMPLE_MAXIMUM_SIZE; ++i) {
-            SMALL_SAMPLE.add(Double.valueOf(i));
-            LARGE_SAMPLE.add(Double.valueOf(3 * i));
-            LARGE_SAMPLE.add(Double.valueOf(3 * i + 1));
-            LARGE_SAMPLE.add(Double.valueOf(3 * i + 2));
+            SMALL_SAMPLE.add((double) i);
+            LARGE_SAMPLE.add((double) (3 * i));
+            LARGE_SAMPLE.add((double) (3 * i + 1));
+            LARGE_SAMPLE.add((double) (3 * i + 2));
         }
     }
 

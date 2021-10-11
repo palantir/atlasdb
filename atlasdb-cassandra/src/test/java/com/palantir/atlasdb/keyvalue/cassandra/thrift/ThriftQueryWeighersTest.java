@@ -131,7 +131,7 @@ public class ThriftQueryWeighersTest {
         assertThat(actualNumRows).isEqualTo(2);
     }
 
-    private void assertThatWeighFailureReturnsDefaultWeight(QueryWeigher queryWeigher) {
+    private void assertThatWeighFailureReturnsDefaultWeight(QueryWeigher<?> queryWeigher) {
         QueryWeight weight = queryWeigher.weighFailure(new RuntimeException(), TIME_TAKEN);
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
     }

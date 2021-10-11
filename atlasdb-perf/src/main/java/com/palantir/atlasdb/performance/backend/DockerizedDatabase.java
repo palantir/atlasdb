@@ -55,7 +55,7 @@ public final class DockerizedDatabase implements Closeable {
         }
     }
 
-    private static File writeResourceToTempFile(Class clazz, String resourcePath) throws IOException {
+    private static File writeResourceToTempFile(Class<?> clazz, String resourcePath) throws IOException {
         URL resource = clazz.getResource("/" + resourcePath);
         File file = File.createTempFile(
                 FilenameUtils.getBaseName(resource.getFile()), FilenameUtils.getExtension(resource.getFile()));
