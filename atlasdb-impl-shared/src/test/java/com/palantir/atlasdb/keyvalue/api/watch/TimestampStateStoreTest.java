@@ -128,7 +128,6 @@ public final class TimestampStateStoreTest {
         removeAndAssertNoEarliestVersion(TIMESTAMP_4);
     }
 
-    // TODO (jkong): Is this intentional behaviour? Seems suspicious.
     @Test
     public void removalOfUnknownTimestampIsNoOp() {
         assertThatCode(() -> timestampStateStore.remove(TIMESTAMP_1)).doesNotThrowAnyException();
@@ -195,6 +194,10 @@ public final class TimestampStateStoreTest {
         timestampStateStore.putStartTimestamps(ImmutableSet.of(TIMESTAMP_2), VERSION_2);
         timestampStateStore.putCommitUpdates(ImmutableSet.of(update1, update2), VERSION_3);
 
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_1)).hasValue(VERSION_1);
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_2)).hasValue(VERSION_2);
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_3)).isEmpty();
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_4)).isEmpty();
         assertThat(timestampStateStore.getCommitInfo(TIMESTAMP_1)).hasValue(CommitInfo.of(token1, VERSION_3));
         assertThat(timestampStateStore.getCommitInfo(TIMESTAMP_2)).hasValue(CommitInfo.of(token2, VERSION_3));
         assertThat(timestampStateStore.getCommitInfo(TIMESTAMP_3)).isEmpty();
@@ -221,6 +224,10 @@ public final class TimestampStateStoreTest {
         timestampStateStore.putCommitUpdates(ImmutableSet.of(update1), VERSION_2);
         timestampStateStore.putCommitUpdates(ImmutableSet.of(update2), VERSION_3);
 
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_1)).hasValue(VERSION_1);
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_2)).hasValue(VERSION_1);
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_3)).isEmpty();
+        assertThat(timestampStateStore.getStartVersion(TIMESTAMP_4)).isEmpty();
         assertThat(timestampStateStore.getCommitInfo(TIMESTAMP_1)).hasValue(CommitInfo.of(token1, VERSION_2));
         assertThat(timestampStateStore.getCommitInfo(TIMESTAMP_2)).hasValue(CommitInfo.of(token2, VERSION_3));
         assertThat(timestampStateStore.getCommitInfo(TIMESTAMP_3)).isEmpty();
