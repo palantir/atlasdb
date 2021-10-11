@@ -23,7 +23,6 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -101,7 +100,8 @@ final class VersionedEventStore {
     }
 
     long putAll(LockWatchEvents events) {
-        Preconditions.checkState(!events.events().isEmpty(),
+        Preconditions.checkState(
+                !events.events().isEmpty(),
                 "Not expecting addition of empty lock watch events",
                 UnsafeArg.of("lockWatchEvents", events));
         events.events().forEach(event -> eventMap.put(Sequence.of(event.sequence()), event));

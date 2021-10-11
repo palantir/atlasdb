@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
@@ -23,13 +26,9 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public final class VersionedEventStoreTest {
 
