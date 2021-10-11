@@ -80,7 +80,7 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
                 .dataDirectory(tryCreateSubFolder(tempFolder))
                 .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
                 .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
-                        .dataDirectory(tryCreateSubFolder(tempFolder))
+                        .dataDirectory(tryCreateSubFolder(tempFolder, client))
                         .build())
                 .isNewService(false)
                 .build();
@@ -130,6 +130,14 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     private static File tryCreateSubFolder(TemporaryFolder tempFolder) {
         try {
             return tempFolder.newFolder();
+        } catch (IOException e) {
+            throw new SafeRuntimeException("Failed to create temporary folder", e);
+        }
+    }
+
+    private static File tryCreateSubFolder(TemporaryFolder tempFolder, String subFolderName) {
+        try {
+            return tempFolder.newFolder(subFolderName);
         } catch (IOException e) {
             throw new SafeRuntimeException("Failed to create temporary folder", e);
         }
