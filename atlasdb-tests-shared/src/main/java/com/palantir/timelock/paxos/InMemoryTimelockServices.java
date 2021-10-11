@@ -72,19 +72,15 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
     }
 
     public static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
-        return create(tryCreateSubFolder(tempFolder), "client");
+        return create(tempFolder, "client");
     }
 
     public static InMemoryTimelockServices create(TemporaryFolder tempFolder, String client) {
-        return create(tryCreateSubFolder(tempFolder), client);
-    }
-
-    private static InMemoryTimelockServices create(File dataDirectory, String client) {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
-                .dataDirectory(dataDirectory)
+                .dataDirectory(tryCreateSubFolder(tempFolder))
                 .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
                 .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
-                        .dataDirectory(new File("var/data/sqlitePaxos-" + client))
+                        .dataDirectory(tryCreateSubFolder(tempFolder))
                         .build())
                 .isNewService(false)
                 .build();

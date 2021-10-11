@@ -826,7 +826,6 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
                         Optional.empty(),
                         ImmutableSet.of())
                 .createLockAndTimestampServices();
-        //        return new InMemoryLockAndTimestampServiceFactory(services).createLockAndTimestampServices();
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
