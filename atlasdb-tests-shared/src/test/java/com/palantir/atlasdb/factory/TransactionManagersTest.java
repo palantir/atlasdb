@@ -15,6 +15,16 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,7 +37,6 @@ import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -132,14 +141,14 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
-    private static final MappingBuilder LEADER_UUID_MAPPING = WireMock.get(WireMock.urlEqualTo(LEADER_UUID_PATH));
+    private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
     private static final String TIMESTAMP_PATH = "/timestamp/fresh-timestamp";
-    private static final MappingBuilder TIMESTAMP_MAPPING = WireMock.post(WireMock.urlEqualTo(TIMESTAMP_PATH));
+    private static final MappingBuilder TIMESTAMP_MAPPING = post(urlEqualTo(TIMESTAMP_PATH));
     private static final String LOCK_PATH = "/lock/current-time-millis";
-    private static final MappingBuilder LOCK_MAPPING = WireMock.post(WireMock.urlEqualTo(LOCK_PATH));
+    private static final MappingBuilder LOCK_MAPPING = post(urlEqualTo(LOCK_PATH));
 
     private static final String FEEDBACK_PATH = "/tl/feedback/reportFeedback";
-    private static final MappingBuilder FEEDBACK_MAPPING = WireMock.post(WireMock.urlEqualTo(FEEDBACK_PATH));
+    private static final MappingBuilder FEEDBACK_MAPPING = post(urlEqualTo(FEEDBACK_PATH));
 
     private static final SslConfiguration SSL_CONFIGURATION =
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
@@ -178,14 +187,14 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
         TransactionManagers.runAsync =
                 task -> Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(task::run);
 
-        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(WireMock.aResponse()
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
                 .withStatus(200)
-                .withBody(("\"" + UUID.randomUUID().toString() + "\"").getBytes(StandardCharsets.UTF_8))));
-        availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(
-                WireMock.aResponse().withStatus(200).withBody("1")));
+                .withBody(("\"" + UUID.randomUUID() + "\"").getBytes(StandardCharsets.UTF_8))));
         availableServer.stubFor(
-                LOCK_MAPPING.willReturn(WireMock.aResponse().withStatus(200).withBody("2")));
-        availableServer.stubFor(FEEDBACK_MAPPING.willReturn(WireMock.aResponse().withStatus(204)));
+                TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
+        availableServer.stubFor(
+                LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
+        availableServer.stubFor(FEEDBACK_MAPPING.willReturn(aResponse().withStatus(204)));
 
         config = mock(AtlasDbConfig.class);
         when(config.leader()).thenReturn(Optional.empty());
@@ -255,16 +264,16 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
         setUpLeaderBlockInConfig();
 
         LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
-        availableServer.verify(WireMock.getRequestedFor(WireMock.urlMatching(LEADER_UUID_PATH)));
+        availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.lock().currentTimeMillis();
 
         // TODO (jkong): Assert v2 once we move Leader Block to v2 as well
-        availableServer.verify(WireMock.postRequestedFor(WireMock.urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
-        availableServer.verify(WireMock.postRequestedFor(WireMock.urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
+        availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
+                .withHeader(USER_AGENT_HEADER, containing(EXPECTED_USER_AGENT_STRING)));
+        availableServer.verify(postRequestedFor(urlMatching(LOCK_PATH))
+                .withHeader(USER_AGENT_HEADER, containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
@@ -273,19 +282,19 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
         setUpLeaderBlockInConfig();
 
         LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
-        availableServer.verify(WireMock.getRequestedFor(WireMock.urlMatching(LEADER_UUID_PATH)));
+        availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(
                 0,
-                WireMock.postRequestedFor(WireMock.urlMatching(TIMESTAMP_PATH))
-                        .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+                postRequestedFor(urlMatching(TIMESTAMP_PATH))
+                        .withHeader(USER_AGENT_HEADER, equalTo(EXPECTED_USER_AGENT_STRING)));
         availableServer.verify(
                 0,
-                WireMock.postRequestedFor(WireMock.urlMatching(LOCK_PATH))
-                        .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+                postRequestedFor(urlMatching(LOCK_PATH))
+                        .withHeader(USER_AGENT_HEADER, equalTo(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
@@ -766,7 +775,7 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
         doAnswer(invocation -> {
                     // Configure our server to reply with the same server ID as the registered PingableLeader.
                     PingableLeader localPingableLeader = invocation.getArgument(0);
-                    availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(WireMock.aResponse()
+                    availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
                             .withStatus(200)
                             .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes(StandardCharsets.UTF_8))));
                     return null;
@@ -777,8 +786,7 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
     }
 
     private void setUpForRemoteServices() throws IOException {
-        availableServer.stubFor(
-                LEADER_UUID_MAPPING.willReturn(WireMock.aResponse().withStatus(404)));
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
         setUpLeaderBlockInConfig();
     }
 
@@ -838,10 +846,10 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
         lockAndTimestamp.timelock().currentTimeMillis();
 
         // TODO (jkong): Assert v2 once we move all paths to v2
-        availableServer.verify(WireMock.postRequestedFor(WireMock.urlMatching(timestampPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
-        availableServer.verify(WireMock.postRequestedFor(WireMock.urlMatching(lockPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.containing(EXPECTED_USER_AGENT_STRING)));
+        availableServer.verify(postRequestedFor(urlMatching(timestampPath))
+                .withHeader(USER_AGENT_HEADER, containing(EXPECTED_USER_AGENT_STRING)));
+        availableServer.verify(postRequestedFor(urlMatching(lockPath))
+                .withHeader(USER_AGENT_HEADER, containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
@@ -873,10 +881,10 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
                 .build();
         assertThat(timeLockClientFeedbackServices.current()).hasSize(1);
         timeLockClientFeedbackServices.current().get(0).reportFeedback(authHeader, feedbackReport);
-        List<LoggedRequest> requests = WireMock.findAll(WireMock.postRequestedFor(WireMock.urlMatching(FEEDBACK_PATH)));
+        List<LoggedRequest> requests = findAll(postRequestedFor(urlMatching(FEEDBACK_PATH)));
         Assertions.assertThat(requests).hasSize(1);
-        availableServer.verify(WireMock.postRequestedFor(WireMock.urlMatching(FEEDBACK_PATH))
-                .withHeader("Authorization", WireMock.containing("Bearer omitted")));
+        availableServer.verify(
+                postRequestedFor(urlMatching(FEEDBACK_PATH)).withHeader("Authorization", containing("Bearer omitted")));
 
         /* config with no servers */
         timeLockRuntimeConfig = getTimelockRuntimeConfig(ImmutableList.of());
