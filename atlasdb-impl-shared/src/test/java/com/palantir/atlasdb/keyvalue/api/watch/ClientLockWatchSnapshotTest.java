@@ -32,14 +32,13 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.Test;
 
 public class ClientLockWatchSnapshotTest {
     private static final LockDescriptor LOCK_DESCRIPTOR_1 = StringLockDescriptor.of("lock-one");
     private static final LockDescriptor LOCK_DESCRIPTOR_2 = StringLockDescriptor.of("lock-two");
-    private static final Set<LockDescriptor> ONLY_LOCK_DESCRIPTOR_1 = ImmutableSet.of(LOCK_DESCRIPTOR_1);
+    private static final ImmutableSet<LockDescriptor> ONLY_LOCK_DESCRIPTOR_1 = ImmutableSet.of(LOCK_DESCRIPTOR_1);
     private static final LockToken LOCK_TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken LOCK_TOKEN_2 = LockToken.of(UUID.randomUUID());
     private static final LockWatchReferences.LockWatchReference LOCK_WATCH_REFERENCE_1 =
