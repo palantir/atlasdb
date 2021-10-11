@@ -23,7 +23,6 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
