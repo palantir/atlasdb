@@ -45,10 +45,8 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.CloseableLockService;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
@@ -232,8 +230,7 @@ public class SnapshotTransactionManagerTest extends AbstractTestWithInMemoryTime
 
     @Test
     public void callsStartTransactionForReadOnlyTransactionsIfFlagIsSet() throws InterruptedException {
-        TimelockService timelockService =
-                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
+        TimelockService timelockService = spy(services.getLegacyTimelockService());
         when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, true);
 
@@ -246,8 +243,7 @@ public class SnapshotTransactionManagerTest extends AbstractTestWithInMemoryTime
 
     @Test
     public void doesNotCallStartTransactionForReadOnlyTransactionsIfFlagIsNotSet() {
-        TimelockService timelockService =
-                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
+        TimelockService timelockService = spy(services.getLegacyTimelockService());
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
 
         transactionManager.runTaskReadOnly(tx -> "ignored");
@@ -257,9 +253,7 @@ public class SnapshotTransactionManagerTest extends AbstractTestWithInMemoryTime
 
     @Test
     public void startEmptyBatchOfTransactionsDoesNotCallTimelockService() {
-        // TODO(gs): also kill LegacyTimelockService?
-        TimelockService timelockService =
-                spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
+        TimelockService timelockService = spy(services.getLegacyTimelockService());
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
         List<OpenTransaction> transactions = transactionManager.startTransactions(ImmutableList.of());
 

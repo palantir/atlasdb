@@ -110,7 +110,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -334,9 +333,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         return new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                timestampService,
-                timelockServices.getTimestampManagementService(),
-                lockClient,
+                timelockServices,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -412,7 +409,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 new SnapshotTransaction(
                         metricsManager,
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
-                        new LegacyTimelockService(timestampService, lock, lockClient),
+                        timelockServices.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
                         NoOpCleaner.INSTANCE,
@@ -455,9 +452,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final TestTransactionManager unstableTransactionManager = new TestTransactionManagerImpl(
                 metricsManager,
                 unstableKvs,
-                timestampService,
-                timelockServices.getTimestampManagementService(),
-                lockClient,
+                timelockServices,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -943,9 +938,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TestTransactionManager deleteTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                timestampService,
-                timelockServices.getTimestampManagementService(),
-                lockClient,
+                timelockServices,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -1205,7 +1198,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitThrowsIfRolledBackAtCommitTime_expiredLocks() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
-        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        TimelockService timelockService = spy(timelockServices.getLegacyTimelockService());
 
         // expire the locks when the pre-commit check happens - this is guaranteed to be after we've written the data
         PreCommitCondition condition =
@@ -1234,7 +1227,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitThrowsIfRolledBackAtCommitTime_alreadyAborted() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
-        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        TimelockService timelockService = timelockServices.getLegacyTimelockService();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         long transactionTs = timelockService.getFreshTimestamp();
 
@@ -1256,7 +1249,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         TimestampService timestampServiceSpy = spy(timestampService);
 
-        TimelockService timelockService = new LegacyTimelockService(timestampServiceSpy, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
 
@@ -1276,7 +1268,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void validateLocksOnReadsIfThoroughlySwept() {
-        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
 
@@ -1291,7 +1282,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void validateLocksOnlyOnCommitIfValidationFlagIsFalse() {
-        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
 
@@ -1306,23 +1296,23 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void checkImmutableTsLockOnceIfThoroughlySwept_WithValidationOnReads() {
-        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
-        long transactionTs = timelockService.getFreshTimestamp();
-        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
 
-        Transaction transaction =
-                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
         transaction.commit();
-        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
 
-        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 
     @Test
     public void checkImmutableTsLockOnceIfThoroughlySwept_WithoutValidationOnReads() {
-        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
 
@@ -1364,7 +1354,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void checkImmutableTsLockAfterReadsForConservativeIfFlagIsSet() {
-        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
 
@@ -1673,7 +1663,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Cell> cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A));
         putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
 
-        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction =
@@ -1694,7 +1683,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
         putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
 
-        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
 
@@ -2003,7 +1991,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             int batchHint,
             int expectedNumberOfInvocations,
             int numElementsToBeAccessed) {
-        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction =
@@ -2035,7 +2023,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private void verifyBatchHintSizesForKvs(List<byte[]> rows, int batchHint, int expectedBatchHintForKvs) {
-        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction =
