@@ -19,8 +19,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.Objects;
 
 public final class TableReference {
     private final Namespace namespace;
@@ -90,10 +91,17 @@ public final class TableReference {
         return namespace;
     }
 
+    /**
+     * @deprecated Please use {@link TableReference#getTableName()}, which is consistent with broader AtlasDB
+     *  naming conventions.
+     */
+    @JsonIgnore
+    @Deprecated
     public String getTablename() {
         return getTableName();
     }
 
+    @JsonProperty("tablename") // Backwards compatibility - DO NOT CHANGE THIS WITHOUT A MIGRATION!
     public String getTableName() {
         return tableName;
     }
