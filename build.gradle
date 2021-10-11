@@ -129,7 +129,6 @@ allprojects {
                 'RawTypes',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
-                'ReverseDnsLookup',
                 'SafeLoggingExceptionMessageFormat',
                 'Slf4jLogsafeArgs',
                 'Slf4jThrowable',

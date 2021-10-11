@@ -37,16 +37,17 @@ import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
 import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
-import java.net.InetSocketAddress;
-import java.sql.Connection;
-import java.time.Duration;
-import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
+
+import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.time.Duration;
+import java.util.concurrent.Callable;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -95,7 +96,7 @@ public final class DbKvsOracleTestSuite {
                 .dbLogin("palantir")
                 .dbPassword(ImmutableMaskedValue.of("palpal"))
                 .sid("palantir")
-                .host(oracleAddress.getHostName())
+                .host(oracleAddress.getHostString())
                 .port(oracleAddress.getPort())
                 .build();
 

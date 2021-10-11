@@ -24,10 +24,11 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import org.immutables.value.Value;
+
 import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.immutables.value.Value;
 
 public final class CassandraServersConfigs {
     private CassandraServersConfigs() {}
@@ -135,6 +136,7 @@ public final class CassandraServersConfigs {
             checkPortNumbers(cqlHosts(), "'cqlPort'");
         }
 
+        @SuppressWarnings("ReverseDnsLookup") // May have raw IPs that we want to validate
         public boolean validateHosts() {
             return thriftHosts().stream()
                     .map(InetSocketAddress::getHostName)
