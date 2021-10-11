@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.http.v2;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 
 public final class ClientOptionsConstants {
     static final HumanReadableDuration CONNECT_TIMEOUT = HumanReadableDuration.milliseconds(500);
 
-    @VisibleForTesting
     // The read timeout controls how long the client waits to receive the first byte from the server before giving up,
     // so in general read timeouts should not be set to less than what is considered an acceptable time for the server
     // to give a suitable response.

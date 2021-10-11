@@ -15,7 +15,6 @@
  */
 package com.palantir.lock.impl;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
@@ -23,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
-@VisibleForTesting
+// VisibleForTesting
 public class LockClientIndices {
     private final Map<LockClient, Integer> indexByClient = new ConcurrentHashMap<>();
     private final Map<Integer, LockClient> clientByIndex = new ConcurrentHashMap<>();

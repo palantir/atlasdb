@@ -201,8 +201,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * @param shardStrategy shard and strategy to use
      * @return number of entries swept
      */
-    @SuppressWarnings("checkstyle:RegexpMultiline") // Suppress VisibleForTesting warning
-    @VisibleForTesting
+    // Visible for testing
     public long sweepNextBatch(ShardAndStrategy shardStrategy, long maxTsExclusive) {
         assertInitialized();
         return queue.sweepNextBatch(shardStrategy, maxTsExclusive);

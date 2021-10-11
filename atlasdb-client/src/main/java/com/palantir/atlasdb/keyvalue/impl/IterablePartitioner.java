@@ -76,7 +76,7 @@ public final class IterablePartitioner {
     // This string should *not* be used or treated as a real tableName, even though sometimes it is.
     // For example, CassandraKVS multiPuts can cause this string to include *multiple* tableNames
     @VisibleForTesting
-    public static <T> Iterable<List<T>> partitionByCountAndBytes(
+    static <T> Iterable<List<T>> partitionByCountAndBytes(
             final Iterable<T> iterable,
             final int maximumCountPerPartition,
             final long maximumBytesPerPartition,
