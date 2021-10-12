@@ -105,8 +105,10 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         TimestampBounds timestampBounds = getTimestampBounds();
         T timestampContainer = timestampContainerSupplier.get();
 
-        checkTimestamp(timestampBounds, operationType, lowerBoundExtractor.applyAsLong(timestampContainer));
-        updateLowerBound(operationType, upperBoundExtractor.applyAsLong(timestampContainer));
+        long lowerFreshTimestamp = lowerBoundExtractor.applyAsLong(timestampContainer);
+        long upperFreshTimestamp = upperBoundExtractor.applyAsLong(timestampContainer);
+        checkTimestamp(timestampBounds, operationType, lowerFreshTimestamp, upperFreshTimestamp);
+        updateLowerBound(operationType, upperFreshTimestamp);
         return timestampContainer;
     }
 
@@ -116,21 +118,23 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         return ImmutableTimestampBounds.of(threadLocalLowerBoundFromTimestamps, threadLocalLowerBoundFromTransactions);
     }
 
-    private void checkTimestamp(TimestampBounds bounds, OperationType type, long freshTimestamp) {
-        if (freshTimestamp <= Math.max(bounds.boundFromTimestamps(), bounds.boundFromTransactions())) {
+    private void checkTimestamp(
+            TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
+        if (lowerFreshTimestamp <= Math.max(bounds.boundFromTimestamps(), bounds.boundFromTransactions())) {
             timestampViolationCallback.run();
-            throw clocksWentBackwards(bounds, type, freshTimestamp);
+            throw clocksWentBackwards(bounds, type, lowerFreshTimestamp, upperFreshTimestamp);
         }
     }
 
     private static RuntimeException clocksWentBackwards(
-            TimestampBounds bounds, OperationType type, long freshTimestamp) {
+            TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
         RuntimeException runtimeException = new SafeRuntimeException(CLOCKS_WENT_BACKWARDS_MESSAGE);
         log.error(
                 CLOCKS_WENT_BACKWARDS_MESSAGE + ": bounds were {}, operation {}, fresh timestamp of {}.",
                 SafeArg.of("bounds", bounds),
                 SafeArg.of("operationType", type),
-                SafeArg.of("freshTimestamp", freshTimestamp),
+                SafeArg.of("lowerFreshTimestamp", lowerFreshTimestamp),
+                SafeArg.of("upperFreshTimestamp", upperFreshTimestamp),
                 runtimeException);
         throw runtimeException;
     }
