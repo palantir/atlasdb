@@ -167,6 +167,6 @@ public final class LockServiceImplTest {
     }
 
     private static List<String> extractArgumentsAsStringList(LoggingEvent event) {
-        return event.getArguments().asList().stream().map(Object::toString).collect(Collectors.toList());
+        return event.getArguments().stream().map(Object::toString).collect(Collectors.toList());
     }
 }
