@@ -45,9 +45,9 @@ public class HeldLocksCollectionTest {
     private static final UUID REQUEST_ID_2 = UUID.randomUUID();
     private static final LockDescriptor LOCK_DESCRIPTOR = StringLockDescriptor.of("foo");
 
-    private AtomicLong atomicLong = new AtomicLong(1);
+    private final AtomicLong atomicLong = new AtomicLong(1);
     private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, atomicLong::incrementAndGet);
-    private LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> time.get());
+    private final LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> time.get());
     private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(leaderClock);
     private final LockWatchingService lockWatcher = mock(LockWatchingService.class);
 
@@ -203,6 +203,7 @@ public class HeldLocksCollectionTest {
     public void lockWatchingServiceIsUpdatedAfterLockIsCreatedAndUnlocked() {
         setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
+        heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
         verify(lockWatcher)
                 .registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());

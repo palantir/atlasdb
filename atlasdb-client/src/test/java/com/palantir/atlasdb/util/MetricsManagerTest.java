@@ -70,7 +70,7 @@ public class MetricsManagerTest {
         metricsManager.registerMetric(BOOLEAN_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
 
         assertThat(registry.getNames())
-                .containsExactly(
+                .containsExactlyInAnyOrder(
                         MetricRegistry.name(INTEGER_CLASS, ERROR_OUT_OF_BOUNDS),
                         MetricRegistry.name(BOOLEAN_CLASS, ERROR_OUT_OF_BOUNDS));
     }
@@ -79,7 +79,7 @@ public class MetricsManagerTest {
     public void registerOrGetMeterMeterRegistersTheFullyQualifiedClassNameMetric() {
         metricsManager.registerOrGetMeter(INTEGER_CLASS, ERROR_OUT_OF_BOUNDS);
 
-        assertThat(registry.getNames()).containsExactly("java.util.List.error.outofbounds");
+        assertThat(registry.getNames()).containsExactly("java.lang.Integer.error.outofbounds");
     }
 
     @Test
