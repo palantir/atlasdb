@@ -18,6 +18,7 @@ package com.palantir.atlasdb.debug;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
@@ -84,6 +85,12 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
         ConjureLockResponse response = conjureDelegate.lock(authHeader, namespace, request);
         localLockTracker.logLockResponse(request.getLockDescriptors(), response);
         return response;
+    }
+
+    @Override
+    public ConjureLockImmutableTimestampResponse lockImmutableTimestamp(AuthHeader authHeader, String namespace) {
+        // TODO(gs): localLockTracker?
+        return conjureDelegate.lockImmutableTimestamp(authHeader, namespace);
     }
 
     @Override

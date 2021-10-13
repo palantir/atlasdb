@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory.timelock;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
@@ -67,6 +68,11 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     @Override
     public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
         return longTimeoutProxy.lock(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureLockImmutableTimestampResponse lockImmutableTimestamp(AuthHeader authHeader, String namespace) {
+        return longTimeoutProxy.lockImmutableTimestamp(authHeader, namespace);
     }
 
     @Override

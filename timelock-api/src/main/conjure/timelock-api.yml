@@ -82,6 +82,16 @@ types:
         union:
           successful: SuccessfulLockResponse
           unsuccessful: UnsuccessfulLockResponse
+      SuccessfulLockImmutableTimestampResponse:
+        fields:
+          lockToken: ConjureLockToken
+          immutableTimestamp: Long
+      UnsuccessfulLockImmutableTimestampResponse:
+        fields: {}
+      ConjureLockImmutableTimestampResponse:
+        union:
+          successful: SuccessfulLockImmutableTimestampResponse
+          unsuccessful: UnsuccessfulLockImmutableTimestampResponse
       ConjureWaitForLocksResponse:
         fields:
           wasSuccessful: boolean
@@ -146,6 +156,11 @@ services:
           namespace: string
           request: ConjureLockRequest
         returns: ConjureLockResponse
+      lockImmutableTimestamp:
+        http: POST /lit/{namespace}
+        args:
+          namespace: string
+        returns: ConjureLockImmutableTimestampResponse
       waitForLocks:
         http: POST /wl/{namespace}
         args:
