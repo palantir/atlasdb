@@ -1698,12 +1698,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         // lock lost after getting first batch
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
-        // should still be able to get all but last element of the elements for the first batch;
-        // next batch is preemptively fetched when last element of curr batch is retrieved
-        List<Cell> retrievedEntries = IntStream.range(1, batchHint - 1)
+        // should still be able to get all elements of the first batch;
+        List<Cell> retrievedEntries = IntStream.range(1, batchHint)
                 .mapToObj(_unused -> sortedColumns.next().getKey())
                 .collect(Collectors.toList());
-        assertThat(retrievedEntries).hasSameElementsAs(cells.subList(1, batchHint - 1));
+        assertThat(retrievedEntries).hasSameElementsAs(cells.subList(1, batchHint));
 
         // should throw while fetching the next batch
         assertThatThrownBy(sortedColumns::next).isInstanceOf(TransactionLockTimeoutException.class);
