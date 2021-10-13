@@ -46,7 +46,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.InMemoryTimeLock;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -57,9 +57,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -80,14 +79,11 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     PeriodicTrueSupplier skipCellVersion = new PeriodicTrueSupplier();
 
-    protected static InMemoryTimelockServices services;
-
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @ClassRule
+    public static InMemoryTimeLock services = new InMemoryTimeLock();
 
     @Before
     public void setup() {
-        services = InMemoryTimelockServices.create(tempFolder);
         kvs = SweepStatsKeyValueService.create(
                 getKeyValueService(),
                 services.getTimestampService(),
@@ -137,7 +133,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     @After
     public void closeTransactionManager() {
         txManager.close();
-        services.close();
+        //        services.close();
     }
 
     @Test
