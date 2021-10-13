@@ -39,17 +39,18 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLock;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Map;
 import org.awaitility.Awaitility;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-public class TransactionServicesTest extends AbstractTestWithInMemoryTimeLock {
+public class TransactionServicesTest {
     private final KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
 
     private TimestampService timestampService;
@@ -59,10 +60,11 @@ public class TransactionServicesTest extends AbstractTestWithInMemoryTimeLock {
     private long startTs;
     private long commitTs;
 
-    @Override
+    @Rule
+    public InMemoryTimeLock services = new InMemoryTimeLock();
+
     @Before
     public void setUp() {
-        super.setUp();
         TransactionTables.createTables(keyValueService);
         timestampService = services.getTimestampService();
         coordinationService = CoordinationServices.createDefault(

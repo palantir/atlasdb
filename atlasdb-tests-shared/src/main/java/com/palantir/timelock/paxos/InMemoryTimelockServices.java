@@ -49,33 +49,34 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.awaitility.Awaitility;
+import org.junit.After;
+import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
-public final class InMemoryTimelockServices implements TimeLockServices, Closeable {
+public final class InMemoryTimelockServices extends ExternalResource implements TimeLockServices, Closeable {
     private static final String USER_AGENT_NAME = "user-agent";
     private static final String USER_AGENT_VERSION = "3.1415926.5358979";
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
     private static final int THREAD_POOL_SIZE = 128;
     private static final int BLOCKING_TIMEOUT_MS = 60 * 800; // 0.8 mins to ms
 
-    private final TimeLockServices delegate;
-    private final TimeLockAgent timeLockAgent;
+    private final TemporaryFolder tempFolder;
 
-    private InMemoryTimelockServices(TimeLockServices delegate, TimeLockAgent timeLockAgent) {
-        this.delegate = delegate;
-        this.timeLockAgent = timeLockAgent;
+    private String client;
+    private TimeLockServices delegate;
+    private TimeLockAgent timeLockAgent;
+
+    public InMemoryTimelockServices(TemporaryFolder tempFolder) {
+        this.tempFolder = tempFolder;
+        this.client = "client";
+    }
+
+    void setClient(String client) {
+        this.client = client;
     }
 
     @Override
-    public void close() {
-        timeLockAgent.shutdown();
-    }
-
-    public static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
-        return create(tempFolder, "client");
-    }
-
-    public static InMemoryTimelockServices create(TemporaryFolder tempFolder, String client) {
+    protected void before() throws IOException {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
                 .dataDirectory(tryCreateSubFolder(tempFolder))
                 .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
@@ -101,7 +102,7 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
                 .clusterSnapshot(clusterConfig)
                 .build();
 
-        TimeLockAgent timeLockAgent = TimeLockAgent.create(
+        timeLockAgent = TimeLockAgent.create(
                 MetricsManagers.of(new MetricRegistry(), SharedTaggedMetricRegistries.getSingleton()),
                 install,
                 Refreshable.only(runtime), // This won't actually live reload.
@@ -115,16 +116,42 @@ public final class InMemoryTimelockServices implements TimeLockServices, Closeab
                 ObjectMappers.newServerObjectMapper(),
                 () -> System.exit(0));
 
-        TimeLockServices services = timeLockAgent.createInvalidatingTimeLockServices(client);
+        delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
 
         // Wait for leadership
         Awaitility.await()
                 .atMost(Duration.ofSeconds(30L))
                 .pollInterval(Duration.ofMillis(50))
                 .ignoreExceptions()
-                .until(() -> services.getTimestampService().getFreshTimestamp() > 0);
+                .until(() -> delegate.getTimestampService().getFreshTimestamp() > 0);
+    }
 
-        return new InMemoryTimelockServices(services, timeLockAgent);
+    @Override
+    @After
+    public void after() {
+        close();
+    }
+
+    @Override
+    public void close() {
+        timeLockAgent.shutdown();
+    }
+
+    public static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
+        return create(tempFolder, "client");
+    }
+
+    public static InMemoryTimelockServices create(TemporaryFolder tempFolder, String client) {
+        InMemoryTimelockServices services = new InMemoryTimelockServices(tempFolder);
+        services.setClient(client);
+
+        try {
+            services.before();
+        } catch (IOException e) {
+            throw new SafeRuntimeException("Failed to create InMemoryTimelockServices", e);
+        }
+
+        return services;
     }
 
     private static File tryCreateSubFolder(TemporaryFolder tempFolder) {

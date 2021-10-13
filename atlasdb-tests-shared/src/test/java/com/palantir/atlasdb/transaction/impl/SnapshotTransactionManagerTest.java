@@ -49,7 +49,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLock;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -57,10 +57,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.InOrder;
 
-public class SnapshotTransactionManagerTest extends AbstractTestWithInMemoryTimeLock {
+public class SnapshotTransactionManagerTest {
     private static final String SETUP_TASK_METRIC_NAME =
             SnapshotTransactionManager.class.getCanonicalName() + ".setupTask";
     private static final String FINISH_TASK_METRIC_NAME =
@@ -73,13 +74,14 @@ public class SnapshotTransactionManagerTest extends AbstractTestWithInMemoryTime
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
+    @Rule
+    public InMemoryTimeLock services = new InMemoryTimeLock();
+
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;
 
-    @Override
     @Before
     public void setUp() {
-        super.setUp();
         timestampService = services.getManagedTimestampService();
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,

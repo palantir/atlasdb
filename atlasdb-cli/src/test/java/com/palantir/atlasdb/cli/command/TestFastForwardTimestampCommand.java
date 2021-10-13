@@ -30,13 +30,14 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLock;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import io.airlift.airline.Command;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
-public class TestFastForwardTimestampCommand extends AbstractTestWithInMemoryTimeLock {
+public class TestFastForwardTimestampCommand {
     private static final String TIMESTAMP_GROUP = "timestamp";
     private static final String FETCH_COMMAND =
             FetchTimestamp.class.getAnnotation(Command.class).name();
@@ -47,11 +48,12 @@ public class TestFastForwardTimestampCommand extends AbstractTestWithInMemoryTim
 
     private AtlasDbServicesFactory moduleFactory;
 
-    @Override
+    @Rule
+    public InMemoryTimeLock inMemoryTimeLock = new InMemoryTimeLock();
+
     @Before
     public void setUp() {
-        super.setUp();
-        moduleFactory = createModuleFactory(services);
+        moduleFactory = createModuleFactory(inMemoryTimeLock.get());
     }
 
     @Test

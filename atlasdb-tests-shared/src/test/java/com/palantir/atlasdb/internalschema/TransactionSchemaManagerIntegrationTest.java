@@ -23,21 +23,23 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLock;
 import com.palantir.timestamp.ManagedTimestampService;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
-public class TransactionSchemaManagerIntegrationTest extends AbstractTestWithInMemoryTimeLock {
+public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
 
     private ManagedTimestampService timestamps;
     private TransactionSchemaManager manager;
 
-    @Override
+    @Rule
+    public InMemoryTimeLock services = new InMemoryTimeLock();
+
     @Before
     public void setUp() {
-        super.setUp();
         timestamps = services.getManagedTimestampService();
         manager = createTransactionSchemaManager();
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();

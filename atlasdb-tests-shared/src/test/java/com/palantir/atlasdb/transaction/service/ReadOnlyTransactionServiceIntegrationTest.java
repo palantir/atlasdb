@@ -22,12 +22,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLock;
 import com.palantir.timestamp.ManagedTimestampService;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
-public class ReadOnlyTransactionServiceIntegrationTest extends AbstractTestWithInMemoryTimeLock {
+public class ReadOnlyTransactionServiceIntegrationTest {
     private static final long COORDINATION_QUANTUM = 100_000_000L;
 
     private final InMemoryKeyValueService keyValueService = new InMemoryKeyValueService(true);
@@ -35,13 +36,14 @@ public class ReadOnlyTransactionServiceIntegrationTest extends AbstractTestWithI
             TransactionServices.createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
                     keyValueService, MetricsManagers.createForTests());
 
+    @Rule
+    public InMemoryTimeLock services = new InMemoryTimeLock();
+
     private ManagedTimestampService timestampService;
     private TransactionService writeTransactionService;
 
-    @Override
     @Before
     public void setUp() {
-        super.setUp();
         timestampService = services.getManagedTimestampService();
         writeTransactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
     }

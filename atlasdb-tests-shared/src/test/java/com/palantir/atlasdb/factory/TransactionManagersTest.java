@@ -93,7 +93,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
-import com.palantir.timelock.paxos.AbstractTestWithInMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLock;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -123,7 +123,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
+public class TransactionManagersTest {
     private static final String USER_AGENT_NAME = "user-agent";
     private static final String USER_AGENT_VERSION = "3.1415926.5358979";
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
@@ -177,11 +177,11 @@ public class TransactionManagersTest extends AbstractTestWithInMemoryTimeLock {
     public WireMockRule availableServer =
             new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
-    @Override
+    @Rule
+    public InMemoryTimeLock services = new InMemoryTimeLock();
+
     @Before
     public void setUp() {
-        super.setUp();
-
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
         TransactionManagers.runAsync =
