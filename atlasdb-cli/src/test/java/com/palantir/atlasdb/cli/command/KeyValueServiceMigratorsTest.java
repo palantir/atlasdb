@@ -53,7 +53,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
@@ -372,9 +371,8 @@ public class KeyValueServiceMigratorsTest {
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 kvs,
+                timelock.getLegacyTimelockService(),
                 timestampService,
-                timestampService,
-                LockClient.of("test"),
                 LockServiceImpl.create(
                         LockServerOptions.builder().isStandaloneServer(false).build()),
                 transactionService,

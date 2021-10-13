@@ -115,7 +115,7 @@ public abstract class AbstractSweepTest {
 
     protected TransactionManager createAndRegisterManager() {
         TransactionManager manager = SweepTestUtils.setupTxManager(
-                kvs, services.getTimestampService(), services.getTimestampManagementService(), ssm, txService);
+                kvs, services.getLegacyTimelockService(), services.getTimestampManagementService(), ssm, txService);
         tmManager.registerTransactionManager(manager);
         return manager;
     }

@@ -36,13 +36,12 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.awaitility.Awaitility;
@@ -51,20 +50,21 @@ public final class SweepTestUtils {
     private SweepTestUtils() {}
 
     public static TransactionManager setupTxManager(KeyValueService kvs, InMemoryTimelockServices timelock) {
-        TimestampService ts = timelock.getTimestampService();
-        TimestampManagementService tms = timelock.getTimestampManagementService();
         return setupTxManager(
-                kvs, ts, tms, SweepStrategyManagers.createDefault(kvs), TransactionServices.createRaw(kvs, ts, false));
+                kvs,
+                timelock.getLegacyTimelockService(),
+                timelock.getTimestampManagementService(),
+                SweepStrategyManagers.createDefault(kvs),
+                TransactionServices.createRaw(kvs, timelock.getTimestampService(), false));
     }
 
     public static TransactionManager setupTxManager(
             KeyValueService kvs,
-            TimestampService tsService,
+            TimelockService legacyTimelockService,
             TimestampManagementService tsmService,
             SweepStrategyManager ssm,
             TransactionService txService) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        LockClient lockClient = LockClient.of("sweep client");
         LockService lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
         Supplier<AtlasDbConstraintCheckingMode> constraints =
@@ -75,9 +75,8 @@ public final class SweepTestUtils {
         TransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,
-                tsService,
+                legacyTimelockService,
                 tsmService,
-                lockClient,
                 lockService,
                 txService,
                 constraints,
