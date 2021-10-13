@@ -17,6 +17,7 @@
 package com.palantir.timelock.paxos;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.ClientLockingOptions;
@@ -30,12 +31,8 @@ import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampRange;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 final class DelegatingTimelockService implements TimelockService {
     private final AsyncTimelockService timelock;
@@ -71,7 +68,7 @@ final class DelegatingTimelockService implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponseV2 lockResponseV2 = tryGet(timelock.lock(IdentifiedLockRequest.from(request)));
+        LockResponseV2 lockResponseV2 = AtlasFutures.getUnchecked(timelock.lock(IdentifiedLockRequest.from(request)));
         return lockResponseV2.accept(new LockResponseV2.Visitor<>() {
             @Override
             public LockResponse visit(LockResponseV2.Successful successful) {
@@ -92,36 +89,27 @@ final class DelegatingTimelockService implements TimelockService {
 
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return tryGet(timelock.waitForLocks(request));
+        return AtlasFutures.getUnchecked(timelock.waitForLocks(request));
     }
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         ListenableFuture<RefreshLockResponseV2> future = timelock.refreshLockLeases(tokens);
-        return tryGet(future).refreshedTokens();
+        return AtlasFutures.getUnchecked(future).refreshedTokens();
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return tryGet(timelock.unlock(tokens));
+        return AtlasFutures.getUnchecked(timelock.unlock(tokens));
     }
 
     @Override
     public void tryUnlock(Set<LockToken> tokens) {
-        // TODO(gs): swallow exceptions?
-        unlock(tokens);
+        timelock.unlock(tokens);
     }
 
     @Override
     public long currentTimeMillis() {
         return timelock.currentTimeMillis();
-    }
-
-    private <T> T tryGet(ListenableFuture<T> future) {
-        try {
-            return future.get(5L, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new SafeRuntimeException("Async request failed", e);
-        }
     }
 }
