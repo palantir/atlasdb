@@ -34,7 +34,7 @@ import com.palantir.timelock.paxos.InMemoryTimeLock;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import io.airlift.airline.Command;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class TestFastForwardTimestampCommand {
@@ -48,8 +48,8 @@ public class TestFastForwardTimestampCommand {
 
     private AtlasDbServicesFactory moduleFactory;
 
-    @Rule
-    public InMemoryTimeLock inMemoryTimeLock = new InMemoryTimeLock();
+    @ClassRule
+    public static InMemoryTimeLock inMemoryTimeLock = new InMemoryTimeLock();
 
     @Before
     public void setUp() {

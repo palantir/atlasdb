@@ -57,7 +57,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.InOrder;
 
@@ -74,8 +74,8 @@ public class SnapshotTransactionManagerTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
-    @Rule
-    public InMemoryTimeLock services = new InMemoryTimeLock();
+    @ClassRule
+    public static InMemoryTimeLock services = new InMemoryTimeLock();
 
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;

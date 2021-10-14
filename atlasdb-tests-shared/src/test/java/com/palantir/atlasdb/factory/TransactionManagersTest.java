@@ -113,7 +113,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Files;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -177,8 +176,8 @@ public class TransactionManagersTest {
     public WireMockRule availableServer =
             new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
-    @Rule
-    public InMemoryTimeLock services = new InMemoryTimeLock();
+    @ClassRule
+    public static InMemoryTimeLock services = new InMemoryTimeLock();
 
     @Before
     public void setUp() {

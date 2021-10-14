@@ -46,7 +46,7 @@ import java.time.Duration;
 import java.util.Map;
 import org.awaitility.Awaitility;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -60,8 +60,8 @@ public class TransactionServicesTest {
     private long startTs;
     private long commitTs;
 
-    @Rule
-    public InMemoryTimeLock services = new InMemoryTimeLock();
+    @ClassRule
+    public static InMemoryTimeLock services = new InMemoryTimeLock();
 
     @Before
     public void setUp() {

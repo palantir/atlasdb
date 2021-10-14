@@ -25,7 +25,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLock;
 import com.palantir.timestamp.ManagedTimestampService;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ReadOnlyTransactionServiceIntegrationTest {
@@ -36,8 +36,8 @@ public class ReadOnlyTransactionServiceIntegrationTest {
             TransactionServices.createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
                     keyValueService, MetricsManagers.createForTests());
 
-    @Rule
-    public InMemoryTimeLock services = new InMemoryTimeLock();
+    @ClassRule
+    public static InMemoryTimeLock services = new InMemoryTimeLock();
 
     private ManagedTimestampService timestampService;
     private TransactionService writeTransactionService;
