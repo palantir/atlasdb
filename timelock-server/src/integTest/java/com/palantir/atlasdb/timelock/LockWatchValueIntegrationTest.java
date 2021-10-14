@@ -17,56 +17,29 @@
 package com.palantir.atlasdb.timelock;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Fail.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CellReference;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.*;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.api.*;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCache;
-import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.TransactionUpdate;
-import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.lock.watch.*;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -123,7 +96,7 @@ public final class LockWatchValueIntegrationTest {
     @Before
     public void before() {
         createTransactionManager(0.0);
-        LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager);
+        LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
     }
 
     @Test
@@ -180,7 +153,7 @@ public final class LockWatchValueIntegrationTest {
             return values;
         });
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
         Map<Cell, byte[]> result2 = txnManager.runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_4));
@@ -208,7 +181,7 @@ public final class LockWatchValueIntegrationTest {
                         txn2.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
                         return null;
                     });
-                    LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+                    LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
                     return null;
                 }))
                 .isExactlyInstanceOf(TransactionSerializableConflictException.class)
@@ -262,7 +235,7 @@ public final class LockWatchValueIntegrationTest {
             return null;
         });
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
         txnManager.runTaskThrowOnConflict(txn -> {
             assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_3);
@@ -278,7 +251,7 @@ public final class LockWatchValueIntegrationTest {
         readValueAndAssertLoadedFromRemote();
 
         CLUSTER.failoverToNewLeader(NAMESPACE);
-        LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager);
+        LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
 
         readValueAndAssertLoadedFromRemote();
     }
@@ -298,7 +271,7 @@ public final class LockWatchValueIntegrationTest {
             assertLoadedValues(txn, ImmutableMap.of());
 
             CLUSTER.failoverToNewLeader(NAMESPACE);
-            LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager);
+            LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
 
             assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
             assertThat(extractTransactionCache(txn)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
@@ -328,7 +301,7 @@ public final class LockWatchValueIntegrationTest {
                     assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
 
                     CLUSTER.failoverToNewLeader(NAMESPACE);
-                    LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager);
+                    LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
 
                     txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
                     assertHitValues(txn, ImmutableSet.of());
@@ -379,7 +352,7 @@ public final class LockWatchValueIntegrationTest {
             return null;
         });
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
         Set<byte[]> rows = ImmutableSet.of(CELL_1.getRowName(), CELL_3.getRowName());
         ColumnSelection columns =
@@ -425,7 +398,7 @@ public final class LockWatchValueIntegrationTest {
             return null;
         });
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
         Set<byte[]> rows =
                 ImmutableSet.of("bar".getBytes(StandardCharsets.UTF_8), "eggs".getBytes(StandardCharsets.UTF_8));
@@ -449,7 +422,7 @@ public final class LockWatchValueIntegrationTest {
             return remoteRead;
         });
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
         // truncate the table to verify we are really using the cached values
         truncateTable();
 
@@ -474,7 +447,7 @@ public final class LockWatchValueIntegrationTest {
             return null;
         });
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
         AtomicLong startTs = new AtomicLong(-1L);
         AtomicReference<LockWatchCache> lwCache = new AtomicReference<>(null);
@@ -506,7 +479,7 @@ public final class LockWatchValueIntegrationTest {
             return null;
         });
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
         AtomicLong startTimestamp = new AtomicLong(-1L);
         PreCommitCondition commitFailingCondition = timestamp -> {
@@ -524,7 +497,7 @@ public final class LockWatchValueIntegrationTest {
                         }))
                 .isInstanceOf(RuntimeException.class);
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
         txnManager.runTaskThrowOnConflict(txn -> {
             // Confirm that the previous transaction did not commit writes
@@ -641,7 +614,7 @@ public final class LockWatchValueIntegrationTest {
             return null;
         });
 
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
     }
 
     private void assertHitValues(Transaction transaction, Set<CellReference> expectedCells) {

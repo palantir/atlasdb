@@ -37,13 +37,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.lock.watch.*;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.nio.charset.StandardCharsets;
@@ -94,9 +88,9 @@ public final class LockWatchEventIntegrationTest {
     private TransactionManager txnManager;
 
     @Before
-    public void before() {
+    public void setUpAndAwaitTableWatched() {
         txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
-        LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager);
+        LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
     }
 
     @Test
@@ -233,7 +227,7 @@ public final class LockWatchEventIntegrationTest {
             txn.put(TABLE_REF, values);
             return null;
         });
-        LockWatchIntegrationTestUtilities.awaitUnlock(txnManager);
+        LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
     }
 
     private Set<LockDescriptor> lockedDescriptors(Collection<LockWatchEvent> events) {

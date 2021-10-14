@@ -16,17 +16,20 @@
 
 package com.palantir.atlasdb.timelock;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MoreCollectors;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.*;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -41,21 +44,65 @@ public final class LockWatchIntegrationTestUtilities {
     }
 
     /**
-     * At commit time, transactions take out locks for all of their writes. However, these locks are released
-     * asynchronously so as not to block execution of the transaction. Thus, we need to actively wait for unlock events,
-     * and since each event increments the version by 1, we know that the version should be a multiple of two (assuming
-     * no concurrent locks).
+     * By requesting a snapshot, we get a single snapshot event that contains all currently held lock descriptors.
+     * As unlocks are asynchronous, we must wait for the unlocks to go through to guarantee consistent testing.
      */
-    public static void awaitUnlock(TransactionManager txnManager) {
-        LockWatchIntegrationTestUtilities.awaitUntilLockWatchVersionSatifies(txnManager, version -> version % 2 == 0);
+    public static void awaitAllUnlocked(TransactionManager txnManager) {
+        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
+        Awaitility.await("Tables are watched")
+                .atMost(Duration.ofSeconds(5))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> getLockWatchState(txnManager, lockWatchManager)
+                        .map(event -> event.accept(new LockWatchEvent.Visitor<Boolean>() {
+                            @Override
+                            public Boolean visit(LockEvent lockEvent) {
+                                return false;
+                            }
+
+                            @Override
+                            public Boolean visit(UnlockEvent unlockEvent) {
+                                return false;
+                            }
+
+                            @Override
+                            public Boolean visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+                                return lockWatchCreatedEvent.lockDescriptors().isEmpty();
+                            }
+                        }))
+                        .orElse(false));
     }
 
     /**
      * The lock watch manager registers watch events every five seconds - therefore, tables may not be watched
-     * immediately after a TimeLock leader election.
+     * immediately after a TimeLock leader election. By requesting an update with an empty version, we guarantee that
+     * we only receive a single event containing a snapshot of the current lock watch event state, including watched
+     * tables.
      */
-    public static void awaitTableWatched(TransactionManager txnManager) {
-        LockWatchIntegrationTestUtilities.awaitUntilLockWatchVersionSatifies(txnManager, version -> version > -1);
+    public static void awaitTableWatched(TransactionManager txnManager, TableReference tableReference) {
+        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
+        Awaitility.await("Tables are watched")
+                .atMost(Duration.ofSeconds(5))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> getLockWatchState(txnManager, lockWatchManager)
+                        .map(event -> event.accept(new LockWatchEvent.Visitor<Boolean>() {
+                            @Override
+                            public Boolean visit(LockEvent lockEvent) {
+                                return false;
+                            }
+
+                            @Override
+                            public Boolean visit(UnlockEvent unlockEvent) {
+                                return false;
+                            }
+
+                            @Override
+                            public Boolean visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+                                return lockWatchCreatedEvent
+                                        .references()
+                                        .contains(LockWatchReferences.entireTable(tableReference.getQualifiedName()));
+                            }
+                        }))
+                        .orElse(false));
     }
 
     /**
@@ -79,6 +126,17 @@ public final class LockWatchIntegrationTestUtilities {
                         Optional.empty(),
                         createSchema())
                 .transactionManager();
+    }
+
+    private static Optional<LockWatchEvent> getLockWatchState(
+            TransactionManager txnManager, LockWatchManagerInternal lockWatchManager) {
+        return txnManager.runTaskThrowOnConflict(txn -> lockWatchManager
+                .getCache()
+                .getEventCache()
+                .getUpdateForTransactions(ImmutableSet.of(txn.getTimestamp()), Optional.empty())
+                .events()
+                .stream()
+                .collect(MoreCollectors.toOptional()));
     }
 
     private static void awaitUntilLockWatchVersionSatifies(
