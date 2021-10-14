@@ -25,6 +25,7 @@ import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
@@ -45,7 +46,7 @@ public class AtlasBackupServiceTest {
                         SuccessfulLockImmutableTimestampResponse.of(ConjureLockToken.of(requestId), 1L)));
 
         AuthHeader authHeader = AuthHeader.valueOf("header");
-        Optional<LockToken> lockToken = atlasBackupService.prepareBackup(authHeader, "test");
-        assertThat(lockToken).contains(LockToken.of(requestId));
+        Optional<LockImmutableTimestampResponse> lockToken = atlasBackupService.prepareBackup(authHeader, "test");
+        assertThat(lockToken).contains(LockImmutableTimestampResponse.of(1L, LockToken.of(requestId)));
     }
 }

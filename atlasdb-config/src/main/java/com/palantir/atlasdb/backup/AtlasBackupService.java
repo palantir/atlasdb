@@ -29,6 +29,7 @@ import com.palantir.atlasdb.timelock.api.SuccessfulLockImmutableTimestampRespons
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockImmutableTimestampResponse;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
@@ -59,22 +60,27 @@ public class AtlasBackupService {
     }
 
     // lock immutable timestamp
-    public Optional<LockToken> prepareBackup(AuthHeader authHeader, String namespace) {
+    public Optional<LockImmutableTimestampResponse> prepareBackup(AuthHeader authHeader, String namespace) {
         ConjureLockImmutableTimestampResponse response = timelockService.lockImmutableTimestamp(authHeader, namespace);
-        return response.accept(new Visitor<Optional<LockToken>>() {
+        return response.accept(new Visitor<Optional<LockImmutableTimestampResponse>>() {
             @Override
-            public Optional<LockToken> visitSuccessful(SuccessfulLockImmutableTimestampResponse value) {
-                return Optional.of(LockToken.of(value.getLockToken().getRequestId()));
+            public Optional<LockImmutableTimestampResponse> visitSuccessful(
+                    SuccessfulLockImmutableTimestampResponse value) {
+                LockImmutableTimestampResponse litr = LockImmutableTimestampResponse.of(
+                        value.getImmutableTimestamp(),
+                        LockToken.of(value.getLockToken().getRequestId()));
+                return Optional.of(litr);
             }
 
             @Override
-            public Optional<LockToken> visitUnsuccessful(UnsuccessfulLockImmutableTimestampResponse value) {
+            public Optional<LockImmutableTimestampResponse> visitUnsuccessful(
+                    UnsuccessfulLockImmutableTimestampResponse value) {
                 // TODO(gs): handle
                 return Optional.empty();
             }
 
             @Override
-            public Optional<LockToken> visitUnknown(String unknownType) {
+            public Optional<LockImmutableTimestampResponse> visitUnknown(String unknownType) {
                 // TODO(gs): handle
                 return Optional.empty();
             }
