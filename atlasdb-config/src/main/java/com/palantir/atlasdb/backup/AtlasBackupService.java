@@ -46,7 +46,7 @@ public class AtlasBackupService {
         this.timelockService = timelockService;
     }
 
-    static AtlasBackupService create(
+    public static AtlasBackupService create(
             Refreshable<ServerListConfig> serverListConfig,
             DialogueClients.ReloadingFactory reloadingFactory,
             UserAgent userAgent,
@@ -59,9 +59,8 @@ public class AtlasBackupService {
     }
 
     // lock immutable timestamp
-    Optional<LockToken> prepareBackup(AuthHeader authHeader, String namespace) {
-        ConjureLockImmutableTimestampResponse response =
-                timelockService.lockImmutableTimestamp(authHeader, namespace);
+    public Optional<LockToken> prepareBackup(AuthHeader authHeader, String namespace) {
+        ConjureLockImmutableTimestampResponse response = timelockService.lockImmutableTimestamp(authHeader, namespace);
         return response.accept(new Visitor<Optional<LockToken>>() {
             @Override
             public Optional<LockToken> visitSuccessful(SuccessfulLockImmutableTimestampResponse value) {
@@ -79,23 +78,23 @@ public class AtlasBackupService {
                 // TODO(gs): handle
                 return Optional.empty();
             }
-        })
+        });
     }
 
     // check immutable ts lock
-    boolean checkBackupIsValid(AuthHeader authHeader, String namespace, LockToken token) {
+    public boolean checkBackupIsValid(AuthHeader authHeader, String namespace, LockToken token) {
         ConjureLockToken conjureLockToken = getConjureLockToken(token);
         ConjureRefreshLocksRequest request = ConjureRefreshLocksRequest.of(Set.of(conjureLockToken));
-        ConjureRefreshLocksResponse response =
-                timelockService.refreshLocks(authHeader, namespace, request);
+        ConjureRefreshLocksResponse response = timelockService.refreshLocks(authHeader, namespace, request);
         return response.getRefreshedTokens().contains(conjureLockToken);
     }
 
     // unlocks immutable timestamp
-    boolean completeBackup(AuthHeader authHeader, String namespace, LockToken token) {
+    public boolean completeBackup(AuthHeader authHeader, String namespace, LockToken token) {
         ConjureLockToken conjureLockToken = getConjureLockToken(token);
         ConjureUnlockRequest request = ConjureUnlockRequest.of(Set.of(conjureLockToken));
-        Set<ConjureLockToken> unlockedTokens = timelockService.unlock(authHeader, namespace, request).getTokens();
+        Set<ConjureLockToken> unlockedTokens =
+                timelockService.unlock(authHeader, namespace, request).getTokens();
         return unlockedTokens.contains(conjureLockToken);
     }
 
