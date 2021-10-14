@@ -882,7 +882,7 @@ public class TransactionManagersTest {
         assertThat(timeLockClientFeedbackServices.current()).hasSize(1);
         timeLockClientFeedbackServices.current().get(0).reportFeedback(authHeader, feedbackReport);
         List<LoggedRequest> requests = findAll(postRequestedFor(urlMatching(FEEDBACK_PATH)));
-        Assertions.assertThat(requests).hasSize(1);
+        assertThat(requests).hasSize(1);
         availableServer.verify(
                 postRequestedFor(urlMatching(FEEDBACK_PATH)).withHeader("Authorization", containing("Bearer omitted")));
 

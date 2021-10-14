@@ -133,7 +133,6 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     @After
     public void closeTransactionManager() {
         txManager.close();
-        //        services.close();
     }
 
     @Test
