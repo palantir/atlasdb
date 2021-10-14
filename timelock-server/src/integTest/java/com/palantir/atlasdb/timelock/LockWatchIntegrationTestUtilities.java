@@ -28,11 +28,14 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.watch.*;
+import com.palantir.logsafe.Preconditions;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import org.awaitility.Awaitility;
 
 public final class LockWatchIntegrationTestUtilities {
@@ -49,7 +52,7 @@ public final class LockWatchIntegrationTestUtilities {
      */
     public static void awaitAllUnlocked(TransactionManager txnManager) {
         LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
-        Awaitility.await("Tables are watched")
+        Awaitility.await("All descriptors are unlocked")
                 .atMost(Duration.ofSeconds(5))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> getLockWatchState(txnManager, lockWatchManager)
@@ -139,25 +142,6 @@ public final class LockWatchIntegrationTestUtilities {
                 .collect(MoreCollectors.toOptional()));
     }
 
-    private static void awaitUntilLockWatchVersionSatifies(
-            TransactionManager txnManager, Predicate<Long> versionPredicate) {
-        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(5))
-                .pollDelay(Duration.ofMillis(100))
-                .until(() -> {
-                    // Empty transaction will still get an update for lock watches
-                    txnManager.runTaskThrowOnConflict(txn -> null);
-                    return lockWatchManager
-                            .getCache()
-                            .getEventCache()
-                            .lastKnownVersion()
-                            .map(LockWatchVersion::version)
-                            .filter(versionPredicate)
-                            .isPresent();
-                });
-    }
-
     private static Schema createSchema() {
         Schema schema = new Schema("table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         TableDefinition tableDef = new TableDefinition() {
@@ -171,5 +155,35 @@ public final class LockWatchIntegrationTestUtilities {
         };
         schema.addTableDefinition(TABLE, tableDef);
         return schema;
+    }
+
+    public static final class CommitStageCondition<T> implements PreCommitCondition {
+        private final Function<Long, T> startTimestampFunction;
+        private final AtomicReference<T> commitStageResult;
+        private volatile Optional<Long> startTimestamp;
+
+        public CommitStageCondition(Function<Long, T> startTimestampFunction, AtomicReference<T> commitStageResult) {
+            this.startTimestampFunction = startTimestampFunction;
+            this.commitStageResult = commitStageResult;
+            this.startTimestamp = Optional.empty();
+        }
+
+        public void setStartTimestamp(long startTs) {
+            this.startTimestamp = Optional.of(startTs);
+        }
+
+        public T getCommitStageResult() {
+            return commitStageResult.get();
+        }
+
+        @Override
+        public void throwIfConditionInvalid(long timestamp) {
+            Preconditions.checkState(startTimestamp.isPresent(), "Must initialise start timestamp immediately");
+            long startTs = startTimestamp.get();
+
+            if (startTs != timestamp) {
+                this.commitStageResult.set(startTimestampFunction.apply(startTs));
+            }
+        }
     }
 }
