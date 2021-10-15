@@ -2,21 +2,22 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  api project(":atlasdb-commons")
   api project(":lock-api")
   api project(":timestamp-api")
-  api group: 'org.apache.commons', name: 'commons-lang3'
-  api group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-  api group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  api group: 'com.squareup.okio', name: 'okio'
-  api group: 'jakarta.annotation', name: 'jakarta.annotation-api'
-  api group: 'jakarta.validation', name: 'jakarta.validation-api'
-  api group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
 
-  api 'com.github.ben-manes.caffeine:caffeine'
-  api group: 'com.palantir.conjure.java.api', name: 'ssl-config'
-  api group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
-  api (group: 'com.palantir.tritium', name: 'tritium-registry') {
+  implementation project(":atlasdb-commons")
+  implementation group: 'org.apache.commons', name: 'commons-lang3'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  implementation group: 'com.squareup.okio', name: 'okio'
+  implementation group: 'jakarta.annotation', name: 'jakarta.annotation-implementation'
+  implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
+  implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
+
+  implementation 'com.github.ben-manes.caffeine:caffeine'
+  implementation group: 'com.palantir.conjure.java.api', name: 'ssl-config'
+  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
+  implementation (group: 'com.palantir.tritium', name: 'tritium-registry') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
