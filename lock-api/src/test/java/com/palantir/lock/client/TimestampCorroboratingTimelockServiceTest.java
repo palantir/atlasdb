@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -61,11 +60,12 @@ import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class TimestampCorroboratingTimelockServiceTest {
-    private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
-            LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
-
     private static final String NAMESPACE_1 = "sonic";
     private static final String NAMESPACE_2 = "shadow";
+    private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
+            LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
+    private static final LockWatchStateUpdate.Snapshot LOCK_WATCH_UPDATE =
+            LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1L, ImmutableSet.of(), ImmutableSet.of());
 
     @Mock
     private Runnable callback;
@@ -106,9 +106,8 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void getCommitTimestampsShouldFail() {
-        LockWatchStateUpdate stateUpdate = mock(LockWatchStateUpdate.class);
         when(rawTimelockService.getCommitTimestamps(any()))
-                .thenReturn(GetCommitTimestampsResponse.of(1L, 3L, stateUpdate));
+                .thenReturn(GetCommitTimestampsResponse.of(1L, 3L, LOCK_WATCH_UPDATE));
         assertThrowsOnSecondCall(() -> timelockService.getCommitTimestamps(
                 GetCommitTimestampsRequest.of(3, ConjureIdentifiedVersion.of(UUID.randomUUID(), 3L))));
         verify(callback).run();
@@ -223,8 +222,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
         return ConjureStartTransactionsResponse.builder()
                 .immutableTimestamp(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE)
                 .lease(Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.now()), Duration.ZERO))
-                .lockWatchUpdate(
-                        LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1L, ImmutableSet.of(), ImmutableSet.of()))
+                .lockWatchUpdate(LOCK_WATCH_UPDATE)
                 .timestamps(ImmutablePartitionedTimestamps.builder()
                         .start(startTimestamp)
                         .count(count)
