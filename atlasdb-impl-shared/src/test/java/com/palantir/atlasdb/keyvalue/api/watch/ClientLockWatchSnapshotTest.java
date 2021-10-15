@@ -106,9 +106,12 @@ public class ClientLockWatchSnapshotTest {
 
         LockWatchEvents freshEvents = singleLockEvent(LOCK_DESCRIPTOR_2, SEQUENCE_2);
         LockWatchStateUpdate.Snapshot updateSnapshot = snapshot.getSnapshotWithEvents(freshEvents, INITIAL_LEADER_ID);
-        assertThat(updateSnapshot).isEqualTo(LockWatchStateUpdate.snapshot(
-                INITIAL_LEADER_ID, SEQUENCE_2, ImmutableSet.of(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2),
-                ImmutableSet.of()));
+        assertThat(updateSnapshot)
+                .isEqualTo(LockWatchStateUpdate.snapshot(
+                        INITIAL_LEADER_ID,
+                        SEQUENCE_2,
+                        ImmutableSet.of(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2),
+                        ImmutableSet.of()));
 
         assertThat(snapshot.getStateForTesting())
                 .as("the base snapshot should not have been updated")
