@@ -37,12 +37,11 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import org.immutables.value.Value;
-
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+import org.immutables.value.Value;
 
 public final class TimestampCorroboratingTimelockService2 implements NamespacedConjureTimelockService {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampCorroboratingTimelockService2.class);
