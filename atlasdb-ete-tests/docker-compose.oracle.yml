@@ -2,7 +2,7 @@ version: '2'
 
 services:
   oracle:
-    image: palantirtechnologies/oracle-atlasdb:19.11.0.0-se
+    image: palantirtechnologies/oracle-atlasdb:19.12.0.0-se
     ports:
       - "1521"
 
