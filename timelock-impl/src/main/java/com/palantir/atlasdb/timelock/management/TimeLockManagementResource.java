@@ -29,6 +29,8 @@ import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEnd
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
@@ -36,41 +38,52 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class TimeLockManagementResource implements UndertowTimeLockManagementService {
+    private static final SafeLogger log = SafeLoggerFactory.get(TimeLockManagementResource.class);
+
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;
+    private final Runnable serviceStopper;
 
     private TimeLockManagementResource(
             Set<PersistentNamespaceLoader> namespaceLoaders,
             TimelockNamespaces timelockNamespaces,
-            RedirectRetryTargeter redirectRetryTargeter) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Runnable serviceStopper) {
         this.namespaceLoaders = namespaceLoaders;
         this.timelockNamespaces = timelockNamespaces;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+        this.serviceStopper = serviceStopper;
     }
 
     public static TimeLockManagementResource create(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            RedirectRetryTargeter redirectRetryTargeter) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Runnable serviceStopper) {
         return new TimeLockManagementResource(
-                createNamespaceLoaders(persistentNamespaceContext), timelockNamespaces, redirectRetryTargeter);
+                createNamespaceLoaders(persistentNamespaceContext),
+                timelockNamespaces,
+                redirectRetryTargeter,
+                serviceStopper);
     }
 
     public static UndertowService undertow(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            RedirectRetryTargeter redirectRetryTargeter) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Runnable serviceStopper) {
         return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(
-                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter));
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, serviceStopper));
     }
 
     public static TimeLockManagementService jersey(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            RedirectRetryTargeter redirectRetryTargeter) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Runnable serviceStopper) {
         return new JerseyAdapter(TimeLockManagementResource.create(
-                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter));
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, serviceStopper));
     }
 
     @Override
@@ -92,6 +105,21 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
             }
             return Futures.immediateFuture(null);
         });
+    }
+
+    @Override
+    public ListenableFuture<Void> invalidateResources(AuthHeader authHeader, Set<String> namespaces) {
+        return handleExceptions(() -> {
+            namespaces.forEach(timelockNamespaces::invalidateResourcesForClient);
+            return Futures.immediateFuture(null);
+        });
+    }
+
+    @Override
+    public ListenableFuture<Void> forceKillTimeLockServer(AuthHeader authHeader) {
+        log.info("Forcefully stopping TimeLock service.");
+        serviceStopper.run();
+        return Futures.immediateVoidFuture();
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
@@ -127,6 +155,16 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public void achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
             unwrap(resource.achieveConsensus(authHeader, namespaces));
+        }
+
+        @Override
+        public void invalidateResources(AuthHeader authHeader, Set<String> namespaces) {
+            unwrap(resource.invalidateResources(authHeader, namespaces));
+        }
+
+        @Override
+        public void forceKillTimeLockServer(AuthHeader authHeader) {
+            unwrap(resource.forceKillTimeLockServer(authHeader));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

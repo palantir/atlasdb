@@ -17,6 +17,9 @@ package com.palantir.atlasdb.util;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.api.event.InstrumentationFilter;
 import com.palantir.tritium.event.InstrumentationFilters;
 import com.palantir.tritium.event.InvocationContext;
@@ -29,11 +32,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class AtlasDbMetrics {
-    private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbMetrics.class);
 
     private AtlasDbMetrics() {}
 
@@ -98,8 +100,8 @@ public final class AtlasDbMetrics {
         } else {
             log.info(
                     "Not registering cache with prefix '{}' as metric registry already contains metrics: {}",
-                    metricsPrefix,
-                    existingMetrics);
+                    SafeArg.of("metricsPrefix", metricsPrefix),
+                    SafeArg.of("existingMetrics", existingMetrics));
         }
     }
 

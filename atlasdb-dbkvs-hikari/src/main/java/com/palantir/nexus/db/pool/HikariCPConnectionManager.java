@@ -20,6 +20,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -41,8 +43,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * HikariCP Connection Manager.
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class HikariCPConnectionManager extends BaseConnectionManager {
-    private static final Logger log = LoggerFactory.getLogger(HikariCPConnectionManager.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(HikariCPConnectionManager.class);
 
     private final ConnectionConfig connConfig;
     private final HikariConfig hikariConfig;
@@ -256,6 +256,11 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         }
     }
 
+    @Override
+    public boolean isClosed() {
+        return state.type == StateType.CLOSED;
+    }
+
     /**
      * Initializes a connection to the provided database.
      */
@@ -325,12 +330,15 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
                 if (tzname.equals("Etc/Universal")) {
                     // Really common failure case. UTC is both a name AND an abbreviation.
-                    log.error("{} The timezone *name* should be UTC. {}", errorPreamble, errorAfterward);
+                    log.error(
+                            "{} The timezone *name* should be UTC. {}",
+                            SafeArg.of("errorPreamble", errorPreamble),
+                            SafeArg.of("errorAfterward", errorAfterward));
                 } else {
                     log.error(
                             "{} This is caused by using non-standard or unsupported timezone names. {}",
-                            errorPreamble,
-                            errorAfterward);
+                            SafeArg.of("errorPreamble", errorPreamble),
+                            SafeArg.of("errorAfterward", errorAfterward));
                 }
             }
 

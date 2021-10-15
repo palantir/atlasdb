@@ -21,10 +21,11 @@ import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 public class ConflictDetectionManager {
-    private final LoadingCache<TableReference, ConflictHandler> cache;
+    private final LoadingCache<TableReference, Optional<ConflictHandler>> cache;
 
     /**
      *  This class does not make the mistake of attempting cache invalidation,
@@ -38,20 +39,20 @@ public class ConflictDetectionManager {
      *
      *  (This has always been the behavior of this class; I'm simply calling it out)
      */
-    public ConflictDetectionManager(CacheLoader<TableReference, ConflictHandler> loader) {
+    public ConflictDetectionManager(CacheLoader<TableReference, Optional<ConflictHandler>> loader) {
         this.cache = CacheBuilder.newBuilder().maximumSize(100_000).build(loader);
     }
 
-    public void warmCacheWith(Map<TableReference, ConflictHandler> preload) {
+    public void warmCacheWith(Map<TableReference, Optional<ConflictHandler>> preload) {
         cache.putAll(preload);
     }
 
-    public Map<TableReference, ConflictHandler> getCachedValues() {
+    public Map<TableReference, Optional<ConflictHandler>> getCachedValues() {
         return cache.asMap();
     }
 
     @Nullable
-    public ConflictHandler get(TableReference tableReference) {
+    public Optional<ConflictHandler> get(TableReference tableReference) {
         return cache.getUnchecked(tableReference);
     }
 }

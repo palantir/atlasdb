@@ -29,6 +29,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -51,12 +53,10 @@ import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CqlExecutorImpl implements CqlExecutor {
     private final QueryExecutor queryExecutor;
-    private static final Logger log = LoggerFactory.getLogger(CqlExecutorImpl.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CqlExecutorImpl.class);
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
@@ -151,7 +151,7 @@ public class CqlExecutorImpl implements CqlExecutor {
             // RejectedExecutionException are expected.
             // The executor is shutdown when we already fetched all the values we were interested
             // for the current iteration.
-            log.trace("Rejecting row {} because executor is closed", rows.get(rowIndex), e);
+            log.trace("Rejecting row {} because executor is closed", UnsafeArg.of("row", rows.get(rowIndex)), e);
         }
     }
 

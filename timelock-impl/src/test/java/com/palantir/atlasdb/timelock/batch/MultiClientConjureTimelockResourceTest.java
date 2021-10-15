@@ -75,7 +75,8 @@ public class MultiClientConjureTimelockResourceTest {
     private MultiClientConjureTimelockResource resource;
 
     private PartitionedTimestamps partitionedTimestamps = mock(PartitionedTimestamps.class);
-    private LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
+    private LockWatchStateUpdate lockWatchStateUpdate =
+            LockWatchStateUpdate.success(UUID.randomUUID(), 5L, ImmutableList.of());
     private LockImmutableTimestampResponse lockImmutableTimestampResponse = mock(LockImmutableTimestampResponse.class);
 
     private int commitTsLowerInclusive = 1;

@@ -42,7 +42,10 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -63,12 +66,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
-    private static final Logger log = LoggerFactory.getLogger(CassandraService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);
     private static final Interner<RangeMap<LightweightOppToken, List<InetSocketAddress>>> tokensInterner =
             Interners.newWeakInterner();
 
@@ -341,7 +342,7 @@ public class CassandraService implements AutoCloseable {
                         activeCheckouts > 0 ? Integer.toString(activeCheckouts) : "(unknown)",
                         totalAllowed > 0 ? Integer.toString(totalAllowed) : "(not bounded)"));
             }
-            log.debug("Current pool state: {}", currentState.toString());
+            log.debug("Current pool state: {}", UnsafeArg.of("currentState", currentState.toString()));
         }
     }
 

@@ -64,6 +64,11 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
+    public void onTransactionCommit(long startTs) {
+        cache.onTransactionCommit(startTs);
+    }
+
+    @Override
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return cache.getEventCache().getUpdateForTransactions(startTimestamps, version);

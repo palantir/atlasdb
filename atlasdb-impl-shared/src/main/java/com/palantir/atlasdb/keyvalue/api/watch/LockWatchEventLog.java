@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -34,13 +35,13 @@ final class LockWatchEventLog {
     private final VersionedEventStore eventStore;
     private Optional<LockWatchVersion> latestVersion = Optional.empty();
 
-    static LockWatchEventLog create(int minEvents, int maxEvents) {
-        return new LockWatchEventLog(ClientLockWatchSnapshot.create(), minEvents, maxEvents);
+    static LockWatchEventLog create(CacheMetrics metrics, int minEvents, int maxEvents) {
+        return new LockWatchEventLog(ClientLockWatchSnapshot.create(), metrics, minEvents, maxEvents);
     }
 
-    private LockWatchEventLog(ClientLockWatchSnapshot snapshot, int minEvents, int maxEvents) {
+    private LockWatchEventLog(ClientLockWatchSnapshot snapshot, CacheMetrics metrics, int minEvents, int maxEvents) {
         this.snapshot = snapshot;
-        this.eventStore = new VersionedEventStore(minEvents, maxEvents);
+        this.eventStore = new VersionedEventStore(metrics, minEvents, maxEvents);
     }
 
     CacheUpdate processUpdate(LockWatchStateUpdate update) {
@@ -168,7 +169,7 @@ final class LockWatchEventLog {
                     LockWatchEvents.builder().events(success.events()).build();
             if (events.events().isEmpty()) {
                 throw new TransactionLockWatchFailedException("Success event has a later version than the current "
-                        + "version, but has no events to bridge the gap. The transaction should be tried, but this "
+                        + "version, but has no events to bridge the gap. The transaction should be retried, but this "
                         + "should only happen rarely.");
             }
 

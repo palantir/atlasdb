@@ -15,9 +15,9 @@
  */
 package com.palantir.lock.impl;
 
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This is a logger intended for use tracking down problems arising from
@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressFBWarnings("SLF4J_LOGGER_SHOULD_BE_PRIVATE")
 public final class SlowLockLogger {
-    public static final Logger logger = LoggerFactory.getLogger(SlowLockLogger.class);
+    public static final SafeLogger logger = SafeLoggerFactory.get(SlowLockLogger.class);
 
     private SlowLockLogger() {
         // Logging utility class

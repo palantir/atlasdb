@@ -23,25 +23,26 @@ import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class TimeLockActivityCheckerFactory {
-    private final TimeLockInstallConfiguration installConfiguration;
+    private final ClusterConfiguration cluster;
     private final MetricsManager metricsManager;
     private final UserAgent userAgent;
 
     public TimeLockActivityCheckerFactory(
-            TimeLockInstallConfiguration installConfiguration, MetricsManager metricsManager, UserAgent userAgent) {
-        this.installConfiguration = installConfiguration;
+            ClusterConfiguration cluster, MetricsManager metricsManager, UserAgent userAgent) {
+        this.cluster = cluster;
         this.metricsManager = metricsManager;
         this.userAgent = userAgent;
     }
 
     public List<TimeLockActivityChecker> getTimeLockActivityCheckers() {
-        return installConfiguration.cluster().clusterMembers().stream()
+        return cluster.clusterMembers().stream()
                 .map(this::createServiceCreatorForRemote)
                 .map(creator -> creator.createService(ConjureTimelockService.class))
                 .map(TimeLockActivityChecker::new)
@@ -50,14 +51,18 @@ public class TimeLockActivityCheckerFactory {
 
     private ServiceCreator createServiceCreatorForRemote(String remoteUrl) {
         return ServiceCreator.withPayloadLimiter(
-                metricsManager, () -> getServerListConfig(remoteUrl), userAgent, () -> RemotingClientConfigs.DEFAULT);
+                metricsManager,
+                // note that this refreshable never updates, even if the cluster configuration is mutable
+                Refreshable.only(getServerListConfig(remoteUrl)),
+                userAgent,
+                () -> RemotingClientConfigs.DEFAULT);
     }
 
     private ServerListConfig getServerListConfig(String remoteUrl) {
         return ImmutableServerListConfig.builder()
-                .addServers(PaxosRemotingUtils.addProtocol(installConfiguration, remoteUrl))
-                .sslConfiguration(installConfiguration.cluster().cluster().security())
-                .proxyConfiguration(installConfiguration.cluster().cluster().proxyConfiguration())
+                .addServers(PaxosRemotingUtils.addProtocol(cluster, remoteUrl))
+                .sslConfiguration(cluster.cluster().security())
+                .proxyConfiguration(cluster.cluster().proxyConfiguration())
                 .build();
     }
 }

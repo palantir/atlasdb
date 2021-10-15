@@ -17,9 +17,9 @@ package com.palantir.timestamp;
 
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This is a logger intended for use tracking down problems arising from
@@ -29,8 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressFBWarnings("SLF4J_LOGGER_SHOULD_BE_PRIVATE")
 public final class DebugLogger {
-    // TODO(nziebart): move remaining logging calls into this class
-    public static final Logger logger = LoggerFactory.getLogger(DebugLogger.class);
+    public static final SafeLogger logger = SafeLoggerFactory.get(DebugLogger.class);
 
     private DebugLogger() {
         // Logging utility class
@@ -53,7 +52,7 @@ public final class DebugLogger {
     }
 
     public static void willStoreNewUpperLimit(long newLimit) {
-        logger.trace("storing new upper limit: {}.", newLimit);
+        logger.trace("storing new upper limit: {}.", SafeArg.of("newLimit", newLimit));
     }
 
     public static void didStoreNewUpperLimit(long newLimit) {

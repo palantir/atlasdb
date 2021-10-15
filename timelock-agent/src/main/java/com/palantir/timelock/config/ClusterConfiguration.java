@@ -52,6 +52,11 @@ public interface ClusterConfiguration {
         return false;
     }
 
+    @Value.Derived
+    default boolean isNewServiceNode() {
+        return knownNewServers().contains(localServer());
+    }
+
     @Value.Check
     default void checkClusterMembersIncludesLocalServer() {
         Preconditions.checkArgument(
@@ -59,26 +64,5 @@ public interface ClusterConfiguration {
                 "The localServer must be included in the server entries.",
                 SafeArg.of("localServer", localServer()),
                 SafeArg.of("clusterMembers", clusterMembers()));
-    }
-
-    @Value.Check
-    default void checkTopologyOffersHighAvailability() {
-        if (enableNonstandardAndPossiblyDangerousTopology()) {
-            return;
-        }
-
-        Preconditions.checkArgument(
-                clusterMembers().size() >= 3,
-                "This TimeLock cluster is set up to use an insufficient (< 3) number of servers, which is not a"
-                        + " standard configuration! With fewer than three servers, your service will not have high"
-                        + " availability. In the event a node goes down, timelock will become unresponsive, meaning"
-                        + " that ALL your AtlasDB clients will become unable to perform transactions. Furthermore, if"
-                        + " 1-node, your TimeLock  cluster has NO resilience to failures of the underlying storage"
-                        + " layer; if your disks fail, the timestamp information may be IRRECOVERABLY COMPROMISED,"
-                        + " meaning that your AtlasDB deployments may become completely unusable."
-                        + " If you know what you are doing and you want to run in this configuration, you must set"
-                        + " 'enableNonstandardAndPossiblyDangerousTopology' to true.",
-                SafeArg.of("clusterSize", clusterMembers().size()),
-                SafeArg.of("minimumClusterSize", 3));
     }
 }

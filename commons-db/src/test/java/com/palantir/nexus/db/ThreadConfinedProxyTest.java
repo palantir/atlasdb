@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.fail;
 
 import com.google.common.collect.Iterables;
 import com.palantir.common.proxy.TimingProxy;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.timer.LoggingOperationTimer;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -32,12 +34,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ThreadConfinedProxyTest {
 
-    static Logger log = LoggerFactory.getLogger(ThreadConfinedProxyTest.class);
+    static SafeLogger log = SafeLoggerFactory.get(ThreadConfinedProxyTest.class);
 
     String testString = "test";
 

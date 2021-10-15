@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class IterablePartitioner {
+    @SuppressWarnings("PreferSafeLogger") // Nontrivial refactor
     private static final Logger log = LoggerFactory.getLogger(IterablePartitioner.class);
 
     private static final String ENTRY_TOO_BIG_MESSAGE = "Encountered an entry of approximate size {} bytes,"
@@ -75,7 +76,7 @@ public final class IterablePartitioner {
     // This string should *not* be used or treated as a real tableName, even though sometimes it is.
     // For example, CassandraKVS multiPuts can cause this string to include *multiple* tableNames
     @VisibleForTesting
-    public static <T> Iterable<List<T>> partitionByCountAndBytes(
+    static <T> Iterable<List<T>> partitionByCountAndBytes(
             final Iterable<T> iterable,
             final int maximumCountPerPartition,
             final long maximumBytesPerPartition,

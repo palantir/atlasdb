@@ -60,6 +60,11 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
         return delegate.isWatched(tableReference);
     }
 
+    @Override
+    public boolean hasAnyTablesWatched() {
+        return delegate.hasAnyTablesWatched();
+    }
+
     private static LockedCells toLockedCells(CommitUpdate commitUpdate) {
         return commitUpdate.accept(new Visitor<LockedCells>() {
             @Override

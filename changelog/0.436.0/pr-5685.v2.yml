@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add metrics around lock-watch memory usage.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5685

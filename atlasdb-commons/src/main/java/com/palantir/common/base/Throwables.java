@@ -19,8 +19,12 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.SafeLoggable;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -30,8 +34,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Utilities for creating and propagating exceptions.
@@ -42,7 +44,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class Throwables {
 
-    private static Logger log = LoggerFactory.getLogger(Throwables.class);
+    private static SafeLogger log = SafeLoggerFactory.get(Throwables.class);
 
     private Throwables() {
         /* uninstantiable */
@@ -71,11 +73,18 @@ public final class Throwables {
         return throwable;
     }
 
+    private static String extractMessageSafely(Throwable ex) {
+        if (ex instanceof SafeLoggable) {
+            return ((SafeLoggable) ex).getLogMessage();
+        }
+        return ex.getMessage();
+    }
+
     /**
      * If Throwable is a RuntimeException or Error, rewrap and throw it. If not, throw a PalantirRuntimeException.
      */
     public static RuntimeException rewrapAndThrowUncheckedException(Throwable ex) {
-        throw rewrapAndThrowUncheckedException(ex.getMessage(), ex);
+        throw rewrapAndThrowUncheckedException(extractMessageSafely(ex), ex);
     }
 
     /**
@@ -98,8 +107,9 @@ public final class Throwables {
     public static Throwable unwrapIfPossible(Throwable ex) {
         if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
             return ex.getCause();
+        } else {
+            return ex;
         }
-        return ex;
     }
 
     private static RuntimeException createAtlasDbDependencyException(Throwable ex) {
@@ -146,7 +156,7 @@ public final class Throwables {
      * clazz is a supertype of t.
      */
     public static <K extends Throwable> void rewrapAndThrowIfInstance(Throwable t, Class<K> clazz) throws K {
-        rewrapAndThrowIfInstance(t == null ? "null" : t.getMessage(), t, clazz);
+        rewrapAndThrowIfInstance(t == null ? "null" : extractMessageSafely(t), t, clazz);
     }
 
     /**
@@ -158,7 +168,7 @@ public final class Throwables {
     @SuppressWarnings("unchecked")
     public static <K extends Throwable> void rewrapAndThrowIfInstance(String newMessage, Throwable t, Class<K> clazz)
             throws K {
-        if ((t != null) && clazz.isAssignableFrom(t.getClass())) {
+        if (clazz.isInstance(t)) {
             K kt = (K) t;
             K wrapped = Throwables.rewrap(newMessage, kt);
             throw wrapped;
@@ -173,14 +183,10 @@ public final class Throwables {
      */
     @SuppressWarnings("unchecked")
     public static <K extends Throwable> void throwIfInstance(Throwable t, Class<K> clazz) throws K {
-        if (isInstance(t, clazz)) {
+        if (clazz.isInstance(t)) {
             K kt = (K) t;
             throw kt;
         }
-    }
-
-    private static <K extends Throwable> boolean isInstance(Throwable t, Class<K> clazz) {
-        return (t != null) && clazz.isAssignableFrom(t.getClass());
     }
 
     /**
@@ -190,7 +196,7 @@ public final class Throwables {
      */
     public static <T extends Throwable> T rewrap(T throwable) {
         Preconditions.checkNotNull(throwable);
-        return rewrap(throwable.getMessage(), throwable);
+        return rewrap(extractMessageSafely(throwable), throwable);
     }
 
     /**
@@ -223,7 +229,10 @@ public final class Throwables {
         } catch (Exception e) {
             // If something goes wrong when we try to rewrap the exception,
             // we should log and throw a runtime exception.
-            log.error("Unexpected error encountered while rewrapping throwable of class {}", throwable.getClass(), e);
+            log.error(
+                    "Unexpected error encountered while rewrapping throwable of class {}",
+                    SafeArg.of("throwableClass", throwable.getClass()),
+                    e);
             throw createPalantirRuntimeException(newMessage, throwable);
         }
     }
@@ -241,7 +250,6 @@ public final class Throwables {
 
     /**
      * Returns a dump of all threads.
-     * @return
      */
     public static String getThreadDump() {
         return printThreadDump(Thread.getAllStackTraces());
@@ -250,8 +258,6 @@ public final class Throwables {
     /**
      * This method prints a series of stack traces.  It is meant to be used with the output from
      * Threads.getAllStackTraces.
-     * @param map
-     * @return
      */
     private static String printThreadDump(Map<Thread, StackTraceElement[]> map) {
         StringWriter stringWriter = new StringWriter();

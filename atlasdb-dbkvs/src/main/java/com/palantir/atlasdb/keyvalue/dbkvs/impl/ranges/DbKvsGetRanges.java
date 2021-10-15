@@ -41,6 +41,9 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.collect.IterableView;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -61,11 +64,9 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.SortedSet;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DbKvsGetRanges {
-    private static final Logger log = LoggerFactory.getLogger(DbKvsGetRanges.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DbKvsGetRanges.class);
     private static final OperationTimer logTimer = LoggingOperationTimer.create(log);
     private static final byte[] SMALLEST_NAME =
             Cells.createSmallestCellForRow(new byte[] {0}).getColumnName();
@@ -132,7 +133,7 @@ public class DbKvsGetRanges {
         SortedSetMultimap<Integer, byte[]> rowsForBatches = getRowsForBatches(connectionSupplier, query, args);
         Map<Cell, Value> cells = kvs.getRows(tableRef, rowsForBatches.values(), ColumnSelection.all(), timestamp);
         NavigableMap<byte[], NavigableMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(cells);
-        log.debug("getRange actualRowsReturned: {}", cellsByRow.size());
+        log.debug("getRange actualRowsReturned", SafeArg.of("actualRowsReturned", cellsByRow.size()));
         return breakUpByBatch(requests, rowsForBatches, cellsByRow);
     }
 

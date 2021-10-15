@@ -75,7 +75,7 @@ For real-world installations, we recommend provisioning a dedicated host machine
 Add client(s) to Timelock
 -------------------------
 
-8. Back up each client, following the steps declared in :ref:`backup-restore`.
+8. Back up each client
 
 9. Configure each client to use Timelock.
    Detailed documentation is :ref:`here <timelock-client-configuration>`.

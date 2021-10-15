@@ -17,11 +17,13 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,14 +53,12 @@ final class CacheStoreImpl implements CacheStore {
         this.maxCacheCount = maxCacheCount;
         this.cacheMap = new ConcurrentHashMap<>();
         this.validationProbability = validationProbability;
+        metrics.setTransactionCacheInstanceCountGauge(cacheMap::size);
     }
 
     @Override
     public void createCache(StartTimestamp timestamp) {
-        if (cacheMap.size() > maxCacheCount) {
-            throw new TransactionFailedRetriableException(
-                    "Exceeded maximum concurrent caches; transaction can be retried, but with caching disabled");
-        }
+        validateStateSize();
 
         cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
                 .getSnapshot(key)
@@ -97,6 +97,19 @@ final class CacheStoreImpl implements CacheStore {
                 .orElseGet(() -> NoOpTransactionScopedCache.create().createReadOnlyCache(CommitUpdate.invalidateAll()));
     }
 
+    private void validateStateSize() {
+        if (cacheMap.size() > maxCacheCount) {
+            log.warn(
+                    "Transaction cache store has exceeded maximum concurrent caches. This likely indicates a memory"
+                            + " leak",
+                    SafeArg.of("cacheMapSize", cacheMap.size()),
+                    SafeArg.of("maxCacheCount", maxCacheCount),
+                    SafeArg.of("earliestTimestamp", cacheMap.keySet().stream().min(Comparator.naturalOrder())));
+            throw new SafeIllegalStateException(
+                    "Exceeded maximum concurrent caches; transaction can be retried, but with caching disabled");
+        }
+    }
+
     private Optional<Caches> getCacheInternal(StartTimestamp timestamp) {
         return Optional.ofNullable(cacheMap.get(timestamp));
     }
@@ -106,10 +119,6 @@ final class CacheStoreImpl implements CacheStore {
         TransactionScopedCache mainCache();
 
         Optional<TransactionScopedCache> readOnlyCache();
-
-        static Caches createNoOp() {
-            return create(NoOpTransactionScopedCache.create());
-        }
 
         static Caches create(TransactionScopedCache mainCache) {
             return ImmutableCaches.builder().mainCache(mainCache).build();

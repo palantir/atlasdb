@@ -39,17 +39,11 @@ public class CellsSweeper {
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
     private final Collection<Follower> followers;
-    private final PersistentLockManager persistentLockManager;
 
-    public CellsSweeper(
-            TransactionManager txManager,
-            KeyValueService keyValueService,
-            PersistentLockManager persistentLockManager,
-            Collection<Follower> followers) {
+    public CellsSweeper(TransactionManager txManager, KeyValueService keyValueService, Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
         this.followers = followers;
-        this.persistentLockManager = persistentLockManager;
     }
 
     public void sweepCells(
@@ -81,13 +75,7 @@ public class CellsSweeper {
                     getLoggingArgForCells(cellTsPairsToSweep));
         }
 
-        persistentLockManager.acquirePersistentLockWithRetry();
-
-        try {
-            keyValueService.delete(tableRef, cellTsPairsToSweep);
-        } finally {
-            persistentLockManager.releasePersistentLock();
-        }
+        keyValueService.delete(tableRef, cellTsPairsToSweep);
     }
 
     private Arg<String> getLoggingArgForCells(Multimap<Cell, Long> cellTsPairsToSweep) {

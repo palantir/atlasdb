@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryPa
 import com.palantir.common.random.RandomBytes;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -112,8 +112,9 @@ public class CassandraAsyncKeyValueServiceTests {
     private void setUpVisibleCells(Cell... cells) {
         for (Cell cell : cells) {
             when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(cell))))
-                    .thenReturn(Futures.immediateFuture(
-                            Optional.of(Value.create(RandomBytes.ofLength(10), Math.abs(new Random().nextInt())))));
+                    .thenReturn(Futures.immediateFuture(Optional.of(Value.create(
+                            RandomBytes.ofLength(10),
+                            ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE)))));
         }
     }
 

@@ -26,7 +26,6 @@ import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -59,12 +58,12 @@ public interface TransactionScopedCache {
     Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
     ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
     /**
      * The cache will try to fulfil as much of the request as possible with cached values. In the case where some of the
@@ -85,7 +84,7 @@ public interface TransactionScopedCache {
 
     /**
      * This method should be called before retrieving the value or hit digest, as it guarantees that no more reads or
-     * writes will be performed on the cache.
+     * writes will be performed on the cache. This method is idempotent, and may legitimately be called multiple times.
      */
     void finalise();
 
@@ -94,14 +93,4 @@ public interface TransactionScopedCache {
     HitDigest getHitDigest();
 
     TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate);
-
-    /**
-     * Checks if any values have been read remotely and stored locally for later flushing to the central cache. Note
-     * that this method **will** finalise the cache in order to retrieve the digest; no further reads or writes may
-     * be performed once this is called.
-     */
-    default boolean hasUpdates() {
-        finalise();
-        return !getValueDigest().loadedValues().isEmpty();
-    }
 }

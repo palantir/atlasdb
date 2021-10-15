@@ -19,8 +19,11 @@ import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampRange;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.ws.rs.QueryParam;
 
 @AutoDelegate
@@ -46,14 +49,37 @@ public interface TimelockService {
     // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
     LockImmutableTimestampResponse lockImmutableTimestamp();
 
-    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count);
+    @DoNotDelegate
+    default List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        // Track these separately in the case that getFreshTimestamp fails but lockImmutableTimestamp succeeds
+        List<LockImmutableTimestampResponse> immutableTimestampLocks = new ArrayList<>();
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
+        try {
+            IntStream.range(0, count).forEach($ -> {
+                LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
+                immutableTimestampLocks.add(immutableTimestamp);
+                responses.add(StartIdentifiedAtlasDbTransactionResponse.of(
+                        immutableTimestamp, TimestampAndPartition.of(getFreshTimestamp(), 0)));
+            });
+            return responses;
+        } catch (RuntimeException | Error throwable) {
+            try {
+                unlock(immutableTimestampLocks.stream()
+                        .map(LockImmutableTimestampResponse::getLock)
+                        .collect(Collectors.toSet()));
+            } catch (Throwable unlockThrowable) {
+                throwable.addSuppressed(unlockThrowable);
+            }
+            throw throwable;
+        }
+    }
 
     long getImmutableTimestamp();
 
     LockResponse lock(LockRequest request);
 
     /**
-     * Similar to {@link this#lock(LockRequest)}, but will attempt to respect the provided
+     * Similar to {@link #lock(LockRequest)}, but will attempt to respect the provided
      * {@link ClientLockingOptions}. Support for these options is not guaranteed in legacy lock configurations.
      */
     LockResponse lock(LockRequest lockRequest, ClientLockingOptions options);

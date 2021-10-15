@@ -40,21 +40,6 @@ public final class CassandraTestTools {
         // Empty constructor for utility class
     }
 
-    public static Future async(ExecutorService executorService, Runnable callable) {
-        return executorService.submit(callable);
-    }
-
-    public static void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
-        if (future.isDone()) {
-            try {
-                future.get();
-                throw new AssertionError("Future task should have failed but finished successfully");
-            } catch (ExecutionException e) {
-                // if execution is done, we expect it to have failed
-            }
-        }
-    }
-
     public static void executeInParallelOnExecutorService(Runnable runnable) {
         ExecutorService executorService = Executors.newFixedThreadPool(NUM_PARALLEL_TASKS);
         List<Future<?>> futures = Stream.generate(() -> executorService.submit(runnable))
@@ -71,6 +56,7 @@ public final class CassandraTestTools {
     }
 
     public static CassandraMutationTimestampProvider getMutationProviderWithStartingTimestamp(long timestamp) {
+        // TODO(gs): replace with InMemoryTimelockServices
         InMemoryTimestampService timestampService = new InMemoryTimestampService();
         timestampService.fastForwardTimestamp(timestamp);
         return CassandraMutationTimestampProviders.singleLongSupplierBacked(timestampService::getFreshTimestamp);

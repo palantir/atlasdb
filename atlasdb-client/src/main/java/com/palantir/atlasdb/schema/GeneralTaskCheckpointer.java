@@ -34,8 +34,9 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,7 +75,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
         Schemas.createTable(getSchema(), kvs, checkpointTable);
 
         txManager.runTaskWithRetry((TransactionTask<Map<Long, byte[]>, RuntimeException>) t -> {
-            Set<byte[]> rows = new HashSet<>();
+            Set<byte[]> rows = Collections.newSetFromMap(new IdentityHashMap<>());
             for (long rangeId : startById.keySet()) {
                 rows.add(getRowName(extraId, rangeId));
             }

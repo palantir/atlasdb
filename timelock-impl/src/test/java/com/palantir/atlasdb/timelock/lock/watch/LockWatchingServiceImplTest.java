@@ -17,11 +17,13 @@
 package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -46,6 +48,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,6 +82,54 @@ public class LockWatchingServiceImplTest {
         when(heldLocks.getLocks()).thenReturn(ImmutableList.of(LOCK, LOCK_2));
         when(heldLocks.getToken()).thenReturn(TOKEN);
         when(locks.locksHeld()).thenReturn(ImmutableSet.of(heldLocks));
+    }
+
+    @Test
+    public void runTaskRunsExclusivelyOnLockLog() throws InterruptedException {
+        LockWatchRequest request = tableRequest();
+        lockWatcher.startWatching(request);
+
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        CountDownLatch runTaskStarted = new CountDownLatch(1);
+        CountDownLatch otherTaskCompleted = new CountDownLatch(1);
+
+        Future<?> runTask = executor.submit(() -> lockWatcher.runTask(Optional.empty(), () -> {
+            runTaskStarted.countDown();
+            Uninterruptibles.awaitUninterruptibly(otherTaskCompleted);
+            return Optional.empty();
+        }));
+
+        // runTask started
+        Uninterruptibles.awaitUninterruptibly(runTaskStarted);
+        Set<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR);
+
+        Future<?> registerLock = executor.submit(() -> {
+            lockWatcher.registerLock(locks, TOKEN);
+            otherTaskCompleted.countDown();
+            return null;
+        });
+        Future<?> registerUnlock = executor.submit(() -> {
+            lockWatcher.registerUnlock(locks);
+            otherTaskCompleted.countDown();
+            return null;
+        });
+
+        // lock tasks are blocked
+        assertThat(otherTaskCompleted.await(2, TimeUnit.SECONDS)).isFalse();
+
+        assertThat(runTask).isNotDone();
+        assertThat(registerLock).isNotDone();
+        assertThat(registerUnlock).isNotDone();
+
+        // unblock runTask
+        otherTaskCompleted.countDown();
+
+        // all tasks complete
+        assertThatCode(() -> runTask.get(2, TimeUnit.SECONDS)).doesNotThrowAnyException();
+        assertThatCode(() -> registerLock.get(2, TimeUnit.SECONDS)).doesNotThrowAnyException();
+        assertThatCode(() -> registerUnlock.get(2, TimeUnit.SECONDS)).doesNotThrowAnyException();
+
+        executor.shutdownNow();
     }
 
     @Test

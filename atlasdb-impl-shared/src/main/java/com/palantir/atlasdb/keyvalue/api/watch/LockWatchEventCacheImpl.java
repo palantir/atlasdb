@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
@@ -28,6 +29,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -35,16 +37,17 @@ import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    // The minimum number of events should be the same as Timelocks' LockEventLogImpl.
+    // The minimum number of events should be the same as Timelock's LockEventLogImpl.
     private static final int MIN_EVENTS = 1000;
     private static final int MAX_EVENTS = 10_000;
 
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
+    private final RateLimiter rateLimiter = RateLimiter.create(1.0);
 
     public static LockWatchEventCache create(CacheMetrics metrics) {
         return ResilientLockWatchProxy.newEventCacheProxy(
-                new LockWatchEventCacheImpl(LockWatchEventLog.create(MIN_EVENTS, MAX_EVENTS)),
+                new LockWatchEventCacheImpl(LockWatchEventLog.create(metrics, MIN_EVENTS, MAX_EVENTS)),
                 NoOpLockWatchEventCache.create(),
                 metrics);
     }
@@ -94,12 +97,31 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .endVersion(commitInfo.commitVersion())
                 .build();
 
-        return eventLog.getEventsBetweenVersions(versionBounds).toCommitUpdate(startVersion.get(), commitInfo);
+        return eventLog.getEventsBetweenVersions(versionBounds)
+                .toCommitUpdate(startVersion.get(), commitInfo.commitVersion(), maybeCommitInfo);
+    }
+
+    @Override
+    public CommitUpdate getEventUpdate(long startTs) {
+        Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
+        Optional<LockWatchVersion> currentVersion = eventLog.getLatestKnownVersion();
+
+        assertTrue(
+                currentVersion.isPresent() && startVersion.isPresent(), "essential information missing for timestamp");
+
+        VersionBounds versionBounds = VersionBounds.builder()
+                .startVersion(startVersion)
+                .endVersion(currentVersion.get())
+                .build();
+
+        return eventLog.getEventsBetweenVersions(versionBounds)
+                .toCommitUpdate(startVersion.get(), currentVersion.get(), Optional.empty());
     }
 
     @Override
     public synchronized TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
+        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get update for empty set of transactions");
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
 
         VersionBounds versionBounds = VersionBounds.builder()
@@ -113,9 +135,11 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
-        timestampStateStore.remove(startTimestamp);
-        retentionEvents();
+    public void removeTransactionStateFromCache(long startTimestamp) {
+        removeFromTimestampState(startTimestamp);
+        if (rateLimiter.tryAcquire()) {
+            retentionEvents();
+        }
     }
 
     @VisibleForTesting
@@ -124,6 +148,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .timestampStoreState(timestampStateStore.getStateForTesting())
                 .logState(eventLog.getStateForTesting())
                 .build();
+    }
+
+    private synchronized void removeFromTimestampState(long startTimestamp) {
+        timestampStateStore.remove(startTimestamp);
     }
 
     private synchronized TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {

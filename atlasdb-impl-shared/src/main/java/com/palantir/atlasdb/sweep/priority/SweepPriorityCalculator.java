@@ -26,8 +26,11 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -35,11 +38,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class SweepPriorityCalculator {
-    private static final Logger log = LoggerFactory.getLogger(SweepPriorityCalculator.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SweepPriorityCalculator.class);
 
     // log once every 10 minutes
     private static final RateLimiter loggingRateLimiter = RateLimiter.create(1.0 / (10 * 60));
@@ -142,18 +143,19 @@ class SweepPriorityCalculator {
                             + "newPriority_cellTsPairsExamined={},"
                             + "newPriority_staleValuesDeleted={},"
                             + "newPriority_writeCount={}]",
-                    LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("priorityScore", priorityScore),
-                    SafeArg.of("oldPriority_lastSweepTimeMillis", oldPriority.lastSweepTimeMillis()),
-                    SafeArg.of("oldPriority_minimumSweptTimestamp", oldPriority.minimumSweptTimestamp()),
-                    SafeArg.of("oldPriority_cellTsPairsExamined", oldPriority.cellTsPairsExamined()),
-                    SafeArg.of("oldPriority_staleValuesDeleted", oldPriority.staleValuesDeleted()),
-                    SafeArg.of("oldPriority_writeCount", oldPriority.writeCount()),
-                    SafeArg.of("newPriority_lastSweepTimeMillis", newPriority.lastSweepTimeMillis()),
-                    SafeArg.of("newPriority_minimumSweptTimestamp", newPriority.minimumSweptTimestamp()),
-                    SafeArg.of("newPriority_cellTsPairsExamined", newPriority.cellTsPairsExamined()),
-                    SafeArg.of("newPriority_staleValuesDeleted", newPriority.staleValuesDeleted()),
-                    SafeArg.of("newPriority_writeCount", newPriority.writeCount()));
+                    Arrays.asList(
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("priorityScore", priorityScore),
+                            SafeArg.of("oldPriority_lastSweepTimeMillis", oldPriority.lastSweepTimeMillis()),
+                            SafeArg.of("oldPriority_minimumSweptTimestamp", oldPriority.minimumSweptTimestamp()),
+                            SafeArg.of("oldPriority_cellTsPairsExamined", oldPriority.cellTsPairsExamined()),
+                            SafeArg.of("oldPriority_staleValuesDeleted", oldPriority.staleValuesDeleted()),
+                            SafeArg.of("oldPriority_writeCount", oldPriority.writeCount()),
+                            SafeArg.of("newPriority_lastSweepTimeMillis", newPriority.lastSweepTimeMillis()),
+                            SafeArg.of("newPriority_minimumSweptTimestamp", newPriority.minimumSweptTimestamp()),
+                            SafeArg.of("newPriority_cellTsPairsExamined", newPriority.cellTsPairsExamined()),
+                            SafeArg.of("newPriority_staleValuesDeleted", newPriority.staleValuesDeleted()),
+                            SafeArg.of("newPriority_writeCount", newPriority.writeCount())));
         }
     }
 

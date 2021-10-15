@@ -63,9 +63,9 @@ public class PaxosStateLogMigratorTest {
 
     @Before
     public void setup() throws IOException {
-        DataSource sourceConn = SqliteConnections.getPooledDataSource(
+        DataSource sourceConn = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.newFolder("source").toPath());
-        DataSource targetConn = SqliteConnections.getPooledDataSource(
+        DataSource targetConn = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.newFolder("target").toPath());
         source = SqlitePaxosStateLog.create(NAMESPACE, sourceConn);
         target = spy(SqlitePaxosStateLog.create(NAMESPACE, targetConn));

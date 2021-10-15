@@ -19,7 +19,10 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -33,8 +36,6 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Thread Safe
@@ -42,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class SoftCache<K, V> extends MBeanCache<K, V> {
     private static final int INITIAL_SIZE = 1000;
 
-    private static final Logger log = LoggerFactory.getLogger(SoftCache.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SoftCache.class);
 
     protected final Map<K, CacheEntry<V>> cacheEntries;
 
@@ -73,9 +74,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      * This method should be over-ridden by subclasses to change
      * the underlying cache implementation and implement features
      * like LRU caches...
-     *
-     * @param initialSize
-     * @return
      */
     protected Map<K, CacheEntry<V>> createCache(int initialSize) {
         return Maps.newHashMapWithExpectedSize(initialSize);
@@ -96,7 +94,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
             // (it could have already been replaced by a new entry)
             if (entry != null && entry.valueRef == ref) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Removing from cache reference with key: {}", key);
+                    log.debug("Removing from cache reference with key: {}", UnsafeArg.of("key", key));
                 }
 
                 cacheEntries.remove(key);
@@ -127,9 +125,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * Adds an object to the cache.
-     *
-     * @param key
-     * @param value
      */
     @Override
     public synchronized V put(K key, V value) {
@@ -142,9 +137,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * If the specified key is not already associated with a value, associate it with the given value. This is equivalent to
-     *
-     * @param key
-     * @param value
      * @return The value that was in the cache, null if none was there before
      */
     public synchronized V putIfAbsent(K key, V value) {
@@ -174,8 +166,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * Gets an object from the cache.
-     *
-     * @param key
      */
     @Override
     public synchronized V get(K key) {
@@ -185,7 +175,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         if (entry == null) {
             mbean.misses.incrementAndGet();
             if (log.isTraceEnabled()) {
-                log.trace("Cache miss (not cached) on {}", key);
+                log.trace("Cache miss (not cached) on {}", UnsafeArg.of("key", key));
             }
             return null;
         }
@@ -197,7 +187,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         if (!entry.isValid()) {
             mbean.misses.incrementAndGet();
             if (log.isTraceEnabled()) {
-                log.trace("Cache miss (stale entry) on {}", key);
+                log.trace("Cache miss (stale entry) on {}", UnsafeArg.of("key", key));
             }
             cacheEntries.remove(key);
             return null;
@@ -205,7 +195,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
         // c) fresh and valid, return value
         if (log.isTraceEnabled()) {
-            log.trace("Cache hit on {}", key);
+            log.trace("Cache hit on {}", UnsafeArg.of("key", key));
         }
         mbean.hits.incrementAndGet();
         return ret;
@@ -213,8 +203,6 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * Removes an object from the cache.
-     *
-     * @param key
      */
     public synchronized V remove(K key) {
         CacheEntry<V> entry = cacheEntries.remove(key);
@@ -270,7 +258,10 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
     public final void cleanup() {
         mbean.cleanups.incrementAndGet();
         if (log.isTraceEnabled()) {
-            log.trace("cleanup() called on {} of size: {}", getName(), cacheEntries.size());
+            log.trace(
+                    "cleanup() called on {} of size: {}",
+                    UnsafeArg.of("name", getName()),
+                    SafeArg.of("size", cacheEntries.size()));
         }
 
         int i = 0;
@@ -283,7 +274,10 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         }
 
         if (log.isTraceEnabled()) {
-            log.trace("cleanup() finished on {}.  {} keys were cleaned up. ", getName(), i);
+            log.trace(
+                    "cleanup() finished on {}.  {} keys were cleaned up. ",
+                    UnsafeArg.of("name", getName()),
+                    SafeArg.of("cleanedUpCount", i));
         }
     }
 
@@ -407,8 +401,8 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     /**
      * Registering your cache will hold a weak ref to it and for as long as it is still referenced,
-     * it will be cleaned up on a separate thread.  This eliminates the need of using {@link #startCleanupThread()}
-     * and {@link #stopCleanupThread()}
+     * it will be cleaned up on a separate thread.  This eliminates the need of manually managing that thread's life
+     * cycle.
      *
      * @deprecated this is deprecated, because it is done automatically from now on, so it will be made private soon
      */

@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
-class DuplicatingLockWatchEventCache implements LockWatchEventCache {
+final class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     private final LockWatchEventCache mainCache;
     private final LockWatchEventCache secondaryCache;
 
@@ -76,6 +76,11 @@ class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         mainCache.removeTransactionStateFromCache(startTimestamp);
+    }
+
+    @Override
+    public CommitUpdate getEventUpdate(long startTs) {
+        return mainCache.getEventUpdate(startTs);
     }
 
     private void validateVersionEquality() {

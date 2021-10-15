@@ -41,6 +41,8 @@ public interface ConnectionManager {
 
     void closeUnchecked();
 
+    boolean isClosed();
+
     /**
      * Initializes the connection pool if necessary, and verifies that it does indeed work. Since
      * initialization is implicit in getConnection(), this is mostly useful to force an exception in

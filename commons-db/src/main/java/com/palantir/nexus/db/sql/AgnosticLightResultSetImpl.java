@@ -19,6 +19,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
@@ -31,8 +32,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This result set only loads one row at a time, and thus provides a
@@ -42,7 +41,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
-    private static final Logger log = LoggerFactory.getLogger(AgnosticLightResultSetImpl.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AgnosticLightResultSetImpl.class);
     private static final SafeLogger sqlExceptionlog =
             SafeLoggerFactory.get("sqlException." + AgnosticLightResultSetImpl.class.getName());
 
@@ -91,7 +90,7 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
             stmt.close();
             results.close();
             hasBeenClosed = true;
-            log.debug("Closed {}", this);
+            log.debug("Closed {}", UnsafeArg.of("this", this));
         } catch (SQLException sqlex) {
             log.error("Caught SQLException", sqlex); // $NON-NLS-1$
         }
@@ -122,11 +121,7 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
 
     protected static final int INITIAL_FETCH_SIZE = 10;
 
-    // NOTE: the following was decreased from its original setting of 1000,
-    // which seemed to cause the server to churn through huge amounts of memory
-    // quickly on certain workloads. Documentation suggests that values over 50
-    // are not useful.
-    protected static final int DEFAULT_MAX_FETCH_SIZE = 50;
+    protected static final int DEFAULT_MAX_FETCH_SIZE = 1000;
 
     /**
      * Geometrically increases the fetch size, so that we don't have to GC a lot

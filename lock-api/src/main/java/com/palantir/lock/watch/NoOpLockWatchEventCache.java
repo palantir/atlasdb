@@ -72,6 +72,11 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {}
 
+    @Override
+    public CommitUpdate getEventUpdate(long startTs) {
+        return CommitUpdate.invalidateAll();
+    }
+
     private void updateVersion(Optional<LockWatchVersion> maybeNewVersion) {
         currentVersion = maybeNewVersion.map(newVersion -> currentVersion
                 .map(current -> {

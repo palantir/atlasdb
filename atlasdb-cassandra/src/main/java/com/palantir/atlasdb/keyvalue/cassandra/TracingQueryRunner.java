@@ -17,20 +17,22 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cassandra.CassandraTracingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import java.nio.ByteBuffer;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 
 public class TracingQueryRunner {
     private final Logger log;
-    private final TracingPrefsConfig tracingPrefs;
+    private final Supplier<CassandraTracingConfig> tracingPrefs;
 
-    public TracingQueryRunner(Logger log, TracingPrefsConfig tracingPrefs) {
+    public TracingQueryRunner(Logger log, Supplier<CassandraTracingConfig> tracingPrefs) {
         this.log = log;
         this.tracingPrefs = tracingPrefs;
     }
@@ -74,8 +76,15 @@ public class TracingQueryRunner {
     }
 
     private boolean shouldTraceQuery(Set<TableReference> tableRefs) {
-        for (TableReference tableRef : tableRefs) {
-            if (tracingPrefs.shouldTraceQuery(tableRef.getQualifiedName())) {
+        CassandraTracingConfig prefs = tracingPrefs.get();
+        if (!prefs.enabled()) {
+            return false;
+        }
+        if (prefs.tablesToTrace().isEmpty()
+                || tableRefs.stream().map(TableReference::getQualifiedName).anyMatch(prefs.tablesToTrace()::contains)) {
+            if (prefs.traceProbability() >= 1.0) {
+                return true;
+            } else if (ThreadLocalRandom.current().nextDouble() <= prefs.traceProbability()) {
                 return true;
             }
         }
@@ -89,7 +98,7 @@ public class TracingQueryRunner {
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
-        if (failed || duration > tracingPrefs.getMinimumDurationToTraceMillis()) {
+        if (failed || duration > tracingPrefs.get().minDurationToLog().toMilliseconds()) {
             log.info(
                     "Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
                     tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),

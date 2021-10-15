@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
@@ -79,7 +78,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     public Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         ensureNotFinalised();
         return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
     }
@@ -88,11 +87,11 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     public synchronized ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+            Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         ensureNotFinalised();
         // Short-cut all the logic below if the table is not watched.
         if (!valueStore.isWatched(tableReference)) {
-            return valueLoader.apply(tableReference, cells);
+            return valueLoader.apply(cells);
         }
 
         CacheLookupResult cacheLookup = cacheLookup(tableReference, cells);
@@ -101,7 +100,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
             return Futures.immediateFuture(filterEmptyValues(cacheLookup.cacheHits()));
         } else {
             return Futures.transform(
-                    valueLoader.apply(tableReference, cacheLookup.missedCells()),
+                    valueLoader.apply(cacheLookup.missedCells()),
                     remoteReadValues -> processRemoteRead(
                             tableReference, cacheLookup.cacheHits(), cacheLookup.missedCells(), remoteReadValues),
                     MoreExecutors.directExecutor());

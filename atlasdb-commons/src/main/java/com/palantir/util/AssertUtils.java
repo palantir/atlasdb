@@ -15,13 +15,17 @@
  */
 package com.palantir.util;
 
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +43,7 @@ public class AssertUtils {
      * this will stay, just deprecated.
      */
     @Deprecated
+    @SuppressWarnings("PreferSafeLogger") // API exposures accept arbitrary Objects which may not be Args
     private static final Logger log = LoggerFactory.getLogger(AssertUtils.class);
 
     public static <T> boolean nonNullItems(Collection<T> c) {
@@ -68,6 +73,18 @@ public class AssertUtils {
     public static void assertAndLog(Logger log, boolean cheapTest, String msg) {
         if (!cheapTest) {
             assertAndLogWithException(log, false, msg, getDebuggingException());
+        }
+    }
+
+    public static void assertAndLog(SafeLogger log, boolean cheapTest, String msg) {
+        if (!cheapTest) {
+            assertAndLogWithException(log, false, msg, getDebuggingException());
+        }
+    }
+
+    public static void assertAndLog(SafeLogger log, boolean cheapTest, String msg, Arg<?>... args) {
+        if (!cheapTest) {
+            assertAndLogWithException(log, false, msg, getDebuggingException(), args);
         }
     }
 
@@ -105,6 +122,25 @@ public class AssertUtils {
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
             assertAndLogWithException(log, cheapTest, msg, t, new Object[] {});
+        }
+    }
+
+    public static void assertAndLogWithException(SafeLogger log, boolean cheapTest, String msg, Throwable t) {
+        if (!cheapTest) {
+            log.error("An error occurred", SafeArg.of("message", msg), t);
+            assert false : msg;
+        }
+    }
+
+    public static void assertAndLogWithException(
+            SafeLogger log, boolean cheapTest, String msg, Throwable t, Arg<?>... args) {
+        if (!cheapTest) {
+            log.error(
+                    "An error occurred",
+                    Stream.concat(Stream.of(SafeArg.of("message", msg)), Arrays.stream(args))
+                            .collect(Collectors.toList()),
+                    t);
+            assert false : msg;
         }
     }
 

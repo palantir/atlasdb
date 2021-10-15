@@ -27,22 +27,12 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
-import com.palantir.util.CachedTransformingSupplier;
-import java.time.Duration;
+import com.palantir.conjure.java.okhttp.NoOpHostEventsSink;
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
-    private static final HostMetricsRegistry HOST_METRICS_REGISTRY = new HostMetricsRegistry();
-    private static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
-            .connectTimeout(Duration.ofMillis(100))
-            .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(5))
-            .failedUrlCooldown(Duration.ofMillis(1))
-            .maxNumRetries(5)
-            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
-            .build();
 
     public static final ConjureJavaRuntimeTargetFactory DEFAULT = new ConjureJavaRuntimeTargetFactory();
     public static final String CLIENT_VERSION_STRING = "Conjure-Java-Runtime";
@@ -60,7 +50,10 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 Optional.empty(),
                 trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
         T client = JaxRsClient.create(
-                type, addAtlasDbRemotingAgent(parameters.userAgent()), HOST_METRICS_REGISTRY, clientConfiguration);
+                type,
+                addAtlasDbRemotingAgent(parameters.userAgent()),
+                NoOpHostEventsSink.INSTANCE,
+                clientConfiguration);
         return wrapWithVersion(client);
     }
 
@@ -74,24 +67,16 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
 
     @Override
     public <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
-            Supplier<ServerListConfig> serverListConfigSupplier,
+            Refreshable<ServerListConfig> serverListConfigRefreshable,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         ClientOptions options = getClientOptionsForFailoverProxy(parameters);
-        Supplier<T> clientSupplier = new CachedTransformingSupplier<>(
-                serverListConfigSupplier,
-                serverListConfig -> JaxRsClient.create(
-                        type,
-                        addAtlasDbRemotingAgent(parameters.userAgent()),
-                        HOST_METRICS_REGISTRY,
-                        options.serverListToClient(serverListConfig)));
-
-        return decorateFailoverProxy(type, clientSupplier);
-    }
-
-    public <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
-            ServerListConfig serverListConfig, Class<T> type, AuxiliaryRemotingParameters parameters) {
-        return createFailoverProxy(serverListConfig, type, parameters, FAST_RETRYING_FOR_TEST);
+        Refreshable<T> refreshableClient = serverListConfigRefreshable.map(serverListConfig -> JaxRsClient.create(
+                type,
+                addAtlasDbRemotingAgent(parameters.userAgent()),
+                NoOpHostEventsSink.INSTANCE,
+                options.serverListToClient(serverListConfig)));
+        return decorateFailoverProxy(type, refreshableClient);
     }
 
     private <T> InstanceAndVersion<T> createFailoverProxy(
@@ -102,7 +87,10 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
         ClientConfiguration clientConfiguration = clientOptions.serverListToClient(serverListConfig);
 
         T client = JaxRsClient.create(
-                type, addAtlasDbRemotingAgent(parameters.userAgent()), HOST_METRICS_REGISTRY, clientConfiguration);
+                type,
+                addAtlasDbRemotingAgent(parameters.userAgent()),
+                NoOpHostEventsSink.INSTANCE,
+                clientConfiguration);
         return decorateFailoverProxy(type, () -> client);
     }
 

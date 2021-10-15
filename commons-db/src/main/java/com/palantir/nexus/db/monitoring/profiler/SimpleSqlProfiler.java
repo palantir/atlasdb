@@ -17,6 +17,8 @@ package com.palantir.nexus.db.monitoring.profiler;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.sql.SqlCallStats;
 import java.util.Collection;
@@ -24,13 +26,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 enum SimpleSqlProfiler implements SqlProfiler {
     INSTANCE;
 
-    private static final Logger log = LoggerFactory.getLogger(SimpleSqlProfiler.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SimpleSqlProfiler.class);
 
     private final ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>> currentTrace =
             new ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>>();
@@ -39,7 +39,7 @@ enum SimpleSqlProfiler implements SqlProfiler {
      * Presumably, the rather obscure {@link CopyOnWriteArrayList} collection was chosen here to
      * ensure that profilers can be registered and removed in a thread-safe way and that they are
      * always executed in the same order, without requiring that {@link SqlProfilerListener}
-     * implement {@link Comparable}, and at the expense of making {@line
+     * implement {@link Comparable}, and at the expense of making {@link
      * #removeSqlProfilerListener(SqlProfilerListener)} O(N). (jweel)
      */
     private final Collection<SqlProfilerListener> sqlProfilerListeners = new CopyOnWriteArrayList<>();

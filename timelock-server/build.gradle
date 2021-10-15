@@ -109,7 +109,6 @@ dependencies {
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
-    testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
@@ -143,7 +142,6 @@ dependencies {
     testCommonImplementation 'io.dropwizard.metrics:metrics-core'
     testCommonImplementation 'io.dropwizard:dropwizard-jackson'
     testCommonImplementation 'org.awaitility:awaitility'
-    testCommonImplementation 'org.mortbay.jetty.alpn:jetty-alpn-agent'
     testCommonImplementation project(':atlasdb-api')
     testCommonImplementation project(':atlasdb-client')
     testCommonImplementation project(':atlasdb-commons')

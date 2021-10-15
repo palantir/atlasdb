@@ -35,7 +35,15 @@ public interface TimeLockInstallConfiguration {
 
     PaxosInstallConfiguration paxos();
 
-    ClusterConfiguration cluster();
+    /**
+     * @deprecated The ClusterInstallConfiguration has been moved to
+     * {@link TimeLockRuntimeConfiguration#clusterSnapshot()}.
+     */
+    @Deprecated
+    @Value.Default
+    default ClusterInstallConfiguration cluster() {
+        return ImmutableClusterInstallConfiguration.builder().build();
+    }
 
     @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
@@ -61,9 +69,8 @@ public interface TimeLockInstallConfiguration {
     }
 
     @Value.Derived
-    default boolean isNewServiceNode() {
-        return paxos().isNewService()
-                || cluster().knownNewServers().contains(cluster().localServer());
+    default boolean isNewService() {
+        return paxos().isNewService();
     }
 
     static Builder builder() {

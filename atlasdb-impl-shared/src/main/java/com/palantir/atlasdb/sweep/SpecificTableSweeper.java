@@ -16,8 +16,10 @@
 package com.palantir.atlasdb.sweep;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -120,21 +122,29 @@ public class SpecificTableSweeper {
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
 
-        SweepResults results = runOneIteration(tableRef, startRow, batchConfig);
+        SweepResults results = runOneIteration(tableRef, startRow, batchConfig, SweepTaskRunner.RunType.FULL);
         processSweepResults(tableToSweep, results);
     }
 
-    SweepResults runOneIteration(TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig) {
-        try {
-            SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
-            logSweepPerformance(tableRef, startRow, results);
+    SweepResults runOneIteration(
+            TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig, SweepTaskRunner.RunType runType) {
+        for (int attempts = 0; attempts < 100; attempts++) {
+            try {
+                SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow, runType);
+                logSweepPerformance(tableRef, startRow, results);
 
-            return results;
-        } catch (RuntimeException e) {
-            // This error may be logged on some paths above, but I prefer to log defensively.
-            logSweepError(tableRef, startRow, batchConfig, e);
-            throw e;
+                return results;
+            } catch (RuntimeException e) {
+                logSweepError(tableRef, startRow, batchConfig, e);
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
         }
+        throw new RetryLimitReachedException(ImmutableList.of());
     }
 
     private void logSweepPerformance(TableReference tableRef, byte[] startRow, SweepResults results) {

@@ -42,7 +42,7 @@ public class StreamTestMetadataCleanupTask implements OnCleanupTask {
         }
         StreamTestStreamIdxTable indexTable = tables.getStreamTestStreamIdxTable(t);
         Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> rowsWithNoIndexEntries =
-                        executeUnreferencedStreamDiagnostics(indexTable, rows);
+                        getUnreferencedStreamsByIterator(indexTable, rows);
         Set<Long> toDelete = new HashSet<>();
         Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> currentMetadata =
                 metaTable.getMetadatas(rows);
@@ -55,58 +55,19 @@ public class StreamTestMetadataCleanupTask implements OnCleanupTask {
         return false;
     }
 
-    private static StreamTestStreamMetadataTable.StreamTestStreamMetadataRow convertFromIndexRow(StreamTestStreamIdxTable.StreamTestStreamIdxRow idxRow) {
-        return StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(idxRow.getId());
-    }
-    private static Set<Long> convertToIdsForLogging(Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> iteratorExcess) {
-        return iteratorExcess.stream()
+    private static Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> getUnreferencedStreamsByIterator(StreamTestStreamIdxTable indexTable, Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> metadataRows) {
+        Set<StreamTestStreamIdxTable.StreamTestStreamIdxRow> indexRows = metadataRows.stream()
                 .map(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow::getId)
+                .map(StreamTestStreamIdxTable.StreamTestStreamIdxRow::of)
                 .collect(Collectors.toSet());
-    }
-
-    private static Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> getUnreferencedStreamsByMultimap(StreamTestStreamIdxTable indexTable, Set<StreamTestStreamIdxTable.StreamTestStreamIdxRow> indexRows) {
-        Multimap<StreamTestStreamIdxTable.StreamTestStreamIdxRow, StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue> indexValues = indexTable.getRowsMultimap(indexRows);
-        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> presentMetadataRows
-                = indexValues.keySet().stream()
-                .map(StreamTestMetadataCleanupTask::convertFromIndexRow)
-                .collect(Collectors.toSet());
-        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> queriedMetadataRows
-                = indexRows.stream()
-                .map(StreamTestMetadataCleanupTask::convertFromIndexRow)
-                .collect(Collectors.toSet());
-        return Sets.difference(queriedMetadataRows, presentMetadataRows);
-    }
-
-    private static Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> getUnreferencedStreamsByIterator(StreamTestStreamIdxTable indexTable, Set<StreamTestStreamIdxTable.StreamTestStreamIdxRow> indexRows) {
         Map<StreamTestStreamIdxTable.StreamTestStreamIdxRow, Iterator<StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> unreferencedStreamMetadata
-                = KeyedStream.stream(referenceIteratorByStream)
+        return KeyedStream.stream(referenceIteratorByStream)
                 .filter(valueIterator -> !valueIterator.hasNext())
                 .keys() // (authorized)
                 .map(StreamTestStreamIdxTable.StreamTestStreamIdxRow::getId)
                 .map(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow::of)
                 .collect(Collectors.toSet());
-        return unreferencedStreamMetadata;
-    }
-
-    private static Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> executeUnreferencedStreamDiagnostics(StreamTestStreamIdxTable indexTable, Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> metadataRows) {
-        Set<StreamTestStreamIdxTable.StreamTestStreamIdxRow> indexRows = metadataRows.stream()
-                .map(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow::getId)
-                .map(StreamTestStreamIdxTable.StreamTestStreamIdxRow::of)
-                .collect(Collectors.toSet());
-        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> unreferencedStreamsByIterator = getUnreferencedStreamsByIterator(indexTable, indexRows);
-        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> unreferencedStreamsByMultimap = getUnreferencedStreamsByMultimap(indexTable, indexRows);
-        if (!unreferencedStreamsByIterator.equals(unreferencedStreamsByMultimap)) {
-            log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
-                    SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
-                    SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
-            return new HashSet<>();
-        } else {
-            log.info("We searched for unreferenced streams and consistently found {}.",
-                    SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));
-            return unreferencedStreamsByIterator;
-        }
     }
 }

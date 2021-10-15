@@ -17,6 +17,10 @@ package com.palantir.common.base;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Queues;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -26,15 +30,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A {@link BatchingVisitable} that will prefetch in a background thread. If an exception happens on
  * the fetch thread, it will be thrown in batchAccept after all prefetched items have been visited.
  */
 public class PrefetchingBatchingVisitable<T> implements BatchingVisitable<T> {
-    private static final Logger log = LoggerFactory.getLogger(PrefetchingBatchingVisitable.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(PrefetchingBatchingVisitable.class);
 
     private final BatchingVisitable<T> delegate;
     private final int capacity;
@@ -138,11 +140,11 @@ public class PrefetchingBatchingVisitable<T> implements BatchingVisitable<T> {
         } finally {
             log.debug(
                     "{} timings: fetch {}, fetchBlocked {}, visit {}, visitBlocked {}",
-                    name,
-                    fetchTime,
-                    fetchBlockedTime,
-                    visitTime,
-                    visitBlockedTime);
+                    UnsafeArg.of("name", name),
+                    SafeArg.of("fetchTime", fetchTime),
+                    SafeArg.of("fetchBlockedTime", fetchBlockedTime),
+                    SafeArg.of("visitTime", visitTime),
+                    SafeArg.of("visitBlockedTime", visitBlockedTime));
             future.cancel(true);
         }
     }

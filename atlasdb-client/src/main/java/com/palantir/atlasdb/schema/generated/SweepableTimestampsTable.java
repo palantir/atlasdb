@@ -86,7 +86,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class SweepableTimestampsTable implements
         AtlasDbDynamicMutablePersistentTable<SweepableTimestampsTable.SweepableTimestampsRow,
                                                 SweepableTimestampsTable.SweepableTimestampsColumn,
@@ -786,5 +786,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "n5Zd+38q1vmJksKkpM+Vrw==";
+    static String __CLASS_HASH = "ZldNHckg6Jn99/m/D/IS/w==";
 }

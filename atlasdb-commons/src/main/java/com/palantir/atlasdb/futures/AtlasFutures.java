@@ -85,9 +85,9 @@ public final class AtlasFutures {
         }
     }
 
-    public static <R> R getUnchecked(Future<R> listenableFuture) {
+    public static <R> R getUnchecked(Future<R> future) {
         try {
-            return listenableFuture.get();
+            return future.get();
         } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         } catch (Exception e) {

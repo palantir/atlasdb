@@ -1,0 +1,11 @@
+type: improvement
+improvement:
+  description: |-
+    Cassandra tracing config is now part of runtime config instead of a separate file.
+    No behavior has changed however the way you configure this has changed. See the
+    docs for details.
+    
+    This also includes a performance improvement since it will no longer create a
+    background thread that attempts to read a file every minute.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5582

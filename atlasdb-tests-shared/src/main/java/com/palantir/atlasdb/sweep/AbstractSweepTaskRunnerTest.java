@@ -65,7 +65,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         super.setup();
         tsSupplier = sweepTimestamp::get;
 
-        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
     }
 
@@ -84,7 +84,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                         .candidateBatchSize(DEFAULT_BATCH_SIZE)
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
-                PtBytes.EMPTY_BYTE_ARRAY);
+                PtBytes.EMPTY_BYTE_ARRAY,
+                SweepTaskRunner.RunType.FULL);
         assertThat(results).isEqualTo(SweepResults.createEmptySweepResult(Optional.empty()));
         assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(50L, 75L, 100L, 125L, 150L));
     }
@@ -249,7 +250,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                         .candidateBatchSize(DEFAULT_BATCH_SIZE)
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
-                nextStartRow);
+                nextStartRow,
+                SweepTaskRunner.RunType.FULL);
         assertThat(results).isEqualTo(SweepResults.createEmptySweepResult(Optional.empty()));
     }
 
@@ -350,7 +352,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                         .candidateBatchSize(candidateBatchSize)
                         .deleteBatchSize(deleteBatchSize)
                         .build(),
-                PtBytes.EMPTY_BYTE_ARRAY);
+                PtBytes.EMPTY_BYTE_ARRAY,
+                SweepTaskRunner.RunType.FULL);
 
         return new Pair(sweptCells, sweepResults);
     }
@@ -378,7 +381,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                             .candidateBatchSize(batchSize)
                             .maxCellTsPairsToExamine(batchSize)
                             .build(),
-                    startRow);
+                    startRow,
+                    SweepTaskRunner.RunType.FULL);
             assertThat(results.getMinSweptTimestamp()).isEqualTo(ts);
             assertThat(results.getPreviousStartRow().orElse(null)).isEqualTo(startRow);
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
@@ -408,7 +412,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                         .candidateBatchSize(1)
                         .maxCellTsPairsToExamine(1)
                         .build(),
-                PtBytes.EMPTY_BYTE_ARRAY);
+                PtBytes.EMPTY_BYTE_ARRAY,
+                SweepTaskRunner.RunType.FULL);
         assertThat(results.getNextStartRow()).isPresent();
         return results;
     }

@@ -25,7 +25,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public interface TsBoundPersisterConfiguration {
     /**
-     * Returns true if read and write operations on the {@param other} configuration would definitely compromise
+     * Returns true if read and write operations on the other configuration would definitely compromise
      * correctness of also performing read and write operations on this configuration. The implication does not go
      * the other way.
      */

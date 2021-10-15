@@ -21,9 +21,13 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
@@ -31,7 +35,10 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -45,13 +52,18 @@ public class TimestampCorroboratingTimelockServiceTest {
     private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
             LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
 
+    private static final String NAMESPACE_1 = "tom";
+    private static final String NAMESPACE_2 = "nottom";
+
+    private Runnable callback;
     private TimelockService rawTimelockService;
     private TimelockService timelockService;
 
     @Before
     public void setUp() {
+        callback = mock(Runnable.class);
         rawTimelockService = mock(TimelockService.class);
-        timelockService = TimestampCorroboratingTimelockService.create(rawTimelockService);
+        timelockService = new TimestampCorroboratingTimelockService(callback, rawTimelockService);
     }
 
     @Test
@@ -59,6 +71,7 @@ public class TimestampCorroboratingTimelockServiceTest {
         when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
 
         assertThrowsOnSecondCall(timelockService::getFreshTimestamp);
+        verify(callback).run();
     }
 
     @Test
@@ -67,6 +80,7 @@ public class TimestampCorroboratingTimelockServiceTest {
         when(rawTimelockService.getFreshTimestamps(anyInt())).thenReturn(timestampRange);
 
         assertThrowsOnSecondCall(() -> timelockService.getFreshTimestamps(1));
+        verify(callback).run();
     }
 
     @Test
@@ -77,6 +91,7 @@ public class TimestampCorroboratingTimelockServiceTest {
                 .thenReturn(ImmutableList.of(startIdentifiedAtlasDbTransactionResponse));
 
         assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(1));
+        verify(callback).run();
     }
 
     @Test
@@ -90,6 +105,7 @@ public class TimestampCorroboratingTimelockServiceTest {
 
         timelockService.startIdentifiedAtlasDbTransactionBatch(1);
         assertThrowsClocksWentBackwardsException(() -> timelockService.getFreshTimestamps(2));
+        verify(callback).run();
     }
 
     @Test
@@ -100,6 +116,7 @@ public class TimestampCorroboratingTimelockServiceTest {
         when(rawTimelockService.startIdentifiedAtlasDbTransactionBatch(3)).thenReturn(responses);
 
         assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(3));
+        verify(callback).run();
     }
 
     @Test
@@ -120,6 +137,49 @@ public class TimestampCorroboratingTimelockServiceTest {
         // we want to now resume the blocked call, which will return timestamp of 1 and not throw
         blockingTimestampReturning1.countdown();
         assertThatCode(blockingGetFreshTimestampCall::get).doesNotThrowAnyException();
+        verify(callback, never()).run();
+    }
+
+    @Test
+    public void callbackInvokedMultipleTimesWithMultipleViolations() {
+        when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
+
+        timelockService.getFreshTimestamp();
+        assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
+        assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
+        verify(callback, times(2)).run();
+    }
+
+    @Test
+    public void metricsSuitablyIncremented() {
+        when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
+        TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+        timelockService = TimestampCorroboratingTimelockService.create(
+                Optional.of(NAMESPACE_1), taggedMetricRegistry, rawTimelockService);
+
+        timelockService.getFreshTimestamp();
+        assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
+        assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
+
+        assertThat(TimestampCorrectnessMetrics.of(taggedMetricRegistry)
+                        .timestampsGoingBackwards(NAMESPACE_1)
+                        .getCount())
+                .isEqualTo(2);
+        assertThat(TimestampCorrectnessMetrics.of(taggedMetricRegistry)
+                        .timestampsGoingBackwards(NAMESPACE_2)
+                        .getCount())
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void metricsNotRegisteredIfNoViolationsDetected() {
+        when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
+        TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+        timelockService = TimestampCorroboratingTimelockService.create(
+                Optional.of(NAMESPACE_1), taggedMetricRegistry, rawTimelockService);
+
+        timelockService.getFreshTimestamp();
+        assertThat(taggedMetricRegistry.getMetrics()).isEmpty();
     }
 
     private StartIdentifiedAtlasDbTransactionResponse makeResponse(long timestamp) {

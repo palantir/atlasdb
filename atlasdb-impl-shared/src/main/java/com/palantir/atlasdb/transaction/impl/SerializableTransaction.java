@@ -848,7 +848,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 lockWatchManager,
                 defaultTransactionService,
                 NoOpCleaner.INSTANCE,
-                Suppliers.ofInstance(commitTs + 1),
+                Suppliers.ofInstance(commitTs),
                 ConflictDetectionManagers.createWithNoConflictDetection(),
                 sweepStrategyManager,
                 immutableTimestamp,

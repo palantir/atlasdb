@@ -27,6 +27,10 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.Optional;
@@ -36,10 +40,17 @@ import org.immutables.value.Value;
 
 @NotThreadSafe
 final class TimestampStateStore {
+    private static final SafeLogger log = SafeLoggerFactory.get(TimestampStateStore.class);
+
+    @VisibleForTesting
+    static final int MAXIMUM_SIZE = 20_000;
+
     private final NavigableMap<StartTimestamp, MapEntry> timestampMap = new TreeMap<>();
     private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions = TreeMultimap.create();
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
+        validateStateSize();
+
         startTimestamps.stream().map(StartTimestamp::of).forEach(startTimestamp -> {
             MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
@@ -52,11 +63,11 @@ final class TimestampStateStore {
             StartTimestamp startTimestamp = StartTimestamp.of(transactionUpdate.startTs());
             MapEntry previousEntry = timestampMap.get(startTimestamp);
             if (previousEntry == null) {
-                throw new TransactionLockWatchFailedException("start timestamp missing from map");
+                throw new TransactionLockWatchFailedException("Start timestamp missing from map");
             }
 
             Preconditions.checkArgument(
-                    !previousEntry.commitInfo().isPresent(), "Commit info already present for given timestamp");
+                    previousEntry.commitInfo().isEmpty(), "Commit info already present for given timestamp");
 
             timestampMap.replace(
                     startTimestamp,
@@ -93,8 +104,22 @@ final class TimestampStateStore {
                 .build();
     }
 
-    public Optional<Sequence> getEarliestLiveSequence() {
+    Optional<Sequence> getEarliestLiveSequence() {
         return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
+    }
+
+    private void validateStateSize() {
+        if (timestampMap.size() > MAXIMUM_SIZE || livingVersions.size() > MAXIMUM_SIZE) {
+            log.warn(
+                    "Timestamp state store has exceeded its maximum size. This likely indicates a memory leak",
+                    SafeArg.of("timestampMapSize", timestampMap.size()),
+                    SafeArg.of("livingVersionsSize", livingVersions.size()),
+                    SafeArg.of("maximumSize", MAXIMUM_SIZE),
+                    SafeArg.of("minimumLiveTimestamp", timestampMap.firstEntry()),
+                    SafeArg.of("maximumLiveTimestamp", timestampMap.lastEntry()),
+                    SafeArg.of("minimumLiveVersion", getEarliestLiveSequence()));
+            throw new SafeIllegalStateException("Exceeded maximum timestamp state store size");
+        }
     }
 
     @Value.Immutable

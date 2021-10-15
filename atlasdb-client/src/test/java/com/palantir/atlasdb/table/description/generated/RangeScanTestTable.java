@@ -86,7 +86,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class RangeScanTestTable implements
         AtlasDbMutablePersistentTable<RangeScanTestTable.RangeScanTestRow,
                                          RangeScanTestTable.RangeScanTestNamedColumnValue<?>,
@@ -743,5 +743,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Ex6PJ6X8PBlxh+yYFmpG6w==";
+    static String __CLASS_HASH = "Kk820OBu61QOpf2Klq3yTQ==";
 }

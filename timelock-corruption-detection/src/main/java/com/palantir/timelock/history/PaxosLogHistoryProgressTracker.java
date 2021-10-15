@@ -27,13 +27,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
 
 public class PaxosLogHistoryProgressTracker {
-    @VisibleForTesting
+    // VisibleForTesting - used in corruption-detection tests
     public static final int MAX_ROWS_ALLOWED = 250;
 
     private final LogVerificationProgressState logVerificationProgressState;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
 
-    private Map<NamespaceAndUseCase, ProgressState> verificationProgressStateCache = new ConcurrentHashMap<>();
+    private final Map<NamespaceAndUseCase, ProgressState> verificationProgressStateCache = new ConcurrentHashMap<>();
 
     public PaxosLogHistoryProgressTracker(
             DataSource dataSource, SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory) {

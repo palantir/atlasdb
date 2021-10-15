@@ -6,13 +6,13 @@ libsDirName = file('build/artifacts')
 
 license {
   exclude '**/TargetedSweepProgressMetrics.java'
+  exclude '**/TimestampCorrectnessMetrics.java'
 }
 
 dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-commons")
   compile project(":atlasdb-coordination-impl")
-  compile project(":atlasdb-persistent-lock-api")
   compile project(":lock-impl")
   compile project(":timestamp-api")
   compile project(":timestamp-client")
@@ -63,8 +63,7 @@ dependencies {
   testImplementation 'com.palantir.conjure.java.api:errors'
   testImplementation 'com.palantir.conjure.java.api:service-config'
   testImplementation 'com.palantir.conjure.java.api:ssl-config'
-  testImplementation 'com.palantir.conjure.java.runtime:conjure-java-legacy-clients'
-  testImplementation 'com.palantir.conjure.java.runtime:okhttp-clients'
+  testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation 'io.dropwizard.metrics:metrics-healthchecks'

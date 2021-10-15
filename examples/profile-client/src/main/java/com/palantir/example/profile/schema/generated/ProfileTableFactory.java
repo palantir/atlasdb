@@ -18,20 +18,18 @@ public final class ProfileTableFactory {
 
     private final Namespace namespace;
 
-    private ProfileTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+    private ProfileTableFactory(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
     public static ProfileTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         return new ProfileTableFactory(sharedTriggers, namespace);
     }
 
-    public static ProfileTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static ProfileTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new ProfileTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -43,62 +41,78 @@ public final class ProfileTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public UserPhotosStreamHashAidxTable getUserPhotosStreamHashAidxTable(Transaction t,
-            UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxTrigger... triggers) {
+    public UserPhotosStreamHashAidxTable getUserPhotosStreamHashAidxTable(
+            Transaction t, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxTrigger... triggers) {
         return UserPhotosStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public UserPhotosStreamIdxTable getUserPhotosStreamIdxTable(Transaction t,
-            UserPhotosStreamIdxTable.UserPhotosStreamIdxTrigger... triggers) {
+    public UserPhotosStreamIdxTable getUserPhotosStreamIdxTable(
+            Transaction t, UserPhotosStreamIdxTable.UserPhotosStreamIdxTrigger... triggers) {
         return UserPhotosStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public UserPhotosStreamMetadataTable getUserPhotosStreamMetadataTable(Transaction t,
-            UserPhotosStreamMetadataTable.UserPhotosStreamMetadataTrigger... triggers) {
+    public UserPhotosStreamMetadataTable getUserPhotosStreamMetadataTable(
+            Transaction t, UserPhotosStreamMetadataTable.UserPhotosStreamMetadataTrigger... triggers) {
         return UserPhotosStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public UserPhotosStreamValueTable getUserPhotosStreamValueTable(Transaction t,
-            UserPhotosStreamValueTable.UserPhotosStreamValueTrigger... triggers) {
+    public UserPhotosStreamValueTable getUserPhotosStreamValueTable(
+            Transaction t, UserPhotosStreamValueTable.UserPhotosStreamValueTrigger... triggers) {
         return UserPhotosStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public UserProfileTable getUserProfileTable(Transaction t,
-            UserProfileTable.UserProfileTrigger... triggers) {
+    public UserProfileTable getUserProfileTable(Transaction t, UserProfileTable.UserProfileTrigger... triggers) {
         return UserProfileTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxTrigger, UserPhotosStreamIdxTable.UserPhotosStreamIdxTrigger, UserPhotosStreamMetadataTable.UserPhotosStreamMetadataTrigger, UserPhotosStreamValueTable.UserPhotosStreamValueTrigger, UserProfileTable.UserProfileTrigger {
-    }
+    public interface SharedTriggers
+            extends UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxTrigger,
+                    UserPhotosStreamIdxTable.UserPhotosStreamIdxTrigger,
+                    UserPhotosStreamMetadataTable.UserPhotosStreamMetadataTrigger,
+                    UserPhotosStreamValueTable.UserPhotosStreamValueTrigger,
+                    UserProfileTable.UserProfileTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putUserPhotosStreamHashAidx(
-                Multimap<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow, ? extends UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue> newRows) {
+                Multimap<
+                                UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow,
+                                ? extends UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putUserPhotosStreamIdx(
-                Multimap<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow, ? extends UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue> newRows) {
+                Multimap<
+                                UserPhotosStreamIdxTable.UserPhotosStreamIdxRow,
+                                ? extends UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putUserPhotosStreamMetadata(
-                Multimap<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>> newRows) {
+                Multimap<
+                                UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
+                                ? extends UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putUserPhotosStreamValue(
-                Multimap<UserPhotosStreamValueTable.UserPhotosStreamValueRow, ? extends UserPhotosStreamValueTable.UserPhotosStreamValueNamedColumnValue<?>> newRows) {
+                Multimap<
+                                UserPhotosStreamValueTable.UserPhotosStreamValueRow,
+                                ? extends UserPhotosStreamValueTable.UserPhotosStreamValueNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putUserProfile(
-                Multimap<UserProfileTable.UserProfileRow, ? extends UserProfileTable.UserProfileNamedColumnValue<?>> newRows) {
+                Multimap<UserProfileTable.UserProfileRow, ? extends UserProfileTable.UserProfileNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
     }

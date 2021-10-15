@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Correctness metrics are now generated under the `com.palantir.atlasdb.correctness`
+    namespace. Previously, they were generated under a generic `timestampViolations`
+    top-level namespace.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5604

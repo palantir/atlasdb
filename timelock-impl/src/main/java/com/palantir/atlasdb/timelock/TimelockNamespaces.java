@@ -102,6 +102,17 @@ public final class TimelockNamespaces {
         return services;
     }
 
+    public void invalidateResourcesForClient(String namespace) {
+        log.info(
+                "Attempting to invalidate resources for a given timelock client",
+                SafeArg.of("client", namespace),
+                SafeArg.of("doResourcesPossiblyExist", services.containsKey(namespace)));
+        TimeLockServices removedServices = services.remove(namespace);
+        if (removedServices != null) {
+            removedServices.close();
+        }
+    }
+
     private void registerClientCapacityMetrics(MetricsManager metricsManager) {
         metricsManager.registerMetric(TimelockNamespaces.class, ACTIVE_CLIENTS, this::getNumberOfActiveClients);
         metricsManager.registerMetric(TimelockNamespaces.class, MAX_CLIENTS, this::getMaxNumberOfClients);

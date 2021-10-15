@@ -26,7 +26,6 @@ import com.palantir.nexus.db.pool.config.OracleConnectionConfig.ServiceNameConfi
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import org.junit.Test;
 
@@ -96,10 +95,10 @@ public class OracleConnectionConfigTest {
                 .keystorePassword("password")
                 .build();
         assertThat(connectionConfig.getProtocol()).isEqualTo(ConnectionProtocol.TCP);
-        assertThat(connectionConfig.getTruststorePath()).isEqualTo(Optional.of("truststore.jks"));
-        assertThat(connectionConfig.getKeystorePath()).isEqualTo(Optional.of("keystore.jks"));
-        assertThat(connectionConfig.getTruststorePassword()).isEqualTo(Optional.of("password"));
-        assertThat(connectionConfig.getKeystorePassword()).isEqualTo(Optional.of("password"));
+        assertThat(connectionConfig.getTruststorePath()).contains("truststore.jks");
+        assertThat(connectionConfig.getKeystorePath()).contains("keystore.jks");
+        assertThat(connectionConfig.getTruststorePassword()).contains("password");
+        assertThat(connectionConfig.getKeystorePassword()).contains("password");
 
         // note that even though keystore/truststore are set, none of the javax.net.ssl. properties will be set
         // since the protocol is TCP
@@ -122,10 +121,10 @@ public class OracleConnectionConfigTest {
                     .build();
 
             assertThat(connectionConfig.getProtocol()).isEqualTo(ConnectionProtocol.TCPS);
-            assertThat(connectionConfig.getTruststorePath()).isEqualTo(Optional.of("truststore.jks"));
-            assertThat(connectionConfig.getKeystorePath()).isEqualTo(Optional.of("keystore.jks"));
-            assertThat(connectionConfig.getTruststorePassword()).isEqualTo(Optional.of("password"));
-            assertThat(connectionConfig.getKeystorePassword()).isEqualTo(Optional.of("password"));
+            assertThat(connectionConfig.getTruststorePath()).contains("truststore.jks");
+            assertThat(connectionConfig.getKeystorePath()).contains("keystore.jks");
+            assertThat(connectionConfig.getTruststorePassword()).contains("password");
+            assertThat(connectionConfig.getKeystorePassword()).contains("password");
 
             Properties hikariProperties = connectionConfig.getHikariProperties();
             assertThat(hikariProperties)

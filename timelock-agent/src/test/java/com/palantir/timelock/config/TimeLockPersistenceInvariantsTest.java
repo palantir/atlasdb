@@ -21,21 +21,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
-import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import java.io.File;
 import java.io.IOException;
-import java.util.Optional;
 import org.junit.Test;
 
 public class TimeLockPersistenceInvariantsTest {
-
-    private static final String SERVER_A = "a";
-    private static final ClusterConfiguration CLUSTER_CONFIG = ImmutableDefaultClusterConfiguration.builder()
-            .localServer(SERVER_A)
-            .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
-            .build();
-
     @Test
     public void doesNotCreateDirectoryForPaxosDirectoryIfNewService() throws IOException {
         File mockFile = getMockFileWith(false, true);
@@ -68,9 +58,6 @@ public class TimeLockPersistenceInvariantsTest {
     @SuppressWarnings("CheckReturnValue")
     private void assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
         PaxosInstallConfiguration installConfiguration = configBuilder.build();
-        TimeLockInstallConfiguration.builder()
-                .cluster(CLUSTER_CONFIG)
-                .paxos(installConfiguration)
-                .build();
+        TimeLockInstallConfiguration.builder().paxos(installConfiguration).build();
     }
 }

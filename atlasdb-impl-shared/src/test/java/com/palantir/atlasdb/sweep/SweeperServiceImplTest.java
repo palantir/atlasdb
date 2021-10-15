@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.util.DropwizardClientRule;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.conjure.java.api.errors.RemoteException;
@@ -59,7 +58,6 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Rule
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
             new SweeperServiceImpl(getSpecificTableSweeperService(), sweepBatchConfigSource),
-            new CheckAndSetExceptionMapper(),
             ConjureJerseyFeature.INSTANCE);
 
     @Override
@@ -163,12 +161,12 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
                     (i + 1) == startRows.size() ? Optional.empty() : Optional.of(startRows.get(i + 1));
 
             SweepResults results = SweepResults.createEmptySweepResult(nextRow);
-            when(sweepTaskRunner.run(any(), any(), eq(currentRow))).thenReturn(results);
+            when(sweepTaskRunner.run(any(), any(), eq(currentRow), any())).thenReturn(results);
         }
 
         sweeperService.sweepTableFully(TABLE_REF.getQualifiedName());
 
-        startRows.forEach(row -> verify(sweepTaskRunner).run(any(), any(), eq(row)));
+        startRows.forEach(row -> verify(sweepTaskRunner).run(any(), any(), eq(row), any()));
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
@@ -184,7 +182,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
                 Optional.empty(),
                 Optional.empty());
 
-        verify(sweepTaskRunner, times(1)).run(any(), any(), any());
+        verify(sweepTaskRunner, times(1)).run(any(), any(), any(), any());
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 

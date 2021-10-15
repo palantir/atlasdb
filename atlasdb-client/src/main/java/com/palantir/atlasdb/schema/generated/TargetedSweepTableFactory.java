@@ -19,20 +19,17 @@ public final class TargetedSweepTableFactory {
     private final Namespace namespace;
 
     private TargetedSweepTableFactory(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
     public static TargetedSweepTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         return new TargetedSweepTableFactory(sharedTriggers, namespace);
     }
 
-    public static TargetedSweepTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static TargetedSweepTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new TargetedSweepTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -44,73 +41,89 @@ public final class TargetedSweepTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public SweepIdToNameTable getSweepIdToNameTable(Transaction t,
-            SweepIdToNameTable.SweepIdToNameTrigger... triggers) {
+    public SweepIdToNameTable getSweepIdToNameTable(
+            Transaction t, SweepIdToNameTable.SweepIdToNameTrigger... triggers) {
         return SweepIdToNameTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public SweepNameToIdTable getSweepNameToIdTable(Transaction t,
-            SweepNameToIdTable.SweepNameToIdTrigger... triggers) {
+    public SweepNameToIdTable getSweepNameToIdTable(
+            Transaction t, SweepNameToIdTable.SweepNameToIdTrigger... triggers) {
         return SweepNameToIdTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public SweepShardProgressTable getSweepShardProgressTable(Transaction t,
-            SweepShardProgressTable.SweepShardProgressTrigger... triggers) {
+    public SweepShardProgressTable getSweepShardProgressTable(
+            Transaction t, SweepShardProgressTable.SweepShardProgressTrigger... triggers) {
         return SweepShardProgressTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public SweepableCellsTable getSweepableCellsTable(Transaction t,
-            SweepableCellsTable.SweepableCellsTrigger... triggers) {
+    public SweepableCellsTable getSweepableCellsTable(
+            Transaction t, SweepableCellsTable.SweepableCellsTrigger... triggers) {
         return SweepableCellsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public SweepableTimestampsTable getSweepableTimestampsTable(Transaction t,
-            SweepableTimestampsTable.SweepableTimestampsTrigger... triggers) {
+    public SweepableTimestampsTable getSweepableTimestampsTable(
+            Transaction t, SweepableTimestampsTable.SweepableTimestampsTrigger... triggers) {
         return SweepableTimestampsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TableClearsTable getTableClearsTable(Transaction t,
-            TableClearsTable.TableClearsTrigger... triggers) {
+    public TableClearsTable getTableClearsTable(Transaction t, TableClearsTable.TableClearsTrigger... triggers) {
         return TableClearsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends SweepIdToNameTable.SweepIdToNameTrigger, SweepNameToIdTable.SweepNameToIdTrigger, SweepShardProgressTable.SweepShardProgressTrigger, SweepableCellsTable.SweepableCellsTrigger, SweepableTimestampsTable.SweepableTimestampsTrigger, TableClearsTable.TableClearsTrigger {
-    }
+    public interface SharedTriggers
+            extends SweepIdToNameTable.SweepIdToNameTrigger,
+                    SweepNameToIdTable.SweepNameToIdTrigger,
+                    SweepShardProgressTable.SweepShardProgressTrigger,
+                    SweepableCellsTable.SweepableCellsTrigger,
+                    SweepableTimestampsTable.SweepableTimestampsTrigger,
+                    TableClearsTable.TableClearsTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putSweepIdToName(
-                Multimap<SweepIdToNameTable.SweepIdToNameRow, ? extends SweepIdToNameTable.SweepIdToNameColumnValue> newRows) {
+                Multimap<SweepIdToNameTable.SweepIdToNameRow, ? extends SweepIdToNameTable.SweepIdToNameColumnValue>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putSweepNameToId(
-                Multimap<SweepNameToIdTable.SweepNameToIdRow, ? extends SweepNameToIdTable.SweepNameToIdNamedColumnValue<?>> newRows) {
+                Multimap<
+                                SweepNameToIdTable.SweepNameToIdRow,
+                                ? extends SweepNameToIdTable.SweepNameToIdNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putSweepShardProgress(
-                Multimap<SweepShardProgressTable.SweepShardProgressRow, ? extends SweepShardProgressTable.SweepShardProgressNamedColumnValue<?>> newRows) {
+                Multimap<
+                                SweepShardProgressTable.SweepShardProgressRow,
+                                ? extends SweepShardProgressTable.SweepShardProgressNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putSweepableCells(
-                Multimap<SweepableCellsTable.SweepableCellsRow, ? extends SweepableCellsTable.SweepableCellsColumnValue> newRows) {
+                Multimap<SweepableCellsTable.SweepableCellsRow, ? extends SweepableCellsTable.SweepableCellsColumnValue>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putSweepableTimestamps(
-                Multimap<SweepableTimestampsTable.SweepableTimestampsRow, ? extends SweepableTimestampsTable.SweepableTimestampsColumnValue> newRows) {
+                Multimap<
+                                SweepableTimestampsTable.SweepableTimestampsRow,
+                                ? extends SweepableTimestampsTable.SweepableTimestampsColumnValue>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putTableClears(
-                Multimap<TableClearsTable.TableClearsRow, ? extends TableClearsTable.TableClearsNamedColumnValue<?>> newRows) {
+                Multimap<TableClearsTable.TableClearsRow, ? extends TableClearsTable.TableClearsNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
     }

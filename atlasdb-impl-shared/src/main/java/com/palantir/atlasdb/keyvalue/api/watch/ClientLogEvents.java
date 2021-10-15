@@ -80,17 +80,17 @@ interface ClientLogEvents {
                 .build();
     }
 
-    default CommitUpdate toCommitUpdate(LockWatchVersion startVersion, CommitInfo commitInfo) {
+    default CommitUpdate toCommitUpdate(
+            LockWatchVersion startVersion, LockWatchVersion endVersion, Optional<CommitInfo> commitInfo) {
         if (clearCache()) {
             return CommitUpdate.invalidateAll();
         }
 
         // We want to ensure that we do not miss any versions, but we do not care about the event with the same version
         // as the start version.
-        verifyReturnedEventsEnclosesTransactionVersions(
-                startVersion.version() + 1, commitInfo.commitVersion().version());
+        verifyReturnedEventsEnclosesTransactionVersions(startVersion.version() + 1, endVersion.version());
 
-        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
+        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.map(CommitInfo::commitLockToken));
         Set<LockDescriptor> locksTakenOut = new HashSet<>();
         events().events().forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
         return CommitUpdate.invalidateSome(locksTakenOut);
@@ -118,13 +118,11 @@ interface ClientLogEvents {
     final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         private final Optional<UUID> commitRequestId;
 
-        private LockEventVisitor(LockToken commitLocksToken) {
-            if (commitLocksToken instanceof LeasedLockToken) {
-                commitRequestId = Optional.of(
-                        ((LeasedLockToken) commitLocksToken).serverToken().getRequestId());
-            } else {
-                commitRequestId = Optional.empty();
-            }
+        private LockEventVisitor(Optional<LockToken> commitLocksToken) {
+            commitRequestId = commitLocksToken
+                    .filter(lockToken -> lockToken instanceof LeasedLockToken)
+                    .map(lockToken ->
+                            ((LeasedLockToken) lockToken).serverToken().getRequestId());
         }
 
         @Override
