@@ -22,10 +22,12 @@ import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -52,10 +54,7 @@ final class VersionedEventStore {
     }
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
-        Optional<Long> startVersion = maybeStartVersion
-                .map(Optional::of)
-                .orElseGet(this::getFirstKey)
-                .filter(version -> version <= endVersion);
+        Optional<Long> startVersion = maybeStartVersion.or(this::getFirstKey).filter(version -> version <= endVersion);
 
         return startVersion
                 .map(version -> getValuesBetweenInclusive(endVersion, version))
@@ -107,6 +106,10 @@ final class VersionedEventStore {
     }
 
     long putAll(LockWatchEvents events) {
+        Preconditions.checkState(
+                !events.events().isEmpty(),
+                "Not expecting addition of empty lock watch events",
+                UnsafeArg.of("lockWatchEvents", events));
         events.events().forEach(event -> eventMap.put(Sequence.of(event.sequence()), event));
         return getLastKey();
     }
@@ -126,11 +129,7 @@ final class VersionedEventStore {
     }
 
     private Optional<Long> getFirstKey() {
-        if (eventMap.isEmpty()) {
-            return Optional.empty();
-        } else {
-            return Optional.of(eventMap.firstKey()).map(Sequence::value);
-        }
+        return Optional.ofNullable(eventMap.firstEntry()).map(Entry::getKey).map(Sequence::value);
     }
 
     private long getLastKey() {
