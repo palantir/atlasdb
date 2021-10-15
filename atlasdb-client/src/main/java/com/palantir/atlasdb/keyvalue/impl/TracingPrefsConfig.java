@@ -74,7 +74,8 @@ public class TracingPrefsConfig implements Runnable {
                     }
                     loadedConfig = true;
                 } catch (IOException e) {
-                    log.error("Could not load a malformed tracing prefs file.",
+                    log.error(
+                            "Could not load a malformed tracing prefs file.",
                             SafeArg.of("tracingPrefFilename", TRACING_PREF_FILENAME),
                             e);
                     loadedConfig = false;
@@ -83,7 +84,8 @@ public class TracingPrefsConfig implements Runnable {
                 loadedConfig = false;
             }
         } catch (Throwable t) {
-            log.error("Error occurred while refreshing tracing prefs file.",
+            log.error(
+                    "Error occurred while refreshing tracing prefs file.",
                     SafeArg.of("tracingPrefFilename", TRACING_PREF_FILENAME),
                     t);
         }
