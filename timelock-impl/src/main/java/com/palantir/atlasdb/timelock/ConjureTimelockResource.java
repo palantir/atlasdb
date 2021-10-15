@@ -141,7 +141,6 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             IdentifiedTimeLockRequest timeLockRequest = IdentifiedTimeLockRequest.create();
             LockImmutableTimestampResponse lockImmutableTimestampResponse =
                     forNamespace(namespace).lockImmutableTimestamp(timeLockRequest);
-            // TODO(gs): handle unsuccessful case
             ConjureLockToken lockToken =
                     ConjureLockToken.of(lockImmutableTimestampResponse.getLock().getRequestId());
             ConjureLockImmutableTimestampResponse conjureLockResponse =
