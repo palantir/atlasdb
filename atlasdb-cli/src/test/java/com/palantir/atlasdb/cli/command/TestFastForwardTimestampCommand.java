@@ -20,9 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
-import com.palantir.atlasdb.factory.ImmutableLockAndTimestampServices;
+import com.palantir.atlasdb.factory.InMemoryLockAndTimestampServiceFactory;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
-import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.LockAndTimestampModule;
@@ -31,11 +30,11 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import io.airlift.airline.Command;
+import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class TestFastForwardTimestampCommand {
@@ -47,7 +46,15 @@ public class TestFastForwardTimestampCommand {
     private static final long POSITIVE_OFFSET = 777L;
     private static final long NEGATIVE_OFFSET = -1 * POSITIVE_OFFSET;
 
-    private static AtlasDbServicesFactory moduleFactory = createModuleFactory();
+    private AtlasDbServicesFactory moduleFactory;
+
+    @ClassRule
+    public static InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+
+    @Before
+    public void setUp() {
+        moduleFactory = createModuleFactory(inMemoryTimeLockRule.get());
+    }
 
     @Test
     public void canFastForwardTimestamp() throws Exception {
@@ -64,16 +71,16 @@ public class TestFastForwardTimestampCommand {
     @Test
     public void fastForwardToMinValueIsANoOp() throws Exception {
         long currentTimestamp = fetchCurrentTimestamp();
-        checkFastForward(Long.MIN_VALUE, currentTimestamp);
+        checkFastForward(Long.MIN_VALUE + 1, currentTimestamp);
     }
 
-    private static long fetchCurrentTimestamp() throws Exception {
+    private long fetchCurrentTimestamp() throws Exception {
         InMemoryTestRunner fetchRunner = new InMemoryTestRunner(FetchTimestamp.class, TIMESTAMP_GROUP, FETCH_COMMAND);
         AtlasDbServices services = fetchRunner.connect(moduleFactory);
         return services.getManagedTimestampService().getFreshTimestamp();
     }
 
-    private static void checkFastForward(long target, long expected) throws Exception {
+    private void checkFastForward(long target, long expected) throws Exception {
         InMemoryTestRunner runner = makeRunnerWithTargetTimestamp(target);
         AtlasDbServices atlasDbServices = runner.connect(moduleFactory);
 
@@ -92,31 +99,29 @@ public class TestFastForwardTimestampCommand {
         return new InMemoryTestRunner(FastForwardTimestamp.class, args);
     }
 
-    private static AtlasDbServicesFactory createModuleFactory() {
+    private static AtlasDbServicesFactory createModuleFactory(InMemoryTimelockServices services) {
         return new AtlasDbServicesFactory() {
             @Override
             public TestAtlasDbServices connect(ServicesConfigModule servicesConfigModule) {
                 return DaggerTestAtlasDbServices.builder()
                         .servicesConfigModule(servicesConfigModule)
-                        .lockAndTimestampModule(new FakeLockAndTimestampModule())
+                        .lockAndTimestampModule(new FakeLockAndTimestampModule(services))
                         .build();
             }
         };
     }
 
     private static final class FakeLockAndTimestampModule extends LockAndTimestampModule {
-        private static InMemoryTimestampService timestampService = new InMemoryTimestampService();
+        private final InMemoryTimelockServices services;
+
+        public FakeLockAndTimestampModule(InMemoryTimelockServices services) {
+            this.services = services;
+        }
 
         @Override
         public LockAndTimestampServices provideLockAndTimestampServices(
-                MetricsManager metricsManager, ServicesConfig config) {
-            LockService lockService = LockServiceImpl.create();
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(LockServiceImpl.create())
-                    .timestamp(timestampService)
-                    .timestampManagement(timestampService)
-                    .timelock(new LegacyTimelockService(timestampService, lockService, TransactionManagers.LOCK_CLIENT))
-                    .build();
+                MetricsManager _metricsManager, ServicesConfig _config) {
+            return new InMemoryLockAndTimestampServiceFactory(services).createLockAndTimestampServices();
         }
     }
 }

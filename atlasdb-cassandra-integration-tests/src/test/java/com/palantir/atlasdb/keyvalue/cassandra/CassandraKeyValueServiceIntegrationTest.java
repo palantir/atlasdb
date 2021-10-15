@@ -63,6 +63,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -117,19 +118,21 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
-            MetricsManagers.createForTests(),
-            getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
-            RUNTIME_CONFIG_SUPPLIER,
-            CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
-            logger,
-            AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC));
+    public static final InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
-    private final String name;
+    @ClassRule
+    public static final CassandraResource CASSANDRA = new CassandraResource(() -> {
+        return CassandraKeyValueServiceImpl.create(
+                MetricsManagers.createForTests(),
+                getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
+                RUNTIME_CONFIG_SUPPLIER,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
+                logger,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    });
 
     public CassandraKeyValueServiceIntegrationTest(String name, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
         super(CASSANDRA, keyValueServiceWrapper);
-        this.name = name;
     }
 
     @Override
@@ -482,7 +485,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 testLogger);
     }
 

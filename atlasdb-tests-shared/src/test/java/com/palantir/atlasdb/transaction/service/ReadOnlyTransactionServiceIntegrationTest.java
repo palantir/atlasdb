@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,19 +22,31 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timestamp.ManagedTimestampService;
+import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ReadOnlyTransactionServiceIntegrationTest {
     private static final long COORDINATION_QUANTUM = 100_000_000L;
 
     private final InMemoryKeyValueService keyValueService = new InMemoryKeyValueService(true);
-    private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
-    private final TransactionService writeTransactionService =
-            TransactionServices.createRaw(keyValueService, timestampService, false);
     private final TransactionService readOnlyTransactionService =
             TransactionServices.createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
                     keyValueService, MetricsManagers.createForTests());
+
+    @ClassRule
+    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
+
+    private ManagedTimestampService timestampService;
+    private TransactionService writeTransactionService;
+
+    @Before
+    public void setUp() {
+        timestampService = services.getManagedTimestampService();
+        writeTransactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
+    }
 
     @Test
     public void canReadAlreadyAgreedValuesEvenAfterAdditionalCoordinations() {

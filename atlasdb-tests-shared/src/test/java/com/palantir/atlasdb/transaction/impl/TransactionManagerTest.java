@@ -39,7 +39,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -47,7 +46,6 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import java.util.UUID;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -116,16 +114,15 @@ public class TransactionManagerTest extends TransactionTestSetup {
     }
 
     @Test
-    public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
-        TimestampService mockTimestampService = mock(TimestampService.class);
+    public void shouldNotMakeRemoteCallsInAReadOnlyTransactionIfNoWorkIsDone() {
+        TimelockService mockTimeLockService = mock(TimelockService.class);
         TimestampManagementService mockTimestampManagementService = mock(TimestampManagementService.class);
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
                 metricsManager,
                 getKeyValueService(),
-                mockTimestampService,
+                mockTimeLockService,
                 mockTimestampManagementService,
-                LockClient.of("foo"),
                 mockLockService,
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
@@ -137,16 +134,14 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP);
 
         // fetch an immutable timestamp once so it's cached
-        when(mockTimestampService.getFreshTimestamp()).thenReturn(1L);
-        when(mockLockService.getMinLockedInVersionId("foo")).thenReturn(1L);
+        when(mockTimeLockService.getImmutableTimestamp()).thenReturn(1L);
         txnManagerWithMocks.getImmutableTimestamp();
-        verify(mockTimestampService).getFreshTimestamp();
-        verify(mockLockService).getMinLockedInVersionId("foo");
+        verify(mockTimeLockService).getImmutableTimestamp();
 
         // now execute a read transaction
         txnManagerWithMocks.runTaskReadOnly(txn -> null);
         verifyNoMoreInteractions(mockLockService);
-        verifyNoMoreInteractions(mockTimestampService);
+        verifyNoMoreInteractions(mockTimeLockService);
         verifyNoMoreInteractions(mockTimestampManagementService);
     }
 

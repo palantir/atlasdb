@@ -42,16 +42,13 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -446,9 +443,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public static SerializableTransactionManager createForTest(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimestampService timestampService,
+            TimelockService legacyTimeLockService,
             TimestampManagementService timestampManagementService,
-            LockClient lockClient,
             LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
@@ -461,7 +457,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                legacyTimeLockService,
                 NoOpLockWatchManager.create(),
                 timestampManagementService,
                 lockService,

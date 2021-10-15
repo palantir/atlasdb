@@ -113,9 +113,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                timestampService,
+                timelockService,
                 timestampManagementService,
-                lockClient,
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),

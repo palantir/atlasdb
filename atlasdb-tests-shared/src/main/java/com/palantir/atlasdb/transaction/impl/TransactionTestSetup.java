@@ -46,7 +46,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
@@ -111,7 +110,7 @@ public abstract class TransactionTestSetup {
 
     protected TimestampCache timestampCache;
 
-    private InMemoryTimelockServices inMemoryTimelockServices;
+    protected InMemoryTimelockServices inMemoryTimelockServices;
 
     protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
@@ -164,7 +163,7 @@ public abstract class TransactionTestSetup {
         inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder);
         timestampService = inMemoryTimelockServices.getTimestampService();
         timestampManagementService = inMemoryTimelockServices.getTimestampManagementService();
-        timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        timelockService = inMemoryTimelockServices.getLegacyTimelockService();
         lockWatchManager = NoOpLockWatchManager.create();
         transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
@@ -195,9 +194,7 @@ public abstract class TransactionTestSetup {
         return new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                timestampService,
-                timestampManagementService,
-                lockClient,
+                inMemoryTimelockServices,
                 lockService,
                 transactionService,
                 conflictDetectionManager,

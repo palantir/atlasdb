@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,14 +21,12 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryKvs;
-import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryTimestampService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Optional;
 import java.util.function.LongSupplier;
