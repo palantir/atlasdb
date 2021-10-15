@@ -24,11 +24,12 @@ import static org.mockito.Mockito.when;
 import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.NamespacedLockToken;
+import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulPrepareBackupResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.Test;
 
@@ -46,7 +47,9 @@ public class AtlasBackupServiceTest {
                         SuccessfulLockImmutableTimestampResponse.of(ConjureLockToken.of(requestId), 1L)));
 
         AuthHeader authHeader = AuthHeader.valueOf("header");
-        Optional<LockImmutableTimestampResponse> lockToken = atlasBackupService.prepareBackup(authHeader, "test");
-        assertThat(lockToken).contains(LockImmutableTimestampResponse.of(1L, LockToken.of(requestId)));
+        PrepareBackupResponse lockToken = atlasBackupService.prepareBackup(authHeader, "test");
+        PrepareBackupResponse expected = PrepareBackupResponse.successful(
+                SuccessfulPrepareBackupResponse.of(NamespacedLockToken.of("test", LockToken.of(requestId)), 1L));
+        assertThat(lockToken).isEqualTo(expected);
     }
 }

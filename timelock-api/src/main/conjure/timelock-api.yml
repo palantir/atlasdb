@@ -20,6 +20,10 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.Lease
+    LockToken:
+      base-type: any
+      external:
+        java: com.palantir.lock.v2.LockToken
     LockWatchStateUpdate:
       base-type: any
       external:
@@ -92,6 +96,20 @@ types:
         union:
           successful: SuccessfulLockImmutableTimestampResponse
           unsuccessful: UnsuccessfulLockImmutableTimestampResponse
+      NamespacedLockToken:
+        fields:
+          namespace: string
+          lockToken: LockToken
+      SuccessfulPrepareBackupResponse:
+        fields:
+          namespacedLockToken: NamespacedLockToken
+          immutableTimestamp: Long
+      UnsuccessfulPrepareBackupResponse:
+        fields: {}
+      PrepareBackupResponse:
+        union:
+          successful: SuccessfulPrepareBackupResponse
+          unsuccessful: UnsuccessfulPrepareBackupResponse
       ConjureWaitForLocksResponse:
         fields:
           wasSuccessful: boolean
