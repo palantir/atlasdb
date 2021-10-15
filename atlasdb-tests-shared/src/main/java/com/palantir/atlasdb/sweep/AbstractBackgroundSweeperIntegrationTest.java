@@ -46,7 +46,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
-import com.palantir.timelock.paxos.InMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -80,7 +80,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     PeriodicTrueSupplier skipCellVersion = new PeriodicTrueSupplier();
 
     @ClassRule
-    public static InMemoryTimeLock services = new InMemoryTimeLock();
+    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
     @Before
     public void setup() {

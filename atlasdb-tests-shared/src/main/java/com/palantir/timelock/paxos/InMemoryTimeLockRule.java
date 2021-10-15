@@ -31,14 +31,14 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-public final class InMemoryTimeLock extends ExternalResource implements TimeLockServices {
+public final class InMemoryTimeLockRule extends ExternalResource implements TimeLockServices {
     private final TemporaryFolder tempFolder = new TemporaryFolder();
 
     private final InMemoryTimelockServices services = new InMemoryTimelockServices(tempFolder);
 
-    public InMemoryTimeLock() {}
+    public InMemoryTimeLockRule() {}
 
-    public InMemoryTimeLock(String client) {
+    public InMemoryTimeLockRule(String client) {
         services.setClient(client);
     }
 

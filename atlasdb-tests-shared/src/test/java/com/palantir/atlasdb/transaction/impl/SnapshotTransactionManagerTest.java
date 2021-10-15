@@ -49,7 +49,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.timelock.paxos.InMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -75,7 +75,7 @@ public class SnapshotTransactionManagerTest {
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     @ClassRule
-    public static InMemoryTimeLock services = new InMemoryTimeLock();
+    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;

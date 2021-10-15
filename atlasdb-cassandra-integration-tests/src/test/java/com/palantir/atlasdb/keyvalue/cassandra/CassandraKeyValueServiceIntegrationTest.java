@@ -63,7 +63,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.timelock.paxos.InMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -118,7 +118,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @ClassRule
-    public static final InMemoryTimeLock services = new InMemoryTimeLock();
+    public static final InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(() -> {

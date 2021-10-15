@@ -38,7 +38,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.timelock.paxos.InMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,7 +79,7 @@ public abstract class AbstractSweepTest {
     protected SweepStrategyManager ssm;
 
     @ClassRule
-    public static InMemoryTimeLock services = new InMemoryTimeLock();
+    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
     protected AbstractSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;

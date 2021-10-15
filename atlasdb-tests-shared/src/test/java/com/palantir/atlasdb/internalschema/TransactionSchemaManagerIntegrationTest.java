@@ -23,7 +23,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -36,7 +36,7 @@ public class TransactionSchemaManagerIntegrationTest {
     private TransactionSchemaManager manager;
 
     @ClassRule
-    public static InMemoryTimeLock services = new InMemoryTimeLock();
+    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
     @Before
     public void setUp() {

@@ -30,7 +30,7 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timelock.paxos.InMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import io.airlift.airline.Command;
 import org.junit.Before;
@@ -49,11 +49,11 @@ public class TestFastForwardTimestampCommand {
     private AtlasDbServicesFactory moduleFactory;
 
     @ClassRule
-    public static InMemoryTimeLock inMemoryTimeLock = new InMemoryTimeLock();
+    public static InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
     @Before
     public void setUp() {
-        moduleFactory = createModuleFactory(inMemoryTimeLock.get());
+        moduleFactory = createModuleFactory(inMemoryTimeLockRule.get());
     }
 
     @Test

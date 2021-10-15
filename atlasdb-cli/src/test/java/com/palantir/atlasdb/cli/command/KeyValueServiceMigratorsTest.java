@@ -55,7 +55,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timelock.paxos.InMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Map;
 import org.junit.Before;
@@ -81,10 +81,10 @@ public class KeyValueServiceMigratorsTest {
     private static final byte[] TEST_VALUE2 = {3};
 
     @Rule
-    public InMemoryTimeLock fromTimeLock = new InMemoryTimeLock("fromClient");
+    public InMemoryTimeLockRule fromTimeLock = new InMemoryTimeLockRule("fromClient");
 
     @Rule
-    public InMemoryTimeLock toTimeLock = new InMemoryTimeLock("toClient");
+    public InMemoryTimeLockRule toTimeLock = new InMemoryTimeLockRule("toClient");
 
     private AtlasDbServices fromServices;
     private AtlasDbServices toServices;
@@ -344,7 +344,7 @@ public class KeyValueServiceMigratorsTest {
         assertThat(toSplittingServices.getTransactionService().get(100_000)).isEqualTo(100_001L);
     }
 
-    private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimeLock timeLock) {
+    private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimeLockRule timeLock) {
         ManagedTimestampService timestampService = timeLock.getManagedTimestampService();
 
         TransactionTables.createTables(kvs);

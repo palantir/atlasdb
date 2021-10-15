@@ -39,7 +39,7 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimeLock;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
@@ -61,7 +61,7 @@ public class TransactionServicesTest {
     private long commitTs;
 
     @ClassRule
-    public static InMemoryTimeLock services = new InMemoryTimeLock();
+    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
     @Before
     public void setUp() {
