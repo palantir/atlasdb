@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,8 +30,11 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
 import com.palantir.lock.v2.LeaderTime;
@@ -97,6 +101,16 @@ public final class TimestampCorroboratingTimelockServiceTest {
     public void startIdentifiedAtlasDbTransactionShouldFail() {
         when(rawTimelockService.startTransactions(startTransactionsRequest)).thenReturn(makeResponse(1L, 1));
         assertThrowsOnSecondCall(() -> timelockService.startTransactions(startTransactionsRequest));
+        verify(callback).run();
+    }
+
+    @Test
+    public void getCommitTimestampsShouldFail() {
+        LockWatchStateUpdate stateUpdate = mock(LockWatchStateUpdate.class);
+        when(rawTimelockService.getCommitTimestamps(any()))
+                .thenReturn(GetCommitTimestampsResponse.of(1L, 3L, stateUpdate));
+        assertThrowsOnSecondCall(() -> timelockService.getCommitTimestamps(
+                GetCommitTimestampsRequest.of(3, ConjureIdentifiedVersion.of(UUID.randomUUID(), 3L))));
         verify(callback).run();
     }
 
