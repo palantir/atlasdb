@@ -89,11 +89,9 @@ public class AtlasBackupService {
         });
     }
 
-    public long getBackupTimestamp(AuthHeader authHeader, NamespacedLockToken namespacedLockToken) {
-        // TODO(gs): check backup is valid - throw exception if not?
+    public long getBackupTimestamp(AuthHeader authHeader, String namespace) {
         ConjureGetFreshTimestampsRequest request = ConjureGetFreshTimestampsRequest.of(1);
-        ConjureGetFreshTimestampsResponse response =
-                timelockService.getFreshTimestamps(authHeader, namespacedLockToken.getNamespace(), request);
+        ConjureGetFreshTimestampsResponse response = timelockService.getFreshTimestamps(authHeader, namespace, request);
         return response.getInclusiveLower();
     }
 
