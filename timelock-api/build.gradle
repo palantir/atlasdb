@@ -12,9 +12,9 @@ conjure {
 subprojects {
     apply from: "../../gradle/shared.gradle"
     dependencies {
-        compile project(':lock-api-objects')
-        compile 'com.palantir.conjure.java:conjure-lib'
+        implementation project(':lock-api-objects')
 
+        implementation 'com.palantir.conjure.java:conjure-lib'
         implementation 'com.fasterxml.jackson.core:jackson-annotations'
         implementation 'com.fasterxml.jackson.core:jackson-databind'
         implementation 'com.google.guava:guava'

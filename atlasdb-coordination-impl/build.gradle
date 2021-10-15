@@ -2,9 +2,9 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-client")
+  implementation project(":atlasdb-client")
 
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -23,7 +23,7 @@ dependencies {
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
 }

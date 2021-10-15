@@ -2,10 +2,9 @@
 apply from: '../gradle/shared.gradle'
 
 dependencies {
-  compile project(':commons-db')
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  compile group: 'io.dropwizard.metrics', name: 'metrics-core'
-
+  implementation project(':commons-db')
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  implementation group: 'io.dropwizard.metrics', name: 'metrics-core'
   implementation 'com.h2database:h2'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
