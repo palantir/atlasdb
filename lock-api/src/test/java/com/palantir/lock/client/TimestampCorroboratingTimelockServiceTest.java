@@ -125,7 +125,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
                 .thenAnswer(blockingTimestampReturning)
                 .thenReturn(getFreshTimestampsResponse(2L, 2L));
 
-        Future<Void> blockingGetFreshTimestampCall = CompletableFuture.runAsync(() -> getFreshTimestamp());
+        Future<Void> blockingGetFreshTimestampCall = CompletableFuture.runAsync(this::getFreshTimestamp);
 
         blockingTimestampReturning.waitForFirstCallToBlock();
 
@@ -185,13 +185,24 @@ public final class TimestampCorroboratingTimelockServiceTest {
         return getFreshTimestamps(1);
     }
 
+    private ConjureGetFreshTimestampsResponse getFreshTimestamps(int count) {
+        return timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(count));
+    }
+
+    private void assertThrowsOnSecondCall(Runnable runnable) {
+        runnable.run();
+        assertThrowsClocksWentBackwardsException(runnable);
+    }
+
+    private void assertThrowsClocksWentBackwardsException(Runnable runnable) {
+        assertThatThrownBy(runnable::run)
+                .isInstanceOf(SafeRuntimeException.class)
+                .hasMessageStartingWith("It appears that clocks went backwards!");
+    }
+
     private static ConjureGetFreshTimestampsResponse getFreshTimestampsResponse(
             long startInclusive, long endInclusive) {
         return ConjureGetFreshTimestampsResponse.of(startInclusive, endInclusive);
-    }
-
-    private ConjureGetFreshTimestampsResponse getFreshTimestamps(int count) {
-        return timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(count));
     }
 
     private static ConjureStartTransactionsResponse makeResponse(long startTimestamp, int count) {
@@ -206,17 +217,6 @@ public final class TimestampCorroboratingTimelockServiceTest {
                         .interval(1)
                         .build())
                 .build();
-    }
-
-    private void assertThrowsOnSecondCall(Runnable runnable) {
-        runnable.run();
-        assertThrowsClocksWentBackwardsException(runnable);
-    }
-
-    private void assertThrowsClocksWentBackwardsException(Runnable runnable) {
-        assertThatThrownBy(runnable::run)
-                .isInstanceOf(SafeRuntimeException.class)
-                .hasMessageStartingWith("It appears that clocks went backwards!");
     }
 
     private static final class BlockingTimestamp implements Answer<ConjureGetFreshTimestampsResponse> {
