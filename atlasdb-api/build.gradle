@@ -2,21 +2,21 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-commons")
-  compile project(":lock-api")
-  compile project(":timestamp-api")
-  compile group: 'org.apache.commons', name: 'commons-lang3'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  compile group: 'com.squareup.okio', name: 'okio'
-  compile group: 'jakarta.annotation', name: 'jakarta.annotation-api'
-  compile group: 'jakarta.validation', name: 'jakarta.validation-api'
-  compile group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
+  api project(":atlasdb-commons")
+  api project(":lock-api")
+  api project(":timestamp-api")
+  api group: 'org.apache.commons', name: 'commons-lang3'
+  api group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+  api group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  api group: 'com.squareup.okio', name: 'okio'
+  api group: 'jakarta.annotation', name: 'jakarta.annotation-api'
+  api group: 'jakarta.validation', name: 'jakarta.validation-api'
+  api group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
 
-  compile 'com.github.ben-manes.caffeine:caffeine'
-  compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
-  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
-  compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
+  api 'com.github.ben-manes.caffeine:caffeine'
+  api group: 'com.palantir.conjure.java.api', name: 'ssl-config'
+  api group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
+  api (group: 'com.palantir.tritium', name: 'tritium-registry') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
@@ -48,7 +48,7 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
 
-  testCompile group: 'junit', name: 'junit'
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'junit', name: 'junit'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
 }

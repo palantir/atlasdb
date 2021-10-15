@@ -28,13 +28,13 @@ task testJarForPublishing(type: Jar) {
 libsDirName = file('build/artifacts')
 
 dependencies {
-    compile group: 'com.google.code.findbugs', name: 'jsr305'
-    compile group: 'com.google.code.findbugs', name: 'findbugs-annotations'
+    implementation group: 'com.google.code.findbugs', name: 'jsr305'
+    implementation group: 'com.google.code.findbugs', name: 'findbugs-annotations'
 
     implementation 'com.palantir.safe-logging:logger'
 
-    testCompile group: 'junit', name: 'junit'
-    testCompile group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'junit', name: 'junit'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
