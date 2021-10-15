@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.logsafe.SafeArg;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -73,14 +74,18 @@ public class TracingPrefsConfig implements Runnable {
                     }
                     loadedConfig = true;
                 } catch (IOException e) {
-                    log.error("Could not load a malformed " + TRACING_PREF_FILENAME + ".", e);
+                    log.error("Could not load a malformed tracing prefs file.",
+                            SafeArg.of("tracingPrefFilename", TRACING_PREF_FILENAME),
+                            e);
                     loadedConfig = false;
                 }
             } else {
                 loadedConfig = false;
             }
         } catch (Throwable t) {
-            log.error("Error occurred while refreshing {}", TRACING_PREF_FILENAME, t);
+            log.error("Error occurred while refreshing tracing prefs file.",
+                    SafeArg.of("tracingPrefFilename", TRACING_PREF_FILENAME),
+                    t);
         }
     }
 
