@@ -34,7 +34,6 @@ import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
@@ -65,12 +64,14 @@ import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
+import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.ReferenceTrackingWrapper;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TimeLockClient;
+import com.palantir.lock.client.TimestampCorroboratingTimelockService;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
@@ -162,25 +163,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 timeLockFeedbackBackgroundTask,
                 timelockRequestBatcherProviders,
                 schemas);
-        return withMetrics(
-                metricsManager,
-                withCorroboratingTimestampService(
-                        config.namespace(), metricsManager, withRefreshingLockService(lockAndTimestampServices)));
-    }
-
-    private static LockAndTimestampServices withCorroboratingTimestampService(
-            Optional<String> userNamespace,
-            MetricsManager metricsManager,
-            LockAndTimestampServices lockAndTimestampServices) {
-        TimelockService timelockService = TimestampCorroboratingTimelockService.create(
-                userNamespace, metricsManager.getTaggedRegistry(), lockAndTimestampServices.timelock());
-        TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
-
-        return ImmutableLockAndTimestampServices.builder()
-                .from(lockAndTimestampServices)
-                .timelock(timelockService)
-                .timestamp(corroboratingTimestampService)
-                .build();
+        return withMetrics(metricsManager, withRefreshingLockService(lockAndTimestampServices));
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -345,11 +328,14 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient =
                 new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
-        LeaderElectionReportingTimelockService namespacedConjureTimelockService =
+        LeaderElectionReportingTimelockService leaderElectionReportingTimelockService =
                 LeaderElectionReportingTimelockService.create(withDiagnosticsConjureTimelockService, timelockNamespace);
+        NamespacedConjureTimelockService namespacedConjureTimelockService =
+                TimestampCorroboratingTimelockService.create(
+                        timelockNamespace, metricsManager.getTaggedRegistry(), leaderElectionReportingTimelockService);
 
         timeLockFeedbackBackgroundTask.ifPresent(
-                task -> task.registerLeaderElectionStatistics(namespacedConjureTimelockService));
+                task -> task.registerLeaderElectionStatistics(leaderElectionReportingTimelockService));
 
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
@@ -403,7 +389,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
     private static LeaderTimeGetter getLeaderTimeGetter(
             String timelockNamespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            LeaderElectionReportingTimelockService namespacedConjureTimelockService,
+            NamespacedConjureTimelockService namespacedConjureTimelockService,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
 
         if (!timelockRequestBatcherProviders.isPresent()) {

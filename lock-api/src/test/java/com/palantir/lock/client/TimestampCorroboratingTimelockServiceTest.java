@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -44,71 +43,70 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-public final class TimestampCorroboratingTimelockService2Test {
+@RunWith(MockitoJUnitRunner.class)
+public final class TimestampCorroboratingTimelockServiceTest {
     private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
             LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
 
-    private static final String NAMESPACE_1 = "tom";
-    private static final String NAMESPACE_2 = "nottom";
-    public static final ConjureStartTransactionsRequest START_TRANSACTIONS_REQUEST =
-            ConjureStartTransactionsRequest.builder()
-                    .requestId(UUID.randomUUID())
-                    .requestorId(UUID.randomUUID())
-                    .numTransactions(1)
-                    .build();
+    private static final String NAMESPACE_1 = "sonic";
+    private static final String NAMESPACE_2 = "shadow";
 
+    @Mock
     private Runnable callback;
+
+    @Mock
     private NamespacedConjureTimelockService rawTimelockService;
+
+    @Mock
+    private ConjureStartTransactionsRequest startTransactionsRequest;
+
     private NamespacedConjureTimelockService timelockService;
 
     @Before
     public void setUp() {
-        callback = mock(Runnable.class);
-        rawTimelockService = mock(NamespacedConjureTimelockService.class);
-        timelockService = new TimestampCorroboratingTimelockService2(callback, rawTimelockService);
+        timelockService = new TimestampCorroboratingTimelockService(callback, rawTimelockService);
     }
 
     @Test
     public void getFreshTimestampShouldFail() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(ConjureGetFreshTimestampsResponse.of(1L, 1L));
-        assertThrowsOnSecondCall(() -> timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(1)));
+        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
+        assertThrowsOnSecondCall(this::getFreshTimestamp);
         verify(callback).run();
     }
 
     @Test
     public void getFreshTimestampsShouldFail() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(ConjureGetFreshTimestampsResponse.of(1L, 2L));
-        assertThrowsOnSecondCall(() -> timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(1)));
+        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 2L));
+        assertThrowsOnSecondCall(() -> getFreshTimestamps(2));
         verify(callback).run();
     }
 
     @Test
     public void startIdentifiedAtlasDbTransactionShouldFail() {
-        when(rawTimelockService.startTransactions(START_TRANSACTIONS_REQUEST)).thenReturn(makeResponse(1L, 1));
-
-        assertThrowsOnSecondCall(() -> timelockService.startTransactions(START_TRANSACTIONS_REQUEST));
+        when(rawTimelockService.startTransactions(startTransactionsRequest)).thenReturn(makeResponse(1L, 1));
+        assertThrowsOnSecondCall(() -> timelockService.startTransactions(startTransactionsRequest));
         verify(callback).run();
     }
 
     @Test
     public void failsUnderConflictingMixedOperations() {
         ConjureStartTransactionsResponse startTransactionsResponse = makeResponse(1L, 1);
-        when(rawTimelockService.startTransactions(START_TRANSACTIONS_REQUEST)).thenReturn(startTransactionsResponse);
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(ConjureGetFreshTimestampsResponse.of(1L, 2L));
-
-        timelockService.startTransactions(START_TRANSACTIONS_REQUEST);
-        assertThrowsClocksWentBackwardsException(
-                () -> timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(2)));
+        when(rawTimelockService.startTransactions(startTransactionsRequest)).thenReturn(startTransactionsResponse);
+        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 2L));
+        timelockService.startTransactions(startTransactionsRequest);
+        assertThrowsClocksWentBackwardsException(() -> getFreshTimestamps(2));
         verify(callback).run();
     }
 
@@ -116,56 +114,51 @@ public final class TimestampCorroboratingTimelockService2Test {
     public void startIdentifiedAtlasDbTransactionBatchShouldFail() {
         ConjureStartTransactionsResponse responses = makeResponse(1L, 3);
         when(rawTimelockService.startTransactions(any())).thenReturn(responses);
-        assertThrowsOnSecondCall(() -> timelockService.startTransactions(START_TRANSACTIONS_REQUEST));
+        assertThrowsOnSecondCall(() -> timelockService.startTransactions(startTransactionsRequest));
         verify(callback).run();
     }
 
     @Test
     public void resilientUnderMultipleThreads() throws InterruptedException {
-        BlockingTimestamp blockingTimestampReturning1 = new BlockingTimestamp(1);
+        BlockingTimestamp blockingTimestampReturning = new BlockingTimestamp(1);
         when(rawTimelockService.getFreshTimestamps(any()))
-                .thenAnswer(blockingTimestampReturning1)
-                .thenReturn(ConjureGetFreshTimestampsResponse.of(2L, 2L));
+                .thenAnswer(blockingTimestampReturning)
+                .thenReturn(getFreshTimestampsResponse(2L, 2L));
 
-        Future<Void> blockingGetFreshTimestampCall = CompletableFuture.runAsync(
-                () -> timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(1)));
+        Future<Void> blockingGetFreshTimestampCall = CompletableFuture.runAsync(() -> getFreshTimestamp());
 
-        blockingTimestampReturning1.waitForFirstCallToBlock();
+        blockingTimestampReturning.waitForFirstCallToBlock();
 
-        assertThat(timelockService
-                        .getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(1))
-                        .getInclusiveLower())
+        assertThat(getFreshTimestamp().getInclusiveLower())
                 .as("This should have updated the lower bound to 2")
                 .isEqualTo(2L);
 
         // we want to now resume the blocked call, which will return timestamp of 1 and not throw
-        blockingTimestampReturning1.countdown();
+        blockingTimestampReturning.countdown();
         assertThatCode(blockingGetFreshTimestampCall::get).doesNotThrowAnyException();
         verify(callback, never()).run();
     }
 
     @Test
     public void callbackInvokedMultipleTimesWithMultipleViolations() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(ConjureGetFreshTimestampsResponse.of(1L, 1L));
+        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
 
-        timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(1));
-        assertThrowsClocksWentBackwardsException(
-                () -> timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(1)));
-        assertThrowsClocksWentBackwardsException(
-                () -> timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(1)));
+        getFreshTimestamp();
+        assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
+        assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
         verify(callback, times(2)).run();
     }
 
     @Test
     public void metricsSuitablyIncremented() {
-        when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
+        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
         TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
-        timelockService = TimestampCorroboratingTimelockService.create(
-                Optional.of(NAMESPACE_1), taggedMetricRegistry, rawTimelockService);
+        timelockService =
+                TimestampCorroboratingTimelockService.create(NAMESPACE_1, taggedMetricRegistry, rawTimelockService);
 
-        timelockService.getFreshTimestamp();
-        assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
-        assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
+        getFreshTimestamp();
+        assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
+        assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
 
         assertThat(TimestampCorrectnessMetrics.of(taggedMetricRegistry)
                         .timestampsGoingBackwards(NAMESPACE_1)
@@ -177,7 +170,31 @@ public final class TimestampCorroboratingTimelockService2Test {
                 .isEqualTo(0);
     }
 
-    private ConjureStartTransactionsResponse makeResponse(long startTimestamp, int count) {
+    @Test
+    public void metricsNotRegisteredIfNoViolationsDetected() {
+        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
+        TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+        timelockService =
+                TimestampCorroboratingTimelockService.create(NAMESPACE_1, taggedMetricRegistry, rawTimelockService);
+
+        getFreshTimestamp();
+        assertThat(taggedMetricRegistry.getMetrics()).isEmpty();
+    }
+
+    private ConjureGetFreshTimestampsResponse getFreshTimestamp() {
+        return getFreshTimestamps(1);
+    }
+
+    private static ConjureGetFreshTimestampsResponse getFreshTimestampsResponse(
+            long startInclusive, long endInclusive) {
+        return ConjureGetFreshTimestampsResponse.of(startInclusive, endInclusive);
+    }
+
+    private ConjureGetFreshTimestampsResponse getFreshTimestamps(int count) {
+        return timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(count));
+    }
+
+    private static ConjureStartTransactionsResponse makeResponse(long startTimestamp, int count) {
         return ConjureStartTransactionsResponse.builder()
                 .immutableTimestamp(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE)
                 .lease(Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.now()), Duration.ZERO))
@@ -191,25 +208,21 @@ public final class TimestampCorroboratingTimelockService2Test {
                 .build();
     }
 
-    @Test
-    public void metricsNotRegisteredIfNoViolationsDetected() {
-        when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
-        TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
-        timelockService = TimestampCorroboratingTimelockService.create(
-                Optional.of(NAMESPACE_1), taggedMetricRegistry, rawTimelockService);
-
-        timelockService.getFreshTimestamp();
-        assertThat(taggedMetricRegistry.getMetrics()).isEmpty();
+    private void assertThrowsOnSecondCall(Runnable runnable) {
+        runnable.run();
+        assertThrowsClocksWentBackwardsException(runnable);
     }
-    //
-    //    private StartIdentifiedAtlasDbTransactionResponse makeResponse(long timestamp) {
-    //        return StartIdentifiedAtlasDbTransactionResponse.of(
-    //                LOCK_IMMUTABLE_TIMESTAMP_RESPONSE, TimestampAndPartition.of(timestamp, 0));
-    //    }
+
+    private void assertThrowsClocksWentBackwardsException(Runnable runnable) {
+        assertThatThrownBy(runnable::run)
+                .isInstanceOf(SafeRuntimeException.class)
+                .hasMessageStartingWith("It appears that clocks went backwards!");
+    }
 
     private static final class BlockingTimestamp implements Answer<ConjureGetFreshTimestampsResponse> {
         private final CountDownLatch returnTimestampLatch = new CountDownLatch(1);
         private final CountDownLatch blockingLatch = new CountDownLatch(1);
+
         private final long timestampToReturn;
 
         private BlockingTimestamp(long timestampToReturn) {
@@ -220,7 +233,7 @@ public final class TimestampCorroboratingTimelockService2Test {
         public ConjureGetFreshTimestampsResponse answer(InvocationOnMock invocation) throws Throwable {
             blockingLatch.countDown();
             returnTimestampLatch.await();
-            return ConjureGetFreshTimestampsResponse.of(timestampToReturn, timestampToReturn);
+            return getFreshTimestampsResponse(timestampToReturn, timestampToReturn);
         }
 
         void countdown() {
@@ -230,16 +243,5 @@ public final class TimestampCorroboratingTimelockService2Test {
         void waitForFirstCallToBlock() throws InterruptedException {
             blockingLatch.await();
         }
-    }
-
-    private void assertThrowsOnSecondCall(Runnable runnable) {
-        runnable.run();
-        assertThrowsClocksWentBackwardsException(runnable);
-    }
-
-    private void assertThrowsClocksWentBackwardsException(Runnable runnable) {
-        assertThatThrownBy(runnable::run)
-                .isInstanceOf(SafeRuntimeException.class)
-                .hasMessageStartingWith("It appears that clocks went backwards!");
     }
 }

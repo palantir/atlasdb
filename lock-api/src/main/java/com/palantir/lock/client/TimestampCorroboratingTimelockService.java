@@ -37,14 +37,13 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import org.immutables.value.Value;
 
-public final class TimestampCorroboratingTimelockService2 implements NamespacedConjureTimelockService {
-    private static final SafeLogger log = SafeLoggerFactory.get(TimestampCorroboratingTimelockService2.class);
+public final class TimestampCorroboratingTimelockService implements NamespacedConjureTimelockService {
+    private static final SafeLogger log = SafeLoggerFactory.get(TimestampCorroboratingTimelockService.class);
     private static final String CLOCKS_WENT_BACKWARDS_MESSAGE = "It appears that clocks went backwards!";
 
     private final Runnable timestampViolationCallback;
@@ -53,19 +52,19 @@ public final class TimestampCorroboratingTimelockService2 implements NamespacedC
     private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
 
     @VisibleForTesting
-    TimestampCorroboratingTimelockService2(
+    TimestampCorroboratingTimelockService(
             Runnable timestampViolationCallback, NamespacedConjureTimelockService delegate) {
         this.timestampViolationCallback = timestampViolationCallback;
         this.delegate = delegate;
     }
 
     public static NamespacedConjureTimelockService create(
-            Optional<String> userNamespace,
+            String userNamespace,
             TaggedMetricRegistry taggedMetricRegistry,
             NamespacedConjureTimelockService delegate) {
-        return new TimestampCorroboratingTimelockService2(
+        return new TimestampCorroboratingTimelockService(
                 () -> TimestampCorrectnessMetrics.of(taggedMetricRegistry)
-                        .timestampsGoingBackwards(userNamespace.orElse("[unknown or un-namespaced]"))
+                        .timestampsGoingBackwards(userNamespace)
                         .inc(),
                 delegate);
     }
