@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
@@ -42,11 +43,11 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
-// TODO(gs): tests
 public class AtlasBackupService {
     private final ConjureTimelockService timelockService;
 
-    public AtlasBackupService(ConjureTimelockService timelockService) {
+    @VisibleForTesting
+    AtlasBackupService(ConjureTimelockService timelockService) {
         this.timelockService = timelockService;
     }
 
