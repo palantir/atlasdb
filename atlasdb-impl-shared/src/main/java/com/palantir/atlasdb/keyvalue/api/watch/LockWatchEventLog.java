@@ -45,7 +45,7 @@ final class LockWatchEventLog {
     }
 
     CacheUpdate processUpdate(LockWatchStateUpdate update) {
-        if (!latestVersion.isPresent()
+        if (latestVersion.isEmpty()
                 || !update.logId().equals(latestVersion.get().id())) {
             return update.accept(new NewLeaderVisitor());
         } else {
