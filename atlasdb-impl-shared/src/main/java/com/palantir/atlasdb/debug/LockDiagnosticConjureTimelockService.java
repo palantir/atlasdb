@@ -89,7 +89,6 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
 
     @Override
     public ConjureLockImmutableTimestampResponse lockImmutableTimestamp(AuthHeader authHeader, String namespace) {
-        // TODO(gs): localLockTracker?
         ConjureLockImmutableTimestampResponse response = conjureDelegate.lockImmutableTimestamp(authHeader, namespace);
         localLockTracker.logLockImmutableTimestampResponse(response);
         return response;
