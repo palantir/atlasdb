@@ -42,7 +42,6 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
-// TODO(gs): move to atlasdb-backups project?
 // TODO(gs): tests
 public class AtlasBackupService {
     private final ConjureTimelockService timelockService;
