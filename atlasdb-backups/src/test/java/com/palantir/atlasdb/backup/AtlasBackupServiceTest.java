@@ -81,12 +81,12 @@ public class AtlasBackupServiceTest {
     }
 
     @Test
-    public void canGetBackupTimestamp() {
+    public void canGetTimestampForBackup() {
         when(conjureTimelockService.getFreshTimestamps(
                         eq(AUTH_HEADER), eq(NAMESPACE), eq(ConjureGetFreshTimestampsRequest.of(1))))
                 .thenReturn(ConjureGetFreshTimestampsResponse.of(1L, 1L));
 
-        assertThat(atlasBackupService.getBackupTimestamp(AUTH_HEADER, NAMESPACE))
+        assertThat(atlasBackupService.getFreshTimestampForBackup(AUTH_HEADER, NAMESPACE))
                 .isEqualTo(1L);
 
         // no call to prepare backup

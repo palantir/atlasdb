@@ -89,7 +89,7 @@ public class AtlasBackupService {
         });
     }
 
-    public long getBackupTimestamp(AuthHeader authHeader, String namespace) {
+    public long getFreshTimestampForBackup(AuthHeader authHeader, String namespace) {
         ConjureGetFreshTimestampsRequest request = ConjureGetFreshTimestampsRequest.of(1);
         ConjureGetFreshTimestampsResponse response = timelockService.getFreshTimestamps(authHeader, namespace, request);
         return response.getInclusiveLower();
