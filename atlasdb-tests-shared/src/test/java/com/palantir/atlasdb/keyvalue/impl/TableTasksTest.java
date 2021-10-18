@@ -87,9 +87,8 @@ public class TableTasksTest {
         TransactionManager transactionManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,
-                timelockServices.getTimestampService(),
+                timelockServices.getLegacyTimelockService(),
                 timelockServices.getTimestampManagementService(),
-                lockClient,
                 lockService,
                 txService,
                 constraints,

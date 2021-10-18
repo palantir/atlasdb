@@ -167,7 +167,7 @@ public class LockWatchEventCacheIntegrationTest {
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage(
                         "Success event has a later version than the current version, but has no events to bridge the "
-                                + "gap. The transaction should be tried, but this should only happen rarely.");
+                                + "gap. The transaction should be retried, but this should only happen rarely.");
     }
 
     @Test

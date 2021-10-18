@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,19 +23,25 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timestamp.ManagedTimestampService;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
 
-    private final InMemoryTimestampService timestamps = new InMemoryTimestampService();
-    private final TransactionSchemaManager manager = createTransactionSchemaManager(timestamps);
+    private ManagedTimestampService timestamps;
+    private TransactionSchemaManager manager;
+
+    @ClassRule
+    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
     @Before
     public void setUp() {
+        timestamps = services.getManagedTimestampService();
+        manager = createTransactionSchemaManager();
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();
     }
 
@@ -66,7 +72,7 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Test
     public void canFailToInstallNewVersions() {
-        TransactionSchemaManager newManager = createTransactionSchemaManager(new InMemoryTimestampService());
+        TransactionSchemaManager newManager = createTransactionSchemaManager();
         // Always need to seed the default value, if it's not there
         assertThat(newManager.tryInstallNewTransactionsSchemaVersion(5)).isFalse();
         assertThat(newManager.tryInstallNewTransactionsSchemaVersion(5)).isTrue();
@@ -79,7 +85,7 @@ public class TransactionSchemaManagerIntegrationTest {
                 .hasMessageContaining("was never given out by the timestamp service");
     }
 
-    private TransactionSchemaManager createTransactionSchemaManager(TimestampService ts) {
+    private TransactionSchemaManager createTransactionSchemaManager() {
         return new TransactionSchemaManager(CoordinationServices.createDefault(
                 new InMemoryKeyValueService(true), timestamps, MetricsManagers.createForTests(), false));
     }

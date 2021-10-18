@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.factory.InMemoryLockAndTimestampServiceFactory;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -28,6 +29,7 @@ import com.palantir.example.profile.protos.generated.ProfilePersistence.UserProf
 import com.palantir.example.profile.schema.ProfileSchema;
 import com.palantir.example.profile.schema.generated.ProfileTableFactory;
 import com.palantir.example.profile.schema.generated.UserPhotosStreamValueTable;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -36,19 +38,33 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class ProfileStoreTest {
     private static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
     private static final UserProfile USER =
             UserProfile.newBuilder().setBirthEpochDay(0).setName("first last").build();
 
-    private final TransactionManager txnMgr =
-            TransactionManagers.createInMemory(ProfileSchema.INSTANCE.getLatestSchema());
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    private TransactionManager txnMgr;
+    private InMemoryTimelockServices services;
+
+    @Before
+    public void before() {
+        services = InMemoryTimelockServices.create(tempFolder);
+        txnMgr = TransactionManagers.createInMemory(
+                ProfileSchema.INSTANCE.getLatestSchema(), new InMemoryLockAndTimestampServiceFactory(services));
+    }
 
     @After
     public void after() {
         txnMgr.close();
+        services.close();
     }
 
     @Test

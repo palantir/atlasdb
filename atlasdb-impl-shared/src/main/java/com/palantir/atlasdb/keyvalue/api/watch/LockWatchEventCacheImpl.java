@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
@@ -42,6 +43,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
+    private final RateLimiter rateLimiter = RateLimiter.create(1.0);
 
     public static LockWatchEventCache create(CacheMetrics metrics) {
         return ResilientLockWatchProxy.newEventCacheProxy(
@@ -133,9 +135,11 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
-        timestampStateStore.remove(startTimestamp);
-        retentionEvents();
+    public void removeTransactionStateFromCache(long startTimestamp) {
+        removeFromTimestampState(startTimestamp);
+        if (rateLimiter.tryAcquire()) {
+            retentionEvents();
+        }
     }
 
     @VisibleForTesting
@@ -144,6 +148,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .timestampStoreState(timestampStateStore.getStateForTesting())
                 .logState(eventLog.getStateForTesting())
                 .build();
+    }
+
+    private synchronized void removeFromTimestampState(long startTimestamp) {
+        timestampStateStore.remove(startTimestamp);
     }
 
     private synchronized TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {

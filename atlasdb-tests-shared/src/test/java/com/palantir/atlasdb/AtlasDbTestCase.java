@@ -47,6 +47,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
@@ -64,6 +65,7 @@ public class AtlasDbTestCase {
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected TrackingKeyValueService keyValueService;
     protected InMemoryTimelockServices timelockServices;
+    protected TimelockService timelockService;
     protected TimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
@@ -79,10 +81,12 @@ public class AtlasDbTestCase {
 
     @Before
     public void setUp() throws Exception {
+        // TODO(gs): link LockService, LockClient and IMTS
         lockClient = LockClient.of("fake lock client");
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
         timelockServices = InMemoryTimelockServices.create(tempFolder);
+        timelockService = timelockServices.getLegacyTimelockService();
         timestampService = timelockServices.getTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
         TransactionTables.createTables(keyValueService);
@@ -111,9 +115,7 @@ public class AtlasDbTestCase {
         return new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                timelockServices.getTimestampService(),
-                timelockServices.getTimestampManagementService(),
-                lockClient,
+                timelockServices,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -155,9 +157,8 @@ public class AtlasDbTestCase {
         txManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                timelockServices.getTimestampService(),
                 timelockServices.getTimestampManagementService(),
-                lockClient,
+                timelockServices.getLegacyTimelockService(),
                 lockService,
                 transactionService,
                 mode);

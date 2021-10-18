@@ -49,11 +49,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class LockEventLogImplTest {
-    private final AtomicReference<LockWatches> lockWatches = new AtomicReference<>(LockWatches.create());
-    private final HeldLocksCollection heldLocksCollection = mock(HeldLocksCollection.class);
-    private final HeldLocks heldLocks = mock(HeldLocks.class);
-    private final LockEventLog log = new LockEventLogImpl(LOG_ID, lockWatches::get, heldLocksCollection);
-
     private static final UUID LOG_ID = UUID.randomUUID();
     private static final UUID STALE_LOG_ID = UUID.randomUUID();
     private static final Optional<LockWatchVersion> NEGATIVE_VERSION_CURRENT_LOG_ID =
@@ -68,6 +63,11 @@ public class LockEventLogImplTest {
     private static final AsyncLock LOCK_2 = new ExclusiveLock(DESCRIPTOR_2);
     private static final AsyncLock LOCK_3 = new ExclusiveLock(DESCRIPTOR_3);
     private static final LockToken TOKEN = LockToken.of(UUID.randomUUID());
+
+    private final AtomicReference<LockWatches> lockWatches = new AtomicReference<>(LockWatches.create());
+    private final HeldLocksCollection heldLocksCollection = mock(HeldLocksCollection.class);
+    private final HeldLocks heldLocks = mock(HeldLocks.class);
+    private final LockEventLog log = new LockEventLogImpl(LOG_ID, lockWatches::get, heldLocksCollection);
 
     @Before
     public void setupMocks() {

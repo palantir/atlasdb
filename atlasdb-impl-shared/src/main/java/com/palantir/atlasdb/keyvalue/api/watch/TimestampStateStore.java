@@ -41,7 +41,10 @@ import org.immutables.value.Value;
 @NotThreadSafe
 final class TimestampStateStore {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampStateStore.class);
-    private static final int MAXIMUM_SIZE = 20_000;
+
+    @VisibleForTesting
+    static final int MAXIMUM_SIZE = 20_000;
+
     private final NavigableMap<StartTimestamp, MapEntry> timestampMap = new TreeMap<>();
     private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions = TreeMultimap.create();
 
@@ -60,11 +63,11 @@ final class TimestampStateStore {
             StartTimestamp startTimestamp = StartTimestamp.of(transactionUpdate.startTs());
             MapEntry previousEntry = timestampMap.get(startTimestamp);
             if (previousEntry == null) {
-                throw new TransactionLockWatchFailedException("start timestamp missing from map");
+                throw new TransactionLockWatchFailedException("Start timestamp missing from map");
             }
 
             Preconditions.checkArgument(
-                    !previousEntry.commitInfo().isPresent(), "Commit info already present for given timestamp");
+                    previousEntry.commitInfo().isEmpty(), "Commit info already present for given timestamp");
 
             timestampMap.replace(
                     startTimestamp,

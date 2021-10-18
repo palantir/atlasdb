@@ -58,9 +58,7 @@ public class BackgroundSweepThread implements Runnable {
 
     private Optional<TableToSweep> currentTable = Optional.empty();
 
-    // Used in internal test code
-    @VisibleForTesting
-    @SuppressWarnings("checkstyle:RegexpMultilineCheck")
+    // VisibleForTesting - used in internal test code
     public static BackgroundSweepThread createForTests(
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,

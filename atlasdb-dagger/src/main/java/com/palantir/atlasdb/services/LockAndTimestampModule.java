@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.services;
 
+import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -41,7 +42,7 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(
+    public LockAndTimestampServices provideLockAndTimestampServices(
             MetricsManager metricsManager, ServicesConfig config) {
         ServiceDiscoveringAtlasSupplier atlasSupplier = config.atlasDbSupplier(metricsManager);
         Supplier<ManagedTimestampService> managedTimestampService = atlasSupplier::getManagedTimestampService;
@@ -59,19 +60,19 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public TimelockService provideTimelockService(TransactionManagers.LockAndTimestampServices lts) {
+    public TimelockService provideTimelockService(LockAndTimestampServices lts) {
         return lts.timelock();
     }
 
     @Provides
     @Singleton
-    public ManagedTimestampService provideManagedTimestampService(TransactionManagers.LockAndTimestampServices lts) {
+    public ManagedTimestampService provideManagedTimestampService(LockAndTimestampServices lts) {
         return lts.managedTimestampService();
     }
 
     @Provides
     @Singleton
-    public LockService provideLockService(TransactionManagers.LockAndTimestampServices lts) {
+    public LockService provideLockService(LockAndTimestampServices lts) {
         return lts.lock();
     }
 }

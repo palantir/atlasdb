@@ -35,9 +35,12 @@ dependencies {
     testImplementation project(':atlasdb-commons')
     testImplementation project(':atlasdb-config')
     testImplementation project(':atlasdb-impl-shared')
+    testImplementation project(':atlasdb-tests-shared')
+    testImplementation project(':atlasdb-tests-shared').sourceSets.test.output
     testImplementation project(':lock-api')
     testImplementation project(':lock-api-objects')
     testImplementation project(':lock-impl')
+    testImplementation project(':timelock-impl')
     testImplementation project(':timestamp-api')
 
     annotationProcessor group: 'org.immutables', name: 'value'

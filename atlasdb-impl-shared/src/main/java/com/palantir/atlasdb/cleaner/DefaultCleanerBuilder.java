@@ -23,13 +23,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.time.Clock;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.timestamp.TimestampService;
 import java.util.List;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -51,22 +47,6 @@ public class DefaultCleanerBuilder {
     private long backgroundScrubFrequencyMillis = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS;
     private int backgroundScrubBatchSize = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE;
     private boolean initalizeAsync = AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC;
-
-    public DefaultCleanerBuilder(
-            KeyValueService keyValueService,
-            LockService lockService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            List<? extends Follower> followerList,
-            TransactionService transactionService,
-            MetricsManager metricsManager) {
-        this(
-                keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
-                followerList,
-                transactionService,
-                metricsManager);
-    }
 
     public DefaultCleanerBuilder(
             KeyValueService keyValueService,
