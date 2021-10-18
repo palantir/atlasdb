@@ -30,7 +30,11 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.lock.watch.*;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 import java.time.Duration;
 import java.util.Optional;
@@ -157,14 +161,25 @@ public final class LockWatchIntegrationTestUtilities {
         return schema;
     }
 
-    public static final class CommitStageCondition<T> implements PreCommitCondition {
+    /**
+     * {@link PreCommitCondition} is actually run several times throughout a transaction - namely, before any read
+     * if this is configured. When run at these times, the start timestamp is passed in. However, when the condition
+     * is run at commit time, the commit timestamp is actually passed in, which means that we have a way of determining
+     * whether the condition is being evaluated at commit time or not.
+     *
+     * Given that this condition may execute arbitrary code, this is the only way to guarantee that test code will be
+     * run during the commit flow. To achieve this, we set the start timestamp, then evaluate each invocation of
+     * {@link PreCommitCondition#throwIfConditionInvalid(long)} against the start timestamp, only running the method
+     * if it is a different timestamp.
+     */
+    public static class CommitStageCondition<T> implements PreCommitCondition {
         private final Function<Long, T> startTimestampFunction;
         private final AtomicReference<T> commitStageResult;
         private volatile Optional<Long> startTimestamp;
 
-        public CommitStageCondition(Function<Long, T> startTimestampFunction, AtomicReference<T> commitStageResult) {
+        public CommitStageCondition(Function<Long, T> startTimestampFunction) {
             this.startTimestampFunction = startTimestampFunction;
-            this.commitStageResult = commitStageResult;
+            this.commitStageResult = new AtomicReference<>();
             this.startTimestamp = Optional.empty();
         }
 

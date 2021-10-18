@@ -31,13 +31,19 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.*;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.nio.charset.StandardCharsets;
@@ -46,9 +52,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Before;
@@ -109,8 +113,8 @@ public final class LockWatchEventIntegrationTest {
             return null;
         });
 
-        CommitUpdate firstUpdate = firstCondition.getCommitUpdate();
-        CommitUpdate secondUpdate = secondCondition.getCommitUpdate();
+        CommitUpdate firstUpdate = firstCondition.getCommitStageResult();
+        CommitUpdate secondUpdate = secondCondition.getCommitStageResult();
 
         assertThat(extractDescriptorsFromUpdate(firstUpdate))
                 .containsExactlyInAnyOrderElementsOf(getDescriptors(CELL_2));
@@ -121,26 +125,39 @@ public final class LockWatchEventIntegrationTest {
     public void multipleTransactionVersionsReturnsSnapshotAndOnlyRelevantRecentEvents() {
         LockWatchVersion baseVersion = getCurrentVersion();
 
-        writeValuesAndAwaitUnlock(ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2));
+        performWriteTransactionLockingAndUnlockingCells(ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2));
 
-        OpenTransaction secondTxn =
-                Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
+        OpenTransaction secondTxn = startSingleTransaction();
 
-        writeValuesAndAwaitUnlock(ImmutableMap.of(CELL_3, DATA_3));
+        performWriteTransactionLockingAndUnlockingCells(ImmutableMap.of(CELL_3, DATA_3));
 
         CountDownLatch endOfTest = new CountDownLatch(1);
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        startSlowCommittingTransaction(endOfTest, executor);
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor();
 
-        OpenTransaction fourthTxn =
-                Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
+        // The purpose of this transaction is to test when we can guarantee that there are some locks taken out
+        // without the subsequent unlock event.
+        startSlowWriteTransaction(endOfTest, executor);
 
-        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.empty(), secondTxn, fourthTxn);
+        OpenTransaction fifthTxn = startSingleTransaction();
 
+        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.empty(), secondTxn, fifthTxn);
+
+        /*
+        There are five transactions in this test, with the following events:
+
+        Transaction 1: lock C1, C2; unlock C1, C2.
+        Transaction 2: uncommitted, no events
+        Transaction 3: lock C3; unlock C3
+        Transaction 4: lock C1, C4; no unlocks (as stuck in commit stage)
+        Transaction 5: uncommitted, no events
+
+        From the above, Transactions 1 and 3 should increment the version by 2 each; Transaction 4 by 1. Thus,
+        Transaction 2 should be at base + 2, and Transaction 5 at base + 5.
+         */
         assertThat(update.clearCache()).isTrue();
         assertThat(update.startTsToSequence().get(secondTxn.getTimestamp()).version())
                 .isEqualTo(baseVersion.version() + 2);
-        assertThat(update.startTsToSequence().get(fourthTxn.getTimestamp()).version())
+        assertThat(update.startTsToSequence().get(fifthTxn.getTimestamp()).version())
                 .isEqualTo(baseVersion.version() + 5);
 
         assertThat(lockedDescriptors(update.events()))
@@ -149,7 +166,7 @@ public final class LockWatchEventIntegrationTest {
         assertThat(watchDescriptors(update.events())).isEmpty();
 
         secondTxn.finish(_unused -> null);
-        fourthTxn.finish(_unused -> null);
+        fifthTxn.finish(_unused -> null);
         endOfTest.countDown();
         executor.shutdown();
     }
@@ -158,25 +175,23 @@ public final class LockWatchEventIntegrationTest {
     public void upToDateVersionReturnsOnlyNecessaryEvents() {
         LockWatchVersion baseVersion = getCurrentVersion();
 
-        writeValuesAndAwaitUnlock(ImmutableMap.of(CELL_1, DATA_1));
+        performWriteTransactionLockingAndUnlockingCells(ImmutableMap.of(CELL_1, DATA_1));
 
-        OpenTransaction firstTxn =
-                Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
+        OpenTransaction secondTxn = startSingleTransaction();
 
-        writeValuesAndAwaitUnlock(ImmutableMap.of(CELL_2, DATA_2));
+        performWriteTransactionLockingAndUnlockingCells(ImmutableMap.of(CELL_2, DATA_2));
 
         LockWatchVersion currentVersion = getCurrentVersion();
-        writeValuesAndAwaitUnlock(ImmutableMap.of(CELL_3, DATA_3));
+        performWriteTransactionLockingAndUnlockingCells(ImmutableMap.of(CELL_3, DATA_3));
 
-        OpenTransaction secondTxn =
-                Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
+        OpenTransaction fifthTxn = startSingleTransaction();
 
-        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, secondTxn);
+        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), secondTxn, fifthTxn);
 
         assertThat(update.clearCache()).isFalse();
-        assertThat(update.startTsToSequence().get(firstTxn.getTimestamp()).version())
-                .isEqualTo(baseVersion.version() + 2);
         assertThat(update.startTsToSequence().get(secondTxn.getTimestamp()).version())
+                .isEqualTo(baseVersion.version() + 2);
+        assertThat(update.startTsToSequence().get(fifthTxn.getTimestamp()).version())
                 .isEqualTo(currentVersion.version() + 2);
 
         // Note that the lock/unlock events for CELL_2 are not present because a more up-to-date version was passed in
@@ -185,18 +200,21 @@ public final class LockWatchEventIntegrationTest {
         assertThat(watchDescriptors(update.events())).isEmpty();
     }
 
-    private void startSlowCommittingTransaction(CountDownLatch endOfTest, ExecutorService executor) {
+    private OpenTransaction startSingleTransaction() {
+        return Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
+    }
+
+    private void startSlowWriteTransaction(CountDownLatch endOfTest, ExecutorService executor) {
         CountDownLatch inCommitBlock = new CountDownLatch(1);
-        AtomicLong startTimestamp = new AtomicLong(-1L);
-        PreCommitCondition blockingCondition = timestamp -> {
-            if (timestamp != startTimestamp.get()) {
-                inCommitBlock.countDown();
-                Uninterruptibles.awaitUninterruptibly(endOfTest);
-            }
-        };
+        LockWatchIntegrationTestUtilities.CommitStageCondition<Void> blockingCondition =
+                new LockWatchIntegrationTestUtilities.CommitStageCondition<>(_unused -> {
+                    inCommitBlock.countDown();
+                    Uninterruptibles.awaitUninterruptibly(endOfTest);
+                    return null;
+                });
 
         executor.execute(() -> txnManager.runTaskWithConditionThrowOnConflict(blockingCondition, (txn, _unused) -> {
-            startTimestamp.set(txn.getTimestamp());
+            blockingCondition.setStartTimestamp(txn.getTimestamp());
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_4, DATA_4));
             return null;
         }));
@@ -222,7 +240,7 @@ public final class LockWatchEventIntegrationTest {
                 .orElseThrow();
     }
 
-    private void writeValuesAndAwaitUnlock(ImmutableMap<Cell, byte[]> values) {
+    private void performWriteTransactionLockingAndUnlockingCells(ImmutableMap<Cell, byte[]> values) {
         txnManager.runTaskThrowOnConflict(txn -> {
             txn.put(TABLE_REF, values);
             return null;
@@ -337,25 +355,14 @@ public final class LockWatchEventIntegrationTest {
         }
     }
 
-    private final class CommitUpdateExtractingCondition implements PreCommitCondition {
-        private final AtomicLong startTimestamp = new AtomicLong(-1L);
-        private CommitUpdate commitUpdate;
-
-        private void setStartTimestamp(long startTs) {
-            startTimestamp.set(startTs);
-        }
-
-        private CommitUpdate getCommitUpdate() {
-            return commitUpdate;
-        }
-
-        @Override
-        public void throwIfConditionInvalid(long timestamp) {
-            if (timestamp != startTimestamp.get()) {
+    private final class CommitUpdateExtractingCondition
+            extends LockWatchIntegrationTestUtilities.CommitStageCondition<CommitUpdate> {
+        public CommitUpdateExtractingCondition() {
+            super(timestamp -> {
                 LockWatchManagerInternal lockWatchManager =
                         LockWatchIntegrationTestUtilities.extractInternalLockWatchManager(txnManager);
-                commitUpdate = lockWatchManager.getCache().getEventCache().getCommitUpdate(startTimestamp.get());
-            }
+                return lockWatchManager.getCache().getEventCache().getCommitUpdate(timestamp);
+            });
         }
     }
 }
