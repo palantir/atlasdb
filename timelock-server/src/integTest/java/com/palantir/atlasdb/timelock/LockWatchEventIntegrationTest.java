@@ -207,7 +207,7 @@ public final class LockWatchEventIntegrationTest {
     private void startSlowWriteTransaction(CountDownLatch endOfTest, ExecutorService executor) {
         CountDownLatch inCommitBlock = new CountDownLatch(1);
         LockWatchIntegrationTestUtilities.CommitStageCondition<Void> blockingCondition =
-                new LockWatchIntegrationTestUtilities.CommitStageCondition<>(_unused -> {
+                new LockWatchIntegrationTestUtilities.CommitStageCondition<>((_unused1, _unused2) -> {
                     inCommitBlock.countDown();
                     Uninterruptibles.awaitUninterruptibly(endOfTest);
                     return null;
@@ -358,10 +358,10 @@ public final class LockWatchEventIntegrationTest {
     private final class CommitUpdateExtractingCondition
             extends LockWatchIntegrationTestUtilities.CommitStageCondition<CommitUpdate> {
         public CommitUpdateExtractingCondition() {
-            super(timestamp -> {
+            super((startTs, _unused) -> {
                 LockWatchManagerInternal lockWatchManager =
                         LockWatchIntegrationTestUtilities.extractInternalLockWatchManager(txnManager);
-                return lockWatchManager.getCache().getEventCache().getCommitUpdate(timestamp);
+                return lockWatchManager.getCache().getEventCache().getCommitUpdate(startTs);
             });
         }
     }

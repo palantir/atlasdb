@@ -36,10 +36,11 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import org.awaitility.Awaitility;
 
 public final class LockWatchIntegrationTestUtilities {
@@ -173,12 +174,12 @@ public final class LockWatchIntegrationTestUtilities {
      * if it is a different timestamp.
      */
     public static class CommitStageCondition<T> implements PreCommitCondition {
-        private final Function<Long, T> startTimestampFunction;
+        private final BiFunction<Long, Long, T> timestampFunction;
         private final AtomicReference<T> commitStageResult;
         private volatile Optional<Long> startTimestamp;
 
-        public CommitStageCondition(Function<Long, T> startTimestampFunction) {
-            this.startTimestampFunction = startTimestampFunction;
+        public CommitStageCondition(BiFunction<Long, Long, T> timestampFunction) {
+            this.timestampFunction = timestampFunction;
             this.commitStageResult = new AtomicReference<>();
             this.startTimestamp = Optional.empty();
         }
@@ -191,13 +192,17 @@ public final class LockWatchIntegrationTestUtilities {
             return commitStageResult.get();
         }
 
+        public long getStartTimestamp() {
+            return startTimestamp.orElseThrow(() -> new SafeIllegalStateException("Start timestamp was not set"));
+        }
+
         @Override
         public void throwIfConditionInvalid(long timestamp) {
             Preconditions.checkState(startTimestamp.isPresent(), "Must initialise start timestamp immediately");
             long startTs = startTimestamp.get();
 
             if (startTs != timestamp) {
-                this.commitStageResult.set(startTimestampFunction.apply(startTs));
+                this.commitStageResult.set(timestampFunction.apply(startTs, timestamp));
             }
         }
     }

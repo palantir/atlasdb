@@ -17,31 +17,54 @@
 package com.palantir.atlasdb.timelock;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Fail.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.*;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
-import com.palantir.atlasdb.transaction.api.*;
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.*;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.TransactionUpdate;
+import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Before;
@@ -446,21 +469,18 @@ public final class LockWatchValueIntegrationTest {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3));
             return null;
         });
-
         LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
-        AtomicLong startTs = new AtomicLong(-1L);
-        AtomicReference<LockWatchCache> lwCache = new AtomicReference<>(null);
-        PreCommitCondition condition = timestamp -> {
-            if (timestamp != startTs.get()) {
-                simulateOverlappingWriteTransaction(lwCache, startTs.get(), timestamp);
-            }
-        };
+        LockWatchIntegrationTestUtilities.CommitStageCondition<Void> condition =
+                new LockWatchIntegrationTestUtilities.CommitStageCondition<>((startTs, commitTs) -> {
+                    LockWatchCache cache = LockWatchIntegrationTestUtilities.extractInternalLockWatchManager(txnManager)
+                            .getCache();
+                    simulateOverlappingWriteTransaction(cache, startTs, commitTs);
+                    return null;
+                });
 
         assertThatCode(() -> txnManager.runTaskWithConditionThrowOnConflict(condition, (txn, _unused) -> {
-                    startTs.set(txn.getTimestamp());
-                    lwCache.set(((LockWatchManagerInternal) txnManager.getLockWatchManager()).getCache());
-
+                    condition.setStartTimestamp(txn.getTimestamp());
                     txnManager.getTimestampManagementService().fastForwardTimestamp(txn.getTimestamp() + 1_000_000);
 
                     txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
@@ -481,16 +501,14 @@ public final class LockWatchValueIntegrationTest {
 
         LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
 
-        AtomicLong startTimestamp = new AtomicLong(-1L);
-        PreCommitCondition commitFailingCondition = timestamp -> {
-            if (timestamp != startTimestamp.get()) {
-                throw new RuntimeException("Transaction failed at commit time");
-            }
-        };
+        LockWatchIntegrationTestUtilities.CommitStageCondition<Void> commitFailingCondition =
+                new LockWatchIntegrationTestUtilities.CommitStageCondition<>((_unused1, _unused2) -> {
+                    throw new RuntimeException("Transaction failed at commit time");
+                });
 
         assertThatThrownBy(
                         () -> txnManager.runTaskWithConditionThrowOnConflict(commitFailingCondition, (txn, _unused) -> {
-                            startTimestamp.set(txn.getTimestamp());
+                            commitFailingCondition.setStartTimestamp(txn.getTimestamp());
                             txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_4));
                             txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2, CELL_3));
                             return null;
@@ -569,24 +587,22 @@ public final class LockWatchValueIntegrationTest {
     }
 
     private void simulateOverlappingWriteTransaction(
-            AtomicReference<LockWatchCache> lwCache, long theirStartTimestamp, long theirCommitTimestamp) {
+            LockWatchCache cache, long theirStartTimestamp, long theirCommitTimestamp) {
         LockToken lockToken = LockToken.of(UUID.randomUUID());
         LockWatchVersion lastKnownVersion =
-                lwCache.get().getEventCache().lastKnownVersion().get();
+                cache.getEventCache().lastKnownVersion().get();
 
         long ourStartTimestamp = theirStartTimestamp + 1;
         long ourCommitTimestamp = theirCommitTimestamp + 1;
-        lwCache.get()
-                .processStartTransactionsUpdate(
-                        ImmutableSet.of(ourStartTimestamp), createLockSuccessUpdate(lockToken, lastKnownVersion));
-        lwCache.get()
-                .processCommitTimestampsUpdate(
-                        ImmutableSet.of(TransactionUpdate.builder()
-                                .startTs(ourStartTimestamp)
-                                .commitTs(ourCommitTimestamp)
-                                .writesToken(lockToken)
-                                .build()),
-                        createUnlockSuccessUpdate(lastKnownVersion));
+        cache.processStartTransactionsUpdate(
+                ImmutableSet.of(ourStartTimestamp), createLockSuccessUpdate(lockToken, lastKnownVersion));
+        cache.processCommitTimestampsUpdate(
+                ImmutableSet.of(TransactionUpdate.builder()
+                        .startTs(ourStartTimestamp)
+                        .commitTs(ourCommitTimestamp)
+                        .writesToken(lockToken)
+                        .build()),
+                createUnlockSuccessUpdate(lastKnownVersion));
 
         txnManager.getKeyValueService().put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), theirCommitTimestamp - 1);
         txnManager.getTransactionService().putUnlessExists(theirCommitTimestamp - 1, theirCommitTimestamp + 1);
