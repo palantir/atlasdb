@@ -36,7 +36,6 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -190,10 +189,6 @@ public final class LockWatchIntegrationTestUtilities {
 
         public T getCommitStageResult() {
             return commitStageResult.get();
-        }
-
-        public long getStartTimestamp() {
-            return startTimestamp.orElseThrow(() -> new SafeIllegalStateException("Start timestamp was not set"));
         }
 
         @Override
