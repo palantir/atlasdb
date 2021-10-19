@@ -330,12 +330,13 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         LeaderElectionReportingTimelockService leaderElectionReportingTimelockService =
                 LeaderElectionReportingTimelockService.create(withDiagnosticsConjureTimelockService, timelockNamespace);
-        NamespacedConjureTimelockService namespacedConjureTimelockService =
-                TimestampCorroboratingTimelockService.create(
-                        timelockNamespace, metricsManager.getTaggedRegistry(), leaderElectionReportingTimelockService);
 
         timeLockFeedbackBackgroundTask.ifPresent(
                 task -> task.registerLeaderElectionStatistics(leaderElectionReportingTimelockService));
+
+        NamespacedConjureTimelockService namespacedConjureTimelockService =
+                TimestampCorroboratingTimelockService.create(
+                        timelockNamespace, metricsManager.getTaggedRegistry(), leaderElectionReportingTimelockService);
 
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
