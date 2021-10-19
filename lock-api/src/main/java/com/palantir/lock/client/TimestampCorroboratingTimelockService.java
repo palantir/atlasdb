@@ -137,7 +137,8 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
         return timestampContainer;
     }
 
-    private TimestampBounds getTimestampBounds() {
+    @VisibleForTesting
+    TimestampBounds getTimestampBounds() {
         long threadLocalLowerBoundFromTimestamps = lowerBoundFromTimestamps.get();
         long threadLocalLowerBoundFromTransactions = lowerBoundFromTransactions.get();
         return ImmutableTimestampBounds.of(threadLocalLowerBoundFromTimestamps, threadLocalLowerBoundFromTransactions);
