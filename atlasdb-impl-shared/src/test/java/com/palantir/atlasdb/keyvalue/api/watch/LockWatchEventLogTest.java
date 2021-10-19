@@ -35,11 +35,12 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.Test;
 
 public class LockWatchEventLogTest {
-    private static final int MIN_EVENTS = 5;
+    private static final int MIN_EVENTS = 1;
     private static final int MAX_EVENTS = 25;
 
     private static final UUID INITIAL_LOG_ID = UUID.randomUUID();
@@ -240,6 +241,39 @@ public class LockWatchEventLogTest {
         LockWatchVersion initialLeaderAtSequenceOne = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1);
         assertThat(cacheUpdate.shouldClearCache()).isFalse();
         assertThat(cacheUpdate.getVersion()).hasValue(initialLeaderAtSequenceOne);
+    }
+
+    @Test
+    public void retentionedEventsAreSentToSnapshot() {
+        eventLog.processUpdate(SNAPSHOT);
+
+        LockWatchEvent lockEventVersion2 =
+                LockEvent.builder(ImmutableSet.of(DESCRIPTOR_2), LOCK_TOKEN).build(SEQUENCE_2);
+        LockWatchEvent unlockEventVersion3 =
+                UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_1)).build(3L);
+        LockWatchEvent lockEventVersion4 =
+                LockEvent.builder(ImmutableSet.of(DESCRIPTOR_1), LOCK_TOKEN).build(4L);
+
+        eventLog.processUpdate(LockWatchStateUpdate.success(
+                INITIAL_LOG_ID, 4L, ImmutableList.of(lockEventVersion2, unlockEventVersion3, lockEventVersion4)));
+
+        eventLog.retentionEvents(Optional.of(Sequence.of(4L)));
+        LockWatchVersion initialLeaderAtSequenceThree = LockWatchVersion.of(INITIAL_LOG_ID, 3L);
+        LockWatchVersion initialLeaderAtSequenceFour = LockWatchVersion.of(INITIAL_LOG_ID, 4L);
+
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceFour);
+        assertThat(eventLog.getStateForTesting())
+                .isEqualTo(ImmutableLockWatchEventLogState.builder()
+                        .latestVersion(initialLeaderAtSequenceFour)
+                        .snapshotState(ImmutableClientLockWatchSnapshotState.builder()
+                                .snapshotVersion(initialLeaderAtSequenceThree)
+                                .addLocked(DESCRIPTOR_2)
+                                .addWatches(REFERENCE_1)
+                                .build())
+                        .eventStoreState(ImmutableVersionedEventStoreState.builder()
+                                .eventMap(ImmutableSortedMap.of(Sequence.of(4L), lockEventVersion4))
+                                .build())
+                        .build());
     }
 
     @Test
