@@ -161,7 +161,7 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
-    public void successEventWithOverlappingEventsOnlyAppliesNewEvents() {
+    public void successUpdateWithOverlappingEventsOnlyAppliesNewEvents() {
         eventLog.processUpdate(SNAPSHOT);
         eventLog.processUpdate(LockWatchStateUpdate.success(
                 INITIAL_LOG_ID,
@@ -191,7 +191,7 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
-    public void oldSuccessEventDoesNotReapplyEvents() {
+    public void oldSuccessUpdateDoesNotReapplyEvents() {
         eventLog.processUpdate(SNAPSHOT);
         eventLog.processUpdate(LockWatchStateUpdate.success(
                 INITIAL_LOG_ID,
@@ -221,7 +221,7 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
-    public void successOlderThanSnapshotThrows() {
+    public void successUpdateOlderThanSnapshotThrows() {
         eventLog.processUpdate(SNAPSHOT);
         assertThatThrownBy(() ->
                         eventLog.processUpdate(LockWatchStateUpdate.success(INITIAL_LOG_ID, 0L, ImmutableList.of())))
@@ -231,7 +231,7 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
-    public void successEventWithNoEventsDoesNotThrow() {
+    public void successUpdateWithNoEventsDoesNotThrow() {
         eventLog.processUpdate(SNAPSHOT);
         CacheUpdate cacheUpdate =
                 eventLog.processUpdate(LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_1, ImmutableList.of()));
@@ -239,6 +239,40 @@ public final class LockWatchEventLogTest {
         LockWatchVersion initialLeaderAtSequenceOne = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1);
         assertThat(cacheUpdate.shouldClearCache()).isFalse();
         assertThat(cacheUpdate.getVersion()).hasValue(initialLeaderAtSequenceOne);
+    }
+
+    @Test
+    public void successUpdateWithoutBridgingEventsThrows() {
+        eventLog.processUpdate(SNAPSHOT);
+        assertThatThrownBy(() -> eventLog.processUpdate(
+                        LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_4, ImmutableList.of())))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Success event has a later version than the current "
+                        + "version, but has no events to bridge the gap. The transaction should be retried, but this "
+                        + "should only happen rarely.");
+    }
+
+    @Test
+    public void snapshotUpdateAfterSuccessEventResetsState() {
+        eventLog.processUpdate(SNAPSHOT);
+        eventLog.processUpdate(SUCCESS_VERSION_4);
+        CacheUpdate cacheUpdate = eventLog.processUpdate(LockWatchStateUpdate.snapshot(
+                INITIAL_LOG_ID, 6L, ImmutableSet.of(DESCRIPTOR_1), ImmutableSet.of(REFERENCE_1, REFERENCE_2)));
+
+        LockWatchVersion initialLeaderAtSequenceSix = LockWatchVersion.of(INITIAL_LOG_ID, 6L);
+        assertThat(cacheUpdate.shouldClearCache()).isTrue();
+        assertThat(cacheUpdate.getVersion()).hasValue(initialLeaderAtSequenceSix);
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceSix);
+        assertThat(eventLog.getStateForTesting())
+                .isEqualTo(ImmutableLockWatchEventLogState.builder()
+                        .latestVersion(initialLeaderAtSequenceSix)
+                        .snapshotState(ImmutableClientLockWatchSnapshotState.builder()
+                                .snapshotVersion(initialLeaderAtSequenceSix)
+                                .addLocked(DESCRIPTOR_1)
+                                .addWatches(REFERENCE_1, REFERENCE_2)
+                                .build())
+                        .eventStoreState(EMPTY_EVENT_STORE_STATE)
+                        .build());
     }
 
     @Test
@@ -283,7 +317,7 @@ public final class LockWatchEventLogTest {
         processSnapshotAndSuccessUpToVersionFour();
 
         LockWatchVersion initialLeaderAtSequenceOne = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1);
-        LockWatchVersion initialLeaderAtSequenceThree = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_4);
+        LockWatchVersion initialLeaderAtSequenceThree = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_3);
         ClientLogEvents events = eventLog.getEventsBetweenVersions(VersionBounds.builder()
                 .startVersion(initialLeaderAtSequenceOne)
                 .endVersion(initialLeaderAtSequenceThree)
