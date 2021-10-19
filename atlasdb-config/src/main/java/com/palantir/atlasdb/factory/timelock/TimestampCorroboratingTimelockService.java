@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.factory.timelock;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.EvictingQueue;
 import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
@@ -47,11 +48,13 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     private final TimelockService delegate;
     private final AtomicLong lowerBoundFromTimestamps = new AtomicLong(Long.MIN_VALUE);
     private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
+    private final EvictingQueue<TimestampBounds> previousBounds;
 
     @VisibleForTesting
     TimestampCorroboratingTimelockService(Runnable timestampViolationCallback, TimelockService delegate) {
         this.timestampViolationCallback = timestampViolationCallback;
         this.delegate = delegate;
+        previousBounds = EvictingQueue.create(50);
     }
 
     public static TimelockService create(
