@@ -104,15 +104,10 @@ types:
       PrepareBackupRequest:
         fields:
           namespaces: set<Namespace>
-      SuccessfulPrepareBackupResponse:
-        fields:
-          backupTokens: set<BackupToken>
-      UnsuccessfulPrepareBackupResponse:
-        fields: {}
       PrepareBackupResponse:
-        union:
-          successful: SuccessfulPrepareBackupResponse
-          unsuccessful: UnsuccessfulPrepareBackupResponse
+        fields:
+          successful: set<BackupToken>
+          unsuccessful: set<Namespace>
       CheckBackupIsValidRequest:
         fields:
           backupTokens: set<BackupToken>
