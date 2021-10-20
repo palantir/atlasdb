@@ -17,9 +17,11 @@
 package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.BackupToken;
@@ -50,7 +52,7 @@ public class AtlasBackupResourceTest {
     @Test
     public void preparesBackupSuccessfully() {
         LockToken lockToken = lockToken();
-        when(mockTimelock.lockImmutableTimestamp())
+        when(mockTimelock.lockImmutableTimestamp(any()))
                 .thenReturn(LockImmutableTimestampResponse.of(IMMUTABLE_TIMESTAMP, lockToken));
         when(mockTimelock.getFreshTimestamp()).thenReturn(BACKUP_START_TIMESTAMP);
 
@@ -65,7 +67,7 @@ public class AtlasBackupResourceTest {
 
     @Test
     public void prepareBackupUnsuccessfulWhenLockImmutableTimestampFails() {
-        when(mockTimelock.lockImmutableTimestamp()).thenThrow(new RuntimeException("agony"));
+        when(mockTimelock.lockImmutableTimestamp(any())).thenThrow(new RuntimeException("agony"));
 
         PrepareBackupResponse response =
                 atlasBackupService.prepareBackup(AUTH_HEADER, PrepareBackupRequest.of(Set.of(NAMESPACE)));
@@ -100,7 +102,7 @@ public class AtlasBackupResourceTest {
         BackupToken backupToken = backupToken(lockToken);
 
         Set<LockToken> singleLockToken = Set.of(lockToken);
-        when(mockTimelock.unlock(singleLockToken)).thenReturn(singleLockToken);
+        when(mockTimelock.unlock(singleLockToken)).thenReturn(Futures.immediateFuture(singleLockToken));
 
         return backupToken;
     }
@@ -109,7 +111,7 @@ public class AtlasBackupResourceTest {
         LockToken lockToken = lockToken();
         BackupToken backupToken = backupToken(lockToken);
 
-        when(mockTimelock.unlock(Set.of(lockToken))).thenReturn(Set.of());
+        when(mockTimelock.unlock(Set.of(lockToken))).thenReturn(Futures.immediateFuture(Set.of()));
 
         return backupToken;
     }

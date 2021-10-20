@@ -22,15 +22,12 @@ import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Queues;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
-import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
-import com.palantir.atlasdb.timelock.api.SuccessfulLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.api.UnsuccessfulLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import java.time.Instant;
 import java.util.List;
@@ -66,29 +63,6 @@ public final class LocalLockTracker {
                     @Override
                     public String visitUnsuccessful(UnsuccessfulLockResponse value) {
                         return "FAILED - tried to lock " + lockDescriptors;
-                    }
-
-                    @Override
-                    public String visitUnknown(String unknownType) {
-                        return "unexpected type: " + unknownType;
-                    }
-                }))
-                .build();
-        eventBuffer.add(event);
-    }
-
-    public void logLockImmutableTimestampResponse(ConjureLockImmutableTimestampResponse response) {
-        TrackedLockEvent event = getTimestampedLockEventBuilder()
-                .eventType(EventType.LOCK)
-                .eventDescription(response.accept(new ConjureLockImmutableTimestampResponse.Visitor<>() {
-                    @Override
-                    public String visitSuccessful(SuccessfulLockImmutableTimestampResponse value) {
-                        return "SUCCESS - locked immutable timestamp; obtained " + value;
-                    }
-
-                    @Override
-                    public String visitUnsuccessful(UnsuccessfulLockImmutableTimestampResponse value) {
-                        return "FAILED - tried to lock immutable timestamp";
                     }
 
                     @Override

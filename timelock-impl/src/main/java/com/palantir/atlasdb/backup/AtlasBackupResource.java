@@ -20,9 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
-import com.palantir.atlasdb.backup.api.AtlasBackupServiceEndpoints;
-import com.palantir.atlasdb.backup.api.UndertowAtlasBackupService;
-import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
@@ -30,7 +27,7 @@ import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
-import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.SafeArg;
@@ -96,7 +93,7 @@ public class AtlasBackupResource implements AtlasBackupService {
 
     private BackupToken tryPrepareBackup(Namespace namespace) {
         AsyncTimelockService timelock = timelock(namespace);
-        LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp();
+        LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long timestamp = timelock.getFreshTimestamp();
         return BackupToken.builder()
                 .namespace(namespace)
@@ -120,7 +117,7 @@ public class AtlasBackupResource implements AtlasBackupService {
         ListenableFuture<Set<LockToken>> unlockResult =
                 timelock(backupToken.getNamespace()).unlock(Set.of(lockToken));
         // TODO(gs): proper future handling
-        return Futures.getUnchecked(unlockResult).contains(lockToken)
+        return Futures.getUnchecked(unlockResult).contains(lockToken);
     }
 
     private BackupToken fetchFastForwardTimestamp(BackupToken backupToken) {
