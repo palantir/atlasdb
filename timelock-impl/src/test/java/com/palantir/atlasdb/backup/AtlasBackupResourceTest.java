@@ -28,7 +28,9 @@ import static org.mockito.Mockito.when;
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
 import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CheckBackupIsValidRequest;
+import com.palantir.atlasdb.timelock.api.CheckBackupIsValidResponse;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
+import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
@@ -48,6 +50,7 @@ import com.palantir.atlasdb.timelock.api.UnsuccessfulPrepareBackupResponse;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.assertj.core.api.Assertions;
@@ -95,7 +98,7 @@ public class AtlasBackupResourceTest {
                 .thenReturn(ConjureGetFreshTimestampsResponse.of(1L, 1L));
 
         Assertions.assertThat(atlasBackupService.getFreshTimestamps(AUTH_HEADER, Set.of(NAMESPACE)))
-                .isEqualTo(1L);
+                .isEqualTo(Map.of(NAMESPACE, 1L));
 
         // no call to prepare backup
         verify(conjureTimelockService, times(1)).getFreshTimestamps(any(), any(), any());
@@ -108,7 +111,9 @@ public class AtlasBackupResourceTest {
 
         Assertions.assertThat(atlasBackupService.checkBackupIsValid(
                         AUTH_HEADER, CheckBackupIsValidRequest.of(Set.of(backupToken))))
-                .isTrue();
+                .isEqualTo(CheckBackupIsValidResponse.builder()
+                        .validBackupTokens(backupToken)
+                        .build());
     }
 
     @Test
@@ -117,7 +122,9 @@ public class AtlasBackupResourceTest {
 
         Assertions.assertThat(atlasBackupService.checkBackupIsValid(
                         AUTH_HEADER, CheckBackupIsValidRequest.of(Set.of(backupToken))))
-                .isFalse();
+                .isEqualTo(CheckBackupIsValidResponse.builder()
+                        .invalidBackupTokens(backupToken)
+                        .build());
     }
 
     @Test
@@ -126,16 +133,20 @@ public class AtlasBackupResourceTest {
 
         Assertions.assertThat(
                         atlasBackupService.completeBackup(AUTH_HEADER, CompleteBackupRequest.of(Set.of(backupToken))))
-                .isTrue();
+                .isEqualTo(CompleteBackupResponse.builder()
+                        .successfulBackups(NAMESPACE)
+                        .build());
     }
 
     @Test
-    public void completeBackupReturnsTrueWhenLockIsLost() {
+    public void completeBackupReturnsFalseWhenLockIsLost() {
         BackupToken backupToken = getInvalidBackupToken();
 
         Assertions.assertThat(
                         atlasBackupService.completeBackup(AUTH_HEADER, CompleteBackupRequest.of(Set.of(backupToken))))
-                .isFalse();
+                .isEqualTo(CompleteBackupResponse.builder()
+                        .unsuccessfulBackups(NAMESPACE)
+                        .build());
     }
 
     @NotNull
