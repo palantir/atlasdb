@@ -19,8 +19,6 @@ package com.palantir.atlasdb.backup;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
 import com.palantir.atlasdb.timelock.api.BackupToken;
-import com.palantir.atlasdb.timelock.api.CheckBackupIsValidRequest;
-import com.palantir.atlasdb.timelock.api.CheckBackupIsValidResponse;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -33,9 +31,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -63,72 +59,57 @@ public class AtlasBackupResource implements AtlasBackupService {
 
     @Override
     public PrepareBackupResponse prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
-        // TODO(gs): map?
-        Set<BackupToken> backupTokens = new HashSet<>();
-        Set<Namespace> unsuccessfulNamespaces = new HashSet<>();
-        for (Namespace namespace : request.getNamespaces()) {
-            try {
-                LockImmutableTimestampResponse response = timelock(namespace).lockImmutableTimestamp();
-                BackupToken backupToken =
-                        BackupToken.of(namespace, response.getImmutableTimestamp(), response.getLock());
-                backupTokens.add(backupToken);
-            } catch (Exception e) {
-                log.info("Failed to prepare backup for namespace", SafeArg.of("namespace", namespace), e);
-                unsuccessfulNamespaces.add(namespace);
-            }
+        Set<BackupToken> preparedBackups = request.getNamespaces().stream()
+                .map(this::prepareBackup)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+        return PrepareBackupResponse.of(preparedBackups);
+    }
+
+    Optional<BackupToken> prepareBackup(Namespace namespace) {
+        try {
+            return Optional.of(tryPrepareBackup(namespace));
+        } catch (Exception ex) {
+            log.info("Failed to prepare backup for namespace", SafeArg.of("namespace", namespace), e);
+            return Optional.empty();
         }
+    }
 
-        return PrepareBackupResponse.builder()
-                .successful(backupTokens)
-                .unsuccessful(unsuccessfulNamespaces)
+    private BackupToken tryPrepareBackup(Namespace namespace) {
+        TimelockService timelock = timelock(namespace);
+        LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp();
+        long timestamp = timelock.getFreshTimestamp();
+        return BackupToken.builder()
+                .lockToken(response.getLock())
+                .immutableTimestamp(response.getImmutableTimestamp())
+                .backupStartTimestamp(timestamp)
                 .build();
-    }
-
-    @Override
-    public Map<Namespace, Long> getFreshTimestamps(AuthHeader authHeader, Set<Namespace> namespaces) {
-        return namespaces.stream()
-                .collect(Collectors.toMap(ns -> ns, ns -> timelock(ns).getFreshTimestamp()));
-    }
-
-    @Override
-    public CheckBackupIsValidResponse checkBackupIsValid(AuthHeader authHeader, CheckBackupIsValidRequest request) {
-        Map<Boolean, List<BackupToken>> validAndInvalidTokens =
-                request.getBackupTokens().stream().collect(Collectors.partitioningBy(this::isValid));
-
-        return CheckBackupIsValidResponse.builder()
-                .validBackupTokens(validAndInvalidTokens.get(true))
-                .invalidBackupTokens(validAndInvalidTokens.get(false))
-                .build();
-    }
-
-    private boolean isValid(BackupToken backupToken) {
-        LockToken lockToken = backupToken.getLockToken();
-        return timelock(backupToken.getNamespace())
-                .refreshLockLeases(Set.of(lockToken))
-                .contains(lockToken);
     }
 
     @Override
     public CompleteBackupResponse completeBackup(AuthHeader authHeader, CompleteBackupRequest request) {
-        Map<Boolean, List<BackupToken>> results =
-                request.getBackupTokens().stream().collect(Collectors.partitioningBy(this::completeBackup));
-
-        return CompleteBackupResponse.builder()
-                .successfulBackups(namespaces(results.get(true)))
-                .unsuccessfulBackups(namespaces(results.get(false)))
-                .build();
+        Set<BackupToken> completedBackups = request.getBackupTokens().stream()
+                .filter(this::wasCompleteBackupSuccessful)
+                .map(this::fetchFastForwardTimestamp)
+                .collect(Collectors.toSet());
+        return CompleteBackupResponse.of(completedBackups);
     }
 
-    private boolean completeBackup(BackupToken backupToken) {
+    private boolean wasCompleteBackupSuccessful(BackupToken backupToken) {
         LockToken lockToken = backupToken.getLockToken();
         return timelock(backupToken.getNamespace()).unlock(Set.of(lockToken)).contains(lockToken);
     }
 
-    private TimelockService timelock(Namespace namespace) {
-        return timelockServices.apply(namespace.get());
+    private BackupToken fetchFastForwardTimestamp(BackupToken backupToken) {
+        Namespace namespace = backupToken.getNamespace();
+        long fastForwardTimestamp = timelock(namespace).getFreshTimestamp();
+        return BackupToken.builder()
+                .from(backupToken)
+                .backupEndTimestamp(fastForwardTimestamp)
+                .build();
     }
 
-    private static Set<Namespace> namespaces(List<BackupToken> tokens) {
-        return tokens.stream().map(BackupToken::getNamespace).collect(Collectors.toSet());
+    private TimelockService timelock(Namespace namespace) {
+        return timelockServices.apply(namespace.get());
     }
 }

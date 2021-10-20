@@ -96,32 +96,26 @@ types:
         union:
           successful: SuccessfulLockImmutableTimestampResponse
           unsuccessful: UnsuccessfulLockImmutableTimestampResponse
-      BackupToken:
+      # in-progress backup information may be kept in TimeLock/Atlas somewhere.
+      BackupToken: # separate objects for in-progress vs complete backups?
         fields:
           namespace: Namespace
-          backupTimestamp: Long
           lockToken: LockToken
+          immutableTimestamp: Long
+          backupStartTimestamp: Long
+          backupEndTimestamp: optional<Long>
       PrepareBackupRequest:
         fields:
           namespaces: set<Namespace>
       PrepareBackupResponse:
         fields:
-          successful: set<BackupToken>
-          unsuccessful: set<Namespace>
-      CheckBackupIsValidRequest:
-        fields:
-          backupTokens: set<BackupToken>
-      CheckBackupIsValidResponse:
-        fields:
-          validBackupTokens: set<BackupToken>
-          invalidBackupTokens: set<BackupToken>
+          successful: set<BackupToken> # set<Namespace>?
       CompleteBackupRequest:
         fields:
           backupTokens: set<BackupToken>
       CompleteBackupResponse:
         fields:
-          successfulBackups: set<Namespace>
-          unsuccessfulBackups: set<Namespace>
+          successfulBackups: set<BackupToken>
       ConjureWaitForLocksResponse:
         fields:
           wasSuccessful: boolean
@@ -168,16 +162,6 @@ services:
         args:
           request: PrepareBackupRequest
         returns: PrepareBackupResponse
-      getFreshTimestamps:
-        http: POST /ts
-        args:
-          namespaces: set<Namespace>
-        returns: map<Namespace, Long>
-      checkBackupIsValid:
-        http: POST /checkValid
-        args:
-          request: CheckBackupIsValidRequest
-        returns: CheckBackupIsValidResponse
       completeBackup:
         http: POST /complete
         args:
