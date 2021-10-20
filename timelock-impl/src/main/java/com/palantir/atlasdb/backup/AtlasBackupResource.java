@@ -17,8 +17,16 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.backup.api.AtlasBackupService;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
+import com.palantir.atlasdb.timelock.api.BackupToken;
+import com.palantir.atlasdb.timelock.api.CheckBackupIsValidRequest;
+import com.palantir.atlasdb.timelock.api.CheckBackupIsValidResponse;
+import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
+import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
@@ -28,7 +36,8 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
-import com.palantir.atlasdb.timelock.api.NamespacedLockToken;
+import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulPrepareBackupResponse;
@@ -40,18 +49,19 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
-public class AtlasBackupService {
+public class AtlasBackupResource implements AtlasBackupService {
     private final ConjureTimelockService timelockService;
 
     @VisibleForTesting
-    AtlasBackupService(ConjureTimelockService timelockService) {
+    AtlasBackupResource(ConjureTimelockService timelockService) {
         this.timelockService = timelockService;
     }
 
-    public static AtlasBackupService create(
+    public static AtlasBackupResource create(
             Refreshable<ServerListConfig> serverListConfig,
             DialogueClients.ReloadingFactory reloadingFactory,
             UserAgent userAgent,
@@ -60,20 +70,21 @@ public class AtlasBackupService {
                 serverListConfig, reloadingFactory, userAgent, taggedMetricRegistry);
         ConjureTimelockService timelockService = serviceProvider.getConjureTimelockService();
 
-        return new AtlasBackupService(timelockService);
+        return new AtlasBackupResource(timelockService);
     }
 
-    // lock immutable timestamp
-    public PrepareBackupResponse prepareBackup(AuthHeader authHeader, String namespace) {
-        ConjureLockImmutableTimestampResponse response = timelockService.lockImmutableTimestamp(authHeader, namespace);
+    @Override
+    public PrepareBackupResponse prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
+        Namespace namespace = getAny(request.getNamespaces());
+        ConjureLockImmutableTimestampResponse response =
+                timelockService.lockImmutableTimestamp(authHeader, namespace.get());
         return response.accept(new Visitor<>() {
             @Override
             public PrepareBackupResponse visitSuccessful(SuccessfulLockImmutableTimestampResponse value) {
                 LockToken lockToken = LockToken.of(value.getLockToken().getRequestId());
-                NamespacedLockToken namespacedLockToken = NamespacedLockToken.of(namespace, lockToken);
+                BackupToken backupToken = BackupToken.of(namespace, value.getImmutableTimestamp(), lockToken);
                 return PrepareBackupResponse.successful(SuccessfulPrepareBackupResponse.builder()
-                        .namespacedLockToken(namespacedLockToken)
-                        .immutableTimestamp(value.getImmutableTimestamp())
+                        .backupTokens(backupToken)
                         .build());
             }
 
@@ -89,33 +100,49 @@ public class AtlasBackupService {
         });
     }
 
-    public long getFreshTimestampForBackup(AuthHeader authHeader, String namespace) {
+    @NotNull
+    private <T> T getAny(Set<T> input) {
+        // single ns for now
+        return input.stream().findAny().orElseThrow();
+    }
+
+    @Override
+    public Map<Namespace, Long> getFreshTimestamps(AuthHeader authHeader, Set<Namespace> namespaces) {
         ConjureGetFreshTimestampsRequest request = ConjureGetFreshTimestampsRequest.of(1);
-        ConjureGetFreshTimestampsResponse response = timelockService.getFreshTimestamps(authHeader, namespace, request);
-        return response.getInclusiveLower();
+        Namespace namespace = getAny(namespaces);
+        ConjureGetFreshTimestampsResponse response =
+                timelockService.getFreshTimestamps(authHeader, namespace.get(), request);
+        return ImmutableMap.of(namespace, response.getInclusiveLower());
     }
 
-    // check immutable ts lock
-    public boolean checkBackupIsValid(AuthHeader authHeader, NamespacedLockToken namespacedLockToken) {
-        ConjureLockToken conjureLockToken = getConjureLockToken(namespacedLockToken);
-        ConjureRefreshLocksRequest request = ConjureRefreshLocksRequest.of(Set.of(conjureLockToken));
-        ConjureRefreshLocksResponse response =
-                timelockService.refreshLocks(authHeader, namespacedLockToken.getNamespace(), request);
-        return response.getRefreshedTokens().contains(conjureLockToken);
+    @Override
+    public CheckBackupIsValidResponse checkBackupIsValid(AuthHeader authHeader, CheckBackupIsValidRequest request) {
+        BackupToken backupToken = getAny(request.getBackupTokens());
+        ConjureLockToken conjureLockToken = getConjureLockToken(backupToken);
+        ConjureRefreshLocksRequest conjureRequest = ConjureRefreshLocksRequest.of(Set.of(conjureLockToken));
+        ConjureRefreshLocksResponse response = timelockService.refreshLocks(
+                authHeader, backupToken.getNamespace().get(), conjureRequest);
+        return response.getRefreshedTokens().contains(conjureLockToken)
+                ? CheckBackupIsValidResponse.of(ImmutableSet.of(backupToken), ImmutableSet.of())
+                : CheckBackupIsValidResponse.of(ImmutableSet.of(), ImmutableSet.of(backupToken));
     }
 
-    // unlocks immutable timestamp
-    public boolean completeBackup(AuthHeader authHeader, NamespacedLockToken namespacedLockToken) {
-        ConjureLockToken conjureLockToken = getConjureLockToken(namespacedLockToken);
-        ConjureUnlockRequest request = ConjureUnlockRequest.of(Set.of(conjureLockToken));
+    @Override
+    public CompleteBackupResponse completeBackup(AuthHeader authHeader, CompleteBackupRequest request) {
+        BackupToken backupToken = getAny(request.getBackupTokens());
+        ConjureLockToken conjureLockToken = getConjureLockToken(backupToken);
+        ConjureUnlockRequest conjureRequest = ConjureUnlockRequest.of(Set.of(conjureLockToken));
         Set<ConjureLockToken> unlockedTokens = timelockService
-                .unlock(authHeader, namespacedLockToken.getNamespace(), request)
+                .unlock(authHeader, backupToken.getNamespace().get(), conjureRequest)
                 .getTokens();
-        return unlockedTokens.contains(conjureLockToken);
+        Set<Namespace> oneNamespace = ImmutableSet.of(backupToken.getNamespace());
+        return unlockedTokens.contains(conjureLockToken)
+                ? CompleteBackupResponse.of(oneNamespace, ImmutableSet.of())
+                : CompleteBackupResponse.of(ImmutableSet.of(), oneNamespace);
     }
 
     @NotNull
-    private ConjureLockToken getConjureLockToken(NamespacedLockToken namespacedLockToken) {
-        return ConjureLockToken.of(namespacedLockToken.getLockToken().getRequestId());
+    private ConjureLockToken getConjureLockToken(BackupToken backupToken) {
+        return ConjureLockToken.of(backupToken.getLockToken().getRequestId());
     }
 }

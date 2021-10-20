@@ -96,20 +96,37 @@ types:
         union:
           successful: SuccessfulLockImmutableTimestampResponse
           unsuccessful: UnsuccessfulLockImmutableTimestampResponse
-      NamespacedLockToken:
+      BackupToken:
         fields:
-          namespace: string
+          namespace: Namespace
+          backupTimestamp: Long
           lockToken: LockToken
+      PrepareBackupRequest:
+        fields:
+          namespaces: set<Namespace>
       SuccessfulPrepareBackupResponse:
         fields:
-          namespacedLockToken: NamespacedLockToken
-          immutableTimestamp: Long
+          backupTokens: set<BackupToken>
       UnsuccessfulPrepareBackupResponse:
         fields: {}
       PrepareBackupResponse:
         union:
           successful: SuccessfulPrepareBackupResponse
           unsuccessful: UnsuccessfulPrepareBackupResponse
+      CheckBackupIsValidRequest:
+        fields:
+          backupTokens: set<BackupToken>
+      CheckBackupIsValidResponse:
+        fields:
+          validBackupTokens: set<BackupToken>
+          invalidBackupTokens: set<BackupToken>
+      CompleteBackupRequest:
+        fields:
+          backupTokens: set<BackupToken>
+      CompleteBackupResponse:
+        fields:
+          successfulBackups: set<Namespace>
+          unsuccessfulBackups: set<Namespace>
       ConjureWaitForLocksResponse:
         fields:
           wasSuccessful: boolean
@@ -145,6 +162,32 @@ types:
           leaderTimes: map<Namespace, LeaderTime>
 
 services:
+  AtlasBackupService:
+    name: Backup service
+    default-auth: header
+    package: com.palantir.atlasdb.backup.api
+    base-path: /backup
+    endpoints:
+      prepareBackup:
+        http: POST /prepare
+        args:
+          request: PrepareBackupRequest
+        returns: PrepareBackupResponse
+      getFreshTimestamps:
+        http: POST /ts
+        args:
+          namespaces: set<Namespace>
+        returns: map<Namespace, Long>
+      checkBackupIsValid:
+        http: POST /checkValid
+        args:
+          request: CheckBackupIsValidRequest
+        returns: CheckBackupIsValidResponse
+      completeBackup:
+        http: POST /complete
+        args:
+          request: CompleteBackupRequest
+        returns: CompleteBackupResponse
   ConjureTimelockService:
     name: Timelock service
     default-auth: header

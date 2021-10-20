@@ -25,6 +25,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.backup.api.AtlasBackupService;
+import com.palantir.atlasdb.timelock.api.BackupToken;
+import com.palantir.atlasdb.timelock.api.CheckBackupIsValidRequest;
+import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
@@ -34,7 +38,8 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
-import com.palantir.atlasdb.timelock.api.NamespacedLockToken;
+import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulPrepareBackupResponse;
@@ -45,16 +50,17 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 import java.util.UUID;
+import org.assertj.core.api.Assertions;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-public class AtlasBackupServiceTest {
+public class AtlasBackupResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("header");
-    private static final String NAMESPACE = "test";
+    private static final Namespace NAMESPACE = Namespace.of("test");
 
     private final ConjureTimelockService conjureTimelockService = mock(ConjureTimelockService.class);
 
-    private final AtlasBackupService atlasBackupService = new AtlasBackupService(conjureTimelockService);
+    private final AtlasBackupService atlasBackupService = new AtlasBackupResource(conjureTimelockService);
 
     @Test
     public void preparesBackupSuccessfully() {
@@ -63,9 +69,10 @@ public class AtlasBackupServiceTest {
                 .thenReturn(ConjureLockImmutableTimestampResponse.successful(
                         SuccessfulLockImmutableTimestampResponse.of(ConjureLockToken.of(requestId), 1L)));
 
-        PrepareBackupResponse response = atlasBackupService.prepareBackup(AUTH_HEADER, NAMESPACE);
+        PrepareBackupResponse response =
+                atlasBackupService.prepareBackup(AUTH_HEADER, PrepareBackupRequest.of(Set.of(NAMESPACE)));
         PrepareBackupResponse expected = PrepareBackupResponse.successful(
-                SuccessfulPrepareBackupResponse.of(NamespacedLockToken.of(NAMESPACE, LockToken.of(requestId)), 1L));
+                SuccessfulPrepareBackupResponse.of(Set.of(BackupToken.of(NAMESPACE, 1L, LockToken.of(requestId)))));
         assertThat(response).isEqualTo(expected);
     }
 
@@ -75,7 +82,8 @@ public class AtlasBackupServiceTest {
                 .thenReturn(ConjureLockImmutableTimestampResponse.unsuccessful(
                         UnsuccessfulLockImmutableTimestampResponse.of()));
 
-        PrepareBackupResponse response = atlasBackupService.prepareBackup(AUTH_HEADER, NAMESPACE);
+        PrepareBackupResponse response =
+                atlasBackupService.prepareBackup(AUTH_HEADER, PrepareBackupRequest.of(Set.of(NAMESPACE)));
         PrepareBackupResponse expected = PrepareBackupResponse.unsuccessful(UnsuccessfulPrepareBackupResponse.of());
         assertThat(response).isEqualTo(expected);
     }
@@ -83,10 +91,10 @@ public class AtlasBackupServiceTest {
     @Test
     public void canGetTimestampForBackup() {
         when(conjureTimelockService.getFreshTimestamps(
-                        eq(AUTH_HEADER), eq(NAMESPACE), eq(ConjureGetFreshTimestampsRequest.of(1))))
+                        eq(AUTH_HEADER), eq(NAMESPACE.get()), eq(ConjureGetFreshTimestampsRequest.of(1))))
                 .thenReturn(ConjureGetFreshTimestampsResponse.of(1L, 1L));
 
-        assertThat(atlasBackupService.getFreshTimestampForBackup(AUTH_HEADER, NAMESPACE))
+        Assertions.assertThat(atlasBackupService.getFreshTimestamps(AUTH_HEADER, Set.of(NAMESPACE)))
                 .isEqualTo(1L);
 
         // no call to prepare backup
@@ -96,67 +104,71 @@ public class AtlasBackupServiceTest {
 
     @Test
     public void checkBackupIsValidReturnsTrueWhenLockIsHeld() {
-        NamespacedLockToken namespacedLockToken = getValidNamespacedLockToken();
+        BackupToken backupToken = getValidBackupToken();
 
-        assertThat(atlasBackupService.checkBackupIsValid(AUTH_HEADER, namespacedLockToken))
+        Assertions.assertThat(atlasBackupService.checkBackupIsValid(
+                        AUTH_HEADER, CheckBackupIsValidRequest.of(Set.of(backupToken))))
                 .isTrue();
     }
 
     @Test
     public void checkBackupIsValidReturnsFalseWhenLockIsLost() {
-        NamespacedLockToken namespacedLockToken = getInvalidNamespacedLockToken();
+        BackupToken backupToken = getInvalidBackupToken();
 
-        assertThat(atlasBackupService.checkBackupIsValid(AUTH_HEADER, namespacedLockToken))
+        Assertions.assertThat(atlasBackupService.checkBackupIsValid(
+                        AUTH_HEADER, CheckBackupIsValidRequest.of(Set.of(backupToken))))
                 .isFalse();
     }
 
     @Test
     public void completeBackupReturnsTrueWhenLockIsHeld() {
-        NamespacedLockToken namespacedLockToken = getValidNamespacedLockToken();
+        BackupToken backupToken = getValidBackupToken();
 
-        assertThat(atlasBackupService.completeBackup(AUTH_HEADER, namespacedLockToken))
+        Assertions.assertThat(
+                        atlasBackupService.completeBackup(AUTH_HEADER, CompleteBackupRequest.of(Set.of(backupToken))))
                 .isTrue();
     }
 
     @Test
     public void completeBackupReturnsTrueWhenLockIsLost() {
-        NamespacedLockToken namespacedLockToken = getInvalidNamespacedLockToken();
+        BackupToken backupToken = getInvalidBackupToken();
 
-        assertThat(atlasBackupService.completeBackup(AUTH_HEADER, namespacedLockToken))
+        Assertions.assertThat(
+                        atlasBackupService.completeBackup(AUTH_HEADER, CompleteBackupRequest.of(Set.of(backupToken))))
                 .isFalse();
     }
 
     @NotNull
-    private NamespacedLockToken getValidNamespacedLockToken() {
+    private BackupToken getValidBackupToken() {
         UUID requestId = UUID.randomUUID();
         LockToken lockToken = LockToken.of(requestId);
-        NamespacedLockToken namespacedLockToken = NamespacedLockToken.of(NAMESPACE, lockToken);
+        BackupToken backupToken = BackupToken.of(NAMESPACE, 1L, lockToken);
 
         Set<ConjureLockToken> conjureLockTokens = Set.of(ConjureLockToken.of(requestId));
         Lease mockLease = mock(Lease.class);
         when(conjureTimelockService.refreshLocks(
-                        AUTH_HEADER, NAMESPACE, ConjureRefreshLocksRequest.of(conjureLockTokens)))
+                        AUTH_HEADER, NAMESPACE.get(), ConjureRefreshLocksRequest.of(conjureLockTokens)))
                 .thenReturn(ConjureRefreshLocksResponse.of(conjureLockTokens, mockLease));
-        when(conjureTimelockService.unlock(AUTH_HEADER, NAMESPACE, ConjureUnlockRequest.of(conjureLockTokens)))
+        when(conjureTimelockService.unlock(AUTH_HEADER, NAMESPACE.get(), ConjureUnlockRequest.of(conjureLockTokens)))
                 .thenReturn(ConjureUnlockResponse.of(conjureLockTokens));
 
-        return namespacedLockToken;
+        return backupToken;
     }
 
     @NotNull
-    private NamespacedLockToken getInvalidNamespacedLockToken() {
+    private BackupToken getInvalidBackupToken() {
         UUID requestId = UUID.randomUUID();
         LockToken lockToken = LockToken.of(requestId);
-        NamespacedLockToken namespacedLockToken = NamespacedLockToken.of(NAMESPACE, lockToken);
+        BackupToken backupToken = BackupToken.of(NAMESPACE, 1L, lockToken);
 
         Set<ConjureLockToken> conjureLockTokens = Set.of(ConjureLockToken.of(requestId));
         Lease mockLease = mock(Lease.class);
         when(conjureTimelockService.refreshLocks(
-                        AUTH_HEADER, NAMESPACE, ConjureRefreshLocksRequest.of(conjureLockTokens)))
+                        AUTH_HEADER, NAMESPACE.get(), ConjureRefreshLocksRequest.of(conjureLockTokens)))
                 .thenReturn(ConjureRefreshLocksResponse.of(Set.of(), mockLease));
-        when(conjureTimelockService.unlock(AUTH_HEADER, NAMESPACE, ConjureUnlockRequest.of(conjureLockTokens)))
+        when(conjureTimelockService.unlock(AUTH_HEADER, NAMESPACE.get(), ConjureUnlockRequest.of(conjureLockTokens)))
                 .thenReturn(ConjureUnlockResponse.of(Set.of()));
 
-        return namespacedLockToken;
+        return backupToken;
     }
 }
