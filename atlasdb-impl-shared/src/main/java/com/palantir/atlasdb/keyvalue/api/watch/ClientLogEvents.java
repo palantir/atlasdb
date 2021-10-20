@@ -113,7 +113,9 @@ interface ClientLogEvents {
         });
     }
 
-    class Builder extends ImmutableClientLogEvents.Builder {}
+    static ImmutableClientLogEvents.Builder builder() {
+        return ImmutableClientLogEvents.builder();
+    }
 
     final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         private final Optional<UUID> commitRequestId;
