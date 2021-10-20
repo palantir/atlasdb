@@ -103,10 +103,10 @@ public final class LockWatchEventIntegrationTest {
         CommitUpdateExtractingCondition secondCondition = new CommitUpdateExtractingCondition();
 
         txnManager.runTaskWithConditionThrowOnConflict(firstCondition, (outerTxn, _unused1) -> {
-            firstCondition.setStartTimestamp(outerTxn.getTimestamp());
+            firstCondition.initialiseWithStartTimestamp(outerTxn.getTimestamp());
             outerTxn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
             txnManager.runTaskWithConditionThrowOnConflict(secondCondition, (innerTxn, _unused2) -> {
-                secondCondition.setStartTimestamp(innerTxn.getTimestamp());
+                secondCondition.initialiseWithStartTimestamp(innerTxn.getTimestamp());
                 innerTxn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
                 return null;
             });
@@ -131,15 +131,11 @@ public final class LockWatchEventIntegrationTest {
 
         performWriteTransactionLockingAndUnlockingCells(ImmutableMap.of(CELL_3, DATA_3));
 
-        CountDownLatch endOfTest = new CountDownLatch(1);
-        ExecutorService executor = PTExecutors.newSingleThreadExecutor();
-
         // The purpose of this transaction is to test when we can guarantee that there are some locks taken out
         // without the subsequent unlock event.
-        startSlowWriteTransaction(endOfTest, executor);
+        Runnable cleanup = performWriteTransactionThatBlocksAfterLockingCells();
 
         OpenTransaction fifthTxn = startSingleTransaction();
-
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.empty(), secondTxn, fifthTxn);
 
         /*
@@ -167,8 +163,7 @@ public final class LockWatchEventIntegrationTest {
 
         secondTxn.finish(_unused -> null);
         fifthTxn.finish(_unused -> null);
-        endOfTest.countDown();
-        executor.shutdown();
+        cleanup.run();
     }
 
     @Test
@@ -200,12 +195,11 @@ public final class LockWatchEventIntegrationTest {
         assertThat(watchDescriptors(update.events())).isEmpty();
     }
 
-    private OpenTransaction startSingleTransaction() {
-        return Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
-    }
-
-    private void startSlowWriteTransaction(CountDownLatch endOfTest, ExecutorService executor) {
+    private Runnable performWriteTransactionThatBlocksAfterLockingCells() {
+        CountDownLatch endOfTest = new CountDownLatch(1);
         CountDownLatch inCommitBlock = new CountDownLatch(1);
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor();
+
         LockWatchIntegrationTestUtilities.CommitStageCondition<Void> blockingCondition =
                 new LockWatchIntegrationTestUtilities.CommitStageCondition<>((_unused1, _unused2) -> {
                     inCommitBlock.countDown();
@@ -214,12 +208,21 @@ public final class LockWatchEventIntegrationTest {
                 });
 
         executor.execute(() -> txnManager.runTaskWithConditionThrowOnConflict(blockingCondition, (txn, _unused) -> {
-            blockingCondition.setStartTimestamp(txn.getTimestamp());
+            blockingCondition.initialiseWithStartTimestamp(txn.getTimestamp());
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_4, DATA_4));
             return null;
         }));
 
         Uninterruptibles.awaitUninterruptibly(inCommitBlock);
+
+        return () -> {
+            endOfTest.countDown();
+            executor.shutdown();
+        };
+    }
+
+    private OpenTransaction startSingleTransaction() {
+        return Iterables.getOnlyElement(txnManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
     }
 
     private TransactionsLockWatchUpdate getUpdateForTransactions(

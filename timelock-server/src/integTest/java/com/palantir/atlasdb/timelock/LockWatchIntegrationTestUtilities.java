@@ -40,6 +40,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import org.awaitility.Awaitility;
 
 public final class LockWatchIntegrationTestUtilities {
@@ -60,22 +61,8 @@ public final class LockWatchIntegrationTestUtilities {
                 .atMost(Duration.ofSeconds(5))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> getLockWatchState(txnManager, lockWatchManager)
-                        .map(event -> event.accept(new LockWatchEvent.Visitor<Boolean>() {
-                            @Override
-                            public Boolean visit(LockEvent lockEvent) {
-                                return false;
-                            }
-
-                            @Override
-                            public Boolean visit(UnlockEvent unlockEvent) {
-                                return false;
-                            }
-
-                            @Override
-                            public Boolean visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-                                return lockWatchCreatedEvent.lockDescriptors().isEmpty();
-                            }
-                        }))
+                        .map(event -> event.accept(new LockWatchCreatedEventVisitor(
+                                createdEvent -> createdEvent.lockDescriptors().isEmpty())))
                         .orElse(false));
     }
 
@@ -91,24 +78,9 @@ public final class LockWatchIntegrationTestUtilities {
                 .atMost(Duration.ofSeconds(5))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> getLockWatchState(txnManager, lockWatchManager)
-                        .map(event -> event.accept(new LockWatchEvent.Visitor<Boolean>() {
-                            @Override
-                            public Boolean visit(LockEvent lockEvent) {
-                                return false;
-                            }
-
-                            @Override
-                            public Boolean visit(UnlockEvent unlockEvent) {
-                                return false;
-                            }
-
-                            @Override
-                            public Boolean visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-                                return lockWatchCreatedEvent
-                                        .references()
-                                        .contains(LockWatchReferences.entireTable(tableReference.getQualifiedName()));
-                            }
-                        }))
+                        .map(event -> event.accept(new LockWatchCreatedEventVisitor(createdEvent -> createdEvent
+                                .references()
+                                .contains(LockWatchReferences.entireTable(tableReference.getQualifiedName())))))
                         .orElse(false));
     }
 
@@ -161,13 +133,36 @@ public final class LockWatchIntegrationTestUtilities {
         return schema;
     }
 
+    private static final class LockWatchCreatedEventVisitor implements LockWatchEvent.Visitor<Boolean> {
+        private final Predicate<LockWatchCreatedEvent> predicate;
+
+        private LockWatchCreatedEventVisitor(Predicate<LockWatchCreatedEvent> predicate) {
+            this.predicate = predicate;
+        }
+
+        @Override
+        public Boolean visit(LockEvent lockEvent) {
+            return false;
+        }
+
+        @Override
+        public Boolean visit(UnlockEvent unlockEvent) {
+            return false;
+        }
+
+        @Override
+        public Boolean visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return predicate.test(lockWatchCreatedEvent);
+        }
+    }
+
     /**
      * {@link PreCommitCondition} is actually run several times throughout a transaction - namely, before any read
      * if this is configured. When run at these times, the start timestamp is passed in. However, when the condition
      * is run at commit time, the commit timestamp is actually passed in, which means that we have a way of determining
      * whether the condition is being evaluated at commit time or not.
      *
-     * Given that this condition may execute arbitrary code, this is the only way to guarantee that test code will be
+     * Given that this condition may execute arbitrary code, this is one way to guarantee that test code will be
      * run during the commit flow. To achieve this, we set the start timestamp, then evaluate each invocation of
      * {@link PreCommitCondition#throwIfConditionInvalid(long)} against the start timestamp, only running the method
      * if it is a different timestamp.
@@ -183,7 +178,7 @@ public final class LockWatchIntegrationTestUtilities {
             this.startTimestamp = Optional.empty();
         }
 
-        public void setStartTimestamp(long startTs) {
+        public void initialiseWithStartTimestamp(long startTs) {
             this.startTimestamp = Optional.of(startTs);
         }
 

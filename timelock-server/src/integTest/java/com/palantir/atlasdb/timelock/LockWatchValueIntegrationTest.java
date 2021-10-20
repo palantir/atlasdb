@@ -480,7 +480,7 @@ public final class LockWatchValueIntegrationTest {
                 });
 
         assertThatCode(() -> txnManager.runTaskWithConditionThrowOnConflict(condition, (txn, _unused) -> {
-                    condition.setStartTimestamp(txn.getTimestamp());
+                    condition.initialiseWithStartTimestamp(txn.getTimestamp());
                     txnManager.getTimestampManagementService().fastForwardTimestamp(txn.getTimestamp() + 1_000_000);
 
                     txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
@@ -508,7 +508,7 @@ public final class LockWatchValueIntegrationTest {
 
         assertThatThrownBy(
                         () -> txnManager.runTaskWithConditionThrowOnConflict(commitFailingCondition, (txn, _unused) -> {
-                            commitFailingCondition.setStartTimestamp(txn.getTimestamp());
+                            commitFailingCondition.initialiseWithStartTimestamp(txn.getTimestamp());
                             txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_4));
                             txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2, CELL_3));
                             return null;
