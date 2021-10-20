@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
+import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
@@ -29,7 +30,6 @@ import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 import java.util.UUID;
@@ -43,7 +43,7 @@ public class AtlasBackupResourceTest {
     private static final long IMMUTABLE_TIMESTAMP = 1L;
     private static final long BACKUP_START_TIMESTAMP = 2L;
 
-    private final TimelockService mockTimelock = mock(TimelockService.class);
+    private final AsyncTimelockService mockTimelock = mock(AsyncTimelockService.class);
 
     private final AtlasBackupService atlasBackupService = new AtlasBackupResource(_unused -> mockTimelock);
 

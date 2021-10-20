@@ -17,7 +17,11 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
+import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
@@ -38,10 +42,10 @@ import java.util.stream.Collectors;
 
 public class AtlasBackupResource implements AtlasBackupService {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupResource.class);
-    private final Function<String, TimelockService> timelockServices;
+    private final Function<String, AsyncTimelockService> timelockServices;
 
     @VisibleForTesting
-    AtlasBackupResource(Function<String, TimelockService> timelockServices) {
+    AtlasBackupResource(Function<String, AsyncTimelockService> timelockServices) {
         this.timelockServices = timelockServices;
     }
 
@@ -77,7 +81,7 @@ public class AtlasBackupResource implements AtlasBackupService {
     }
 
     private BackupToken tryPrepareBackup(Namespace namespace) {
-        TimelockService timelock = timelock(namespace);
+        AsyncTimelockService timelock = timelock(namespace);
         LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp();
         long timestamp = timelock.getFreshTimestamp();
         return BackupToken.builder()
@@ -99,7 +103,10 @@ public class AtlasBackupResource implements AtlasBackupService {
 
     private boolean wasCompleteBackupSuccessful(BackupToken backupToken) {
         LockToken lockToken = backupToken.getLockToken();
-        return timelock(backupToken.getNamespace()).unlock(Set.of(lockToken)).contains(lockToken);
+        ListenableFuture<Set<LockToken>> unlockResult =
+                timelock(backupToken.getNamespace()).unlock(Set.of(lockToken));
+        // TODO(gs): proper future handling
+        return Futures.getUnchecked(unlockResult).contains(lockToken)
     }
 
     private BackupToken fetchFastForwardTimestamp(BackupToken backupToken) {
@@ -111,7 +118,7 @@ public class AtlasBackupResource implements AtlasBackupService {
                 .build();
     }
 
-    private TimelockService timelock(Namespace namespace) {
+    private AsyncTimelockService timelock(Namespace namespace) {
         return timelockServices.apply(namespace.get());
     }
 }
