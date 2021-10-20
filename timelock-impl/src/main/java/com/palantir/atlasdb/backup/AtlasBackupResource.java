@@ -66,11 +66,12 @@ public class AtlasBackupResource implements AtlasBackupService {
         return PrepareBackupResponse.of(preparedBackups);
     }
 
+    // TODO(gs): refresh locks
     Optional<BackupToken> prepareBackup(Namespace namespace) {
         try {
             return Optional.of(tryPrepareBackup(namespace));
         } catch (Exception ex) {
-            log.info("Failed to prepare backup for namespace", SafeArg.of("namespace", namespace), e);
+            log.info("Failed to prepare backup for namespace", SafeArg.of("namespace", namespace), ex);
             return Optional.empty();
         }
     }
@@ -80,6 +81,7 @@ public class AtlasBackupResource implements AtlasBackupService {
         LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp();
         long timestamp = timelock.getFreshTimestamp();
         return BackupToken.builder()
+                .namespace(namespace)
                 .lockToken(response.getLock())
                 .immutableTimestamp(response.getImmutableTimestamp())
                 .backupStartTimestamp(timestamp)
