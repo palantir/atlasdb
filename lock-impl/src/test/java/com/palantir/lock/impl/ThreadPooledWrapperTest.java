@@ -120,10 +120,10 @@ public class ThreadPooledWrapperTest {
         List<Future<Long>> futuresForClient2 =
                 getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 2L);
 
-        for (Future<?> future : futuresForClient1) {
+        for (Future<Long> future : futuresForClient1) {
             assertThat(future.get()).isEqualTo(1L);
         }
-        for (Future<?> future : futuresForClient2) {
+        for (Future<Long> future : futuresForClient2) {
             assertThat(future.get()).isEqualTo(2L);
         }
 

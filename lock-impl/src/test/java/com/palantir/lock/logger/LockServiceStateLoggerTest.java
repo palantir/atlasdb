@@ -176,7 +176,7 @@ public class LockServiceStateLoggerTest {
             assertThat(ymlMap)
                     .describedAs("Lock state contains unrecognizable object")
                     .isInstanceOf(Map.class);
-            Map<?, ?> map = (Map<?, ?>) ymlMap;
+            Map<String, ?> map = (Map<String, ?>) ymlMap;
             if (map.containsKey(LockServiceStateLogger.OUTSTANDING_LOCK_REQUESTS_TITLE)) {
                 Object arrayObj = map.get(LockServiceStateLogger.OUTSTANDING_LOCK_REQUESTS_TITLE);
                 assertThat(arrayObj)

@@ -340,7 +340,7 @@ public class CassandraClientImpl implements CassandraClient {
         if (invalidated.get() != null) {
             return;
         }
-        for (Class<?> b : BLACKLISTED_EXCEPTIONS) {
+        for (Class<? extends Exception> b : BLACKLISTED_EXCEPTIONS) {
             if (b.isInstance(e)) {
                 invalidated.compareAndSet(null, new Throwable("Client invalidated here.", e));
                 return;
