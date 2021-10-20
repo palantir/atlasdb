@@ -68,18 +68,18 @@ public final class ClientLogEventsTest {
             .build(SEQUENCE_1);
     private static final LockWatchEvent LOCK_DESCRIPTOR_2_VERSION_2 =
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR_2), LOCK_TOKEN_1).build(SEQUENCE_2);
-    private static final LockWatchEvent UNLOCK_DESCRIPTOR_1_VERSION_3 =
+    private static final LockWatchEvent UNLOCK_DESCRIPTOR_2_VERSION_3 =
             UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_1)).build(SEQUENCE_3);
     private static final LockWatchEvent LOCK_DESCRIPTOR_1_VERSION_4 =
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR_1), LOCK_TOKEN_2).build(SEQUENCE_4);
 
     private static final LockWatchEvents EVENTS_2_TO_4 = LockWatchEvents.builder()
-            .addEvents(LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_1_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4)
+            .addEvents(LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4)
             .build();
     private static final ClientLogEvents CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE =
             ClientLogEvents.builder().clearCache(false).events(EVENTS_2_TO_4).build();
     private static final LockWatchEvents EVENTS_3_TO_4 = LockWatchEvents.builder()
-            .addEvents(UNLOCK_DESCRIPTOR_1_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4)
+            .addEvents(UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4)
             .build();
     private static final ClientLogEvents CLIENT_EVENTS_3_TO_4_NO_CLEAR_CACHE =
             ClientLogEvents.builder().clearCache(false).events(EVENTS_3_TO_4).build();
@@ -93,7 +93,7 @@ public final class ClientLogEventsTest {
                 CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.of(version));
         assertThat(update.events())
                 .containsExactly(
-                        LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_1_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
+                        LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
     }
 
     @Test
@@ -105,7 +105,7 @@ public final class ClientLogEventsTest {
                 CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.of(version));
         assertThat(update.events())
                 .containsExactly(
-                        LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_1_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
+                        LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
     }
 
     @Test
@@ -130,7 +130,7 @@ public final class ClientLogEventsTest {
 
         assertThat(update.events())
                 .containsExactly(
-                        LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_1_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
+                        LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
     }
 
     @Test
@@ -145,7 +145,7 @@ public final class ClientLogEventsTest {
                 clientLogEvents.toTransactionsLockWatchUpdate(mapping, Optional.of(version));
         assertThat(update.events())
                 .containsExactly(
-                        LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_1_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
+                        LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
     }
 
     @Test
@@ -248,7 +248,7 @@ public final class ClientLogEventsTest {
                 .addEvents(
                         LOCK_WATCH_EVENT_VERSION_1,
                         LOCK_DESCRIPTOR_2_VERSION_2,
-                        UNLOCK_DESCRIPTOR_1_VERSION_3,
+                        UNLOCK_DESCRIPTOR_2_VERSION_3,
                         LOCK_DESCRIPTOR_1_VERSION_4)
                 .build();
         ClientLogEvents clientLogEvents =
