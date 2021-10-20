@@ -19,8 +19,10 @@ package com.palantir.atlasdb.backup;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
+import com.palantir.atlasdb.backup.api.AtlasBackupServiceEndpoints;
+import com.palantir.atlasdb.backup.api.UndertowAtlasBackupService;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
@@ -28,9 +30,9 @@ import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
+import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -48,6 +50,18 @@ public class AtlasBackupResource implements AtlasBackupService {
     AtlasBackupResource(Function<String, AsyncTimelockService> timelockServices) {
         this.timelockServices = timelockServices;
     }
+
+    // TODO(gs): add handleExceptions stuff
+    // public static UndertowService undertow(
+    //         RedirectRetryTargeter _redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+    //     return AtlasBackupServiceEndpoints.of(new AtlasBackupResource(timelockServices));
+    // }
+    //
+    // // TOOO(gs): jersey wrapper
+    // public static AtlasBackupService jersey(
+    //         RedirectRetryTargeter _redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+    //     return new AtlasBackupResource(timelockServices);
+    // }
 
     // public static AtlasBackupResource create(
     //         Refreshable<ServerListConfig> serverListConfig,
