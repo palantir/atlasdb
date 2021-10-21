@@ -18,9 +18,10 @@ package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceBlocking;
+import com.palantir.lock.watch.LockWatchStarter;
 import com.palantir.tokens.auth.AuthHeader;
 
-public class NamespacedConjureLockWatchingService {
+public class NamespacedConjureLockWatchingService implements LockWatchStarter {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 
     private final ConjureLockWatchingServiceBlocking lockWatcher;

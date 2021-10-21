@@ -27,7 +27,6 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
@@ -35,6 +34,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchReferencesVisitor;
+import com.palantir.lock.watch.LockWatchStarter;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
@@ -55,7 +55,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
     private final LockWatchCache lockWatchCache;
     private final LockWatchValueScopingCache valueScopingCache;
-    private final NamespacedConjureLockWatchingService lockWatchingService;
+    private final LockWatchStarter lockWatchingService;
     private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
     private final ScheduledFuture<?> refreshTask;
 
@@ -64,7 +64,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
             Set<LockWatchReference> referencesFromSchema,
             LockWatchEventCache eventCache,
             LockWatchValueScopingCache valueCache,
-            NamespacedConjureLockWatchingService lockWatchingService) {
+            LockWatchStarter lockWatchingService) {
         this.referencesFromSchema = referencesFromSchema;
         this.lockWatchCache = new LockWatchCacheImpl(eventCache, valueCache);
         this.valueScopingCache = valueCache;
@@ -76,7 +76,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     public static LockWatchManagerInternal create(
             MetricsManager metricsManager,
             Set<Schema> schemas,
-            NamespacedConjureLockWatchingService lockWatchingService,
+            LockWatchStarter lockWatchingService,
             LockWatchCachingConfig config) {
         Set<LockWatchReference> referencesFromSchema = schemas.stream()
                 .map(Schema::getLockWatches)
