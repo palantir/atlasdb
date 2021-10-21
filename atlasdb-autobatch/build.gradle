@@ -3,10 +3,10 @@ apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
 dependencies {
-    compile project(":atlasdb-commons")
-    compile group: 'com.lmax', name: 'disruptor'
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-    compile group: 'com.palantir.tritium', name: 'tritium-registry'
+    implementation project(":atlasdb-commons")
+    implementation group: 'com.lmax', name: 'disruptor'
+    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+    implementation group: 'com.palantir.tritium', name: 'tritium-registry'
 
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'

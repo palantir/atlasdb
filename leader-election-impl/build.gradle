@@ -6,19 +6,19 @@ license {
 }
 
 dependencies {
-  compile project(":leader-election-api")
-  compile project(":atlasdb-autobatch")
-  compile project(":atlasdb-commons")
+  implementation project(":leader-election-api")
+  implementation project(":atlasdb-autobatch")
+  implementation project(":atlasdb-commons")
 
-  compile group: "com.github.ben-manes.caffeine", name: "caffeine"
-  compile group: "com.google.protobuf", name: "protobuf-java"
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-  compile group: 'com.palantir.sls.versions', name: 'sls-versions'
-  compile group: 'com.zaxxer', name: 'HikariCP'
-  compile group: "commons-io", name: "commons-io"
-  compile group: "org.jdbi", name: 'jdbi3-core'
-  compile group: "org.jdbi", name: 'jdbi3-sqlobject'
-  compile group: 'org.xerial', name: 'sqlite-jdbc'
+  implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
+  implementation group: "com.google.protobuf", name: "protobuf-java"
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
+  implementation group: 'com.zaxxer', name: 'HikariCP'
+  implementation group: "commons-io", name: "commons-io"
+  implementation group: "org.jdbi", name: 'jdbi3-core'
+  implementation group: "org.jdbi", name: 'jdbi3-sqlobject'
+  implementation group: 'org.xerial', name: 'sqlite-jdbc'
 
   implementation group: 'com.palantir.common', name: 'streams'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'

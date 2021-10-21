@@ -7,16 +7,16 @@ apply plugin: 'com.palantir.sls-java-service-distribution'
 schemas = ['com.palantir.atlasdb.blob.BlobSchema']
 
 dependencies {
-    compile project(":dropwizard-metrics-hack")
-    compile project(':lock-impl')
-    compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
-    compile project(':atlasdb-ete-test-utils')
-    compile project(':atlasdb-hikari')
+    implementation project(":dropwizard-metrics-hack")
+    implementation project(':lock-impl')
+    implementation project(':leader-election-impl')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-ete-test-utils')
+    implementation project(':atlasdb-hikari')
 
-    compile group: 'org.awaitility', name: 'awaitility'
-    compile group: 'com.palantir.tritium', name: 'tritium-lib'
-    compile group: 'io.dropwizard', name: 'dropwizard-core'
+    implementation group: 'org.awaitility', name: 'awaitility'
+    implementation group: 'com.palantir.tritium', name: 'tritium-lib'
+    implementation group: 'io.dropwizard', name: 'dropwizard-core'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -66,7 +66,7 @@ dependencies {
     runtime project(':atlasdb-dbkvs')
     runtime project(':atlasdb-cassandra')
 
-    compile (group: 'org.apache.thrift', name: 'libthrift') {
+    implementation (group: 'org.apache.thrift', name: 'libthrift') {
         exclude group: 'org.apache.httpcomponents'
     }
 

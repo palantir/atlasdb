@@ -4,19 +4,19 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
 dependencies {
-    compile project(":timestamp-impl")
-    compile project(":lock-conjure-api:lock-conjure-api-undertow")
-    compile project(":lock-conjure-api:lock-conjure-api-jersey")
-    compile project(":lock-impl")
-    compile project(':timelock-api:timelock-api-undertow')
-    compile project(':timelock-api:timelock-api-jersey')
-    compile project(":leader-election-impl")
-    compile (project(":atlasdb-config")) {
+    implementation project(":timestamp-impl")
+    implementation project(":lock-conjure-api:lock-conjure-api-undertow")
+    implementation project(":lock-conjure-api:lock-conjure-api-jersey")
+    implementation project(":lock-impl")
+    implementation project(':timelock-api:timelock-api-undertow')
+    implementation project(':timelock-api:timelock-api-jersey')
+    implementation project(":leader-election-impl")
+    implementation (project(":atlasdb-config")) {
         exclude group:'io.dropwizard'
     }
 
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-    compile group: 'org.mindrot', name: 'jbcrypt'
+    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+    implementation group: 'org.mindrot', name: 'jbcrypt'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'

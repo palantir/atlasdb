@@ -10,19 +10,19 @@ license {
 }
 
 dependencies {
-  compile project(":atlasdb-client")
-  compile project(":atlasdb-commons")
-  compile project(":atlasdb-coordination-impl")
-  compile project(":lock-impl")
-  compile project(":timestamp-api")
-  compile project(":timestamp-client")
+  implementation project(":atlasdb-client")
+  implementation project(":atlasdb-commons")
+  implementation project(":atlasdb-coordination-impl")
+  implementation project(":lock-impl")
+  implementation project(":timestamp-api")
+  implementation project(":timestamp-client")
 
-  compile 'com.github.ben-manes.caffeine:caffeine'
-  compile group: 'com.palantir.common', name: 'streams'
-  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server'
-  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-  compile group: 'com.palantir.safe-logging', name: 'preconditions'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
+  implementation group: 'com.palantir.common', name: 'streams'
+  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server'
+  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'com.palantir.safe-logging', name: 'preconditions'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-core'
