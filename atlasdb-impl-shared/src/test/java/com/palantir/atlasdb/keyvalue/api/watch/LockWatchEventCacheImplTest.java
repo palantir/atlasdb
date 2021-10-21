@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -28,7 +29,6 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -47,7 +47,6 @@ import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,13 +65,17 @@ public final class LockWatchEventCacheImplTest {
     private static final long SEQUENCE_1 = 1;
     private static final long SEQUENCE_2 = 2;
     private static final long SEQUENCE_3 = 3L;
-    private static final long SEQUENCE_4 = 4L;
     private static final long TIMESTAMP_1 = 72L;
     private static final long TIMESTAMP_2 = 97L;
     private static final long TIMESTAMP_3 = 99L;
 
-    private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("lwelt-one");
-    private static final LockDescriptor DESCRIPTOR_2 = StringLockDescriptor.of("lwelt-two");
+    private static final LockWatchVersion VERSION_0 = LockWatchVersion.of(INITIAL_LOG_ID, 0L);
+    private static final LockWatchVersion VERSION_1 = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1);
+    private static final LockWatchVersion VERSION_2 = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_2);
+    private static final LockWatchVersion VERSION_3 = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_3);
+
+    private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("skeleton-key");
+    private static final LockDescriptor DESCRIPTOR_2 = StringLockDescriptor.of("2spook5me");
     private static final LockWatchReference REFERENCE_1 = LockWatchReferences.entireTable("table.one");
     private static final LockWatchReference REFERENCE_2 = LockWatchReferences.entireTable("table.two");
 
@@ -80,55 +83,41 @@ public final class LockWatchEventCacheImplTest {
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR_2), LOCK_TOKEN).build(SEQUENCE_2);
     private static final LockWatchEvent UNLOCK_DESCRIPTOR_1_VERSION_3 =
             UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_1)).build(SEQUENCE_3);
-    private static final LockWatchEvent LOCK_DESCRIPTOR_1_VERSION_4 =
-            LockEvent.builder(ImmutableSet.of(DESCRIPTOR_1), LOCK_TOKEN).build(SEQUENCE_4);
-    private static final LockWatchEvent SNAPSHOT_UP_TO_VERSION_4 = LockWatchCreatedEvent.builder(
-                    ImmutableSet.of(REFERENCE_1), ImmutableSet.of(DESCRIPTOR_1, DESCRIPTOR_2))
-            .build(SEQUENCE_4);
 
-    private static final LockWatchStateUpdate.Snapshot SNAPSHOT = LockWatchStateUpdate.snapshot(
+    private static final LockWatchStateUpdate.Snapshot SNAPSHOT_VERSION_1 = LockWatchStateUpdate.snapshot(
             INITIAL_LOG_ID, SEQUENCE_1, ImmutableSet.of(DESCRIPTOR_1), ImmutableSet.of(REFERENCE_1));
-    private static final LockWatchStateUpdate.Success SUCCESS_VERSION_4 = LockWatchStateUpdate.success(
-            INITIAL_LOG_ID,
-            4L,
-            ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_1_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4));
-
-    private static final VersionedEventStoreState EMPTY_EVENT_STORE_STATE = ImmutableVersionedEventStoreState.builder()
-            .eventMap(ImmutableSortedMap.of())
-            .build();
-    private static final ClientLockWatchSnapshotState SNAPSHOT_STATE_VERSION_1 =
-            ImmutableClientLockWatchSnapshotState.builder()
-                    .snapshotVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1))
-                    .addLocked(DESCRIPTOR_1)
-                    .addWatches(REFERENCE_1)
-                    .build();
+    private static final LockWatchStateUpdate.Success SUCCESS_VERSION_2 =
+            LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
+    private static final LockWatchStateUpdate.Success SUCCESS_VERSION_3 =
+            LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_3, ImmutableList.of(UNLOCK_DESCRIPTOR_1_VERSION_3));
 
     private LockWatchEventLog eventLog;
     private LockWatchEventCache eventCache;
 
     @Before
     public void setUp() {
-        eventLog = spy(LockWatchEventLog.create(CacheMetrics.create(MetricsManagers.createForTests()), 1, 20));
+        eventLog = spy(LockWatchEventLog.create(
+                CacheMetrics.create(MetricsManagers.createForTests()), MIN_EVENTS, MAX_EVENTS));
         eventCache = new LockWatchEventCacheImpl(eventLog);
     }
 
     @Test
     public void getUpdateForTransactionsReturnsOnlyRelevantEventsForBatch() {
-        LockWatchStateUpdate.Success firstSuccess =
-                LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
-        LockWatchStateUpdate.Success secondSuccess = LockWatchStateUpdate.success(
-                INITIAL_LOG_ID, SEQUENCE_3, ImmutableList.of(UNLOCK_DESCRIPTOR_1_VERSION_3));
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_VERSION_1);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), SUCCESS_VERSION_2);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_3), SUCCESS_VERSION_3);
 
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT);
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), firstSuccess);
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_3), secondSuccess);
+        verify(eventLog).processUpdate(SNAPSHOT_VERSION_1);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_2);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_3);
 
-        verify(eventLog).processUpdate(SNAPSHOT);
-        verify(eventLog).processUpdate(firstSuccess);
-        verify(eventLog).processUpdate(secondSuccess);
+        TransactionsLockWatchUpdate update =
+                eventCache.getUpdateForTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), Optional.empty());
 
-        Set<Long> requestedTimestamps = ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2);
-        TransactionsLockWatchUpdate update = eventCache.getUpdateForTransactions(requestedTimestamps, Optional.empty());
+        // This event is effectively a snapshot, and is used as such
+        LockWatchEvent snapshotEventAtSequenceOne = LockWatchCreatedEvent.builder(
+                        ImmutableSet.of(REFERENCE_1), ImmutableSet.of(DESCRIPTOR_1))
+                .build(SEQUENCE_1);
 
         assertThat(update.clearCache())
                 .as("clear cache due to no version passed in")
@@ -136,62 +125,92 @@ public final class LockWatchEventCacheImplTest {
         assertThat(update.events())
                 .as("snapshot up to earliest sequence corresponding to a timestamp, then events up to latest known"
                         + " version")
-                .containsExactly(
-                        LockWatchCreatedEvent.builder(ImmutableSet.of(REFERENCE_1), ImmutableSet.of(DESCRIPTOR_1))
-                                .build(SEQUENCE_1),
-                        LOCK_DESCRIPTOR_2_VERSION_2);
+                .containsExactly(snapshotEventAtSequenceOne, LOCK_DESCRIPTOR_2_VERSION_2);
         assertThat(update.startTsToSequence())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
-                        TIMESTAMP_1, LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1),
-                        TIMESTAMP_2, LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_2)));
+                        TIMESTAMP_1, VERSION_1,
+                        TIMESTAMP_2, VERSION_2));
+    }
+
+    @Test
+    public void getUpdateForTransactionsCondensesSnapshotWherePossible() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_VERSION_1);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), SUCCESS_VERSION_2);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_3), SUCCESS_VERSION_3);
+
+        verify(eventLog).processUpdate(SNAPSHOT_VERSION_1);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_2);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_3);
+
+        TransactionsLockWatchUpdate update =
+                eventCache.getUpdateForTransactions(ImmutableSet.of(TIMESTAMP_2, TIMESTAMP_3), Optional.of(VERSION_0));
+
+        verify(eventLog)
+                .getEventsBetweenVersions(VersionBounds.builder()
+                        .startVersion(VERSION_0)
+                        .endVersion(VERSION_3)
+                        .earliestSnapshotVersion(VERSION_2.version())
+                        .build());
+
+        assertThat(update.clearCache()).as("provided version is too far behind").isTrue();
+
+        assertThat(update.events())
+                .as("events condensed up to version 2")
+                .containsExactly(
+                        LockWatchCreatedEvent.builder(
+                                        ImmutableSet.of(REFERENCE_1), ImmutableSet.of(DESCRIPTOR_1, DESCRIPTOR_2))
+                                .build(SEQUENCE_2),
+                        UNLOCK_DESCRIPTOR_1_VERSION_3);
+
+        assertThat(update.startTsToSequence())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(TIMESTAMP_2, VERSION_2, TIMESTAMP_3, VERSION_3));
     }
 
     @Test
     public void snapshotClearsPreviousTransactionState() {
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_VERSION_1);
 
-        LockWatchStateUpdate.Snapshot newSnapshot = LockWatchStateUpdate.snapshot(
+        LockWatchStateUpdate newSnapshot = LockWatchStateUpdate.snapshot(
                 DIFFERENT_LOG_ID, SEQUENCE_3, ImmutableSet.of(), ImmutableSet.of(REFERENCE_2));
 
         // New snapshot clears all state from before, and thus TIMESTAMP_1 is no longer present, and should throw
         // when attempting to retrieve information about it
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2, TIMESTAMP_3), newSnapshot);
 
-        verify(eventLog).processUpdate(SNAPSHOT);
+        verify(eventLog).processUpdate(SNAPSHOT_VERSION_1);
         verify(eventLog).processUpdate(newSnapshot);
 
         assertThatThrownBy(() -> eventCache.getUpdateForTransactions(
                         ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3), Optional.empty()))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("start timestamp missing from map");
+
+        assertThatCode(() -> eventCache.getUpdateForTransactions(
+                        ImmutableSet.of(TIMESTAMP_2, TIMESTAMP_3), Optional.empty()))
+                .as("contains only timestamps from the new snapshot")
+                .doesNotThrowAnyException();
     }
 
     @Test
     public void processStartTransactionsUpdateAssignsUpdateVersionToTimestamps() {
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT);
-        LockWatchStateUpdate.Success firstSuccess =
-                LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
-        LockWatchStateUpdate.Success secondSuccess = LockWatchStateUpdate.success(
-                INITIAL_LOG_ID, SEQUENCE_3, ImmutableList.of(UNLOCK_DESCRIPTOR_1_VERSION_3));
-
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), firstSuccess);
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), secondSuccess);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_VERSION_1);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_VERSION_2);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_VERSION_3);
 
         assertThat(eventCache.lastKnownVersion().map(LockWatchVersion::version)).hasValue(SEQUENCE_3);
 
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), firstSuccess);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), SUCCESS_VERSION_2);
 
-        verify(eventLog).processUpdate(SNAPSHOT);
-        verify(eventLog, times(2)).processUpdate(firstSuccess);
-        verify(eventLog).processUpdate(secondSuccess);
+        verify(eventLog).processUpdate(SNAPSHOT_VERSION_1);
+        verify(eventLog, times(2)).processUpdate(SUCCESS_VERSION_2);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_3);
 
         assertThat(eventCache.lastKnownVersion().map(LockWatchVersion::version))
                 .as("event cache does not go backwards when processing an earlier update")
                 .hasValue(SEQUENCE_3);
 
-        LockWatchVersion startVersion = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1);
-        TransactionsLockWatchUpdate update = eventCache.getUpdateForTransactions(
-                ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), Optional.of(startVersion));
+        TransactionsLockWatchUpdate update =
+                eventCache.getUpdateForTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), Optional.of(VERSION_1));
 
         assertThat(update.clearCache())
                 .as("reasonably up-to-date version provided")
@@ -201,32 +220,25 @@ public final class LockWatchEventCacheImplTest {
                 .containsExactly(LOCK_DESCRIPTOR_2_VERSION_2);
         assertThat(update.startTsToSequence())
                 .as("TIMESTAMP_2 should not have a version newer than it knows about")
-                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
-                        TIMESTAMP_1, startVersion, TIMESTAMP_2, LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_2)));
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(TIMESTAMP_1, VERSION_1, TIMESTAMP_2, VERSION_2));
     }
 
     @Test
     public void processGetCommitTimestampsUpdateAssignsUpdateVersionToTimestamp() {
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT);
-        LockWatchStateUpdate.Success firstSuccess =
-                LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
-        LockWatchStateUpdate.Success secondSuccess = LockWatchStateUpdate.success(
-                INITIAL_LOG_ID, SEQUENCE_3, ImmutableList.of(UNLOCK_DESCRIPTOR_1_VERSION_3));
-
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), firstSuccess);
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), secondSuccess);
-
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_VERSION_1);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_VERSION_2);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_VERSION_3);
         eventCache.processGetCommitTimestampsUpdate(
                 ImmutableSet.of(TransactionUpdate.builder()
                         .startTs(TIMESTAMP_1)
                         .commitTs(TIMESTAMP_3)
                         .writesToken(LOCK_TOKEN)
                         .build()),
-                firstSuccess);
+                SUCCESS_VERSION_2);
 
-        verify(eventLog).processUpdate(SNAPSHOT);
-        verify(eventLog, times(2)).processUpdate(firstSuccess);
-        verify(eventLog).processUpdate(secondSuccess);
+        verify(eventLog).processUpdate(SNAPSHOT_VERSION_1);
+        verify(eventLog, times(2)).processUpdate(SUCCESS_VERSION_2);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_3);
 
         eventCache.getCommitUpdate(TIMESTAMP_1);
 
