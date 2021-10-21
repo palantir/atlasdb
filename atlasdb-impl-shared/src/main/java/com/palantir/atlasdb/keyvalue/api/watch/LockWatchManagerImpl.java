@@ -55,7 +55,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
     private final LockWatchCache lockWatchCache;
     private final LockWatchValueScopingCache valueScopingCache;
-    private final LockWatchStarter lockWatchingService;
+    private final LockWatchStarter lockWatchStarter;
     private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
     private final ScheduledFuture<?> refreshTask;
 
@@ -64,11 +64,11 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
             Set<LockWatchReference> referencesFromSchema,
             LockWatchEventCache eventCache,
             LockWatchValueScopingCache valueCache,
-            LockWatchStarter lockWatchingService) {
+            LockWatchStarter lockWatchStarter) {
         this.referencesFromSchema = referencesFromSchema;
         this.lockWatchCache = new LockWatchCacheImpl(eventCache, valueCache);
         this.valueScopingCache = valueCache;
-        this.lockWatchingService = lockWatchingService;
+        this.lockWatchStarter = lockWatchStarter;
         lockWatchReferences.addAll(referencesFromSchema);
         refreshTask = executorService.scheduleWithFixedDelay(this::registerWatchesWithTimelock, 0, 5, TimeUnit.SECONDS);
     }
@@ -153,7 +153,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
         }
 
         try {
-            lockWatchingService.startWatching(LockWatchRequest.of(lockWatchReferences));
+            lockWatchStarter.startWatching(LockWatchRequest.of(lockWatchReferences));
         } catch (Throwable e) {
             log.info("Failed to register lockwatches", UnsafeArg.of("lockwatches", lockWatchReferences), e);
         }

@@ -224,37 +224,36 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     private BatchingCommitTimestampGetter getBatchingCommitTimestampGetter() {
-        URL local = createUrlUnchecked("https://localhost:1234");
-        RedirectRetryTargeter localOnlyTargeter = RedirectRetryTargeter.create(local, ImmutableList.of(local));
+        URL localUrl = createLocalUrlUnchecked();
+        RedirectRetryTargeter localOnlyTargeter = RedirectRetryTargeter.create(localUrl, ImmutableList.of(localUrl));
         ConjureTimelockService conjureTimelockService =
                 ConjureTimelockResource.jersey(localOnlyTargeter, _unused -> delegate.getTimelockService());
         NamespacedConjureTimelockService namespacedConjureTimelockService =
                 new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
         LeaderTimeGetter leaderTimeGetter = new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         LockLeaseService lockLeaseService = LockLeaseService.create(namespacedConjureTimelockService, leaderTimeGetter);
-        LockWatchCache lockWatchCache = lockWatchCache();
-        return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchCache);
+        return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchCache());
+    }
+
+    private static URL createLocalUrlUnchecked() {
+        try {
+            return new URL("https://localhost:1234");
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static LockWatchCache lockWatchCache() {
         return LockWatchManagerImpl.create(
                         MetricsManagers.createForTests(),
                         ImmutableSet.of(),
-                        lockWatchinService(),
+                        lockWatchingService(),
                         LockWatchCachingConfig.builder().build())
                 .getCache();
     }
 
-    private static LockWatchingService lockWatchinService() {
+    private static LockWatchingService lockWatchingService() {
         LeaderClock leaderClock = LeaderClock.create();
         return new LockWatchingServiceImpl(HeldLocksCollection.create(leaderClock), leaderClock.id());
-    }
-
-    private static URL createUrlUnchecked(String path) {
-        try {
-            return new URL(path);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
