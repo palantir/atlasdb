@@ -50,29 +50,26 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public final class LockWatchEventCacheImplTest {
     private static final int MIN_EVENTS = 1;
     private static final int MAX_EVENTS = 25;
 
-    private static final UUID INITIAL_LOG_ID = UUID.randomUUID();
-    private static final UUID DIFFERENT_LOG_ID = UUID.randomUUID();
+    private static final UUID INITIAL_LEADER = UUID.randomUUID();
+    private static final UUID DIFFERENT_LEADER = UUID.randomUUID();
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
 
-    private static final long SEQUENCE_1 = 1;
-    private static final long SEQUENCE_2 = 2;
+    private static final long SEQUENCE_1 = 1L;
+    private static final long SEQUENCE_2 = 2L;
     private static final long SEQUENCE_3 = 3L;
     private static final long TIMESTAMP_1 = 72L;
     private static final long TIMESTAMP_2 = 97L;
-    private static final long TIMESTAMP_3 = 99L;
+    private static final long TIMESTAMP_3 = 120L;
 
-    private static final LockWatchVersion VERSION_0 = LockWatchVersion.of(INITIAL_LOG_ID, 0L);
-    private static final LockWatchVersion VERSION_1 = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1);
-    private static final LockWatchVersion VERSION_2 = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_2);
-    private static final LockWatchVersion VERSION_3 = LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_3);
+    private static final LockWatchVersion VERSION_0 = LockWatchVersion.of(INITIAL_LEADER, 0L);
+    private static final LockWatchVersion VERSION_1 = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_1);
+    private static final LockWatchVersion VERSION_2 = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_2);
+    private static final LockWatchVersion VERSION_3 = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_3);
 
     private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("skeleton-key");
     private static final LockDescriptor DESCRIPTOR_2 = StringLockDescriptor.of("2spook5me");
@@ -85,19 +82,20 @@ public final class LockWatchEventCacheImplTest {
             UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_1)).build(SEQUENCE_3);
 
     private static final LockWatchStateUpdate.Snapshot SNAPSHOT_VERSION_1 = LockWatchStateUpdate.snapshot(
-            INITIAL_LOG_ID, SEQUENCE_1, ImmutableSet.of(DESCRIPTOR_1), ImmutableSet.of(REFERENCE_1));
+            INITIAL_LEADER, SEQUENCE_1, ImmutableSet.of(DESCRIPTOR_1), ImmutableSet.of(REFERENCE_1));
     private static final LockWatchStateUpdate.Success SUCCESS_VERSION_2 =
-            LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
+            LockWatchStateUpdate.success(INITIAL_LEADER, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
     private static final LockWatchStateUpdate.Success SUCCESS_VERSION_3 =
-            LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_3, ImmutableList.of(UNLOCK_DESCRIPTOR_1_VERSION_3));
+            LockWatchStateUpdate.success(INITIAL_LEADER, SEQUENCE_3, ImmutableList.of(UNLOCK_DESCRIPTOR_1_VERSION_3));
+
+    private static final CacheMetrics METRICS = CacheMetrics.create(MetricsManagers.createForTests());
 
     private LockWatchEventLog eventLog;
     private LockWatchEventCache eventCache;
 
     @Before
     public void setUp() {
-        eventLog = spy(LockWatchEventLog.create(
-                CacheMetrics.create(MetricsManagers.createForTests()), MIN_EVENTS, MAX_EVENTS));
+        eventLog = spy(LockWatchEventLog.create(METRICS, MIN_EVENTS, MAX_EVENTS));
         eventCache = new LockWatchEventCacheImpl(eventLog);
     }
 
@@ -114,18 +112,20 @@ public final class LockWatchEventCacheImplTest {
         TransactionsLockWatchUpdate update =
                 eventCache.getUpdateForTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), Optional.empty());
 
-        // This event is effectively a snapshot, and is used as such
-        LockWatchEvent snapshotEventAtSequenceOne = LockWatchCreatedEvent.builder(
+        // This event is effectively a snapshot, and is used as such by the event cache
+        LockWatchEvent snapshotEventAtSequence1 = LockWatchCreatedEvent.builder(
                         ImmutableSet.of(REFERENCE_1), ImmutableSet.of(DESCRIPTOR_1))
                 .build(SEQUENCE_1);
 
         assertThat(update.clearCache())
-                .as("clear cache due to no version passed in")
+                .as("must clear cache due to no past user version")
                 .isTrue();
+
         assertThat(update.events())
                 .as("snapshot up to earliest sequence corresponding to a timestamp, then events up to latest known"
                         + " version")
-                .containsExactly(snapshotEventAtSequenceOne, LOCK_DESCRIPTOR_2_VERSION_2);
+                .containsExactly(snapshotEventAtSequence1, LOCK_DESCRIPTOR_2_VERSION_2);
+
         assertThat(update.startTsToSequence())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         TIMESTAMP_1, VERSION_1,
@@ -171,7 +171,7 @@ public final class LockWatchEventCacheImplTest {
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_VERSION_1);
 
         LockWatchStateUpdate newSnapshot = LockWatchStateUpdate.snapshot(
-                DIFFERENT_LOG_ID, SEQUENCE_3, ImmutableSet.of(), ImmutableSet.of(REFERENCE_2));
+                DIFFERENT_LEADER, SEQUENCE_3, ImmutableSet.of(), ImmutableSet.of(REFERENCE_2));
 
         // New snapshot clears all state from before, and thus TIMESTAMP_1 is no longer present, and should throw
         // when attempting to retrieve information about it
@@ -216,7 +216,7 @@ public final class LockWatchEventCacheImplTest {
                 .as("reasonably up-to-date version provided")
                 .isFalse();
         assertThat(update.events())
-                .as("only events from 1 (exclusive) to 2 (inclusive) required")
+                .as("only events from version 1 (exclusive) to version 2 (inclusive) required")
                 .containsExactly(LOCK_DESCRIPTOR_2_VERSION_2);
         assertThat(update.startTsToSequence())
                 .as("TIMESTAMP_2 should not have a version newer than it knows about")
@@ -240,20 +240,20 @@ public final class LockWatchEventCacheImplTest {
         verify(eventLog, times(2)).processUpdate(SUCCESS_VERSION_2);
         verify(eventLog).processUpdate(SUCCESS_VERSION_3);
 
+        // Retrieving a commit update should only retrieve events between the start and end of the transaction
         eventCache.getCommitUpdate(TIMESTAMP_1);
-
         verify(eventLog)
                 .getEventsBetweenVersions(VersionBounds.builder()
-                        .startVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1))
-                        .endVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_2))
+                        .startVersion(LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_1))
+                        .endVersion(LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_2))
                         .build());
 
+        // An event update should retrieve any events from start timestamp to latest known timestamp in the cache
         eventCache.getEventUpdate(TIMESTAMP_1);
-
         verify(eventLog)
                 .getEventsBetweenVersions(VersionBounds.builder()
-                        .startVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1))
-                        .endVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_3))
+                        .startVersion(LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_1))
+                        .endVersion(LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_3))
                         .build());
     }
 
