@@ -17,15 +17,26 @@
 package com.palantir.timelock.paxos;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.BatchingCommitTimestampGetter;
+import com.palantir.lock.client.LeaderTimeGetter;
+import com.palantir.lock.client.LegacyLeaderTimeGetter;
+import com.palantir.lock.client.LockLeaseService;
+import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -45,6 +56,8 @@ import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -200,6 +213,28 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     public TimelockService getLegacyTimelockService() {
-        return new DelegatingTimelockService(getTimelockService());
+        return new DelegatingTimelockService(getTimelockService(), getBatchingCommitTimestampGetter());
+    }
+
+    private BatchingCommitTimestampGetter getBatchingCommitTimestampGetter() {
+        URL local = createUrlUnchecked("https://localhost:1234");
+        RedirectRetryTargeter localOnlyTargeter = RedirectRetryTargeter.create(local, ImmutableList.of(local));
+        ConjureTimelockService conjureTimelockService =
+                ConjureTimelockResource.jersey(localOnlyTargeter, _unused -> delegate.getTimelockService());
+        NamespacedConjureTimelockService namespacedConjureTimelockService =
+                new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
+        LeaderTimeGetter leaderTimeGetter = new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
+        LockLeaseService lockLeaseService = LockLeaseService.create(namespacedConjureTimelockService, leaderTimeGetter);
+
+        // TODO(gs): do we want a real LockWatchCacheImpl here?
+        return BatchingCommitTimestampGetter.create(lockLeaseService, LockWatchCacheImpl.noOp());
+    }
+
+    private static URL createUrlUnchecked(String path) {
+        try {
+            return new URL(path);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

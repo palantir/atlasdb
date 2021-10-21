@@ -19,6 +19,7 @@ package com.palantir.timelock.paxos;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.lock.client.BatchingCommitTimestampGetter;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -36,9 +37,12 @@ import java.util.Set;
 
 final class DelegatingTimelockService implements TimelockService {
     private final AsyncTimelockService timelock;
+    private final BatchingCommitTimestampGetter batchingCommitTimestampGetter;
 
-    public DelegatingTimelockService(AsyncTimelockService timelock) {
+    public DelegatingTimelockService(
+            AsyncTimelockService timelock, BatchingCommitTimestampGetter batchingCommitTimestampGetter) {
         this.timelock = timelock;
+        this.batchingCommitTimestampGetter = batchingCommitTimestampGetter;
     }
 
     @Override
@@ -47,8 +51,8 @@ final class DelegatingTimelockService implements TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long _startTs, LockToken _commitLocksToken) {
-        return getFreshTimestamp();
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        return batchingCommitTimestampGetter.getCommitTimestamp(startTs, commitLocksToken);
     }
 
     @Override

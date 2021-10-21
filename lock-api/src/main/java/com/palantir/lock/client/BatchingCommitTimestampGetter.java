@@ -39,7 +39,7 @@ import org.immutables.value.Value;
 /**
  * This class batches getCommitTimestamps requests to TimeLock server for a single client/namespace.
  * */
-final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
+public final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     private final DisruptorAutobatcher<Request, Long> autobatcher;
 
     private BatchingCommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
