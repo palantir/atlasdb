@@ -18,12 +18,19 @@ package com.palantir.timelock.paxos;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.atlasdb.timelock.lock.LeaderClock;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -36,7 +43,7 @@ import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchCacheImpl;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -225,9 +232,22 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
         LeaderTimeGetter leaderTimeGetter = new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         LockLeaseService lockLeaseService = LockLeaseService.create(namespacedConjureTimelockService, leaderTimeGetter);
+        LockWatchCache lockWatchCache = lockWatchCache();
+        return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchCache);
+    }
 
-        // TODO(gs): do we want a real LockWatchCacheImpl here?
-        return BatchingCommitTimestampGetter.create(lockLeaseService, LockWatchCacheImpl.noOp());
+    private static LockWatchCache lockWatchCache() {
+        return LockWatchManagerImpl.create(
+                        MetricsManagers.createForTests(),
+                        ImmutableSet.of(),
+                        lockWatchinService(),
+                        LockWatchCachingConfig.builder().build())
+                .getCache();
+    }
+
+    private static LockWatchingService lockWatchinService() {
+        LeaderClock leaderClock = LeaderClock.create();
+        return new LockWatchingServiceImpl(HeldLocksCollection.create(leaderClock), leaderClock.id());
     }
 
     private static URL createUrlUnchecked(String path) {

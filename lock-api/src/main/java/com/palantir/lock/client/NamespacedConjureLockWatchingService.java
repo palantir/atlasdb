@@ -32,6 +32,7 @@ public class NamespacedConjureLockWatchingService implements LockWatchStarter {
         this.namespace = namespace;
     }
 
+    @Override
     public void startWatching(LockWatchRequest request) {
         lockWatcher.startWatching(AUTH_HEADER, namespace, request);
     }
