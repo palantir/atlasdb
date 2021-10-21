@@ -17,9 +17,9 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
@@ -116,8 +116,7 @@ public class AtlasBackupResource implements AtlasBackupService {
         LockToken lockToken = backupToken.getLockToken();
         ListenableFuture<Set<LockToken>> unlockResult =
                 timelock(backupToken.getNamespace()).unlock(Set.of(lockToken));
-        // TODO(gs): proper future handling
-        return Futures.getUnchecked(unlockResult).contains(lockToken);
+        return AtlasFutures.getUnchecked(unlockResult).contains(lockToken);
     }
 
     private BackupToken fetchFastForwardTimestamp(BackupToken backupToken) {
