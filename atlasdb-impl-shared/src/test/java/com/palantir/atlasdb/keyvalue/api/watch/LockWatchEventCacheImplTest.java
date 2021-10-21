@@ -18,7 +18,11 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
@@ -39,6 +43,7 @@ import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.Optional;
@@ -108,7 +113,7 @@ public final class LockWatchEventCacheImplTest {
     }
 
     @Test
-    public void processStartTransactionsReturnsOnlyRelevantEventsForBatch() {
+    public void getUpdateForTransactionsReturnsOnlyRelevantEventsForBatch() {
         LockWatchStateUpdate.Success firstSuccess =
                 LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
         LockWatchStateUpdate.Success secondSuccess = LockWatchStateUpdate.success(
@@ -176,6 +181,10 @@ public final class LockWatchEventCacheImplTest {
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), firstSuccess);
 
+        verify(eventLog).processUpdate(SNAPSHOT);
+        verify(eventLog, times(2)).processUpdate(firstSuccess);
+        verify(eventLog).processUpdate(secondSuccess);
+
         assertThat(eventCache.lastKnownVersion().map(LockWatchVersion::version))
                 .as("event cache does not go backwards when processing an earlier update")
                 .hasValue(SEQUENCE_3);
@@ -194,5 +203,57 @@ public final class LockWatchEventCacheImplTest {
                 .as("TIMESTAMP_2 should not have a version newer than it knows about")
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         TIMESTAMP_1, startVersion, TIMESTAMP_2, LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_2)));
+    }
+
+    @Test
+    public void processGetCommitTimestampsUpdateAssignsUpdateVersionToTimestamp() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT);
+        LockWatchStateUpdate.Success firstSuccess =
+                LockWatchStateUpdate.success(INITIAL_LOG_ID, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
+        LockWatchStateUpdate.Success secondSuccess = LockWatchStateUpdate.success(
+                INITIAL_LOG_ID, SEQUENCE_3, ImmutableList.of(UNLOCK_DESCRIPTOR_1_VERSION_3));
+
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), firstSuccess);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), secondSuccess);
+
+        eventCache.processGetCommitTimestampsUpdate(
+                ImmutableSet.of(TransactionUpdate.builder()
+                        .startTs(TIMESTAMP_1)
+                        .commitTs(TIMESTAMP_3)
+                        .writesToken(LOCK_TOKEN)
+                        .build()),
+                firstSuccess);
+
+        verify(eventLog).processUpdate(SNAPSHOT);
+        verify(eventLog, times(2)).processUpdate(firstSuccess);
+        verify(eventLog).processUpdate(secondSuccess);
+
+        eventCache.getCommitUpdate(TIMESTAMP_1);
+
+        verify(eventLog)
+                .getEventsBetweenVersions(VersionBounds.builder()
+                        .startVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1))
+                        .endVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_2))
+                        .build());
+
+        eventCache.getEventUpdate(TIMESTAMP_1);
+
+        verify(eventLog)
+                .getEventsBetweenVersions(VersionBounds.builder()
+                        .startVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_1))
+                        .endVersion(LockWatchVersion.of(INITIAL_LOG_ID, SEQUENCE_3))
+                        .build());
+    }
+
+    @Test
+    public void removingTransactionStateFromCacheDoesNotRetentionEventsEveryTime() {
+        for (int count = 0; count < 1000; ++count) {
+            eventCache.removeTransactionStateFromCache(count);
+        }
+
+        // The actual number below is somewhat arbitrary due to the gradual warm-up that rate limiters go through. The
+        // main point is to confirm that retention does run sometimes, but not every time
+        verify(eventLog, atLeastOnce()).retentionEvents(any());
+        verify(eventLog, atMost(50)).retentionEvents(any());
     }
 }
