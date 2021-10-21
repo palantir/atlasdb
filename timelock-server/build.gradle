@@ -89,29 +89,29 @@ dependencies {
     // TODO:   runtime "org.postgresql:postgresql:${postgresJdbcDriverVersion}"
     // TODO:   add runtime depencency on the dbkvs-oracle-driver internally
 
-    testCompile (project(":atlasdb-tests-shared")) {
+    testImplementation (project(":atlasdb-tests-shared")) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
 
-    testCompile group: 'com.palantir.conjure.java.runtime', name: 'client-config'
-    testCompile project(":atlasdb-container-test-utils")
-    testCompile project(":atlasdb-tests-shared")
-    testCompile project(":atlasdb-dbkvs")
-    testCompile (project(":atlasdb-cassandra")) {
+    testImplementation group: 'com.palantir.conjure.java.runtime', name: 'client-config'
+    testImplementation project(":atlasdb-container-test-utils")
+    testImplementation project(":atlasdb-tests-shared")
+    testImplementation project(":atlasdb-dbkvs")
+    testImplementation (project(":atlasdb-cassandra")) {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')
     }
-    testCompile project(":flake-rule")
-    testCompile group: 'org.assertj', name: 'assertj-core'
+    testImplementation project(":flake-rule")
+    testImplementation group: 'org.assertj', name: 'assertj-core'
     testCompile(group: 'org.jmock', name: 'jmock') {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
-    testCompile group: 'org.mockito', name: 'mockito-core'
-    testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone'
 
-    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
+    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
 
     testImplementation 'com.google.guava:guava'
     testImplementation 'io.dropwizard.metrics:metrics-core'
