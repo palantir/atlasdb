@@ -339,7 +339,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         doAnswer(invocationOnMock -> {
                     Object[] arguments = invocationOnMock.getArguments();
                     Collection<Cell> sentinelsToAdd = (Collection<Cell>) arguments[2];
-                    sweptCells.add(new ArrayList(sentinelsToAdd));
+                    sweptCells.add(new ArrayList<>(sentinelsToAdd));
                     return null;
                 })
                 .when(cellsSweeper)
@@ -355,7 +355,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                 PtBytes.EMPTY_BYTE_ARRAY,
                 SweepTaskRunner.RunType.FULL);
 
-        return new Pair(sweptCells, sweepResults);
+        return new Pair<>(sweptCells, sweepResults);
     }
 
     @Override

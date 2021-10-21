@@ -69,7 +69,7 @@ public class TimestampPartitioningMapTest {
 
     @Test
     public void copiesWithNewVersions() {
-        TimestampPartitioningMap newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewValue(TIMESTAMP_1, 2);
+        TimestampPartitioningMap<Integer> newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewValue(TIMESTAMP_1, 2);
         assertThat(newMap.getValueForTimestamp(TIMESTAMP_1 - 1)).isEqualTo(1);
         assertThat(newMap.getValueForTimestamp(TIMESTAMP_1)).isEqualTo(2);
         assertThat(newMap.getValueForTimestamp(TIMESTAMP_2)).isEqualTo(2);
@@ -77,7 +77,7 @@ public class TimestampPartitioningMapTest {
 
     @Test
     public void supportsRevertingVersions() {
-        TimestampPartitioningMap newMap =
+        TimestampPartitioningMap<Integer> newMap =
                 DEFAULT_INITIAL_MAPPING.copyInstallingNewValue(TIMESTAMP_1, 2).copyInstallingNewValue(TIMESTAMP_2, 1);
         assertThat(newMap.getValueForTimestamp(TIMESTAMP_2 - 1)).isEqualTo(2);
         assertThat(newMap.getValueForTimestamp(TIMESTAMP_2)).isEqualTo(1);
@@ -85,7 +85,7 @@ public class TimestampPartitioningMapTest {
 
     @Test
     public void coalescesRangesOnEquivalentValues() {
-        TimestampPartitioningMap newMap = DEFAULT_INITIAL_MAPPING
+        TimestampPartitioningMap<Integer> newMap = DEFAULT_INITIAL_MAPPING
                 .copyInstallingNewValue(TIMESTAMP_1, 2)
                 .copyInstallingNewValue(TIMESTAMP_2, 2)
                 .copyInstallingNewValue(TIMESTAMP_3, 2);
@@ -94,7 +94,7 @@ public class TimestampPartitioningMapTest {
 
     @Test
     public void doesNotCoalesceRangesOnDifferentValues() {
-        TimestampPartitioningMap newMap = DEFAULT_INITIAL_MAPPING
+        TimestampPartitioningMap<Integer> newMap = DEFAULT_INITIAL_MAPPING
                 .copyInstallingNewValue(TIMESTAMP_1, 2)
                 .copyInstallingNewValue(TIMESTAMP_2, 1)
                 .copyInstallingNewValue(TIMESTAMP_3, 2);

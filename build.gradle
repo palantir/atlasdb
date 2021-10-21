@@ -126,7 +126,6 @@ allprojects {
                 'PreferSafeLoggingPreconditions',
                 'ProtectedMembersInFinalClass',
                 'PublicConstructorForAbstractClass',
-                'RawTypes',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
                 'ReverseDnsLookup',

@@ -298,7 +298,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS2);
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
-        ArgumentCaptor<Set> captor = ArgumentCaptor.forClass(Set.class);
+        ArgumentCaptor<Set<Cell>> captor = ArgumentCaptor.forClass(Set.class);
         verify(mockFollower, times(1)).run(eq(TABLE_CONS), captor.capture());
         assertThat(Iterables.getOnlyElement(captor.getAllValues())).containsExactly(DEFAULT_CELL);
     }
@@ -309,7 +309,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_THOR, LOW_TS2);
         sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
 
-        ArgumentCaptor<Set> captor = ArgumentCaptor.forClass(Set.class);
+        ArgumentCaptor<Set<Cell>> captor = ArgumentCaptor.forClass(Set.class);
         verify(mockFollower, times(1)).run(eq(TABLE_THOR), captor.capture());
         assertThat(Iterables.getOnlyElement(captor.getAllValues())).containsExactly(DEFAULT_CELL);
     }
@@ -791,7 +791,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD)))
                 .isEqualTo(950 - 1);
-        ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<Cell, TimestampRangeDelete>> argument = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, times(1)).deleteAllTimestamps(eq(TABLE_CONS), argument.capture());
         assertThat(argument.getValue())
                 .containsValue(new TimestampRangeDelete.Builder()
@@ -833,7 +833,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEqualTo(950 - 1);
         verify(spiedKvs, never()).deleteAllTimestamps(any(TableReference.class), anyMap());
 
-        ArgumentCaptor<Multimap> multimap = ArgumentCaptor.forClass(Multimap.class);
+        ArgumentCaptor<Multimap<Cell, Long>> multimap = ArgumentCaptor.forClass(Multimap.class);
         verify(spiedKvs, times(1)).delete(eq(TABLE_CONS), multimap.capture());
         assertThat(multimap.getValue().keySet()).containsExactly(DEFAULT_CELL);
         assertThat(multimap.getValue().values()).containsExactly(900L, 920L);
@@ -849,7 +849,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD)))
                 .isEqualTo(2009L - 1L);
-        ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<Cell, TimestampRangeDelete>> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, times(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getValue())
                 .containsValue(new TimestampRangeDelete.Builder()
@@ -938,7 +938,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // first iteration of sweep should include all writes corresponding to timestamp 999 + minCellsToReachBatchSize,
         // since deletes are batched, we do not specify the number of calls to delete
         sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
-        ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<Cell, TimestampRangeDelete>> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, atLeast(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
                 .isEqualTo(minTsToReachBatchSize * relativePrime);
@@ -968,7 +968,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // first iteration of sweep should include all but one of the writes, since deletes are batched, we do not
         // specify the number of calls to delete
         sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
-        ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<Cell, TimestampRangeDelete>> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, atLeast(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
                 .isEqualTo(SWEEP_BATCH_SIZE);
@@ -991,7 +991,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         commitTransactionsWithWritesIntoUniqueCells(numberOfTimestamps, MAX_CELLS_GENERIC, sweeperConservative);
         sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
-        ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<Cell, TimestampRangeDelete>> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, times(6)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
                 .isEqualTo(5 * BATCH_SIZE_KVS + MAX_CELLS_GENERIC);
@@ -1331,7 +1331,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         }
         sweepQueue.enqueue(writeInfos);
         return writeInfos.stream()
-                .collect(Collectors.toMap(write -> write.toShard(DEFAULT_SHARDS), write -> 1, (fst, snd) -> fst + snd));
+                .collect(Collectors.toMap(write -> write.toShard(DEFAULT_SHARDS), write -> 1, Integer::sum));
     }
 
     private List<WriteInfo> generateHundredWrites(int startCol, long startTs) {

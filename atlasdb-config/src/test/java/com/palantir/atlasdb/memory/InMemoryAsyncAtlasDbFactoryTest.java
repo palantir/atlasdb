@@ -30,7 +30,7 @@ import org.awaitility.Awaitility;
 import org.junit.Test;
 
 public class InMemoryAsyncAtlasDbFactoryTest {
-    private final AtlasDbFactory factory = new InMemoryAsyncAtlasDbFactory();
+    private final AtlasDbFactory<?> factory = new InMemoryAsyncAtlasDbFactory();
 
     @Test
     public void syncInitKvsSynchronous() {
