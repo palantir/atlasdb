@@ -172,7 +172,7 @@ public class OracleTableNameMapperEteTest {
 
     private void assertLengthAndValueOfName(String shortPrefixedTableName, int tableNum) {
         assertThat(shortPrefixedTableName).hasSize(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT);
-        String expectedName = TEST_PREFIX + getTableRefWithNumber(tableNum).getTablename();
+        String expectedName = TEST_PREFIX + getTableRefWithNumber(tableNum).getTableName();
         assertThat(shortPrefixedTableName).isEqualTo(expectedName);
     }
 

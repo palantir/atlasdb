@@ -46,7 +46,7 @@ public class MetricsManagerTest {
     private final TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
     private final MetricsManager metricsManager =
             new MetricsManager(registry, taggedMetricRegistry, tableReference -> tableReference
-                    .getTablename()
+                    .getTableName()
                     .equals("safe"));
 
     @Test

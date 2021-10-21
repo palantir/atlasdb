@@ -29,7 +29,7 @@ public class TableReferenceTest {
         TableReference lower = TableReference.createLowerCased(upper);
 
         assertThat(upperFoo.toLowerCase()).isEqualTo(lower.getNamespace().getName());
-        assertThat(upperBar.toLowerCase()).isEqualTo(lower.getTablename());
+        assertThat(upperBar.toLowerCase()).isEqualTo(lower.getTableName());
     }
 
     @Test
@@ -40,6 +40,6 @@ public class TableReferenceTest {
         TableReference lower = TableReference.createLowerCased(upper);
 
         assertThat(Namespace.EMPTY_NAMESPACE).isEqualTo(lower.getNamespace());
-        assertThat(upperBar.toLowerCase()).isEqualTo(lower.getTablename());
+        assertThat(upperBar.toLowerCase()).isEqualTo(lower.getTableName());
     }
 }
