@@ -56,6 +56,9 @@ public final class ClientLogEventsTest {
     private static final long TIMESTAMP_1 = 72L;
     private static final long TIMESTAMP_2 = 97L;
     private static final long TIMESTAMP_3 = 99L;
+    private static final LockWatchVersion VERSION_0 = LockWatchVersion.of(LEADER, 0L);
+    private static final LockWatchVersion VERSION_1 = LockWatchVersion.of(LEADER, SEQUENCE_1);
+    private static final LockWatchVersion VERSION_4 = LockWatchVersion.of(LEADER, SEQUENCE_4);
 
     private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("lwelt-one");
     private static final LockDescriptor DESCRIPTOR_2 = StringLockDescriptor.of("lwelt-two");
@@ -87,10 +90,8 @@ public final class ClientLogEventsTest {
     @Test
     public void toTransactionsLockWatchUpdateWithClientVersionBehindEarliestTransaction() {
         TimestampMapping mapping = createTimestampMapping(SEQUENCE_3, SEQUENCE_4);
-        LockWatchVersion version = LockWatchVersion.of(LEADER, SEQUENCE_1);
-
         TransactionsLockWatchUpdate update =
-                CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.of(version));
+                CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.of(VERSION_1));
         assertThat(update.events())
                 .containsExactly(
                         LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
@@ -99,10 +100,8 @@ public final class ClientLogEventsTest {
     @Test
     public void toTransactionsLockWatchUpdateWithClientVersionEqualToEarliestTransaction() {
         TimestampMapping mapping = createTimestampMapping(SEQUENCE_1, SEQUENCE_4);
-        LockWatchVersion version = LockWatchVersion.of(LEADER, SEQUENCE_1);
-
         TransactionsLockWatchUpdate update =
-                CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.of(version));
+                CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.of(VERSION_1));
         assertThat(update.events())
                 .containsExactly(
                         LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
@@ -115,10 +114,9 @@ public final class ClientLogEventsTest {
                 ClientLogEvents.builder().clearCache(false).events(events).build();
 
         TimestampMapping mapping = createTimestampMapping(SEQUENCE_4, SEQUENCE_4);
-        LockWatchVersion version = LockWatchVersion.of(LEADER, SEQUENCE_4);
 
         TransactionsLockWatchUpdate update =
-                clientLogEvents.toTransactionsLockWatchUpdate(mapping, Optional.of(version));
+                clientLogEvents.toTransactionsLockWatchUpdate(mapping, Optional.of(VERSION_4));
         assertThat(update.events()).isEmpty();
     }
 
@@ -139,10 +137,8 @@ public final class ClientLogEventsTest {
                 ClientLogEvents.builder().clearCache(true).events(EVENTS_2_TO_4).build();
 
         TimestampMapping mapping = createTimestampMapping(SEQUENCE_2, SEQUENCE_4);
-        LockWatchVersion version = LockWatchVersion.of(LEADER, 0L);
-
         TransactionsLockWatchUpdate update =
-                clientLogEvents.toTransactionsLockWatchUpdate(mapping, Optional.of(version));
+                clientLogEvents.toTransactionsLockWatchUpdate(mapping, Optional.of(VERSION_0));
         assertThat(update.events())
                 .containsExactly(
                         LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4);
@@ -151,10 +147,8 @@ public final class ClientLogEventsTest {
     @Test
     public void toTransactionsLockWatchEventsThrowsIfClientIsBehindEarliestTransactionAndMissingEvents() {
         TimestampMapping mapping = createTimestampMapping(SEQUENCE_3, SEQUENCE_4);
-        LockWatchVersion version = LockWatchVersion.of(LEADER, SEQUENCE_1);
-
         assertThatThrownBy(() -> CLIENT_EVENTS_3_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(
-                        mapping, Optional.of(version)))
+                        mapping, Optional.of(VERSION_1)))
                 .as("missing event at sequence 2")
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Events do not enclose the required versions");
@@ -163,10 +157,8 @@ public final class ClientLogEventsTest {
     @Test
     public void toTransactionsLockWatchEventsThrowsIfEventsMissingFromEarliestTimestamp() {
         TimestampMapping mapping = createTimestampMapping(SEQUENCE_1, SEQUENCE_4);
-        LockWatchVersion version = LockWatchVersion.of(LEADER, SEQUENCE_1);
-
         assertThatThrownBy(() -> CLIENT_EVENTS_3_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(
-                        mapping, Optional.of(version)))
+                        mapping, Optional.of(VERSION_1)))
                 .as("missing event at sequence 2")
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Events do not enclose the required versions");
@@ -175,7 +167,6 @@ public final class ClientLogEventsTest {
     @Test
     public void toTransactionsLockWatchEventsThrowsIfEventsMissingAndNoClientVersion() {
         TimestampMapping mapping = createTimestampMapping(SEQUENCE_1, SEQUENCE_4);
-
         assertThatThrownBy(() ->
                         CLIENT_EVENTS_3_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.empty()))
                 .as("missing event at sequence 2")
@@ -185,19 +176,17 @@ public final class ClientLogEventsTest {
 
     @Test
     public void toCommitUpdateInvalidatesAllWithClearCacheTrue() {
-        LockWatchVersion version = LockWatchVersion.of(LEADER, SEQUENCE_1);
-        TimestampStateStore.CommitInfo commitInfo = TimestampStateStore.CommitInfo.of(LOCK_TOKEN_1, version);
+        TimestampStateStore.CommitInfo commitInfo = TimestampStateStore.CommitInfo.of(LOCK_TOKEN_1, VERSION_1);
 
         ClientLogEvents clientEventsWithClearCache = ClientLogEvents.builder()
                 .from(CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE)
                 .clearCache(true)
                 .build();
-        assertThat(isInvalidateAll(clientEventsWithClearCache.toCommitUpdate(version, version, Optional.empty())))
+        assertThat(isInvalidateAll(clientEventsWithClearCache.toCommitUpdate(VERSION_1, VERSION_1, Optional.empty())))
                 .as("toCommitUpdate should ignore provided commit info when clear cache is true")
                 .isTrue();
-
         assertThat(isInvalidateAll(
-                        clientEventsWithClearCache.toCommitUpdate(version, version, Optional.of(commitInfo))))
+                        clientEventsWithClearCache.toCommitUpdate(VERSION_1, VERSION_1, Optional.of(commitInfo))))
                 .as("toCommitUpdate should ignore provided commit info when clear cache is true")
                 .isTrue();
     }
@@ -214,30 +203,24 @@ public final class ClientLogEventsTest {
 
     @Test
     public void toCommitUpdateFiltersOutLockEventsWithMatchingLockToken() {
-        LockWatchVersion startVersion = LockWatchVersion.of(LEADER, SEQUENCE_1);
-        LockWatchVersion endVersion = LockWatchVersion.of(LEADER, SEQUENCE_4);
-
         // due to how the commit flow works, the filtering is only done if it is a leased lock token
         LeasedLockToken leasedLockToken = mock(LeasedLockToken.class);
         when(leasedLockToken.serverToken()).thenReturn(CONJURE_TOKEN_1);
-        TimestampStateStore.CommitInfo commitInfo = TimestampStateStore.CommitInfo.of(leasedLockToken, startVersion);
+        TimestampStateStore.CommitInfo commitInfo = TimestampStateStore.CommitInfo.of(leasedLockToken, VERSION_1);
 
         CommitUpdate commitUpdate =
-                CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toCommitUpdate(startVersion, endVersion, Optional.of(commitInfo));
+                CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toCommitUpdate(VERSION_1, VERSION_4, Optional.of(commitInfo));
         Set<LockDescriptor> lockDescriptors = extractLockDescriptors(commitUpdate);
         assertThat(lockDescriptors).containsExactlyInAnyOrder(DESCRIPTOR_1);
     }
 
     @Test
     public void toCommitUpdateDoesNotFilterOutBasdOnNonLeasedLockTokens() {
-        LockWatchVersion startVersion = LockWatchVersion.of(LEADER, SEQUENCE_1);
-        LockWatchVersion endVersion = LockWatchVersion.of(LEADER, SEQUENCE_4);
-
         // due to how the commit flow works, the filtering is only done if it is a leased lock token
-        TimestampStateStore.CommitInfo commitInfo = TimestampStateStore.CommitInfo.of(LOCK_TOKEN_1, startVersion);
+        TimestampStateStore.CommitInfo commitInfo = TimestampStateStore.CommitInfo.of(LOCK_TOKEN_1, VERSION_1);
 
         CommitUpdate commitUpdate =
-                CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toCommitUpdate(startVersion, endVersion, Optional.of(commitInfo));
+                CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toCommitUpdate(VERSION_1, VERSION_4, Optional.of(commitInfo));
         Set<LockDescriptor> lockDescriptors = extractLockDescriptors(commitUpdate);
         assertThat(lockDescriptors).containsExactlyInAnyOrder(DESCRIPTOR_1, DESCRIPTOR_2);
     }
@@ -254,10 +237,7 @@ public final class ClientLogEventsTest {
         ClientLogEvents clientLogEvents =
                 ClientLogEvents.builder().clearCache(false).events(events).build();
 
-        LockWatchVersion startVersion = LockWatchVersion.of(LEADER, 0L);
-        LockWatchVersion endVersion = LockWatchVersion.of(LEADER, SEQUENCE_4);
-
-        CommitUpdate commitUpdate = clientLogEvents.toCommitUpdate(startVersion, endVersion, Optional.empty());
+        CommitUpdate commitUpdate = clientLogEvents.toCommitUpdate(VERSION_0, VERSION_4, Optional.empty());
         Set<LockDescriptor> lockDescriptors = extractLockDescriptors(commitUpdate);
         assertThat(lockDescriptors).containsExactlyInAnyOrder(DESCRIPTOR_1, DESCRIPTOR_2, DESCRIPTOR_3);
     }
