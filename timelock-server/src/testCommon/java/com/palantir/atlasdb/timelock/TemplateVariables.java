@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.common.annotations.ImmutablesStyles.AttributeBuilderDetectionStyle;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.List;
@@ -86,7 +87,8 @@ public interface TemplateVariables {
     }
 
     static Iterable<TemplateVariables> generateThreeNodeTimelockCluster(
-            int startingPort, UnaryOperator<ImmutableTemplateVariables.Builder> customizer) {
+            TestableTimeLockClusterPorts ports, UnaryOperator<ImmutableTemplateVariables.Builder> customizer) {
+        int startingPort = ports.getStartingPort();
         List<Integer> allPorts =
                 IntStream.range(startingPort, startingPort + 3).boxed().collect(Collectors.toList());
         return IntStream.range(startingPort, startingPort + 3)

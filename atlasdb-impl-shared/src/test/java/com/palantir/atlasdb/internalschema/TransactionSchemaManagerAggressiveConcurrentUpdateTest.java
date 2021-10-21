@@ -64,7 +64,7 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
                 .mapToObj(unused -> createTransactionSchemaManager())
                 .collect(Collectors.toList());
 
-        List<Future> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>();
         Set<ValueAndBound<TimestampPartitioningMap<Integer>>> snapshots = ConcurrentHashMap.newKeySet();
 
         for (int i = 0; i < numRequests; i++) {

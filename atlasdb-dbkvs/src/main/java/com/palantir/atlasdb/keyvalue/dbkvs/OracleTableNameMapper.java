@@ -53,7 +53,7 @@ public class OracleTableNameMapper {
         }
         String namespace = tableRef.getNamespace().getName();
         namespace = truncate(namespace, MAX_NAMESPACE_LENGTH);
-        return TableReference.create(Namespace.create(namespace), tableRef.getTablename());
+        return TableReference.create(Namespace.create(namespace), tableRef.getTableName());
     }
 
     private String truncate(String name, int length) {

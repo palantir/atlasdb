@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.memory;
 
 import com.palantir.timestamp.AbstractTimestampServiceTests;
+import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 

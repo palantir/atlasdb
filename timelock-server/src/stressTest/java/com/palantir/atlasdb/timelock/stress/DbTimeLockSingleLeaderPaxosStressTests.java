@@ -24,6 +24,7 @@ import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerStressTest;
 import com.palantir.atlasdb.timelock.TemplateVariables;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 import com.palantir.atlasdb.timelock.TestableTimelockServerConfiguration;
+import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.util.Collection;
 import java.util.List;
@@ -37,8 +38,9 @@ import org.junit.runners.Suite;
 @RunWith(ParameterizedSuite.class)
 @Suite.SuiteClasses(MultiNodePaxosTimeLockServerStressTest.class)
 public class DbTimeLockSingleLeaderPaxosStressTests {
-    private static final Iterable<TemplateVariables> TEMPLATE_VARIABLES =
-            generateThreeNodeTimelockCluster(9086, builder -> builder.clientPaxosBuilder(builder.clientPaxosBuilder()
+    private static final Iterable<TemplateVariables> TEMPLATE_VARIABLES = generateThreeNodeTimelockCluster(
+            TestableTimeLockClusterPorts.DB_TIMELOCK_SINGLE_LEADER_PAXOS_STRESS_TESTS,
+            builder -> builder.clientPaxosBuilder(builder.clientPaxosBuilder()
                             .isUseBatchPaxosTimestamp(false)
                             .isBatchSingleLeader(true))
                     .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER));

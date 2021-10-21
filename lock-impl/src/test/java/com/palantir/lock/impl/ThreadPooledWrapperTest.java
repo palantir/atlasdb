@@ -28,7 +28,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,10 +50,10 @@ public class ThreadPooledWrapperTest {
     }
 
     @Test
-    public void emptyPoolDoesNotExecuteMethod() throws InterruptedException, ExecutionException {
+    public void emptyPoolDoesNotExecuteMethod() {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         Semaphore sharedThreadPool = new Semaphore(0);
-        List<Future> futures = getFuturesForNewClient(1, executorService, 0, sharedThreadPool, w -> {
+        List<Future<Long>> futures = getFuturesForNewClient(1, executorService, 0, sharedThreadPool, w -> {
             fail("Wasn't expecting to execute function");
             return null;
         });
@@ -81,20 +80,19 @@ public class ThreadPooledWrapperTest {
             Semaphore sharedThreadPool, int localThreadPoolSize, int numThreads)
             throws InterruptedException, ExecutionException {
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
-        List<Future> futures =
+        List<Future<Long>> futures =
                 getFuturesForNewClient(numThreads, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
 
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
-
-        for (Future future : futures) {
-            assertThat((long) future.get()).isEqualTo(1L);
+        for (Future<Long> future : futures) {
+            assertThat(future.get()).isEqualTo(1L);
         }
+        executorService.shutdownNow();
     }
 
     @Test
-    public void singleClientCantOveruseLocalAndSharedPools() throws InterruptedException, ExecutionException {
+    public void singleClientCantOveruseLocalAndSharedPools() {
         ExecutorService executorService = Executors.newFixedThreadPool(3);
-        List<Future> futures = getFuturesForNewClient(3, executorService, 1, new Semaphore(1), w -> {
+        List<Future<Long>> futures = getFuturesForNewClient(3, executorService, 1, new Semaphore(1), w -> {
             w.await();
             return 0L;
         });
@@ -117,30 +115,30 @@ public class ThreadPooledWrapperTest {
     private void assertTwoClientsCanExecuteMethods(Semaphore sharedThreadPool, int numThreads, int localThreadPoolSize)
             throws InterruptedException, ExecutionException {
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
-        List<Future> futuresForClient1 =
+        List<Future<Long>> futuresForClient1 =
                 getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
-        List<Future> futuresForClient2 =
+        List<Future<Long>> futuresForClient2 =
                 getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 2L);
 
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
-
-        for (Future future : futuresForClient1) {
+        for (Future<Long> future : futuresForClient1) {
             assertThat(future.get()).isEqualTo(1L);
         }
-        for (Future future : futuresForClient2) {
+        for (Future<Long> future : futuresForClient2) {
             assertThat(future.get()).isEqualTo(2L);
         }
+
+        executorService.shutdownNow();
     }
 
     @Test
-    public void twoClientsCantReuseSharedPool() throws InterruptedException, ExecutionException {
+    public void twoClientsCantReuseSharedPool() {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         Semaphore sharedThreadPool = new Semaphore(1);
-        Future future1 = getSingleFutureForNewClient(executorService, 0, sharedThreadPool, w -> {
+        Future<Long> future1 = getSingleFutureForNewClient(executorService, 0, sharedThreadPool, w -> {
             w.await();
             return 0L;
         });
-        Future future2 = getSingleFutureForNewClient(executorService, 0, sharedThreadPool, w -> {
+        Future<Long> future2 = getSingleFutureForNewClient(executorService, 0, sharedThreadPool, w -> {
             w.await();
             return 0L;
         });
@@ -150,22 +148,22 @@ public class ThreadPooledWrapperTest {
         assertSuccessfulThreadsAreDone(Lists.newArrayList(future1, future2), 1);
     }
 
-    private Future getSingleFutureForNewClient(
+    private Future<Long> getSingleFutureForNewClient(
             ExecutorService executorService,
             int localThreadPoolSize,
             Semaphore sharedThreadPool,
-            FunctionCheckedException<Waiter, ?, ?> function) {
+            FunctionCheckedException<Waiter, Long, Exception> function) {
         ThreadPooledWrapper<Waiter> client = new ThreadPooledWrapper<>(WAITER, localThreadPoolSize, sharedThreadPool);
         return executorService.submit(() -> client.applyWithPermit(function));
     }
 
-    private List<Future> getFuturesForNewClient(
+    private List<Future<Long>> getFuturesForNewClient(
             int numberOfFutures,
             ExecutorService executorService,
             int localThreadPoolSize,
             Semaphore sharedThreadPool,
-            FunctionCheckedException<Waiter, ?, ?> function) {
-        List<Future> futures = new ArrayList<>();
+            FunctionCheckedException<Waiter, Long, Exception> function) {
+        List<Future<Long>> futures = new ArrayList<>();
         ThreadPooledWrapper<Waiter> client = new ThreadPooledWrapper<>(WAITER, localThreadPoolSize, sharedThreadPool);
 
         for (int i = 0; i < numberOfFutures; i++) {
@@ -175,8 +173,7 @@ public class ThreadPooledWrapperTest {
         return futures;
     }
 
-    private void assertBlockedThreadsAreDone(List<Future> futures, int numberBlocked)
-            throws InterruptedException, ExecutionException {
+    private void assertBlockedThreadsAreDone(List<Future<Long>> futures, int numberBlocked) {
         AtomicInteger exceptions = new AtomicInteger(0);
         do {
             exceptions.set(0);
@@ -198,7 +195,7 @@ public class ThreadPooledWrapperTest {
     }
 
     @SuppressWarnings("MissingFail") // This method *counts* successes and expects *some* to work
-    private void assertSuccessfulThreadsAreDone(List<Future> futures, int numberSuccessful) {
+    private void assertSuccessfulThreadsAreDone(List<Future<Long>> futures, int numberSuccessful) {
         AtomicInteger successes = new AtomicInteger(0);
         futures.forEach(future -> {
             try {

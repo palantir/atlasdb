@@ -62,7 +62,7 @@ public class LockServiceStateLoggerTest {
             new MapMaker().makeMap();
 
     private static final SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap =
-            Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, LockRequest>create());
+            Multimaps.synchronizedSetMultimap(HashMultimap.create());
 
     private static final Map<LockDescriptor, ClientAwareReadWriteLock> syncStateMap = new HashMap<>();
 
@@ -112,7 +112,7 @@ public class LockServiceStateLoggerTest {
     }
 
     @Test
-    public void testFilesExist() throws Exception {
+    public void testFilesExist() {
         List<File> files = LockServiceTestUtils.logStateDirFiles();
 
         assertThat(files.stream()
@@ -149,7 +149,8 @@ public class LockServiceStateLoggerTest {
                 .filter(file -> file.getName().startsWith(LockServiceStateLogger.DESCRIPTORS_FILE_PREFIX))
                 .findFirst();
 
-        Map<String, String> descriptorsMap = new Yaml().loadAs(new FileInputStream(descriptorsFile.get()), Map.class);
+        Map<String, String> descriptorsMap =
+                (Map<String, String>) new Yaml().loadAs(new FileInputStream(descriptorsFile.get()), Map.class);
 
         Set<LockDescriptor> allDescriptors = getAllDescriptors();
 
@@ -175,19 +176,19 @@ public class LockServiceStateLoggerTest {
             assertThat(ymlMap)
                     .describedAs("Lock state contains unrecognizable object")
                     .isInstanceOf(Map.class);
-            Map map = (Map) ymlMap;
+            Map<String, ?> map = (Map<String, ?>) ymlMap;
             if (map.containsKey(LockServiceStateLogger.OUTSTANDING_LOCK_REQUESTS_TITLE)) {
                 Object arrayObj = map.get(LockServiceStateLogger.OUTSTANDING_LOCK_REQUESTS_TITLE);
                 assertThat(arrayObj)
                         .describedAs("Outstanding lock requests is not a list")
                         .isInstanceOf(List.class);
 
-                assertThat(((List) arrayObj)).hasSameSizeAs(getOutstandingDescriptors());
+                assertThat(((List<?>) arrayObj)).hasSameSizeAs(getOutstandingDescriptors());
             } else if (map.containsKey(LockServiceStateLogger.HELD_LOCKS_TITLE)) {
                 Object mapObj = map.get(LockServiceStateLogger.HELD_LOCKS_TITLE);
                 assertThat(mapObj).describedAs("Held locks is not a map").isInstanceOf(Map.class);
 
-                assertThat(((Map) mapObj)).hasSameSizeAs(getHeldDescriptors());
+                assertThat(((Map<?, ?>) mapObj)).hasSameSizeAs(getHeldDescriptors());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }
@@ -238,12 +239,12 @@ public class LockServiceStateLoggerTest {
             assertThat(ymlMap)
                     .describedAs("Sync state contains unrecognizable object")
                     .isInstanceOf(Map.class);
-            Map map = (Map) ymlMap;
+            Map<?, ?> map = (Map<?, ?>) ymlMap;
             if (map.containsKey(LockServiceStateLogger.SYNC_STATE_TITLE)) {
                 Object mapObj = map.get(LockServiceStateLogger.SYNC_STATE_TITLE);
                 assertThat(mapObj).describedAs("Sync state is not a map").isInstanceOf(Map.class);
 
-                assertThat(((Map) mapObj)).hasSameSizeAs(getSyncStateDescriptors());
+                assertThat(((Map<?, ?>) mapObj)).hasSameSizeAs(getSyncStateDescriptors());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }
@@ -257,12 +258,12 @@ public class LockServiceStateLoggerTest {
             assertThat(ymlMap)
                     .describedAs("Request state contains unrecognizable object")
                     .isInstanceOf(Map.class);
-            Map map = (Map) ymlMap;
+            Map<?, ?> map = (Map<?, ?>) ymlMap;
             if (map.containsKey(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_TITLE)) {
                 Object mapObj = map.get(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_TITLE);
                 assertThat(mapObj).describedAs("Request state is not a map").isInstanceOf(Map.class);
 
-                assertThat(((Map) mapObj)).hasSameSizeAs(getSyncStateDescriptors());
+                assertThat(((Map<?, ?>) mapObj)).hasSameSizeAs(getSyncStateDescriptors());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }

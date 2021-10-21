@@ -31,7 +31,6 @@ import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.lock.SimpleEteLockWatchResource;
 import com.palantir.atlasdb.lock.SimpleLockResource;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -104,7 +103,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
-        environment.jersey().register(new SimpleEteLockWatchResource(txManager));
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
     }
 

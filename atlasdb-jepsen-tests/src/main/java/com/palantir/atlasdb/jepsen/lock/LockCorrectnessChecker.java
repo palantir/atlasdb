@@ -116,7 +116,7 @@ public class LockCorrectnessChecker implements Checker {
                      * 2) Remember the new value for the most recent successful lock
                      */
                 case RequestType.LOCK:
-                    locksAtSomePoint.add(new Pair(invokeEvent, event));
+                    locksAtSomePoint.add(new Pair<>(invokeEvent, event));
                     lastHeldLock.put(process, event);
                     break;
                     /*

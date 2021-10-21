@@ -63,7 +63,7 @@ public class TableRendererTest {
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {
             {
-                javaTableName(tableRef.getTablename());
+                javaTableName(tableRef.getTableName());
                 rowName();
                 rowComponent("rowName", ValueType.STRING);
                 columns();
@@ -85,7 +85,7 @@ public class TableRendererTest {
     private TableDefinition getTableWithUserSpecifiedPersister(TableReference tableRef) {
         return new TableDefinition() {
             {
-                javaTableName(tableRef.getTablename());
+                javaTableName(tableRef.getTableName());
                 rowName();
                 rowComponent("rowName", ValueType.STRING);
                 columns();
@@ -106,7 +106,7 @@ public class TableRendererTest {
     private TableDefinition getTableWithUserSpecifiedPersisterInDynamicColumns(TableReference tableRef) {
         return new TableDefinition() {
             {
-                javaTableName(tableRef.getTablename());
+                javaTableName(tableRef.getTableName());
                 rowName();
                 rowComponent("rowName", ValueType.STRING);
                 dynamicColumns();

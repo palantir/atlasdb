@@ -62,7 +62,7 @@ public class SpecificTableSweeper {
             SweepProgressStore sweepProgressStore,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             LegacySweepMetrics sweepMetrics,
-            Clock wallclock) {
+            Clock wallClock) {
         this.txManager = txManager;
         this.kvs = kvs;
         this.sweepRunner = sweepRunner;
@@ -70,7 +70,7 @@ public class SpecificTableSweeper {
         this.sweepProgressStore = sweepProgressStore;
         this.sweepPerfLogger = sweepPerfLogger;
         this.sweepMetrics = sweepMetrics;
-        this.wallClock = wallclock;
+        this.wallClock = wallClock;
     }
 
     public static SpecificTableSweeper create(

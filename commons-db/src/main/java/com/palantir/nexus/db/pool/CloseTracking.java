@@ -54,7 +54,7 @@ public final class CloseTracking {
             tracking.close();
             type.close(delegate);
         });
-        destructorReferences.add(new MyReference(wrapped, tracking));
+        destructorReferences.add(new MyReference<>(wrapped, tracking));
         return wrapped;
     }
 

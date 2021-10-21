@@ -141,7 +141,7 @@ public class SchemaTest {
         schema.renderTables(testFolder.getRoot());
 
         List<String> generatedTestTables = ApiTestSchema.getSchema().getAllTables().stream()
-                .map(entry -> entry.getTablename() + "Table")
+                .map(entry -> entry.getTableName() + "Table")
                 .collect(Collectors.toList());
 
         checkIfFilesAreTheSame(generatedTestTables);
@@ -288,7 +288,7 @@ public class SchemaTest {
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {
             {
-                javaTableName(tableRef.getTablename());
+                javaTableName(tableRef.getTableName());
                 rowName();
                 rowComponent("rowName", ValueType.STRING);
                 columns();

@@ -201,7 +201,6 @@ public class FeedbackHandler {
         }
 
         if (endpointStatistics.getOneMin() < rateThreshold) {
-            logHealthInfo(serviceName, metricName, HealthStatus.UNKNOWN, "low request rate", endpointStatistics);
             return HealthStatus.UNKNOWN;
         }
 

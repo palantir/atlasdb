@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.memory;
+package com.palantir.timestamp;
 
-import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.TimestampRange;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -26,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author bdorne
  *
  */
-class InMemoryTimestampService implements ManagedTimestampService {
+public class InMemoryTimestampService implements ManagedTimestampService {
     private final AtomicLong counter = new AtomicLong(0);
 
     @Override

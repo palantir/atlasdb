@@ -34,7 +34,7 @@ public class TableDefinitionTest {
 
     private static final TableDefinition BASE_DEFINITION = new TableDefinition() {
         {
-            javaTableName(TABLE_REF.getTablename());
+            javaTableName(TABLE_REF.getTableName());
             rowName();
             rowComponent(ROW_NAME, ValueType.STRING);
             columns();
@@ -52,7 +52,7 @@ public class TableDefinitionTest {
         TableDefinition definition = new TableDefinition() {
             {
                 tableNameLogSafety(LogSafety.SAFE);
-                javaTableName(TABLE_REF.getTablename());
+                javaTableName(TABLE_REF.getTableName());
                 rowName();
                 rowComponent(ROW_NAME, ValueType.STRING);
                 noColumns();
@@ -65,7 +65,7 @@ public class TableDefinitionTest {
     public void cannotSpecifyTableNameAsLoggableWhenSpecifyingRowName() {
         assertThatThrownBy(() -> new TableDefinition() {
                     {
-                        javaTableName(TABLE_REF.getTablename());
+                        javaTableName(TABLE_REF.getTableName());
                         rowName();
                         tableNameLogSafety(LogSafety.SAFE);
                         rowComponent(ROW_NAME, ValueType.STRING);
@@ -80,7 +80,7 @@ public class TableDefinitionTest {
     public void cannotSpecifyTableNameAsLoggableWhenSpecifyingColumns() {
         assertThatThrownBy(() -> new TableDefinition() {
                     {
-                        javaTableName(TABLE_REF.getTablename());
+                        javaTableName(TABLE_REF.getTableName());
                         rowName();
                         rowComponent(ROW_NAME, ValueType.STRING);
                         columns();
@@ -102,7 +102,7 @@ public class TableDefinitionTest {
         TableDefinition definition = new TableDefinition() {
             {
                 namedComponentsSafeByDefault();
-                javaTableName(TABLE_REF.getTablename());
+                javaTableName(TABLE_REF.getTableName());
                 rowName();
                 rowComponent(ROW_NAME, ValueType.STRING);
                 columns();
@@ -118,7 +118,7 @@ public class TableDefinitionTest {
     public void cannotSpecifyComponentsAsSafeByDefaultWhenSpecifyingRowName() {
         assertThatThrownBy(() -> new TableDefinition() {
                     {
-                        javaTableName(TABLE_REF.getTablename());
+                        javaTableName(TABLE_REF.getTableName());
                         rowName();
                         namedComponentsSafeByDefault();
                         rowComponent(ROW_NAME, ValueType.STRING);
@@ -133,7 +133,7 @@ public class TableDefinitionTest {
     public void cannotSpecifyComponentsAsSafeByDefaultWhenSpecifyingColumns() {
         assertThatThrownBy(() -> new TableDefinition() {
                     {
-                        javaTableName(TABLE_REF.getTablename());
+                        javaTableName(TABLE_REF.getTableName());
                         rowName();
                         rowComponent(ROW_NAME, ValueType.STRING);
                         columns();
@@ -148,7 +148,7 @@ public class TableDefinitionTest {
     public void canDeclareSpecificComponentsAsSafe() {
         TableDefinition definition = new TableDefinition() {
             {
-                javaTableName(TABLE_REF.getTablename());
+                javaTableName(TABLE_REF.getTableName());
                 rowName();
                 rowComponent(ROW_NAME, ValueType.STRING, LogSafety.SAFE);
                 columns();
@@ -165,7 +165,7 @@ public class TableDefinitionTest {
         TableDefinition definition = new TableDefinition() {
             {
                 namedComponentsSafeByDefault();
-                javaTableName(TABLE_REF.getTablename());
+                javaTableName(TABLE_REF.getTableName());
                 rowName();
                 rowComponent(ROW_NAME, ValueType.STRING, LogSafety.UNSAFE);
                 columns();
@@ -182,7 +182,7 @@ public class TableDefinitionTest {
         TableDefinition definition = new TableDefinition() {
             {
                 allSafeForLoggingByDefault();
-                javaTableName(TABLE_REF.getTablename());
+                javaTableName(TABLE_REF.getTableName());
                 rowName();
                 rowComponent(ROW_NAME, ValueType.STRING, LogSafety.UNSAFE);
                 columns();
@@ -199,7 +199,7 @@ public class TableDefinitionTest {
     public void cannotSpecifyEverythingAsSafeWhenSpecifyingRowName() {
         assertThatThrownBy(() -> new TableDefinition() {
                     {
-                        javaTableName(TABLE_REF.getTablename());
+                        javaTableName(TABLE_REF.getTableName());
                         rowName();
                         allSafeForLoggingByDefault();
                         rowComponent(ROW_NAME, ValueType.STRING);
@@ -214,7 +214,7 @@ public class TableDefinitionTest {
     public void cannotSpecifyEverythingAsSafeWhenSpecifyingColumnName() {
         assertThatThrownBy(() -> new TableDefinition() {
                     {
-                        javaTableName(TABLE_REF.getTablename());
+                        javaTableName(TABLE_REF.getTableName());
                         rowName();
                         rowComponent(ROW_NAME, ValueType.STRING);
                         columns();
@@ -230,7 +230,7 @@ public class TableDefinitionTest {
         TableDefinition definition = new TableDefinition() {
             {
                 allSafeForLoggingByDefault();
-                javaTableName(TABLE_REF.getTablename());
+                javaTableName(TABLE_REF.getTableName());
                 rowName();
                 rowComponent(ROW_NAME, ValueType.STRING, LogSafety.UNSAFE);
                 columns();
@@ -247,7 +247,7 @@ public class TableDefinitionTest {
     public void cannotSpecifyTableNameLogSafetyAsBothSafeAndUnsafe() {
         assertThatThrownBy(() -> new TableDefinition() {
                     {
-                        javaTableName(TABLE_REF.getTablename());
+                        javaTableName(TABLE_REF.getTableName());
                         tableNameLogSafety(LogSafety.SAFE);
                         tableNameLogSafety(LogSafety.UNSAFE);
                         rowName();
@@ -263,7 +263,7 @@ public class TableDefinitionTest {
     public void cannotSpecifyTableNameIsUnsafeWithEverythingSafe() {
         assertThatThrownBy(() -> new TableDefinition() {
                     {
-                        javaTableName(TABLE_REF.getTablename());
+                        javaTableName(TABLE_REF.getTableName());
                         tableNameLogSafety(LogSafety.UNSAFE);
                         allSafeForLoggingByDefault();
                         rowName();
@@ -281,7 +281,7 @@ public class TableDefinitionTest {
             {
                 tableNameLogSafety(LogSafety.UNSAFE);
                 namedComponentsSafeByDefault();
-                javaTableName(TABLE_REF.getTablename());
+                javaTableName(TABLE_REF.getTableName());
                 rowName();
                 rowComponent(ROW_NAME, ValueType.STRING);
                 columns();
