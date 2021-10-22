@@ -124,7 +124,7 @@ final class TimestampStateStore {
 
     @VisibleForTesting
     TimestampStateStoreState getStateForTesting() {
-        // This method doesn't need to be threadsafe as it is only used for testing
+        // This method doesn't need to be thread safe as it is only used for testing
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(timestampMap)
                 .livingVersions(livingVersions)
