@@ -57,13 +57,13 @@ import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.ImmutableMultiClientRequestBatchers;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
-import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
+import com.palantir.lock.client.NamespacedConjureTimeLockServiceFactory;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.ReferenceTrackingWrapper;
@@ -71,7 +71,6 @@ import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TimeLockClient;
-import com.palantir.lock.client.TimestampCorroboratingTimelockService;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
@@ -328,15 +327,12 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient =
                 new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
-        LeaderElectionReportingTimelockService leaderElectionReportingTimelockService =
-                LeaderElectionReportingTimelockService.create(withDiagnosticsConjureTimelockService, timelockNamespace);
-
-        timeLockFeedbackBackgroundTask.ifPresent(
-                task -> task.registerLeaderElectionStatistics(leaderElectionReportingTimelockService));
-
         NamespacedConjureTimelockService namespacedConjureTimelockService =
-                TimestampCorroboratingTimelockService.create(
-                        timelockNamespace, metricsManager.getTaggedRegistry(), leaderElectionReportingTimelockService);
+                NamespacedConjureTimeLockServiceFactory.create(
+                        withDiagnosticsConjureTimelockService,
+                        timelockNamespace,
+                        timeLockFeedbackBackgroundTask,
+                        metricsManager.getTaggedRegistry());
 
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);

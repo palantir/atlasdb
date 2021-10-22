@@ -17,20 +17,14 @@
 package com.palantir.timelock.paxos;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
-import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
-import com.palantir.atlasdb.timelock.lock.LeaderClock;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
+import com.palantir.atlasdb.timelock.lock.watch.DefaultLockWatchingService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -40,8 +34,8 @@ import com.palantir.lock.client.BatchingCommitTimestampGetter;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockLeaseService;
+import com.palantir.lock.client.NamespacedConjureTimeLockServiceFactory;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
-import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -59,12 +53,11 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -224,36 +217,21 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     private BatchingCommitTimestampGetter getBatchingCommitTimestampGetter() {
-        URL localUrl = createLocalUrlUnchecked();
-        RedirectRetryTargeter localOnlyTargeter = RedirectRetryTargeter.create(localUrl, ImmutableList.of(localUrl));
-        ConjureTimelockService conjureTimelockService =
-                ConjureTimelockResource.jersey(localOnlyTargeter, _unused -> delegate.getTimelockService());
+        ConjureTimelockService conjureTimelockService = timeLockAgent.getConjureTimelockService();
         NamespacedConjureTimelockService namespacedConjureTimelockService =
-                new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
+                NamespacedConjureTimeLockServiceFactory.create(
+                        conjureTimelockService, client, Optional.empty(), new DefaultTaggedMetricRegistry());
         LeaderTimeGetter leaderTimeGetter = new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         LockLeaseService lockLeaseService = LockLeaseService.create(namespacedConjureTimelockService, leaderTimeGetter);
         return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchCache());
-    }
-
-    private static URL createLocalUrlUnchecked() {
-        try {
-            return new URL("https://localhost:1234");
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private static LockWatchCache lockWatchCache() {
         return LockWatchManagerImpl.create(
                         MetricsManagers.createForTests(),
                         ImmutableSet.of(),
-                        lockWatchingService(),
+                        new DefaultLockWatchingService().get(),
                         LockWatchCachingConfig.builder().build())
                 .getCache();
-    }
-
-    private static LockWatchingService lockWatchingService() {
-        LeaderClock leaderClock = LeaderClock.create();
-        return new LockWatchingServiceImpl(HeldLocksCollection.create(leaderClock), leaderClock.id());
     }
 }

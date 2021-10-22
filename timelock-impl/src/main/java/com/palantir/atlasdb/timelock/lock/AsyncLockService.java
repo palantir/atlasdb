@@ -17,8 +17,8 @@ package com.palantir.atlasdb.timelock.lock;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.lock.watch.DefaultLockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -59,21 +59,19 @@ public class AsyncLockService implements Closeable {
     public static AsyncLockService createDefault(
             LockLog lockLog, ScheduledExecutorService reaperExecutor, ScheduledExecutorService timeoutExecutor) {
 
-        LeaderClock clock = LeaderClock.create();
-
-        HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id());
-        LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
+        DefaultLockWatchingService defaultLockWatchingService = new DefaultLockWatchingService();
+        LockAcquirer lockAcquirer = new LockAcquirer(
+                lockLog, timeoutExecutor, defaultLockWatchingService.clock(), defaultLockWatchingService.get());
 
         return new AsyncLockService(
                 new LockCollection(),
                 new ImmutableTimestampTracker(),
                 lockAcquirer,
-                heldLocks,
+                defaultLockWatchingService.heldLocks(),
                 new AwaitedLocksCollection(),
-                lockWatchingService,
+                defaultLockWatchingService.get(),
                 reaperExecutor,
-                clock,
+                defaultLockWatchingService.clock(),
                 lockLog);
     }
 

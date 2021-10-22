@@ -45,6 +45,7 @@ import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.LeaderElectionMetricAggregator;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
@@ -327,8 +328,7 @@ public class TimeLockAgent {
 
         registrar.accept(resource);
 
-        Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
-                namespace -> namespaces.get(namespace).getTimelockService();
+        Function<String, AsyncTimelockService> asyncTimelockServiceGetter = asyncTimelockServiceGetter();
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
@@ -350,13 +350,21 @@ public class TimeLockAgent {
                     presentUndertowRegistrar,
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
         } else {
-            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
+            registrar.accept(getConjureTimelockService());
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
         }
+    }
+
+    public ConjureTimelockService getConjureTimelockService() {
+        return ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter());
+    }
+
+    private Function<String, AsyncTimelockService> asyncTimelockServiceGetter() {
+        return namespace -> namespaces.get(namespace).getTimelockService();
     }
 
     private void registerClientFeedbackService() {
