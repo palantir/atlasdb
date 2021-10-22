@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListMap;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
 /**
@@ -58,6 +59,7 @@ import org.immutables.value.Value;
  *    this method should be called sparsely. Given that it is only used for retentioning events, which can be eventually
  *    consistent (as it is always correct to keep more events rather than less), this is acceptable for performance.
  */
+@NotThreadSafe
 final class TimestampStateStore {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampStateStore.class);
 
