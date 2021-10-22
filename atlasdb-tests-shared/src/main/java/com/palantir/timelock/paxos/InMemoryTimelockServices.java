@@ -19,6 +19,7 @@ package com.palantir.timelock.paxos;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.factory.LegacyLeaderTimeFactory;
 import com.palantir.atlasdb.factory.TimeAndLockServices;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -68,6 +69,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private String client;
     private TimeLockServices delegate;
     private TimeLockAgent timeLockAgent;
+    private TimeAndLockServices timeAndLockServices;
 
     public InMemoryTimelockServices(TemporaryFolder tempFolder) {
         this.tempFolder = tempFolder;
@@ -120,6 +122,11 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 () -> System.exit(0));
 
         delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
+        timeAndLockServices = TimeAndLockServices.create(
+                client,
+                timeLockAgent.getConjureTimelockService(),
+                new DefaultLockWatchingService().get(),
+                new LegacyLeaderTimeFactory());
 
         // Wait for leadership
         Awaitility.await()
@@ -198,16 +205,15 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         return delegate.getTimestampManagementService();
     }
 
+    public LockWatchManagerInternal getLockWatchManager() {
+        return timeAndLockServices.lockWatchManager();
+    }
+
     public ManagedTimestampService getManagedTimestampService() {
         return delegate.getTimelockService();
     }
 
     public TimelockService getLegacyTimelockService() {
-        TimeAndLockServices timeAndLockServices = TimeAndLockServices.create(
-                client,
-                timeLockAgent.getConjureTimelockService(),
-                new DefaultLockWatchingService().get(),
-                new LegacyLeaderTimeFactory());
         return new DelegatingTimelockService(getTimelockService(), timeAndLockServices.commitTimestampGetter());
     }
 }
