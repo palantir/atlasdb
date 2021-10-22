@@ -28,9 +28,9 @@ dependencies {
   testImplementation project(':commons-db')
   testImplementation project(':timestamp-api')
 
-  testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-  testCompile group: 'junit', name: 'junit'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
+  testImplementation group: 'junit', name: 'junit'
 }
 
 task postgresTest(type: Test) {

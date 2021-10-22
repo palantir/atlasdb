@@ -33,5 +33,5 @@ dependencies {
     testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile 'org.gmock:gmock:0.8.3'
+    testImplementation 'org.gmock:gmock:0.8.3'
 }

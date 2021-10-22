@@ -80,14 +80,14 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
 
-  testCompile group: 'junit', name: 'junit'
-  testCompile group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'junit', name: 'junit'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
   testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
   }
-  testCompile group: 'ch.qos.logback', name: 'logback-classic'
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.awaitility', name: 'awaitility'
+  testImplementation group: 'ch.qos.logback', name: 'logback-classic'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation group: 'org.awaitility', name: 'awaitility'
 
   integrationInputCompile project(":atlasdb-client")
 

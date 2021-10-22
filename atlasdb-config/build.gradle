@@ -79,15 +79,15 @@ dependencies {
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
+    testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
     testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile group: 'org.mockito', name: 'mockito-core'
-    testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.awaitility', name: 'awaitility'
-    testCompile group: 'com.github.stefanbirkner', name: 'system-rules'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.awaitility', name: 'awaitility'
+    testImplementation group: 'com.github.stefanbirkner', name: 'system-rules'
     // Needed for Jersey Response-based tests
-    testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
+    testImplementation group: 'org.glassfish.jersey.core', name: 'jersey-common'
 }

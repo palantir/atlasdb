@@ -31,11 +31,11 @@ dependencies {
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testCompile group: 'junit', name: 'junit'
-    testCompile group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'junit', name: 'junit'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
     testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile group: 'org.mockito', name: 'mockito-core'
-    testCompile group: 'org.awaitility', name: 'awaitility'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'org.awaitility', name: 'awaitility'
 }
