@@ -4,7 +4,7 @@ apply plugin: 'groovy'
 dependencies {
     compile project(':atlasdb-service')
     implementation group: 'commons-cli', name:'commons-cli'
-    compile 'jline:jline:2.12'
+    implementation 'jline:jline:2.12'
     implementation group: 'org.codehaus.groovy', name: 'groovy'
     implementation group: 'org.codehaus.groovy', name: 'groovy-groovysh'
     implementation group: 'org.codehaus.groovy', name: 'groovy-json'

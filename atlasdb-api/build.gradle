@@ -13,10 +13,10 @@ dependencies {
   implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
   implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
 
-  compile 'com.github.ben-manes.caffeine:caffeine'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation group: 'com.palantir.conjure.java.api', name: 'ssl-config'
   implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
-  compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
+  implementation (group: 'com.palantir.tritium', name: 'tritium-registry') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
