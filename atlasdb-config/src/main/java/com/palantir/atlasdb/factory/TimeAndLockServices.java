@@ -26,7 +26,6 @@ import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.client.BatchingCommitTimestampGetter;
 import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.ImmutableMultiClientRequestBatchers;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
@@ -42,7 +41,6 @@ import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchStarter;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -89,25 +87,17 @@ public final class TimeAndLockServices {
     }
 
     public static TimeAndLockServices create(
-            ConjureTimelockService conjureTimelockService, String client, LockWatchStarter lockWatchStarter) {
-        NamespacedConjureTimelockService namespacedConjureTimelockService =
-                NamespacedConjureTimeLockServiceFactory.create(
-                        conjureTimelockService, client, Optional.empty(), new DefaultTaggedMetricRegistry());
-
-        LeaderTimeGetter leaderTimeGetter = new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
-        LockLeaseService lockLeaseService = LockLeaseService.create(namespacedConjureTimelockService, leaderTimeGetter);
-        LockWatchManagerInternal lockWatchManager = LockWatchManagerImpl.create(
-                MetricsManagers.createForTests(),
-                ImmutableSet.of(),
+            String client, ConjureTimelockService conjureTimelockService, LockWatchStarter lockWatchStarter) {
+        return create(
+                client,
+                conjureTimelockService,
                 lockWatchStarter,
-                LockWatchCachingConfig.builder().build());
-
-        LockWatchCache cache = lockWatchManager.getCache();
-        BatchingCommitTimestampGetter commitTimestampGetter =
-                BatchingCommitTimestampGetter.create(lockLeaseService, cache);
-
-        return new TimeAndLockServices(
-                namespacedConjureTimelockService, commitTimestampGetter, lockLeaseService, lockWatchManager, null);
+                LockWatchCachingConfig.builder().build(),
+                ImmutableSet.of(),
+                MetricsManagers.createForTests(),
+                Optional.empty(),
+                Optional.empty(),
+                () -> null);
     }
 
     public static TimeAndLockServices create(
@@ -177,9 +167,19 @@ public final class TimeAndLockServices {
             return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         }
 
-        ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher> referenceTrackingBatcher =
-                timelockRequestBatcherProviders.get().leaderTime().getBatcher(multiClientTimelockServiceSupplier);
-        referenceTrackingBatcher.recordReference();
-        return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, referenceTrackingBatcher);
+        Optional<ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher>> referenceTrackingBatcher =
+                getReferenceTrackingWrapper(timelockRequestBatcherProviders, multiClientTimelockServiceSupplier);
+        referenceTrackingBatcher.ifPresent(ReferenceTrackingWrapper::recordReference);
+
+        // TODO(gs): orElseThrow is not nice here
+        return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, referenceTrackingBatcher.orElseThrow());
+    }
+
+    private static Optional<ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher>> getReferenceTrackingWrapper(
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        return timelockRequestBatcherProviders
+                .map(TimeLockRequestBatcherProviders::leaderTime)
+                .map(lt -> lt.getBatcher(multiClientTimelockServiceSupplier));
     }
 }
