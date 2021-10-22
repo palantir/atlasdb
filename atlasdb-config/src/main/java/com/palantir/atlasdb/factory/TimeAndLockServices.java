@@ -29,14 +29,11 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.ImmutableMultiClientRequestBatchers;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
-import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockLeaseService;
-import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureTimeLockServiceFactory;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
-import com.palantir.lock.client.ReferenceTrackingWrapper;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.watch.LockWatchCache;
@@ -167,19 +164,8 @@ public final class TimeAndLockServices {
             return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         }
 
-        Optional<ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher>> referenceTrackingBatcher =
-                getReferenceTrackingWrapper(timelockRequestBatcherProviders, multiClientTimelockServiceSupplier);
-        referenceTrackingBatcher.ifPresent(ReferenceTrackingWrapper::recordReference);
-
-        // TODO(gs): orElseThrow is not nice here
-        return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, referenceTrackingBatcher.orElseThrow());
-    }
-
-    private static Optional<ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher>> getReferenceTrackingWrapper(
-            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
-        return timelockRequestBatcherProviders
-                .map(TimeLockRequestBatcherProviders::leaderTime)
-                .map(lt -> lt.getBatcher(multiClientTimelockServiceSupplier));
+        return new NamespacedLeaderTimeFactory(
+                        timelockRequestBatcherProviders.get(), multiClientTimelockServiceSupplier)
+                .leaderTimeGetter(timelockNamespace, namespacedConjureTimelockService);
     }
 }
