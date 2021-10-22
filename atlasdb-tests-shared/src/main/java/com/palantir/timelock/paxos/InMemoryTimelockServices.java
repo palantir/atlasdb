@@ -17,6 +17,7 @@
 package com.palantir.timelock.paxos;
 
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.factory.LegacyLeaderTimeFactory;
 import com.palantir.atlasdb.factory.TimeAndLockServices;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
@@ -203,7 +204,10 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
 
     public TimelockService getLegacyTimelockService() {
         TimeAndLockServices timeAndLockServices = TimeAndLockServices.create(
-                client, timeLockAgent.getConjureTimelockService(), new DefaultLockWatchingService().get());
+                client,
+                timeLockAgent.getConjureTimelockService(),
+                new DefaultLockWatchingService().get(),
+                new LegacyLeaderTimeFactory());
         return new DelegatingTimelockService(getTimelockService(), timeAndLockServices.commitTimestampGetter());
     }
 }

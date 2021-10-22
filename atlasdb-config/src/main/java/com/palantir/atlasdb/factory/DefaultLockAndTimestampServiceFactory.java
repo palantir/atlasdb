@@ -323,6 +323,10 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         LockWatchStarter lockWatchStarter = new NamespacedConjureLockWatchingService(
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
+        Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
+                getMultiClientTimelockServiceSupplier(serviceProvider);
+        LeaderTimeFactory leaderTimeFactory =
+                getLeaderTimeFactory(timelockRequestBatcherProviders, multiClientTimelockServiceSupplier);
 
         TimeAndLockServices timeAndLockServices = TimeAndLockServices.create(
                 timelockNamespace,
@@ -331,9 +335,10 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 cachingConfig,
                 schemas,
                 metricsManager,
+                leaderTimeFactory,
                 timeLockFeedbackBackgroundTask,
                 timelockRequestBatcherProviders,
-                getMultiClientTimelockServiceSupplier(serviceProvider));
+                multiClientTimelockServiceSupplier);
 
         NamespacedConjureTimelockService namespacedConjureTimelockService =
                 timeAndLockServices.namespacedConjureTimelockService();
@@ -360,6 +365,14 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .addResources(remoteTimelockServiceAdapter::close)
                 .addResources(lockWatchManager::close)
                 .build();
+    }
+
+    private static LeaderTimeFactory getLeaderTimeFactory(
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            Supplier<InternalMultiClientConjureTimelockService> multiTimeLockSupplier) {
+        return timelockRequestBatcherProviders
+                .map(trbp -> (LeaderTimeFactory) new NamespacedLeaderTimeFactory(trbp, multiTimeLockSupplier))
+                .orElseGet(LegacyLeaderTimeFactory::new);
     }
 
     private static Supplier<InternalMultiClientConjureTimelockService> getMultiClientTimelockServiceSupplier(

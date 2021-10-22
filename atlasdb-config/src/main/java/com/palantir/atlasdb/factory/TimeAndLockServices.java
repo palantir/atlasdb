@@ -30,7 +30,6 @@ import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.ImmutableMultiClientRequestBatchers;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderTimeGetter;
-import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.NamespacedConjureTimeLockServiceFactory;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
@@ -84,7 +83,10 @@ public final class TimeAndLockServices {
     }
 
     public static TimeAndLockServices create(
-            String client, ConjureTimelockService conjureTimelockService, LockWatchStarter lockWatchStarter) {
+            String client,
+            ConjureTimelockService conjureTimelockService,
+            LockWatchStarter lockWatchStarter,
+            LeaderTimeFactory leaderTimeFactory) {
         return create(
                 client,
                 conjureTimelockService,
@@ -92,6 +94,7 @@ public final class TimeAndLockServices {
                 LockWatchCachingConfig.builder().build(),
                 ImmutableSet.of(),
                 MetricsManagers.createForTests(),
+                leaderTimeFactory,
                 Optional.empty(),
                 Optional.empty(),
                 () -> null);
@@ -104,6 +107,7 @@ public final class TimeAndLockServices {
             LockWatchCachingConfig cachingConfig,
             Set<Schema> schemas,
             MetricsManager metricsManager,
+            LeaderTimeFactory leaderTimeFactory,
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
@@ -122,11 +126,6 @@ public final class TimeAndLockServices {
                 timelockRequestBatcherProviders,
                 lockWatchManager.getCache(),
                 multiClientTimelockServiceSupplier);
-
-        LeaderTimeFactory leaderTimeFactory = timelockRequestBatcherProviders
-                .map(trbp ->
-                        (LeaderTimeFactory) new NamespacedLeaderTimeFactory(trbp, multiClientTimelockServiceSupplier))
-                .orElseGet(() -> (ns, ncts) -> new LegacyLeaderTimeGetter(ncts));
 
         LeaderTimeGetter leaderTimeGetter =
                 getLeaderTimeGetter(timelockNamespace, namespacedConjureTimelockService, leaderTimeFactory);
