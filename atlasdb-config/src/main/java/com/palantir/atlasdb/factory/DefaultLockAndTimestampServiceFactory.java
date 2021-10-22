@@ -321,13 +321,13 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient =
                 new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
-        LockWatchStarter lockWatchingService = new NamespacedConjureLockWatchingService(
+        LockWatchStarter lockWatchStarter = new NamespacedConjureLockWatchingService(
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
 
         TimeAndLockServices timeAndLockServices = TimeAndLockServices.create(
                 timelockNamespace,
                 withDiagnosticsConjureTimelockService,
-                lockWatchingService,
+                lockWatchStarter,
                 cachingConfig,
                 schemas,
                 metricsManager,
