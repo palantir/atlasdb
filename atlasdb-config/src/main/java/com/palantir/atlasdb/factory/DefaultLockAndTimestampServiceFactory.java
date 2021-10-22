@@ -325,14 +325,14 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
 
         TimeAndLockServices timeAndLockServices = TimeAndLockServices.create(
-                metricsManager,
                 timelockNamespace,
-                timeLockFeedbackBackgroundTask,
-                timelockRequestBatcherProviders,
-                schemas,
-                cachingConfig,
                 withDiagnosticsConjureTimelockService,
                 lockWatchingService,
+                cachingConfig,
+                schemas,
+                metricsManager,
+                timeLockFeedbackBackgroundTask,
+                timelockRequestBatcherProviders,
                 getMultiClientTimelockServiceSupplier(serviceProvider));
 
         NamespacedConjureTimelockService namespacedConjureTimelockService =

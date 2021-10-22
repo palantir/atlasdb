@@ -111,18 +111,18 @@ public final class TimeAndLockServices {
     }
 
     public static TimeAndLockServices create(
-            MetricsManager metricsManager,
             String timelockNamespace,
+            ConjureTimelockService conjureTimelockService,
+            LockWatchStarter lockWatchingService,
+            LockWatchCachingConfig cachingConfig,
+            Set<Schema> schemas,
+            MetricsManager metricsManager,
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            Set<Schema> schemas,
-            LockWatchCachingConfig cachingConfig,
-            ConjureTimelockService withDiagnosticsConjureTimelockService,
-            LockWatchStarter lockWatchingService,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
         NamespacedConjureTimelockService namespacedConjureTimelockService =
                 NamespacedConjureTimeLockServiceFactory.create(
-                        withDiagnosticsConjureTimelockService,
+                        conjureTimelockService,
                         timelockNamespace,
                         timeLockFeedbackBackgroundTask,
                         metricsManager.getTaggedRegistry());
