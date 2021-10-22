@@ -123,11 +123,13 @@ public final class TimeAndLockServices {
                 lockWatchManager.getCache(),
                 multiClientTimelockServiceSupplier);
 
-        LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
-                timelockNamespace,
-                timelockRequestBatcherProviders,
-                namespacedConjureTimelockService,
-                multiClientTimelockServiceSupplier);
+        LeaderTimeFactory leaderTimeFactory = timelockRequestBatcherProviders
+                .map(trbp ->
+                        (LeaderTimeFactory) new NamespacedLeaderTimeFactory(trbp, multiClientTimelockServiceSupplier))
+                .orElseGet(() -> (ns, ncts) -> new LegacyLeaderTimeGetter(ncts));
+
+        LeaderTimeGetter leaderTimeGetter =
+                getLeaderTimeGetter(timelockNamespace, namespacedConjureTimelockService, leaderTimeFactory);
         LockLeaseService lockLeaseService = LockLeaseService.create(namespacedConjureTimelockService, leaderTimeGetter);
 
         CommitTimestampGetter commitTimestampGetter =
@@ -156,17 +158,8 @@ public final class TimeAndLockServices {
 
     private static LeaderTimeGetter getLeaderTimeGetter(
             String timelockNamespace,
-            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             NamespacedConjureTimelockService namespacedConjureTimelockService,
-            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
-        LeaderTimeFactory legacyFactory = (_ns, ncts) -> new LegacyLeaderTimeGetter(ncts)
-
-        if (!timelockRequestBatcherProviders.isPresent()) {
-            return legacyFactory.leaderTimeGetter(timelockNamespace, namespacedConjureTimelockService);
-        }
-
-        return new NamespacedLeaderTimeFactory(
-                        timelockRequestBatcherProviders.get(), multiClientTimelockServiceSupplier)
-                .leaderTimeGetter(timelockNamespace, namespacedConjureTimelockService);
+            LeaderTimeFactory leaderTimeFactory) {
+        return leaderTimeFactory.leaderTimeGetter(timelockNamespace, namespacedConjureTimelockService);
     }
 }
