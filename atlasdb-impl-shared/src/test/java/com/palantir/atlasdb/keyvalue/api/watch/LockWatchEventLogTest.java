@@ -48,8 +48,8 @@ public final class LockWatchEventLogTest {
     private static final UUID DIFFERENT_LEADER = UUID.randomUUID();
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
 
-    private static final long SEQUENCE_1 = 1;
-    private static final long SEQUENCE_2 = 2;
+    private static final long SEQUENCE_1 = 1L;
+    private static final long SEQUENCE_2 = 2L;
     private static final long SEQUENCE_3 = 3L;
     private static final long SEQUENCE_4 = 4L;
 
@@ -64,13 +64,21 @@ public final class LockWatchEventLogTest {
             UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_1)).build(SEQUENCE_3);
     private static final LockWatchEvent LOCK_DESCRIPTOR_1_VERSION_4 =
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR_1), LOCK_TOKEN).build(SEQUENCE_4);
+
+    /*
+       Sequence 1: Snapshot: Lock DESCRIPTOR_1
+       Sequence 2: Lock event: Lock DESCRIPTOR_2
+       Sequence 3: Unlock event: Unlock DESCRIPTOR_1
+       Sequence 4: Lock event: Lock DESCRIPTOR_1
+       Net result is that at version 4, both DESCRIPTOR_1 and DESCRIPTOR_2 are locked.
+    */
     private static final LockWatchEvent CREATED_UP_TO_VERSION_4 = LockWatchCreatedEvent.builder(
                     ImmutableSet.of(REFERENCE_1), ImmutableSet.of(DESCRIPTOR_1, DESCRIPTOR_2))
             .build(SEQUENCE_4);
 
-    private static final LockWatchStateUpdate.Snapshot SNAPSHOT_VERSION_1 = LockWatchStateUpdate.snapshot(
+    private static final LockWatchStateUpdate.Snapshot INITIAL_SNAPSHOT_VERSION_1 = LockWatchStateUpdate.snapshot(
             INITIAL_LEADER, SEQUENCE_1, ImmutableSet.of(DESCRIPTOR_1), ImmutableSet.of(REFERENCE_1));
-    private static final LockWatchStateUpdate.Success SUCCESS_VERSION_4 = LockWatchStateUpdate.success(
+    private static final LockWatchStateUpdate.Success SUCCESS_VERSION_2_TO_4 = LockWatchStateUpdate.success(
             INITIAL_LEADER,
             SEQUENCE_4,
             ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_1_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4));
@@ -95,14 +103,14 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void successUpdateWithoutContextLeadsToFailure() {
-        CacheUpdate cacheUpdate = eventLog.processUpdate(SUCCESS_VERSION_4);
+        CacheUpdate cacheUpdate = eventLog.processUpdate(SUCCESS_VERSION_2_TO_4);
         assertThat(cacheUpdate).isEqualTo(CacheUpdate.FAILED);
         assertThat(eventLog.getLatestKnownVersion()).isEmpty();
     }
 
     @Test
     public void snapshotUpdateSetsContextAndInstructsClientsToClearCache() {
-        CacheUpdate cacheUpdate = eventLog.processUpdate(SNAPSHOT_VERSION_1);
+        CacheUpdate cacheUpdate = eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         LockWatchVersion initialLeaderAtSequenceOne = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_1);
 
         assertThat(cacheUpdate.shouldClearCache()).isTrue();
@@ -118,7 +126,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void successUpdateUpdatesContextAndShouldInstructClientsNotToClearCache() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         LockWatchEvent lockEvent =
                 LockEvent.builder(ImmutableSet.of(DESCRIPTOR_2), LOCK_TOKEN).build(SEQUENCE_2);
         CacheUpdate cacheUpdate = eventLog.processUpdate(
@@ -140,7 +148,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void snapshotUpdateResetsDifferingContextAndInstructsClientsToClearCache() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         CacheUpdate secondSnapshotUpdateResult = eventLog.processUpdate(LockWatchStateUpdate.snapshot(
                 DIFFERENT_LEADER, SEQUENCE_1, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of(REFERENCE_2)));
 
@@ -162,14 +170,14 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void successUpdateWithOverlappingEventsOnlyAppliesNewEvents() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         eventLog.processUpdate(LockWatchStateUpdate.success(
                 INITIAL_LEADER,
                 SEQUENCE_3,
                 ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_1_VERSION_3)));
 
         LockWatchVersion initialLeaderAtSequenceFour = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_4);
-        CacheUpdate spanningUpdate = eventLog.processUpdate(SUCCESS_VERSION_4);
+        CacheUpdate spanningUpdate = eventLog.processUpdate(SUCCESS_VERSION_2_TO_4);
 
         assertThat(spanningUpdate.shouldClearCache()).isFalse();
         assertThat(spanningUpdate.getVersion()).hasValue(initialLeaderAtSequenceFour);
@@ -192,7 +200,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void oldSuccessUpdateDoesNotReapplyEvents() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         eventLog.processUpdate(LockWatchStateUpdate.success(
                 INITIAL_LEADER,
                 SEQUENCE_3,
@@ -222,7 +230,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void successUpdateOlderThanSnapshotThrows() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         assertThatThrownBy(() ->
                         eventLog.processUpdate(LockWatchStateUpdate.success(INITIAL_LEADER, 0L, ImmutableList.of())))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
@@ -231,8 +239,18 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
+    public void successUpdateFromDifferentLeaderClearsState() {
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
+        CacheUpdate cacheUpdate = eventLog.processUpdate(LockWatchStateUpdate.success(
+                DIFFERENT_LEADER, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2)));
+        assertThat(cacheUpdate.shouldClearCache()).isTrue();
+        assertThat(cacheUpdate.getVersion()).isEmpty();
+        assertThat(eventLog.getLatestKnownVersion()).isEmpty();
+    }
+
+    @Test
     public void successUpdateWithNoEventsDoesNotThrow() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         CacheUpdate cacheUpdate =
                 eventLog.processUpdate(LockWatchStateUpdate.success(INITIAL_LEADER, SEQUENCE_1, ImmutableList.of()));
 
@@ -243,7 +261,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void successUpdateWithoutBridgingEventsThrows() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         assertThatThrownBy(() -> eventLog.processUpdate(
                         LockWatchStateUpdate.success(INITIAL_LEADER, SEQUENCE_4, ImmutableList.of())))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
@@ -254,8 +272,8 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void snapshotUpdateAfterSuccessEventResetsState() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
-        eventLog.processUpdate(SUCCESS_VERSION_4);
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(SUCCESS_VERSION_2_TO_4);
         CacheUpdate cacheUpdate = eventLog.processUpdate(LockWatchStateUpdate.snapshot(
                 INITIAL_LEADER, 6L, ImmutableSet.of(DESCRIPTOR_1), ImmutableSet.of(REFERENCE_1, REFERENCE_2)));
 
@@ -276,8 +294,8 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
-    public void retentionedEventsAreSentToSnapshot() {
-        processSnapshotAndSuccessUpToVersionFour();
+    public void retentionedEventsAreAppliedToSnapshot() {
+        processInitialSnapshotAndSuccessUpToVersionFour();
 
         eventLog.retentionEvents(Optional.of(Sequence.of(SEQUENCE_4)));
         LockWatchVersion initialLeaderAtSequenceThree = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_3);
@@ -300,7 +318,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void getEventsBetweenVersionsWithUpToDateVersionsReturnsNoEvents() {
-        processSnapshotAndSuccessUpToVersionFour();
+        processInitialSnapshotAndSuccessUpToVersionFour();
 
         LockWatchVersion initialLeaderAtSequenceFour = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_4);
         ClientLogEvents events = eventLog.getEventsBetweenVersions(VersionBounds.builder()
@@ -314,7 +332,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void getEventsBetweenVersionsForRecentUpdateReturnsMinimalUpdate() {
-        processSnapshotAndSuccessUpToVersionFour();
+        processInitialSnapshotAndSuccessUpToVersionFour();
 
         LockWatchVersion initialLeaderAtSequenceOne = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_1);
         LockWatchVersion initialLeaderAtSequenceThree = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_3);
@@ -330,26 +348,19 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void getEventsBetweenVersionsForNoStartVersionReturnsSnapshot() {
-        processSnapshotAndSuccessUpToVersionFour();
+        processInitialSnapshotAndSuccessUpToVersionFour();
 
         ClientLogEvents events = eventLog.getEventsBetweenVersions(VersionBounds.builder()
                 .endVersion(eventLog.getLatestKnownVersion().get())
                 .build());
 
         assertThat(events.clearCache()).isTrue();
-        /*
-           Sequence 1: Snapshot: Lock DESCRIPTOR_1
-           Sequence 2: Lock event: Lock DESCRIPTOR_2
-           Sequence 3: Unlock event: Unlock DESCRIPTOR_1
-           Sequence 4: Lock event: Lock DESCRIPTOR_1
-           Net result is that at version 4, both DESCRIPTOR_1 and DESCRIPTOR_2 are locked.
-        */
         assertThat(events.events().events()).containsExactly(CREATED_UP_TO_VERSION_4);
     }
 
     @Test
     public void getEventsBetweenVersionsForDifferentLeaderReturnsSnapshot() {
-        processSnapshotAndSuccessUpToVersionFour();
+        processInitialSnapshotAndSuccessUpToVersionFour();
 
         ClientLogEvents events = eventLog.getEventsBetweenVersions(VersionBounds.builder()
                 .startVersion(LockWatchVersion.of(DIFFERENT_LEADER, SEQUENCE_1))
@@ -362,7 +373,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void getEventsBetweenVersionsReturnsSnapshotWhenTooFarBehind() {
-        processSnapshotAndSuccessUpToVersionFour();
+        processInitialSnapshotAndSuccessUpToVersionFour();
 
         ClientLogEvents events = eventLog.getEventsBetweenVersions(VersionBounds.builder()
                 .startVersion(LockWatchVersion.of(INITIAL_LEADER, 0L))
@@ -375,7 +386,7 @@ public final class LockWatchEventLogTest {
 
     @Test
     public void getEventsBetweenVersionsReturnsPartiallyCondensedSnapshotWhenLimitProvided() {
-        processSnapshotAndSuccessUpToVersionFour();
+        processInitialSnapshotAndSuccessUpToVersionFour();
 
         ClientLogEvents events = eventLog.getEventsBetweenVersions(VersionBounds.builder()
                 .earliestSnapshotVersion(SEQUENCE_3)
@@ -390,8 +401,22 @@ public final class LockWatchEventLogTest {
                         LOCK_DESCRIPTOR_1_VERSION_4);
     }
 
-    private void processSnapshotAndSuccessUpToVersionFour() {
-        eventLog.processUpdate(SNAPSHOT_VERSION_1);
-        eventLog.processUpdate(SUCCESS_VERSION_4);
+    @Test
+    public void getEventsBetweenVersionsReturnsFullyCondensedSnapshotWhenUpToDateLimitProvided() {
+        processInitialSnapshotAndSuccessUpToVersionFour();
+
+        LockWatchVersion latestVersion = eventLog.getLatestKnownVersion().get();
+        ClientLogEvents events = eventLog.getEventsBetweenVersions(VersionBounds.builder()
+                .earliestSnapshotVersion(latestVersion.version())
+                .endVersion(latestVersion)
+                .build());
+
+        assertThat(events.clearCache()).isTrue();
+        assertThat(events.events().events()).containsExactly(CREATED_UP_TO_VERSION_4);
+    }
+
+    private void processInitialSnapshotAndSuccessUpToVersionFour() {
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
+        eventLog.processUpdate(SUCCESS_VERSION_2_TO_4);
     }
 }
