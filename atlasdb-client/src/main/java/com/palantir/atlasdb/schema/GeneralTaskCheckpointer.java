@@ -116,7 +116,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private Schema getSchema() {
         Schema schema = new Schema(checkpointTable.getNamespace());
-        schema.addTableDefinition(checkpointTable.getTablename(), new TableDefinition() {
+        schema.addTableDefinition(checkpointTable.getTableName(), new TableDefinition() {
             {
                 rowName();
                 rowComponent("table_name", ValueType.VAR_STRING);

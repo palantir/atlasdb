@@ -152,7 +152,7 @@ public class MetricsManager {
     }
 
     public Map<String, String> getTableNameTagFor(@Nullable TableReference tableRef) {
-        String tableName = tableRef == null ? "unknown" : tableRef.getTablename();
+        String tableName = tableRef == null ? "unknown" : tableRef.getTableName();
         if (!isSafeToLog.test(tableRef)) {
             tableName = "unsafeTable";
         }

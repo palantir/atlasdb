@@ -268,7 +268,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
             Cleaner cleaner,
-            Supplier<Long> startTimeStamp,
+            Supplier<Long> startTimestamp,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             long immutableTimestamp,
@@ -297,7 +297,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.defaultTransactionService = transactionService;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;
-        this.startTimestamp = startTimeStamp;
+        this.startTimestamp = startTimestamp;
         this.conflictDetectionManager = new TransactionConflictDetectionManager(conflictDetectionManager);
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
