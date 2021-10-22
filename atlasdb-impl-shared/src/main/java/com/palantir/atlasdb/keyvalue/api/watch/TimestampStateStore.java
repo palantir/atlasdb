@@ -113,22 +113,8 @@ final class TimestampStateStore {
                 .map(TimestampVersionInfo::version);
     }
 
-    Optional<CommitInfo> getCommitInfo(long startTimestamp) {
-        return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)))
-                .flatMap(TimestampVersionInfo::commitInfo);
-    }
-
     Optional<TimestampVersionInfo> getTimestampInfo(long startTimestamp) {
         return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)));
-    }
-
-    @VisibleForTesting
-    TimestampStateStoreState getStateForTesting() {
-        // This method doesn't need to be thread safe as it is only used for testing
-        return ImmutableTimestampStateStoreState.builder()
-                .timestampMap(timestampMap)
-                .livingVersions(livingVersions)
-                .build();
     }
 
     Optional<Sequence> getEarliestLiveSequence() {
@@ -138,6 +124,21 @@ final class TimestampStateStore {
         synchronized (livingVersions) {
             return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
         }
+    }
+
+    @VisibleForTesting
+    Optional<CommitInfo> getCommitInfo(long startTimestamp) {
+        return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)))
+                .flatMap(TimestampVersionInfo::commitInfo);
+    }
+
+    @VisibleForTesting
+    TimestampStateStoreState getStateForTesting() {
+        // This method doesn't need to be thread safe as it is only used for testing
+        return ImmutableTimestampStateStoreState.builder()
+                .timestampMap(timestampMap)
+                .livingVersions(livingVersions)
+                .build();
     }
 
     private void validateStateSize() {
