@@ -159,9 +159,10 @@ public final class TimeAndLockServices {
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             NamespacedConjureTimelockService namespacedConjureTimelockService,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        LeaderTimeFactory legacyFactory = (_ns, ncts) -> new LegacyLeaderTimeGetter(ncts)
 
         if (!timelockRequestBatcherProviders.isPresent()) {
-            return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
+            return legacyFactory.leaderTimeGetter(timelockNamespace, namespacedConjureTimelockService);
         }
 
         return new NamespacedLeaderTimeFactory(
