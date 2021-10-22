@@ -204,6 +204,6 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     public TimelockService getLegacyTimelockService() {
         TimeAndLockServices timeAndLockServices = TimeAndLockServices.create(
                 timeLockAgent.getConjureTimelockService(), client, new DefaultLockWatchingService().get());
-        return new DelegatingTimelockService(getTimelockService(), timeAndLockServices.batchingCommitTimestampGetter());
+        return new DelegatingTimelockService(getTimelockService(), timeAndLockServices.commitTimestampGetter());
     }
 }
