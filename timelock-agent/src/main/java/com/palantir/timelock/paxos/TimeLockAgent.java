@@ -328,7 +328,7 @@ public class TimeLockAgent {
 
         registrar.accept(resource);
 
-        Function<String, AsyncTimelockService> asyncTimelockServiceGetter = asyncTimelockServiceGetter();
+        Function<String, AsyncTimelockService> asyncTimelockServiceGetter = this::getAsyncTimelockService;
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
@@ -360,11 +360,11 @@ public class TimeLockAgent {
     }
 
     public ConjureTimelockService getConjureTimelockService() {
-        return ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter());
+        return ConjureTimelockResource.jersey(redirectRetryTargeter(), this::getAsyncTimelockService);
     }
 
-    private Function<String, AsyncTimelockService> asyncTimelockServiceGetter() {
-        return namespace -> namespaces.get(namespace).getTimelockService();
+    private AsyncTimelockService getAsyncTimelockService(String namespace) {
+        return namespaces.get(namespace).getTimelockService();
     }
 
     private void registerClientFeedbackService() {
