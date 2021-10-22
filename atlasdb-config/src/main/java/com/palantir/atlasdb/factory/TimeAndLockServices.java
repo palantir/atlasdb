@@ -117,8 +117,7 @@ public final class TimeAndLockServices {
         RequestBatchersFactory requestBatchersFactory = RequestBatchersFactory.create(
                 lockWatchManager.getCache(), Namespace.of(timelockNamespace), requestBatchers);
 
-        LeaderTimeGetter leaderTimeGetter =
-                getLeaderTimeGetter(timelockNamespace, namespacedConjureTimelockService, leaderTimeFactory);
+        LeaderTimeGetter leaderTimeGetter = leaderTimeFactory.leaderTimeGetter(namespacedConjureTimelockService);
         LockLeaseService lockLeaseService = LockLeaseService.create(namespacedConjureTimelockService, leaderTimeGetter);
 
         CommitTimestampGetter commitTimestampGetter =
@@ -130,12 +129,5 @@ public final class TimeAndLockServices {
                 lockLeaseService,
                 lockWatchManager,
                 requestBatchersFactory);
-    }
-
-    private static LeaderTimeGetter getLeaderTimeGetter(
-            String timelockNamespace,
-            NamespacedConjureTimelockService namespacedConjureTimelockService,
-            LeaderTimeFactory leaderTimeFactory) {
-        return leaderTimeFactory.leaderTimeGetter(timelockNamespace, namespacedConjureTimelockService);
     }
 }

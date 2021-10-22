@@ -26,19 +26,21 @@ import com.palantir.lock.client.ReferenceTrackingWrapper;
 import java.util.function.Supplier;
 
 public final class NamespacedLeaderTimeFactory implements LeaderTimeFactory {
+    private final String timelockNamespace;
     private final TimeLockRequestBatcherProviders timeLockRequestBatcherProviders;
     private final Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier;
 
     public NamespacedLeaderTimeFactory(
+            String timelockNamespace,
             TimeLockRequestBatcherProviders timeLockRequestBatcherProviders,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        this.timelockNamespace = timelockNamespace;
         this.timeLockRequestBatcherProviders = timeLockRequestBatcherProviders;
         this.multiClientTimelockServiceSupplier = multiClientTimelockServiceSupplier;
     }
 
     @Override
-    public LeaderTimeGetter leaderTimeGetter(
-            String timelockNamespace, NamespacedConjureTimelockService namespacedConjureTimelockService) {
+    public LeaderTimeGetter leaderTimeGetter(NamespacedConjureTimelockService namespacedConjureTimelockService) {
         ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher> referenceTrackingBatcher =
                 getReferenceTrackingWrapper(timeLockRequestBatcherProviders, multiClientTimelockServiceSupplier);
         referenceTrackingBatcher.recordReference();

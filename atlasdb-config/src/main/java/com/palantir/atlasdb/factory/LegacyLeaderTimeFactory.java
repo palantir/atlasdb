@@ -22,8 +22,7 @@ import com.palantir.lock.client.NamespacedConjureTimelockService;
 
 public class LegacyLeaderTimeFactory implements LeaderTimeFactory {
     @Override
-    public LeaderTimeGetter leaderTimeGetter(
-            String _timelockNamespace, NamespacedConjureTimelockService namespacedConjureTimelockService) {
+    public LeaderTimeGetter leaderTimeGetter(NamespacedConjureTimelockService namespacedConjureTimelockService) {
         return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
     }
 }

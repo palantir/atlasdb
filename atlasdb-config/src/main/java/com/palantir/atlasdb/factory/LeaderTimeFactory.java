@@ -20,6 +20,5 @@ import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 
 public interface LeaderTimeFactory {
-    LeaderTimeGetter leaderTimeGetter(
-            String timelockNamespace, NamespacedConjureTimelockService namespacedConjureTimelockService);
+    LeaderTimeGetter leaderTimeGetter(NamespacedConjureTimelockService namespacedConjureTimelockService);
 }

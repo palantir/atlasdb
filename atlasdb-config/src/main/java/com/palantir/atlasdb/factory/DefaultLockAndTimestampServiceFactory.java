@@ -326,8 +326,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
                 getMultiClientTimelockServiceSupplier(serviceProvider);
-        LeaderTimeFactory leaderTimeFactory =
-                getLeaderTimeFactory(timelockRequestBatcherProviders, multiClientTimelockServiceSupplier);
+        LeaderTimeFactory leaderTimeFactory = getLeaderTimeFactory(
+                timelockNamespace, timelockRequestBatcherProviders, multiClientTimelockServiceSupplier);
 
         Optional<RequestBatchersFactory.MultiClientRequestBatchers> requestBatchers =
                 timelockRequestBatcherProviders.map(batcherProviders -> ImmutableMultiClientRequestBatchers.of(
@@ -373,10 +373,12 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
     }
 
     private static LeaderTimeFactory getLeaderTimeFactory(
+            String timelockNamespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             Supplier<InternalMultiClientConjureTimelockService> multiTimeLockSupplier) {
         return timelockRequestBatcherProviders
-                .map(trbp -> (LeaderTimeFactory) new NamespacedLeaderTimeFactory(trbp, multiTimeLockSupplier))
+                .map(providers -> (LeaderTimeFactory)
+                        new NamespacedLeaderTimeFactory(timelockNamespace, providers, multiTimeLockSupplier))
                 .orElseGet(LegacyLeaderTimeFactory::new);
     }
 
