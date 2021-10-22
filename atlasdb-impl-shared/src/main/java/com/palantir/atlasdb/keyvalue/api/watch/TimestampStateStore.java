@@ -36,10 +36,28 @@ import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListMap;
-import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
-@NotThreadSafe
+/**
+ * Stores mappings of a timestamp to associated information, as well as tracks the earliest live version for the sake
+ * of determining how far we can retention in the {@link VersionedEventStore}.
+ *
+ * Each timestamp has a mapping to its start version (as timestamps are added here at start transaction time, and thus
+ * definitely have this information). Each timestamp may also be updated with its commit version, as well as its commit
+ * lock token. These together may then be used to retrieve relevant events for that transaction.
+ *
+ * Note that this class may not be thread safe in the general case, but can be used safely, depending on the caller. The
+ * main things to call out are:
+ *
+ * 1. Each timestamp is independent of each other, and thus updates should not interact. Updates to the same key may
+ *    be executed in any order (and indeed, an update may race the initial put), but these should be handled by the
+ *    caller.
+ * 2. The entries in the living versions multimap may not be independent (as a single version may correspond to many
+ *    timestamps), but the update concurrency should be handled by the data structure.
+ * 3. Calls to {@link #getEarliestLiveSequence()} are synchronised on the livingVersions map, and thus are blocking;
+ *    this method should be called sparsely. Given that it is only used for retentioning events, which can be eventually
+ *    consistent (as it is always correct to keep more events rather than less), this is acceptable for performance.
+ */
 final class TimestampStateStore {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampStateStore.class);
 
@@ -104,6 +122,7 @@ final class TimestampStateStore {
 
     @VisibleForTesting
     TimestampStateStoreState getStateForTesting() {
+        // This method doesn't need to be threadsafe as it is only used for testing
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(timestampMap)
                 .livingVersions(livingVersions)
@@ -111,7 +130,12 @@ final class TimestampStateStore {
     }
 
     Optional<Sequence> getEarliestLiveSequence() {
-        return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
+        // As per the documentation of Collections.synchronisedSortedSetMultimap, we must synchronise on the collection
+        // when using any kind of collection view, including keySet. While this impacts the concurrency of this class,
+        // this method does not need to be called on every transaction, and thus should not impact performance.
+        synchronized (livingVersions) {
+            return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
+        }
     }
 
     private void validateStateSize() {
