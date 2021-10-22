@@ -18,6 +18,7 @@ dependencies {
     implementation group: 'com.github.rholder', name: 'guava-retrying'
     implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
     implementation group: 'one.util', name: 'streamex'
+    implementation group: 'com.zaxxer', name: 'HikariCP'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
