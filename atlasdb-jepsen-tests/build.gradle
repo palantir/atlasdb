@@ -27,12 +27,12 @@ check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
 dependencies {
     compile project(':atlasdb-config')
 
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
-    compile group: 'com.google.guava', name: 'guava'
-    compile group: 'org.clojure', name: 'clojure'
-    compile group: 'org.slf4j', name: 'slf4j-api'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
+    implementation group: 'com.google.guava', name: 'guava'
+    implementation group: 'org.clojure', name: 'clojure'
+    implementation group: 'org.slf4j', name: 'slf4j-api'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'

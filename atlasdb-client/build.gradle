@@ -41,15 +41,15 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":atlasdb-api")
   compile project(":atlasdb-client-protobufs")
-  compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
-  compile group: "com.github.ben-manes.caffeine", name: "caffeine"
-  compile group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
-  compile group: "com.google.protobuf", name: "protobuf-java"
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
-  compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
-  compile group: 'com.palantir.tracing', name: 'tracing'
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
+  implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
+  implementation group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
+  implementation group: "com.google.protobuf", name: "protobuf-java"
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+  implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
+  implementation group: 'com.palantir.tracing', name: 'tracing'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile (group: 'com.palantir.tritium', name: 'tritium-caffeine') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
@@ -67,11 +67,11 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
   
-  compile group: 'com.squareup.okio', name: 'okio'
-  compile group: 'org.hdrhistogram', name: 'HdrHistogram'
-  compile group: 'com.palantir.common', name: 'streams'
-  compile group: 'com.github.rholder', name: 'guava-retrying'
-  compile group: 'org.rocksdb', name: 'rocksdbjni'
+  implementation group: 'com.squareup.okio', name: 'okio'
+  implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
+  implementation group: 'com.palantir.common', name: 'streams'
+  implementation group: 'com.github.rholder', name: 'guava-retrying'
+  implementation group: 'org.rocksdb', name: 'rocksdbjni'
   
   implementation group: 'com.squareup', name:'javapoet'
   implementation group: 'com.palantir.goethe', name: 'goethe'

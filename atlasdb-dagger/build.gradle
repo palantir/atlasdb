@@ -4,7 +4,7 @@ apply from: '../gradle/shared.gradle'
 
 dependencies {
   compile project(':atlasdb-service')
-  compile group: 'com.google.dagger', name: 'dagger'
+  implementation group: 'com.google.dagger', name: 'dagger'
 
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'

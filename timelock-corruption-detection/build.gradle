@@ -14,10 +14,10 @@ dependencies {
     compile project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
     compile project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
 
-    compile group: 'com.google.guava', name: 'guava'
-    compile group: 'com.github.rholder', name: 'guava-retrying'
-    compile group: 'com.palantir.conjure.java.api', name: 'service-config'
-    compile group: 'one.util', name: 'streamex'
+    implementation group: 'com.google.guava', name: 'guava'
+    implementation group: 'com.github.rholder', name: 'guava-retrying'
+    implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
+    implementation group: 'one.util', name: 'streamex'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'

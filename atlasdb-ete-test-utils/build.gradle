@@ -8,8 +8,8 @@ dependencies {
     compile project(':atlasdb-api')
     compile project(':atlasdb-client')
 
-    compile group: 'junit', name: 'junit'
-    compile group: 'commons-io', name: 'commons-io'
+    implementation group: 'junit', name: 'junit'
+    implementation group: 'commons-io', name: 'commons-io'
     implementation 'org.assertj:assertj-core'
     implementation 'com.google.guava:guava'
     implementation 'com.google.protobuf:protobuf-java'

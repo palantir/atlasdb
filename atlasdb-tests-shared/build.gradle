@@ -11,13 +11,13 @@ dependencies {
 
   testCompile project(":commons-api")
 
-  compile group: 'com.palantir.tracing', name: 'tracing'
-  compile group: 'com.palantir.tritium', name: 'tritium-lib'
+  implementation group: 'com.palantir.tracing', name: 'tracing'
+  implementation group: 'com.palantir.tritium', name: 'tritium-lib'
 
-  compile group: 'junit', name: 'junit'
-  compile group: 'org.assertj', name: 'assertj-core'
-  compile group: 'org.mockito', name: 'mockito-core'
-  compile group: "org.awaitility", name: "awaitility"
+  implementation group: 'junit', name: 'junit'
+  implementation group: 'org.assertj', name: 'assertj-core'
+  implementation group: 'org.mockito', name: 'mockito-core'
+  implementation group: "org.awaitility", name: "awaitility"
 
   implementation 'com.fasterxml.jackson.core:jackson-core'
   implementation 'com.google.guava:guava'

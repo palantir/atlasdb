@@ -13,8 +13,8 @@ dependencies {
         exclude group:'com.codahale.metrics'
     }
 
-    compile group: 'junit', name: 'junit'
-    compile group: 'org.assertj', name: 'assertj-core'
+    implementation group: 'junit', name: 'junit'
+    implementation group: 'org.assertj', name: 'assertj-core'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
