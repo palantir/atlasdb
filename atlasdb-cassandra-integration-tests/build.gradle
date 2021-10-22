@@ -25,7 +25,7 @@ dependencies {
     testImplementation project(":atlasdb-ete-test-utils")
     testImplementation project(":timelock-impl")
 
-    testCompile('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
+    testImplementation('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
         exclude module: 'junit'
 
       exclude group: 'org.apache.httpcomponents'
@@ -38,7 +38,7 @@ dependencies {
 
     testImplementation project(':flake-rule')
 
-    testCompile('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+    testImplementation('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
         exclude(group: 'com.codahale.metrics', module: 'metrics-core')
     }
 

@@ -80,7 +80,7 @@ dependencies {
     testCompileOnly 'org.immutables:value::annotations'
 
     testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
-    testCompile(group: 'org.jmock', name: 'jmock') {
+    testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
     testImplementation group: 'org.mockito', name: 'mockito-core'

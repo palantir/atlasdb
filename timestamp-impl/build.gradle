@@ -23,7 +23,7 @@ dependencies {
   compileOnly project(":atlasdb-processors")
 
   testImplementation group: 'junit', name: 'junit'
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
   }
   testImplementation group: 'org.awaitility', name: 'awaitility'

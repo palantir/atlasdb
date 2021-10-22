@@ -27,10 +27,10 @@ dependencies {
     testImplementation 'org.codehaus.groovy:groovy-test'
     testImplementation project(':atlasdb-client')
 
-    testCompile(group: 'org.jmock', name: 'jmock-legacy') {
+    testImplementation(group: 'org.jmock', name: 'jmock-legacy') {
         exclude group: 'org.hamcrest'
     }
-    testCompile(group: 'org.jmock', name: 'jmock') {
+    testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
     testImplementation 'org.gmock:gmock:0.8.3'

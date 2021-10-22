@@ -36,7 +36,7 @@ dependencies {
   testImplementation project(":flake-rule")
   testImplementation group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
   testImplementation group: 'org.assertj', name: 'assertj-core'
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
   }
   testImplementation group: 'org.mockito', name: 'mockito-core'

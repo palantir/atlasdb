@@ -44,7 +44,7 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
 
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }

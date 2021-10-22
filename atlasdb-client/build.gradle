@@ -82,7 +82,7 @@ dependencies {
 
   testImplementation group: 'junit', name: 'junit'
   testImplementation group: 'org.mockito', name: 'mockito-core'
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
   }
   testImplementation group: 'ch.qos.logback', name: 'logback-classic'

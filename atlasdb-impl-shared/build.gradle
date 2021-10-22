@@ -104,7 +104,7 @@ dependencies {
   testImplementation group: 'org.assertj', name: 'assertj-core'
   testImplementation group: 'org.mockito', name: 'mockito-core'
   testImplementation group: 'org.awaitility', name: 'awaitility'
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
