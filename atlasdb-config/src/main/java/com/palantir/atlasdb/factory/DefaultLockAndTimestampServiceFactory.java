@@ -54,6 +54,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.CommitTimestampGetter;
+import com.palantir.lock.client.ImmutableMultiClientRequestBatchers;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.LockRefreshingLockService;
@@ -328,6 +329,11 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         LeaderTimeFactory leaderTimeFactory =
                 getLeaderTimeFactory(timelockRequestBatcherProviders, multiClientTimelockServiceSupplier);
 
+        Optional<RequestBatchersFactory.MultiClientRequestBatchers> requestBatchers =
+                timelockRequestBatcherProviders.map(batcherProviders -> ImmutableMultiClientRequestBatchers.of(
+                        batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier),
+                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier)));
+
         TimeAndLockServices timeAndLockServices = TimeAndLockServices.create(
                 timelockNamespace,
                 withDiagnosticsConjureTimelockService,
@@ -337,8 +343,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 metricsManager,
                 leaderTimeFactory,
                 timeLockFeedbackBackgroundTask,
-                timelockRequestBatcherProviders,
-                multiClientTimelockServiceSupplier);
+                requestBatchers);
 
         NamespacedConjureTimelockService namespacedConjureTimelockService =
                 timeAndLockServices.namespacedConjureTimelockService();
