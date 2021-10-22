@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -34,7 +35,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
@@ -45,14 +46,15 @@ final class TimestampStateStore {
     @VisibleForTesting
     static final int MAXIMUM_SIZE = 20_000;
 
-    private final NavigableMap<StartTimestamp, MapEntry> timestampMap = new TreeMap<>();
-    private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions = TreeMultimap.create();
+    private final NavigableMap<StartTimestamp, TimestampVersionInfo> timestampMap = new ConcurrentSkipListMap<>();
+    private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions =
+            Multimaps.synchronizedSortedSetMultimap(TreeMultimap.create());
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
         validateStateSize();
 
         startTimestamps.stream().map(StartTimestamp::of).forEach(startTimestamp -> {
-            MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
+            TimestampVersionInfo previous = timestampMap.putIfAbsent(startTimestamp, TimestampVersionInfo.of(version));
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
             livingVersions.put(Sequence.of(version.version()), startTimestamp);
         });
@@ -61,7 +63,7 @@ final class TimestampStateStore {
     void putCommitUpdates(Collection<TransactionUpdate> transactionUpdates, LockWatchVersion newVersion) {
         transactionUpdates.forEach(transactionUpdate -> {
             StartTimestamp startTimestamp = StartTimestamp.of(transactionUpdate.startTs());
-            MapEntry previousEntry = timestampMap.get(startTimestamp);
+            TimestampVersionInfo previousEntry = timestampMap.get(startTimestamp);
             if (previousEntry == null) {
                 throw new TransactionLockWatchFailedException("Start timestamp missing from map");
             }
@@ -88,12 +90,16 @@ final class TimestampStateStore {
 
     Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
         return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)))
-                .map(MapEntry::version);
+                .map(TimestampVersionInfo::version);
     }
 
     Optional<CommitInfo> getCommitInfo(long startTimestamp) {
         return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)))
-                .flatMap(MapEntry::commitInfo);
+                .flatMap(TimestampVersionInfo::commitInfo);
+    }
+
+    Optional<TimestampVersionInfo> getTimestampInfo(long startTimestamp) {
+        return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)));
     }
 
     @VisibleForTesting
@@ -123,21 +129,24 @@ final class TimestampStateStore {
     }
 
     @Value.Immutable
-    @JsonDeserialize(as = ImmutableMapEntry.class)
-    @JsonSerialize(as = ImmutableMapEntry.class)
-    interface MapEntry {
+    @JsonDeserialize(as = ImmutableTimestampVersionInfo.class)
+    @JsonSerialize(as = ImmutableTimestampVersionInfo.class)
+    interface TimestampVersionInfo {
         @Value.Parameter
         LockWatchVersion version();
 
         @Value.Parameter
         Optional<CommitInfo> commitInfo();
 
-        static MapEntry of(LockWatchVersion version) {
-            return ImmutableMapEntry.of(version, Optional.empty());
+        static TimestampVersionInfo of(LockWatchVersion version) {
+            return ImmutableTimestampVersionInfo.of(version, Optional.empty());
         }
 
-        default MapEntry withCommitInfo(CommitInfo commitInfo) {
-            return ImmutableMapEntry.builder().from(this).commitInfo(commitInfo).build();
+        default TimestampVersionInfo withCommitInfo(CommitInfo commitInfo) {
+            return ImmutableTimestampVersionInfo.builder()
+                    .from(this)
+                    .commitInfo(commitInfo)
+                    .build();
         }
     }
 
