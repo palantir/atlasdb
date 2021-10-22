@@ -17,27 +17,17 @@
 package com.palantir.timelock.paxos;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
+import com.palantir.atlasdb.factory.TimeAndLockServices;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.TimeLockServices;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.lock.watch.DefaultLockWatchingService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
-import com.palantir.lock.client.BatchingCommitTimestampGetter;
-import com.palantir.lock.client.LeaderTimeGetter;
-import com.palantir.lock.client.LegacyLeaderTimeGetter;
-import com.palantir.lock.client.LockLeaseService;
-import com.palantir.lock.client.NamespacedConjureTimeLockServiceFactory;
-import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -53,7 +43,6 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.io.File;
@@ -213,25 +202,8 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     public TimelockService getLegacyTimelockService() {
-        return new DelegatingTimelockService(getTimelockService(), getBatchingCommitTimestampGetter());
-    }
-
-    private BatchingCommitTimestampGetter getBatchingCommitTimestampGetter() {
-        ConjureTimelockService conjureTimelockService = timeLockAgent.getConjureTimelockService();
-        NamespacedConjureTimelockService namespacedConjureTimelockService =
-                NamespacedConjureTimeLockServiceFactory.create(
-                        conjureTimelockService, client, Optional.empty(), new DefaultTaggedMetricRegistry());
-        LeaderTimeGetter leaderTimeGetter = new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
-        LockLeaseService lockLeaseService = LockLeaseService.create(namespacedConjureTimelockService, leaderTimeGetter);
-        return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchCache());
-    }
-
-    private static LockWatchCache lockWatchCache() {
-        return LockWatchManagerImpl.create(
-                        MetricsManagers.createForTests(),
-                        ImmutableSet.of(),
-                        new DefaultLockWatchingService().get(),
-                        LockWatchCachingConfig.builder().build())
-                .getCache();
+        TimeAndLockServices timeAndLockServices = TimeAndLockServices.create(
+                timeLockAgent.getConjureTimelockService(), client, new DefaultLockWatchingService().get());
+        return new DelegatingTimelockService(getTimelockService(), timeAndLockServices.batchingCommitTimestampGetter());
     }
 }
