@@ -73,7 +73,7 @@ final class LockWatchEventLog {
                 afterSnapshotEvents = eventStore.getEventsBetweenVersionsInclusive(
                         Optional.of(snapshotVersion), versionBounds.endVersion().version());
             }
-            return new ClientLogEvents.Builder()
+            return ClientLogEvents.builder()
                     .clearCache(true)
                     .events(LockWatchEvents.builder()
                             .addEvents(getCompressedSnapshot(versionBounds))
@@ -87,7 +87,7 @@ final class LockWatchEventLog {
                             version.version() <= versionBounds.endVersion().version(),
                             "Cannot get update for transactions when the last known version is more recent than the "
                                     + "transactions"));
-            return new ClientLogEvents.Builder()
+            return ClientLogEvents.builder()
                     .clearCache(false)
                     .events(LockWatchEvents.builder()
                             .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
