@@ -73,7 +73,7 @@ public class DiskNamespaceLoaderTest {
                 new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
 
         timeLockManagementResource = TimeLockManagementResource.create(
-                persistentNamespaceContext, namespaces, redirectRetryTargeter, serviceStopper);
+                persistentNamespaceContext, namespaces, redirectRetryTargeter, serviceStopper, executorService);
 
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
         createDirectoryInRootDataDirectory(NAMESPACE_2);

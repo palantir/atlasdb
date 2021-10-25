@@ -98,6 +98,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -390,6 +391,7 @@ public class TimeLockAgent {
     }
 
     private void registerManagementResource() {
+        ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
@@ -397,13 +399,15 @@ public class TimeLockAgent {
                             timestampStorage.persistentNamespaceContext(),
                             namespaces,
                             redirectRetryTargeter(),
-                            serviceStopper));
+                            serviceStopper,
+                            executorService));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
                     timestampStorage.persistentNamespaceContext(),
                     namespaces,
                     redirectRetryTargeter(),
-                    serviceStopper));
+                    serviceStopper,
+                    executorService));
         }
     }
 

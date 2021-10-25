@@ -30,8 +30,15 @@ services:
           users will not see two different lock services servicing the same startTransactions request), but not atomic
           as a whole.
 
+      getServerId:
+        http: POST /getServerId
+        returns: uuid
+        docs: |
+          Gets the randomly generated server id associated witht the server upon start up.
+
       forceKillTimeLockServer:
         http: POST /forceKillTimeLockServer
+        returns: uuid
         docs: |
           Kills TimeLock server i.e. current server will not be able to talk to peer nodes or serve requests. After
           hitting this endpoint, the server will require external intervention to start up the service again.
