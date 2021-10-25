@@ -88,8 +88,8 @@ public final class ClientLogEventsTest {
             ClientLogEvents.builder().clearCache(false).events(EVENTS_3_TO_4).build();
 
     @Test
-    public void toTransactionsLockWatchUpdateWithClientVersionBehindEarliestTransaction() {
-        TimestampMapping mapping = createTimestampMapping(SEQUENCE_3, SEQUENCE_4);
+    public void toTransactionsWithOldClientVersion() {
+        TimestampMapping mapping = createTimestampMappingWithSequences(SEQUENCE_2, SEQUENCE_4);
         TransactionsLockWatchUpdate update =
                 CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.of(VERSION_1));
         assertThat(update.events())
@@ -98,8 +98,8 @@ public final class ClientLogEventsTest {
     }
 
     @Test
-    public void toTransactionsLockWatchUpdateWithClientVersionEqualToEarliestTransaction() {
-        TimestampMapping mapping = createTimestampMapping(SEQUENCE_1, SEQUENCE_4);
+    public void toTransactionsWithClientVersionEqualToEarliestTransaction() {
+        TimestampMapping mapping = createTimestampMappingWithSequences(SEQUENCE_1, SEQUENCE_4);
         TransactionsLockWatchUpdate update =
                 CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.of(VERSION_1));
         assertThat(update.events())
@@ -108,12 +108,12 @@ public final class ClientLogEventsTest {
     }
 
     @Test
-    public void toTransactionsLockWatchUpdateWithClientVersionUpToDate() {
+    public void toTransactionsWithUpToDateClientVersion() {
         LockWatchEvents events = LockWatchEvents.builder().build();
         ClientLogEvents clientLogEvents =
                 ClientLogEvents.builder().clearCache(false).events(events).build();
 
-        TimestampMapping mapping = createTimestampMapping(SEQUENCE_4, SEQUENCE_4);
+        TimestampMapping mapping = createTimestampMappingWithSequences(SEQUENCE_4, SEQUENCE_4);
 
         TransactionsLockWatchUpdate update =
                 clientLogEvents.toTransactionsLockWatchUpdate(mapping, Optional.of(VERSION_4));
@@ -121,8 +121,8 @@ public final class ClientLogEventsTest {
     }
 
     @Test
-    public void toTransactionsLockWatchUpdateWithClientVersionAbsent() {
-        TimestampMapping mapping = createTimestampMapping(SEQUENCE_2, SEQUENCE_4);
+    public void toTransactionsWithClientVersionAbsent() {
+        TimestampMapping mapping = createTimestampMappingWithSequences(SEQUENCE_2, SEQUENCE_4);
         TransactionsLockWatchUpdate update =
                 CLIENT_EVENTS_2_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.empty());
 
@@ -132,11 +132,11 @@ public final class ClientLogEventsTest {
     }
 
     @Test
-    public void toTransactionsLockWatchUpdateWithClientVersionVeryOld() {
+    public void toTransactionsWithVeryOldClientVersion() {
         ClientLogEvents clientLogEvents =
                 ClientLogEvents.builder().clearCache(true).events(EVENTS_2_TO_4).build();
 
-        TimestampMapping mapping = createTimestampMapping(SEQUENCE_2, SEQUENCE_4);
+        TimestampMapping mapping = createTimestampMappingWithSequences(SEQUENCE_2, SEQUENCE_4);
         TransactionsLockWatchUpdate update =
                 clientLogEvents.toTransactionsLockWatchUpdate(mapping, Optional.of(VERSION_0));
         assertThat(update.events())
@@ -145,8 +145,8 @@ public final class ClientLogEventsTest {
     }
 
     @Test
-    public void toTransactionsLockWatchEventsThrowsIfClientIsBehindEarliestTransactionAndMissingEvents() {
-        TimestampMapping mapping = createTimestampMapping(SEQUENCE_3, SEQUENCE_4);
+    public void toTransactionsThrowsIfClientIsBehindEarliestTransactionAndMissingEvents() {
+        TimestampMapping mapping = createTimestampMappingWithSequences(SEQUENCE_3, SEQUENCE_4);
         assertThatThrownBy(() -> CLIENT_EVENTS_3_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(
                         mapping, Optional.of(VERSION_1)))
                 .as("missing event at sequence 2")
@@ -155,8 +155,8 @@ public final class ClientLogEventsTest {
     }
 
     @Test
-    public void toTransactionsLockWatchEventsThrowsIfEventsMissingFromEarliestTimestamp() {
-        TimestampMapping mapping = createTimestampMapping(SEQUENCE_1, SEQUENCE_4);
+    public void toTransactionsThrowsIfEventsMissingFromEarliestTimestamp() {
+        TimestampMapping mapping = createTimestampMappingWithSequences(SEQUENCE_1, SEQUENCE_4);
         assertThatThrownBy(() -> CLIENT_EVENTS_3_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(
                         mapping, Optional.of(VERSION_1)))
                 .as("missing event at sequence 2")
@@ -165,8 +165,8 @@ public final class ClientLogEventsTest {
     }
 
     @Test
-    public void toTransactionsLockWatchEventsThrowsIfEventsMissingAndNoClientVersion() {
-        TimestampMapping mapping = createTimestampMapping(SEQUENCE_1, SEQUENCE_4);
+    public void toTransactionsThrowsIfEventsMissingAndNoClientVersion() {
+        TimestampMapping mapping = createTimestampMappingWithSequences(SEQUENCE_1, SEQUENCE_4);
         assertThatThrownBy(() ->
                         CLIENT_EVENTS_3_TO_4_NO_CLEAR_CACHE.toTransactionsLockWatchUpdate(mapping, Optional.empty()))
                 .as("missing event at sequence 2")
@@ -215,7 +215,7 @@ public final class ClientLogEventsTest {
     }
 
     @Test
-    public void toCommitUpdateDoesNotFilterOutBasdOnNonLeasedLockTokens() {
+    public void toCommitUpdateDoesNotFilterOutBasedOnNonLeasedLockTokens() {
         // due to how the commit flow works, the filtering is only done if it is a leased lock token
         TimestampStateStore.CommitInfo commitInfo = TimestampStateStore.CommitInfo.of(LOCK_TOKEN_1, VERSION_1);
 
@@ -270,7 +270,7 @@ public final class ClientLogEventsTest {
         });
     }
 
-    private static TimestampMapping createTimestampMapping(long lowerSequence, long upperSequence) {
+    private static TimestampMapping createTimestampMappingWithSequences(long lowerSequence, long upperSequence) {
         // Create a timestamp mapping with timestamps at the extremes, as well as one in the middle to confirm that it
         // does not influence the checks here
         return TimestampMapping.builder()
