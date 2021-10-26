@@ -415,6 +415,9 @@ public final class LockWatchEventLogTest {
         assertThat(events.events().events()).containsExactly(CREATED_UP_TO_VERSION_4);
     }
 
+    @Test
+    public void eventLogConcurrencyFuzzTest() {}
+
     private void processInitialSnapshotAndSuccessUpToVersionFour() {
         eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         eventLog.processUpdate(SUCCESS_VERSION_2_TO_4);

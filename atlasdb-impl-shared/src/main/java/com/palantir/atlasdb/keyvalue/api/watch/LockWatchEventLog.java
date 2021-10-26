@@ -153,8 +153,8 @@ final class LockWatchEventLog {
     }
 
     private <T> T runWithReadLock(Supplier<T> task) {
+        eventLock.readLock().lock();
         try {
-            eventLock.readLock().lock();
             return task.get();
         } finally {
             eventLock.readLock().unlock();
@@ -162,8 +162,8 @@ final class LockWatchEventLog {
     }
 
     private void runWithWriteLock(Runnable task) {
+        eventLock.writeLock().lock();
         try {
-            eventLock.writeLock().lock();
             task.run();
         } finally {
             eventLock.writeLock().unlock();
