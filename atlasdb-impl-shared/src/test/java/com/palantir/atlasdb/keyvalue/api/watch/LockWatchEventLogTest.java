@@ -43,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -430,31 +431,37 @@ public final class LockWatchEventLogTest {
         eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
 
         ExecutorService executor = PTExecutors.newFixedThreadPool(100);
+        AtomicInteger exceptionsSeen = new AtomicInteger(0);
         for (int count = 0; count < 200_000; ++count) {
-            executor.execute(this::randomEventLogTask);
+            executor.execute(() -> randomEventLogTask(exceptionsSeen));
         }
 
         executor.shutdown();
         assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(exceptionsSeen).hasValue(0);
     }
 
-    private void randomEventLogTask() {
+    private void randomEventLogTask(AtomicInteger exceptionsSeen) {
         double random = ThreadLocalRandom.current().nextDouble();
 
-        if (random < 0.05) {
-            eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
-        } else if (random < 0.333) {
-            Optional<LockWatchVersion> latestVersion = eventLog.getLatestKnownVersion();
-            eventLog.processUpdate(LockWatchStateUpdate.success(
-                    INITIAL_LEADER,
-                    latestVersion.get().version(),
-                    ImmutableList.of(randomEvent(latestVersion.get().version()))));
-        } else if (random < 0.667) {
-            eventLog.retentionEvents(Optional.empty());
-        } else {
-            eventLog.getEventsBetweenVersions(VersionBounds.builder()
-                    .endVersion(eventLog.getLatestKnownVersion().get())
-                    .build());
+        try {
+            if (random < 0.05) {
+                eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
+            } else if (random < 0.333) {
+                Optional<LockWatchVersion> latestVersion = eventLog.getLatestKnownVersion();
+                eventLog.processUpdate(LockWatchStateUpdate.success(
+                        INITIAL_LEADER,
+                        latestVersion.get().version(),
+                        ImmutableList.of(randomEvent(latestVersion.get().version()))));
+            } else if (random < 0.667) {
+                eventLog.retentionEvents(Optional.empty());
+            } else {
+                eventLog.getEventsBetweenVersions(VersionBounds.builder()
+                        .endVersion(eventLog.getLatestKnownVersion().get())
+                        .build());
+            }
+        } catch (Throwable t) {
+            exceptionsSeen.incrementAndGet();
         }
     }
 
