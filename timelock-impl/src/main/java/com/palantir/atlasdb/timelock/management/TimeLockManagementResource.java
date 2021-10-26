@@ -35,8 +35,6 @@ import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -46,64 +44,47 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final Runnable serviceStopper;
-    private final UUID serverId;
-    private final ScheduledExecutorService executorService;
+    private final ServiceLifecycleController serviceLifecycleController;
 
     private TimeLockManagementResource(
             Set<PersistentNamespaceLoader> namespaceLoaders,
             TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter,
-            Runnable serviceStopper,
-            ScheduledExecutorService executorService) {
+            ServiceLifecycleController serviceLifecycleController) {
         this.namespaceLoaders = namespaceLoaders;
         this.timelockNamespaces = timelockNamespaces;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
-        this.serviceStopper = serviceStopper;
-        this.executorService = executorService;
-        this.serverId = UUID.randomUUID();
+        this.serviceLifecycleController = serviceLifecycleController;
     }
 
     public static TimeLockManagementResource create(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter,
-            Runnable serviceStopper,
-            ScheduledExecutorService executorService) {
+            ServiceLifecycleController serviceLifecycleController) {
         return new TimeLockManagementResource(
                 createNamespaceLoaders(persistentNamespaceContext),
                 timelockNamespaces,
                 redirectRetryTargeter,
-                serviceStopper,
-                executorService);
+                serviceLifecycleController);
     }
 
     public static UndertowService undertow(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter,
-            Runnable serviceStopper,
-            ScheduledExecutorService executorService) {
+            ServiceLifecycleController serviceLifecycleController) {
         return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(
-                persistentNamespaceContext,
-                timelockNamespaces,
-                redirectRetryTargeter,
-                serviceStopper,
-                executorService));
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, serviceLifecycleController));
     }
 
     public static TimeLockManagementService jersey(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
             RedirectRetryTargeter redirectRetryTargeter,
-            Runnable serviceStopper,
-            ScheduledExecutorService executorService) {
+            ServiceLifecycleController serviceLifecycleController) {
         return new JerseyAdapter(TimeLockManagementResource.create(
-                persistentNamespaceContext,
-                timelockNamespaces,
-                redirectRetryTargeter,
-                serviceStopper,
-                executorService));
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, serviceLifecycleController));
     }
 
     @Override
@@ -137,14 +118,14 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
 
     @Override
     public ListenableFuture<UUID> getServerId(AuthHeader authHeader) {
-        return Futures.immediateFuture(serverId);
+        return Futures.immediateFuture(serviceLifecycleController.getServerId());
     }
 
     @Override
     public ListenableFuture<UUID> forceKillTimeLockServer(AuthHeader authHeader) {
         log.info("Forcefully stopping TimeLock service.");
-        executorService.scheduleWithFixedDelay(serviceStopper, 2, 5, TimeUnit.SECONDS);
-        return Futures.immediateFuture(serverId);
+        serviceLifecycleController.forceKillTimeLock();
+        return Futures.immediateFuture(serviceLifecycleController.getServerId());
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {

@@ -40,7 +40,7 @@ services:
         http: POST /forceKillTimeLockServer
         returns: uuid
         docs: |
-          Schedules the task that kills TimeLock server asynchronously i.e. current server will not be able to talk to
+          Kills TimeLock server asynchronously i.e. current server will not be able to talk to
           peer nodes or serve requests once the task is executed. After hitting this endpoint, the server will require
           external intervention to start up the service again. The endpoint returns the (randomly generated) server id
           associated with server upon start up. A client can then make `getServerId` requests wherein change in
