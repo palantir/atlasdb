@@ -48,7 +48,7 @@ final class LockWatchEventLog {
     private final ClientLockWatchSnapshot snapshot;
     private final VersionedEventStore eventStore;
     private final ReadWriteLock eventLock;
-    private Optional<LockWatchVersion> latestVersion = Optional.empty();
+    private volatile Optional<LockWatchVersion> latestVersion = Optional.empty();
 
     static LockWatchEventLog create(CacheMetrics metrics, int minEvents, int maxEvents) {
         return new LockWatchEventLog(ClientLockWatchSnapshot.create(), metrics, minEvents, maxEvents);
