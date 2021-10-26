@@ -134,7 +134,6 @@ allprojects {
                 'StrictUnusedVariable',
                 'StringSplitter',
                 'ThreadPriorityCheck',
-                'ThrowError',
                 'ThrowSpecificity',
                 'TooManyArguments',
                 'TypeParameterUnusedInFormals',

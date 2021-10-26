@@ -79,6 +79,7 @@ public class ByteArrayIOStream extends OutputStream {
         return new Input(size());
     }
 
+    @SuppressWarnings("ThrowError") // Legacy API
     private void ensureCapacity(int index) {
         if (bytes.length <= index) {
             int minLength = index + 1;
