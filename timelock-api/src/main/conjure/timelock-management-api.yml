@@ -34,7 +34,7 @@ services:
         http: POST /getServerId
         returns: uuid
         docs: |
-          Gets the randomly generated server id associated witht the server upon start up.
+          Gets the randomly generated server id associated with the server's current lifecycle upon start up.
 
       forceKillTimeLockServer:
         http: POST /forceKillTimeLockServer
