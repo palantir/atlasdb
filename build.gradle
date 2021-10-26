@@ -139,7 +139,6 @@ allprojects {
                 'TooManyArguments',
                 'TypeParameterUnusedInFormals',
                 'UndefinedEquals',
-                'UseCorrectAssertInTests',
                 'ValidateConstantMessage'
     }
 }
