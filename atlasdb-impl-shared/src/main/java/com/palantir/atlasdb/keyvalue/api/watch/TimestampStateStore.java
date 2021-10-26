@@ -118,7 +118,7 @@ final class TimestampStateStore {
     }
 
     Optional<Sequence> getEarliestLiveSequence() {
-        // As per the documentation of Collections.synchronisedSortedSetMultimap, we must synchronise on the collection
+        // As per the documentation of Collections.synchronizedSortedSetMultimap, we must synchronise on the collection
         // when using any kind of collection view, including keySet. While this impacts the concurrency of this class,
         // this method does not need to be called on every transaction, and thus should not impact performance.
         synchronized (livingVersions) {
@@ -134,7 +134,7 @@ final class TimestampStateStore {
 
     @VisibleForTesting
     TimestampStateStoreState getStateForTesting() {
-        // This method doesn't need to be thread safe as it is only used for testing
+        // This method doesn't need to read a thread-safe snapshot of timestampMap and livingVersions
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(timestampMap)
                 .livingVersions(livingVersions)
