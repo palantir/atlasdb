@@ -26,8 +26,7 @@ import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = DefaultClusterConfiguration.class)
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = DefaultClusterConfiguration.class, name = DefaultClusterConfiguration.TYPE),
-    @JsonSubTypes.Type(value = KubernetesClusterConfiguration.class, name = KubernetesClusterConfiguration.TYPE)
+    @JsonSubTypes.Type(value = DefaultClusterConfiguration.class, name = DefaultClusterConfiguration.TYPE)
 })
 public interface ClusterConfiguration {
 
