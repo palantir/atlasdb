@@ -20,11 +20,13 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
+import com.google.common.math.LongMath;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -274,7 +276,7 @@ public class SweepTaskRunner {
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
                 boolean safeToDeleteLast =
-                        addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                        addCurrentCellTimestamps(tableRef, currentBatch, cell.cell(), currentCellTimestamps, runType);
                 removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
             } else {
                 boolean safeToDeleteLast = true;
@@ -283,6 +285,7 @@ public class SweepTaskRunner {
 
                     safeToDeleteLast = safeToDeleteLast
                             && addCurrentCellTimestamps(
+                                    tableRef,
                                     currentBatch,
                                     cell.cell(),
                                     currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch),
@@ -301,7 +304,8 @@ public class SweepTaskRunner {
                 }
                 if (!currentCellTimestamps.isEmpty()) {
                     safeToDeleteLast = safeToDeleteLast
-                            && addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                            && addCurrentCellTimestamps(
+                                    tableRef, currentBatch, cell.cell(), currentCellTimestamps, runType);
                     removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
                 }
             }
@@ -330,15 +334,24 @@ public class SweepTaskRunner {
      * any entry for this cell has been skipped
      */
     private boolean addCurrentCellTimestamps(
-            Multimap<Cell, Long> currentBatch, Cell currentCell, List<Long> currentCellTimestamps, RunType runType) {
+            TableReference tableRef,
+            Multimap<Cell, Long> currentBatch,
+            Cell currentCell,
+            List<Long> currentCellTimestamps,
+            RunType runType) {
         if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
+            int cellReferenceHash = CellReference.of(tableRef, currentCell).goodHash();
             List<Long> versionsToDelete = currentCellTimestamps.stream()
-                    .filter(_ignore -> !skipCellVersion.getAsBoolean())
+                    .filter(timestamp -> !shouldSkip(cellReferenceHash, timestamp))
                     .collect(Collectors.toList());
             currentBatch.putAll(currentCell, versionsToDelete);
             return versionsToDelete.size() == currentCellTimestamps.size();
         }
         currentBatch.putAll(currentCell, currentCellTimestamps);
         return true;
+    }
+
+    private boolean shouldSkip(int cellReferenceHash, long timestamp) {
+        return LongMath.mod(cellReferenceHash * 31L + timestamp, 100) == 0;
     }
 }

@@ -56,26 +56,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
     }
 
     @Test
-    public void previouslyConservativeSweepsEverythingWhenNothingIsSkipped() {
-        skipCellVersion.setPeriod(Integer.MAX_VALUE);
-        createTable(TABLE_1, SweepStrategy.THOROUGH);
-        putManyCells(TABLE_1, 100, 101);
-        putManyCells(TABLE_1, 103, 104);
-        putManyCells(TABLE_1, 107, 109);
-
-        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
-                TABLE_1.getQualifiedName(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty());
-
-        verifyTableSwept(TABLE_1, 58, false);
-    }
-
-    @Test
-    public void previouslyConservativeErasesExistingSentinelsInThoroughTable() {
+    public void previouslyConservativeErasesMostExistingSentinelsInThoroughTable() {
         skipCellVersion.setPeriod(Integer.MAX_VALUE);
         createTable(TABLE_1, SweepStrategy.THOROUGH);
 
@@ -97,7 +78,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 Optional.empty(),
                 Optional.empty());
 
-        assertThat(kvs.get(TABLE_1, readMap)).isEmpty();
+        assertThat(kvs.get(TABLE_1, readMap).size()).isEqualTo(1);
     }
 
     @Test
@@ -115,34 +96,6 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 .hasMessage("it is not safe to run this type of sweep on conservatively swept tables");
     }
 
-    @Test
-    public void previouslyConservativeRespectsSkipPeriodWhenErasingSentinels() {
-        skipCellVersion.setPeriod(4);
-        createTable(TABLE_1, SweepStrategy.THOROUGH);
-
-        Map<Cell, byte[]> sentinelWrites = IntStream.range(0, 100)
-                .mapToObj(PtBytes::toBytes)
-                .map(bytes -> Cell.create(bytes, bytes))
-                .collect(Collectors.toMap(cell -> cell, _ignore -> PtBytes.EMPTY_BYTE_ARRAY));
-        kvs.put(TABLE_1, sentinelWrites, Value.INVALID_VALUE_TIMESTAMP);
-        Map<Cell, Long> readMap = KeyedStream.stream(sentinelWrites)
-                .map(_ignore -> Long.MAX_VALUE)
-                .collectToMap();
-        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
-
-        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
-                TABLE_1.getQualifiedName(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty());
-
-        // Impl specific, documenting here -- exact last row will be swept twice, so the sentinel will be erased on
-        // second pass-through; this is fine, not worth the risk of modifying behaviour
-        assertThat(kvs.get(TABLE_1, readMap)).hasSize(24);
-    }
-
     /**
      * To help understand the test below, refer to the tables.
      * Before sweep
@@ -157,8 +110,8 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
      * +----------+--------+-----------+
      * | START_TS | VALUES | SENTINELS |
      * +----------+--------+-----------+
-     * |      100 |     55 |        56 |
-     * |      103 |    500 |   55 + 56 |
+     * |      100 |     10 |         5 |
+     * |      103 |    500 |         6 |
      * +----------+--------+-----------+
      */
     @Test
@@ -189,19 +142,19 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 Optional.empty());
 
         assertThat(kvs.get(TABLE_1, readMap))
-                .as("deletes all but a ninth of the entries at the lower timestamp")
-                .hasSize(111);
+                .as("deletes all but 11 sentinels ~ 1%")
+                .hasSize(11);
         Map<Cell, Long> readsAtMaxTs =
                 KeyedStream.stream(readMap).map(_ignore -> Long.MAX_VALUE).collectToMap();
         Map<Cell, Value> latestVisibleVersions = kvs.get(TABLE_1, readsAtMaxTs);
         assertThat(latestVisibleVersions.values().stream()
                         .map(Value::getTimestamp)
                         .noneMatch(timestamp -> timestamp == 100L))
-                .as("none of the cells at the lower timestamp became visible")
+                .as("none of the sentinels are naked")
                 .isTrue();
         assertThat(latestVisibleVersions)
-                .as("500 non-deletes, 56 deletes skipped at ts 100, and an additional 55 at ts 103")
-                .hasSize(500 + 111);
+                .as("500 non-deletes, 5 deletes skipped normally, and 5 skipped to prevent naked sentinels")
+                .hasSize(510);
     }
 
     @Test

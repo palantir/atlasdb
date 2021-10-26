@@ -136,12 +136,7 @@ public class SpecificTableSweeper {
                 return results;
             } catch (RuntimeException e) {
                 logSweepError(tableRef, startRow, batchConfig, e);
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException interrupted) {
-                    Thread.currentThread().interrupt();
-                    throw e;
-                }
+                throw e;
             }
         }
         throw new RetryLimitReachedException(ImmutableList.of());
