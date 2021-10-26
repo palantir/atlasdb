@@ -77,8 +77,7 @@ public class DiskNamespaceLoaderTest {
                 persistentNamespaceContext,
                 namespaces,
                 redirectRetryTargeter,
-                serviceStopper,
-                PTExecutors.newSingleThreadScheduledExecutor());
+                new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor()));
 
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
         createDirectoryInRootDataDirectory(NAMESPACE_2);
