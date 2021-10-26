@@ -17,8 +17,10 @@ package com.palantir.atlasdb.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
@@ -114,9 +116,9 @@ public class TestSweepCommand {
 
             Scanner scanner = new Scanner(stdout);
             final long cellValuesExamined =
-                    Long.parseLong(scanner.findInLine("\\d+ cell values").split(" ")[0]);
-            final long deletedCells = Long.parseLong(scanner.findInLine("deleted \\d+ stale versions of those cells")
-                    .split(" ")[1]);
+                    Long.parseLong(Iterables.get(Splitter.on(' ').split(scanner.findInLine("\\d+ cell values")), 0));
+            final long deletedCells = Long.parseLong(Iterables.get(
+                    Splitter.on(' ').split(scanner.findInLine("deleted \\d+ stale versions of those cells")), 1));
             assertThat(cellValuesExamined).isEqualTo(2);
             assertThat(deletedCells).isEqualTo(1);
 

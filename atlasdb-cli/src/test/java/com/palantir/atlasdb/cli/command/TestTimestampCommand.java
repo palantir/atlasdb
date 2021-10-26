@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cli.command;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.base.Splitter;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
@@ -277,16 +278,16 @@ public class TestTimestampCommand {
 
     private long getWallClockTimestamp(Scanner scanner) {
         String line = scanner.findInLine(".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
-        String[] parts = line.split(" ");
+        List<String> parts = Splitter.on(' ').splitToList(line);
         return ISODateTimeFormat.dateTime()
-                .parseDateTime(parts[parts.length - 1])
+                .parseDateTime(parts.get(parts.size() - 1))
                 .getMillis();
     }
 
     private long getTimestampFromStdout(Scanner scanner) {
         String line = scanner.findInLine(".*timestamp\\sis\\:\\s(\\d+.*)");
-        String[] parts = line.split(" ");
-        return Long.parseLong(parts[parts.length - 1]);
+        List<String> parts = Splitter.on(' ').splitToList(line);
+        return Long.parseLong(parts.get(parts.size() - 1));
     }
 
     private long getTimestampFromFile(String fileString) throws IOException {
