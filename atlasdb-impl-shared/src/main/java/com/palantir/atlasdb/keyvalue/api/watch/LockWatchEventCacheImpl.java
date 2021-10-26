@@ -154,7 +154,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     private synchronized TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
-        TimestampMapping.Builder mappingBuilder = new TimestampMapping.Builder();
+        ImmutableTimestampMapping.Builder mappingBuilder = TimestampMapping.builder();
         startTimestamps.forEach(timestamp -> {
             Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
             assertTrue(entry.isPresent(), "start timestamp missing from map");

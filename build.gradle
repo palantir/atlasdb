@@ -132,7 +132,6 @@ allprojects {
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
-                'StringSplitter',
                 'ThreadPriorityCheck',
                 'ThrowError',
                 'ThrowSpecificity',

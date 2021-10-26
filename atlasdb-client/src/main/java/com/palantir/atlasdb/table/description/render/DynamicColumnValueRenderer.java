@@ -18,6 +18,7 @@ package com.palantir.atlasdb.table.description.render;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.TypeName;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.varName;
 
+import com.google.common.base.Splitter;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
@@ -84,7 +85,7 @@ public class DynamicColumnValueRenderer extends Renderer {
         line(" *   type: ", val.getJavaObjectTypeName(), ";");
         if (val.getProtoDescriptor() != null) {
             String protoDescription = val.getProtoDescriptor().toProto().toString();
-            for (String line : protoDescription.split("\n")) {
+            for (String line : Splitter.on('\n').split(protoDescription)) {
                 line(" *   ", line, "");
             }
         }
