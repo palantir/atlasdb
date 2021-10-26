@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Make `forceKillTimeLockServer` endpoint asynchronous.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5724
