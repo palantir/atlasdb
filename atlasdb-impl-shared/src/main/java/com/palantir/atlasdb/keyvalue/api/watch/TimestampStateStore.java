@@ -44,8 +44,8 @@ import org.immutables.value.Value;
  * of determining how far we can retention in the {@link VersionedEventStore}.
  *
  * Each timestamp has a mapping to its start version (as timestamps are added here at start transaction time, and thus
- * definitely have this information). Each timestamp may also be updated with its commit version, as well as its commit
- * lock token. These together may then be used to retrieve relevant events for that transaction.
+ * definitely have this information). Each timestamp may also be updated with its commit version and commit lock
+ * token (in a single operation). These together may then be used to retrieve relevant events for that transaction.
  *
  * Note that this class may not be thread safe in the general case, but can be used safely, depending on the caller. The
  * main things to call out are:
