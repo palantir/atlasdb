@@ -165,10 +165,11 @@ public class SweepTaskRunner {
         SweepStrategy sweepStrategy = SweepStrategy.from(
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
-        if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
-            Preconditions.checkState(
-                    sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.THOROUGH)),
-                    "it is not safe to run this type of sweep on conservatively swept tables");
+        if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH
+                && !sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.THOROUGH))) {
+            log.info("Attempted to run an iteration of leaky sweep on a conservatively swept table. "
+                    + "This is not supported.");
+            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         return maybeSweeper
                 .map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))

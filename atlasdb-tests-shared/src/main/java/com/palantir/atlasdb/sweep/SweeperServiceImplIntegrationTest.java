@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -82,25 +81,39 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
     }
 
     @Test
-    public void previouslyConservativeThrowsIfTableIsStillConservativelySwept() {
+    public void previouslyConservativeNoOpIfTableIsStillConservativelySwept() {
         createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
 
-        assertThatThrownBy(() -> sweeperService.sweepPreviouslyConservativeNowThoroughTable(
-                        TABLE_1.getQualifiedName(),
-                        Optional.empty(),
-                        Optional.empty(),
-                        Optional.empty(),
-                        Optional.empty(),
-                        Optional.empty()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("it is not safe to run this type of sweep on conservatively swept tables");
+        Map<Cell, byte[]> writes = KeyedStream.of(IntStream.range(0, 100).boxed())
+                .mapKeys(PtBytes::toBytes)
+                .mapKeys(bytes -> Cell.create(bytes, bytes))
+                .map(PtBytes::toBytes)
+                .collectToMap();
+        kvs.put(TABLE_1, writes, 100L);
+        txService.putUnlessExists(100L, 101L);
+        kvs.put(TABLE_1, writes, 103L);
+        txService.putUnlessExists(103L, 104L);
+        Map<Cell, Long> readMap =
+                KeyedStream.stream(writes).map(_ignore -> 105L).collectToMap();
+
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
+
+        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
+                TABLE_1.getQualifiedName(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
+
+        assertThat(kvs.get(TABLE_1, readMap).size()).isEqualTo(100);
     }
 
     /**
      * To help understand the test below, refer to the tables.
      * Before sweep
      * +----------+--------+-----------+
-     * | START_TS | VALUES | SENTINELS |
+     * | START_TS | VALUES | DELETIONS |
      * +----------+--------+-----------+
      * |      100 |    500 |       500 |
      * |      103 |    500 |       500 |
@@ -108,10 +121,10 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
      *
      * After sweep
      * +----------+--------+-----------+
-     * | START_TS | VALUES | SENTINELS |
+     * | START_TS | VALUES | DELETIONS |
      * +----------+--------+-----------+
-     * |      100 |     10 |         5 |
-     * |      103 |    500 |         6 |
+     * |      100 |      6 |         5 |
+     * |      103 |    500 |     5 + 5 |
      * +----------+--------+-----------+
      */
     @Test
@@ -142,7 +155,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 Optional.empty());
 
         assertThat(kvs.get(TABLE_1, readMap))
-                .as("deletes all but 11 sentinels ~ 1%")
+                .as("deletes all but 11 entries at lower timestamp ~ 1%")
                 .hasSize(11);
         Map<Cell, Long> readsAtMaxTs =
                 KeyedStream.stream(readMap).map(_ignore -> Long.MAX_VALUE).collectToMap();
@@ -150,10 +163,10 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
         assertThat(latestVisibleVersions.values().stream()
                         .map(Value::getTimestamp)
                         .noneMatch(timestamp -> timestamp == 100L))
-                .as("none of the sentinels are naked")
+                .as("none of the entries at lower ts are naked")
                 .isTrue();
         assertThat(latestVisibleVersions)
-                .as("500 non-deletes, 5 deletes skipped normally, and 5 skipped to prevent naked sentinels")
+                .as("500 non-deletes, 5 deletes skipped normally, and 5 skipped to prevent revealing at lower ts")
                 .hasSize(510);
     }
 
