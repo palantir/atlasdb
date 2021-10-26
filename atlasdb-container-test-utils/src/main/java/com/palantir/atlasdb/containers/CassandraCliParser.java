@@ -25,6 +25,8 @@ import java.util.regex.Pattern;
 public final class CassandraCliParser {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraCliParser.class);
 
+    private static final Splitter NEWLINE_SPLITTER = Splitter.on('\n');
+
     private final CassandraVersion cassandraVersion;
 
     public CassandraCliParser(CassandraVersion cassandraVersion) {
@@ -33,7 +35,7 @@ public final class CassandraCliParser {
 
     public int parseSystemAuthReplicationFromCqlsh(String output) throws IllegalArgumentException {
         try {
-            for (String line : Splitter.on('\n').split(output)) {
+            for (String line : NEWLINE_SPLITTER.split(output)) {
                 if (line.contains("system_auth")) {
                     Pattern replicationRegex = cassandraVersion.replicationFactorRegex();
                     Matcher matcher = replicationRegex.matcher(line);
@@ -52,7 +54,7 @@ public final class CassandraCliParser {
     public int parseNumberOfUpNodesFromNodetoolStatus(String output) {
         Pattern pattern = Pattern.compile("^UN.*");
         int upNodes = 0;
-        for (String line : Splitter.on('\n').split(output)) {
+        for (String line : NEWLINE_SPLITTER.split(output)) {
             Matcher matcher = pattern.matcher(line);
             if (matcher.matches()) {
                 upNodes++;

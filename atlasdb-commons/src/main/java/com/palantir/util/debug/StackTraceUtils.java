@@ -38,8 +38,7 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 
-@SuppressWarnings({"checkstyle", "StringSplitter" // There but for the grace of God go I
-})
+@SuppressWarnings({"checkstyle", "StringSplitter" /* There but for the grace of God go I */})
 // WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great
 // and we lack tests, however this is covered by testing in the internal product
 // DO NOT CHANGE THIS CLASS!
