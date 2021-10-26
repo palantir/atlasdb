@@ -144,6 +144,24 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
+    public void testRunLeakySweepOnThoroughTablesIsRespected() {
+        setNextTableToSweep(TABLE_REF);
+
+        overrideConfig = ImmutableSweepPriorityOverrideConfig.builder()
+                .runLeakySweepOnThoroughTables(true)
+                .build();
+        backgroundSweeper.runOnce();
+        Mockito.verify(specificTableSweeper)
+                .runOneIteration(any(), any(), any(), eq(SweepTaskRunner.RunType.WAS_CONSERVATIVE_NOW_THOROUGH));
+        Mockito.verify(specificTableSweeper, Mockito.never())
+                .runOneIteration(any(), any(), any(), eq(SweepTaskRunner.RunType.FULL));
+
+        overrideConfig = ImmutableSweepPriorityOverrideConfig.builder().build();
+        backgroundSweeper.runOnce();
+        Mockito.verify(specificTableSweeper).runOneIteration(any(), any(), any(), eq(SweepTaskRunner.RunType.FULL));
+    }
+
+    @Test
     public void testSecondRunMaySweepDifferentTable() {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);

@@ -16,10 +16,8 @@
 package com.palantir.atlasdb.sweep;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -40,6 +38,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 
 public class SpecificTableSweeper {
@@ -118,28 +117,28 @@ public class SpecificTableSweeper {
         return sweepProgressStore;
     }
 
-    void runOnceAndSaveResults(TableToSweep tableToSweep, SweepBatchConfig batchConfig) {
+    void runOnceAndSaveResults(TableToSweep tableToSweep, SweepBatchConfig batchConfig, BooleanSupplier leakySweep) {
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
 
-        SweepResults results = runOneIteration(tableRef, startRow, batchConfig, SweepTaskRunner.RunType.FULL);
+        SweepTaskRunner.RunType runType = leakySweep.getAsBoolean()
+                ? SweepTaskRunner.RunType.WAS_CONSERVATIVE_NOW_THOROUGH
+                : SweepTaskRunner.RunType.FULL;
+
+        SweepResults results = runOneIteration(tableRef, startRow, batchConfig, runType);
         processSweepResults(tableToSweep, results);
     }
 
     SweepResults runOneIteration(
             TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig, SweepTaskRunner.RunType runType) {
-        for (int attempts = 0; attempts < 100; attempts++) {
-            try {
-                SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow, runType);
-                logSweepPerformance(tableRef, startRow, results);
-
-                return results;
-            } catch (RuntimeException e) {
-                logSweepError(tableRef, startRow, batchConfig, e);
-                throw e;
-            }
+        try {
+            SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow, runType);
+            logSweepPerformance(tableRef, startRow, results);
+            return results;
+        } catch (RuntimeException e) {
+            logSweepError(tableRef, startRow, batchConfig, e);
+            throw e;
         }
-        throw new RetryLimitReachedException(ImmutableList.of());
     }
 
     private void logSweepPerformance(TableReference tableRef, byte[] startRow, SweepResults results) {

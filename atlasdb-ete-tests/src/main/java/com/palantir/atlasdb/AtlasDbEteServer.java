@@ -129,7 +129,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(); // maybe createDefault
         CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS);
         CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower));
-        return new SweepTaskRunner(kvs, ts, ts, txnService, ssm, cellsSweeper);
+        return new SweepTaskRunner(kvs, ts, ts, txnService, cellsSweeper);
     }
 
     private TargetedSweeper initializeAndGet(TargetedSweeper sweeper, TransactionManager txManager) {

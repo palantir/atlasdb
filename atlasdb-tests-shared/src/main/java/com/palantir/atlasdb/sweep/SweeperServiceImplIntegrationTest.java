@@ -81,7 +81,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
     }
 
     @Test
-    public void previouslyConservativeNoOpIfTableIsStillConservativelySwept() {
+    public void previouslyConservativeRunsFullSweepIfTableIsStillConservativelySwept() {
         createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
 
         Map<Cell, byte[]> writes = KeyedStream.of(IntStream.range(0, 100).boxed())
@@ -94,7 +94,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
         kvs.put(TABLE_1, writes, 103L);
         txService.putUnlessExists(103L, 104L);
         Map<Cell, Long> readMap =
-                KeyedStream.stream(writes).map(_ignore -> 105L).collectToMap();
+                KeyedStream.stream(writes).map(_ignore -> 102L).collectToMap();
 
         assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
 
@@ -106,7 +106,17 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 Optional.empty(),
                 Optional.empty());
 
-        assertThat(kvs.get(TABLE_1, readMap).size()).isEqualTo(100);
+        Map<Cell, Value> reads = kvs.get(TABLE_1, readMap);
+        // lower ts entries are swept, but we have sentinels
+        assertThat(reads.values().stream().map(Value::getTimestamp).collect(Collectors.toSet()))
+                .containsExactly(Value.INVALID_VALUE_TIMESTAMP);
+        assertThat(reads).hasSize(100);
+        Map<Cell, Long> readsAtMaxTs =
+                KeyedStream.stream(readMap).map(_ignore -> Long.MAX_VALUE).collectToMap();
+        Map<Cell, Value> maxTsReads = kvs.get(TABLE_1, readsAtMaxTs);
+        assertThat(maxTsReads.values().stream().map(Value::getTimestamp).collect(Collectors.toSet()))
+                .containsExactly(103L);
+        assertThat(maxTsReads).hasSize(100);
     }
 
     /**

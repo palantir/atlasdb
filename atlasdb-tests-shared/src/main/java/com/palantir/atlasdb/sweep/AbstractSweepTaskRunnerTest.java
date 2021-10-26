@@ -66,7 +66,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         tsSupplier = sweepTimestamp::get;
 
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
-        sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
     }
 
     @Test(timeout = 50000)
@@ -93,8 +93,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     @Test(timeout = 50000)
     public void testSweepBatchesDownToDeleteBatchSize() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
-        SweepTaskRunner spiedSweepRunner =
-                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        SweepTaskRunner spiedSweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
 
         putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
 
@@ -109,8 +108,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     @Test(timeout = 50000)
     public void testSweepBatchesUpToDeleteBatchSize() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
-        SweepTaskRunner spiedSweepRunner =
-                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        SweepTaskRunner spiedSweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
 
         putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
 
@@ -125,8 +123,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     @Test(timeout = 50000)
     public void testSweepBatches() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
-        SweepTaskRunner spiedSweepRunner =
-                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        SweepTaskRunner spiedSweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
 
         putTwoValuesInEachCell(BIG_LIST_OF_CELLS);
 
@@ -152,8 +149,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     @Test(timeout = 50000)
     public void testSweepBatchesInDifferentRows() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
-        SweepTaskRunner spiedSweepRunner =
-                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        SweepTaskRunner spiedSweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
 
         putTwoValuesInEachCell(BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS);
 

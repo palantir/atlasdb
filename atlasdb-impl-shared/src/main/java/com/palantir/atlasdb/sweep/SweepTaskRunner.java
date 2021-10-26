@@ -37,7 +37,6 @@ import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
@@ -49,9 +48,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
@@ -63,28 +60,23 @@ public class SweepTaskRunner {
 
     private final KeyValueService keyValueService;
     private final SpecialTimestampsSupplier specialTimestampsSupplier;
-    private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
     private final Optional<LegacySweepMetrics> metricsManager;
     private final CommitTsCache commitTsCache;
-    private final BooleanSupplier skipCellVersion;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
             LongSupplier unreadableTimestampSupplier,
             LongSupplier immutableTimestampSupplier,
             TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper) {
         this(
                 keyValueService,
                 unreadableTimestampSupplier,
                 immutableTimestampSupplier,
                 transactionService,
-                sweepStrategyManager,
                 cellsSweeper,
-                null,
-                () -> ThreadLocalRandom.current().nextInt(100) == 0);
+                null);
     }
 
     public SweepTaskRunner(
@@ -92,17 +84,13 @@ public class SweepTaskRunner {
             LongSupplier unreadableTsSupplier,
             LongSupplier immutableTsSupplier,
             TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper,
-            LegacySweepMetrics metricsManager,
-            BooleanSupplier skipCellVersion) {
+            LegacySweepMetrics metricsManager) {
         this.keyValueService = keyValueService;
         this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
-        this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
         this.metricsManager = Optional.ofNullable(metricsManager);
         this.commitTsCache = CommitTsCache.create(transactionService);
-        this.skipCellVersion = skipCellVersion;
     }
 
     /**
@@ -169,7 +157,9 @@ public class SweepTaskRunner {
                 && !sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.THOROUGH))) {
             log.info("Attempted to run an iteration of leaky sweep on a conservatively swept table. "
                     + "This is not supported.");
-            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
+            return maybeSweeper
+                    .map(sweeper -> doRun(tableRef, batchConfig, startRow, RunType.FULL, sweeper))
+                    .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
         }
         return maybeSweeper
                 .map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
