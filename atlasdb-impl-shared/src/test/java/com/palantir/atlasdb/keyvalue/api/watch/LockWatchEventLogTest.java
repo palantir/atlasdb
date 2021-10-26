@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -36,8 +37,14 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 public final class LockWatchEventLogTest {
@@ -55,6 +62,9 @@ public final class LockWatchEventLogTest {
 
     private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("lwelt-one");
     private static final LockDescriptor DESCRIPTOR_2 = StringLockDescriptor.of("lwelt-two");
+    private static final List<LockDescriptor> DESCRIPTORS = IntStream.range(0, 20)
+            .mapToObj(index -> StringLockDescriptor.of(index + ""))
+            .collect(Collectors.toList());
     private static final LockWatchReference REFERENCE_1 = LockWatchReferences.entireTable("table.one");
     private static final LockWatchReference REFERENCE_2 = LockWatchReferences.entireTable("table.two");
 
@@ -416,10 +426,53 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
-    public void eventLogConcurrencyFuzzTest() {}
+    public void eventLogDoesNotDeadlockUnderConcurrentLoad() throws InterruptedException {
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
+
+        ExecutorService executor = PTExecutors.newFixedThreadPool(100);
+        for (int count = 0; count < 200_000; ++count) {
+            executor.execute(this::randomEventLogTask);
+        }
+
+        executor.shutdown();
+        assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+    }
+
+    private void randomEventLogTask() {
+        double random = ThreadLocalRandom.current().nextDouble();
+
+        if (random < 0.05) {
+            eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
+        } else if (random < 0.333) {
+            Optional<LockWatchVersion> latestVersion = eventLog.getLatestKnownVersion();
+            eventLog.processUpdate(LockWatchStateUpdate.success(
+                    INITIAL_LEADER,
+                    latestVersion.get().version(),
+                    ImmutableList.of(randomEvent(latestVersion.get().version()))));
+        } else if (random < 0.667) {
+            eventLog.retentionEvents(Optional.empty());
+        } else {
+            eventLog.getEventsBetweenVersions(VersionBounds.builder()
+                    .endVersion(eventLog.getLatestKnownVersion().get())
+                    .build());
+        }
+    }
 
     private void processInitialSnapshotAndSuccessUpToVersionFour() {
         eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
         eventLog.processUpdate(SUCCESS_VERSION_2_TO_4);
+    }
+
+    private static LockWatchEvent randomEvent(long sequence) {
+        if (ThreadLocalRandom.current().nextBoolean()) {
+            return LockEvent.builder(ImmutableSet.of(randomDescriptor()), LOCK_TOKEN)
+                    .build(sequence);
+        } else {
+            return UnlockEvent.builder(ImmutableSet.of(randomDescriptor())).build(sequence);
+        }
+    }
+
+    private static LockDescriptor randomDescriptor() {
+        return DESCRIPTORS.get(ThreadLocalRandom.current().nextInt(0, 20));
     }
 }
