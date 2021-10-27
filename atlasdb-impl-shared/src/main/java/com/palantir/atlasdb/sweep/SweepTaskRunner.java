@@ -154,9 +154,13 @@ public class SweepTaskRunner {
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
         if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH
-                && !sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.THOROUGH))) {
-            log.info("Attempted to run an iteration of leaky sweep on a conservatively swept table. "
-                    + "This is not supported.");
+                && sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.CONSERVATIVE))) {
+            log.info(
+                    "Attempted to run an iteration of leaky sweep on a conservatively swept table. This is "
+                            + "not supported with the current implementation, we will instead run a full conservative "
+                            + "sweep. If you believe this table should be thoroughly swept, verify the sweep strategy "
+                            + "in your table's schema.",
+                    LoggingArgs.tableRef(tableRef));
             return maybeSweeper
                     .map(sweeper -> doRun(tableRef, batchConfig, startRow, RunType.FULL, sweeper))
                     .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
@@ -321,6 +325,22 @@ public class SweepTaskRunner {
     }
 
     /**
+     * For a given cell and a list of timestamps corresponding to writes for the cell, determine candidate versions of
+     * the cell to delete and add them to the current batch:
+     *
+     * 1) if the tun type is {@link RunType#WAS_CONSERVATIVE_NOW_THOROUGH}, then we want to exclude ~1% of versions;
+     *    additionally, if we skip any version of the cell, we must also keep the most recent version of the cell so
+     *    that an excluded older version does not become visible -- see
+     *    {@link this#removeLatestVersionIfNecessary(Multimap, CellToSweep, List, boolean)}.
+     * 2) otherwise, we want to delete all versions, with the usual provision that we must keep the newest version for
+     *    conservatively sswept tables
+     *
+     * Note: since 1) is only performed on thoroughly swept tables, it is safe: even though we may leave some older
+     * versions and delete newer versions, all in-progress transactions that read this cell must read at a timestamp
+     * greater than the immutable timestamp and they will therefore see the newest version. This would not be safe
+     * on conservatively swept tables, as a read-only transaction could be reading at a lower timestamp and see an
+     * inconsistent version.
+     *
      * @return true, if it is safe to delete the last entry for this cell; in case it's a delete. This is not safe if
      * any entry for this cell has been skipped
      */
@@ -342,7 +362,7 @@ public class SweepTaskRunner {
         return true;
     }
 
-    private boolean shouldSkip(int cellReferenceHash, long timestamp) {
+    private static boolean shouldSkip(int cellReferenceHash, long timestamp) {
         return LongMath.mod(cellReferenceHash * 31L + timestamp, 100) == 0;
     }
 }
