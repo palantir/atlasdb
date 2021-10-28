@@ -117,7 +117,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
-    public ListenableFuture<UUID> getServerId(AuthHeader authHeader) {
+    public ListenableFuture<UUID> getServerLifecycleId(AuthHeader authHeader) {
         return Futures.immediateFuture(serviceLifecycleController.getServerId());
     }
 
@@ -169,8 +169,8 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         }
 
         @Override
-        public UUID getServerId(AuthHeader authHeader) {
-            return unwrap(resource.getServerId(authHeader));
+        public UUID getServerLifecycleId(AuthHeader authHeader) {
+            return unwrap(resource.getServerLifecycleId(authHeader));
         }
 
         @Override
