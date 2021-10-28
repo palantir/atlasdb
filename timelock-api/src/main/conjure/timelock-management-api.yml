@@ -30,8 +30,8 @@ services:
           users will not see two different lock services servicing the same startTransactions request), but not atomic
           as a whole.
 
-      getServerId:
-        http: POST /getServerId
+      getServerLifecycleId:
+        http: POST /getServerLifecycleId
         returns: uuid
         docs: |
           Gets the randomly generated server id associated with the server's current lifecycle upon start up.
