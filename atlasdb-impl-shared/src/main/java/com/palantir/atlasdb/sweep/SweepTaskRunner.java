@@ -328,12 +328,12 @@ public class SweepTaskRunner {
      * For a given cell and a list of timestamps corresponding to writes for the cell, determine candidate versions of
      * the cell to delete and add them to the current batch:
      *
-     * 1) if the tun type is {@link RunType#WAS_CONSERVATIVE_NOW_THOROUGH}, then we want to exclude ~1% of versions;
+     * 1) if the run type is {@link RunType#WAS_CONSERVATIVE_NOW_THOROUGH}, then we want to exclude ~1% of versions;
      *    additionally, if we skip any version of the cell, we must also keep the most recent version of the cell so
      *    that an excluded older version does not become visible -- see
-     *    {@link this#removeLatestVersionIfNecessary(Multimap, CellToSweep, List, boolean)}.
+     *    {@link SweepTaskRunner#removeLatestVersionIfNecessary(Multimap, CellToSweep, List, boolean)}.
      * 2) otherwise, we want to delete all versions, with the usual provision that we must keep the newest version for
-     *    conservatively sswept tables
+     *    conservatively swept tables
      *
      * Note: since 1) is only performed on thoroughly swept tables, it is safe: even though we may leave some older
      * versions and delete newer versions, all in-progress transactions that read this cell must read at a timestamp
