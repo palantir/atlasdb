@@ -71,8 +71,7 @@ public class ComplexPutUnlessExistsTable<T> implements PutUnlessExistsTable<T> {
                                                         .apply(v.asNewByteArray()))))))
                                 .commitState(CommitState.PENDING)
                                 .build());
-                store.put(c,
-                        ImmutablePutUnlessExistsState.builder().build());
+                store.put(c, ImmutablePutUnlessExistsState.builder().build());
             } else {
                 throw new SafeIllegalStateException(
                         "Shouldn't be here?", SafeArg.of("commitState", state.commitState()));
