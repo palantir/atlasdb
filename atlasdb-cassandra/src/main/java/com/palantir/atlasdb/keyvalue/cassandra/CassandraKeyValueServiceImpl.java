@@ -1907,6 +1907,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
     }
 
+    @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return true;
+    }
+
     /**
      * Performs a check-and-set into the key-value store.
      * Please see {@link CheckAndSetRequest} for information about how to create this request,

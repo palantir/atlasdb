@@ -66,6 +66,12 @@ public final class TransactionServices {
                 WriteBatchingTransactionService.create(SimpleTransactionService.createV2(keyValueService)));
     }
 
+    private static TransactionService createV3TransactionService(KeyValueService keyValueService) {
+
+        return new PreStartHandlingTransactionService(
+                WriteBatchingTransactionService.create(PueTablingTransactionService.createV3(keyValueService)));
+    }
+
     /**
      * This method should only be used to create {@link TransactionService}s for testing, because in production there
      * are intermediate services like the {@link CoordinationService} this creates where metrics or other forms of

@@ -547,6 +547,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     }
 
     @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return false;
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
         if (checkAndSetRequest.oldValue().isPresent()) {
             executeCheckAndSet(checkAndSetRequest);

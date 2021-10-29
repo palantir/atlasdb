@@ -374,6 +374,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return delegate.checkAndSetMayPersistPartialValuesOnFailure();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest request) {
         maybeLog(
                 () -> delegate.checkAndSet(request),

@@ -118,6 +118,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return delegate1.checkAndSetMayPersistPartialValuesOnFailure();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         delegate1.checkAndSet(checkAndSetRequest);
     }

@@ -527,6 +527,11 @@ public final class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return false;
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         throw new UnsupportedOperationException("Check and set is not supported for JDBC KVS");
     }

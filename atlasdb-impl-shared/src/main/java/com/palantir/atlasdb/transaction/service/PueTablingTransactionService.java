@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.pue.ComplexPutUnlessExistsTable;
+import com.palantir.atlasdb.keyvalue.pue.DirectPutUnlessExistsTable;
 import com.palantir.atlasdb.keyvalue.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
@@ -37,7 +38,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 // TODO (jkong): I am incomplete
-public class PueTablingTransactionService implements TransactionService {
+public class PueTablingTransactionService implements CellEncodingTransactionService {
     private final PutUnlessExistsTable transactionsTable;
     private final TimestampEncodingStrategy encodingStrategy;
 
@@ -47,13 +48,20 @@ public class PueTablingTransactionService implements TransactionService {
         this.encodingStrategy = encodingStrategy;
     }
 
-    public static TransactionService createV3(KeyValueService keyValueService) {
-        PutUnlessExistsTable table = ComplexPutUnlessExistsTable.create(
-                keyValueService,
-                TransactionConstants.TRANSACTIONS3_TABLE,
-                _unused -> TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
-                        0, TransactionConstants.FAILED_COMMIT_TS)); // TODO (jkong): 0 is naughty
-        return new PueTablingTransactionService(table, TicketsEncodingStrategy.INSTANCE);
+    public static CellEncodingTransactionService createV3(KeyValueService keyValueService) {
+        return new PueTablingTransactionService(
+                getPutUnlessExistsTable(keyValueService), TicketsEncodingStrategy.INSTANCE);
+    }
+
+    private static PutUnlessExistsTable getPutUnlessExistsTable(KeyValueService keyValueService) {
+        if (keyValueService.checkAndSetMayPersistPartialValuesOnFailure()) {
+            return ComplexPutUnlessExistsTable.create(
+                    keyValueService,
+                    TransactionConstants.TRANSACTIONS3_TABLE,
+                    _unused -> TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+                            0, TransactionConstants.FAILED_COMMIT_TS)); // TODO (jkong): 0 is naughty
+        }
+        return new DirectPutUnlessExistsTable(keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
     }
 
     @Override
@@ -131,5 +139,10 @@ public class PueTablingTransactionService implements TransactionService {
             result.put(startTs, commitTs);
         }
         return result;
+    }
+
+    @Override
+    public TimestampEncodingStrategy getCellEncodingStrategy() {
+        return encodingStrategy;
     }
 }

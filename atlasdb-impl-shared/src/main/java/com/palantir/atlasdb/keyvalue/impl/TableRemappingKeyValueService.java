@@ -370,6 +370,11 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return delegate().checkAndSetMayPersistPartialValuesOnFailure();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         try {
             CheckAndSetRequest request = new CheckAndSetRequest.Builder()

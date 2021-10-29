@@ -453,6 +453,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return false;
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
         TableReference tableRef = request.table();
         Table table = getTableMap(tableRef);

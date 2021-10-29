@@ -282,6 +282,11 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     CheckAndSetCompatibility getCheckAndSetCompatibility();
 
     /**
+     * Here be dragons. This should return false if CAS isn't supported.
+     */
+    boolean checkAndSetMayPersistPartialValuesOnFailure();
+
+    /**
      * Performs a check-and-set into the key-value store.
      * Please see {@link CheckAndSetRequest} for information about how to create this request.
      * <p>

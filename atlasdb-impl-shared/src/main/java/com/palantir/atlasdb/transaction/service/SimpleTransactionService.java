@@ -148,6 +148,11 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         return result;
     }
 
+    @Override
+    public TimestampEncodingStrategy getCellEncodingStrategy() {
+        return encodingStrategy;
+    }
+
     private interface AsyncCellGetter {
         ListenableFuture<Map<Cell, Value>> get(Map<Cell, Long> startTsMap);
     }

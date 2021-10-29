@@ -56,16 +56,16 @@ import org.immutables.value.Value;
 public final class WriteBatchingTransactionService implements TransactionService {
     private static final SafeLogger log = SafeLoggerFactory.get(WriteBatchingTransactionService.class);
 
-    private final EncodingTransactionService delegate;
+    private final CellEncodingTransactionService delegate;
     private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
 
     private WriteBatchingTransactionService(
-            EncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Void> autobatcher) {
+            CellEncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Void> autobatcher) {
         this.delegate = delegate;
         this.autobatcher = autobatcher;
     }
 
-    public static TransactionService create(EncodingTransactionService delegate) {
+    public static TransactionService create(CellEncodingTransactionService delegate) {
         DisruptorAutobatcher<TimestampPair, Void> autobatcher = Autobatchers.<TimestampPair, Void>independent(
                         elements -> processBatch(delegate, elements))
                 .safeLoggablePurpose("write-batching-transaction-service")
@@ -130,7 +130,7 @@ public final class WriteBatchingTransactionService implements TransactionService
      */
     @VisibleForTesting
     static void processBatch(
-            EncodingTransactionService delegate, List<BatchElement<TimestampPair, Void>> batchElements) {
+            CellEncodingTransactionService delegate, List<BatchElement<TimestampPair, Void>> batchElements) {
         Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements =
                 MultimapBuilder.hashKeys().hashSetValues().build();
         batchElements.forEach(batchElement ->
@@ -154,13 +154,14 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static void markAllRemainingRequestsAsFailed(
-            EncodingTransactionService delegate, Collection<BatchElement<TimestampPair, Void>> batchElementsToFail) {
+            CellEncodingTransactionService delegate,
+            Collection<BatchElement<TimestampPair, Void>> batchElementsToFail) {
         batchElementsToFail.forEach(batchElem -> markPreemptivelyAsFailure(delegate, batchElem));
     }
 
     private static void markPreemptivelyAsFailure(
-            EncodingTransactionService delegate, BatchElement<TimestampPair, Void> batchElem) {
-        Cell cell = delegate.getEncodingStrategy()
+            CellEncodingTransactionService delegate, BatchElement<TimestampPair, Void> batchElem) {
+        Cell cell = delegate.getCellEncodingStrategy()
                 .encodeStartTimestampAsCell(batchElem.argument().startTimestamp());
         KeyAlreadyExistsException exception = new KeyAlreadyExistsException(
                 "Failed because other client-side element succeeded", ImmutableList.of(cell));
@@ -168,7 +169,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static void handleFailedTimestamps(
-            EncodingTransactionService delegate,
+            CellEncodingTransactionService delegate,
             Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
             Map<Long, BatchElement<TimestampPair, Void>> batch,
             KeyAlreadyExistsException exception) {
@@ -214,7 +215,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static void handleSuccessfulTimestamps(
-            EncodingTransactionService delegate,
+            CellEncodingTransactionService delegate,
             Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
             Map<Long, BatchElement<TimestampPair, Void>> batch,
             KeyAlreadyExistsException exception) {
@@ -228,7 +229,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static void markAllRemainingRequestsForTimestampsAsFailed(
-            EncodingTransactionService delegate,
+            CellEncodingTransactionService delegate,
             Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
             Set<Long> timestampsToFail) {
         timestampsToFail.stream()
@@ -281,7 +282,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static Set<Long> getAlreadyExistingStartTimestamps(
-            EncodingTransactionService delegate, Set<Long> startTimestamps, KeyAlreadyExistsException exception) {
+            CellEncodingTransactionService delegate, Set<Long> startTimestamps, KeyAlreadyExistsException exception) {
         Set<Long> existingTimestamps = decodeCellsToTimestamps(delegate, exception.getExistingKeys());
         Preconditions.checkState(
                 !existingTimestamps.isEmpty(),
@@ -293,13 +294,13 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static Set<Long> getTimestampsSuccessfullyPutUnlessExists(
-            EncodingTransactionService delegate, KeyAlreadyExistsException exception) {
+            CellEncodingTransactionService delegate, KeyAlreadyExistsException exception) {
         return decodeCellsToTimestamps(delegate, exception.getKnownSuccessfullyCommittedKeys());
     }
 
-    private static Set<Long> decodeCellsToTimestamps(EncodingTransactionService delegate, Collection<Cell> cells) {
+    private static Set<Long> decodeCellsToTimestamps(CellEncodingTransactionService delegate, Collection<Cell> cells) {
         return cells.stream()
-                .map(key -> delegate.getEncodingStrategy().decodeCellAsStartTimestamp(key))
+                .map(key -> delegate.getCellEncodingStrategy().decodeCellAsStartTimestamp(key))
                 .collect(Collectors.toSet());
     }
 

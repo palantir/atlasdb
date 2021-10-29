@@ -56,4 +56,9 @@ public class DirectPutUnlessExistsTable implements PutUnlessExistsTable {
     public void putUnlessExists(Cell c, byte[] value) throws KeyAlreadyExistsException {
         keyValueService.putUnlessExists(tableReference, ImmutableMap.of(c, value));
     }
+
+    @Override
+    public void putUnlessExistsMultiple(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        keyValueService.putUnlessExists(tableReference, values);
+    }
 }

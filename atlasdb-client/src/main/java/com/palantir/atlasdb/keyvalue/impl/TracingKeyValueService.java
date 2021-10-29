@@ -421,6 +421,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return delegate().checkAndSetMayPersistPartialValuesOnFailure();
+    }
+
+    @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.putWithTimestamps", sink -> {

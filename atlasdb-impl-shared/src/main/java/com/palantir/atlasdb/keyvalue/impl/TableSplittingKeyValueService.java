@@ -337,6 +337,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean checkAndSetMayPersistPartialValuesOnFailure() {
+        return getDelegates().stream().anyMatch(KeyValueService::checkAndSetMayPersistPartialValuesOnFailure);
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         getDelegate(checkAndSetRequest.table()).checkAndSet(checkAndSetRequest);
     }
