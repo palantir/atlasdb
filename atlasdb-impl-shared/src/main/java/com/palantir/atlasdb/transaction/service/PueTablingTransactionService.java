@@ -37,7 +37,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
-// TODO (jkong): I am incomplete
 public class PueTablingTransactionService implements CellEncodingTransactionService {
     private final PutUnlessExistsTable transactionsTable;
     private final TimestampEncodingStrategy encodingStrategy;
