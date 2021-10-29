@@ -48,9 +48,10 @@ public final class TransactionConstants {
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
     public static final int PUE_AND_TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 3;
-    public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS =
-            ImmutableSet.of(DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION, TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                    PUE_AND_TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+    public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS = ImmutableSet.of(
+            DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+            TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+            PUE_AND_TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
 
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);

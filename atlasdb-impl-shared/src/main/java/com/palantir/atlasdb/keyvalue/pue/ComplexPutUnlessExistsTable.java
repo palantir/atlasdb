@@ -61,10 +61,8 @@ public class ComplexPutUnlessExistsTable<T> implements PutUnlessExistsTable<T> {
             } else if (state.commitState() == CommitState.PENDING) {
                 Bytes valueToWrite = Bytes.from(valueSerializers
                         .byteSerializer()
-                        .apply(fallbackValueFunction.apply(
-                                Optional.of(state.value()).map(v -> valueSerializers
-                                        .byteDeserializer()
-                                        .apply(v.asNewByteArray())))));
+                        .apply(fallbackValueFunction.apply(Optional.of(state.value())
+                                .map(v -> valueSerializers.byteDeserializer().apply(v.asNewByteArray())))));
                 store.checkAndSet(
                         c,
                         state,
@@ -72,10 +70,12 @@ public class ComplexPutUnlessExistsTable<T> implements PutUnlessExistsTable<T> {
                                 .value(valueToWrite)
                                 .commitState(CommitState.PENDING)
                                 .build());
-                store.put(c, ImmutablePutUnlessExistsState.builder()
-                        .value(valueToWrite)
-                        .commitState(CommitState.COMMITTED)
-                        .build());
+                store.put(
+                        c,
+                        ImmutablePutUnlessExistsState.builder()
+                                .value(valueToWrite)
+                                .commitState(CommitState.COMMITTED)
+                                .build());
             } else {
                 throw new SafeIllegalStateException(
                         "Shouldn't be here?", SafeArg.of("commitState", state.commitState()));

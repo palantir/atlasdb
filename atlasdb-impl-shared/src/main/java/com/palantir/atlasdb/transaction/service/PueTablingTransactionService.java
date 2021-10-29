@@ -65,12 +65,8 @@ public class PueTablingTransactionService implements TransactionService {
     }
 
     @Override
-    public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-
-    }
+    public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {}
 
     @Override
-    public void close() {
-
-    }
+    public void close() {}
 }
