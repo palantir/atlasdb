@@ -54,8 +54,16 @@ public class ConsensusForgettingPutUnlessExistsStore {
         keyValueService.putUnlessExists(tableReference, ImmutableMap.of(c, state.toByteArray()));
     }
 
+    public void putUnlessExists(Map<Cell, PutUnlessExistsState> states) {
+        keyValueService.putUnlessExists(tableReference, KeyedStream.stream(states).map(PutUnlessExistsState::toByteArray).collectToMap());
+    }
+
     public void put(Cell c, PutUnlessExistsState state) {
         keyValueService.putToCasTable(tableReference, ImmutableMap.of(c, state.toByteArray()));
+    }
+
+    public void put(Map<Cell, PutUnlessExistsState> states) {
+        keyValueService.putToCasTable(tableReference, KeyedStream.stream(states).map(PutUnlessExistsState::toByteArray).collectToMap());
     }
 
     public void checkAndSet(Cell c, PutUnlessExistsState oldValue, PutUnlessExistsState newValue) {

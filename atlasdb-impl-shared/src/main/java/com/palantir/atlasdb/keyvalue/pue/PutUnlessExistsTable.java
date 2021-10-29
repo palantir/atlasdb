@@ -28,4 +28,8 @@ public interface PutUnlessExistsTable {
     ListenableFuture<Map<Cell, byte[]>> get(Iterable<Cell> cells);
 
     void putUnlessExists(Cell c, byte[] value) throws KeyAlreadyExistsException;
+
+    default void putUnlessExistsMultiple(Map<Cell, byte[]> startTimestampToCommitTimestamp) throws KeyAlreadyExistsException {
+        startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
+    }
 }

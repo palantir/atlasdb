@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.pue;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
@@ -95,18 +96,21 @@ public class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
 
     @Override
     public void putUnlessExists(Cell c, byte[] value) throws KeyAlreadyExistsException {
-        Bytes valueToWrite = Bytes.from(value);
-        store.putUnlessExists(
-                c,
-                ImmutablePutUnlessExistsState.builder()
-                        .value(valueToWrite)
+        putUnlessExistsMultiple(ImmutableMap.of(c, value));
+    }
+
+    @Override
+    public void putUnlessExistsMultiple(Map<Cell, byte[]> values)
+            throws KeyAlreadyExistsException {
+        store.putUnlessExists(KeyedStream.stream(values).map(userValue ->
+                (PutUnlessExistsState) ImmutablePutUnlessExistsState.builder()
+                        .value(Bytes.from(userValue))
                         .commitState(CommitState.PENDING)
-                        .build());
-        store.put(
-                c,
-                ImmutablePutUnlessExistsState.builder()
-                        .value(valueToWrite)
-                        .commitState(CommitState.PENDING)
-                        .build());
+                        .build()).collectToMap());
+        store.put(KeyedStream.stream(values).map(userValue ->
+                (PutUnlessExistsState) ImmutablePutUnlessExistsState.builder()
+                        .value(Bytes.from(userValue))
+                        .commitState(CommitState.COMMITTED)
+                        .build()).collectToMap());
     }
 }
