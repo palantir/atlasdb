@@ -55,7 +55,11 @@ public class ConsensusForgettingPutUnlessExistsStore {
     }
 
     public void putUnlessExists(Map<Cell, PutUnlessExistsState> states) {
-        keyValueService.putUnlessExists(tableReference, KeyedStream.stream(states).map(PutUnlessExistsState::toByteArray).collectToMap());
+        keyValueService.putUnlessExists(
+                tableReference,
+                KeyedStream.stream(states)
+                        .map(PutUnlessExistsState::toByteArray)
+                        .collectToMap());
     }
 
     public void put(Cell c, PutUnlessExistsState state) {
@@ -63,7 +67,11 @@ public class ConsensusForgettingPutUnlessExistsStore {
     }
 
     public void put(Map<Cell, PutUnlessExistsState> states) {
-        keyValueService.putToCasTable(tableReference, KeyedStream.stream(states).map(PutUnlessExistsState::toByteArray).collectToMap());
+        keyValueService.putToCasTable(
+                tableReference,
+                KeyedStream.stream(states)
+                        .map(PutUnlessExistsState::toByteArray)
+                        .collectToMap());
     }
 
     public void checkAndSet(Cell c, PutUnlessExistsState oldValue, PutUnlessExistsState newValue) {

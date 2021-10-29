@@ -86,11 +86,10 @@ public class PueTablingTransactionService implements TransactionService {
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        transactionsTable.putUnlessExistsMultiple(
-                KeyedStream.stream(startTimestampToCommitTimestamp)
-                        .map(encodingStrategy::encodeCommitTimestampAsValue)
-                        .mapKeys(encodingStrategy::encodeStartTimestampAsCell)
-                        .collectToMap());
+        transactionsTable.putUnlessExistsMultiple(KeyedStream.stream(startTimestampToCommitTimestamp)
+                .map(encodingStrategy::encodeCommitTimestampAsValue)
+                .mapKeys(encodingStrategy::encodeStartTimestampAsCell)
+                .collectToMap());
     }
 
     @Override

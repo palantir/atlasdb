@@ -407,7 +407,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         putInternal(
                 tableRef,
                 KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS),
-                true, false);
+                true,
+                false);
     }
 
     @Override
@@ -415,7 +416,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         putInternal(
                 tableRef,
                 KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS),
-                false, true);
+                false,
+                true);
     }
 
     private void putInternal(

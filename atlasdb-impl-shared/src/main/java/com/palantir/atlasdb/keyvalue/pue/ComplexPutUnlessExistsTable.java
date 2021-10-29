@@ -100,17 +100,18 @@ public class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
     }
 
     @Override
-    public void putUnlessExistsMultiple(Map<Cell, byte[]> values)
-            throws KeyAlreadyExistsException {
-        store.putUnlessExists(KeyedStream.stream(values).map(userValue ->
-                (PutUnlessExistsState) ImmutablePutUnlessExistsState.builder()
+    public void putUnlessExistsMultiple(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        store.putUnlessExists(KeyedStream.stream(values)
+                .map(userValue -> (PutUnlessExistsState) ImmutablePutUnlessExistsState.builder()
                         .value(Bytes.from(userValue))
                         .commitState(CommitState.PENDING)
-                        .build()).collectToMap());
-        store.put(KeyedStream.stream(values).map(userValue ->
-                (PutUnlessExistsState) ImmutablePutUnlessExistsState.builder()
+                        .build())
+                .collectToMap());
+        store.put(KeyedStream.stream(values)
+                .map(userValue -> (PutUnlessExistsState) ImmutablePutUnlessExistsState.builder()
                         .value(Bytes.from(userValue))
                         .commitState(CommitState.COMMITTED)
-                        .build()).collectToMap());
+                        .build())
+                .collectToMap());
     }
 }

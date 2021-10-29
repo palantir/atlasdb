@@ -37,14 +37,13 @@ public class PueTablingTransactionServiceTest {
         transactionService.putUnlessExists(8, 88);
         assertThat(transactionService.get(8)).isEqualTo(88);
         assertThat(transactionService.get(4)).isNull();
-        assertThat(transactionService.get(ImmutableList.of(4L, 8L, 48L))).contains(
-                Maps.immutableEntry(8L, 88L));
+        assertThat(transactionService.get(ImmutableList.of(4L, 8L, 48L))).contains(Maps.immutableEntry(8L, 88L));
 
         transactionService.putUnlessExistsMultiple(ImmutableMap.of(6L, 66L, 9L, 9999L));
         assertThat(transactionService.get(6)).isEqualTo(66);
-        assertThat(transactionService.get(ImmutableList.of(6L, 9L, 69L))).contains(
-                Maps.immutableEntry(6L, 66L), Maps.immutableEntry(9L, 9999L));
-        assertThat(transactionService.getAsync(ImmutableList.of(6L, 9L, 69L)).get()).contains(
-                Maps.immutableEntry(6L, 66L), Maps.immutableEntry(9L, 9999L));
+        assertThat(transactionService.get(ImmutableList.of(6L, 9L, 69L)))
+                .contains(Maps.immutableEntry(6L, 66L), Maps.immutableEntry(9L, 9999L));
+        assertThat(transactionService.getAsync(ImmutableList.of(6L, 9L, 69L)).get())
+                .contains(Maps.immutableEntry(6L, 66L), Maps.immutableEntry(9L, 9999L));
     }
 }
