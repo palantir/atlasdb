@@ -59,19 +59,23 @@ public class ComplexPutUnlessExistsTable<T> implements PutUnlessExistsTable<T> {
             if (state.commitState() == CommitState.COMMITTED) {
                 return valueSerializers.byteDeserializer().apply(state.value().asNewByteArray());
             } else if (state.commitState() == CommitState.PENDING) {
+                Bytes valueToWrite = Bytes.from(valueSerializers
+                        .byteSerializer()
+                        .apply(fallbackValueFunction.apply(
+                                Optional.of(state.value()).map(v -> valueSerializers
+                                        .byteDeserializer()
+                                        .apply(v.asNewByteArray())))));
                 store.checkAndSet(
                         c,
                         state,
                         ImmutablePutUnlessExistsState.builder()
-                                .value(Bytes.from(valueSerializers
-                                        .byteSerializer()
-                                        .apply(fallbackValueFunction.apply(
-                                                Optional.of(state.value()).map(v -> valueSerializers
-                                                        .byteDeserializer()
-                                                        .apply(v.asNewByteArray()))))))
+                                .value(valueToWrite)
                                 .commitState(CommitState.PENDING)
                                 .build());
-                store.put(c, ImmutablePutUnlessExistsState.builder().build());
+                store.put(c, ImmutablePutUnlessExistsState.builder()
+                        .value(valueToWrite)
+                        .commitState(CommitState.COMMITTED)
+                        .build());
             } else {
                 throw new SafeIllegalStateException(
                         "Shouldn't be here?", SafeArg.of("commitState", state.commitState()));
@@ -90,13 +94,19 @@ public class ComplexPutUnlessExistsTable<T> implements PutUnlessExistsTable<T> {
 
     @Override
     public void putUnlessExists(Cell c, T value) throws KeyAlreadyExistsException {
+        Bytes valueToWrite = Bytes.from(valueSerializers.byteSerializer().apply(value));
         store.putUnlessExists(
                 c,
                 ImmutablePutUnlessExistsState.builder()
-                        .value(Bytes.from(valueSerializers.byteSerializer().apply(value)))
+                        .value(valueToWrite)
                         .commitState(CommitState.PENDING)
                         .build());
 
-        // TODO (jkong): Straight put of committed
+        store.put(
+                c,
+                ImmutablePutUnlessExistsState.builder()
+                        .value(valueToWrite)
+                        .commitState(CommitState.PENDING)
+                        .build());
     }
 }
