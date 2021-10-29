@@ -1860,7 +1860,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool,
                 taskRunner,
                 wrappingQueryRunner,
-                System::currentTimeMillis); // what? yes. Unfortunately this is how we instruct C*
+                () -> Long.MAX_VALUE - 10); // what? check the docs for why.
         Iterable<Entry<Cell, Value>> entries = KeyedStream.stream(values)
                 .map(bytes -> Value.create(bytes, CassandraConstants.CAS_TABLE_TIMESTAMP))
                 .collectToMap()

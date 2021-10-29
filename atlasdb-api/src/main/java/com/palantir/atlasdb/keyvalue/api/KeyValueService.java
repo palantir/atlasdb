@@ -252,7 +252,9 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
-     * Writes to the key-value store in a table which uses check-and-set operations.
+     * Writes to the key-value store in a table which uses check-and-set operations. This operation is meant to be
+     * decisive - that is, after this call has been made, writes of other values may not be visible, and care must be
+     * taken when deleting.
      * @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put into.
      */
