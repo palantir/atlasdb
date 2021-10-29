@@ -35,7 +35,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
+public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
     private final ConsensusForgettingPutUnlessExistsStore store;
     private final Function<byte[], byte[]> pendingValueTransformer;
 
