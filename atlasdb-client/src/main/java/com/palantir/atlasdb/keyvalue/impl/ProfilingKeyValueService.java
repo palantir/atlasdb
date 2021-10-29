@@ -362,6 +362,13 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        maybeLog(
+                () -> delegate.putToCasTable(tableRef, values),
+                logCellsAndSize("putToCasTable", tableRef, values.keySet().size(), byteSize(values)));
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate.getCheckAndSetCompatibility();
     }

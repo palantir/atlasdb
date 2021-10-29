@@ -509,6 +509,19 @@ public final class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        if (values.isEmpty()) {
+            return;
+        }
+        for (List<Map.Entry<Cell, byte[]>> partValues : Iterables.partition(values.entrySet(), batchSizeForMutations)) {
+            run((Function<DSLContext, Void>) ctx -> {
+                putBatch(ctx, tableRef, SingleTimestampPutBatch.create(partValues, 0L), true);
+                return null;
+            });
+        }
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return CheckAndSetCompatibility.NOT_SUPPORTED;
     }

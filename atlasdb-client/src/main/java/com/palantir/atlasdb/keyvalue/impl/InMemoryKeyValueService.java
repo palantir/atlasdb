@@ -409,6 +409,14 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 true);
     }
 
+    @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        putInternal(
+                tableRef,
+                KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS),
+                false);
+    }
+
     private void putInternal(
             TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
         Table table = getTableMap(tableRef);

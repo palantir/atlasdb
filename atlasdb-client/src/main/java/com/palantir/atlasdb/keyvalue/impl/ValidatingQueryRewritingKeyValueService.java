@@ -239,6 +239,14 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        if (values.isEmpty()) {
+            return;
+        }
+        delegate.putToCasTable(tableRef, values);
+    }
+
+    @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
         if (cellValues.isEmpty()) {

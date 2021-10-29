@@ -542,6 +542,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        put(tableRef, values, AtlasDbConstants.TRANSACTION_TS, true);
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
         if (checkAndSetRequest.oldValue().isPresent()) {
             executeCheckAndSet(checkAndSetRequest);

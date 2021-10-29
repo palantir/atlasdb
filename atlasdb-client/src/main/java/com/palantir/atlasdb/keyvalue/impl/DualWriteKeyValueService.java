@@ -108,6 +108,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        delegate1.putToCasTable(tableRef, values);
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate1.getCheckAndSetCompatibility();
     }

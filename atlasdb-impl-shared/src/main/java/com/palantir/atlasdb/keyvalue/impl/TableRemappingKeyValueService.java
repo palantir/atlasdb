@@ -356,6 +356,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        try {
+            delegate().putToCasTable(tableMapper.getMappedTableName(tableRef), values);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate().getCheckAndSetCompatibility();
     }

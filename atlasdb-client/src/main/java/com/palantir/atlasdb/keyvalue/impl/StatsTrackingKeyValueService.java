@@ -287,6 +287,17 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        TableStats s = timeOperation(tableRef, () -> super.putToCasTable(tableRef, values));
+
+        // Only update stats after put was successful.
+        s.totalPutCells.addAndGet(values.size());
+        for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
+            incrementPutBytes(s, e.getKey(), e.getValue());
+        }
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest request) {
         TableStats s = timeOperation(request.table(), () -> super.checkAndSet(request));
 

@@ -405,6 +405,17 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.putToCasTable", sink -> {
+            sink.tableRef(tableRef);
+            sink.size("values", values);
+        })) {
+            delegate().putToCasTable(tableRef, values);
+        }
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate().getCheckAndSetCompatibility();
     }

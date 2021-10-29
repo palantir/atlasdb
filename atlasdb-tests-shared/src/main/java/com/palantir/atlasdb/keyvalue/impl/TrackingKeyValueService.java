@@ -91,6 +91,12 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        tablesWrittenTo.add(tableRef);
+        super.putToCasTable(tableRef, values);
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest request) {
         tablesWrittenTo.add(request.table());
         super.checkAndSet(request);

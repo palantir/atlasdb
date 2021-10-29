@@ -45,6 +45,10 @@ public class ConsensusForgettingPutUnlessExistsStore {
         keyValueService.putUnlessExists(tableReference, ImmutableMap.of(c, state.toByteArray()));
     }
 
+    public void put(Cell c, PutUnlessExistsState state) {
+        keyValueService.putToCasTable(tableReference, ImmutableMap.of(c, state.toByteArray()));
+    }
+
     public void checkAndSet(Cell c, PutUnlessExistsState oldValue, PutUnlessExistsState newValue) {
         keyValueService.checkAndSet(
                 CheckAndSetRequest.singleCell(tableReference, c, oldValue.toByteArray(), newValue.toByteArray()));

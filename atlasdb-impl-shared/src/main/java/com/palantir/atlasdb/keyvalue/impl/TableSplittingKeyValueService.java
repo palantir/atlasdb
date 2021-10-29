@@ -327,6 +327,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        getDelegate(tableRef).putToCasTable(tableRef, values);
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return CheckAndSetCompatibility.min(getDelegates().stream().map(KeyValueService::getCheckAndSetCompatibility));
     }

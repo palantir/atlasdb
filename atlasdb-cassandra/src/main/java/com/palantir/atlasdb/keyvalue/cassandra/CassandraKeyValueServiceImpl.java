@@ -117,6 +117,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -1847,6 +1848,25 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             });
         } catch (KeyAlreadyExistsException e) {
             throw e;
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    @Override
+    public void putToCasTable(TableReference tableRef, Map<Cell, byte[]> values) {
+        CellValuePutter wallClockPutter = new CellValuePutter(
+                config,
+                clientPool,
+                taskRunner,
+                wrappingQueryRunner,
+                System::currentTimeMillis); // what? yes. Unfortunately this is how we instruct C*
+        Iterable<Entry<Cell, Value>> entries = KeyedStream.stream(values)
+                .map(bytes -> Value.create(bytes, CassandraConstants.CAS_TABLE_TIMESTAMP))
+                        .collectToMap()
+                                .entrySet();
+        try {
+            wallClockPutter.putWithOverriddenTimestamps("putToCasTable", tableRef, entries);
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
