@@ -74,6 +74,16 @@ public abstract class SweepPriorityOverrideConfig {
     }
 
     /**
+     * If true, sweep of thorough tables will intentionally skip ~1% of entries. This is useful for tables that switched
+     * from conservative to thorough sweep, because doing a full sweep may result in too many consecutive deletes in the
+     * KVS layer which can cause issues (in particular can cause OOMs or other failures in Cassandra)
+     */
+    @Value.Default
+    public boolean runLeakySweepOnThoroughTables() {
+        return false;
+    }
+
+    /**
      * Default configuration for the sweep priority override config is no overrides.
      */
     public static SweepPriorityOverrideConfig defaultConfig() {

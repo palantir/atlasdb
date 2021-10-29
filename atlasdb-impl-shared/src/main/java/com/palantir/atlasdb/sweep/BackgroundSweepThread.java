@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -242,7 +243,7 @@ public class BackgroundSweepThread implements Runnable {
     @VisibleForTesting
     SweepOutcome runOnce() {
         Optional<TableToSweep> tableToSweep = getTableToSweep();
-        if (!tableToSweep.isPresent()) {
+        if (tableToSweep.isEmpty()) {
             // Don't change this log statement. It's parsed by test automation code.
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return SweepOutcome.NOTHING_TO_SWEEP;
@@ -250,7 +251,12 @@ public class BackgroundSweepThread implements Runnable {
 
         SweepBatchConfig batchConfig = sweepBatchConfigSource.getAdjustedSweepConfig();
         try {
-            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
+            specificTableSweeper.runOnceAndSaveResults(
+                    tableToSweep.get(),
+                    batchConfig,
+                    Suppliers.compose(
+                            SweepPriorityOverrideConfig::runLeakySweepOnThoroughTables,
+                            sweepPriorityOverrideConfig::get)::get);
             return SweepOutcome.SUCCESS;
         } catch (InsufficientConsistencyException e) {
             log.info("Could not sweep because not all nodes of the database are online.", e);
