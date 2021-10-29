@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.common.streams.KeyedStream;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -39,9 +40,6 @@ import org.jetbrains.annotations.Nullable;
 public class PueTablingTransactionService implements TransactionService {
     private final PutUnlessExistsTable transactionsTable;
     private final TimestampEncodingStrategy encodingStrategy;
-
-    // All entries in transaction table are stored with timestamp 0
-    private static final long MAX_TIMESTAMP = 1L;
 
     private PueTablingTransactionService(
             PutUnlessExistsTable transactionsTable, TimestampEncodingStrategy encodingStrategy) {
@@ -88,7 +86,11 @@ public class PueTablingTransactionService implements TransactionService {
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
+        transactionsTable.putUnlessExistsMultiple(
+                KeyedStream.stream(startTimestampToCommitTimestamp)
+                        .map(encodingStrategy::encodeCommitTimestampAsValue)
+                        .mapKeys(encodingStrategy::encodeStartTimestampAsCell)
+                        .collectToMap());
     }
 
     @Override

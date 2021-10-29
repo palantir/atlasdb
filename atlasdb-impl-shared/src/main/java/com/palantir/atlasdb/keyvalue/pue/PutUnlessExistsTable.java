@@ -29,7 +29,7 @@ public interface PutUnlessExistsTable {
 
     void putUnlessExists(Cell c, byte[] value) throws KeyAlreadyExistsException;
 
-    default void putUnlessExistsMultiple(Map<Cell, byte[]> startTimestampToCommitTimestamp) throws KeyAlreadyExistsException {
-        startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
+    default void putUnlessExistsMultiple(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        values.forEach(this::putUnlessExists);
     }
 }

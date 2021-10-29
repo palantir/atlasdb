@@ -64,6 +64,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -393,12 +394,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), false);
+        putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), false, false);
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        putInternal(tableRef, values.entries(), false);
+        putInternal(tableRef, values.entries(), false, false);
     }
 
     @Override
@@ -406,7 +407,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         putInternal(
                 tableRef,
                 KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS),
-                true);
+                true, false);
     }
 
     @Override
@@ -414,11 +415,14 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         putInternal(
                 tableRef,
                 KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS),
-                false);
+                false, true);
     }
 
     private void putInternal(
-            TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
+            TableReference tableRef,
+            Collection<Entry<Cell, Value>> values,
+            boolean doNotOverwriteWithSameValue,
+            boolean isCasHardWrite) {
         Table table = getTableMap(tableRef);
         List<Cell> knownSuccessfullyCommittedKeys = new ArrayList<>();
         for (Map.Entry<Cell, Value> entry : values) {
@@ -426,14 +430,18 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             long timestamp = entry.getValue().getTimestamp();
 
             Key key = getKey(table, entry.getKey(), timestamp);
-            byte[] oldContents = putIfAbsent(table, key, contents);
-            if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
-                throw new KeyAlreadyExistsException(
-                        "We already have a value for this timestamp",
-                        ImmutableList.of(entry.getKey()),
-                        knownSuccessfullyCommittedKeys);
+            if (isCasHardWrite) {
+                table.entries.put(key, copyOf(contents));
+            } else {
+                byte[] oldContents = putIfAbsent(table, key, contents);
+                if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
+                    throw new KeyAlreadyExistsException(
+                            "We already have a value for this timestamp",
+                            ImmutableList.of(entry.getKey()),
+                            knownSuccessfullyCommittedKeys);
+                }
+                knownSuccessfullyCommittedKeys.add(entry.getKey());
             }
-            knownSuccessfullyCommittedKeys.add(entry.getKey());
         }
     }
 
