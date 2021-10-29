@@ -31,6 +31,7 @@ public final class TransactionConstants {
 
     public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
     public static final TableReference TRANSACTIONS2_TABLE = TableReference.createWithEmptyNamespace("_transactions2");
+    public static final TableReference TRANSACTIONS3_TABLE = TableReference.createWithEmptyNamespace("_transactions3");
 
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
@@ -42,11 +43,14 @@ public final class TransactionConstants {
 
     // DO NOT change without a transactions table migration!
     public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
+    public static final int V3_TRANSACTION_NUM_PARTITIONS = 16;
 
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
+    public static final int PUE_AND_TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 3;
     public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS =
-            ImmutableSet.of(DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION, TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+            ImmutableSet.of(DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION, TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                    PUE_AND_TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
 
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);
@@ -77,4 +81,9 @@ public final class TransactionConstants {
             .explicitCompressionBlockSizeKB(64)
             .denselyAccessedWideRows(true)
             .build();
+
+    /**
+     * TODO (jkong): Jeremy needs to add more text
+     */
+    public static final TableMetadata TRANSACTIONS3_TABLE_METADATA = TRANSACTIONS2_TABLE_METADATA;
 }

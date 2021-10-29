@@ -24,4 +24,8 @@ public interface ValueSerializers<T> {
     Function<T, byte[]> byteSerializer();
 
     Function<byte[], T> byteDeserializer();
+
+    static <T> ImmutableValueSerializers.Builder<T> builder() {
+        return ImmutableValueSerializers.builder();
+    }
 }
