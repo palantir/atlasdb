@@ -17,39 +17,49 @@
 package com.palantir.atlasdb.keyvalue.pue;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
 
-public class DirectPutUnlessExistsTable<T> implements PutUnlessExistsTable<T> {
+public class DirectPutUnlessExistsTable implements PutUnlessExistsTable {
     private final KeyValueService keyValueService;
     private final TableReference tableReference;
-    private final ValueSerializers<T> valueSerializers;
 
     public DirectPutUnlessExistsTable(
-            KeyValueService keyValueService, TableReference tableReference, ValueSerializers<T> valueSerializers) {
+            KeyValueService keyValueService, TableReference tableReference) {
         this.keyValueService = keyValueService;
         this.tableReference = tableReference;
-        this.valueSerializers = valueSerializers;
     }
 
     @Override
-    public T get(Cell c) {
+    public ListenableFuture<Optional<byte[]>> get(Cell c) {
         Map<Cell, Value> resultMap = keyValueService.get(tableReference, ImmutableMap.of(c, Long.MAX_VALUE));
-        return Optional.ofNullable(resultMap.get(c))
-                .map(Value::getContents)
-                .map(bytes -> valueSerializers.byteDeserializer().apply(bytes))
-                .orElse(null);
+        return Futures.immediateFuture(Optional.ofNullable(resultMap.get(c))
+                .map(Value::getContents));
     }
 
     @Override
-    public void putUnlessExists(Cell c, T value) throws KeyAlreadyExistsException {
+    public ListenableFuture<Map<Cell, byte[]>> get(Iterable<Cell> cells) {
+        return Futures.immediateFuture(
+                KeyedStream.stream(
+                keyValueService.get(tableReference,
+                        KeyedStream.of(cells).map(_unused -> Long.MAX_VALUE).collectToMap()))
+                        .map(Value::getContents)
+                        .collectToMap()
+        );
+    }
+
+    @Override
+    public void putUnlessExists(Cell c, byte[] value) throws KeyAlreadyExistsException {
         keyValueService.putUnlessExists(
                 tableReference,
-                ImmutableMap.of(c, valueSerializers.byteSerializer().apply(value)));
+                ImmutableMap.of(c, value));
     }
 }

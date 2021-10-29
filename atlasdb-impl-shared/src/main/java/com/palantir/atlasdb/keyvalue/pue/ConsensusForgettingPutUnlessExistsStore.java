@@ -17,12 +17,17 @@
 package com.palantir.atlasdb.keyvalue.pue;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import java.util.Optional;
+import com.palantir.common.streams.KeyedStream;
+import java.util.Collection;
+import java.util.Map;
 
 public class ConsensusForgettingPutUnlessExistsStore {
     private final KeyValueService keyValueService;
@@ -33,12 +38,11 @@ public class ConsensusForgettingPutUnlessExistsStore {
         this.tableReference = tableReference;
     }
 
-    public Optional<PutUnlessExistsState> get(Cell c) {
-        return Optional.ofNullable(keyValueService
-                        .get(tableReference, ImmutableMap.of(c, Long.MAX_VALUE))
-                        .get(c))
-                .map(Value::getContents)
-                .map(PutUnlessExistsState::fromBytes);
+    public ListenableFuture<Map<Cell, PutUnlessExistsState>> get(Collection<Cell> cells) {
+        return Futures.transform(
+                keyValueService.getAsync(tableReference, KeyedStream.of(cells).map(_unused -> Long.MAX_VALUE).collectToMap()),
+                values -> KeyedStream.stream(values).map(Value::getContents).map(PutUnlessExistsState::fromBytes).collectToMap(),
+                MoreExecutors.directExecutor());
     }
 
     public void putUnlessExists(Cell c, PutUnlessExistsState state) {

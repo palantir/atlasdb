@@ -16,11 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.pue;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import java.util.Map;
+import java.util.Optional;
 
-public interface PutUnlessExistsTable<V> {
-    V get(Cell c);
+public interface PutUnlessExistsTable {
+    ListenableFuture<Optional<byte[]>> get(Cell c);
 
-    void putUnlessExists(Cell c, V value) throws KeyAlreadyExistsException;
+    ListenableFuture<Map<Cell, byte[]>> get(Iterable<Cell> cells);
+
+    void putUnlessExists(Cell c, byte[] value) throws KeyAlreadyExistsException;
 }

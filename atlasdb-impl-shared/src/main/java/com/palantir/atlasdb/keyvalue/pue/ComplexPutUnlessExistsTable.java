@@ -16,92 +16,96 @@
 
 package com.palantir.atlasdb.keyvalue.pue;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-public class ComplexPutUnlessExistsTable<T> implements PutUnlessExistsTable<T> {
+public class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
     private final ConsensusForgettingPutUnlessExistsStore store;
-    private final ValueSerializers<T> valueSerializers;
-    private final Function<Optional<T>, T> fallbackValueFunction;
+    private final Function<byte[], byte[]> pendingValueTransformer;
 
     private ComplexPutUnlessExistsTable(
             ConsensusForgettingPutUnlessExistsStore store,
-            ValueSerializers<T> valueSerializers,
-            Function<Optional<T>, T> fallbackValueFunction) {
+            Function<byte[], byte[]> pendingValueTransformer) {
         this.store = store;
-        this.valueSerializers = valueSerializers;
-        this.fallbackValueFunction = fallbackValueFunction;
+        this.pendingValueTransformer = pendingValueTransformer;
     }
 
-    public static <T> ComplexPutUnlessExistsTable<T> create(
+    public static PutUnlessExistsTable create(
             KeyValueService keyValueService,
             TableReference tableReference,
-            ValueSerializers<T> valueSerializers,
-            Function<Optional<T>, T> fallbackValueFunction) {
-        return new ComplexPutUnlessExistsTable<>(
+            Function<byte[], byte[]> pendingValueTransformer) {
+        return new ComplexPutUnlessExistsTable(
                 new ConsensusForgettingPutUnlessExistsStore(keyValueService, tableReference),
-                valueSerializers,
-                fallbackValueFunction);
+                pendingValueTransformer);
     }
 
     @Override
-    public T get(Cell c) {
-        Optional<PutUnlessExistsState> currentState = store.get(c);
-        if (currentState.isPresent()) {
-            PutUnlessExistsState state = currentState.get();
-            if (state.commitState() == CommitState.COMMITTED) {
-                return valueSerializers.byteDeserializer().apply(state.value().asNewByteArray());
-            } else if (state.commitState() == CommitState.PENDING) {
-                Bytes valueToWrite = Bytes.from(valueSerializers
-                        .byteSerializer()
-                        .apply(fallbackValueFunction.apply(Optional.of(state.value())
-                                .map(v -> valueSerializers.byteDeserializer().apply(v.asNewByteArray())))));
-                store.checkAndSet(
-                        c,
-                        state,
-                        ImmutablePutUnlessExistsState.builder()
-                                .value(valueToWrite)
-                                .commitState(CommitState.PENDING)
-                                .build());
-                store.put(
-                        c,
-                        ImmutablePutUnlessExistsState.builder()
-                                .value(valueToWrite)
-                                .commitState(CommitState.COMMITTED)
-                                .build());
-            } else {
-                throw new SafeIllegalStateException(
-                        "Shouldn't be here?", SafeArg.of("commitState", state.commitState()));
-            }
-        }
-        // currentState empty - no value yet
+    public ListenableFuture<Optional<byte[]>> get(Cell c) {
+        return Futures.transform(get(ImmutableSet.of(c)),
+                map -> Optional.ofNullable(map.get(c)),
+                MoreExecutors.directExecutor());
+    }
 
-        try {
-            T emptyFallbackValue = fallbackValueFunction.apply(Optional.empty());
-            putUnlessExists(c, emptyFallbackValue);
-            return emptyFallbackValue;
-        } catch (KeyAlreadyExistsException e) {
-            return get(c);
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> get(Iterable<Cell> cells) {
+        ListenableFuture<Map<Cell, PutUnlessExistsState>> currentState = store.get(Streams.stream(cells).collect(Collectors.toSet()));
+        return Futures.transform(
+                currentState,
+                state -> KeyedStream.stream(state)
+                                .map(this::makeDecisionOnState)
+                        .collectToMap(),
+                MoreExecutors.directExecutor()); // TODO (jkong): Naughty
+    }
+
+    private byte[] makeDecisionOnState(Cell c, PutUnlessExistsState state) {
+        if (state.commitState() == CommitState.COMMITTED) {
+            return state.value().asNewByteArray();
+        } else if (state.commitState() == CommitState.PENDING) {
+            Bytes valueToWrite = Bytes.from(pendingValueTransformer.apply(state.toByteArray()));
+            store.checkAndSet(
+                    c,
+                    state,
+                    ImmutablePutUnlessExistsState.builder()
+                            .value(valueToWrite)
+                            .commitState(CommitState.PENDING)
+                            .build());
+            store.put(
+                    c,
+                    ImmutablePutUnlessExistsState.builder()
+                            .value(valueToWrite)
+                            .commitState(CommitState.COMMITTED)
+                            .build());
+            return valueToWrite.asNewByteArray();
+        } else {
+            throw new SafeIllegalStateException(
+                    "Shouldn't be here?", SafeArg.of("commitState", state.commitState()));
         }
     }
 
     @Override
-    public void putUnlessExists(Cell c, T value) throws KeyAlreadyExistsException {
-        Bytes valueToWrite = Bytes.from(valueSerializers.byteSerializer().apply(value));
+    public void putUnlessExists(Cell c, byte[] value) throws KeyAlreadyExistsException {
+        Bytes valueToWrite = Bytes.from(value);
         store.putUnlessExists(
                 c,
                 ImmutablePutUnlessExistsState.builder()
                         .value(valueToWrite)
                         .commitState(CommitState.PENDING)
                         .build());
-
         store.put(
                 c,
                 ImmutablePutUnlessExistsState.builder()
