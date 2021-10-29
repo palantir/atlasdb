@@ -40,8 +40,13 @@ public class ConsensusForgettingPutUnlessExistsStore {
 
     public ListenableFuture<Map<Cell, PutUnlessExistsState>> get(Collection<Cell> cells) {
         return Futures.transform(
-                keyValueService.getAsync(tableReference, KeyedStream.of(cells).map(_unused -> Long.MAX_VALUE).collectToMap()),
-                values -> KeyedStream.stream(values).map(Value::getContents).map(PutUnlessExistsState::fromBytes).collectToMap(),
+                keyValueService.getAsync(
+                        tableReference,
+                        KeyedStream.of(cells).map(_unused -> Long.MAX_VALUE).collectToMap()),
+                values -> KeyedStream.stream(values)
+                        .map(Value::getContents)
+                        .map(PutUnlessExistsState::fromBytes)
+                        .collectToMap(),
                 MoreExecutors.directExecutor());
     }
 

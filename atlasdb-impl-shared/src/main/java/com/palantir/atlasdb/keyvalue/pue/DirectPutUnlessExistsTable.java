@@ -32,8 +32,7 @@ public class DirectPutUnlessExistsTable implements PutUnlessExistsTable {
     private final KeyValueService keyValueService;
     private final TableReference tableReference;
 
-    public DirectPutUnlessExistsTable(
-            KeyValueService keyValueService, TableReference tableReference) {
+    public DirectPutUnlessExistsTable(KeyValueService keyValueService, TableReference tableReference) {
         this.keyValueService = keyValueService;
         this.tableReference = tableReference;
     }
@@ -41,25 +40,20 @@ public class DirectPutUnlessExistsTable implements PutUnlessExistsTable {
     @Override
     public ListenableFuture<Optional<byte[]>> get(Cell c) {
         Map<Cell, Value> resultMap = keyValueService.get(tableReference, ImmutableMap.of(c, Long.MAX_VALUE));
-        return Futures.immediateFuture(Optional.ofNullable(resultMap.get(c))
-                .map(Value::getContents));
+        return Futures.immediateFuture(Optional.ofNullable(resultMap.get(c)).map(Value::getContents));
     }
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> get(Iterable<Cell> cells) {
-        return Futures.immediateFuture(
-                KeyedStream.stream(
-                keyValueService.get(tableReference,
+        return Futures.immediateFuture(KeyedStream.stream(keyValueService.get(
+                        tableReference,
                         KeyedStream.of(cells).map(_unused -> Long.MAX_VALUE).collectToMap()))
-                        .map(Value::getContents)
-                        .collectToMap()
-        );
+                .map(Value::getContents)
+                .collectToMap());
     }
 
     @Override
     public void putUnlessExists(Cell c, byte[] value) throws KeyAlreadyExistsException {
-        keyValueService.putUnlessExists(
-                tableReference,
-                ImmutableMap.of(c, value));
+        keyValueService.putUnlessExists(tableReference, ImmutableMap.of(c, value));
     }
 }

@@ -53,8 +53,8 @@ public class PueTablingTransactionService implements TransactionService {
         PutUnlessExistsTable table = ComplexPutUnlessExistsTable.create(
                 keyValueService,
                 TransactionConstants.TRANSACTIONS3_TABLE,
-                _unused -> TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(0,
-                        TransactionConstants.FAILED_COMMIT_TS)); // TODO (jkong): 0 is naughty
+                _unused -> TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+                        0, TransactionConstants.FAILED_COMMIT_TS)); // TODO (jkong): 0 is naughty
         return new PueTablingTransactionService(table, TicketsEncodingStrategy.INSTANCE);
     }
 
@@ -107,7 +107,8 @@ public class PueTablingTransactionService implements TransactionService {
     }
 
     private Long decodeTimestamp(long startTimestamp, Optional<byte[]> returnValue) {
-        return returnValue.map(bytes -> encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, bytes))
+        return returnValue
+                .map(bytes -> encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, bytes))
                 .orElse(null);
     }
 
@@ -118,16 +119,14 @@ public class PueTablingTransactionService implements TransactionService {
             cells.add(cell);
         }
 
-        return Futures.transform(
-                transactionsTable.get(cells), this::decodeTimestamps, MoreExecutors.directExecutor());
+        return Futures.transform(transactionsTable.get(cells), this::decodeTimestamps, MoreExecutors.directExecutor());
     }
 
     private Map<Long, Long> decodeTimestamps(Map<Cell, byte[]> rawResults) {
         Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
         for (Map.Entry<Cell, byte[]> e : rawResults.entrySet()) {
             long startTs = encodingStrategy.decodeCellAsStartTimestamp(e.getKey());
-            long commitTs = encodingStrategy.decodeValueAsCommitTimestamp(
-                    startTs, e.getValue());
+            long commitTs = encodingStrategy.decodeValueAsCommitTimestamp(startTs, e.getValue());
             result.put(startTs, commitTs);
         }
         return result;

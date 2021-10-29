@@ -39,8 +39,7 @@ public class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
     private final Function<byte[], byte[]> pendingValueTransformer;
 
     private ComplexPutUnlessExistsTable(
-            ConsensusForgettingPutUnlessExistsStore store,
-            Function<byte[], byte[]> pendingValueTransformer) {
+            ConsensusForgettingPutUnlessExistsStore store, Function<byte[], byte[]> pendingValueTransformer) {
         this.store = store;
         this.pendingValueTransformer = pendingValueTransformer;
     }
@@ -50,25 +49,23 @@ public class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
             TableReference tableReference,
             Function<byte[], byte[]> pendingValueTransformer) {
         return new ComplexPutUnlessExistsTable(
-                new ConsensusForgettingPutUnlessExistsStore(keyValueService, tableReference),
-                pendingValueTransformer);
+                new ConsensusForgettingPutUnlessExistsStore(keyValueService, tableReference), pendingValueTransformer);
     }
 
     @Override
     public ListenableFuture<Optional<byte[]>> get(Cell c) {
-        return Futures.transform(get(ImmutableSet.of(c)),
-                map -> Optional.ofNullable(map.get(c)),
-                MoreExecutors.directExecutor());
+        return Futures.transform(
+                get(ImmutableSet.of(c)), map -> Optional.ofNullable(map.get(c)), MoreExecutors.directExecutor());
     }
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> get(Iterable<Cell> cells) {
-        ListenableFuture<Map<Cell, PutUnlessExistsState>> currentState = store.get(Streams.stream(cells).collect(Collectors.toSet()));
+        ListenableFuture<Map<Cell, PutUnlessExistsState>> currentState =
+                store.get(Streams.stream(cells).collect(Collectors.toSet()));
         return Futures.transform(
                 currentState,
-                state -> KeyedStream.stream(state)
-                                .map(this::makeDecisionOnState)
-                        .collectToMap(),
+                state ->
+                        KeyedStream.stream(state).map(this::makeDecisionOnState).collectToMap(),
                 MoreExecutors.directExecutor()); // TODO (jkong): Naughty
     }
 
@@ -92,8 +89,7 @@ public class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
                             .build());
             return valueToWrite.asNewByteArray();
         } else {
-            throw new SafeIllegalStateException(
-                    "Shouldn't be here?", SafeArg.of("commitState", state.commitState()));
+            throw new SafeIllegalStateException("Shouldn't be here?", SafeArg.of("commitState", state.commitState()));
         }
     }
 
