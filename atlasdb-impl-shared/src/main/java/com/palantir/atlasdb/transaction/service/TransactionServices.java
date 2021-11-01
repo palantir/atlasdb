@@ -40,7 +40,7 @@ public final class TransactionServices {
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
-            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(3);
+            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(3); // just for testing
             return createSplitKeyTransactionService(keyValueService, transactionSchemaManager);
         }
         return createV1TransactionService(keyValueService);
