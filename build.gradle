@@ -121,7 +121,6 @@ allprojects {
                 'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
-                'PreferSafeLoggableExceptions',
                 'PreferSafeLoggingPreconditions',
                 'ProtectedMembersInFinalClass',
                 'PublicConstructorForAbstractClass',

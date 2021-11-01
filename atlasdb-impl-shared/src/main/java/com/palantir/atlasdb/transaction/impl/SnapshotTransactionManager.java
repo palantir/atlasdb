@@ -58,6 +58,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
@@ -550,7 +551,7 @@ import javax.validation.constraints.NotNull;
         if (transaction instanceof ForwardingTransaction) {
             return extractSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
         }
-        throw new IllegalArgumentException(
+        throw new SafeIllegalArgumentException(
                 "Can't use a transaction which is not SnapshotTransaction in " + "SnapshotTransactionManager");
     }
 }
