@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
@@ -358,20 +357,21 @@ public abstract class AtlasDbConfig {
     private void checkNamespaceConfigConsistent() {
         if (namespace().isPresent()) {
             String presentNamespace = namespace().get();
-            Preconditions.checkState(!presentNamespace.contains("\""), "Namespace should not be quoted");
+            com.palantir.logsafe.Preconditions.checkState(
+                    !presentNamespace.contains("\""), "Namespace should not be quoted");
 
             boolean allowDifferentKvsNamespace =
                     enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces();
             keyValueService()
                     .namespace()
-                    .ifPresent(kvsNamespace -> Preconditions.checkState(
+                    .ifPresent(kvsNamespace -> com.palantir.logsafe.Preconditions.checkState(
                             kvsNamespace.equals(presentNamespace) || allowDifferentKvsNamespace,
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
             timelock()
                     .flatMap(TimeLockClientConfig::client)
-                    .ifPresent(client -> Preconditions.checkState(
+                    .ifPresent(client -> com.palantir.logsafe.Preconditions.checkState(
                             client.equals(presentNamespace),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config."));
@@ -387,23 +387,23 @@ public abstract class AtlasDbConfig {
         }
 
         // There is no top level namespace AND the config is not an in-memory config
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 keyValueService().namespace().isPresent(),
                 "Either the atlas root-level namespace" + " or the keyspace/dbName/sid config needs to be set.");
         String keyValueServiceNamespace = keyValueService().namespace().get();
-        Preconditions.checkState(
+        com.palantir.logsafe.Preconditions.checkState(
                 !keyValueServiceNamespace.contains("\""), "KeyValueService namespace should not be quoted");
 
         if (timelock().isPresent()) {
             TimeLockClientConfig timeLockConfig = timelock().get();
 
-            Preconditions.checkState(
+            com.palantir.logsafe.Preconditions.checkState(
                     timeLockConfig.client().isPresent(),
                     "Either the atlas root-level namespace config or the TimeLock client config should be present.");
 
             if (keyValueService().type().equals("cassandra")
                     || !enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces()) {
-                Preconditions.checkState(
+                com.palantir.logsafe.Preconditions.checkState(
                         timeLockConfig.client().equals(Optional.of(keyValueServiceNamespace)),
                         "AtlasDB refused to start, in order to avoid potential data corruption."
                                 + " Please contact AtlasDB support to remediate this. Specific steps are required;"

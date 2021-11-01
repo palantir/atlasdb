@@ -75,7 +75,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync) {
-        Preconditions.checkArgument(
+        com.palantir.logsafe.Preconditions.checkArgument(
                 !tableReferenceOverride
                         .map(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE::equals)
                         .orElse(false),

@@ -112,8 +112,8 @@ public final class PTExecutors {
      * @return the newly created thread pool
      */
     public static ExecutorService newCachedThreadPool(String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        com.palantir.logsafe.Preconditions.checkNotNull(name, "Name is required");
+        com.palantir.logsafe.Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
         return newCachedThreadPoolWithMaxThreads(Short.MAX_VALUE, name);
     }
 
@@ -165,9 +165,9 @@ public final class PTExecutors {
      */
     @Beta
     public static ExecutorService newCachedThreadPoolWithMaxThreads(int maxThreads, String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
-        Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
+        com.palantir.logsafe.Preconditions.checkNotNull(name, "Name is required");
+        com.palantir.logsafe.Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        com.palantir.logsafe.Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
         return MetricRegistries.executor()
                 .registry(SharedTaggedMetricRegistries.getSingleton())
                 .name(name)
