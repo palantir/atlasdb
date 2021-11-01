@@ -117,10 +117,13 @@ final class TimestampStateStore {
         return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)));
     }
 
+    /**
+     * As per the documentation of {@link Multimaps#synchronizedSortedSetMultimap(SortedSetMultimap)}, we must
+     * synchronise on the collection when using any kind of collection view, including keySet. While this impacts the
+     * concurrency of this class, this method does not need to be called on every transaction, and thus should not
+     * impact performance.
+     */
     Optional<Sequence> getEarliestLiveSequence() {
-        // As per the documentation of Collections.synchronizedSortedSetMultimap, we must synchronise on the collection
-        // when using any kind of collection view, including keySet. While this impacts the concurrency of this class,
-        // this method does not need to be called on every transaction, and thus should not impact performance.
         synchronized (livingVersions) {
             return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
         }
