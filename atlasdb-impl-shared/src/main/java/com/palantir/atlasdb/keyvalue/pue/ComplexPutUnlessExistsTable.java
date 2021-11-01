@@ -69,10 +69,10 @@ public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
                 store.get(Streams.stream(cells).collect(Collectors.toSet()));
         return Futures.transform(
                 currentState,
-                state ->
-                        KeyedStream.stream(state)
-                                .filter(it -> it.commitState() == CommitState.COMMITTED)
-                                .map(it -> it.value().asNewByteArray()).collectToMap(),
+                state -> KeyedStream.stream(state)
+                        .filter(it -> it.commitState() == CommitState.COMMITTED)
+                        .map(it -> it.value().asNewByteArray())
+                        .collectToMap(),
                 MoreExecutors.directExecutor());
     }
 
@@ -103,8 +103,8 @@ public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
 
     private void makeDecisionOnStates(KeyAlreadyExistsException initialException, Map<Cell, byte[]> userValues) {
         // Acceptable: this call is part of a putUnlessExists, which is blocking API.
-        Map<Cell, PutUnlessExistsState> existingStates = AtlasFutures.getUnchecked(store.get(
-                initialException.getExistingKeys()));
+        Map<Cell, PutUnlessExistsState> existingStates =
+                AtlasFutures.getUnchecked(store.get(initialException.getExistingKeys()));
         Set<Cell> alreadyCommittedValues = new HashSet<>();
         Map<Cell, byte[]> valuesToTryPutting = new HashMap<>();
 
@@ -127,13 +127,15 @@ public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
         // We can try resolving decisions
         // No multi-CAS :(
         for (Map.Entry<Cell, byte[]> valueToTryPutting : valuesToTryPutting.entrySet()) {
-            store.checkAndSet(valueToTryPutting.getKey(),
+            store.checkAndSet(
+                    valueToTryPutting.getKey(),
                     existingStates.get(valueToTryPutting.getKey()),
                     ImmutablePutUnlessExistsState.builder()
                             .value(Bytes.from(valueToTryPutting.getValue()))
                             .commitState(CommitState.PENDING)
                             .build());
-            store.put(valueToTryPutting.getKey(),
+            store.put(
+                    valueToTryPutting.getKey(),
                     ImmutablePutUnlessExistsState.builder()
                             .value(Bytes.from(valueToTryPutting.getValue()))
                             .commitState(CommitState.COMMITTED)
@@ -141,9 +143,10 @@ public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
         }
 
         Map<Cell, byte[]> remainingUserValues = KeyedStream.stream(userValues)
-                        .filterKeys(c -> !valuesToTryPutting.containsKey(c))
-                .filterKeys(c -> !initialException.getKnownSuccessfullyCommittedKeys().contains(c))
-                        .collectToMap();
+                .filterKeys(c -> !valuesToTryPutting.containsKey(c))
+                .filterKeys(c ->
+                        !initialException.getKnownSuccessfullyCommittedKeys().contains(c))
+                .collectToMap();
         if (!remainingUserValues.isEmpty()) {
             putUnlessExistsMultiple(remainingUserValues);
         }
