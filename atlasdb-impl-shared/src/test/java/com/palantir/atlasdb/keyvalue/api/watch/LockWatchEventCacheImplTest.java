@@ -247,8 +247,21 @@ public final class LockWatchEventCacheImplTest {
                         .startVersion(LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_1))
                         .endVersion(LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_2))
                         .build());
+    }
 
-        // An event update should retrieve any events from start timestamp to latest known timestamp in the cache
+    @Test
+    public void getEventUpdateReturnsEventsFromStartToLatestKnownVersion() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_VERSION_1);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_VERSION_2);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_VERSION_3);
+        eventCache.processGetCommitTimestampsUpdate(
+                ImmutableSet.of(TransactionUpdate.builder()
+                        .startTs(TIMESTAMP_1)
+                        .commitTs(TIMESTAMP_3)
+                        .writesToken(LOCK_TOKEN)
+                        .build()),
+                SUCCESS_VERSION_2);
+
         eventCache.getEventUpdate(TIMESTAMP_1);
         verify(eventLog)
                 .getEventsBetweenVersions(VersionBounds.builder()
