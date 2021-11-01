@@ -56,9 +56,7 @@ public final class PueTablingTransactionService implements CellEncodingTransacti
         if (keyValueService.checkAndSetMayPersistPartialValuesOnFailure()) {
             return ComplexPutUnlessExistsTable.create(
                     keyValueService,
-                    TransactionConstants.TRANSACTIONS3_TABLE,
-                    _unused -> TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
-                            0, TransactionConstants.FAILED_COMMIT_TS)); // TODO (jkong): 0 is naughty
+                    TransactionConstants.TRANSACTIONS3_TABLE);
         }
         return new DirectPutUnlessExistsTable(keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
     }

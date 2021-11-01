@@ -29,32 +29,26 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.lib.Bytes;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
     private final ConsensusForgettingPutUnlessExistsStore store;
-    private final Function<byte[], byte[]> pendingValueTransformer;
 
     private ComplexPutUnlessExistsTable(
-            ConsensusForgettingPutUnlessExistsStore store, Function<byte[], byte[]> pendingValueTransformer) {
+            ConsensusForgettingPutUnlessExistsStore store) {
         this.store = store;
-        this.pendingValueTransformer = pendingValueTransformer;
     }
 
     public static PutUnlessExistsTable create(
             KeyValueService keyValueService,
-            TableReference tableReference,
-            Function<byte[], byte[]> pendingValueTransformer) {
+            TableReference tableReference) {
         return new ComplexPutUnlessExistsTable(
-                new ConsensusForgettingPutUnlessExistsStore(keyValueService, tableReference), pendingValueTransformer);
+                new ConsensusForgettingPutUnlessExistsStore(keyValueService, tableReference));
     }
 
     @Override
@@ -149,30 +143,6 @@ public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
                 .collectToMap();
         if (!remainingUserValues.isEmpty()) {
             putUnlessExistsMultiple(remainingUserValues);
-        }
-    }
-
-    private byte[] makeDecisionOnState(Cell c, PutUnlessExistsState state) {
-        if (state.commitState() == CommitState.COMMITTED) {
-            return state.value().asNewByteArray();
-        } else if (state.commitState() == CommitState.PENDING) {
-            Bytes valueToWrite = Bytes.from(pendingValueTransformer.apply(state.toByteArray()));
-            store.checkAndSet(
-                    c,
-                    state,
-                    ImmutablePutUnlessExistsState.builder()
-                            .value(valueToWrite)
-                            .commitState(CommitState.PENDING)
-                            .build());
-            store.put(
-                    c,
-                    ImmutablePutUnlessExistsState.builder()
-                            .value(valueToWrite)
-                            .commitState(CommitState.COMMITTED)
-                            .build());
-            return valueToWrite.asNewByteArray();
-        } else {
-            throw new SafeIllegalStateException("Shouldn't be here?", SafeArg.of("commitState", state.commitState()));
         }
     }
 }
