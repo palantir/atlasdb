@@ -137,7 +137,6 @@ allprojects {
                 'ThrowSpecificity',
                 'TooManyArguments',
                 'TypeParameterUnusedInFormals',
-                'UndefinedEquals',
                 'UseCorrectAssertInTests',
                 'ValidateConstantMessage'
     }
