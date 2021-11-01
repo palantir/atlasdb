@@ -77,7 +77,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 Optional.empty(),
                 Optional.empty());
 
-        assertThat(kvs.get(TABLE_1, readMap).size()).isEqualTo(1);
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(1);
     }
 
     @Test
