@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.ComparingTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -157,6 +158,9 @@ public abstract class TransactionTestSetup {
                         .persistToBytes()));
         TransactionTables.createTables(keyValueService);
         TransactionTables.truncateTables(keyValueService);
+        if (keyValueService.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
+            keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
+        }
         keyValueService.truncateTable(TEST_TABLE);
         keyValueService.truncateTable(TEST_TABLE_SERIALIZABLE);
 
