@@ -41,10 +41,10 @@ public final class AtlasBackupTask {
         this.backupTokenPersister = new InMemoryBackupTokenPersister();
     }
 
-    public static AtlasBackupTask create(Refreshable<ServicesConfigBlock> servicesConfigBlock) {
+    public static AtlasBackupTask create(Refreshable<ServicesConfigBlock> servicesConfigBlock, String serviceName) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
         AtlasBackupServiceBlocking atlasBackupServiceBlocking =
-                reloadingFactory.get(AtlasBackupServiceBlocking.class, "atlas-backup-service");
+                reloadingFactory.get(AtlasBackupServiceBlocking.class, serviceName);
         return new AtlasBackupTask(atlasBackupServiceBlocking);
     }
 
