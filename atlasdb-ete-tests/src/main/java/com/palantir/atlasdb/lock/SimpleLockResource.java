@@ -75,11 +75,11 @@ public class SimpleLockResource implements LockResource {
     private SortedMap<LockDescriptor, LockMode> generateDescriptorMap(int numLocks, int descriptorSize) {
         return generateDescriptors(numLocks, descriptorSize)
                 .collect(ImmutableSortedMap.toImmutableSortedMap(
-                        Comparator.naturalOrder(), descriptor -> descriptor, no -> LockMode.WRITE));
+                        Comparator.naturalOrder(), descriptor -> descriptor, _no -> LockMode.WRITE));
     }
 
     private Stream<LockDescriptor> generateDescriptors(int numDescriptors, int descriptorSize) {
-        return IntStream.range(0, numDescriptors).mapToObj(ignore -> generateDescriptorOfSize(descriptorSize));
+        return IntStream.range(0, numDescriptors).mapToObj(_ignore -> generateDescriptorOfSize(descriptorSize));
     }
 
     private LockDescriptor generateDescriptorOfSize(int size) {

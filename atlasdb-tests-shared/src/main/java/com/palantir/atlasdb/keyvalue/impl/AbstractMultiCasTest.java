@@ -84,6 +84,6 @@ public class AbstractMultiCasTest {
     private static Map<Cell, byte[]> putDataInCols(byte[]... cols) {
         return Stream.of(cols)
                 .map(column -> Cell.create(ROW_1, column))
-                .collect(Collectors.toMap(cell -> cell, ignore -> DATA));
+                .collect(Collectors.toMap(cell -> cell, _ignore -> DATA));
     }
 }

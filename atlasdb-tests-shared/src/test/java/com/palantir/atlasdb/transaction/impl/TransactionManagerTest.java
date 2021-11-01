@@ -139,7 +139,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         verify(mockTimeLockService).getImmutableTimestamp();
 
         // now execute a read transaction
-        txnManagerWithMocks.runTaskReadOnly(txn -> null);
+        txnManagerWithMocks.runTaskReadOnly(_txn -> null);
         verifyNoMoreInteractions(mockLockService);
         verifyNoMoreInteractions(mockTimeLockService);
         verifyNoMoreInteractions(mockTimestampManagementService);
@@ -167,7 +167,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     @Test
     public void shouldNotConflictIfImmutableTimestampLockExpiresIfNoReadsOrWrites() {
         TransactionManager txnManagerWithMocks = setupTransactionManager();
-        txnManagerWithMocks.runTaskThrowOnConflict(txn -> null);
+        txnManagerWithMocks.runTaskThrowOnConflict(_txn -> null);
     }
 
     @Test

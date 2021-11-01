@@ -94,8 +94,8 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
         ListenableFuture<Round> done() {
             return FluentFuture.from(future)
-                    .catching(Throwable.class, thrown -> null, MoreExecutors.directExecutor())
-                    .transform(x -> next, MoreExecutors.directExecutor());
+                    .catching(Throwable.class, _thrown -> null, MoreExecutors.directExecutor())
+                    .transform(_x -> next, MoreExecutors.directExecutor());
         }
 
         Round awaitDone() {

@@ -35,7 +35,10 @@ import org.junit.Test;
 
 public class SafeShutdownRunnerTest {
     private static final RuntimeException EXCEPTION_1 = new RuntimeException("test");
-    private static final RuntimeException EXCEPTION_2 = new RuntimeException("bleh");
+
+    static {
+        new RuntimeException("bleh");
+    }
 
     private Runnable mockRunnable = mock(Runnable.class);
     private Runnable throwingRunnable = mock(Runnable.class);
@@ -43,7 +46,7 @@ public class SafeShutdownRunnerTest {
 
     @Before
     public void setupMocks() {
-        doAnswer(invocation -> {
+        doAnswer(_invocation -> {
                     new Semaphore(0).acquireUninterruptibly();
                     return null;
                 })

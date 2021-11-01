@@ -59,7 +59,7 @@ public class CoalescingSupplierTest {
 
     private final Supplier<Integer> supplier;
 
-    public CoalescingSupplierTest(String name, Object parameter) {
+    public CoalescingSupplierTest(String _name, Object parameter) {
         Function<CoalescingSupplierTest, Integer> factory = (Function<CoalescingSupplierTest, Integer>) parameter;
         supplier = () -> factory.apply(this);
     }
@@ -92,7 +92,7 @@ public class CoalescingSupplierTest {
     @Test
     public void batchesConcurrentRequests() throws InterruptedException {
         freezableDelegate.freeze();
-        AsyncTasks initialTask = getConcurrently(1);
+        getConcurrently(1);
         AsyncTasks batch = getConcurrently(5);
         freezableDelegate.unfreeze();
 
@@ -153,7 +153,7 @@ public class CoalescingSupplierTest {
             return counter.incrementAndGet();
         });
         List<ListenableFuture<?>> futures = IntStream.range(0, poolSize)
-                .mapToObj(index -> executorService.submit(() -> assertIncreasing(supplier)))
+                .mapToObj(_index -> executorService.submit(() -> assertIncreasing(supplier)))
                 .collect(Collectors.toList());
         executorService.shutdown();
         Futures.getUnchecked(Futures.allAsList(futures));
@@ -203,7 +203,7 @@ public class CoalescingSupplierTest {
         static AsyncTasks runInParallel(Runnable task, int count) {
             ExecutorService executor = Executors.newCachedThreadPool();
             List<Future<?>> futures = IntStream.range(0, count)
-                    .mapToObj(i -> executor.submit(task))
+                    .mapToObj(_i -> executor.submit(task))
                     .collect(Collectors.toList());
 
             // give the threads a chance to start

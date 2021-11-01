@@ -26,12 +26,12 @@ public class MockKeyValueServiceInstrumentation extends KeyValueServiceInstrumen
     }
 
     @Override
-    public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
+    public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress _addr) {
         return Mockito.mock(KeyValueServiceConfig.class);
     }
 
     @Override
-    public boolean canConnect(InetSocketAddress addr) {
+    public boolean canConnect(InetSocketAddress _addr) {
         return true;
     }
 

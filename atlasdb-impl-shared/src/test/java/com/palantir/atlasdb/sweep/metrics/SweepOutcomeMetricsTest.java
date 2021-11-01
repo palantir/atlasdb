@@ -82,14 +82,14 @@ public class SweepOutcomeMetricsTest {
     @Test
     public void testFatalIsBinary() {
         SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(
-                outcome -> IntStream.range(0, 10).forEach(ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
+                outcome -> IntStream.range(0, 10).forEach(_ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
         assertThat(metricsManager).hasLegacyOutcomeEqualTo(SweepOutcome.FATAL, 1L);
     }
 
     @Test
     public void testOtherMetricsAreCumulative() {
         SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(
-                outcome -> IntStream.range(0, 10).forEach(ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
+                outcome -> IntStream.range(0, 10).forEach(_ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
         SweepOutcomeMetrics.LEGACY_OUTCOMES.stream()
                 .filter(outcome -> outcome != SweepOutcome.FATAL)
                 .forEach(outcome -> assertThat(metricsManager).hasLegacyOutcomeEqualTo(outcome, 10L));
@@ -98,7 +98,7 @@ public class SweepOutcomeMetricsTest {
     @Test
     public void testTargetedSweepMetricsAreCumulative() {
         SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(
-                outcome -> IntStream.range(0, 10).forEach(ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
+                outcome -> IntStream.range(0, 10).forEach(_ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
         SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(
                 outcome -> assertThat(metricsManager).hasLegacyOutcomeEqualTo(outcome, 10L));
     }

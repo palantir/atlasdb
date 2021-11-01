@@ -77,7 +77,7 @@ public class StreamStoreDefinition {
     }
 
     public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(
-            String packageName, String name, StreamStoreRenderer renderer, Namespace namespace) {
+            String packageName, String _name, StreamStoreRenderer renderer, Namespace namespace) {
         Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
 
         // We use reflection and wrap these in suppliers because these classes are generated classes that

@@ -34,7 +34,7 @@ public final class ConflictDetectionManagers {
     public static ConflictDetectionManager createWithNoConflictDetection() {
         return new ConflictDetectionManager(new CacheLoader<>() {
             @Override
-            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
+            public Optional<ConflictHandler> load(TableReference _tableReference) throws Exception {
                 return Optional.of(ConflictHandler.IGNORE_ALL);
             }
         });

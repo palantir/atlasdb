@@ -100,7 +100,7 @@ public final class BlobSchemaTableFactory {
         @Override
         public void putAuditedData(
                 Multimap<AuditedDataTable.AuditedDataRow, ? extends AuditedDataTable.AuditedDataNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -109,14 +109,14 @@ public final class BlobSchemaTableFactory {
                 Multimap<
                                 DataStreamHashAidxTable.DataStreamHashAidxRow,
                                 ? extends DataStreamHashAidxTable.DataStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
         @Override
         public void putDataStreamIdx(
                 Multimap<DataStreamIdxTable.DataStreamIdxRow, ? extends DataStreamIdxTable.DataStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -125,7 +125,7 @@ public final class BlobSchemaTableFactory {
                 Multimap<
                                 DataStreamMetadataTable.DataStreamMetadataRow,
                                 ? extends DataStreamMetadataTable.DataStreamMetadataNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -134,7 +134,7 @@ public final class BlobSchemaTableFactory {
                 Multimap<
                                 DataStreamValueTable.DataStreamValueRow,
                                 ? extends DataStreamValueTable.DataStreamValueNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -143,7 +143,7 @@ public final class BlobSchemaTableFactory {
                 Multimap<
                                 HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow,
                                 ? extends HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -152,7 +152,7 @@ public final class BlobSchemaTableFactory {
                 Multimap<
                                 HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow,
                                 ? extends HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -162,7 +162,7 @@ public final class BlobSchemaTableFactory {
                                 HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow,
                                 ? extends
                                         HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -171,7 +171,7 @@ public final class BlobSchemaTableFactory {
                 Multimap<
                                 HotspottyDataStreamValueTable.HotspottyDataStreamValueRow,
                                 ? extends HotspottyDataStreamValueTable.HotspottyDataStreamValueNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

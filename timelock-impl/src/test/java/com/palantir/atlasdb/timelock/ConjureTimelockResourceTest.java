@@ -65,8 +65,8 @@ public class ConjureTimelockResourceTest {
 
     @Before
     public void before() {
-        resource = new ConjureTimelockResource(TARGETER, unused -> timelockService);
-        service = ConjureTimelockResource.jersey(TARGETER, unused -> timelockService);
+        resource = new ConjureTimelockResource(TARGETER, _unused -> timelockService);
+        service = ConjureTimelockResource.jersey(TARGETER, _unused -> timelockService);
         when(timelockService.leaderTime()).thenReturn(Futures.immediateFuture(leaderTime));
     }
 
@@ -143,19 +143,19 @@ public class ConjureTimelockResourceTest {
     private abstract static class AssertVisitor implements QosException.Visitor<Void> {
 
         @Override
-        public Void visit(QosException.Throttle exception) {
+        public Void visit(QosException.Throttle _exception) {
             fail("Did not expect throttle");
             return null;
         }
 
         @Override
-        public Void visit(QosException.RetryOther exception) {
+        public Void visit(QosException.RetryOther _exception) {
             fail("Did not expect retry other");
             return null;
         }
 
         @Override
-        public Void visit(QosException.Unavailable exception) {
+        public Void visit(QosException.Unavailable _exception) {
             fail("Did not expect unavailable");
             return null;
         }

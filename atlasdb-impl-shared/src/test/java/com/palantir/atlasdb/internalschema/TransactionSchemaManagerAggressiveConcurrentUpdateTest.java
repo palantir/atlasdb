@@ -61,7 +61,7 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
 
     private void scheduleTasksAndValidateSnapshots(int numRequests, int numManagers) {
         List<TransactionSchemaManager> managers = IntStream.range(0, numManagers)
-                .mapToObj(unused -> createTransactionSchemaManager())
+                .mapToObj(_unused -> createTransactionSchemaManager())
                 .collect(Collectors.toList());
 
         List<Future<?>> futures = new ArrayList<>();

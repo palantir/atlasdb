@@ -100,7 +100,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     }
 
     @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+    public boolean process(Set<? extends TypeElement> _annotations, RoundEnvironment roundEnv) {
         if (abortProcessing.get()) {
             // Another instance of AutoDelegateProcessor is running in the current processing environment.
             return false;

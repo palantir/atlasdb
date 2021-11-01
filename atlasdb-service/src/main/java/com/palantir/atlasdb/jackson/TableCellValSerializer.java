@@ -41,7 +41,7 @@ public class TableCellValSerializer extends StdSerializer<TableCellVal> {
     }
 
     @Override
-    public void serialize(TableCellVal value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(TableCellVal value, JsonGenerator jgen, SerializerProvider _provider) throws IOException {
         TableMetadata metadata = metadataCache.getMetadata(value.getTableName());
         Preconditions.checkNotNull(metadata, "Unknown table %s", value.getTableName());
         jgen.writeStartObject();

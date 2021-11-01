@@ -156,7 +156,7 @@ public class LeadershipElectionCheckTest {
         }
 
         LeaderElectionServiceMetrics metrics = clientLeaderElectionServiceMetricsMap.get(client);
-        IntStream.range(0, leaderElectionCount).forEach(idx -> {
+        IntStream.range(0, leaderElectionCount).forEach(_idx -> {
             metrics.proposedLeadership().mark();
             fakeTimeClock.advance(timeIntervalInSeconds.getSeconds(), TimeUnit.SECONDS);
         });

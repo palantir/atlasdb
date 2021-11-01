@@ -66,6 +66,6 @@ final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Ent
 
         // force local learner to update
         localLearner.service().learn(requestAsMultimap);
-        return Maps.toMap(request, $ -> SUCCESSFUL_RESPONSE);
+        return Maps.toMap(request, _$ -> SUCCESSFUL_RESPONSE);
     }
 }

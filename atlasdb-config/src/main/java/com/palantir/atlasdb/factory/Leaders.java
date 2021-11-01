@@ -208,14 +208,14 @@ public final class Leaders {
         Map<T, ExecutorService> executors = new HashMap<>();
         for (int index = 0; index < services.size(); index++) {
             String indexedUseCase = String.format("%s-%d", useCase, index);
-            executors.put(services.get(index), createExecutor(metricsManager, indexedUseCase, services.size()));
+            executors.put(services.get(index), createExecutor(indexedUseCase));
         }
         return executors;
     }
 
     // TODO (jkong): Make the limits configurable.
     // Current use cases tend to have not more than 10 (<< 100) inflight tasks under normal circumstances.
-    private static ExecutorService createExecutor(MetricsManager metricsManager, String useCase, int corePoolSize) {
+    private static ExecutorService createExecutor(String useCase) {
         return PTExecutors.newCachedThreadPoolWithMaxThreads(100, "atlas-leaders-election-" + useCase);
     }
 

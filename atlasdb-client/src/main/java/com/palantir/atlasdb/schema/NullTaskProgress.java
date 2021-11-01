@@ -17,7 +17,7 @@ package com.palantir.atlasdb.schema;
 
 public class NullTaskProgress implements TaskProgress {
     @Override
-    public void beginTask(String message, int tasks) {
+    public void beginTask(String _message, int _tasks) {
         //
     }
 

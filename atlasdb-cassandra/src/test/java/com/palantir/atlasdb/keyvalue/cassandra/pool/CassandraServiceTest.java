@@ -120,7 +120,8 @@ public class CassandraServiceTest {
     public void shouldReturnAbsentIfPredicateMatchesNoServers() {
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1));
 
-        Optional<CassandraClientPoolingContainer> container = cassandra.getRandomGoodHostForPredicate(address -> false);
+        Optional<CassandraClientPoolingContainer> container =
+                cassandra.getRandomGoodHostForPredicate(_address -> false);
         assertThat(container).isNotPresent();
     }
 

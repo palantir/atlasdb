@@ -56,7 +56,7 @@ public class InterruptibleProxyTest {
             }
 
             @Override
-            public String remove(int arg0) {
+            public String remove(int _arg0) {
                 assertThat(callingThread).isNotEqualTo(Thread.currentThread());
                 while (true) {
                     try {

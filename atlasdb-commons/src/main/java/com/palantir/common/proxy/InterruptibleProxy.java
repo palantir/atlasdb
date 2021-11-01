@@ -63,7 +63,7 @@ public final class InterruptibleProxy implements DelegatingInvocationHandler {
     }
 
     @Override
-    public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+    public Object invoke(final Object _proxy, final Method method, final Object[] args) throws Throwable {
         Future<Object> future = executor.submit(() -> {
             try {
                 return method.invoke(delegate, args);

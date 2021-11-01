@@ -106,7 +106,7 @@ public class PreStartHandlingTransactionService implements TransactionService {
         List<Long> validTimestamps = classifiedTimestamps.get(true);
         Map<Long, Long> result = new HashMap<>();
         result.putAll(Maps.asMap(
-                ImmutableSet.copyOf(classifiedTimestamps.get(false)), unused -> AtlasDbConstants.STARTING_TS - 1));
+                ImmutableSet.copyOf(classifiedTimestamps.get(false)), _unused -> AtlasDbConstants.STARTING_TS - 1));
 
         if (!validTimestamps.isEmpty()) {
             return Futures.transform(

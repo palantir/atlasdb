@@ -39,6 +39,6 @@ public final class MetricsManagers {
 
     public static MetricsManager createAlwaysSafeAndFilteringForTests() {
         return new MetricsManager(
-                new MetricRegistry(), new DefaultTaggedMetricRegistry(), Refreshable.only(true), tableRef -> true);
+                new MetricRegistry(), new DefaultTaggedMetricRegistry(), Refreshable.only(true), _tableRef -> true);
     }
 }

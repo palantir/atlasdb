@@ -95,7 +95,7 @@ public class ApiTestSchema implements AtlasSchema {
         return GENERIC_TEST_SCHEMA;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] _args) throws Exception {
         GENERIC_TEST_SCHEMA.renderTables(new File("src/integrationInput/java"));
     }
 

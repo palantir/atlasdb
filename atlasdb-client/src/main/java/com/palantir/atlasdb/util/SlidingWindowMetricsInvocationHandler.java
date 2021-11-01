@@ -56,7 +56,7 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
     }
 
     @Override
-    public void onSuccess(@Nullable InvocationContext context, @Nullable Object result) {
+    public void onSuccess(@Nullable InvocationContext context, @Nullable Object _result) {
         if (context == null) {
             log.debug("Encountered null metric context likely due to exception in preInvocation");
             return;

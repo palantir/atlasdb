@@ -83,7 +83,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         if (method.getName().equals("close") && args.length == 0) {
             log.debug("Closing leadership proxy");
             isClosed = true;

@@ -182,7 +182,7 @@ public final class HeldLocksGrant implements ExpiringToken, Serializable {
         return toString(System.currentTimeMillis());
     }
 
-    public String toString(long currentTimeMillis) {
+    public String toString(long _currentTimeMillis) {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("grantId", grantId.toString(Character.MAX_RADIX))
                 .add("createdAt", SimpleTimeDuration.of(creationDateMs, TimeUnit.MILLISECONDS))

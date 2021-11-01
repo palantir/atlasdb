@@ -424,7 +424,6 @@ public class IndexDefinition extends AbstractDefinition {
     private State state = State.NONE;
     private boolean logSafetyDeclared = false;
 
-    private boolean hashFirstRowComponent = false;
     private int numberOfComponentsHashed = 0;
     private String sourceTableName = null;
     private String javaIndexTableName = null;

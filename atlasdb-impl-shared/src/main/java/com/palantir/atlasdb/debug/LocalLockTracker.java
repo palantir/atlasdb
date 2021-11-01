@@ -61,7 +61,7 @@ public final class LocalLockTracker {
                     }
 
                     @Override
-                    public String visitUnsuccessful(UnsuccessfulLockResponse value) {
+                    public String visitUnsuccessful(UnsuccessfulLockResponse _value) {
                         return "FAILED - tried to lock " + lockDescriptors;
                     }
 

@@ -56,7 +56,7 @@ public class TimelockNamespacesTest {
     private Supplier<Integer> maxNumberOfClientsSupplier;
 
     private final MetricsManager metricsManager =
-            new MetricsManager(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault(), unused -> false);
+            new MetricsManager(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault(), _unused -> false);
     private TimelockNamespaces namespaces;
 
     @Before

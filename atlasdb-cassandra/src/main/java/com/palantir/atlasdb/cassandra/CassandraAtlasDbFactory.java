@@ -54,8 +54,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
             MetricsManager metricsManager,
             CassandraReloadableKvsConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> unused,
-            Optional<String> namespace,
+            Optional<LeaderConfig> _value,
+            Optional<String> _namespace,
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
@@ -149,7 +149,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
 
     @Override
     public TimestampStoreInvalidator createTimestampStoreInvalidator(
-            KeyValueService rawKvs, Optional<TableReference> unused) {
+            KeyValueService rawKvs, Optional<TableReference> _value) {
         return CassandraTimestampStoreInvalidator.create(rawKvs);
     }
 }

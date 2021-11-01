@@ -185,12 +185,12 @@ public final class StreamTestWithHashStreamIdxTable implements
 
         public static final Hydrator<StreamTestWithHashStreamIdxRow> BYTES_HYDRATOR = new Hydrator<StreamTestWithHashStreamIdxRow>() {
             @Override
-            public StreamTestWithHashStreamIdxRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+            public StreamTestWithHashStreamIdxRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
+                Long id = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 return new StreamTestWithHashStreamIdxRow(hashOfRowComponents, id);
             }
         };
@@ -286,10 +286,10 @@ public final class StreamTestWithHashStreamIdxTable implements
 
         public static final Hydrator<StreamTestWithHashStreamIdxColumn> BYTES_HYDRATOR = new Hydrator<StreamTestWithHashStreamIdxColumn>() {
             @Override
-            public StreamTestWithHashStreamIdxColumn hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(reference);
+            public StreamTestWithHashStreamIdxColumn hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                byte[] reference = EncodingUtils.decodeSizedBytes(_input, _index);
+                _index += EncodingUtils.sizeOfSizedBytes(reference);
                 return new StreamTestWithHashStreamIdxColumn(reference);
             }
         };
@@ -656,15 +656,15 @@ public final class StreamTestWithHashStreamIdxTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

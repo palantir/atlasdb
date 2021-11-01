@@ -69,7 +69,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     }
 
     @Override
-    protected Optional<SweepResults> completeSweep(TableReference ignored, long ts) {
+    protected Optional<SweepResults> completeSweep(TableReference _ignored, long ts) {
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0), ts);
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0), ts);
         return Optional.empty();

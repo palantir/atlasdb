@@ -29,7 +29,7 @@ public class AwaitedLocksCollection {
     final ConcurrentMap<UUID, AsyncResult<Void>> requestsById = new ConcurrentHashMap<>();
 
     public AsyncResult<Void> getExistingOrAwait(UUID requestId, Supplier<AsyncResult<Void>> lockAwaiter) {
-        AsyncResult<Void> result = requestsById.computeIfAbsent(requestId, ignored -> lockAwaiter.get());
+        AsyncResult<Void> result = requestsById.computeIfAbsent(requestId, _ignored -> lockAwaiter.get());
 
         registerCompletionHandler(requestId, result);
         return result;

@@ -90,7 +90,7 @@ public final class SweepStrategyManagers {
     }
 
     public static SweepStrategyManager completelyConservative() {
-        return tableRef -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+        return _tableRef -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
     }
 
     private static Map<TableReference, SweepStrategy> getSweepStrategiesForWarmingCache(

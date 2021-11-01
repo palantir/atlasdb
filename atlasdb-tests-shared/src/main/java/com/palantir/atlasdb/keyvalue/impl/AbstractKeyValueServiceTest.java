@@ -890,7 +890,7 @@ public abstract class AbstractKeyValueServiceTest {
                 expectedValues.put(Cell.create(rowName, colName), PtBytes.toBytes(row + "," + col));
             }
         }
-        Map<Cell, byte[]> unexpectedValues = Maps.transformValues(expectedValues, val -> PtBytes.toBytes("foo"));
+        Map<Cell, byte[]> unexpectedValues = Maps.transformValues(expectedValues, _val -> PtBytes.toBytes("foo"));
 
         keyValueService.truncateTable(TEST_TABLE);
         keyValueService.put(TEST_TABLE, expectedValues, TEST_TIMESTAMP); // only these should be returned

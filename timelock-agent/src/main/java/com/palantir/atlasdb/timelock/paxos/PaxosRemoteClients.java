@@ -190,7 +190,7 @@ public abstract class PaxosRemoteClients {
                         metrics().getTaggedRegistry(),
                         clazz,
                         proxy,
-                        any -> ImmutableMap.of(AtlasDbMetricNames.TAG_REMOTE_HOST, host)));
+                        _any -> ImmutableMap.of(AtlasDbMetricNames.TAG_REMOTE_HOST, host)));
     }
 
     private static HostAndPort convertAddressToHostAndPort(String url) {

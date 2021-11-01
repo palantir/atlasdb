@@ -29,7 +29,7 @@ public class ServiceFeedback {
     private Map<UUID, List<ConjureTimeLockClientFeedback>> nodeWiseFeedback = new ConcurrentHashMap<>();
 
     public void addFeedbackForNode(UUID nodeId, ConjureTimeLockClientFeedback feedback) {
-        nodeWiseFeedback.computeIfAbsent(nodeId, node -> new ArrayList<>()).add(feedback);
+        nodeWiseFeedback.computeIfAbsent(nodeId, _node -> new ArrayList<>()).add(feedback);
     }
 
     public Collection<List<ConjureTimeLockClientFeedback>> values() {

@@ -32,22 +32,22 @@ public final class LockWatchReferencesVisitor implements LockWatchReferences.Vis
     }
 
     @Override
-    public TableReference visit(RowPrefix reference) {
+    public TableReference visit(RowPrefix _reference) {
         throw new UnsupportedOperationException("Row prefix watches are not yet supported");
     }
 
     @Override
-    public TableReference visit(RowRange reference) {
+    public TableReference visit(RowRange _reference) {
         throw new UnsupportedOperationException("Row range watches are not yet supported");
     }
 
     @Override
-    public TableReference visit(ExactRow reference) {
+    public TableReference visit(ExactRow _reference) {
         throw new UnsupportedOperationException("Exact row watches are not yet supported");
     }
 
     @Override
-    public TableReference visit(ExactCell reference) {
+    public TableReference visit(ExactCell _reference) {
         throw new UnsupportedOperationException("Exact cell watches are not yet supported");
     }
 }

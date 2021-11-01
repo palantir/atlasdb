@@ -86,7 +86,7 @@ public final class DisruptorAutobatcher<T, R>
     public ListenableFuture<R> apply(T argument) {
         Preconditions.checkState(!closed, "Autobatcher is already shut down");
         DisruptorFuture<R> result = new DisruptorFuture<R>(safeLoggablePurpose);
-        buffer.publishEvent((refresh, sequence) -> {
+        buffer.publishEvent((refresh, _sequence) -> {
             refresh.result = result;
             refresh.argument = argument;
         });

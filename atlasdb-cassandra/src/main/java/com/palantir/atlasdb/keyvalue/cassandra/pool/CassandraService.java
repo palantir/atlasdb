@@ -283,7 +283,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
-        return getRandomGoodHostForPredicate(address -> true)
+        return getRandomGoodHostForPredicate(_address -> true)
                 .orElseThrow(() -> new SafeIllegalStateException("No hosts available."));
     }
 

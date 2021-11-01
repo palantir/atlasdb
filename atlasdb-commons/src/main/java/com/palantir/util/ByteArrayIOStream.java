@@ -182,7 +182,7 @@ public class ByteArrayIOStream extends OutputStream {
         }
 
         @Override
-        public void mark(int readAheadLimit) {
+        public void mark(int _readAheadLimit) {
             mark = pos;
         }
 

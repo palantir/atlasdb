@@ -34,7 +34,7 @@ public class NotInitializedExceptionMapper extends ProtocolAwareExceptionMapper<
     }
 
     @Override
-    QosException handleConjureJavaRuntime(NotInitializedException exception) {
+    QosException handleConjureJavaRuntime(NotInitializedException _exception) {
         return QosException.throttle();
     }
 }

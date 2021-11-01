@@ -37,7 +37,7 @@ public class ImmutableTimestampLock implements AsyncLock {
     }
 
     @Override
-    public AsyncResult<Void> waitUntilAvailable(UUID requestId) {
+    public AsyncResult<Void> waitUntilAvailable(UUID _requestId) {
         throw new NotSupportedException();
     }
 
@@ -47,7 +47,7 @@ public class ImmutableTimestampLock implements AsyncLock {
     }
 
     @Override
-    public void timeout(UUID requestId) {
+    public void timeout(UUID _requestId) {
         throw new NotSupportedException();
     }
 

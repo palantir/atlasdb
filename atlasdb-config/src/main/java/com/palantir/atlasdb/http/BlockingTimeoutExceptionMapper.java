@@ -36,7 +36,7 @@ public class BlockingTimeoutExceptionMapper extends ProtocolAwareExceptionMapper
     }
 
     @Override
-    QosException handleConjureJavaRuntime(BlockingTimeoutException exception) {
+    QosException handleConjureJavaRuntime(BlockingTimeoutException _exception) {
         return QosException.throttle(Duration.ZERO);
     }
 }

@@ -193,7 +193,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             throws FileNotFoundException {
         FileOutputStream fos = new FileOutputStream(file);
         try {
-            tryWriteStreamToFile(transaction, id, metadata, fos);
+            tryWriteStreamToFile(transaction, id, fos);
         } catch (IOException e) {
             log.error("Could not finish streaming blocks to file for stream {}", UnsafeArg.of("stream", id), e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks while opening a stream.", e);
@@ -213,8 +213,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
         }
     }
 
-    private void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
-            throws IOException {
+    private void tryWriteStreamToFile(Transaction transaction, T id, FileOutputStream fos) throws IOException {
         try (InputStream in = loadStream(transaction, id)) {
             ByteStreams.copy(in, fos);
         }

@@ -141,7 +141,7 @@ public class TodoClient {
             LatestSnapshotTable.LatestSnapshotRow row = LatestSnapshotTable.LatestSnapshotRow.of(0L);
             LatestSnapshotTable latestSnapshotTable = tableFactory.getLatestSnapshotTable(transaction);
             Optional<LatestSnapshotTable.LatestSnapshotRowResult> maybeRow = latestSnapshotTable.getRow(row);
-            maybeRow.ifPresent(latestSnapshot -> {
+            maybeRow.ifPresent(_latestSnapshot -> {
                 Long latestStreamId = maybeRow.get().getStreamId();
 
                 log.info(
@@ -225,7 +225,7 @@ public class TodoClient {
 
     private Map<Cell, Value> getAllAtlasDeletes(TableReference tableRef) {
         Set<Cell> allCells = getAllCells(tableRef);
-        Map<Cell, Value> latest = kvs.get().get(tableRef, Maps.asMap(allCells, ignore -> Long.MAX_VALUE));
+        Map<Cell, Value> latest = kvs.get().get(tableRef, Maps.asMap(allCells, _ignore -> Long.MAX_VALUE));
         return Maps.filterEntries(latest, ent -> Arrays.equals(ent.getValue().getContents(), PtBytes.EMPTY_BYTE_ARRAY));
     }
 

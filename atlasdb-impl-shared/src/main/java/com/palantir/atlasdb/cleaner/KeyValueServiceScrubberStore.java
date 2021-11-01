@@ -74,7 +74,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     private final KeyValueService keyValueService;
     private final LoadingCache<TableReference, byte[]> tableToEncodedBytesCache = Caffeine.newBuilder()
             .maximumWeight(100_000)
-            .weigher((TableReference key, byte[] value) -> value.length)
+            .weigher((TableReference _key, byte[] value) -> value.length)
             .build(tableRef -> EncodingUtils.encodeVarString(tableRef.getQualifiedName()));
 
     public static ScrubberStore create(KeyValueService keyValueService) {

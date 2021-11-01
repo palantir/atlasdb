@@ -63,7 +63,7 @@ public class TransactionManagersAsyncInitializationTest {
                 .serializable();
 
         assertThat(manager.isInitialized()).isFalse();
-        assertThatThrownBy(() -> manager.runTaskWithRetry(unused -> null)).isInstanceOf(NotInitializedException.class);
+        assertThatThrownBy(() -> manager.runTaskWithRetry(_unused -> null)).isInstanceOf(NotInitializedException.class);
 
         Awaitility.await().atMost(Duration.ofSeconds(12)).until(manager::isInitialized);
 

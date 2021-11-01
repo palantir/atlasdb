@@ -82,7 +82,7 @@ public class RetryableCassandraRequestTest {
     private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {
         return new FunctionCheckedException<CassandraClient, Void, RuntimeException>() {
             @Override
-            public Void apply(CassandraClient input) throws RuntimeException {
+            public Void apply(CassandraClient _input) throws RuntimeException {
                 return null;
             }
 

@@ -266,7 +266,7 @@ public class AtlasDbHttpClientsTest {
         private final AtomicBoolean firstRequestDone = new AtomicBoolean(false);
 
         @Override
-        public Response transform(Request request, Response response, FileSource files, Parameters parameters) {
+        public Response transform(Request request, Response response, FileSource _files, Parameters _parameters) {
             if (urls.isEmpty()) {
                 return response;
             }

@@ -46,7 +46,7 @@ public abstract class AbstractTransaction implements Transaction {
     protected abstract KeyValueService getKeyValueService();
 
     @Override
-    public void commit(TransactionService txService) throws TransactionFailedException {
+    public void commit(TransactionService _txService) throws TransactionFailedException {
         commit();
     }
 }

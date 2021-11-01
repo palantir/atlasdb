@@ -71,7 +71,7 @@ public class BlobSchema implements AtlasSchema {
             }
         });
 
-        schema.addCleanupTask("auditedData", () -> (tx, cells) -> {
+        schema.addCleanupTask("auditedData", () -> (_tx, cells) -> {
             log.info("Deleted data items: [{}]", UnsafeArg.of("cells", cells));
             return false;
         });
@@ -80,7 +80,7 @@ public class BlobSchema implements AtlasSchema {
         return schema;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] _args) throws Exception {
         GENERATED_SCHEMA.renderTables(new File("src/main/java"));
     }
 }

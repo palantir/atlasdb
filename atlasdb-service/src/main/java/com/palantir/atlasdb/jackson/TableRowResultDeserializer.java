@@ -41,7 +41,7 @@ public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> 
     }
 
     @Override
-    public TableRowResult deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public TableRowResult deserialize(JsonParser jp, DeserializationContext _ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
         String tableName = node.get("table").textValue();
         Collection<RowResult<byte[]>> rowResults = new ArrayList<>();

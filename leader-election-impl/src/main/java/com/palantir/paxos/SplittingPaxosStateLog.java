@@ -140,7 +140,7 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
      * This implementation is a noop to ensure correctness of {@link #getLeastLogEntry()}.
      */
     @Override
-    public void truncate(long toDeleteInclusive) {
+    public void truncate(long _toDeleteInclusive) {
         log.warn("Tried to truncate paxos state log with an implementation that does not support truncations.");
     }
 

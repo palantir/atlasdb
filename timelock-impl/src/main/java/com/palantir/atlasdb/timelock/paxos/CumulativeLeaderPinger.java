@@ -89,11 +89,11 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
 
         Instant requestTime = Instant.now();
 
-        return FluentFuture.from(hasProcessedFirstRequest.computeIfAbsent(client, $ -> SettableFuture.create()))
+        return FluentFuture.from(hasProcessedFirstRequest.computeIfAbsent(client, _$ -> SettableFuture.create()))
                 .transform(
                         // lastSuccessfulResult will never be null, since the SettableFuture in the above will have been
                         // set after a ping containing the client is made.
-                        $ -> {
+                        _$ -> {
                             checkNotShutdown();
                             return lastSuccessfulResult
                                     .get()

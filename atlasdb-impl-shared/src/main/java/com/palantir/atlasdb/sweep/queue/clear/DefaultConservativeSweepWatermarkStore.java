@@ -92,11 +92,11 @@ public final class DefaultConservativeSweepWatermarkStore implements Conservativ
         Set<Cell> cells = tableReferences.stream()
                 .map(DefaultConservativeSweepWatermarkStore::cell)
                 .collect(Collectors.toSet());
-        Map<Cell, Value> fetched = kvs.get(CLEARS, Maps.asMap(cells, ignored -> Long.MAX_VALUE));
+        Map<Cell, Value> fetched = kvs.get(CLEARS, Maps.asMap(cells, _ignored -> Long.MAX_VALUE));
         return KeyedStream.stream(fetched)
                 .map((cell, value) -> RowResult.of(cell, value.getContents()))
                 .map(TableClearsRowResult::of)
-                .mapKeys((cell, rowResult) -> tableRef(rowResult.getRowName()))
+                .mapKeys((_cell, rowResult) -> tableRef(rowResult.getRowName()))
                 .map(TableClearsRowResult::getLastClearedTimestamp)
                 .collectToMap();
     }

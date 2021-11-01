@@ -67,7 +67,7 @@ public class RetryableCassandraRequest<V, K extends Exception> {
     }
 
     public void triedOnHost(InetSocketAddress host) {
-        triedHosts.merge(host, 1, (old, ignore) -> old + 1);
+        triedHosts.merge(host, 1, (old, _ignore) -> old + 1);
     }
 
     public void registerException(Exception exception) {

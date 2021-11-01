@@ -33,7 +33,7 @@ final class CheckAndSetQueries {
     }
 
     static CqlQuery getQueryForRequest(CheckAndSetRequest request) {
-        return request.oldValue().map(unused -> updateIfMatching(request)).orElseGet(() -> insertIfNotExists(request));
+        return request.oldValue().map(_unused -> updateIfMatching(request)).orElseGet(() -> insertIfNotExists(request));
     }
 
     private static CqlQuery insertIfNotExists(CheckAndSetRequest request) {

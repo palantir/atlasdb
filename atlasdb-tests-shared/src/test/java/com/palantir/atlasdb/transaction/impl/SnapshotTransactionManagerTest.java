@@ -223,7 +223,7 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void registersMetrics() throws InterruptedException {
         when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
-        snapshotTransactionManager.runTaskWithRetry(tx -> 42);
+        snapshotTransactionManager.runTaskWithRetry(_tx -> 42);
         MetricRegistry registry = snapshotTransactionManager.metricsManager.getRegistry();
         assertThat(registry.getNames()).contains(SETUP_TASK_METRIC_NAME).contains(FINISH_TASK_METRIC_NAME);
         assertThat(registry.getTimers().get(SETUP_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
@@ -236,10 +236,10 @@ public class SnapshotTransactionManagerTest {
         when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, true);
 
-        transactionManager.runTaskReadOnly(tx -> "ignored");
+        transactionManager.runTaskReadOnly(_tx -> "ignored");
         verify(timelockService).startIdentifiedAtlasDbTransactionBatch(1);
 
-        transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
+        transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (_tx, _condition) -> "ignored");
         verify(timelockService, times(2)).startIdentifiedAtlasDbTransactionBatch(1);
     }
 
@@ -248,8 +248,8 @@ public class SnapshotTransactionManagerTest {
         TimelockService timelockService = spy(services.getLegacyTimelockService());
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
 
-        transactionManager.runTaskReadOnly(tx -> "ignored");
-        transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
+        transactionManager.runTaskReadOnly(_tx -> "ignored");
+        transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (_tx, _condition) -> "ignored");
         verify(timelockService, never()).startIdentifiedAtlasDbTransactionBatch(1);
     }
 

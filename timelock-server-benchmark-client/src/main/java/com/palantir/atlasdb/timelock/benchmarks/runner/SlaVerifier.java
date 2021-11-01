@@ -73,7 +73,7 @@ public class SlaVerifier extends BenchmarkRunnerBase {
     public void writeTransactionStripedHighContentionBurst() {
         ExecutorService executor = Executors.newFixedThreadPool(8);
         List<Future<Map<String, Object>>> futures = IntStream.range(0, 8)
-                .mapToObj(i -> executor.submit(() -> client.transactionWriteContended(512, 1)))
+                .mapToObj(_i -> executor.submit(() -> client.transactionWriteContended(512, 1)))
                 .collect(Collectors.toList());
 
         futures.stream().map(this::getUnchecked).forEach(results -> {

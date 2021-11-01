@@ -131,7 +131,6 @@ allprojects {
                 'SafeLoggingExceptionMessageFormat',
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
-                'StrictUnusedVariable',
                 'ThreadPriorityCheck',
                 'ThrowError',
                 'ThrowSpecificity',

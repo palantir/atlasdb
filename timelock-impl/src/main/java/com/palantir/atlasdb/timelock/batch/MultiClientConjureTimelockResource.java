@@ -74,7 +74,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     @Override
-    public ListenableFuture<LeaderTimes> leaderTimes(AuthHeader authHeader, Set<Namespace> namespaces) {
+    public ListenableFuture<LeaderTimes> leaderTimes(AuthHeader _authHeader, Set<Namespace> namespaces) {
         return handleExceptions(() -> {
             List<ListenableFuture<Map.Entry<Namespace, LeaderTime>>> futures =
                     namespaces.stream().map(this::getNamespacedLeaderTimes).collect(Collectors.toList());
@@ -99,7 +99,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @Override
     public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactionsForClients(
-            AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
+            AuthHeader _authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
         return handleExceptions(() -> {
             List<ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
                             requests)
@@ -112,7 +112,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @Override
     public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForClients(
-            AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
+            AuthHeader _authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
         return handleExceptions(() -> {
             List<ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>>> futures = KeyedStream.stream(
                             requests)

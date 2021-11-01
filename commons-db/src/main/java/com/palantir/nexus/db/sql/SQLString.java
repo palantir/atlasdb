@@ -78,7 +78,7 @@ public class SQLString extends BasicSQLString {
     }
 
     // by default, no callback. This is set in OverridableSQLString
-    protected static OnUseCallback callbackOnUse = used -> {
+    protected static OnUseCallback callbackOnUse = _used -> {
         // do nothing
     };
 

@@ -1741,7 +1741,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             return true;
         });
 
-        assertThatThrownBy(() -> visitable2.batchAccept(10, cells -> true))
+        assertThatThrownBy(() -> visitable2.batchAccept(10, _cells -> true))
                 .isExactlyInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("This class has already been called once before");
 
@@ -1823,7 +1823,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .batchHint(9)
                 .build();
         BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, RangeRequest> exposingProcessor =
-                (rangeRequest, $) -> rangeRequest;
+                (rangeRequest, _$) -> rangeRequest;
 
         Transaction transaction = startTransaction();
         List<RangeRequest> visited = transaction
@@ -1847,12 +1847,12 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .build();
 
         // Contract is not entirely valid, but we don't have a good way of mocking out the KVS.
-        UnaryOperator<RangeRequest> goldenForcingOperator = $ -> goldenRequest;
+        UnaryOperator<RangeRequest> goldenForcingOperator = _$ -> goldenRequest;
 
         putDirect("tom", "col", "value", 0);
 
         BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, byte[]> singleValueExtractor =
-                ($, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable))
+                (_$, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable))
                         .getOnlyColumnValue();
 
         Transaction transaction = startTransaction();
@@ -1874,7 +1874,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         List<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl =
                 ImmutableList.copyOf(t.getRanges(TEST_TABLE, rangeRequests));
         List<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl = t.getRanges(
-                        TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable)
+                        TEST_TABLE, rangeRequests, 2, (_rangeRequest, visitable) -> visitable)
                 .collect(Collectors.toList());
         List<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
@@ -1896,7 +1896,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl =
                 t.getRanges(TEST_TABLE, rangeRequests);
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl = t.getRanges(
-                        TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable)
+                        TEST_TABLE, rangeRequests, 2, (_rangeRequest, visitable) -> visitable)
                 .collect(Collectors.toList());
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());

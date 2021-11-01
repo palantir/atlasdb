@@ -159,7 +159,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    protected boolean shouldStopRetrying(int numTimesFailed) {
+    protected boolean shouldStopRetrying(int _numTimesFailed) {
         return false;
     }
 

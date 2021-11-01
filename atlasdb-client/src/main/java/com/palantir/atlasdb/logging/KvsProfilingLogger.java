@@ -106,12 +106,12 @@ public class KvsProfilingLogger {
     }
 
     public static <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
-        return maybeLog(action::get, logger, (loggingFunction, result) -> {});
+        return maybeLog(action::get, logger, (_loggingFunction, _result) -> {});
     }
 
     public static <T, E extends Exception> T maybeLog(
             CallableCheckedException<T, E> action, BiConsumer<LoggingFunction, Stopwatch> primaryLogger) throws E {
-        return maybeLog(action, primaryLogger, (loggingFunction, result) -> {});
+        return maybeLog(action, primaryLogger, (_loggingFunction, _result) -> {});
     }
 
     /**

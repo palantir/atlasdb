@@ -112,7 +112,7 @@ public abstract class WideRowTableWithAbortedValues extends WideRowTable {
     }
 
     private void writeUncommittedValues() {
-        IntStream.range(0, getNumUncommittedValuesPerCell()).forEach(unused -> writeOneVersionOfUncommittedValues());
+        IntStream.range(0, getNumUncommittedValuesPerCell()).forEach(_unused -> writeOneVersionOfUncommittedValues());
     }
 
     private void writeOneVersionOfUncommittedValues() {

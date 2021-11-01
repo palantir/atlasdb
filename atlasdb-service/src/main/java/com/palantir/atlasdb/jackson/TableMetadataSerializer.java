@@ -40,7 +40,7 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
     }
 
     @Override
-    public void serialize(TableMetadata value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(TableMetadata value, JsonGenerator jgen, SerializerProvider _provider) throws IOException {
         jgen.writeStartObject();
         NameMetadataDescription rowMetadata = value.getRowMetadata();
         ColumnMetadataDescription columnMetadata = value.getColumns();

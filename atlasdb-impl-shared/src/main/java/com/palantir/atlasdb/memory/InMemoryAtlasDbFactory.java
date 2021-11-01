@@ -64,12 +64,12 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceCon
      */
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> unused,
-            LongSupplier unusedLongSupplier,
+            MetricsManager _metricsManager,
+            KeyValueServiceConfig _config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> _runtimeConfig,
+            Optional<LeaderConfig> _leaderConfig,
+            Optional<String> _value,
+            LongSupplier _longSupplier,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
@@ -81,7 +81,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceCon
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs, Optional<TableReference> unused, boolean initializeAsync) {
+            KeyValueService _rawKvs, Optional<TableReference> _value, boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }

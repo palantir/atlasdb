@@ -111,7 +111,7 @@ final class BlockEnforcingLockService {
         }
 
         @Override
-        public LockResponse visitUnsuccessful(UnsuccessfulLockResponse value) {
+        public LockResponse visitUnsuccessful(UnsuccessfulLockResponse _value) {
             return LockResponse.timedOut();
         }
 

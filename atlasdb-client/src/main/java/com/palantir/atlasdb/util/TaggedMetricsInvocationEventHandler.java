@@ -113,7 +113,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
                     (ListenableFuture<?>) result,
                     new FutureCallback<Object>() {
                         @Override
-                        public void onSuccess(Object result) {
+                        public void onSuccess(Object _result) {
                             update(context);
                         }
 

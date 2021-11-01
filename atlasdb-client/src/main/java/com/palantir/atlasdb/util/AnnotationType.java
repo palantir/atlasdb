@@ -24,7 +24,7 @@ public enum AnnotationType {
     },
     REPLACE {
         @Override
-        String join(String name, String oldName) {
+        String join(String name, String _oldName) {
             return name;
         }
     },

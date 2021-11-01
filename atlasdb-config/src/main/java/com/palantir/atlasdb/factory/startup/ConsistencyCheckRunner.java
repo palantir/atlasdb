@@ -87,7 +87,7 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
     }
 
     @Override
-    public void cleanup(TransactionManager resource, Throwable initThrowable) {
+    public void cleanup(TransactionManager _resource, Throwable initThrowable) {
         // Propagate errors, but there's no need to do cleanup as each task is responsible for that,
         // and this class assumes the tasks are independent.
         if (!(initThrowable instanceof NotInitializedException)) {

@@ -43,7 +43,7 @@ public class FilteredTaggedMetricSetTest {
         Timer timer = taggedMetricRegistry.timer(METRIC_NAME_1);
 
         FilteredTaggedMetricSet filteredTaggedMetricSet =
-                new FilteredTaggedMetricSet(taggedMetricRegistry, $ -> false, Refreshable.only(false));
+                new FilteredTaggedMetricSet(taggedMetricRegistry, _$ -> false, Refreshable.only(false));
         assertThat(filteredTaggedMetricSet.getMetrics())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(METRIC_NAME_1, timer));
     }

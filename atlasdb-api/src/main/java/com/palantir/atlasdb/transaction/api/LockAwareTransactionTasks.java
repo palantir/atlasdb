@@ -28,7 +28,7 @@ public final class LockAwareTransactionTasks {
             final TransactionTask<T, E> task) {
         return new LockAwareTransactionTask<T, E>() {
             @Override
-            public T execute(Transaction tx, Iterable<HeldLocksToken> heldLocks) throws E {
+            public T execute(Transaction tx, Iterable<HeldLocksToken> _heldLocks) throws E {
                 return task.execute(tx);
             }
 

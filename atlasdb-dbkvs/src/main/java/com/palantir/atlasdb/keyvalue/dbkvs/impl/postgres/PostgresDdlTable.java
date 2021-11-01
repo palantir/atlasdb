@@ -65,7 +65,7 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
-    public void create(byte[] tableMetadata) {
+    public void create(byte[] _tableMetadata) {
         if (conns.get()
                 .selectExistsUnregisteredQuery(
                         "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
@@ -139,7 +139,7 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
-    public void compactInternally(boolean unused) {
+    public void compactInternally(boolean _value) {
         if (compactionSemaphore.tryAcquire()) {
             try {
                 if (shouldRunCompaction()) {

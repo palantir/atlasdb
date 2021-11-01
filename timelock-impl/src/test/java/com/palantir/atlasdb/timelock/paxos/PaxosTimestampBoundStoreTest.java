@@ -142,7 +142,7 @@ public class PaxosTimestampBoundStoreTest {
                     AutobatchingPaxosAcceptorNetworkClientFactory.create(
                             batchPaxosAcceptors,
                             KeyedStream.of(batchPaxosAcceptors.stream())
-                                    .map($ -> new CheckedRejectionExecutorService(executor))
+                                    .map(_$ -> new CheckedRejectionExecutorService(executor))
                                     .collectToMap(),
                             QUORUM_SIZE);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
@@ -168,7 +168,7 @@ public class PaxosTimestampBoundStoreTest {
             acceptorClient = SingleLeaderAcceptorNetworkClient.createLegacy(
                     acceptors,
                     QUORUM_SIZE,
-                    Maps.toMap(acceptors, $ -> executor),
+                    Maps.toMap(acceptors, _$ -> executor),
                     PaxosConstants.CANCEL_REMAINING_CALLS);
 
             learnerClientsByNode = learners.stream()
@@ -178,7 +178,7 @@ public class PaxosTimestampBoundStoreTest {
                                     .filter(otherLearners -> otherLearners != learner)
                                     .collect(toList()),
                             QUORUM_SIZE,
-                            Maps.toMap(learners, $ -> executor),
+                            Maps.toMap(learners, _$ -> executor),
                             PaxosConstants.CANCEL_REMAINING_CALLS))
                     .collect(toList());
         }

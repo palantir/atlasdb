@@ -254,7 +254,7 @@ public class AtlasDbConfigTest {
         assertThat(kvsConfig.namespace())
                 .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
                 .isNotPresent();
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+        ImmutableAtlasDbConfig.builder()
                 .namespace("clive")
                 .keyValueService(kvsConfig)
                 .build();
@@ -283,7 +283,7 @@ public class AtlasDbConfigTest {
         assertThat(kvsConfig.namespace())
                 .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
                 .isNotPresent();
-        ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+        ImmutableAtlasDbConfig.builder()
                 .keyValueService(kvsConfig)
                 .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
                 .build();

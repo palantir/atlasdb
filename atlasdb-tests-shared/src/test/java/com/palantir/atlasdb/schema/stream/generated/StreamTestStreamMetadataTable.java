@@ -182,10 +182,10 @@ public final class StreamTestStreamMetadataTable implements
 
         public static final Hydrator<StreamTestStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<StreamTestStreamMetadataRow>() {
             @Override
-            public StreamTestStreamMetadataRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+            public StreamTestStreamMetadataRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long id = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 return new StreamTestStreamMetadataRow(id);
             }
         };
@@ -608,15 +608,15 @@ public final class StreamTestStreamMetadataTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

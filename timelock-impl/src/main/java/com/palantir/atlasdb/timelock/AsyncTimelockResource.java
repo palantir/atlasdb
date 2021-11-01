@@ -152,7 +152,7 @@ public class AsyncTimelockResource {
                         timelock.lock(request),
                         result -> result.accept(LockResponseV2.Visitor.of(
                                 success -> LockResponse.successful(success.getToken()),
-                                unsuccessful -> LockResponse.timedOut())),
+                                _unsuccessful -> LockResponse.timedOut())),
                         MoreExecutors.directExecutor()),
                 response);
     }

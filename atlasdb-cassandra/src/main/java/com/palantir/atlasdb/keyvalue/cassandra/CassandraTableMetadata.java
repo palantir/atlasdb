@@ -80,7 +80,7 @@ public class CassandraTableMetadata {
                                     entry.getKey().getRowName()),
                             Map.Entry::getValue,
                             // take the lexicographically latest, which will be the new style entry, if it exists
-                            (fst, snd) -> snd));
+                            (_fst, snd) -> snd));
         }
 
         for (TableReference tableRef : allTableRefs) {
@@ -110,7 +110,7 @@ public class CassandraTableMetadata {
                     .map(CassandraKeyValueServices::tableReferenceFromBytes)
                     .filter(candidate -> nonNullMatchingIgnoreCase(candidate, tableRef))
                     .collect(Collectors.toMap(
-                            CassandraKeyValueServices::getOldMetadataCell, ignore -> new TimestampRangeDelete.Builder()
+                            CassandraKeyValueServices::getOldMetadataCell, _ignore -> new TimestampRangeDelete.Builder()
                                     .timestamp(Long.MAX_VALUE)
                                     .endInclusive(false) // true won't work, since we are deleting at Long.MAX_VALUE.
                                     .deleteSentinels(true)
@@ -120,7 +120,7 @@ public class CassandraTableMetadata {
                             clientPool,
                             wrappingQueryRunner,
                             CassandraKeyValueServiceImpl.DELETE_CONSISTENCY,
-                            no -> System.currentTimeMillis())
+                            _no -> System.currentTimeMillis())
                     .deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellsToDelete);
         } catch (AtlasDbDependencyException e) {
             log.info(

@@ -70,7 +70,6 @@ import javax.lang.model.element.Modifier;
 
 public class TableClassRendererV2 {
     private final String packageName;
-    private final Namespace namespace;
 
     private final TableMetadata tableMetadata;
     private final String rawTableName;
@@ -91,7 +90,7 @@ public class TableClassRendererV2 {
     public TableClassRendererV2(String packageName, Namespace namespace, String rawTableName, TableDefinition table) {
         Preconditions.checkArgument(Schemas.isTableNameValid(rawTableName), "Invalid table name %s", rawTableName);
         this.packageName = packageName;
-        this.namespace = namespace;
+
         this.rawTableName = rawTableName;
         this.tableName = Renderers.getClassTableName(rawTableName, table);
         this.tableMetadata = table.toTableMetadata();

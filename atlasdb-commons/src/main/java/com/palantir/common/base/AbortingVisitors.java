@@ -81,10 +81,10 @@ public final class AbortingVisitors {
     }
 
     public static <T> AbortingVisitor<T, RuntimeException> alwaysFalse() {
-        return item -> false;
+        return _item -> false;
     }
 
     public static <T> AbortingVisitor<T, RuntimeException> alwaysTrue() {
-        return item -> true;
+        return _item -> true;
     }
 }

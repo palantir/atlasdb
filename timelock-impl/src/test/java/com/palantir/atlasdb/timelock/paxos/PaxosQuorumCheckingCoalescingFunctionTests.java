@@ -102,7 +102,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
     private PaxosQuorumCheckingCoalescingFunction<Long, PaxosLong, TestFunction> paxosQuorumCheckerFor(
             TestFunction... nodes) {
         Map<TestFunction, CheckedRejectionExecutorService> executors =
-                Maps.asMap(ImmutableSet.copyOf(nodes), $ -> new CheckedRejectionExecutorService(executorService));
+                Maps.asMap(ImmutableSet.copyOf(nodes), _$ -> new CheckedRejectionExecutorService(executorService));
         return new PaxosQuorumCheckingCoalescingFunction<>(ImmutableList.copyOf(nodes), executors, QUORUM_SIZE);
     }
 

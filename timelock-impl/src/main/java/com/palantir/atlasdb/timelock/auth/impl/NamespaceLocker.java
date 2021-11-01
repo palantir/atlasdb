@@ -22,8 +22,8 @@ import com.palantir.lock.TimelockNamespace;
 import java.util.Map;
 
 interface NamespaceLocker {
-    NamespaceLocker ALL_LOCKED = ignored -> true;
-    NamespaceLocker NONE_LOCKED = ignored -> false;
+    NamespaceLocker ALL_LOCKED = _ignored -> true;
+    NamespaceLocker NONE_LOCKED = _ignored -> false;
 
     boolean isLocked(TimelockNamespace namespace);
 

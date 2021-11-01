@@ -328,7 +328,7 @@ public class KeyValueServiceMigratorsTest {
     public void atomicTablesDelegatedToSourceAreNotDropped() {
         KeyValueService toTableSplittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(new InMemoryKeyValueService(false), fromKvs),
-                Maps.toMap(AtlasDbConstants.HIDDEN_TABLES, ignore -> fromKvs));
+                Maps.toMap(AtlasDbConstants.HIDDEN_TABLES, _ignore -> fromKvs));
 
         AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs, toTimeLock);
         ImmutableMigratorSpec spec = ImmutableMigratorSpec.builder()

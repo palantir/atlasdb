@@ -54,7 +54,7 @@ public final class CompactTableFactory {
                 Multimap<
                                 CompactMetadataTable.CompactMetadataRow,
                                 ? extends CompactMetadataTable.CompactMetadataNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

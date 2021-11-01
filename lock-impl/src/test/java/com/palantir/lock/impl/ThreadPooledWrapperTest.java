@@ -53,7 +53,7 @@ public class ThreadPooledWrapperTest {
     public void emptyPoolDoesNotExecuteMethod() {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         Semaphore sharedThreadPool = new Semaphore(0);
-        List<Future<Long>> futures = getFuturesForNewClient(1, executorService, 0, sharedThreadPool, w -> {
+        List<Future<Long>> futures = getFuturesForNewClient(1, executorService, 0, sharedThreadPool, _w -> {
             fail("Wasn't expecting to execute function");
             return null;
         });
@@ -81,7 +81,7 @@ public class ThreadPooledWrapperTest {
             throws InterruptedException, ExecutionException {
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         List<Future<Long>> futures =
-                getFuturesForNewClient(numThreads, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
+                getFuturesForNewClient(numThreads, executorService, localThreadPoolSize, sharedThreadPool, _w -> 1L);
 
         for (Future<Long> future : futures) {
             assertThat(future.get()).isEqualTo(1L);
@@ -116,9 +116,9 @@ public class ThreadPooledWrapperTest {
             throws InterruptedException, ExecutionException {
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         List<Future<Long>> futuresForClient1 =
-                getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 1L);
+                getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, _w -> 1L);
         List<Future<Long>> futuresForClient2 =
-                getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, w -> 2L);
+                getFuturesForNewClient(1, executorService, localThreadPoolSize, sharedThreadPool, _w -> 2L);
 
         for (Future<Long> future : futuresForClient1) {
             assertThat(future.get()).isEqualTo(1L);

@@ -138,7 +138,7 @@ public class SinglePingableLeaderTest {
     }
 
     private void pingMultipleTimes(LeaderPinger pinger, int pingFrequency) {
-        IntStream.range(0, pingFrequency).forEach(idx -> pinger.pingLeaderWithUuid(REMOTE_UUID));
+        IntStream.range(0, pingFrequency).forEach(_idx -> pinger.pingLeaderWithUuid(REMOTE_UUID));
     }
 
     private LeaderPinger getDefaultLeaderPinger() {

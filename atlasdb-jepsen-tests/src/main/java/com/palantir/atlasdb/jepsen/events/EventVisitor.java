@@ -16,19 +16,19 @@
 package com.palantir.atlasdb.jepsen.events;
 
 public interface EventVisitor<T> {
-    default T visit(InfoEvent event) {
+    default T visit(InfoEvent _event) {
         return null;
     }
 
-    default T visit(InvokeEvent event) {
+    default T visit(InvokeEvent _event) {
         return null;
     }
 
-    default T visit(OkEvent event) {
+    default T visit(OkEvent _event) {
         return null;
     }
 
-    default T visit(FailEvent event) {
+    default T visit(FailEvent _event) {
         return null;
     }
 }

@@ -75,7 +75,7 @@ public class KeyValueServiceCoordinationStoreTest {
 
     @Test
     public void canStoreAndRetrieveValues() {
-        CheckAndSetResult<ValueAndBound<String>> casResult = coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        CheckAndSetResult<ValueAndBound<String>> casResult = coordinationStore.transformAgreedValue(_unused -> VALUE_1);
         assertThat(casResult.successful()).isTrue();
         assertThat(Iterables.getOnlyElement(casResult.existingValues()).value()).contains(VALUE_1);
         assertThat(coordinationStore.getAgreedValue()).hasValueSatisfying(valueAndBound -> {
@@ -86,10 +86,10 @@ public class KeyValueServiceCoordinationStoreTest {
 
     @Test
     public void canApplyMultipleTransformations() {
-        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        coordinationStore.transformAgreedValue(_unused -> VALUE_1);
         ValueAndBound<String> firstValueAndBound =
                 coordinationStore.getAgreedValue().get();
-        coordinationStore.transformAgreedValue(unused -> VALUE_2);
+        coordinationStore.transformAgreedValue(_unused -> VALUE_2);
         ValueAndBound<String> secondValueAndBound =
                 coordinationStore.getAgreedValue().get();
 
@@ -100,7 +100,7 @@ public class KeyValueServiceCoordinationStoreTest {
 
     @Test
     public void valuePreservingTransformationsDoNotAdvanceBoundIfStillValid() {
-        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        coordinationStore.transformAgreedValue(_unused -> VALUE_1);
         ValueAndBound<String> firstValueAndBound =
                 coordinationStore.getAgreedValue().get();
         coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
@@ -114,7 +114,7 @@ public class KeyValueServiceCoordinationStoreTest {
 
     @Test
     public void valuePreservingTransformationsAdvanceBoundIfNeeded() {
-        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        coordinationStore.transformAgreedValue(_unused -> VALUE_1);
         ValueAndBound<String> firstValueAndBound =
                 coordinationStore.getAgreedValue().get();
 
@@ -130,7 +130,7 @@ public class KeyValueServiceCoordinationStoreTest {
 
     @Test
     public void valuePreservingTransformationsDoNotWriteTheSameValueAgain() {
-        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        coordinationStore.transformAgreedValue(_unused -> VALUE_1);
         SequenceAndBound firstSequenceAndBound =
                 coordinationStore.getCoordinationValue().get();
 
@@ -195,8 +195,8 @@ public class KeyValueServiceCoordinationStoreTest {
                 String::equals,
                 String.class,
                 false);
-        coordinationStore.transformAgreedValue(unused -> VALUE_1);
-        otherCoordinationStore.transformAgreedValue(unused -> VALUE_2);
+        coordinationStore.transformAgreedValue(_unused -> VALUE_1);
+        otherCoordinationStore.transformAgreedValue(_unused -> VALUE_2);
         assertThat(coordinationStore.getAgreedValue().get().value()).contains(VALUE_1);
         assertThat(otherCoordinationStore.getAgreedValue().get().value()).contains(VALUE_2);
     }

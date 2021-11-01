@@ -182,10 +182,10 @@ public final class SchemaApiTestTable implements
 
         public static final Hydrator<SchemaApiTestRow> BYTES_HYDRATOR = new Hydrator<SchemaApiTestRow>() {
             @Override
-            public SchemaApiTestRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                String component1 = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
+            public SchemaApiTestRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                String component1 = PtBytes.toString(_input, _index, _input.length-_index);
+                _index += 0;
                 return new SchemaApiTestRow(component1);
             }
         };
@@ -774,15 +774,15 @@ public final class SchemaApiTestTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

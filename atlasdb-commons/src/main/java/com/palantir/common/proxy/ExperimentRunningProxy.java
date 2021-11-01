@@ -85,7 +85,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         boolean runExperiment = useExperimental();
         Object target = runExperiment ? refreshingExperimentalServiceSupplier.get() : fallbackService;
         try {

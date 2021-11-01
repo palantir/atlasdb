@@ -82,7 +82,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         CyclicBarrier barrier = new CyclicBarrier(threadCount);
         ForkJoinPool threadPool = new ForkJoinPool(threadCount);
 
-        threadPool.execute(() -> IntStream.range(0, threadCount).parallel().forEach(i -> {
+        threadPool.execute(() -> IntStream.range(0, threadCount).parallel().forEach(_i -> {
             try {
                 barrier.await();
                 slowTimeoutKvs.createTable(GOOD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);

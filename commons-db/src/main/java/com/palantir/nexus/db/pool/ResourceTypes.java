@@ -89,7 +89,8 @@ public final class ResourceTypes {
                 public Connection closeWrapper(final Connection delegate, final ResourceOnClose<SQLException> onClose) {
                     InvocationHandler ih = new AbstractInvocationHandler() {
                         @Override
-                        protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+                        protected Object handleInvocation(Object _proxy, Method method, Object[] args)
+                                throws Throwable {
                             if (args.length == 0 && method.getName().equals("close")) {
                                 onClose.close();
                                 return null;

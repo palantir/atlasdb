@@ -267,7 +267,7 @@ public class SweepableCells extends SweepQueueTable {
             if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
                 lastSweptTs = startTs;
                 writesByStartTs.get(startTs).forEach(write -> cellsToDelete
-                        .computeIfAbsent(write.tableRef(), ignore -> HashMultimap.create())
+                        .computeIfAbsent(write.tableRef(), _ignore -> HashMultimap.create())
                         .put(write.cell(), write.timestamp()));
             } else if (commitTs < sweepTs) {
                 lastSweptTs = startTs;

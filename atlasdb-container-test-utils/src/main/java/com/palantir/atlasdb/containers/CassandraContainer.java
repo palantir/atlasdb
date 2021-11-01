@@ -97,7 +97,7 @@ public class CassandraContainer extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady(DockerComposeRule rule) {
+    public SuccessOrFailure isReady(DockerComposeRule _rule) {
         try (CassandraKeyValueService cassandraKeyValueService = CassandraKeyValueServiceImpl.createForTesting(
                 getConfigWithProxy(Containers.getSocksProxy(name).address()))) {
             return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);

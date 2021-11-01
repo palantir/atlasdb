@@ -53,14 +53,14 @@ public final class IndexTestTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putData(Multimap<DataTable.DataRow, ? extends DataTable.DataNamedColumnValue<?>> newRows) {
+        public void putData(Multimap<DataTable.DataRow, ? extends DataTable.DataNamedColumnValue<?>> _newRows) {
             // do nothing
         }
 
         @Override
         public void putTwoColumns(
                 Multimap<TwoColumnsTable.TwoColumnsRow, ? extends TwoColumnsTable.TwoColumnsNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

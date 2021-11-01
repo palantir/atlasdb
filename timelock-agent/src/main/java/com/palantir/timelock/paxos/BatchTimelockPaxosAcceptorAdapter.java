@@ -59,7 +59,7 @@ public class BatchTimelockPaxosAcceptorAdapter implements PaxosAcceptor {
     }
 
     @Override
-    public BooleanPaxosResponse accept(long seq, PaxosProposal proposal) {
+    public BooleanPaxosResponse accept(long _seq, PaxosProposal proposal) {
         Set<WithSeq<BooleanPaxosResponse>> result = rpcClient
                 .accept(paxosUseCase, ImmutableSetMultimap.of(client, proposal))
                 .get(client);

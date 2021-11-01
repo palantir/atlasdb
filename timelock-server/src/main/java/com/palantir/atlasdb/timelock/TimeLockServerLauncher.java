@@ -123,21 +123,21 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         });
         environment.lifecycle().addLifeCycleListener(new LifeCycle.Listener() {
             @Override
-            public void lifeCycleStarting(LifeCycle event) {}
+            public void lifeCycleStarting(LifeCycle _event) {}
 
             @Override
-            public void lifeCycleStarted(LifeCycle event) {}
+            public void lifeCycleStarted(LifeCycle _event) {}
 
             @Override
-            public void lifeCycleFailure(LifeCycle event, Throwable cause) {
+            public void lifeCycleFailure(LifeCycle _event, Throwable cause) {
                 shutdownFuture.setException(cause);
             }
 
             @Override
-            public void lifeCycleStopping(LifeCycle event) {}
+            public void lifeCycleStopping(LifeCycle _event) {}
 
             @Override
-            public void lifeCycleStopped(LifeCycle event) {
+            public void lifeCycleStopped(LifeCycle _event) {
                 timeLockAgent.shutdown();
                 shutdownFuture.set(null);
             }
@@ -155,7 +155,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
     @Provider
     private static final class EmptyOptionalTo204ExceptionMapper implements ExceptionMapper<EmptyOptionalException> {
         @Override
-        public Response toResponse(EmptyOptionalException exception) {
+        public Response toResponse(EmptyOptionalException _exception) {
             return Response.noContent().build();
         }
     }

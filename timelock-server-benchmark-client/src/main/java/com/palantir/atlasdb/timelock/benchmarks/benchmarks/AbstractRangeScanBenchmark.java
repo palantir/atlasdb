@@ -124,7 +124,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
         return ImmutableMap.of("numRows", numRows, "dataSize", dataSize);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] _args) {
         Metadata metadata = new Metadata("foo");
         byte[] data = serialize(metadata);
         deserialize(data);

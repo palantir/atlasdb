@@ -48,7 +48,7 @@ public class LoggingLockEvents implements LockEvents {
     }
 
     @Override
-    public void registerRequest(RequestInfo request) {
+    public void registerRequest(RequestInfo _request) {
         // do nothing
     }
 
@@ -94,7 +94,7 @@ public class LoggingLockEvents implements LockEvents {
     }
 
     @Override
-    public void explicitlyUnlocked(UUID requestId) {
+    public void explicitlyUnlocked(UUID _requestId) {
         // do nothing
     }
 

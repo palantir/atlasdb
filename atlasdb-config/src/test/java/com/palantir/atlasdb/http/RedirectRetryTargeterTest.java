@@ -47,7 +47,7 @@ public class RedirectRetryTargeterTest {
         RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_2, ImmutableList.of(URL_1, URL_2, URL_3));
         Map<URL, List<URL>> results = IntStream.range(0, 10000)
                 .boxed()
-                .map($ -> targeter.redirectRequest(Optional.empty()).get())
+                .map(_$ -> targeter.redirectRequest(Optional.empty()).get())
                 .collect(Collectors.groupingBy(Function.identity()));
         assertThat(results.keySet()).containsExactlyInAnyOrder(URL_1, URL_3);
     }
@@ -57,7 +57,7 @@ public class RedirectRetryTargeterTest {
         RedirectRetryTargeter targeter = RedirectRetryTargeter.create(URL_2, ImmutableList.of(URL_1, URL_2, URL_3));
         Map<URL, List<URL>> results = IntStream.range(0, 10000)
                 .boxed()
-                .map($ -> targeter.redirectRequest(Optional.of(hostAndPort(URL_1)))
+                .map(_$ -> targeter.redirectRequest(Optional.of(hostAndPort(URL_1)))
                         .get())
                 .collect(Collectors.groupingBy(Function.identity()));
         assertThat(results.keySet()).containsOnly(URL_1);

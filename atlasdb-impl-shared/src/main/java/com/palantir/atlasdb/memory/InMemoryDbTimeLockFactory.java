@@ -46,23 +46,23 @@ public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
 
     @Override
     public KeyValueService createRawKeyValueService(
-            MetricsManager metricManager,
-            KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            LeaderConfig leaderConfig) {
+            MetricsManager _metricManager,
+            KeyValueServiceConfig _config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> _runtimeConfig,
+            LeaderConfig _leaderConfig) {
         return new InMemoryKeyValueService(true);
     }
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync) {
+            KeyValueService _rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean _initializeAsync) {
         return services.computeIfAbsent(
                 dbTimestampCreationSetting.timestampSeries(), _series -> new InMemoryTimestampService());
     }
 
     @Override
     public TimestampSeriesProvider createTimestampSeriesProvider(
-            KeyValueService rawKvs, TableReference tableReference, boolean initializeAsync) {
+            KeyValueService _rawKvs, TableReference _tableReference, boolean _initializeAsync) {
         return services::keySet;
     }
 }

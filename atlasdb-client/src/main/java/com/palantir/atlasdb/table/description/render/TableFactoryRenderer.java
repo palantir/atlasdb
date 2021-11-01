@@ -199,7 +199,7 @@ public final class TableFactoryRenderer {
 
         results.addAll(definitions.entrySet().stream()
                 .filter(entry -> entry.getValue().hasV2TableEnabled())
-                .map(entry -> getV2TableMethod(entry.getKey(), entry.getValue()))
+                .map(entry -> getV2TableMethod(entry.getKey()))
                 .collect(Collectors.toList()));
         return results;
     }
@@ -240,7 +240,7 @@ public final class TableFactoryRenderer {
         return tableGetterMethodBuilder.build();
     }
 
-    private MethodSpec getV2TableMethod(String name, TableDefinition tableDefinition) {
+    private MethodSpec getV2TableMethod(String name) {
         String tableName = getV2TableName(name);
         TypeName tableType = ClassName.get(packageName, tableName);
         MethodSpec.Builder tableGetterMethodBuilder = MethodSpec.methodBuilder("get" + tableName)

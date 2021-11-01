@@ -37,9 +37,9 @@ public class SweeperModule {
             SerializableTransactionManager txm,
             @Named("kvs") KeyValueService kvs,
             TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
+            SweepStrategyManager _sweepStrategyManager,
             Follower follower,
-            ServicesConfig config) {
+            ServicesConfig _config) {
         return new SweepTaskRunner(
                 kvs,
                 txm::getUnreadableTimestamp,

@@ -82,7 +82,7 @@ public final class TargetedSweepTableFactory {
         @Override
         public void putSweepIdToName(
                 Multimap<SweepIdToNameTable.SweepIdToNameRow, ? extends SweepIdToNameTable.SweepIdToNameColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -91,7 +91,7 @@ public final class TargetedSweepTableFactory {
                 Multimap<
                                 SweepNameToIdTable.SweepNameToIdRow,
                                 ? extends SweepNameToIdTable.SweepNameToIdNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -100,14 +100,14 @@ public final class TargetedSweepTableFactory {
                 Multimap<
                                 SweepShardProgressTable.SweepShardProgressRow,
                                 ? extends SweepShardProgressTable.SweepShardProgressNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
         @Override
         public void putSweepableCells(
                 Multimap<SweepableCellsTable.SweepableCellsRow, ? extends SweepableCellsTable.SweepableCellsColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -116,14 +116,14 @@ public final class TargetedSweepTableFactory {
                 Multimap<
                                 SweepableTimestampsTable.SweepableTimestampsRow,
                                 ? extends SweepableTimestampsTable.SweepableTimestampsColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
         @Override
         public void putTableClears(
                 Multimap<TableClearsTable.TableClearsRow, ? extends TableClearsTable.TableClearsNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

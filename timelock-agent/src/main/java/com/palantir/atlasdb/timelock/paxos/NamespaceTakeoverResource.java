@@ -49,7 +49,7 @@ public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeo
     }
 
     @Override
-    public boolean takeover(AuthHeader authHeader, String namespace) {
+    public boolean takeover(AuthHeader _authHeader, String namespace) {
         try {
             return takeoverRetryer.call(() -> nonRetriedTakeover(namespace));
         } catch (ExecutionException e) {
@@ -62,7 +62,7 @@ public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeo
     }
 
     @Override
-    public Set<String> takeoverNamespaces(AuthHeader authHeader, Set<String> namespaces) {
+    public Set<String> takeoverNamespaces(AuthHeader _authHeader, Set<String> namespaces) {
         return namespaces.stream()
                 .filter(namespace -> leadershipComponents.requestHostileTakeover(Client.of(namespace)))
                 .collect(Collectors.toSet());

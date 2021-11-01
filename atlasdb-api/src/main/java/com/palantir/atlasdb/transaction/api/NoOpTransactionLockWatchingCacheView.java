@@ -31,17 +31,18 @@ public final class NoOpTransactionLockWatchingCacheView implements TransactionLo
     }
 
     @Override
-    public Map<Cell, byte[]> readCached(TableReference tableRef, Set<Cell> cells) {
+    public Map<Cell, byte[]> readCached(TableReference _tableRef, Set<Cell> _cells) {
         return ImmutableMap.of();
     }
 
     @Override
-    public void tryCacheNewValuesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchStateUpdate lwState) {
+    public void tryCacheNewValuesRead(
+            TableReference _tableRef, Map<Cell, byte[]> _writes, LockWatchStateUpdate _lwState) {
         // noop
     }
 
     @Override
-    public void tryCacheWrittenValues(TableReference tableRef, Map<Cell, byte[]> writes, long lockTs) {
+    public void tryCacheWrittenValues(TableReference _tableRef, Map<Cell, byte[]> _writes, long _lockTs) {
         // noop
     }
 }

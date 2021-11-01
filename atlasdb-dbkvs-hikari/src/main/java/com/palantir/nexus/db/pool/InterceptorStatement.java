@@ -43,7 +43,7 @@ public final class InterceptorStatement<T extends Statement> extends AbstractInv
     }
 
     @Override
-    public Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         try {
             try {
                 return method.invoke(delegate, args);

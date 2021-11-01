@@ -36,7 +36,7 @@ public class TableCellValDeserializer extends StdDeserializer<TableCellVal> {
     }
 
     @Override
-    public TableCellVal deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public TableCellVal deserialize(JsonParser jp, DeserializationContext _ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
         String tableName = node.get("table").textValue();
         TableMetadata metadata = metadataCache.getMetadata(tableName);

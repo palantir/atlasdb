@@ -77,12 +77,12 @@ class TaskRunner {
                 future,
                 new FutureCallback<V>() {
                     @Override
-                    public void onSuccess(V result) {
+                    public void onSuccess(V _result) {
                         detachedSpan.complete();
                     }
 
                     @Override
-                    public void onFailure(Throwable throwable) {
+                    public void onFailure(Throwable _throwable) {
                         detachedSpan.complete();
                     }
                 },

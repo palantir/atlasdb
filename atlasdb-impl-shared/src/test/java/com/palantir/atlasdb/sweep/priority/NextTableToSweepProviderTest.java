@@ -251,7 +251,7 @@ public class NextTableToSweepProviderTest {
     }
 
     private void whenGettingNextTableToSweepMultipleTimes(int times) {
-        IntStream.range(0, times).forEach(unused -> whenGettingNextTableToSweep());
+        IntStream.range(0, times).forEach(_unused -> whenGettingNextTableToSweep());
     }
 
     private SweepPriorityOverrideConfig createOverrideConfig() {

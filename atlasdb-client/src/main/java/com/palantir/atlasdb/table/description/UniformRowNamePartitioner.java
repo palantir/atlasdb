@@ -111,7 +111,7 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
     }
 
     @Override
-    public List<RowNamePartitioner> compound(RowNamePartitioner next) {
+    public List<RowNamePartitioner> compound(RowNamePartitioner _next) {
         return ImmutableList.<RowNamePartitioner>of(this);
     }
 

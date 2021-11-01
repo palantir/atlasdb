@@ -35,12 +35,12 @@ public class UnmodifiableTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+    public void put(TableReference _tableRef, Map<Cell, byte[]> _values) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void delete(TableReference tableRef, Set<Cell> keys) {
+    public void delete(TableReference _tableRef, Set<Cell> _keys) {
         throw new UnsupportedOperationException();
     }
 

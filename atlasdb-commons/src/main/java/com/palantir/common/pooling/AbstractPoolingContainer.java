@@ -76,7 +76,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
      * <p>
      * This should not throw because it is called in finally blocks.
      */
-    protected void cleanupForDiscard(T discardedResource) {
+    protected void cleanupForDiscard(T _discardedResource) {
         // nothing to do here
     }
 
@@ -89,7 +89,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
      * <p>
      * This should not throw because it is called in finally blocks.
      */
-    protected void cleanupForReturnToPool(T resourceToReturn) {
+    protected void cleanupForReturnToPool(T _resourceToReturn) {
         // nothing here
     }
 

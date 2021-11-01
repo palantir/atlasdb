@@ -322,7 +322,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
-            int cellBatchHint,
+            int _cellBatchHint,
             long timestamp) {
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
         Iterator<RowColumnRangeIterator> rowColumnRanges = Iterators.transform(
@@ -592,7 +592,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void compactInternally(TableReference tableRef) {
+    public void compactInternally(TableReference _tableRef) {
         // nothing to do
     }
 

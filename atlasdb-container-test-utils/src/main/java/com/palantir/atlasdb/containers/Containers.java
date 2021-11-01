@@ -139,7 +139,7 @@ public class Containers extends ExternalResource {
 
         Map<String, String> environment = containersToStart.stream()
                 .flatMap(container -> container.getEnvironment().entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (fst, snd) -> snd));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (_fst, snd) -> snd));
 
         DockerMachine machine =
                 DockerMachine.localMachine().withEnvironment(environment).build();

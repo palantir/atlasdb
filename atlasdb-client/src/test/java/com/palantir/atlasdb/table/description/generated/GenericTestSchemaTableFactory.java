@@ -60,7 +60,7 @@ public final class GenericTestSchemaTableFactory {
                 Multimap<
                                 GenericRangeScanTestTable.GenericRangeScanTestRow,
                                 ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -69,7 +69,7 @@ public final class GenericTestSchemaTableFactory {
                 Multimap<
                                 RangeScanTestTable.RangeScanTestRow,
                                 ? extends RangeScanTestTable.RangeScanTestNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

@@ -123,7 +123,7 @@ public class ProfileSchema implements AtlasSchema {
         return PROFILE_SCHEMA;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] _args) throws Exception {
         PROFILE_SCHEMA.renderTables(new File("src/main/java"));
     }
 

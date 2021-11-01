@@ -38,7 +38,7 @@ public final class TimeLockPaxosHistoryProviderResource implements UndertowTimeL
 
     @Override
     public ListenableFuture<PaxosHistoryOnRemote> getPaxosHistory(
-            AuthHeader authHeader, List<HistoryQuery> historyQueries) {
+            AuthHeader _authHeader, List<HistoryQuery> historyQueries) {
         return Futures.immediateFuture(PaxosHistoryOnRemote.of(
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(localHistoryLoader, historyQueries)));
     }

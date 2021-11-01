@@ -182,10 +182,10 @@ public final class SnapshotsStreamMetadataTable implements
 
         public static final Hydrator<SnapshotsStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<SnapshotsStreamMetadataRow>() {
             @Override
-            public SnapshotsStreamMetadataRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+            public SnapshotsStreamMetadataRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long id = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
                 return new SnapshotsStreamMetadataRow(id);
             }
         };
@@ -608,15 +608,15 @@ public final class SnapshotsStreamMetadataTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

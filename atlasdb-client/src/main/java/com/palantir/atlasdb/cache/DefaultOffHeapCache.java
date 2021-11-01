@@ -113,7 +113,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
     public void clear() {
         CacheDescriptor proposedCacheDescriptor = createNamespaceAndConstructCacheProposal(persistentStore);
 
-        CacheDescriptor previous = cacheDescriptor.getAndUpdate(prev -> proposedCacheDescriptor);
+        CacheDescriptor previous = cacheDescriptor.getAndUpdate(_prev -> proposedCacheDescriptor);
         if (previous != null) {
             persistentStore.dropStoreSpace(previous.handle());
         }
@@ -180,7 +180,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
             }
-            return KeyedStream.of(request.stream()).<Void>map(value -> null).collectToMap();
+            return KeyedStream.of(request.stream()).<Void>map(_value -> null).collectToMap();
         }
 
         private Map.Entry<ByteString, ByteString> serializeEntry(Map.Entry<K, V> entry) {

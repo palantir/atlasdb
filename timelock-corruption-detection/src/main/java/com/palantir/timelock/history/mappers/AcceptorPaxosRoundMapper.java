@@ -28,7 +28,7 @@ import org.jdbi.v3.core.statement.StatementContext;
 
 public class AcceptorPaxosRoundMapper implements RowMapper<Map.Entry<Long, PaxosAcceptorData>> {
     @Override
-    public Map.Entry<Long, PaxosAcceptorData> map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public Map.Entry<Long, PaxosAcceptorData> map(ResultSet rs, StatementContext _ctx) throws SQLException {
         PaxosAcceptorState value = PaxosAcceptorState.BYTES_HYDRATOR.hydrateFromBytes(rs.getBytes("val"));
         return Maps.immutableEntry(rs.getLong("seq"), mapPaxosAcceptorStateToSerializableData(value));
     }

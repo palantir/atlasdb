@@ -183,7 +183,7 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
 
     private void createTablesIgnoringException() {
         assertThatThrownBy(() -> kvs.createTables(TABLES.stream()
-                        .collect(Collectors.toMap(x -> x, no -> AtlasDbConstants.GENERIC_TABLE_METADATA))))
+                        .collect(Collectors.toMap(x -> x, _no -> AtlasDbConstants.GENERIC_TABLE_METADATA))))
                 .isInstanceOf(IllegalStateException.class);
     }
 

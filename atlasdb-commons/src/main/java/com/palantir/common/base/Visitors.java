@@ -28,7 +28,7 @@ public class Visitors {
      * Return a visitor that does nothing.
      */
     public static <T> Visitor<T> emptyVisitor() {
-        return ignored -> {
+        return _ignored -> {
             /*Does nothing*/
         };
     }

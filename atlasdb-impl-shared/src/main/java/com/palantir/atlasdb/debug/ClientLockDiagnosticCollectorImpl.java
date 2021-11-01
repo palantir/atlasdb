@@ -75,7 +75,7 @@ public class ClientLockDiagnosticCollectorImpl implements ClientLockDiagnosticCo
 
     private static BiFunction<Long, ClientLockDiagnosticDigest, ClientLockDiagnosticDigest> mutateDigest(
             UnaryOperator<ClientLockDiagnosticDigest> operator) {
-        return (unusedStartTimestamp, digest) -> operator.apply(getUsableDigest(digest));
+        return (_unusedStartTimestamp, digest) -> operator.apply(getUsableDigest(digest));
     }
 
     private static ClientLockDiagnosticDigest getUsableDigest(@Nullable ClientLockDiagnosticDigest maybeDigest) {

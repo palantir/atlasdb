@@ -70,7 +70,7 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws IllegalAccessException {
+    protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws IllegalAccessException {
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {

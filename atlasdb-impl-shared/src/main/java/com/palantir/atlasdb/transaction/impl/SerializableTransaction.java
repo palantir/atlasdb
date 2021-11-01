@@ -310,7 +310,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             return getWithLoader(
                             tableRef,
                             cells,
-                            (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
+                            (_tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
                     .get();
         } catch (InterruptedException | ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
@@ -379,19 +379,19 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private ConcurrentNavigableMap<Cell, byte[]> getReadsForTable(TableReference table) {
-        return readsByTable.computeIfAbsent(table, unused -> new ConcurrentSkipListMap<>());
+        return readsByTable.computeIfAbsent(table, _unused -> new ConcurrentSkipListMap<>());
     }
 
     private void setRangeEnd(TableReference table, RangeRequest range, byte[] maxRow) {
         Preconditions.checkNotNull(maxRow, "maxRow cannot be null");
         ConcurrentMap<RangeRequest, byte[]> rangeEnds =
-                rangeEndByTable.computeIfAbsent(table, unused -> new ConcurrentHashMap<>());
+                rangeEndByTable.computeIfAbsent(table, _unused -> new ConcurrentHashMap<>());
 
         if (maxRow.length == 0) {
             rangeEnds.put(range, maxRow);
         }
 
-        rangeEnds.compute(range, (unused, curVal) -> {
+        rangeEnds.compute(range, (_unused, curVal) -> {
             if (curVal == null) {
                 return maxRow;
             } else if (curVal.length == 0) {
@@ -405,15 +405,15 @@ public class SerializableTransaction extends SnapshotTransaction {
             TableReference table, byte[] unwrappedRow, BatchColumnRangeSelection columnRangeSelection, byte[] maxCol) {
         Preconditions.checkNotNull(maxCol, "maxCol cannot be null");
         ByteBuffer row = ByteBuffer.wrap(unwrappedRow);
-        columnRangeEndsByTable.computeIfAbsent(table, unused -> new ConcurrentHashMap<>());
+        columnRangeEndsByTable.computeIfAbsent(table, _unused -> new ConcurrentHashMap<>());
         ConcurrentMap<BatchColumnRangeSelection, byte[]> rangeEndsForRow =
-                columnRangeEndsByTable.get(table).computeIfAbsent(row, unused -> new ConcurrentHashMap<>());
+                columnRangeEndsByTable.get(table).computeIfAbsent(row, _unused -> new ConcurrentHashMap<>());
 
         if (maxCol.length == 0) {
             rangeEndsForRow.put(columnRangeSelection, maxCol);
         }
 
-        rangeEndsForRow.compute(columnRangeSelection, (range, curVal) -> {
+        rangeEndsForRow.compute(columnRangeSelection, (_range, curVal) -> {
             if (curVal == null) {
                 return maxCol;
             } else if (curVal.length == 0) {
@@ -443,7 +443,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             return;
         }
         getReadsForTable(table).putAll(transformGetsForTesting(result));
-        Set<Cell> cellsForTable = cellsRead.computeIfAbsent(table, unused -> ConcurrentHashMap.newKeySet());
+        Set<Cell> cellsForTable = cellsRead.computeIfAbsent(table, _unused -> ConcurrentHashMap.newKeySet());
         cellsForTable.addAll(searched);
     }
 
@@ -492,7 +492,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             reads.putAll(transformGetsForTesting(map));
         }
 
-        Set<RowRead> rowReads = rowsRead.computeIfAbsent(table, unused -> ConcurrentHashMap.newKeySet());
+        Set<RowRead> rowReads = rowsRead.computeIfAbsent(table, _unused -> ConcurrentHashMap.newKeySet());
         rowReads.add(new RowRead(rows, cols));
     }
 

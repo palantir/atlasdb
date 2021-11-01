@@ -63,7 +63,7 @@ public final class KeyValueServiceMigrators {
                         printer.info(level.toString() + ": " + message),
                 new TaskProgress() {
                     @Override
-                    public void beginTask(String message, int tasks) {
+                    public void beginTask(String message, int _tasks) {
                         printer.info(message);
                     }
 

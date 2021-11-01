@@ -167,7 +167,7 @@ public abstract class TransactionManagers {
 
     @Value.Default
     Consumer<Object> registrar() {
-        return resource -> {};
+        return _resource -> {};
     }
 
     @Value.Default
@@ -879,7 +879,7 @@ public abstract class TransactionManagers {
             return ConsistencyCheckRunner.create(ImmutableTimestampCorroborationConsistencyCheck.builder()
                     .conservativeBound(conservativeBoundSupplier)
                     .freshTimestampSource(
-                            unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
+                            _unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
                     .build());
         }
         return Callback.noOp();

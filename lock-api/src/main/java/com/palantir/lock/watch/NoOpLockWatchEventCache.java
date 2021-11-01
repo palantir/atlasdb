@@ -44,36 +44,36 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
+    public void processStartTransactionsUpdate(Set<Long> _startTimestamps, LockWatchStateUpdate update) {
         updateVersion(extractVersionFromUpdate(update));
     }
 
     @Override
     public void processGetCommitTimestampsUpdate(
-            Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {
+            Collection<TransactionUpdate> _transactionUpdates, LockWatchStateUpdate update) {
         updateVersion(extractVersionFromUpdate(update));
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long startTs) {
+    public CommitUpdate getCommitUpdate(long _startTs) {
         return CommitUpdate.invalidateAll();
     }
 
     @Override
     public TransactionsLockWatchUpdate getUpdateForTransactions(
-            Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
+            Set<Long> startTimestamps, Optional<LockWatchVersion> _version) {
         return ImmutableTransactionsLockWatchUpdate.builder()
                 .clearCache(true)
                 .startTsToSequence(startTimestamps.stream()
-                        .collect(Collectors.toMap(startTs -> startTs, $ -> currentVersion.orElse(FAKE_VERSION))))
+                        .collect(Collectors.toMap(startTs -> startTs, _$ -> currentVersion.orElse(FAKE_VERSION))))
                 .build();
     }
 
     @Override
-    public void removeTransactionStateFromCache(long startTimestamp) {}
+    public void removeTransactionStateFromCache(long _startTimestamp) {}
 
     @Override
-    public CommitUpdate getEventUpdate(long startTs) {
+    public CommitUpdate getEventUpdate(long _startTs) {
         return CommitUpdate.invalidateAll();
     }
 

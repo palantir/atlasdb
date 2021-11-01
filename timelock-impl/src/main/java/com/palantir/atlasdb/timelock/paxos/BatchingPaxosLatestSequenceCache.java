@@ -113,7 +113,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         // the *only* place in which we should create a map entry with a *new* map is when we're populating a new cache
         // everything else should be built on the previous entries or fail and reach this part.
         ConcurrentMap<Client, PaxosLong> newEntriesToCache =
-                cacheKeysToCaches.get(digest.newCacheKey(), $ -> new ConcurrentHashMap<>());
+                cacheKeysToCaches.get(digest.newCacheKey(), _$ -> new ConcurrentHashMap<>());
         processDigest(newEntriesToCache, digest);
         return getResponseMap(newEntriesToCache, requestedClients);
     }
@@ -141,7 +141,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         TimestampedAcceptorCacheKey newCacheKey = TimestampedAcceptorCacheKey.of(digest);
         // this shares the same map with "previous" cache keys under the current uptime of the remote
         ConcurrentMap<Client, PaxosLong> newCachedEntries =
-                cacheKeysToCaches.get(newCacheKey.cacheKey(), $ -> currentCachedEntries);
+                cacheKeysToCaches.get(newCacheKey.cacheKey(), _$ -> currentCachedEntries);
 
         // merge local version of the cache with whatever updates even if they are "old" in terms of sequence numbers
         // this ensures that for each client the paxos sequence numbers are always increasing

@@ -211,7 +211,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
     }
 
     @Override
-    public FullQuery getRangeQuery(RangeRequest range, long ts, int maxRows) {
+    public FullQuery getRangeQuery(RangeRequest range, long _ts, int maxRows) {
         List<String> bounds = new ArrayList<>(2);
         List<Object> args = new ArrayList<>(2);
         byte[] start = range.getStartInclusive();

@@ -48,7 +48,7 @@ public class LockAcquirer implements AutoCloseable {
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
         return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId))
                 .execute()
-                .map(ignored -> HeldLocks.create(lockLog, locks.get(), requestId, leaderClock, lockWatcher));
+                .map(_ignored -> HeldLocks.create(lockLog, locks.get(), requestId, leaderClock, lockWatcher));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {

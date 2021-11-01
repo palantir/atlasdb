@@ -26,7 +26,7 @@ final class TestingUtils {
     private TestingUtils() {}
 
     static <T> Set<String> extractMethods(Class<T> klass) {
-        return extractMethodsSatisfyingPredicate(klass, unused -> true);
+        return extractMethodsSatisfyingPredicate(klass, _unused -> true);
     }
 
     static <T> Set<String> extractMethodsSatisfyingPredicate(Class<T> klass, Predicate<Method> predicate) {

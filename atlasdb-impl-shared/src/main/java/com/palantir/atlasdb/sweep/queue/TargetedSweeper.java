@@ -297,7 +297,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() {
             return IntStream.range(0, queue.getNumShards())
-                    .map(ignore -> getShardAndIncrement())
+                    .map(_ignore -> getShardAndIncrement())
                     .mapToObj(shard -> TargetedSweeperLock.tryAcquire(shard, sweepStrategy, timeLock))
                     .filter(Optional::isPresent)
                     .map(Optional::get)

@@ -41,8 +41,8 @@ public class CachingPartitionAllocator<T> implements NumericPartitionAllocator<T
                 .expireAfterAccess(timeoutAfterAccess)
                 .executor(executor)
                 .ticker(ticker)
-                .removalListener((T key, Integer value, RemovalCause cause) -> modulusGenerator.unmarkResidue(value))
-                .build(unused -> modulusGenerator.getAndMarkResidue());
+                .removalListener((T _key, Integer value, RemovalCause _cause) -> modulusGenerator.unmarkResidue(value))
+                .build(_unused -> modulusGenerator.getAndMarkResidue());
     }
 
     public static <T> CachingPartitionAllocator<T> createDefault(int numModuli) {

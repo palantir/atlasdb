@@ -34,7 +34,7 @@ public class TableRangeSerializer extends StdSerializer<TableRange> {
     }
 
     @Override
-    public void serialize(TableRange value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(TableRange value, JsonGenerator jgen, SerializerProvider _provider) throws IOException {
         TableMetadata metadata = metadataCache.getMetadata(value.getTableName());
         jgen.writeStartObject();
         jgen.writeStringField("table", value.getTableName());

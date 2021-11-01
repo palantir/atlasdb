@@ -45,7 +45,7 @@ public final class UpdateVisitors {
         }
 
         @Override
-        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Snapshot snapshot) {
+        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Snapshot _snapshot) {
             return fail("Unexpected snapshot");
         }
     }
@@ -53,7 +53,7 @@ public final class UpdateVisitors {
     public static class AssertSnapshotVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Snapshot> {
 
         @Override
-        public LockWatchStateUpdate.Snapshot visit(LockWatchStateUpdate.Success success) {
+        public LockWatchStateUpdate.Snapshot visit(LockWatchStateUpdate.Success _success) {
             return fail("Unexpected success");
         }
 

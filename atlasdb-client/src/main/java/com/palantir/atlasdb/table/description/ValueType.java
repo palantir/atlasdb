@@ -246,7 +246,7 @@ public enum ValueType {
         }
 
         @Override
-        public String getHydrateSizeCode(String input) {
+        public String getHydrateSizeCode(String _input) {
             return "8";
         }
 
@@ -326,7 +326,7 @@ public enum ValueType {
         }
 
         @Override
-        public String getHydrateSizeCode(String input) {
+        public String getHydrateSizeCode(String _input) {
             return "8";
         }
 
@@ -426,7 +426,7 @@ public enum ValueType {
         }
 
         @Override
-        public String getHydrateSizeCode(String input) {
+        public String getHydrateSizeCode(String _input) {
             return "32";
         }
     },
@@ -551,7 +551,7 @@ public enum ValueType {
         }
 
         @Override
-        public String getHydrateSizeCode(String variableName) {
+        public String getHydrateSizeCode(String _variableName) {
             // This value doesn't matter because string is always the last thing
             return "0";
         }
@@ -638,7 +638,7 @@ public enum ValueType {
         }
 
         @Override
-        public String getHydrateSizeCode(String variableName) {
+        public String getHydrateSizeCode(String _variableName) {
             // This value doesn't matter because blob is always the last thing
             return "0";
         }
@@ -763,7 +763,7 @@ public enum ValueType {
         }
 
         @Override
-        public String getHydrateSizeCode(String input) {
+        public String getHydrateSizeCode(String _input) {
             return "9";
         }
 
@@ -819,7 +819,7 @@ public enum ValueType {
         }
 
         @Override
-        public int sizeOf(Object value) {
+        public int sizeOf(Object _value) {
             return 16;
         }
 
@@ -844,7 +844,7 @@ public enum ValueType {
         }
 
         @Override
-        public String getHydrateSizeCode(String variableName) {
+        public String getHydrateSizeCode(String _variableName) {
             return "16";
         }
     };

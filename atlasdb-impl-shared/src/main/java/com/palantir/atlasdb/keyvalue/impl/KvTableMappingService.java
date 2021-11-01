@@ -99,7 +99,7 @@ public class KvTableMappingService implements TableMappingService {
     }
 
     protected void updateTableMap() {
-        tableMap.updateAndGet(toBeReplaced -> readTableMap());
+        tableMap.updateAndGet(_toBeReplaced -> readTableMap());
     }
 
     @Override
@@ -158,7 +158,7 @@ public class KvTableMappingService implements TableMappingService {
                     .map(KvTableMappingService::getKeyCellForTable)
                     .collect(Multimaps.toMultimap(
                             key -> key,
-                            unused -> AtlasDbConstants.TRANSACTION_TS,
+                            _unused -> AtlasDbConstants.TRANSACTION_TS,
                             MultimapBuilder.hashKeys().arrayListValues()::build));
             kvs.delete(AtlasDbConstants.NAMESPACE_TABLE, deletionMap);
         }

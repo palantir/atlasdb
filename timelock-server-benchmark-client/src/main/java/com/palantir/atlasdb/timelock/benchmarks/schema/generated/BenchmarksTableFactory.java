@@ -72,7 +72,7 @@ public final class BenchmarksTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putBlobs(Multimap<BlobsTable.BlobsRow, ? extends BlobsTable.BlobsNamedColumnValue<?>> newRows) {
+        public void putBlobs(Multimap<BlobsTable.BlobsRow, ? extends BlobsTable.BlobsNamedColumnValue<?>> _newRows) {
             // do nothing
         }
 
@@ -81,7 +81,7 @@ public final class BenchmarksTableFactory {
                 Multimap<
                                 BlobsSerializableTable.BlobsSerializableRow,
                                 ? extends BlobsSerializableTable.BlobsSerializableNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -90,19 +90,19 @@ public final class BenchmarksTableFactory {
                 Multimap<
                                 KvDynamicColumnsTable.KvDynamicColumnsRow,
                                 ? extends KvDynamicColumnsTable.KvDynamicColumnsColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
         @Override
         public void putKvRows(
-                Multimap<KvRowsTable.KvRowsRow, ? extends KvRowsTable.KvRowsNamedColumnValue<?>> newRows) {
+                Multimap<KvRowsTable.KvRowsRow, ? extends KvRowsTable.KvRowsNamedColumnValue<?>> _newRows) {
             // do nothing
         }
 
         @Override
         public void putMetadata(
-                Multimap<MetadataTable.MetadataRow, ? extends MetadataTable.MetadataNamedColumnValue<?>> newRows) {
+                Multimap<MetadataTable.MetadataRow, ? extends MetadataTable.MetadataNamedColumnValue<?>> _newRows) {
             // do nothing
         }
     }

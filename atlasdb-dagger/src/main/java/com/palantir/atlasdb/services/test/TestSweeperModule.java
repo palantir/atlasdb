@@ -62,9 +62,9 @@ public class TestSweeperModule {
             SerializableTransactionManager txm,
             @Named("kvs") KeyValueService kvs,
             TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
+            SweepStrategyManager _sweepStrategyManager,
             Follower follower,
-            ServicesConfig config) {
+            ServicesConfig _config) {
         LongSupplier unreadable = unreadableTs.orElse(txm::getUnreadableTimestamp);
         LongSupplier immutable = immutableTs.orElse(txm::getImmutableTimestamp);
         return new SweepTaskRunner(

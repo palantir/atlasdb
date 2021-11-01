@@ -32,7 +32,7 @@ final class IndependentBatchingEventHandler<T, R> implements EventHandler<BatchE
     }
 
     @Override
-    public void onEvent(BatchElement<T, R> event, long sequence, boolean endOfBatch) {
+    public void onEvent(BatchElement<T, R> event, long _sequence, boolean endOfBatch) {
         pending.add(event);
         if (endOfBatch) {
             flush();

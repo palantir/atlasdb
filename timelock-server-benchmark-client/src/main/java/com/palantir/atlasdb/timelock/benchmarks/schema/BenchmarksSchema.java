@@ -118,7 +118,7 @@ public final class BenchmarksSchema implements AtlasSchema {
         });
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] _args) throws IOException {
         SCHEMA.renderTables(new File("src/main/java"));
     }
 }

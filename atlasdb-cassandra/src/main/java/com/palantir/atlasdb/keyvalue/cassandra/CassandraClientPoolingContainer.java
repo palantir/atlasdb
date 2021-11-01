@@ -141,7 +141,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     }
 
     @Override
-    public <V> V runWithPooledResource(Function<CassandraClient, V> fn) {
+    public <V> V runWithPooledResource(Function<CassandraClient, V> _fn) {
         throw new UnsupportedOperationException("you should use FunctionCheckedException<?, ?, Exception> "
                 + "to ensure the TTransportException type is propagated correctly.");
     }

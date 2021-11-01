@@ -41,7 +41,7 @@ public class FeedbackSinkTest {
     @Test
     public void multipleFeedbackReportsAreRegistered() {
         TimeLockClientFeedbackSink sink = createSinkAndAddTestReport();
-        IntStream.range(1, 100).forEach(index -> registerTestReport(sink));
+        IntStream.range(1, 100).forEach(_index -> registerTestReport(sink));
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = sink.getTrackedFeedbackReports();
         assertThat(trackedFeedbackReports).hasSize(100);
 

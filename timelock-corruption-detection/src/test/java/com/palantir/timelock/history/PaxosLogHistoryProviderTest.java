@@ -226,7 +226,7 @@ public class PaxosLogHistoryProviderTest {
     // utils
     private Map<NamespaceAndUseCase, Set<PaxosValue>> writeLogsForRangeOfNamespaceUseCasePairs() {
         return KeyedStream.of(IntStream.rangeClosed(1, 100).boxed())
-                .mapEntries((idx, unused) -> {
+                .mapEntries((idx, _unused) -> {
                     String useCase = String.valueOf(idx);
                     Client client = Client.of(useCase);
 

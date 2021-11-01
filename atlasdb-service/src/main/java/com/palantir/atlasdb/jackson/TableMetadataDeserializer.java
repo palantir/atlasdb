@@ -50,7 +50,7 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     }
 
     @Override
-    public TableMetadata deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public TableMetadata deserialize(JsonParser jp, DeserializationContext _ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
 
         ImmutableTableMetadata.Builder builder = TableMetadata.builder()

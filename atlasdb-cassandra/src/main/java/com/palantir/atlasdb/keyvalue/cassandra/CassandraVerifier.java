@@ -287,7 +287,7 @@ public final class CassandraVerifier {
     static KsDef createKsDefForFresh(CassandraClient client, CassandraKeyValueServiceConfig config) {
         KsDef ksDef = new KsDef(config.getKeyspaceOrThrow(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
         Set<String> dcs = sanityCheckDatacenters(client, config);
-        ksDef.setStrategy_options(Maps.asMap(dcs, ignore -> String.valueOf(config.replicationFactor())));
+        ksDef.setStrategy_options(Maps.asMap(dcs, _ignore -> String.valueOf(config.replicationFactor())));
         ksDef.setDurable_writes(true);
         return ksDef;
     }

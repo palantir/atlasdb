@@ -105,7 +105,7 @@ public final class MetadataCoordinationServiceMetrics {
                 metricsManager,
                 AtlasDbMetricNames.COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION,
                 valueAndBoundSupplier,
-                unused -> timestampService.getFreshTimestamp());
+                _unused -> timestampService.getFreshTimestamp());
     }
 
     private static Optional<ValueAndBound<TimestampPartitioningMap<Integer>>>

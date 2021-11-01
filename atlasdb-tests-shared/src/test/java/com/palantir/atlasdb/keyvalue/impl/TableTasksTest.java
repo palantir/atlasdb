@@ -74,7 +74,7 @@ public class TableTasksTest {
         kvs = new InMemoryKeyValueService(true);
         timelockServices = InMemoryTimelockServices.create(tempFolder);
 
-        LockClient lockClient = LockClient.of("sweep client");
+        LockClient.of("sweep client");
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
         txService = TransactionServices.createRaw(kvs, timelockServices.getTimestampService(), false);
@@ -160,7 +160,7 @@ public class TableTasksTest {
                 10,
                 1,
                 stats,
-                (transaction, partialDiff) -> partialDiff.forEachRemaining(_unused -> {}));
+                (_transaction, partialDiff) -> partialDiff.forEachRemaining(_unused -> {}));
         long sourceOnlyCells = 0;
         long commonCells = 0;
         for (Map.Entry<Integer, Integer> cell : keys1.entries()) {

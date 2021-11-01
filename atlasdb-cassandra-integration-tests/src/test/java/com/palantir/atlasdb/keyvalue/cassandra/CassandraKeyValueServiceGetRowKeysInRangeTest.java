@@ -144,7 +144,7 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     private static Stream<Cell> createRandomCellsInSameRow(int number) {
         byte[] row = RandomBytes.ofLength(10);
         return IntStream.range(0, number)
-                .mapToObj(ignore -> RandomBytes.ofLength(10))
+                .mapToObj(_ignore -> RandomBytes.ofLength(10))
                 .map(col -> Cell.create(row, col));
     }
 

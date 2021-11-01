@@ -88,7 +88,7 @@ public class HistoryLoaderAndTransformerTest {
 
         List<HistoryQuery> queries = IntStream.range(0, 10)
                 .boxed()
-                .map(idx -> HistoryQueries.unboundedHistoryQuerySinceSeq(minLastVerified))
+                .map(_idx -> HistoryQueries.unboundedHistoryQuerySinceSeq(minLastVerified))
                 .collect(Collectors.toList());
 
         List<LogsForNamespaceAndUseCase> paxosHistory =

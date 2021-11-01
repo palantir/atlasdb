@@ -76,14 +76,14 @@ final class DelegatingTimelockService implements TimelockService {
             }
 
             @Override
-            public LockResponse visit(LockResponseV2.Unsuccessful failure) {
+            public LockResponse visit(LockResponseV2.Unsuccessful _failure) {
                 return LockResponse.timedOut();
             }
         });
     }
 
     @Override
-    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
+    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions _options) {
         return lock(lockRequest);
     }
 

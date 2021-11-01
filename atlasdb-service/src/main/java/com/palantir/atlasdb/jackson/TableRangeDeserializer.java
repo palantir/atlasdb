@@ -35,7 +35,7 @@ public class TableRangeDeserializer extends StdDeserializer<TableRange> {
     }
 
     @Override
-    public TableRange deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public TableRange deserialize(JsonParser jp, DeserializationContext _ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
         String tableName = node.get("table").textValue();
         TableMetadata metadata = metadataCache.getMetadata(tableName);

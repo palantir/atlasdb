@@ -45,7 +45,7 @@ public final class ThriftQueryWeighers {
     }
 
     public static final QueryWeigher<ColumnOrSuperColumn> GET =
-            readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1, 1);
+            readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, _ignored -> 1, 1);
 
     public static final QueryWeigher<CqlResult> EXECUTE_CQL3_QUERY =
             // TODO(nziebart): we need to inspect the schema to see how many rows there are - a CQL row is NOT a
@@ -53,7 +53,7 @@ public final class ThriftQueryWeighers {
             // or (key, column, ts) triplets
             // Currently, transaction or metadata table queries dont use the CQL executor,
             // but we should provide a way to estimate zero based on the tableRef if they do start using it.
-            readWeigher(ThriftObjectSizeUtils::getCqlResultSize, ignored -> 1, 1);
+            readWeigher(ThriftObjectSizeUtils::getCqlResultSize, _ignored -> 1, 1);
 
     public static QueryWeigher<Void> batchMutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap) {
         long numRows = mutationMap.size();
@@ -78,7 +78,7 @@ public final class ThriftQueryWeighers {
             }
 
             @Override
-            public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
+            public QueryWeight weighFailure(Exception _error, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
                         .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * numberOfQueriedRows)
                         .timeTakenNanos(timeTakenNanos)
@@ -94,7 +94,7 @@ public final class ThriftQueryWeighers {
         return new QueryWeigher<T>() {
 
             @Override
-            public QueryWeight weighSuccess(T result, long timeTakenNanos) {
+            public QueryWeight weighSuccess(T _result, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
                         .numBytes(weight.get())
                         .numDistinctRows(numRows)
@@ -103,7 +103,7 @@ public final class ThriftQueryWeighers {
             }
 
             @Override
-            public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
+            public QueryWeight weighFailure(Exception _error, long timeTakenNanos) {
                 return weighSuccess(null, timeTakenNanos);
             }
         };

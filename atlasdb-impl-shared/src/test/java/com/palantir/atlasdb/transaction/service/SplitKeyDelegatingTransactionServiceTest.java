@@ -81,7 +81,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
     public void rethrowsExceptionsFromMappingFunction() {
         RuntimeException ex = new IllegalStateException("bad");
         TransactionService unusableService = new SplitKeyDelegatingTransactionService<>(
-                num -> {
+                _num -> {
                     throw ex;
                 },
                 transactionServiceMap);

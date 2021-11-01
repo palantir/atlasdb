@@ -27,7 +27,7 @@ public class FirstNginxContainer extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady(DockerComposeRule rule) {
+    public SuccessOrFailure isReady(DockerComposeRule _rule) {
         return SuccessOrFailure.onResultOf(() -> {
             URL url = new URL("http://nginx1/");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();

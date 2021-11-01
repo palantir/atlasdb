@@ -42,7 +42,7 @@ public class CheckAndSetQueriesTest {
     public void valuesCreatedAtCorrectLogSafetyLevelsForNewCells() {
         CqlQuery query = CheckAndSetQueries.getQueryForRequest(NEW_CELL_REQUEST);
         AtomicReference<Object[]> objects = new AtomicReference<>();
-        query.logSlowResult((format, args) -> objects.set(args), Stopwatch.createStarted());
+        query.logSlowResult((_format, args) -> objects.set(args), Stopwatch.createStarted());
 
         Object[] loggedObjects = objects.get();
         Map<String, Boolean> argumentSafety = new HashMap<>();
@@ -67,7 +67,7 @@ public class CheckAndSetQueriesTest {
     public void valuesCreatedAtCorrectLogSafetyLevelsForUpdates() {
         CqlQuery query = CheckAndSetQueries.getQueryForRequest(UPDATE_REQUEST);
         AtomicReference<Object[]> objects = new AtomicReference<>();
-        query.logSlowResult((format, args) -> objects.set(args), Stopwatch.createStarted());
+        query.logSlowResult((_format, args) -> objects.set(args), Stopwatch.createStarted());
 
         Object[] loggedObjects = objects.get();
         Map<String, Boolean> argumentSafety = new HashMap<>();

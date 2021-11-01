@@ -155,7 +155,7 @@ public final class StreamTestTableFactory {
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putKeyValue(
-                Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> newRows) {
+                Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> _newRows) {
             // do nothing
         }
 
@@ -164,7 +164,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow,
                                 ? extends StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -173,7 +173,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow,
                                 ? extends StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -185,7 +185,7 @@ public final class StreamTestTableFactory {
                                         StreamTestMaxMemStreamMetadataTable
                                                         .StreamTestMaxMemStreamMetadataNamedColumnValue<
                                                 ?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -195,7 +195,7 @@ public final class StreamTestTableFactory {
                                 StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow,
                                 ? extends
                                         StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -204,7 +204,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow,
                                 ? extends StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -213,7 +213,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 StreamTestStreamIdxTable.StreamTestStreamIdxRow,
                                 ? extends StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -222,7 +222,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
                                 ? extends StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -231,7 +231,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 StreamTestStreamValueTable.StreamTestStreamValueRow,
                                 ? extends StreamTestStreamValueTable.StreamTestStreamValueNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -242,7 +242,7 @@ public final class StreamTestTableFactory {
                                 ? extends
                                         StreamTestWithHashStreamHashAidxTable
                                                 .StreamTestWithHashStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -251,7 +251,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow,
                                 ? extends StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -263,7 +263,7 @@ public final class StreamTestTableFactory {
                                         StreamTestWithHashStreamMetadataTable
                                                         .StreamTestWithHashStreamMetadataNamedColumnValue<
                                                 ?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -275,7 +275,7 @@ public final class StreamTestTableFactory {
                                         StreamTestWithHashStreamValueTable
                                                         .StreamTestWithHashStreamValueNamedColumnValue<
                                                 ?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -286,7 +286,7 @@ public final class StreamTestTableFactory {
                                 ? extends
                                         TestHashComponentsStreamHashAidxTable
                                                 .TestHashComponentsStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -295,7 +295,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow,
                                 ? extends TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -307,7 +307,7 @@ public final class StreamTestTableFactory {
                                         TestHashComponentsStreamMetadataTable
                                                         .TestHashComponentsStreamMetadataNamedColumnValue<
                                                 ?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -319,7 +319,7 @@ public final class StreamTestTableFactory {
                                         TestHashComponentsStreamValueTable
                                                         .TestHashComponentsStreamValueNamedColumnValue<
                                                 ?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

@@ -438,7 +438,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        RowResult<byte[]> first = BatchingVisitables.getFirst(
+        BatchingVisitables.getFirst(
                 t1.getRange(TEST_TABLE, RangeRequest.builder().build()));
         put(t1, "row22", "col1", initialValue);
 
@@ -458,7 +458,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        RowResult<byte[]> first = BatchingVisitables.getFirst(
+        BatchingVisitables.getFirst(
                 t1.getRange(TEST_TABLE, RangeRequest.builder().build()));
         put(t1, "row22", "col1", initialValue);
 
@@ -894,7 +894,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         byte[] row = PtBytes.toBytes("row1");
 
         Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRange(
+        t1.getRowsColumnRange(
                 TEST_TABLE,
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
@@ -914,7 +914,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         byte[] row = PtBytes.toBytes("row1");
 
         Transaction t1 = startTransaction();
-        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRangeIterator(
+        t1.getRowsColumnRangeIterator(
                 TEST_TABLE,
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
@@ -940,12 +940,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TEST_TABLE,
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        columnRange.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        columnRange.values().forEach(visitable -> visitable.batchAccept(10, _t -> true));
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeAgain = t1.getRowsColumnRange(
                 TEST_TABLE,
                 ImmutableList.of(rowDifferentReference),
                 BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        columnRangeAgain.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        columnRangeAgain.values().forEach(visitable -> visitable.batchAccept(10, _t -> true));
         put(t1, "mutation to ensure", "conflict", "handling");
         t1.commit();
     }
@@ -983,11 +983,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForRow =
                 transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), sameColumnRangeSelection);
-        columnRangeResultForRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        columnRangeResultForRow.values().forEach(visitable -> visitable.batchAccept(10, _t -> true));
 
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
                 transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(differentRow), sameColumnRangeSelection);
-        columnRangeResultForDifferentRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        columnRangeResultForDifferentRow.values().forEach(visitable -> visitable.batchAccept(10, _t -> true));
         put(transaction, "mutation to ensure", "conflict", "handling");
         transaction.commit();
     }

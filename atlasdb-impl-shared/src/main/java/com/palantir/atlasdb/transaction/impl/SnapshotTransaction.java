@@ -1236,7 +1236,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private ConcurrentNavigableMap<Cell, byte[]> getLocalWrites(TableReference tableRef) {
-        return writesByTable.computeIfAbsent(tableRef, unused -> new ConcurrentSkipListMap<>());
+        return writesByTable.computeIfAbsent(tableRef, _unused -> new ConcurrentSkipListMap<>());
     }
 
     /**
@@ -1420,7 +1420,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // if committed value seen, stop: the sentinel is not orphaned
         // if we get back -1, the sentinel is orphaned
         Map<Cell, Long> timestampCandidates = new HashMap<>(
-                keyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
+                keyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, _x -> Long.MAX_VALUE)));
         Set<Cell> actualOrphanedSentinels = new HashSet<>();
 
         while (!timestampCandidates.isEmpty()) {
@@ -1914,7 +1914,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
+    protected void throwIfReadWriteConflictForSerializable(long _commitTimestamp) {
         // This is for overriding to get serializable transactions
     }
 

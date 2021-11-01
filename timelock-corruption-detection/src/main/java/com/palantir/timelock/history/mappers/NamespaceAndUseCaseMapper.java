@@ -26,7 +26,7 @@ import org.jdbi.v3.core.statement.StatementContext;
 
 public class NamespaceAndUseCaseMapper implements RowMapper<NamespaceAndUseCase> {
     @Override
-    public NamespaceAndUseCase map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public NamespaceAndUseCase map(ResultSet rs, StatementContext _ctx) throws SQLException {
         return ImmutableNamespaceAndUseCase.of(Client.of(rs.getString("namespace")), rs.getString("useCase"));
     }
 }

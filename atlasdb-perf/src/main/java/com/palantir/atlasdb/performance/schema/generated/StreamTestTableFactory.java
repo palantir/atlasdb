@@ -75,7 +75,7 @@ public final class StreamTestTableFactory {
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putKeyValue(
-                Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> newRows) {
+                Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> _newRows) {
             // do nothing
         }
 
@@ -84,14 +84,14 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 ValueStreamHashAidxTable.ValueStreamHashAidxRow,
                                 ? extends ValueStreamHashAidxTable.ValueStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
         @Override
         public void putValueStreamIdx(
                 Multimap<ValueStreamIdxTable.ValueStreamIdxRow, ? extends ValueStreamIdxTable.ValueStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -100,7 +100,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 ValueStreamMetadataTable.ValueStreamMetadataRow,
                                 ? extends ValueStreamMetadataTable.ValueStreamMetadataNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -109,7 +109,7 @@ public final class StreamTestTableFactory {
                 Multimap<
                                 ValueStreamValueTable.ValueStreamValueRow,
                                 ? extends ValueStreamValueTable.ValueStreamValueNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

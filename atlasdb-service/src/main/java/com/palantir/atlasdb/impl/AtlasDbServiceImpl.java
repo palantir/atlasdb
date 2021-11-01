@@ -193,7 +193,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public void commit(TransactionToken token) {
         OpenTransaction openTxn = transactions.getIfPresent(token);
         if (openTxn != null) {
-            openTxn.finish((TxTask) transaction -> null);
+            openTxn.finish((TxTask) _transaction -> null);
             transactions.invalidate(token);
         }
     }

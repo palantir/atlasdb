@@ -90,7 +90,7 @@ public class IterablePartitionerTest {
 
     private void simplePartition(Logger mockLogger, long approximatePutSize) {
         Iterable<List<Integer>> partitions = IterablePartitioner.partitionByCountAndBytes(
-                Lists.newArrayList(1, 2, 3), 2, MAXIMUM_PUT_SIZE, tableName, foo -> approximatePutSize, mockLogger);
+                Lists.newArrayList(1, 2, 3), 2, MAXIMUM_PUT_SIZE, tableName, _foo -> approximatePutSize, mockLogger);
         int i = 1;
         for (List<Integer> partition : partitions) {
             assertThat(partition).containsExactly(i);

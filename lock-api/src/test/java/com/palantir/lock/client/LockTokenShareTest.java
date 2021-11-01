@@ -31,7 +31,7 @@ public class LockTokenShareTest {
 
     @Test
     public void allSharedLocksHaveCorrectUnderlyingToken() {
-        List<LockTokenShare> tokens = getSharedLockTokens(LOCK_TOKEN, 3);
+        List<LockTokenShare> tokens = getSharedLockTokens(3);
         assertThat(tokens).extracting(LockTokenShare::sharedLockToken).containsOnly(LOCK_TOKEN);
     }
 
@@ -46,7 +46,7 @@ public class LockTokenShareTest {
 
     @Test
     public void shouldReturnUnderlyingTokenAfterAllReferencesAreUnlocked() {
-        List<LockTokenShare> tokens = getSharedLockTokens(LOCK_TOKEN, 2);
+        List<LockTokenShare> tokens = getSharedLockTokens(2);
         LockTokenShare firstToken = tokens.get(0);
         LockTokenShare secondToken = tokens.get(1);
 
@@ -66,7 +66,7 @@ public class LockTokenShareTest {
 
     @Test
     public void shouldWorkAsExpectedIfThereIsOnlyOneSharedToken() {
-        List<LockTokenShare> tokens = getSharedLockTokens(LOCK_TOKEN, 1);
+        List<LockTokenShare> tokens = getSharedLockTokens(1);
 
         assertThat(tokens).hasSize(1);
         LockTokenShare lockTokenShare = tokens.get(0);
@@ -84,12 +84,12 @@ public class LockTokenShareTest {
 
     @Test
     public void sharingSharedLockTokenThrows() {
-        LockTokenShare lockTokenShare = getSharedLockTokens(LOCK_TOKEN, 2).get(0);
+        LockTokenShare lockTokenShare = getSharedLockTokens(2).get(0);
         assertThatThrownBy(() -> LockTokenShare.share(lockTokenShare, 2))
                 .hasMessage("Can not share a shared lock token");
     }
 
-    private static List<LockTokenShare> getSharedLockTokens(LockToken token, int numberOfReferences) {
+    private static List<LockTokenShare> getSharedLockTokens(int numberOfReferences) {
         return LockTokenShare.share(LOCK_TOKEN, numberOfReferences)
                 .map(LockTokenShare.class::cast)
                 .collect(Collectors.toList());

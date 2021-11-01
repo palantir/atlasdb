@@ -107,7 +107,7 @@ public class FastFailoverProxyTest {
 
     @Test
     public void alwaysInvokesMethodAtLeastOnce() {
-        when(clock.instant()).thenAnswer($ -> Instant.ofEpochMilli(time.getAndAdd(1_000_000)));
+        when(clock.instant()).thenAnswer(_$ -> Instant.ofEpochMilli(time.getAndAdd(1_000_000)));
         when(binaryOperator.apply(1, 2)).thenReturn(3);
 
         assertThat(proxy.apply(1, 2)).isEqualTo(3);
@@ -140,7 +140,7 @@ public class FastFailoverProxyTest {
     }
 
     private void setUpClock() {
-        when(clock.instant()).thenAnswer($ -> Instant.ofEpochMilli(time.getAndAdd(1_000)));
+        when(clock.instant()).thenAnswer(_$ -> Instant.ofEpochMilli(time.getAndAdd(1_000)));
     }
 
     private void createProxy() {

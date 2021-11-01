@@ -107,7 +107,7 @@ public final class Cells {
         for (Map.Entry<Cell, T> e : map) {
             byte[] row = e.getKey().getRowName();
             NavigableMap<byte[], T> sortedMap =
-                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
+                    ret.computeIfAbsent(row, _rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
             sortedMap.put(e.getKey().getColumnName(), e.getValue());
         }
         return ret;

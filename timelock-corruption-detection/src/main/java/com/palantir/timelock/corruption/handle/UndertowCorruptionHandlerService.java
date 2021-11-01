@@ -29,11 +29,10 @@ import java.util.List;
 public class UndertowCorruptionHandlerService implements UndertowService {
     private final UndertowService delegate;
     private final HandlerWrapper wrapper;
-    private final CorruptionHealthCheck healthCheck;
 
     public UndertowCorruptionHandlerService(UndertowService service, CorruptionHealthCheck healthCheck) {
         this.delegate = service;
-        this.healthCheck = healthCheck;
+
         this.wrapper = handler -> exchange -> {
             if (!healthCheck.shouldRejectRequests()) {
                 handler.handleRequest(exchange);

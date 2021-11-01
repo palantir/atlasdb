@@ -32,7 +32,7 @@ import org.junit.Test;
 public class AutobatchersTests {
     @Test
     public void testUnderlyingUncheckedException() {
-        DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(list -> {
+        DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(_list -> {
                     throw new SafeIllegalStateException("boo");
                 })
                 .safeLoggablePurpose("testing")
@@ -48,7 +48,7 @@ public class AutobatchersTests {
         RuntimeException runtimeException = new RuntimeException("Caught exception");
 
         DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(
-                        list -> Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30)))
+                        _list -> Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30)))
                 .batchFunctionTimeout(Duration.ofSeconds(1))
                 .safeLoggablePurpose("testing")
                 .timeoutHandler(_exception -> runtimeException)

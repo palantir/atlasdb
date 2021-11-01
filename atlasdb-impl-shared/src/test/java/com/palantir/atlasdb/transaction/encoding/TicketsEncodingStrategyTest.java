@@ -161,7 +161,7 @@ public class TicketsEncodingStrategyTest {
     }
 
     private static void fuzzOneThousandTrials(Runnable test) {
-        IntStream.range(0, 1000).forEach(unused -> test.run());
+        IntStream.range(0, 1000).forEach(_unused -> test.run());
     }
 
     private static void assertStartTimestampsCanBeDistinguished(long... timestamps) {

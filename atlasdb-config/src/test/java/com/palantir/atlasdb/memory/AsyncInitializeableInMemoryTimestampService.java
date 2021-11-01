@@ -68,7 +68,7 @@ public final class AsyncInitializeableInMemoryTimestampService extends AsyncInit
     }
 
     @Override
-    public void fastForwardTimestamp(long currentTimestamp) {
+    public void fastForwardTimestamp(long _currentTimestamp) {
         throw new UnsupportedOperationException("Not implemented in test class");
     }
 

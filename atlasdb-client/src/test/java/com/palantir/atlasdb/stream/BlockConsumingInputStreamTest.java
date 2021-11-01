@@ -41,7 +41,7 @@ public class BlockConsumingInputStreamTest {
     private final byte[] data = "data".getBytes(StandardCharsets.UTF_8);
     private final BlockGetter dataConsumer = new BlockGetter() {
         @Override
-        public void get(long firstBlock, long numBlocks, OutputStream destination) {
+        public void get(long _firstBlock, long _numBlocks, OutputStream destination) {
             try {
                 destination.write(data);
             } catch (IOException e) {
@@ -222,7 +222,7 @@ public class BlockConsumingInputStreamTest {
     public void bufferLengthCanAlmostReachIntMaxValue() throws IOException {
         BlockGetter bigGetter = new BlockGetter() {
             @Override
-            public void get(long firstBlock, long numBlocks, OutputStream destination) {
+            public void get(long _firstBlock, long _numBlocks, OutputStream _destination) {
                 // do nothing
             }
 
@@ -240,7 +240,7 @@ public class BlockConsumingInputStreamTest {
     public void bufferLengthCanNotQuiteReachIntMaxValue() throws IOException {
         BlockGetter reallyBigGetter = new BlockGetter() {
             @Override
-            public void get(long firstBlock, long numBlocks, OutputStream destination) {
+            public void get(long _firstBlock, long _numBlocks, OutputStream _destination) {
                 // do nothing
             }
 
@@ -263,7 +263,7 @@ public class BlockConsumingInputStreamTest {
     public void bufferLengthShouldNotExceedMaxArrayLength() throws IOException {
         BlockGetter tooBigGetter = new BlockGetter() {
             @Override
-            public void get(long firstBlock, long numBlocks, OutputStream destination) {
+            public void get(long _firstBlock, long _numBlocks, OutputStream _destination) {
                 // do nothing
             }
 

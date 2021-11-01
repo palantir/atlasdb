@@ -90,14 +90,14 @@ public final class TodoSchemaTableFactory {
                 Multimap<
                                 LatestSnapshotTable.LatestSnapshotRow,
                                 ? extends LatestSnapshotTable.LatestSnapshotNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
         @Override
         public void putNamespacedTodo(
                 Multimap<NamespacedTodoTable.NamespacedTodoRow, ? extends NamespacedTodoTable.NamespacedTodoColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -106,7 +106,7 @@ public final class TodoSchemaTableFactory {
                 Multimap<
                                 SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow,
                                 ? extends SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -115,7 +115,7 @@ public final class TodoSchemaTableFactory {
                 Multimap<
                                 SnapshotsStreamIdxTable.SnapshotsStreamIdxRow,
                                 ? extends SnapshotsStreamIdxTable.SnapshotsStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -124,7 +124,7 @@ public final class TodoSchemaTableFactory {
                 Multimap<
                                 SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow,
                                 ? extends SnapshotsStreamMetadataTable.SnapshotsStreamMetadataNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -133,12 +133,12 @@ public final class TodoSchemaTableFactory {
                 Multimap<
                                 SnapshotsStreamValueTable.SnapshotsStreamValueRow,
                                 ? extends SnapshotsStreamValueTable.SnapshotsStreamValueNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
         @Override
-        public void putTodo(Multimap<TodoTable.TodoRow, ? extends TodoTable.TodoNamedColumnValue<?>> newRows) {
+        public void putTodo(Multimap<TodoTable.TodoRow, ? extends TodoTable.TodoNamedColumnValue<?>> _newRows) {
             // do nothing
         }
     }

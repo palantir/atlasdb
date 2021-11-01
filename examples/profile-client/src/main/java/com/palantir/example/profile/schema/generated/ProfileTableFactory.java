@@ -78,7 +78,7 @@ public final class ProfileTableFactory {
                 Multimap<
                                 UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow,
                                 ? extends UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -87,7 +87,7 @@ public final class ProfileTableFactory {
                 Multimap<
                                 UserPhotosStreamIdxTable.UserPhotosStreamIdxRow,
                                 ? extends UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -96,7 +96,7 @@ public final class ProfileTableFactory {
                 Multimap<
                                 UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
                                 ? extends UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -105,14 +105,14 @@ public final class ProfileTableFactory {
                 Multimap<
                                 UserPhotosStreamValueTable.UserPhotosStreamValueRow,
                                 ? extends UserPhotosStreamValueTable.UserPhotosStreamValueNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
         @Override
         public void putUserProfile(
                 Multimap<UserProfileTable.UserProfileRow, ? extends UserProfileTable.UserProfileNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

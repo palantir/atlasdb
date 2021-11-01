@@ -182,10 +182,10 @@ public final class CompactMetadataTable implements
 
         public static final Hydrator<CompactMetadataRow> BYTES_HYDRATOR = new Hydrator<CompactMetadataRow>() {
             @Override
-            public CompactMetadataRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                String fullTableName = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
+            public CompactMetadataRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                String fullTableName = PtBytes.toString(_input, _index, _input.length-_index);
+                _index += 0;
                 return new CompactMetadataRow(fullTableName);
             }
         };
@@ -584,15 +584,15 @@ public final class CompactMetadataTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

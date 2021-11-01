@@ -176,7 +176,7 @@ public class ExclusiveLockTests {
     @Test
     public void timedOutLockRequestDoesNotGetTheLock() {
         lockSynchronously(REQUEST_1);
-        AsyncResult<Void> request2 = lockAsync(REQUEST_2);
+        lockAsync(REQUEST_2);
 
         lock.timeout(REQUEST_2);
         unlock(REQUEST_1);

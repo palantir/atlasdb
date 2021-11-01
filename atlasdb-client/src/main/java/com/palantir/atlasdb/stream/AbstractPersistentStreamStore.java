@@ -143,7 +143,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         }
 
         Map<Long, StreamMetadata> idsToEmptyMetadata =
-                KeyedStream.stream(streams).map($ -> getEmptyMetadata()).collectToMap();
+                KeyedStream.stream(streams).map(_$ -> getEmptyMetadata()).collectToMap();
         putMetadataAndHashIndexTask(tx, idsToEmptyMetadata);
 
         Map<Long, StreamMetadata> idsToMetadata = KeyedStream.stream(streams)

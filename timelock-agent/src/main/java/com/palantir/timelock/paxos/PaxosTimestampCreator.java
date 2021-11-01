@@ -29,7 +29,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
     }
 
     @Override
-    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig unused) {
+    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig _value) {
         return () -> timestampServiceFactory.create(client);
     }
 

@@ -44,7 +44,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
@@ -88,7 +87,7 @@ public class SerializableTransactionManagerTest {
 
     @Test
     public void uninitializedTransactionManagerThrowsNotInitializedException() {
-        assertThatThrownBy(() -> manager.runTaskWithRetry(ignore -> null)).isInstanceOf(NotInitializedException.class);
+        assertThatThrownBy(() -> manager.runTaskWithRetry(_ignore -> null)).isInstanceOf(NotInitializedException.class);
     }
 
     @Test
@@ -116,7 +115,7 @@ public class SerializableTransactionManagerTest {
 
         nothingInitialized();
         assertThat(manager.isInitialized()).isFalse();
-        assertThatThrownBy(() -> manager.runTaskWithRetry(ignore -> null)).isInstanceOf(NotInitializedException.class);
+        assertThatThrownBy(() -> manager.runTaskWithRetry(_ignore -> null)).isInstanceOf(NotInitializedException.class);
     }
 
     @Test
@@ -139,7 +138,7 @@ public class SerializableTransactionManagerTest {
         manager.close();
 
         assertThat(executorService.isShutdown()).isTrue();
-        assertThatThrownBy(() -> manager.runTaskWithRetry(ignore -> null)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> manager.runTaskWithRetry(_ignore -> null)).isInstanceOf(IllegalStateException.class);
         assertThat(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByClose())
                 .isTrue();
     }
@@ -151,7 +150,7 @@ public class SerializableTransactionManagerTest {
         tickInitializingThread();
 
         verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
-        assertThatThrownBy(() -> manager.runTaskWithRetry(ignore -> null)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> manager.runTaskWithRetry(_ignore -> null)).isInstanceOf(IllegalStateException.class);
         assertThat(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByClose())
                 .isTrue();
     }
@@ -197,7 +196,7 @@ public class SerializableTransactionManagerTest {
 
         assertThat(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByCallbackFailure())
                 .isTrue();
-        assertThatThrownBy(() -> manager.runTaskWithRetry($ -> null))
+        assertThatThrownBy(() -> manager.runTaskWithRetry(_$ -> null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasCause(cause);
     }
@@ -268,7 +267,7 @@ public class SerializableTransactionManagerTest {
 
     private TransactionManager getManagerWithCallback(
             boolean initializeAsync, Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
-        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
+        NoOpLockWatchEventCache.create();
         return SerializableTransactionManager.create(
                 MetricsManagers.createForTests(),
                 mockKvs,

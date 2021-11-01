@@ -288,7 +288,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
         }
 
         @Override
-        public ConjureGetFreshTimestampsResponse answer(InvocationOnMock invocation) throws Throwable {
+        public ConjureGetFreshTimestampsResponse answer(InvocationOnMock _invocation) throws Throwable {
             blockingLatch.countDown();
             returnTimestampLatch.await();
             return getFreshTimestampsResponse(timestampToReturn, timestampToReturn);

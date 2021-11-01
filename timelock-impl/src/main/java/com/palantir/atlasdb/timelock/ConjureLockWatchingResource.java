@@ -51,10 +51,10 @@ public final class ConjureLockWatchingResource implements UndertowConjureLockWat
 
     @Override
     public ListenableFuture<Void> startWatching(AuthHeader authHeader, String namespace, LockWatchRequest request) {
-        return exceptionHandler.handleExceptions(() -> startWatchingSync(authHeader, namespace, request));
+        return exceptionHandler.handleExceptions(() -> startWatchingSync(namespace, request));
     }
 
-    private ListenableFuture<Void> startWatchingSync(AuthHeader header, String namespace, LockWatchRequest request) {
+    private ListenableFuture<Void> startWatchingSync(String namespace, LockWatchRequest request) {
         timelockServices.apply(namespace).startWatching(request);
         return Futures.immediateFuture(null);
     }

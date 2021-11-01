@@ -94,7 +94,7 @@ public class TodoSchema implements AtlasSchema {
         return TableReference.create(Namespace.DEFAULT_NAMESPACE, NAMESPACED_TODO_TABLE);
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] _args) throws Exception {
         INDEX_TEST_SCHEMA.renderTables(new File("src/main/java"));
     }
 

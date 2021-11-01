@@ -42,12 +42,12 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory<KeyValueServi
 
     @Override
     public KeyValueService createRawKeyValueService(
-            MetricsManager unusedMetricsManager,
-            KeyValueServiceConfig unusedConfig,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> unusedRuntimeConfig,
-            Optional<LeaderConfig> unusedLeaderConfig,
-            Optional<String> unused,
-            LongSupplier unusedLongSupplier,
+            MetricsManager _metricsManager,
+            KeyValueServiceConfig _config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> _runtimeConfig,
+            Optional<LeaderConfig> _leaderConfig,
+            Optional<String> _value,
+            LongSupplier _longSupplier,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         return AsyncInitializeableInMemoryKvs.createAndStartInit(initializeAsync);
@@ -55,7 +55,7 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory<KeyValueServi
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs, Optional<TableReference> unused, boolean initializeAsync) {
+            KeyValueService rawKvs, Optional<TableReference> _value, boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         if (initializeAsync) {
             return AsyncInitializeableInMemoryTimestampService.initializeWhenKvsIsReady(rawKvs);

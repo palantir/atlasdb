@@ -21,8 +21,8 @@ public class ImmediateSingleBatchTaskRunner implements BatchingTaskRunner {
     @Override
     public <InT, OutT> OutT runTask(
             InT input,
-            BatchingStrategy<InT> batchingStrategy,
-            ResultAccumulatorStrategy<OutT> resultAccumulatingStrategy,
+            BatchingStrategy<InT> _batchingStrategy,
+            ResultAccumulatorStrategy<OutT> _resultAccumulatingStrategy,
             Function<InT, OutT> task) {
         return task.apply(input);
     }

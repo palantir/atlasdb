@@ -68,7 +68,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public long getCommitTimestamp(long _startTs, LockToken _commitLocksToken) {
         return getFreshTimestamp();
     }
 
@@ -125,7 +125,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
+    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions _options) {
         return lock(lockRequest);
     }
 

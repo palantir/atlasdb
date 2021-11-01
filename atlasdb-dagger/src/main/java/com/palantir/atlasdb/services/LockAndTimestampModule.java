@@ -51,7 +51,7 @@ public class LockAndTimestampModule {
                 metricsManager,
                 config.atlasDbConfig(),
                 Refreshable.only(config.atlasDbRuntimeConfig()),
-                resource -> {},
+                _resource -> {},
                 LockServiceImpl::create,
                 managedTimestampService,
                 config.atlasDbSupplier(metricsManager).getTimestampStoreInvalidator(),

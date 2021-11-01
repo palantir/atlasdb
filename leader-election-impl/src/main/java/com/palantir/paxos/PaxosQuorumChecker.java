@@ -125,7 +125,7 @@ public final class PaxosQuorumChecker {
                         remotes.size(),
                         mapToSingleExecutorService(remotes, executorService),
                         remoteRequestTimeout,
-                        $ -> false,
+                        _$ -> false,
                         cancelRemainingCalls)
                 .withoutRemotes();
     }
@@ -149,7 +149,7 @@ public final class PaxosQuorumChecker {
 
     private static <SERVICE> Map<SERVICE, ExecutorService> mapToSingleExecutorService(
             Collection<SERVICE> remotes, ExecutorService executorService) {
-        return remotes.stream().collect(Collectors.toMap(remote -> remote, unused -> executorService));
+        return remotes.stream().collect(Collectors.toMap(remote -> remote, _unused -> executorService));
     }
 
     /**

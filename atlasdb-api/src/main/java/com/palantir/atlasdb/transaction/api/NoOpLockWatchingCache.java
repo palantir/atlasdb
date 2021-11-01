@@ -31,22 +31,23 @@ public final class NoOpLockWatchingCache implements LockWatchingCache {
     }
 
     @Override
-    public Map<Cell, GuardedValue> getCached(TableReference tableRef, Set<Cell> reads) {
+    public Map<Cell, GuardedValue> getCached(TableReference _tableRef, Set<Cell> _reads) {
         return ImmutableMap.of();
     }
 
     @Override
-    public void maybeCacheCommittedWrites(TableReference tableRef, Map<Cell, byte[]> writes) {
+    public void maybeCacheCommittedWrites(TableReference _tableRef, Map<Cell, byte[]> _writes) {
         // noop
     }
 
     @Override
-    public void maybeCacheEntriesRead(TableReference tableRef, Map<Cell, byte[]> writes, LockWatchStateUpdate lwState) {
+    public void maybeCacheEntriesRead(
+            TableReference _tableRef, Map<Cell, byte[]> _writes, LockWatchStateUpdate _lwState) {
         // noop
     }
 
     @Override
-    public TransactionLockWatchingCacheView getView(long startTimestamp, LockWatchStateUpdate lockWatchState) {
+    public TransactionLockWatchingCacheView getView(long _startTimestamp, LockWatchStateUpdate _lockWatchState) {
         return NoOpTransactionLockWatchingCacheView.INSTANCE;
     }
 }

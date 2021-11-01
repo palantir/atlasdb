@@ -97,7 +97,7 @@ public class AnnotatedCallableTest {
                 });
 
         try {
-            String result = callable.call();
+            callable.call();
             fail("Expected OutOfMemoryError");
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(OutOfMemoryError.class);
@@ -120,7 +120,7 @@ public class AnnotatedCallableTest {
                 });
 
         try {
-            String result = callable.call();
+            callable.call();
             fail("Expected Exception");
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(IOException.class);
@@ -144,7 +144,7 @@ public class AnnotatedCallableTest {
                 });
 
         try {
-            String result = callable.call();
+            callable.call();
             fail("Expected Exception");
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(ExecutionException.class);
@@ -167,7 +167,7 @@ public class AnnotatedCallableTest {
                 });
 
         try {
-            String result = callable.call();
+            callable.call();
             fail("Expected RuntimeException");
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(RuntimeException.class);

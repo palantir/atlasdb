@@ -132,7 +132,7 @@ public class AsyncResult<T> {
      * the error or timeout status associated with the result that did not complete successfully.
      */
     public AsyncResult<Void> concatWith(Supplier<AsyncResult<Void>> nextResult) {
-        return new AsyncResult<>(future.thenCompose(ignored -> nextResult.get().future));
+        return new AsyncResult<>(future.thenCompose(_ignored -> nextResult.get().future));
     }
 
     /**
@@ -174,11 +174,11 @@ public class AsyncResult<T> {
     }
 
     public void onComplete(Runnable completionHandler) {
-        future.whenComplete((result, error) -> completionHandler.run());
+        future.whenComplete((_result, _error) -> completionHandler.run());
     }
 
     public void onCompleteAsync(Runnable completionHandler) {
-        future.whenCompleteAsync((result, error) -> completionHandler.run());
+        future.whenCompleteAsync((_result, _error) -> completionHandler.run());
     }
 
     private static boolean isTimeout(Throwable ex) {

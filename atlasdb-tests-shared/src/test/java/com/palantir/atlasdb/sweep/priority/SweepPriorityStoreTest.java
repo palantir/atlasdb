@@ -83,7 +83,7 @@ public class SweepPriorityStoreTest {
 
     @Test
     public void testUpdateAndLoad() {
-        long oldTs = txManager.runTaskWithRetry(tx -> {
+        txManager.runTaskWithRetry(tx -> {
             priorityStore.update(tx, TableReference.createFromFullyQualifiedName("foo.bar"), fullUpdate(0));
             return tx.getTimestamp();
         });

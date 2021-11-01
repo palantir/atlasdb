@@ -45,7 +45,7 @@ public final class InterceptorConnection extends AbstractInvocationHandler imple
     }
 
     @Override
-    public Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         Object ret;
         try {
             ret = method.invoke(delegate, args);

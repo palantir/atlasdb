@@ -61,11 +61,11 @@ public class CommitTsCacheTest {
     public void loadShouldPutRollbackIfCommitTsIsNull() throws Exception {
         AtomicLong answerCount = new AtomicLong();
 
-        doAnswer(invocation -> answerCount.get() > 0 ? ROLLBACK_TIMESTAMP : NO_TIMESTAMP)
+        doAnswer(_invocation -> answerCount.get() > 0 ? ROLLBACK_TIMESTAMP : NO_TIMESTAMP)
                 .when(mockTransactionService)
                 .get(VALID_START_TIMESTAMP);
 
-        doAnswer(invocation -> {
+        doAnswer(_invocation -> {
                     answerCount.set(1);
                     return null;
                 })
@@ -81,11 +81,11 @@ public class CommitTsCacheTest {
     public void loadShouldContinueIfKeyAlreadyExistsIsThrown() throws Exception {
         AtomicLong answerCount = new AtomicLong();
 
-        doAnswer(invocation -> answerCount.get() > 0 ? VALID_COMMIT_TIMESTAMP : NO_TIMESTAMP)
+        doAnswer(_invocation -> answerCount.get() > 0 ? VALID_COMMIT_TIMESTAMP : NO_TIMESTAMP)
                 .when(mockTransactionService)
                 .get(VALID_START_TIMESTAMP);
 
-        doAnswer(invocation -> {
+        doAnswer(_invocation -> {
                     answerCount.set(1);
                     throw new KeyAlreadyExistsException("Already exists");
                 })
@@ -99,7 +99,7 @@ public class CommitTsCacheTest {
 
     @Test
     public void loadShouldThrowIfANullIsToBeReturned() throws Exception {
-        doAnswer(invocation -> NO_TIMESTAMP).when(mockTransactionService).get(VALID_START_TIMESTAMP);
+        doAnswer(_invocation -> NO_TIMESTAMP).when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
     }

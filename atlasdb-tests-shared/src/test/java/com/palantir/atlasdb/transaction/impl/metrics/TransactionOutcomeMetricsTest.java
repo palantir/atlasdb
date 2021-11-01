@@ -75,7 +75,7 @@ public class TransactionOutcomeMetricsTest {
                 .build();
 
         tasks.entrySet().forEach(entry -> IntStream.range(0, entry.getKey())
-                .forEach(unused -> entry.getValue().run()));
+                .forEach(_unused -> entry.getValue().run()));
 
         assertThat(transactionOutcomeMetrics)
                 .hasAborts(1)

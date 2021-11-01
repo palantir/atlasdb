@@ -36,7 +36,7 @@ public final class SqliteBlobStore {
     public static SqliteBlobStore create(DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource)
                 .installPlugin(new SqlObjectPlugin())
-                .registerColumnMapper(InputStream.class, (rs, columnNumber, ctx) -> rs.getBinaryStream(columnNumber));
+                .registerColumnMapper(InputStream.class, (rs, columnNumber, _ctx) -> rs.getBinaryStream(columnNumber));
         SqliteBlobStore blobStore = new SqliteBlobStore(jdbi);
         blobStore.initialize();
         return blobStore;

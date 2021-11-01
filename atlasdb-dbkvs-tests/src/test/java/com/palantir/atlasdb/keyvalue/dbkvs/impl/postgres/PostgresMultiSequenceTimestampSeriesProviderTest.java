@@ -61,7 +61,7 @@ public class PostgresMultiSequenceTimestampSeriesProviderTest {
     @Test
     public void canReportMultipleSeries() {
         Set<String> clients = IntStream.range(0, 100)
-                .mapToObj(unused -> UUID.randomUUID().toString())
+                .mapToObj(_unused -> UUID.randomUUID().toString())
                 .collect(Collectors.toSet());
         clients.forEach(client -> {
             TimestampBoundStore store = createDbTimestampBoundStore(kvs, TimestampSeries.of(client));

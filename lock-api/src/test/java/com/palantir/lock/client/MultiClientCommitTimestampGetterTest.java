@@ -101,7 +101,7 @@ public class MultiClientCommitTimestampGetterTest {
     public void updatesCacheWhileProcessingResponse() {
         Namespace client = Namespace.of("Kitty");
         List<BatchElement<NamespacedRequest, Long>> batchElements = IntStream.range(0, COMMIT_TS_LIMIT_PER_REQUEST * 2)
-                .mapToObj(ind -> batchElementForNamespace(client))
+                .mapToObj(_ind -> batchElementForNamespace(client))
                 .collect(toList());
         setupServiceAndAssertSanityOfResponse(batchElements);
 

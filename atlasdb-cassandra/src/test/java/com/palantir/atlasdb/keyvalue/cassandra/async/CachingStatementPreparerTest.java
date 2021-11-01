@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class CachingStatementPreparerTest {
 
-    private static final StatementPreparer STATEMENT_PREPARER = querySpec -> mock(PreparedStatement.class);
+    private static final StatementPreparer STATEMENT_PREPARER = _querySpec -> mock(PreparedStatement.class);
     private static final MetricsManager METRICS_MANAGER = MetricsManagers.createForTests();
     private static final String KEYSPACE = "foo";
     private static final TableReference TABLE_REFERENCE = tableReference("bar");

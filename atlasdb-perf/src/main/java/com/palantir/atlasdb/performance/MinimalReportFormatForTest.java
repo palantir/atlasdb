@@ -37,11 +37,11 @@ public final class MinimalReportFormatForTest implements OutputFormat {
     }
 
     @Override
-    public void iteration(BenchmarkParams benchParams, IterationParams params, int iteration) {}
+    public void iteration(BenchmarkParams _benchParams, IterationParams _params, int _iteration) {}
 
     @Override
     public void iterationResult(
-            BenchmarkParams benchParams, IterationParams params, int iteration, IterationResult data) {}
+            BenchmarkParams _benchParams, IterationParams _params, int _iteration, IterationResult _data) {}
 
     @Override
     public void startBenchmark(BenchmarkParams benchParams) {
@@ -59,13 +59,13 @@ public final class MinimalReportFormatForTest implements OutputFormat {
     public void startRun() {}
 
     @Override
-    public void endRun(Collection<RunResult> result) {}
+    public void endRun(Collection<RunResult> _result) {}
 
     @Override
-    public void print(String str) {}
+    public void print(String _str) {}
 
     @Override
-    public void println(String str) {}
+    public void println(String _str) {}
 
     @Override
     public void flush() {}
@@ -74,11 +74,11 @@ public final class MinimalReportFormatForTest implements OutputFormat {
     public void close() {}
 
     @Override
-    public void verbosePrintln(String str) {}
+    public void verbosePrintln(String _str) {}
 
     @Override
-    public void write(int num) {}
+    public void write(int _num) {}
 
     @Override
-    public void write(byte[] num) throws IOException {}
+    public void write(byte[] _num) throws IOException {}
 }

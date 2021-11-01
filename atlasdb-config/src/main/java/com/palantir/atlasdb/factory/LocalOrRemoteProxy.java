@@ -55,7 +55,7 @@ final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         while (true) {
             if (Thread.currentThread().isInterrupted()) {
                 // do not clear the interrupt flag

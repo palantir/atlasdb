@@ -182,10 +182,10 @@ public final class StreamTestMaxMemStreamMetadataTable implements
 
         public static final Hydrator<StreamTestMaxMemStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<StreamTestMaxMemStreamMetadataRow>() {
             @Override
-            public StreamTestMaxMemStreamMetadataRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+            public StreamTestMaxMemStreamMetadataRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long id = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 return new StreamTestMaxMemStreamMetadataRow(id);
             }
         };
@@ -608,15 +608,15 @@ public final class StreamTestMaxMemStreamMetadataTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

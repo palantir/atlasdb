@@ -71,7 +71,7 @@ public final class ApiTestTableFactory {
                 Multimap<
                                 AllValueTypesTestTable.AllValueTypesTestRow,
                                 ? extends AllValueTypesTestTable.AllValueTypesTestNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -80,7 +80,7 @@ public final class ApiTestTableFactory {
                 Multimap<
                                 HashComponentsTestTable.HashComponentsTestRow,
                                 ? extends HashComponentsTestTable.HashComponentsTestNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
 
@@ -89,7 +89,7 @@ public final class ApiTestTableFactory {
                 Multimap<
                                 SchemaApiTestTable.SchemaApiTestRow,
                                 ? extends SchemaApiTestTable.SchemaApiTestNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

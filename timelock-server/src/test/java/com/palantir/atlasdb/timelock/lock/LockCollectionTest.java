@@ -55,7 +55,7 @@ public class LockCollectionTest {
     @Test
     public void returnsLocksInOrder() {
         List<LockDescriptor> orderedDescriptors = IntStream.range(0, 10)
-                .mapToObj(i -> UUID.randomUUID().toString())
+                .mapToObj(_i -> UUID.randomUUID().toString())
                 .map(StringLockDescriptor::of)
                 .sorted()
                 .collect(Collectors.toList());

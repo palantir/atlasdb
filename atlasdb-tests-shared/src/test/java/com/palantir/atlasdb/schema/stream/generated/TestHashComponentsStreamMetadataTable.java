@@ -187,12 +187,12 @@ public final class TestHashComponentsStreamMetadataTable implements
 
         public static final Hydrator<TestHashComponentsStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<TestHashComponentsStreamMetadataRow>() {
             @Override
-            public TestHashComponentsStreamMetadataRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+            public TestHashComponentsStreamMetadataRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
+                Long id = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 return new TestHashComponentsStreamMetadataRow(hashOfRowComponents, id);
             }
         };
@@ -622,15 +622,15 @@ public final class TestHashComponentsStreamMetadataTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

@@ -126,7 +126,7 @@ public final class ThreadConfinedProxy extends AbstractInvocationHandler impleme
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         checkThread(method);
         try {
             return method.invoke(delegate, args);

@@ -86,13 +86,13 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
     @Override
     public ListenableFuture<ConjureStartTransactionsResponse> startTransactions(
-            AuthHeader authHeader, String namespace, ConjureStartTransactionsRequest request) {
+            AuthHeader _authHeader, String namespace, ConjureStartTransactionsRequest request) {
         return handleExceptions(() -> forNamespace(namespace).startTransactionsWithWatches(request));
     }
 
     @Override
     public ListenableFuture<ConjureGetFreshTimestampsResponse> getFreshTimestamps(
-            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
+            AuthHeader _authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
         return handleExceptions(() -> {
             ListenableFuture<TimestampRange> rangeFuture =
                     forNamespace(namespace).getFreshTimestampsAsync(request.getNumTimestamps());
@@ -104,13 +104,13 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     @Override
-    public ListenableFuture<LeaderTime> leaderTime(AuthHeader authHeader, String namespace) {
+    public ListenableFuture<LeaderTime> leaderTime(AuthHeader _authHeader, String namespace) {
         return handleExceptions(() -> forNamespace(namespace).leaderTime());
     }
 
     @Override
     public ListenableFuture<ConjureLockResponse> lock(
-            AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+            AuthHeader _authHeader, String namespace, ConjureLockRequest request) {
         return handleExceptions(() -> {
             IdentifiedLockRequest lockRequest = ImmutableIdentifiedLockRequest.builder()
                     .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
@@ -125,14 +125,14 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     token -> token.accept(Visitor.of(
                             success -> ConjureLockResponse.successful(SuccessfulLockResponse.of(
                                     ConjureLockToken.of(success.getToken().getRequestId()), success.getLease())),
-                            failure -> ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()))),
+                            _failure -> ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()))),
                     MoreExecutors.directExecutor());
         });
     }
 
     @Override
     public ListenableFuture<ConjureWaitForLocksResponse> waitForLocks(
-            AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+            AuthHeader _authHeader, String namespace, ConjureLockRequest request) {
         return handleExceptions(() -> {
             WaitForLocksRequest lockRequest = ImmutableWaitForLocksRequest.builder()
                     .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
@@ -159,7 +159,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
     @Override
     public ListenableFuture<ConjureRefreshLocksResponse> refreshLocks(
-            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequest request) {
+            AuthHeader _authHeader, String namespace, ConjureRefreshLocksRequest request) {
         return handleExceptions(() -> Futures.transform(
                 forNamespace(namespace).refreshLockLeases(fromConjureLockTokens(request.getTokens())),
                 refreshed -> ConjureRefreshLocksResponse.of(
@@ -169,7 +169,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
     @Override
     public ListenableFuture<ConjureUnlockResponse> unlock(
-            AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
+            AuthHeader _authHeader, String namespace, ConjureUnlockRequest request) {
         return handleExceptions(() -> Futures.transform(
                 forNamespace(namespace).unlock(fromConjureLockTokens(request.getTokens())),
                 unlocked -> ConjureUnlockResponse.of(toConjureLockTokens(unlocked)),
@@ -194,7 +194,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
     @Override
     public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
-            AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
+            AuthHeader _authHeader, String namespace, GetCommitTimestampsRequest request) {
         return handleExceptions(() -> forNamespace(namespace)
                 .getCommitTimestamps(
                         request.getNumTimestamps(),

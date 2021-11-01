@@ -78,9 +78,7 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.lock.AutoDelegate_LockService;
 import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
@@ -112,7 +110,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.assertj.core.util.Files;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -302,24 +299,6 @@ public class TransactionManagersTest {
         setUpLeaderBlockInConfig();
 
         ThreadLocal<Boolean> inRequest = ThreadLocal.withInitial(() -> false);
-        Supplier<LockService> lockServiceSupplier = () -> {
-            LockService lockService = LockServiceImpl.create();
-            return new AutoDelegate_LockService() {
-
-                @Override
-                public boolean unlock(LockRefreshToken token) {
-                    assertThat(inRequest.get())
-                            .describedAs("unlock was synchronous")
-                            .isFalse();
-                    return delegate().unlock(token);
-                }
-
-                @Override
-                public LockService delegate() {
-                    return lockService;
-                }
-            };
-        };
 
         LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
 

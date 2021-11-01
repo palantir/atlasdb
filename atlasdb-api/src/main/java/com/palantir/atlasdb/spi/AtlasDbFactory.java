@@ -48,8 +48,8 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
      */
     default MERGED_CONFIG createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<String> namespace) {
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> _runtimeConfig,
+            Optional<String> _namespace) {
         return (MERGED_CONFIG) config;
     }
 
@@ -80,7 +80,7 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync);
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(
-            KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride) {
+            KeyValueService _rawKvs, Optional<TableReference> _tableReferenceOverride) {
         return () -> {
             log.warn(
                     "AtlasDB doesn't yet support automated migration for KVS type {}.",

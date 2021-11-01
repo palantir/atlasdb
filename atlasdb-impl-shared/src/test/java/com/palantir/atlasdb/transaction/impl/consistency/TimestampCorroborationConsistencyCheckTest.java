@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class TimestampCorroborationConsistencyCheckTest {
     private static final RuntimeException EXCEPTION = new IllegalStateException("bad");
-    private static final ToLongFunction<TransactionManager> EXCEPTION_THROWER = unused -> {
+    private static final ToLongFunction<TransactionManager> EXCEPTION_THROWER = _unused -> {
         throw EXCEPTION;
     };
 
@@ -35,7 +35,7 @@ public class TimestampCorroborationConsistencyCheckTest {
         TimestampCorroborationConsistencyCheck checkFailingToGetBound =
                 ImmutableTimestampCorroborationConsistencyCheck.builder()
                         .conservativeBound(EXCEPTION_THROWER)
-                        .freshTimestampSource(txMgr -> 7L)
+                        .freshTimestampSource(_txMgr -> 7L)
                         .build();
         assertThat(checkFailingToGetBound.apply(mock(TransactionManager.class)))
                 .isEqualTo(ImmutableTransactionManagerConsistencyResult.builder()
@@ -48,7 +48,7 @@ public class TimestampCorroborationConsistencyCheckTest {
     public void returnsIndeterminateIfCannotGetFreshTimestamp() {
         TimestampCorroborationConsistencyCheck checkFailingToGetFresh =
                 ImmutableTimestampCorroborationConsistencyCheck.builder()
-                        .conservativeBound(txMgr -> 10L)
+                        .conservativeBound(_txMgr -> 10L)
                         .freshTimestampSource(EXCEPTION_THROWER)
                         .build();
         assertThat(checkFailingToGetFresh.apply(mock(TransactionManager.class)))
@@ -89,8 +89,8 @@ public class TimestampCorroborationConsistencyCheckTest {
 
     private TimestampCorroborationConsistencyCheck createForTimestamps(long conservativeBound, long freshTimestamp) {
         return ImmutableTimestampCorroborationConsistencyCheck.builder()
-                .conservativeBound(unused -> conservativeBound)
-                .freshTimestampSource(unused -> freshTimestamp)
+                .conservativeBound(_unused -> conservativeBound)
+                .freshTimestampSource(_unused -> freshTimestamp)
                 .build();
     }
 }

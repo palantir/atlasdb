@@ -39,7 +39,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    public void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
+    public void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> _lockWatchReferences) {
         // Ignored
     }
 
@@ -75,12 +75,12 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    public TransactionScopedCache getTransactionScopedCache(long startTs) {
+    public TransactionScopedCache getTransactionScopedCache(long _startTs) {
         return NoOpTransactionScopedCache.create();
     }
 
     @Override
-    public TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs) {
+    public TransactionScopedCache getReadOnlyTransactionScopedCache(long _startTs) {
         return NoOpTransactionScopedCache.create().createReadOnlyCache(CommitUpdate.invalidateAll());
     }
 

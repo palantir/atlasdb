@@ -41,15 +41,15 @@ public class ResultSets {
     }
 
     public static Map<String, Integer> buildInMemoryColumnMap(ResultSetMetaData meta, DBType dbType) {
-        return buildColumnMap(meta, dbType, 0);
+        return buildColumnMap(meta, 0);
     }
 
     public static Map<String, Integer> buildJdbcColumnMap(ResultSetMetaData meta, DBType dbType) {
-        return buildColumnMap(meta, dbType, 1);
+        return buildColumnMap(meta, 1);
     }
 
     /** @param columnOffset Some result set implementations index their columns from 1, some from 0 */
-    private static Map<String, Integer> buildColumnMap(ResultSetMetaData meta, DBType dbType, int columnOffset) {
+    private static Map<String, Integer> buildColumnMap(ResultSetMetaData meta, int columnOffset) {
         /* Build a map containing both all lower case versions of the column
          * names. This avoids the CPU and GC cost of case conversion upon lookup
          * compared to using something like newTreeMap(String.CASE_INSENSITIVE_ORDER),

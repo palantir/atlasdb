@@ -48,7 +48,7 @@ public final class TransactionReadRowsBenchmark extends AbstractBenchmark {
         this.txnManager = txnManager;
 
         this.keys = IntStream.range(0, numRows)
-                .mapToObj(i -> RandomBytes.ofLength(16))
+                .mapToObj(_i -> RandomBytes.ofLength(16))
                 .collect(Collectors.toList());
         this.dataSize = dataSize;
     }

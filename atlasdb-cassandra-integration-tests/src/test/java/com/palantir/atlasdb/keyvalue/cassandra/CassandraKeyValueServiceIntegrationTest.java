@@ -131,7 +131,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     });
 
-    public CassandraKeyValueServiceIntegrationTest(String name, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
+    public CassandraKeyValueServiceIntegrationTest(
+            String _name, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
         super(CASSANDRA, keyValueServiceWrapper);
     }
 
@@ -350,7 +351,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         byte[] row1 = row(1);
 
         Map<Cell, Value> tableValues = stream.mapToObj(col -> Cell.create(row1, column(col)))
-                .collect(Collectors.toMap(cell -> cell, cell -> Value.create(data, 1L)));
+                .collect(Collectors.toMap(cell -> cell, _cell -> Value.create(data, 1L)));
 
         keyValueService.putWithTimestamps(
                 tableReference, KeyedStream.stream(tableValues).collectToSetMultimap());

@@ -68,11 +68,11 @@ public final class CassandraMutationTimestampProviders {
             @Override
             public LongUnaryOperator getDeletionTimestampOperatorForBatchDelete() {
                 long deletionTimestamp = longSupplier.getAsLong();
-                return unused -> deletionTimestamp;
+                return _unused -> deletionTimestamp;
             }
 
             @Override
-            public long getRangeTombstoneTimestamp(long maximumAtlasTimestampExclusive) {
+            public long getRangeTombstoneTimestamp(long _maximumAtlasTimestampExclusive) {
                 return longSupplier.getAsLong();
             }
         };

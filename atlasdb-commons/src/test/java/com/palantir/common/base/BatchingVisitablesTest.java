@@ -342,7 +342,7 @@ public class BatchingVisitablesTest {
         long count = 0;
 
         @Override
-        public boolean visit(T item) throws RuntimeException {
+        public boolean visit(T _item) throws RuntimeException {
             count++;
             return true;
         }
@@ -357,7 +357,7 @@ public class BatchingVisitablesTest {
         }
 
         @Override
-        public boolean visit(T item) throws RuntimeException {
+        public boolean visit(T _item) throws RuntimeException {
             count++;
             return count < limit;
         }
@@ -422,7 +422,7 @@ public class BatchingVisitablesTest {
         long count = 0;
 
         @Override
-        protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint, ConsistentVisitor<Long, K> bv)
+        protected <K extends Exception> void batchAcceptSizeHint(int _batchSizeHint, ConsistentVisitor<Long, K> bv)
                 throws K {
             while (bv.visitOne(count++)) {
                 /* */
@@ -439,7 +439,7 @@ public class BatchingVisitablesTest {
         }
 
         @Override
-        public boolean apply(@Nullable T input) {
+        public boolean apply(@Nullable T _input) {
             return ++count % numToSkip == 0;
         }
     }

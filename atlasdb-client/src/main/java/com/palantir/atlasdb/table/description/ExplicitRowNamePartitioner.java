@@ -36,7 +36,7 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
     }
 
     @Override
-    public List<byte[]> getPartitions(int numberRanges) {
+    public List<byte[]> getPartitions(int _numberRanges) {
         return getPartitionsInternal();
     }
 

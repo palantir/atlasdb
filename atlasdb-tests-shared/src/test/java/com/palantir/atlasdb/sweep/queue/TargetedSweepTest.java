@@ -270,7 +270,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     private long putWriteAndFailOnPreCommitConditionReturningStartTimestamp(WriteReference writeRef) {
         AtomicLong startTs = new AtomicLong(0);
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(
-                        FailingPreCommitCondition::new, (txn, ignore) -> {
+                        FailingPreCommitCondition::new, (txn, _ignore) -> {
                             put(txn, writeRef);
                             startTs.set(txn.getTimestamp());
                             return null;
@@ -302,7 +302,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     private static final class FailingPreCommitCondition implements PreCommitCondition {
         @Override
-        public void throwIfConditionInvalid(long timestamp) {
+        public void throwIfConditionInvalid(long _timestamp) {
             throw new RuntimeException("test");
         }
 

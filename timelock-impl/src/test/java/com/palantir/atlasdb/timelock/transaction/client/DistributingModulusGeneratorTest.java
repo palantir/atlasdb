@@ -57,7 +57,7 @@ public class DistributingModulusGeneratorTest {
     public void canUseResidueOne() {
         setupGeneratorWithModulus(1);
 
-        IntStream.range(0, 50).forEach(unused -> requestResiduesAndAssertEachUsedOnce(1));
+        IntStream.range(0, 50).forEach(_unused -> requestResiduesAndAssertEachUsedOnce(1));
     }
 
     @Test
@@ -137,7 +137,7 @@ public class DistributingModulusGeneratorTest {
         for (int trial = 0; trial < 20; trial++) {
             setupGeneratorWithModulus(16);
             int residue = Iterables.getOnlyElement(requestResidues(1));
-            frequencyMap.compute(residue, (unusedKey, oldValue) -> oldValue == null ? 1 : oldValue + 1);
+            frequencyMap.compute(residue, (_unusedKey, oldValue) -> oldValue == null ? 1 : oldValue + 1);
         }
 
         // Assuming uniform randomness, strobes once in 2^80 times, which we can live with
@@ -150,7 +150,7 @@ public class DistributingModulusGeneratorTest {
 
     private List<Integer> requestResidues(int times) {
         return IntStream.range(0, times)
-                .map(unused -> generator.getAndMarkResidue())
+                .map(_unused -> generator.getAndMarkResidue())
                 .boxed()
                 .collect(Collectors.toList());
     }

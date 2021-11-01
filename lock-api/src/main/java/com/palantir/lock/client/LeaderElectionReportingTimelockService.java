@@ -165,8 +165,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
             Instant startTime,
             Instant responseTime) {
         UUID newLeader = leaderExtractor.apply(response);
-        leadershipUpperBound.compute(newLeader, (ignore, oldTime) -> max(oldTime, startTime));
-        leadershipLowerBound.compute(newLeader, (ignore, oldTime) -> min(oldTime, responseTime));
+        leadershipUpperBound.compute(newLeader, (_ignore, oldTime) -> max(oldTime, startTime));
+        leadershipLowerBound.compute(newLeader, (_ignore, oldTime) -> min(oldTime, responseTime));
         boolean election = !newLeader.equals(currentLeader);
 
         if (election) {

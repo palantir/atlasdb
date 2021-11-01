@@ -43,7 +43,7 @@ public abstract class ResourceSharer<R, E extends Exception> {
             delegate = open();
         }
         ++refs;
-        final R delegateLocal = delegate;
+
         return type.closeWrapper(delegate, new ResourceOnClose<E>() {
             private boolean closed = false;
 

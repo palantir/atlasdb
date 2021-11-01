@@ -1169,7 +1169,8 @@ public final class LockServiceImpl
                 .filter(token -> token.getLockDescriptors().contains(descriptor))
                 .forEach(lock -> lockState.addHolders(LockHolder.from(lock)));
         KeyedStream.stream(outstandingLockRequestMultimap)
-                .filterEntries((client, request) -> request.getLockDescriptors().contains(descriptor))
+                .filterEntries(
+                        (_client, request) -> request.getLockDescriptors().contains(descriptor))
                 .forEach((client, request) -> lockState.addRequesters(LockRequester.from(request, client)));
         return lockState.build();
     }

@@ -43,12 +43,12 @@ public class SweepableTimestamps extends SweepQueueTable {
     }
 
     @Override
-    Map<Cell, byte[]> populateReferences(PartitionInfo partitionInfo, List<WriteInfo> writes) {
+    Map<Cell, byte[]> populateReferences(PartitionInfo _partitionInfo, List<WriteInfo> _writes) {
         return ImmutableMap.of();
     }
 
     @Override
-    Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes) {
+    Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> _writes) {
         SweepableTimestampsTable.SweepableTimestampsRow row = computeRow(info);
         SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(info);
 

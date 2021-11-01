@@ -25,7 +25,7 @@ public final class PreCommitConditions {
 
     public static final PreCommitCondition NO_OP = new PreCommitCondition() {
         @Override
-        public void throwIfConditionInvalid(long timestamp) {}
+        public void throwIfConditionInvalid(long _timestamp) {}
 
         @Override
         public void cleanup() {}

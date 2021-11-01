@@ -20,44 +20,44 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 interface KeyValueServiceLogArbitrator {
     KeyValueServiceLogArbitrator ALL_UNSAFE = new KeyValueServiceLogArbitrator() {
         @Override
-        public boolean isTableReferenceSafe(TableReference tableReference) {
+        public boolean isTableReferenceSafe(TableReference _tableReference) {
             return false;
         }
 
         @Override
-        public boolean isInternalTableReferenceSafe(String internalTableReference) {
+        public boolean isInternalTableReferenceSafe(String _internalTableReference) {
             return false;
         }
 
         @Override
-        public boolean isRowComponentNameSafe(TableReference tableReference, String rowComponentName) {
+        public boolean isRowComponentNameSafe(TableReference _tableReference, String _rowComponentName) {
             return false;
         }
 
         @Override
-        public boolean isColumnNameSafe(TableReference tableReference, String longNameForColumn) {
+        public boolean isColumnNameSafe(TableReference _tableReference, String _longNameForColumn) {
             return false;
         }
     };
 
     KeyValueServiceLogArbitrator ALL_SAFE = new KeyValueServiceLogArbitrator() {
         @Override
-        public boolean isTableReferenceSafe(TableReference tableReference) {
+        public boolean isTableReferenceSafe(TableReference _tableReference) {
             return true;
         }
 
         @Override
-        public boolean isInternalTableReferenceSafe(String internalTableReference) {
+        public boolean isInternalTableReferenceSafe(String _internalTableReference) {
             return true;
         }
 
         @Override
-        public boolean isRowComponentNameSafe(TableReference tableReference, String rowComponentName) {
+        public boolean isRowComponentNameSafe(TableReference _tableReference, String _rowComponentName) {
             return true;
         }
 
         @Override
-        public boolean isColumnNameSafe(TableReference tableReference, String longNameForColumn) {
+        public boolean isColumnNameSafe(TableReference _tableReference, String _longNameForColumn) {
             return true;
         }
     };

@@ -42,7 +42,7 @@ public final class TimingProxy implements DelegatingInvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(Object _proxy, Method method, Object[] args) throws Throwable {
         TimingState token = timer.begin(method.getName());
         try {
             return method.invoke(delegate, args);

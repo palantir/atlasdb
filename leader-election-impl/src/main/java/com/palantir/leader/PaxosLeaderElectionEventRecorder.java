@@ -49,19 +49,19 @@ public interface PaxosLeaderElectionEventRecorder {
 
     PaxosLeaderElectionEventRecorder NO_OP = new PaxosLeaderElectionEventRecorder() {
         @Override
-        public void recordNotLeading(PaxosValue value) {}
+        public void recordNotLeading(PaxosValue _value) {}
 
         @Override
-        public void recordNoQuorum(PaxosValue value) {}
+        public void recordNoQuorum(PaxosValue _value) {}
 
         @Override
-        public void recordProposalFailure(PaxosRoundFailureException paxosException) {}
+        public void recordProposalFailure(PaxosRoundFailureException _paxosException) {}
 
         @Override
-        public void recordProposalAttempt(long round) {}
+        public void recordProposalAttempt(long _round) {}
 
         @Override
-        public void recordLeaderPingFailure(Throwable error) {}
+        public void recordLeaderPingFailure(Throwable _error) {}
 
         @Override
         public void recordLeaderPingTimeout() {}
@@ -70,6 +70,6 @@ public interface PaxosLeaderElectionEventRecorder {
         public void recordLeaderPingReturnedFalse() {}
 
         @Override
-        public void recordLeaderOnOlderVersion(OrderableSlsVersion version) {}
+        public void recordLeaderOnOlderVersion(OrderableSlsVersion _version) {}
     };
 }

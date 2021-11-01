@@ -241,7 +241,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         refreshPoolFuture.cancel(true);
         cassandra
                 .getPools()
-                .forEach((address, cassandraClientPoolingContainer) ->
+                .forEach((_address, cassandraClientPoolingContainer) ->
                         cassandraClientPoolingContainer.shutdownPooling());
         cassandra.getPools().clear();
         cassandra.clearInitialCassandraHosts();
@@ -258,7 +258,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         refreshPoolFuture.cancel(false);
         cassandra
                 .getPools()
-                .forEach((address, cassandraClientPoolingContainer) ->
+                .forEach((_address, cassandraClientPoolingContainer) ->
                         cassandraClientPoolingContainer.shutdownPooling());
     }
 

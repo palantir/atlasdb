@@ -25,7 +25,7 @@ import java.util.Map;
  */
 @Deprecated
 public interface ConflictTracer {
-    ConflictTracer NO_OP = (startTimestamp, keysToLoad, latestTimestamps, commitTimestamps) -> {};
+    ConflictTracer NO_OP = (_startTimestamp, _keysToLoad, _latestTimestamps, _commitTimestamps) -> {};
 
     void collect(
             long startTimestamp,

@@ -35,7 +35,7 @@ class LockDescriptorMapper {
     private AtomicInteger lockCounter = new AtomicInteger();
 
     String getDescriptorMapping(LockDescriptor descriptor) {
-        return mapper.computeIfAbsent(descriptor, k -> LOCK_PREFIX + lockCounter.incrementAndGet());
+        return mapper.computeIfAbsent(descriptor, _k -> LOCK_PREFIX + lockCounter.incrementAndGet());
     }
 
     /**

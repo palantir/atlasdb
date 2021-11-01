@@ -31,7 +31,7 @@ public class RangeTokenSerializer extends StdSerializer<RangeToken> {
     }
 
     @Override
-    public void serialize(RangeToken value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(RangeToken value, JsonGenerator jgen, SerializerProvider _provider) throws IOException {
         jgen.writeStartObject();
         jgen.writeObjectField("data", value.getResults());
         if (value.hasMoreResults()) {

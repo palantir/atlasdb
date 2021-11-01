@@ -131,7 +131,7 @@ public abstract class RegeneratingTable<T> {
             getKvs().truncateTable(getTableRef());
             Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, 1);
             getKvs().put(getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
-            data = Multimaps.forMap(Maps.transformValues(batch, $ -> Tables.DUMMY_TIMESTAMP));
+            data = Multimaps.forMap(Maps.transformValues(batch, _$ -> Tables.DUMMY_TIMESTAMP));
         }
 
         @Override
@@ -149,7 +149,7 @@ public abstract class RegeneratingTable<T> {
             getKvs().truncateTable(getTableRef());
             Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, BATCH_SIZE);
             getKvs().put(getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
-            data = Multimaps.forMap(Maps.transformValues(batch, $ -> Tables.DUMMY_TIMESTAMP));
+            data = Multimaps.forMap(Maps.transformValues(batch, _$ -> Tables.DUMMY_TIMESTAMP));
         }
 
         @Override

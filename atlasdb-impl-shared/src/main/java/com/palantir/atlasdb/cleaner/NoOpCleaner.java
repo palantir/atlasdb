@@ -30,21 +30,21 @@ public final class NoOpCleaner implements Cleaner {
     }
 
     @Override
-    public void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp) {
+    public void queueCellsForScrubbing(Multimap<Cell, TableReference> _cellToTableRefs, long _scrubTimestamp) {
         throw new UnsupportedOperationException("This cleaner does not support scrubbing");
     }
 
     @Override
     public void scrubImmediately(
-            TransactionManager txManager,
-            Multimap<TableReference, Cell> tableRefToCell,
-            long scrubTimestamp,
-            long commitTimestamp) {
+            TransactionManager _txManager,
+            Multimap<TableReference, Cell> _tableRefToCell,
+            long _scrubTimestamp,
+            long _commitTimestamp) {
         throw new UnsupportedOperationException("This cleaner does not support scrubbing");
     }
 
     @Override
-    public void punch(long timestamp) {
+    public void punch(long _timestamp) {
         // Do nothing
     }
 
@@ -64,7 +64,7 @@ public final class NoOpCleaner implements Cleaner {
     }
 
     @Override
-    public void start(TransactionManager txManager) {
+    public void start(TransactionManager _txManager) {
         // Do nothing
     }
 }

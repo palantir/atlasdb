@@ -42,7 +42,7 @@ public class TableRowResultSerializer extends StdSerializer<TableRowResult> {
     }
 
     @Override
-    public void serialize(TableRowResult value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(TableRowResult value, JsonGenerator jgen, SerializerProvider _provider) throws IOException {
         TableMetadata metadata = metadataCache.getMetadata(value.getTableName());
         Preconditions.checkNotNull(metadata, "Unknown table %s", value.getTableName());
         jgen.writeStartObject();

@@ -33,7 +33,7 @@ public class InMemoryTestRunner extends AbstractTestRunner<AtlasDbServices> {
     }
 
     @Override
-    protected void cleanup(KeyValueServiceConfig kvsConfig) {
+    protected void cleanup(KeyValueServiceConfig _kvsConfig) {
         // noop
     }
 }

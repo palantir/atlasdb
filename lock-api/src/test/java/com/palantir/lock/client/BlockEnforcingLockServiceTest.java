@@ -212,8 +212,9 @@ public class BlockEnforcingLockServiceTest {
                 .collect(Collectors.toList());
 
         when(clock.instant())
-                .thenAnswer(invocation -> clockInstants.get(Math.min(clockInstants.size() - 1, positionalIndex.get())));
-        when(query.apply(any())).thenAnswer(invocation -> {
+                .thenAnswer(
+                        _invocation -> clockInstants.get(Math.min(clockInstants.size() - 1, positionalIndex.get())));
+        when(query.apply(any())).thenAnswer(_invocation -> {
             try {
                 Outcome outcome = outcomesAndInstants
                         .get(Math.min(outcomesAndInstants.size() - 1, positionalIndex.get()))

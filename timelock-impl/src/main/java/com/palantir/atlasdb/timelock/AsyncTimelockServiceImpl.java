@@ -270,7 +270,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public <T> ValueAndLockWatchStateUpdate<T> runTask(Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task) {
+    public <T> ValueAndLockWatchStateUpdate<T> runTask(
+            Optional<LockWatchVersion> _lastKnownVersion, Supplier<T> _task) {
         throw new UnsupportedOperationException("Exposing this method is too dangerous.");
     }
 

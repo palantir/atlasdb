@@ -85,7 +85,7 @@ public final class TableTasks {
     public static void copy(
             TransactionManager txManager,
             ExecutorService exec,
-            Iterable<LockRefreshToken> lockTokens,
+            Iterable<LockRefreshToken> _lockTokens,
             final TableReference srcTable,
             final TableReference dstTable,
             int batchSize,
@@ -216,7 +216,7 @@ public final class TableTasks {
     public static void diff(
             final TransactionManager txManager,
             ExecutorService exec,
-            final Iterable<LockRefreshToken> lockTokens,
+            final Iterable<LockRefreshToken> _lockTokens,
             final TableReference plusTable,
             final TableReference minusTable,
             final int batchSize,

@@ -210,16 +210,16 @@ public final class SweepableTimestampsTable implements
 
         public static final Hydrator<SweepableTimestampsRow> BYTES_HYDRATOR = new Hydrator<SweepableTimestampsRow>() {
             @Override
-            public SweepableTimestampsRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
-                Long shard = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(shard);
-                Long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
-                byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
+            public SweepableTimestampsRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
+                Long shard = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(shard);
+                Long timestampPartition = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
+                byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(_input, _index);
+                _index += 0;
                 return new SweepableTimestampsRow(hashOfRowComponents, shard, timestampPartition, sweepConservative);
             }
         };
@@ -319,10 +319,10 @@ public final class SweepableTimestampsTable implements
 
         public static final Hydrator<SweepableTimestampsColumn> BYTES_HYDRATOR = new Hydrator<SweepableTimestampsColumn>() {
             @Override
-            public SweepableTimestampsColumn hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
+            public SweepableTimestampsColumn hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long timestampModulus = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
                 return new SweepableTimestampsColumn(timestampModulus);
             }
         };
@@ -689,15 +689,15 @@ public final class SweepableTimestampsTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

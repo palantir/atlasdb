@@ -58,7 +58,7 @@ public class AsyncTimeLockUnlockerTest {
 
     @Test(timeout = 2_000)
     public void enqueueDoesNotBlock() {
-        doAnswer(invocation -> {
+        doAnswer(_invocation -> {
                     Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30));
                     return null;
                 })
@@ -119,7 +119,7 @@ public class AsyncTimeLockUnlockerTest {
     private static List<LockToken> createLockTokenList(int size) {
         return IntStream.range(0, size)
                 .boxed()
-                .map(unused -> LockToken.of(UUID.randomUUID()))
+                .map(_unused -> LockToken.of(UUID.randomUUID()))
                 .collect(Collectors.toList());
     }
 

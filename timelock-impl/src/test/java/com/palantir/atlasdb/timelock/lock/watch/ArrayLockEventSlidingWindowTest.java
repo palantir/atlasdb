@@ -116,7 +116,7 @@ public class ArrayLockEventSlidingWindowTest {
         public abstract int size();
 
         @Override
-        public <T> T accept(LockWatchEvent.Visitor<T> visitor) {
+        public <T> T accept(LockWatchEvent.Visitor<T> _visitor) {
             // do nothing
             return null;
         }

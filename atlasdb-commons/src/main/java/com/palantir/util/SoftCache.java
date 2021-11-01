@@ -63,7 +63,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
     }
 
     @Override
-    public void setMaxCacheSize(int size) {
+    public void setMaxCacheSize(int _size) {
         /* do nothing here.  subclasses will override */
     }
 

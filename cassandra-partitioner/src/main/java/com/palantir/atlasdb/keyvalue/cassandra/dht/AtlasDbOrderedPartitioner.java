@@ -130,7 +130,7 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
      */
     @Override
     public Map<Token, Float> describeOwnership(final List<Token> sortedTokens) {
-        return Maps.asMap(ImmutableSet.copyOf(sortedTokens), token -> {
+        return Maps.asMap(ImmutableSet.copyOf(sortedTokens), _token -> {
             if (sortedTokens.size() > 0) {
                 return 1f / sortedTokens.size();
             } else {

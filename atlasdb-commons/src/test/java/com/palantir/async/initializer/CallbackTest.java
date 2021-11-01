@@ -109,7 +109,7 @@ public class CallbackTest {
         }
 
         @Override
-        public void cleanup(AtomicLong counter, Throwable initException) {
+        public void cleanup(AtomicLong _counter, Throwable initException) {
             if (throwOnLegitReason) {
                 if (initException.getMessage().contains("LEGIT REASON")) {
                     throw (RuntimeException) initException;
@@ -131,7 +131,7 @@ public class CallbackTest {
         }
 
         @Override
-        public void cleanup(AtomicBoolean started, Throwable initException) {
+        public void cleanup(AtomicBoolean _started, Throwable _initException) {
             try {
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {

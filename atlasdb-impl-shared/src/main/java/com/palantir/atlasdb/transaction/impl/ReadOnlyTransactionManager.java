@@ -83,7 +83,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionReadOnly(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+        return runTaskWithConditionReadOnly(NO_OP_CONDITION, (txn, _condition) -> task.execute(txn));
     }
 
     @Override
@@ -93,28 +93,28 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> _task)
             throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier, LockAwareTransactionTask<T, E> task) {
+            Supplier<LockRequest> _lockSupplier, LockAwareTransactionTask<T, E> _task) {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Iterable<HeldLocksToken> lockTokens,
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) {
+            Iterable<HeldLocksToken> _lockTokens,
+            Supplier<LockRequest> _lockSupplier,
+            LockAwareTransactionTask<T, E> _task) {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens, LockAwareTransactionTask<T, E> task)
+            Iterable<HeldLocksToken> _lockTokens, LockAwareTransactionTask<T, E> _task)
             throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
@@ -152,12 +152,12 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     public void clearTimestampCache() {}
 
     @Override
-    public void registerClosingCallback(Runnable closingCallback) {
+    public void registerClosingCallback(Runnable _closingCallback) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 
     @Override
-    public List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> condition) {
+    public List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> _condition) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 
@@ -203,7 +203,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
 
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
-            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
+            C _condition, ConditionAwareTransactionTask<T, C, E> _task) throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 

@@ -41,7 +41,7 @@ public final class CorruptionNotifierResource implements UndertowTimeLockCorrupt
     }
 
     @Override
-    public ListenableFuture<Void> corruptionDetected(AuthHeader authHeader) {
+    public ListenableFuture<Void> corruptionDetected(AuthHeader _authHeader) {
         remoteCorruptionDetector.setRemoteCorruptionState();
         return Futures.immediateVoidFuture();
     }

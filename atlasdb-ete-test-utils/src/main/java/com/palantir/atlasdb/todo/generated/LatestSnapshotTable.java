@@ -182,10 +182,10 @@ public final class LatestSnapshotTable implements
 
         public static final Hydrator<LatestSnapshotRow> BYTES_HYDRATOR = new Hydrator<LatestSnapshotRow>() {
             @Override
-            public LatestSnapshotRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long key = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+            public LatestSnapshotRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long key = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
                 return new LatestSnapshotRow(key);
             }
         };
@@ -584,15 +584,15 @@ public final class LatestSnapshotTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

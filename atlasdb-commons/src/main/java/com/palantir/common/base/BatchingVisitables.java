@@ -47,7 +47,7 @@ public final class BatchingVisitables {
     public static <T> BatchingVisitableView<T> emptyBatchingVisitable() {
         return BatchingVisitableView.of(new BatchingVisitable<T>() {
             @Override
-            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v)
+            public <K extends Exception> boolean batchAccept(int _batchSize, AbortingVisitor<? super List<T>, K> _v)
                     throws K {
                 return true;
             }
@@ -57,7 +57,7 @@ public final class BatchingVisitables {
     public static <T> BatchingVisitableView<T> singleton(final T t) {
         return BatchingVisitableView.of(new BatchingVisitable<T>() {
             @Override
-            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> v)
+            public <K extends Exception> boolean batchAccept(int _batchSize, AbortingVisitor<? super List<T>, K> v)
                     throws K {
                 return v.visit(ImmutableList.of(t));
             }
@@ -74,7 +74,7 @@ public final class BatchingVisitables {
 
     private static <T> long countInternal(BatchingVisitable<T> visitable, int batchSize) {
         final long[] count = new long[1];
-        visitable.batchAccept(batchSize, AbortingVisitors.<T, RuntimeException>batching(item -> {
+        visitable.batchAccept(batchSize, AbortingVisitors.<T, RuntimeException>batching(_item -> {
             count[0]++;
             return true;
         }));
@@ -440,7 +440,7 @@ public final class BatchingVisitables {
         com.palantir.logsafe.Preconditions.checkArgument(pageSize > 0);
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
-            protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint, ConsistentVisitor<T, K> v)
+            protected <K extends Exception> void batchAcceptSizeHint(int _batchSizeHint, ConsistentVisitor<T, K> v)
                     throws K {
                 bv.batchAccept(pageSize, v);
             }

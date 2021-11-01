@@ -36,7 +36,7 @@ public class TransactionLocksCondition implements AdvisoryLocksCondition {
     }
 
     @Override
-    public void throwIfConditionInvalid(long timestamp) {
+    public void throwIfConditionInvalid(long _timestamp) {
         if (lockService
                 .refreshLockRefreshTokens(Collections.singleton(heldLock.getLockRefreshToken()))
                 .isEmpty()) {

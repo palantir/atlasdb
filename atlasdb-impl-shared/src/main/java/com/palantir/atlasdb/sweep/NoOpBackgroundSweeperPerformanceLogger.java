@@ -17,12 +17,12 @@ package com.palantir.atlasdb.sweep;
 
 public class NoOpBackgroundSweeperPerformanceLogger implements BackgroundSweeperPerformanceLogger {
     @Override
-    public void logSweepResults(SweepPerformanceResults results) {
+    public void logSweepResults(SweepPerformanceResults _results) {
         // no op
     }
 
     @Override
-    public void logInternalCompaction(SweepCompactionPerformanceResults results) {
+    public void logInternalCompaction(SweepCompactionPerformanceResults _results) {
         // no op
     }
 }

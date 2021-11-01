@@ -32,7 +32,7 @@ public class TimeLockInstallConfigurationTest {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private File newPaxosLogDirectory;
-    private File newSqliteLogDirectory;
+
     private File extantPaxosLogDirectory;
     private File extantSqliteLogDirectory;
 
@@ -40,8 +40,7 @@ public class TimeLockInstallConfigurationTest {
     public void setUp() throws IOException {
         newPaxosLogDirectory = Paths.get(temporaryFolder.getRoot().toString(), "part-time-parliament")
                 .toFile();
-        newSqliteLogDirectory = Paths.get(temporaryFolder.getRoot().toString(), "sqlite-is-cool")
-                .toFile();
+        Paths.get(temporaryFolder.getRoot().toString(), "sqlite-is-cool").toFile();
 
         extantPaxosLogDirectory = temporaryFolder.newFolder("lets-do-some-voting");
         extantSqliteLogDirectory = temporaryFolder.newFolder("whats-a-right-join");

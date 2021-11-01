@@ -191,14 +191,14 @@ public final class SweepableCellsTable implements
 
         public static final Hydrator<SweepableCellsRow> BYTES_HYDRATOR = new Hydrator<SweepableCellsRow>() {
             @Override
-            public SweepableCellsRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
-                Long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
-                byte[] metadata = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
+            public SweepableCellsRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
+                Long timestampPartition = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
+                byte[] metadata = EncodingUtils.getBytesFromOffsetToEnd(_input, _index);
+                _index += 0;
                 return new SweepableCellsRow(hashOfRowComponents, timestampPartition, metadata);
             }
         };
@@ -305,12 +305,12 @@ public final class SweepableCellsTable implements
 
         public static final Hydrator<SweepableCellsColumn> BYTES_HYDRATOR = new Hydrator<SweepableCellsColumn>() {
             @Override
-            public SweepableCellsColumn hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
-                Long writeIndex = EncodingUtils.decodeSignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfSignedVarLong(writeIndex);
+            public SweepableCellsColumn hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long timestampModulus = EncodingUtils.decodeUnsignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
+                Long writeIndex = EncodingUtils.decodeSignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfSignedVarLong(writeIndex);
                 return new SweepableCellsColumn(timestampModulus, writeIndex);
             }
         };
@@ -690,15 +690,15 @@ public final class SweepableCellsTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

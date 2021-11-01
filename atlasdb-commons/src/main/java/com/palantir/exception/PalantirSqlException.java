@@ -46,22 +46,22 @@ public class PalantirSqlException extends PalantirRuntimeException {
         super(message, t);
     }
 
-    protected PalantirSqlException(DO_NOT_SET_INITIAL_SQL_EXCEPTION i) {
+    protected PalantirSqlException(DO_NOT_SET_INITIAL_SQL_EXCEPTION _i) {
         super();
     }
 
-    protected PalantirSqlException(DO_NOT_SET_INITIAL_SQL_EXCEPTION i, String msg) {
+    protected PalantirSqlException(DO_NOT_SET_INITIAL_SQL_EXCEPTION _i, String msg) {
         super(msg);
     }
 
     /**
      * This is not safe to use with Throwables.chain()
      */
-    protected PalantirSqlException(SET_INITIAL_SQL_EXCEPTION i) {
+    protected PalantirSqlException(SET_INITIAL_SQL_EXCEPTION _i) {
         super(new SQLException());
     }
 
-    protected PalantirSqlException(SET_INITIAL_SQL_EXCEPTION i, String msg) {
+    protected PalantirSqlException(SET_INITIAL_SQL_EXCEPTION _i, String msg) {
         super(msg, new SQLException(msg));
     }
 

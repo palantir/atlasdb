@@ -88,7 +88,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
-    public ListenableFuture<Set<String>> getNamespaces(AuthHeader authHeader) {
+    public ListenableFuture<Set<String>> getNamespaces(AuthHeader _authHeader) {
         // This endpoint is not used frequently (only called by migration cli), so it's okay to NOT make it async.
         return Futures.immediateFuture(namespaceLoaders.stream()
                 .map(PersistentNamespaceLoader::getAllPersistedNamespaces)
@@ -99,7 +99,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
-    public ListenableFuture<Void> achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
+    public ListenableFuture<Void> achieveConsensus(AuthHeader _authHeader, Set<String> namespaces) {
         return handleExceptions(() -> {
             for (String namespace : namespaces) {
                 NamespacedConsensus.achieveConsensusForNamespace(timelockNamespaces, namespace);
@@ -109,7 +109,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
-    public ListenableFuture<Void> invalidateResources(AuthHeader authHeader, Set<String> namespaces) {
+    public ListenableFuture<Void> invalidateResources(AuthHeader _authHeader, Set<String> namespaces) {
         return handleExceptions(() -> {
             namespaces.forEach(timelockNamespaces::invalidateResourcesForClient);
             return Futures.immediateFuture(null);
@@ -117,12 +117,12 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
-    public ListenableFuture<UUID> getServerLifecycleId(AuthHeader authHeader) {
+    public ListenableFuture<UUID> getServerLifecycleId(AuthHeader _authHeader) {
         return Futures.immediateFuture(serviceLifecycleController.getServerId());
     }
 
     @Override
-    public ListenableFuture<UUID> forceKillTimeLockServer(AuthHeader authHeader) {
+    public ListenableFuture<UUID> forceKillTimeLockServer(AuthHeader _authHeader) {
         log.info("Forcefully stopping TimeLock service.");
         serviceLifecycleController.forceKillTimeLock();
         return Futures.immediateFuture(serviceLifecycleController.getServerId());

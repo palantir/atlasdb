@@ -37,7 +37,7 @@ public abstract class AbstractWriteTransactionBenchmark extends AbstractBenchmar
         this.txnManager = txnManager;
 
         this.allValues = IntStream.range(0, numRows)
-                .mapToObj(i -> RandomBytes.ofLength(dataSize))
+                .mapToObj(_i -> RandomBytes.ofLength(dataSize))
                 .collect(Collectors.toList());
     }
 

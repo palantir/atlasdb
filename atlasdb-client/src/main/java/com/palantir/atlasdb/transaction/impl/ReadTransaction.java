@@ -146,12 +146,12 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+    public void put(TableReference _tableRef, Map<Cell, byte[]> _values) {
         throw new SafeIllegalArgumentException("This is a read only transaction.");
     }
 
     @Override
-    public void delete(TableReference tableRef, Set<Cell> keys) {
+    public void delete(TableReference _tableRef, Set<Cell> _keys) {
         throw new SafeIllegalArgumentException("This is a read only transaction.");
     }
 

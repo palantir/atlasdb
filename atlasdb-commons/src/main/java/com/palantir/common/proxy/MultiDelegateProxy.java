@@ -78,7 +78,7 @@ public final class MultiDelegateProxy<T> extends AbstractInvocationHandler {
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         try {
             for (T t : othersToCall.get()) {
                 try {

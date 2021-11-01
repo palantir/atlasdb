@@ -55,7 +55,7 @@ public class CqlExecutorTest {
     public void before() {
         CqlResult result = new CqlResult();
         result.setRows(ImmutableList.of());
-        when(queryExecutor.execute(any(), any())).thenAnswer(invocation -> {
+        when(queryExecutor.execute(any(), any())).thenAnswer(_invocation -> {
             Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(queryDelayMillis));
             return result;
         });

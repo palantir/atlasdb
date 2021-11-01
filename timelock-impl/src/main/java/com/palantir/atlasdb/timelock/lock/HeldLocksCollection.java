@@ -48,7 +48,7 @@ public class HeldLocksCollection {
     public AsyncResult<Leased<LockToken>> getExistingOrAcquire(
             UUID requestId, Supplier<AsyncResult<HeldLocks>> lockAcquirer) {
         return heldLocksById
-                .computeIfAbsent(requestId, ignored -> lockAcquirer.get())
+                .computeIfAbsent(requestId, _ignored -> lockAcquirer.get())
                 .map(this::createLeasableLockToken);
     }
 

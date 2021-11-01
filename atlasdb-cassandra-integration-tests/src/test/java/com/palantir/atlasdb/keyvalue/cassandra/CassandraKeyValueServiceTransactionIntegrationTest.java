@@ -75,13 +75,12 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
-    private final String name;
     private final UnaryOperator<Transaction> transactionWrapper;
 
     public CassandraKeyValueServiceTransactionIntegrationTest(
             String name, UnaryOperator<Transaction> transactionWrapper) {
         super(CASSANDRA, CASSANDRA);
-        this.name = name;
+
         this.transactionWrapper = transactionWrapper;
     }
 

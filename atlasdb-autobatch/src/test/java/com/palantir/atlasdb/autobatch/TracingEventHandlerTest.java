@@ -68,7 +68,7 @@ public class TracingEventHandlerTest {
     private static final class FutureCompletingEventHandler implements EventHandler<BatchElement<Integer, Long>> {
 
         @Override
-        public void onEvent(BatchElement<Integer, Long> event, long sequence, boolean endOfBatch) throws Exception {
+        public void onEvent(BatchElement<Integer, Long> event, long _sequence, boolean endOfBatch) throws Exception {
             if (endOfBatch) {
                 event.result().set(5L);
             }

@@ -86,7 +86,7 @@ class SweepPriorityCalculator {
         if (!unsweptTables.isEmpty()) {
             // Always sweep unswept tables first
             logUnsweptTables(unsweptTables);
-            return unsweptTables.stream().collect(Collectors.toMap(Function.identity(), tableReference -> 100.0));
+            return unsweptTables.stream().collect(Collectors.toMap(Function.identity(), _tableReference -> 100.0));
         }
 
         Map<TableReference, SweepPriority> newPrioritiesByTableName =

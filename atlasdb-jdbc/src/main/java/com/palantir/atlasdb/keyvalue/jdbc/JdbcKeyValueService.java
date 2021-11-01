@@ -514,7 +514,7 @@ public final class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+    public void checkAndSet(CheckAndSetRequest _checkAndSetRequest) {
         throw new UnsupportedOperationException("Check and set is not supported for JDBC KVS");
     }
 
@@ -799,7 +799,7 @@ public final class JdbcKeyValueService implements KeyValueService {
         for (Record record : records) {
             byte[] row = record.getValue(A_ROW_NAME);
             SortedMap<byte[], Value> colMap =
-                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
+                    ret.computeIfAbsent(row, _rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
             colMap.put(
                     record.getValue(A_COL_NAME), Value.create(record.getValue(A_VALUE), record.getValue(A_TIMESTAMP)));
         }
@@ -849,8 +849,8 @@ public final class JdbcKeyValueService implements KeyValueService {
             byte[] row = record.getValue(A_ROW_NAME);
             byte[] col = record.getValue(A_COL_NAME);
             SortedMap<byte[], Set<Long>> colMap =
-                    ret.computeIfAbsent(row, rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
-            Set<Long> tsSet = colMap.computeIfAbsent(col, ts -> new HashSet<>());
+                    ret.computeIfAbsent(row, _rowName -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
+            Set<Long> tsSet = colMap.computeIfAbsent(col, _ts -> new HashSet<>());
             tsSet.add(record.getValue(A_TIMESTAMP));
         }
         return ret;
@@ -1008,7 +1008,7 @@ public final class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+    public List<byte[]> getRowKeysInRange(TableReference _tableRef, byte[] _startRow, byte[] _endRow, int _maxResults) {
         throw new UnsupportedOperationException("getRowKeysInRange is only supported for Cassandra.");
     }
 
@@ -1040,7 +1040,7 @@ public final class JdbcKeyValueService implements KeyValueService {
     <T> T runInTransaction(final Function<DSLContext, T> fun) {
         try (Connection connection = dataSource.getConnection()) {
             final DSLContext ctx = DSL.using(connection, sqlDialect, settings);
-            return ctx.transactionResult(configuration -> fun.apply(ctx));
+            return ctx.transactionResult(_configuration -> fun.apply(ctx));
         } catch (SQLException e) {
             throw new DataAccessException("Error handling connection from data source " + dataSource, e);
         }

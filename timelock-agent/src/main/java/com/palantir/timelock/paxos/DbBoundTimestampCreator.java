@@ -35,7 +35,7 @@ public final class DbBoundTimestampCreator implements TimestampCreator {
     }
 
     @Override
-    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig) {
+    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig _leaderConfig) {
         return () -> serviceDiscoveringDatabaseTimeLockSupplier.getManagedTimestampService(
                 getTimestampCreationParameters(client));
     }

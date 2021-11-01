@@ -33,7 +33,7 @@ public class RangeTokenDeserializer extends StdDeserializer<RangeToken> {
     }
 
     @Override
-    public RangeToken deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public RangeToken deserialize(JsonParser jp, DeserializationContext _ctxt) throws IOException {
         JsonToken jsonToken = jp.getCurrentToken();
         if (jsonToken == JsonToken.START_OBJECT) {
             jsonToken = jp.nextToken();

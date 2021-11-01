@@ -30,7 +30,7 @@ public interface GenericsTester<A, B extends List<C>, C> {
         throw new UnsupportedOperationException("This class doesn't know how to say hello.");
     }
 
-    static <A, D> D hidingParameter(A argument) {
+    static <A, D> D hidingParameter(A _argument) {
         return null;
     }
 }

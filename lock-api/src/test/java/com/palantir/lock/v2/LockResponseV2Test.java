@@ -48,7 +48,7 @@ public class LockResponseV2Test {
     public void visitsSuccessfulResponse() {
         LockResponseV2 response = LockResponseV2.successful(LOCK_TOKEN, LEASE);
         LockToken token =
-                response.accept(LockResponseV2.Visitor.of(LockResponseV2.Successful::getToken, unsuccessful -> {
+                response.accept(LockResponseV2.Visitor.of(LockResponseV2.Successful::getToken, _unsuccessful -> {
                     throw EXCEPTION;
                 }));
 
@@ -59,8 +59,8 @@ public class LockResponseV2Test {
     public void visitsUnsuccessfulResponse() {
         LockResponseV2 response = LockResponseV2.timedOut();
 
-        assertThatThrownBy(() ->
-                        response.accept(LockResponseV2.Visitor.of(LockResponseV2.Successful::getToken, unsuccessful -> {
+        assertThatThrownBy(() -> response.accept(
+                        LockResponseV2.Visitor.of(LockResponseV2.Successful::getToken, _unsuccessful -> {
                             throw EXCEPTION;
                         })))
                 .isEqualTo(EXCEPTION);

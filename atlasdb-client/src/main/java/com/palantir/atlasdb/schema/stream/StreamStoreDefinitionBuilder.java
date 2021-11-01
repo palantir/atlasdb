@@ -76,19 +76,19 @@ public class StreamStoreDefinitionBuilder {
                 numberOfComponentsHashed <= 2,
                 "The number of components specified must be less than two as "
                         + "StreamStore internal tables use at most two row components.");
-        streamTables.forEach((tableName, streamTableBuilder) ->
+        streamTables.forEach((_tableName, streamTableBuilder) ->
                 streamTableBuilder.hashFirstNRowComponents(numberOfComponentsHashed));
         numberOfRowComponentsHashed = numberOfComponentsHashed;
         return this;
     }
 
     public StreamStoreDefinitionBuilder tableNameLogSafety(TableMetadataPersistence.LogSafety logSafety) {
-        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.tableNameLogSafety(logSafety));
+        streamTables.forEach((_tableName, streamTableBuilder) -> streamTableBuilder.tableNameLogSafety(logSafety));
         return this;
     }
 
     public StreamStoreDefinitionBuilder isAppendHeavyAndReadLight() {
-        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.appendHeavyAndReadLight());
+        streamTables.forEach((_tableName, streamTableBuilder) -> streamTableBuilder.appendHeavyAndReadLight());
         return this;
     }
 
@@ -98,7 +98,7 @@ public class StreamStoreDefinitionBuilder {
      */
     @Deprecated
     public StreamStoreDefinitionBuilder compressBlocksInDb() {
-        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.compressBlocksInDb());
+        streamTables.forEach((_tableName, streamTableBuilder) -> streamTableBuilder.compressBlocksInDb());
         return this;
     }
 

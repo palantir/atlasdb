@@ -138,8 +138,8 @@ public class GetSuspectedLeaderWithUuidTests {
                 .map(ClientAwareLeaderPinger::underlyingRpcClient)
                 .collect(Collectors.toSet());
 
-        Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors =
-                Maps.toMap(ImmutableList.copyOf(rpcClients), $ -> new CheckedRejectionExecutorService(executorService));
+        Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors = Maps.toMap(
+                ImmutableList.copyOf(rpcClients), _$ -> new CheckedRejectionExecutorService(executorService));
 
         return new GetSuspectedLeaderWithUuid(executors, clientAwareLeaders, LOCAL_UUID, Duration.ofSeconds(1));
     }

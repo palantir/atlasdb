@@ -96,8 +96,8 @@ public class CassandraClientPoolTest {
         doAnswer(invocation -> poolServers.remove(getInvocationAddress(invocation)))
                 .when(cassandra)
                 .removePool(any());
-        doAnswer(invocation -> poolServers.stream()
-                        .collect(Collectors.toMap(x -> x, x -> mock(CassandraClientPoolingContainer.class))))
+        doAnswer(_invocation -> poolServers.stream()
+                        .collect(Collectors.toMap(x -> x, _x -> mock(CassandraClientPoolingContainer.class))))
                 .when(cassandra)
                 .getPools();
         when(config.socketTimeoutMillis()).thenReturn(1);
@@ -206,7 +206,7 @@ public class CassandraClientPoolTest {
         CassandraClientPoolingContainer container =
                 cassandraClientPool.getCurrentPools().get(HOST_1);
         AtomicBoolean fail = new AtomicBoolean(true);
-        setConditionalTimeoutFailureForHost(container, unused -> fail.get());
+        setConditionalTimeoutFailureForHost(container, _unused -> fail.get());
 
         assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool))
                 .isInstanceOf(AtlasDbDependencyException.class);
@@ -489,7 +489,7 @@ public class CassandraClientPoolTest {
             CassandraClientPoolingContainer container, Function<CassandraClientPoolingContainer, Boolean> condition) {
         try {
             when(container.runWithPooledResource(any(FunctionCheckedException.class)))
-                    .then(invocation -> {
+                    .then(_invocation -> {
                         if (condition.apply(container)) {
                             throw new SocketTimeoutException();
                         }
@@ -511,7 +511,7 @@ public class CassandraClientPoolTest {
     private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {
         return new FunctionCheckedException<CassandraClient, Void, RuntimeException>() {
             @Override
-            public Void apply(CassandraClient input) throws RuntimeException {
+            public Void apply(CassandraClient _input) throws RuntimeException {
                 return null;
             }
 

@@ -53,7 +53,7 @@ public final class SweepTableFactory {
                 Multimap<
                                 SweepPriorityTable.SweepPriorityRow,
                                 ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>>
-                        newRows) {
+_newRows) {
             // do nothing
         }
     }

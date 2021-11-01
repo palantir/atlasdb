@@ -64,17 +64,17 @@ public class LockDiagnosticCollector implements LockEvents {
     }
 
     @Override
-    public void timedOut(RequestInfo request, long acquisitionTimeMillis) {
+    public void timedOut(RequestInfo request, long _acquisitionTimeMillis) {
         updateCacheWithNextLockInfo(request.id(), LockState.TIMED_OUT_ACQUIRING);
     }
 
     @Override
-    public void successfulAcquisition(RequestInfo request, long acquisitionTimeMillis) {
+    public void successfulAcquisition(RequestInfo request, long _acquisitionTimeMillis) {
         updateCacheWithNextLockInfo(request.id(), LockState.ACQUIRED);
     }
 
     @Override
-    public void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
+    public void lockExpired(UUID requestId, Collection<LockDescriptor> _lockDescriptors) {
         updateCacheWithNextLockInfo(requestId, LockState.EXPIRED);
     }
 

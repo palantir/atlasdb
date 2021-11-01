@@ -53,7 +53,7 @@ public class ReferenceTrackingWrapperTest {
 
         ExecutorService executor = Executors.newFixedThreadPool(50);
         List<Future<?>> futures = IntStream.range(0, referenceCount)
-                .mapToObj(temp -> executor.submit(referenceTrackingWrapper::close))
+                .mapToObj(_temp -> executor.submit(referenceTrackingWrapper::close))
                 .collect(Collectors.toList());
         futures.forEach(Futures::getUnchecked);
         verify(closeableDelegate).close();

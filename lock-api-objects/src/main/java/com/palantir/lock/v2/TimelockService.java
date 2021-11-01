@@ -55,7 +55,7 @@ public interface TimelockService {
         List<LockImmutableTimestampResponse> immutableTimestampLocks = new ArrayList<>();
         List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
         try {
-            IntStream.range(0, count).forEach($ -> {
+            IntStream.range(0, count).forEach(_$ -> {
                 LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
                 immutableTimestampLocks.add(immutableTimestamp);
                 responses.add(StartIdentifiedAtlasDbTransactionResponse.of(

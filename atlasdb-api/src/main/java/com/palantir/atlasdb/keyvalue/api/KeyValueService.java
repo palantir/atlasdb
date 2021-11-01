@@ -596,7 +596,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @DoDelegate
     @Timed
-    default void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+    default void compactInternally(TableReference tableRef, boolean _inMaintenanceMode) {
         compactInternally(tableRef);
     }
 

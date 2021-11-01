@@ -83,7 +83,7 @@ public class TimeLockPaxosExecutorsTest {
         int numThreads = TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE * 2;
         ExecutorService executor = PTExecutors.newFixedThreadPool(numThreads);
         List<Future<Integer>> results = IntStream.range(0, numThreads)
-                .mapToObj(ignore -> executor.submit(this::submitToLocalAndGetUnchecked))
+                .mapToObj(_ignore -> executor.submit(this::submitToLocalAndGetUnchecked))
                 .collect(Collectors.toList());
         results.forEach(future ->
                 assertThatCode(() -> AtlasFutures.getUnchecked(future)).doesNotThrowAnyException());

@@ -43,7 +43,7 @@ public class ConjureResourceExceptionHandler {
         return FluentFuture.from(future)
                 .catching(
                         BlockingTimeoutException.class,
-                        timeout -> {
+                        _timeout -> {
                             throw QosException.throttle(Duration.ZERO);
                         },
                         MoreExecutors.directExecutor())
@@ -58,7 +58,7 @@ public class ConjureResourceExceptionHandler {
                         MoreExecutors.directExecutor())
                 .catching(
                         TooManyRequestsException.class,
-                        tooManyRequests -> {
+                        _tooManyRequests -> {
                             throw QosException.throttle();
                         },
                         MoreExecutors.directExecutor())

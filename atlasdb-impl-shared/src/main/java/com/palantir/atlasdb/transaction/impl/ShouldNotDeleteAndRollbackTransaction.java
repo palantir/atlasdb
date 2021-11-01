@@ -59,12 +59,12 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
         }
 
         @Override
-        public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        public boolean awaitTermination(long _timeout, TimeUnit _unit) throws InterruptedException {
             return false;
         }
 
         @Override
-        public void execute(Runnable command) {
+        public void execute(Runnable _command) {
             // Should not be called
         }
     };

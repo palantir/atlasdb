@@ -78,7 +78,7 @@ public final class PaxosConsensusTestUtils {
         }
 
         PaxosAcceptorNetworkClient acceptorNetworkClient = SingleLeaderAcceptorNetworkClient.createLegacy(
-                acceptors, quorumSize, Maps.toMap(acceptors, $ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
+                acceptors, quorumSize, Maps.toMap(acceptors, _$ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
 
         for (int i = 0; i < numLeaders; i++) {
             UUID leaderUuid = UUID.randomUUID();
@@ -91,7 +91,7 @@ public final class PaxosConsensusTestUtils {
                     ourLearner,
                     remoteLearners,
                     quorumSize,
-                    Maps.toMap(learners, $ -> executor),
+                    Maps.toMap(learners, _$ -> executor),
                     PaxosConstants.CANCEL_REMAINING_CALLS);
 
             LeaderElectionService leader = new LeaderElectionServiceBuilder()

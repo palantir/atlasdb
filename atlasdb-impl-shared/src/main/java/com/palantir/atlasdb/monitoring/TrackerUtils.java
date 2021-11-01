@@ -57,7 +57,7 @@ public final class TrackerUtils {
      */
     public static <T> Gauge<T> createCachingExceptionHandlingGauge(
             SafeLogger logger, Clock clock, String shortName, Supplier<T> supplier) {
-        return createCachingReducingGauge(logger, clock, shortName, supplier, null, (previous, current) -> current);
+        return createCachingReducingGauge(logger, clock, shortName, supplier, null, (_previous, current) -> current);
     }
 
     /**

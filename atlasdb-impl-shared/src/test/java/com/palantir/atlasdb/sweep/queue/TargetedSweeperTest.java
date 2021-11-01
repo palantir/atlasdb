@@ -1107,7 +1107,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp + 5);
 
         IntStream.range(0, sweepIterations)
-                .forEach(unused -> sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD)));
+                .forEach(_unused -> sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD)));
 
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, sweepTimestamp - 5);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, sweepTimestamp - 5);
@@ -1331,7 +1331,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         }
         sweepQueue.enqueue(writeInfos);
         return writeInfos.stream()
-                .collect(Collectors.toMap(write -> write.toShard(DEFAULT_SHARDS), write -> 1, Integer::sum));
+                .collect(Collectors.toMap(write -> write.toShard(DEFAULT_SHARDS), _write -> 1, Integer::sum));
     }
 
     private List<WriteInfo> generateHundredWrites(int startCol, long startTs) {

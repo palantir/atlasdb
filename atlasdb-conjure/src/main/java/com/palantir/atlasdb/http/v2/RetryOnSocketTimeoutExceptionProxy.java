@@ -44,7 +44,7 @@ public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocat
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         ResultOrThrowable attempt = singleInvocation(method, args);
         int numRetries = 0;
         while ((numRetries < MAX_NUM_RETRIES) && !attempt.isSuccessful()) {

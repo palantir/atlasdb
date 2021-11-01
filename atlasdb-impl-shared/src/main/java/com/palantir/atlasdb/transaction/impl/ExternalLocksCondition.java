@@ -40,7 +40,7 @@ public class ExternalLocksCondition implements AdvisoryLocksCondition {
     }
 
     @Override
-    public void throwIfConditionInvalid(long timestamp) {
+    public void throwIfConditionInvalid(long _timestamp) {
         if (lockTokens.isEmpty()) {
             return;
         }

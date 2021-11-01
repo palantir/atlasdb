@@ -100,7 +100,7 @@ public abstract class AbstractTestRunner<S extends AtlasDbServices> implements S
                 .toString();
     }
 
-    public static <T extends Callable<Integer>> T buildCommand(Class<T> cmd, String... args) {
+    public static <T extends Callable<Integer>> T buildCommand(Class<T> _cmd, String... args) {
         return (T) AtlasCli.buildCli().parse(args);
     }
 }

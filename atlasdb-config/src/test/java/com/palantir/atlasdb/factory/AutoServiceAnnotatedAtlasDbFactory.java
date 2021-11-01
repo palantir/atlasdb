@@ -50,12 +50,12 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory<KeyVal
 
     @Override
     public KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> unused,
-            LongSupplier unusedLongSupplier,
+            MetricsManager _metricsManager,
+            KeyValueServiceConfig _config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> _runtimeConfig,
+            Optional<LeaderConfig> _leaderConfig,
+            Optional<String> _value,
+            LongSupplier _longSupplier,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
@@ -66,7 +66,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory<KeyVal
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs, Optional<TableReference> timestampTable, boolean initializeAsync) {
+            KeyValueService _rawKvs, Optional<TableReference> _timestampTable, boolean _initializeAsync) {
         return nextTimestampServices.remove(0);
     }
 

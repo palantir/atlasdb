@@ -115,7 +115,7 @@ public class RangeVisitor {
                 long numVisited = txManager.runTaskWithLocksWithRetry(
                         lockTokens, Suppliers.ofInstance(null), new LockAwareTransactionTask<Long, RuntimeException>() {
                             @Override
-                            public Long execute(Transaction tx, Iterable<HeldLocksToken> heldLocks) {
+                            public Long execute(Transaction tx, Iterable<HeldLocksToken> _heldLocks) {
                                 return visitInternal(tx, visitor, request, range);
                             }
 

@@ -69,7 +69,7 @@ public class AsyncRetrierTest {
                         return seen++ == integer;
                     }
                 });
-        when(function.get()).thenAnswer(inv -> replaceableFunction.get());
+        when(function.get()).thenAnswer(_inv -> replaceableFunction.get());
     }
 
     @Test

@@ -82,7 +82,7 @@ public class FeedbackHandler {
 
         for (ConjureTimeLockClientFeedback feedback : trackedFeedbackReports) {
             ServiceFeedback feedbackForService = serviceWiseOrganizedFeedback.computeIfAbsent(
-                    feedback.getServiceName(), service -> new ServiceFeedback());
+                    feedback.getServiceName(), _service -> new ServiceFeedback());
 
             feedbackForService.addFeedbackForNode(feedback.getNodeId(), feedback);
         }
@@ -93,7 +93,7 @@ public class FeedbackHandler {
         int maxAllowedUnhealthyServices = getMaxAllowedUnhealthyServices(organizedFeedbackByServiceName.size());
 
         List<Client> unhealthyClients = KeyedStream.stream(organizedFeedbackByServiceName)
-                .filterEntries((serviceName, serviceFeedback) ->
+                .filterEntries((_serviceName, serviceFeedback) ->
                         getHealthStatusForService(serviceFeedback) == HealthStatus.UNHEALTHY)
                 .keys()
                 .map(Client::of)
@@ -144,7 +144,7 @@ public class FeedbackHandler {
     private <T> HealthStatus getHealthStatusOfMajority(Collection<T> feedbacks, Function<T, HealthStatus> mapper) {
         int majorityThreshold = (feedbacks.size() / 2) + 1;
         return KeyedStream.stream(Utils.getFrequencyMap(feedbacks.stream().map(mapper)))
-                .filterEntries((key, val) -> val >= majorityThreshold)
+                .filterEntries((_key, val) -> val >= majorityThreshold)
                 .keys()
                 .findFirst()
                 .orElse(HealthStatus.UNKNOWN);

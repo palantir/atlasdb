@@ -187,12 +187,12 @@ public final class SweepNameToIdTable implements
 
         public static final Hydrator<SweepNameToIdRow> BYTES_HYDRATOR = new Hydrator<SweepNameToIdRow>() {
             @Override
-            public SweepNameToIdRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
-                String table = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
+            public SweepNameToIdRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
+                String table = PtBytes.toString(_input, _index, _input.length-_index);
+                _index += 0;
                 return new SweepNameToIdRow(hashOfRowComponents, table);
             }
         };
@@ -598,15 +598,15 @@ public final class SweepNameToIdTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

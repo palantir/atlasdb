@@ -28,7 +28,7 @@ final class TimedOnlyInstrumentationFilter implements InstrumentationFilter {
     private final Map<Method, Boolean> filtered = new ConcurrentHashMap<>();
 
     @Override
-    public boolean shouldInstrument(@Nonnull Object instance, @Nonnull Method method, @Nonnull Object[] args) {
+    public boolean shouldInstrument(@Nonnull Object _instance, @Nonnull Method method, @Nonnull Object[] _args) {
         return filtered.computeIfAbsent(method, this::shouldInstrument);
     }
 

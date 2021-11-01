@@ -45,7 +45,7 @@ public final class TransactionWriteBenchmarkContended extends AbstractBenchmark 
         super(numClients, 1);
         originalValuesByKey = LongStream.range(0, requestsPerClient)
                 .boxed()
-                .collect(Collectors.toMap(PtBytes::toBytes, ignore -> RandomBytes.ofLength(16)));
+                .collect(Collectors.toMap(PtBytes::toBytes, _ignore -> RandomBytes.ofLength(16)));
         this.txnManager = txnManager;
     }
 

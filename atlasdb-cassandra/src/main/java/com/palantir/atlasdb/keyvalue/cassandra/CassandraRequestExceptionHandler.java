@@ -315,7 +315,7 @@ class CassandraRequestExceptionHandler {
         private static final RequestExceptionHandlerStrategy INSTANCE = new NoBackoffForTesting();
 
         @Override
-        public long getBackoffPeriod(int numberOfAttempts) {
+        public long getBackoffPeriod(int _numberOfAttempts) {
             return 0;
         }
     }

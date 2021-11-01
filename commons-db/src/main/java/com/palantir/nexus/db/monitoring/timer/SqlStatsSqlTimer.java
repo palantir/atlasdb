@@ -27,7 +27,7 @@ final class SqlStatsSqlTimer implements SqlTimer {
     private final OperationTimer timer = LoggingOperationTimer.create(logger);
 
     @Override
-    public Handle start(String module, final String sqlKey, final String rawSql) {
+    public Handle start(String module, final String _sqlKey, final String rawSql) {
         final TimingState timingState;
         if (LoggerFactory.getLogger("com.palantir.nexus.db.SQL").isTraceEnabled()) {
             String sql = rawSql.replaceAll("[\n]+", "");

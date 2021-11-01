@@ -38,10 +38,10 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     }
 
     @Override
-    public void write(TableReference tableReference, Map<Cell, byte[]> values) {}
+    public void write(TableReference _tableReference, Map<Cell, byte[]> _values) {}
 
     @Override
-    public void delete(TableReference tableReference, Set<Cell> cells) {}
+    public void delete(TableReference _tableReference, Set<Cell> _cells) {}
 
     @Override
     public Map<Cell, byte[]> get(
@@ -53,7 +53,7 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(
-            TableReference tableReference,
+            TableReference _tableReference,
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return valueLoader.apply(cells);
@@ -61,10 +61,10 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
 
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
-            TableReference tableRef,
+            TableReference _tableRef,
             Iterable<byte[]> rows,
-            ColumnSelection columnSelection,
-            Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
+            ColumnSelection _columnSelection,
+            Function<Set<Cell>, Map<Cell, byte[]>> _cellLoader,
             Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
         return rowLoader.apply(rows);
     }
@@ -83,7 +83,7 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     }
 
     @Override
-    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate _commitUpdate) {
         return ReadOnlyTransactionScopedCache.create(NoOpTransactionScopedCache.create());
     }
 }

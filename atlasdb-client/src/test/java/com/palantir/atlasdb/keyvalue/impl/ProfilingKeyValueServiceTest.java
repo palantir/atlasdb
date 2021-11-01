@@ -57,7 +57,7 @@ public class ProfilingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("test");
     private static final TableReference TABLE_REF = TableReference.create(NAMESPACE, "testTable");
 
-    private static final Answer<Void> waitASecondAndAHalf = any -> {
+    private static final Answer<Void> waitASecondAndAHalf = _any -> {
         Thread.sleep(1500);
         return (Void) null;
     };
@@ -73,7 +73,7 @@ public class ProfilingKeyValueServiceTest {
 
     private static final Map<Cell, Long> timestampByCell = ImmutableMap.of();
     private static final Map<Cell, Value> result = ImmutableMap.of();
-    private static final Answer<Map<Cell, Value>> waitASecondAndAHalfAndReturn = any -> {
+    private static final Answer<Map<Cell, Value>> waitASecondAndAHalfAndReturn = _any -> {
         Thread.sleep(1500);
         return result;
     };

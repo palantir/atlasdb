@@ -155,7 +155,7 @@ public class TransactionStarterTest {
 
     private List<StartIdentifiedAtlasDbTransactionResponse> requestSingularBatches(int size) {
         return flattenResponses(
-                requestBatches(IntStream.range(0, size).mapToObj($ -> 1).collect(toList())));
+                requestBatches(IntStream.range(0, size).mapToObj(_$ -> 1).collect(toList())));
     }
 
     private List<StartIdentifiedAtlasDbTransactionResponse> flattenResponses(

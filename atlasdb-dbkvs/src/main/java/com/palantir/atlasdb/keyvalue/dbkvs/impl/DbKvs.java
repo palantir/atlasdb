@@ -204,7 +204,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                 tableFactory,
                 connections,
                 new ParallelTaskRunner(newFixedThreadPool(config.poolSize()), config.fetchBatchSize()),
-                (conns, tbl, ids) -> Collections.emptyMap(), // no overflow on postgres
+                (_conns, _tbl, _ids) -> Collections.emptyMap(), // no overflow on postgres
                 new PostgresGetRange(prefixedTableNames, connections, tableMetadataCache),
                 new DbKvsGetCandidateCellsForSweeping(cellTsPairLoader));
     }
@@ -1210,7 +1210,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     }
 
     @Override
-    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+    public List<byte[]> getRowKeysInRange(TableReference _tableRef, byte[] _startRow, byte[] _endRow, int _maxResults) {
         throw new UnsupportedOperationException("getRowKeysInRange is only supported for Cassandra.");
     }
 

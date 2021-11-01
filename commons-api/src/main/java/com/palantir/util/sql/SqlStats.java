@@ -143,7 +143,7 @@ public final class SqlStats implements SqlStatsMBean {
     private String getNameForUnregisteredQuery(String rawSql) {
         String name = namesByUnregisteredSql.computeIfAbsent(
                 rawSql,
-                k -> String.format(
+                _k -> String.format(
                         "UNREGISTERED_QUERY_%03d", //$NON-NLS-1$
                         namesByUnregisteredSql.size() + 1));
         return name;

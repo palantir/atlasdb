@@ -36,7 +36,7 @@ public class TableRowSelectionDeserializer extends StdDeserializer<TableRowSelec
     }
 
     @Override
-    public TableRowSelection deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public TableRowSelection deserialize(JsonParser jp, DeserializationContext _ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
         String tableName = node.get("table").textValue();
         TableMetadata metadata = metadataCache.getMetadata(tableName);

@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * Adds {@link WriteInfo}s to a global queue to be swept.
  */
 public interface MultiTableSweepQueueWriter extends AutoCloseable, CallbackInitializable<TransactionManager> {
-    MultiTableSweepQueueWriter NO_OP = ignored -> {};
+    MultiTableSweepQueueWriter NO_OP = _ignored -> {};
 
     default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
         enqueue(toWriteInfos(writes, timestamp));
@@ -50,7 +50,7 @@ public interface MultiTableSweepQueueWriter extends AutoCloseable, CallbackIniti
      * @param txManager the transaction manager performing the callback
      */
     @Override
-    default void initialize(TransactionManager txManager) {
+    default void initialize(TransactionManager _txManager) {
         // noop
     }
 
@@ -66,7 +66,7 @@ public interface MultiTableSweepQueueWriter extends AutoCloseable, CallbackIniti
         // noop
     }
 
-    default Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
+    default Optional<SweeperStrategy> getSweepStrategy(TableReference _tableReference) {
         return Optional.empty();
     }
 }

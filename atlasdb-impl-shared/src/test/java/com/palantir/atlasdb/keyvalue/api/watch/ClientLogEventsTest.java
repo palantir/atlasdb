@@ -264,7 +264,7 @@ public final class ClientLogEventsTest {
             }
 
             @Override
-            public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            public Boolean invalidateSome(Set<LockDescriptor> _invalidatedLocks) {
                 return false;
             }
         });

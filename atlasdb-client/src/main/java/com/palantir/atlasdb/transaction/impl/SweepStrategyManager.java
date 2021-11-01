@@ -22,7 +22,7 @@ import java.util.Set;
 public interface SweepStrategyManager {
     SweepStrategy get(TableReference tableRef);
 
-    default void invalidateCaches(Set<TableReference> tableRefs) {
+    default void invalidateCaches(Set<TableReference> _tableRefs) {
         // No-op. Assume no cache if not implemented.
     }
 }

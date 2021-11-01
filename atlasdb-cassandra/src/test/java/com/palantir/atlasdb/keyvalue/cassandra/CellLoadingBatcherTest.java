@@ -166,7 +166,7 @@ public class CellLoadingBatcherTest {
     public void fuzzTestPreservesBatcherInvariants() {
         Random random = new Random(SEED);
         List<Cell> randomCells = IntStream.range(0, 2_000)
-                .mapToObj(unused -> cell(random.nextInt(100), random.nextInt(200)))
+                .mapToObj(_unused -> cell(random.nextInt(100), random.nextInt(200)))
                 .distinct()
                 .collect(Collectors.toList());
         List<List<Cell>> batches = partitionUsingMockCallback(randomCells);

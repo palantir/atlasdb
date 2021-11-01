@@ -52,7 +52,7 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
 
     private final UnaryOperator<Transaction> transactionWrapper;
 
-    public CassandraKvsSerializableTransactionTest(String name, UnaryOperator<Transaction> transactionWrapper) {
+    public CassandraKvsSerializableTransactionTest(String _name, UnaryOperator<Transaction> transactionWrapper) {
         super(CASSANDRA, CASSANDRA);
         this.transactionWrapper = transactionWrapper;
     }

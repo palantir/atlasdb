@@ -27,7 +27,7 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
 
     protected static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
         @Override
-        public void throwIfConditionInvalid(long timestamp) {}
+        public void throwIfConditionInvalid(long _timestamp) {}
 
         @Override
         public void cleanup() {}
@@ -54,16 +54,16 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionThrowOnConflict(NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+        return runTaskWithConditionThrowOnConflict(NO_OP_CONDITION, (txn, _condition) -> task.execute(txn));
     }
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionWithRetry(() -> NO_OP_CONDITION, (txn, condition) -> task.execute(txn));
+        return runTaskWithConditionWithRetry(() -> NO_OP_CONDITION, (txn, _condition) -> task.execute(txn));
     }
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        return runTaskWithConditionReadOnly(NO_OP_CONDITION, (transaction, condition) -> task.execute(transaction));
+        return runTaskWithConditionReadOnly(NO_OP_CONDITION, (transaction, _condition) -> task.execute(transaction));
     }
 }

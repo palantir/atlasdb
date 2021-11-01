@@ -165,7 +165,6 @@ public final class Autobatchers {
         private final Function<EventHandlerParameters, EventHandler<BatchElement<I, O>>> handlerFactory;
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
-        private Observability observability = Observability.UNDECIDED;
         private OptionalInt bufferSize = OptionalInt.empty();
         private Optional<Duration> batchFunctionTimeout = Optional.empty();
         private Optional<TimeoutHandler> timeoutHandler = Optional.empty();
@@ -189,7 +188,7 @@ public final class Autobatchers {
         }
 
         public AutobatcherBuilder<I, O> observability(Observability observabilityParam) {
-            this.observability = observabilityParam;
+
             return this;
         }
 

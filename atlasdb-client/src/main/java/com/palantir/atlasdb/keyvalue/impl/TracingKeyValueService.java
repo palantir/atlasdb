@@ -67,8 +67,6 @@ import java.util.function.Consumer;
  */
 public final class TracingKeyValueService extends ForwardingObject implements KeyValueService {
 
-    private static final String SERVICE_NAME = "atlasdb-kvs";
-
     private final KeyValueService delegate;
     private final ExecutorService tracingExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
 
@@ -493,7 +491,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
                 future,
                 new FutureCallback<V>() {
                     @Override
-                    public void onSuccess(V result) {
+                    public void onSuccess(V _result) {
                         complete();
                     }
 

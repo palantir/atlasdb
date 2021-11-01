@@ -56,12 +56,12 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig>
      */
     @Override
     public KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager,
+            MetricsManager _metricsManager,
             KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> unused,
-            LongSupplier unusedLongSupplier,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> _runtimeConfig,
+            Optional<LeaderConfig> _leaderConfig,
+            Optional<String> _value,
+            LongSupplier _longSupplier,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");

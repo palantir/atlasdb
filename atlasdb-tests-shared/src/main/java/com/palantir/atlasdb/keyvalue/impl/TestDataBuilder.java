@@ -44,7 +44,7 @@ public class TestDataBuilder {
     }
 
     public TestDataBuilder put(int row, int col, long ts, byte[] value) {
-        cellsByTimestamp.computeIfAbsent(ts, key -> new HashMap<>()).put(cell(row, col), value);
+        cellsByTimestamp.computeIfAbsent(ts, _key -> new HashMap<>()).put(cell(row, col), value);
         return this;
     }
 

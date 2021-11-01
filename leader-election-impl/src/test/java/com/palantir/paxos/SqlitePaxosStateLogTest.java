@@ -212,7 +212,7 @@ public class SqlitePaxosStateLogTest {
         int numThreads = 100;
         ExecutorService executor = PTExecutors.newFixedThreadPool(numThreads);
         List<Future<?>> futures = IntStream.range(0, numThreads)
-                .mapToObj(ignore -> executor.submit(() -> {
+                .mapToObj(_ignore -> executor.submit(() -> {
                     PaxosStateLog<PaxosValue> log = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), dataSource);
                     for (int i = 0; i < 200; i++) {
                         log.writeRound(i, valueForRound(i));
@@ -228,7 +228,7 @@ public class SqlitePaxosStateLogTest {
         int numThreads = 2000;
         ExecutorService executor = PTExecutors.newFixedThreadPool(numThreads);
         List<Future<?>> futures = IntStream.range(0, numThreads)
-                .mapToObj(ignore -> executor.submit(() -> {
+                .mapToObj(_ignore -> executor.submit(() -> {
                     PaxosStateLog<PaxosValue> log = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), dataSource);
                     for (int i = 0; i < 2; i++) {
                         log.writeRound(i, valueForRound(i));

@@ -214,7 +214,7 @@ public abstract class ConsecutiveNarrowTable {
 
     private static void storeDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
         IntStream.range(0, numOverwrites + 1)
-                .forEach($ -> table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+                .forEach(_$ -> table.getTransactionManager().runTaskThrowOnConflict(txn -> {
                     Map<Cell, byte[]> values = Tables.generateContinuousBatch(table.getRandom(), 0, table.getNumRows());
                     txn.put(table.getTableRef(), values);
                     return null;

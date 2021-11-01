@@ -45,7 +45,7 @@ public final class CoordinationServices {
     public static CoordinationService<InternalSchemaMetadata> createDefault(
             KeyValueService keyValueService,
             LongSupplier timestampSupplier,
-            MetricsManager metricsManager,
+            MetricsManager _metricsManager,
             boolean initializeAsync) {
         CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
                 createCoordinationStore(keyValueService, timestampSupplier, initializeAsync));

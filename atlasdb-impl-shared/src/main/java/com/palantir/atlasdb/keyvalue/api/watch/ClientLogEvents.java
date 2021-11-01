@@ -143,7 +143,7 @@ interface ClientLogEvents {
         }
 
         @Override
-        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
+        public Set<LockDescriptor> visit(UnlockEvent _unlockEvent) {
             return ImmutableSet.of();
         }
 

@@ -38,7 +38,7 @@ public class TransformingCoordinationServiceTest {
     private static final int INTEGER_1 = 1;
     private static final String STRING_1 = "1";
     private static final long BOUND = 1234567;
-    private static final Function<ValueAndBound<String>, String> DUMMY_TRANSFORMATION = unused -> {
+    private static final Function<ValueAndBound<String>, String> DUMMY_TRANSFORMATION = _unused -> {
         throw new IllegalStateException("I'm not supposed to be called directly, use mocks");
     };
 

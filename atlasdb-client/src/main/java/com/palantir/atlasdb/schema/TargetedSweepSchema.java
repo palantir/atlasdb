@@ -181,7 +181,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
         return SCHEMA.get();
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] _args) throws Exception {
         SCHEMA.get().renderTables(new File("src/main/java"));
     }
 }

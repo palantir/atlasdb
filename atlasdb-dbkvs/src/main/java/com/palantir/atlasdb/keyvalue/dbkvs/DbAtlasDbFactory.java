@@ -58,12 +58,12 @@ public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
      */
     @Override
     public KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager,
+            MetricsManager _metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            LongSupplier unusedLongSupplier,
+            Optional<LeaderConfig> _leaderConfig,
+            Optional<String> _namespace,
+            LongSupplier _longSupplier,
             boolean initializeAsync) {
         Preconditions.checkArgument(
                 config instanceof DbKeyValueServiceConfig,

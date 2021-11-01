@@ -87,7 +87,7 @@ public class LockLeaseServiceTest {
     @Before
     public void before() {
         when(lockRequest.getAcquireTimeoutMs()).thenReturn(10L);
-        when(timelock.leaderTime()).thenAnswer(inv -> LeaderTime.of(LEADER_ID, time.get()));
+        when(timelock.leaderTime()).thenAnswer(_inv -> LeaderTime.of(LEADER_ID, time.get()));
         when(timelock.unlock(any())).thenAnswer(inv -> {
             ConjureUnlockRequest request = inv.getArgument(0);
             return ConjureUnlockResponse.of(request.getTokens());

@@ -77,7 +77,7 @@ final class AsyncRetrier<T> {
                         return Futures.transformAsync(
                                 schedulingExecutor.schedule(
                                         () -> {}, delayBetweenAttempts.toMillis(), TimeUnit.MILLISECONDS),
-                                $ -> execute(supplier, newRetriesRemaining),
+                                _$ -> execute(supplier, newRetriesRemaining),
                                 executionExecutor);
                     }
                 },

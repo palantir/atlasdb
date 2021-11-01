@@ -62,7 +62,7 @@ public final class LambdaCallback<R> extends Callback<R> {
      * @return the desired Callback object.
      */
     public static <R> Callback<R> of(Consumer<R> initialize) {
-        return singleAttempt(initialize, (no, cleanup) -> {});
+        return singleAttempt(initialize, (_no, _cleanup) -> {});
     }
 
     @Override

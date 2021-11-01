@@ -39,8 +39,10 @@ public class CoordinationServiceImplTest {
     private static final ValueAndBound<String> STRING_AND_ONE_HUNDRED = ValueAndBound.of(Optional.of(STRING), 100);
     private static final ValueAndBound<String> OTHER_STRING_AND_ONE_THOUSAND =
             ValueAndBound.of(Optional.of("otherstring"), 1000);
-    private static final ValueAndBound<String> ANOTHER_STRING_AND_ONE_HUNDRED =
-            ValueAndBound.of(Optional.of("anotherstring"), 100);
+
+    static {
+        ValueAndBound.of(Optional.of("anotherstring"), 100);
+    }
 
     @SuppressWarnings("unchecked") // Known to be safe in context of this test.
     private final CoordinationStore<String> coordinationStore = mock(CoordinationStore.class);
@@ -89,7 +91,7 @@ public class CoordinationServiceImplTest {
         when(coordinationStore.transformAgreedValue(any()))
                 .thenReturn(CheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
         CheckAndSetResult<ValueAndBound<String>> casResult =
-                stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
+                stringCoordinationService.tryTransformCurrentValue(_unused -> STRING);
         assertThat(casResult.successful()).isTrue();
         assertThat(Iterables.getOnlyElement(casResult.existingValues())).isEqualTo(STRING_AND_ONE_HUNDRED);
     }
@@ -98,7 +100,7 @@ public class CoordinationServiceImplTest {
     public void successfulUpdateUpdatesCache() {
         when(coordinationStore.transformAgreedValue(any()))
                 .thenReturn(CheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
-        stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
+        stringCoordinationService.tryTransformCurrentValue(_unused -> STRING);
         stringCoordinationService.getValueForTimestamp(56);
         stringCoordinationService.getValueForTimestamp(88);
         verify(coordinationStore, never()).getAgreedValue();
@@ -108,7 +110,7 @@ public class CoordinationServiceImplTest {
     public void failedUpdateUpdatesCache() {
         when(coordinationStore.transformAgreedValue(any()))
                 .thenReturn(CheckAndSetResult.of(false, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
-        stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
+        stringCoordinationService.tryTransformCurrentValue(_unused -> STRING);
         stringCoordinationService.getValueForTimestamp(56);
         stringCoordinationService.getValueForTimestamp(88);
         verify(coordinationStore, never()).getAgreedValue();

@@ -101,7 +101,7 @@ public final class AdvisoryLockConditionSuppliers {
         }
 
         @Override
-        public void throwIfConditionInvalid(long timestamp) {}
+        public void throwIfConditionInvalid(long _timestamp) {}
 
         @Override
         public void cleanup() {}

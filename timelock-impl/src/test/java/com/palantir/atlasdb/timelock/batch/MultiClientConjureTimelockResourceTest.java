@@ -164,7 +164,7 @@ public class MultiClientConjureTimelockResourceTest {
     private Map<Namespace, GetCommitTimestampsRequest> getGetCommitTimestampsRequests(Set<String> namespaces) {
         return KeyedStream.of(namespaces)
                 .mapKeys(Namespace::of)
-                .map(namespace -> GetCommitTimestampsRequest.builder()
+                .map(_namespace -> GetCommitTimestampsRequest.builder()
                         .numTimestamps(DUMMY_COMMIT_TS_COUNT)
                         .build())
                 .collectToMap();
@@ -172,7 +172,7 @@ public class MultiClientConjureTimelockResourceTest {
 
     private Map<Namespace, ConjureStartTransactionsRequest> getStartTransactionsRequests(List<String> namespaces) {
         return KeyedStream.of(namespaces)
-                .map(namespace -> ConjureStartTransactionsRequest.builder()
+                .map(_namespace -> ConjureStartTransactionsRequest.builder()
                         .numTransactions(5)
                         .requestId(UUID.randomUUID())
                         .requestorId(UUID.randomUUID())

@@ -61,7 +61,7 @@ public class MutuallyExclusiveSetLock<T> {
             .weakValues()
             .build(new CacheLoader<T, ReentrantLock>() {
                 @Override
-                public ReentrantLock load(T key) {
+                public ReentrantLock load(T _key) {
                     return new ReentrantLock(fair);
                 }
             });

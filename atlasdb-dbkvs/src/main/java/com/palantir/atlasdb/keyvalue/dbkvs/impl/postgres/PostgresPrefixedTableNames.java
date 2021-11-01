@@ -30,7 +30,7 @@ public class PostgresPrefixedTableNames implements PrefixedTableNames {
     }
 
     @Override
-    public String get(TableReference tableRef, ConnectionSupplier connectionSupplier) {
+    public String get(TableReference tableRef, ConnectionSupplier _connectionSupplier) {
         return get(tableRef);
     }
 

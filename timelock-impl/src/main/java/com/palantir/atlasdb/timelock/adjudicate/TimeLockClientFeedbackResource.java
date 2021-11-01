@@ -66,7 +66,7 @@ public final class TimeLockClientFeedbackResource implements UndertowTimeLockCli
     }
 
     @Override
-    public ListenableFuture<Void> reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
+    public ListenableFuture<Void> reportFeedback(AuthHeader _authHeader, ConjureTimeLockClientFeedback feedbackReport) {
         if (leadershipCheck.test(getClient(feedbackReport))) {
             feedbackHandler.handle(feedbackReport);
         }
@@ -74,7 +74,7 @@ public final class TimeLockClientFeedbackResource implements UndertowTimeLockCli
     }
 
     @Override
-    public ListenableFuture<Void> reportLeaderMetrics(AuthHeader authHeader, LeaderElectionStatistics statistics) {
+    public ListenableFuture<Void> reportLeaderMetrics(AuthHeader _authHeader, LeaderElectionStatistics statistics) {
         leaderElectionAggregator.report(statistics);
         return Futures.immediateVoidFuture();
     }

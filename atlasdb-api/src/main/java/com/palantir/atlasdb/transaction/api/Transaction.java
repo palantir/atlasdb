@@ -390,7 +390,7 @@ public interface Transaction {
      * This method should be called before any reads are done on this table.
      */
     @Idempotent
-    default void disableReadWriteConflictChecking(TableReference tableRef) {
+    default void disableReadWriteConflictChecking(TableReference _tableRef) {
         throw new UnsupportedOperationException();
     }
 
@@ -398,7 +398,7 @@ public interface Transaction {
      * Marks this table as involved in this transaction, without actually reading any rows.
      */
     @Idempotent
-    default void markTableInvolved(TableReference tableRef) {
+    default void markTableInvolved(TableReference _tableRef) {
         throw new UnsupportedOperationException();
     }
 }

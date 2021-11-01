@@ -298,7 +298,7 @@ public class PaxosStateLogMigratorTest {
 
         PaxosStateLog<PaxosValue> targetMock = mock(PaxosStateLog.class);
         AtomicInteger failureCount = new AtomicInteger(0);
-        doAnswer(invocation -> {
+        doAnswer(_invocation -> {
                     if (failureCount.getAndIncrement() < 5) {
                         throw new RuntimeException();
                     }

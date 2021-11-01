@@ -137,12 +137,12 @@ public class AwaitingLeadershipProxyTest {
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
         when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
-                .thenAnswer($ -> {
+                .thenAnswer(_$ -> {
                     // Strange number to be detectable in traces
                     Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(37));
                     return Futures.immediateFuture(StillLeadingStatus.NO_QUORUM);
                 })
-                .thenAnswer($ -> {
+                .thenAnswer(_$ -> {
                     // Strange number to be detectable in traces
                     Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(29));
                     return Futures.immediateFuture(StillLeadingStatus.NO_QUORUM);
@@ -357,7 +357,7 @@ public class AwaitingLeadershipProxyTest {
     private void loseLeadership(Callable<?> proxy) throws InterruptedException {
         when(leaderElectionService.isStillLeading(any()))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
-        when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> {
+        when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(_invocation -> {
             // never return
             LockSupport.park();
             return null;
@@ -379,7 +379,7 @@ public class AwaitingLeadershipProxyTest {
                 return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
             }
         });
-        when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> newLeadershipToken);
+        when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(_invocation -> newLeadershipToken);
 
         // make a call so the proxy will realize that it has lost leadership
         assertThatThrownBy(proxy::val)

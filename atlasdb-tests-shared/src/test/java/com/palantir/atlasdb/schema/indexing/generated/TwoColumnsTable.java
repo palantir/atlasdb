@@ -182,10 +182,10 @@ public final class TwoColumnsTable implements
 
         public static final Hydrator<TwoColumnsRow> BYTES_HYDRATOR = new Hydrator<TwoColumnsRow>() {
             @Override
-            public TwoColumnsRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+            public TwoColumnsRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long id = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
                 return new TwoColumnsRow(id);
             }
         };
@@ -831,15 +831,15 @@ public final class TwoColumnsTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
@@ -938,10 +938,10 @@ public final class TwoColumnsTable implements
 
             public static final Hydrator<FooToIdCondIdxRow> BYTES_HYDRATOR = new Hydrator<FooToIdCondIdxRow>() {
                 @Override
-                public FooToIdCondIdxRow hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                public FooToIdCondIdxRow hydrateFromBytes(byte[] _input) {
+                    int _index = 0;
+                    Long foo = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                    _index += 8;
                     return new FooToIdCondIdxRow(foo);
                 }
             };
@@ -1055,14 +1055,14 @@ public final class TwoColumnsTable implements
 
             public static final Hydrator<FooToIdCondIdxColumn> BYTES_HYDRATOR = new Hydrator<FooToIdCondIdxColumn>() {
                 @Override
-                public FooToIdCondIdxColumn hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(rowName);
-                    byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                public FooToIdCondIdxColumn hydrateFromBytes(byte[] _input) {
+                    int _index = 0;
+                    byte[] rowName = EncodingUtils.decodeSizedBytes(_input, _index);
+                    _index += EncodingUtils.sizeOfSizedBytes(rowName);
+                    byte[] columnName = EncodingUtils.decodeSizedBytes(_input, _index);
+                    _index += EncodingUtils.sizeOfSizedBytes(columnName);
+                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                    _index += 8;
                     return new FooToIdCondIdxColumn(rowName, columnName, id);
                 }
             };
@@ -1457,15 +1457,15 @@ public final class TwoColumnsTable implements
         }
 
         @Override
-        public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                                   ConstraintCheckingTransaction transaction,
-                                                   AtlasDbConstraintCheckingMode constraintCheckingMode) {
+        public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                                   ConstraintCheckingTransaction _transaction,
+                                                   AtlasDbConstraintCheckingMode _constraintCheckingMode) {
             return ImmutableList.of();
         }
 
         @Override
-        public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                         AtlasDbConstraintCheckingMode constraintCheckingMode) {
+        public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                         AtlasDbConstraintCheckingMode _constraintCheckingMode) {
             return ImmutableList.of();
         }
     }
@@ -1571,12 +1571,12 @@ public final class TwoColumnsTable implements
 
             public static final Hydrator<FooToIdIdxRow> BYTES_HYDRATOR = new Hydrator<FooToIdIdxRow>() {
                 @Override
-                public FooToIdIdxRow hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
-                    Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                public FooToIdIdxRow hydrateFromBytes(byte[] _input) {
+                    int _index = 0;
+                    Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                    _index += 8;
+                    Long foo = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                    _index += 8;
                     return new FooToIdIdxRow(hashOfRowComponents, foo);
                 }
             };
@@ -1697,14 +1697,14 @@ public final class TwoColumnsTable implements
 
             public static final Hydrator<FooToIdIdxColumn> BYTES_HYDRATOR = new Hydrator<FooToIdIdxColumn>() {
                 @Override
-                public FooToIdIdxColumn hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(rowName);
-                    byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                public FooToIdIdxColumn hydrateFromBytes(byte[] _input) {
+                    int _index = 0;
+                    byte[] rowName = EncodingUtils.decodeSizedBytes(_input, _index);
+                    _index += EncodingUtils.sizeOfSizedBytes(rowName);
+                    byte[] columnName = EncodingUtils.decodeSizedBytes(_input, _index);
+                    _index += EncodingUtils.sizeOfSizedBytes(columnName);
+                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                    _index += 8;
                     return new FooToIdIdxColumn(rowName, columnName, id);
                 }
             };
@@ -2099,15 +2099,15 @@ public final class TwoColumnsTable implements
         }
 
         @Override
-        public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                                   ConstraintCheckingTransaction transaction,
-                                                   AtlasDbConstraintCheckingMode constraintCheckingMode) {
+        public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                                   ConstraintCheckingTransaction _transaction,
+                                                   AtlasDbConstraintCheckingMode _constraintCheckingMode) {
             return ImmutableList.of();
         }
 
         @Override
-        public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                         AtlasDbConstraintCheckingMode constraintCheckingMode) {
+        public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                         AtlasDbConstraintCheckingMode _constraintCheckingMode) {
             return ImmutableList.of();
         }
     }

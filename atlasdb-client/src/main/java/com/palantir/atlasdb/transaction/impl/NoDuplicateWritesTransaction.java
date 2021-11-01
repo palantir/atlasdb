@@ -46,7 +46,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
     final LoadingCache<TableReference, Map<Cell, byte[]>> writes = CacheBuilder.newBuilder()
             .build(new CacheLoader<TableReference, Map<Cell, byte[]>>() {
                 @Override
-                public Map<Cell, byte[]> load(TableReference input) {
+                public Map<Cell, byte[]> load(TableReference _input) {
                     return Collections.synchronizedMap(new HashMap<>());
                 }
             });

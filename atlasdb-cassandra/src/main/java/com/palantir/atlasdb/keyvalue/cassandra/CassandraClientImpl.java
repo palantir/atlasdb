@@ -75,7 +75,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
-            String kvsMethodName,
+            String _kvsMethodName,
             TableReference tableRef,
             List<ByteBuffer> keys,
             SlicePredicate predicate,
@@ -88,7 +88,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
-            String kvsMethodName,
+            String _kvsMethodName,
             TableReference tableRef,
             List<KeyPredicate> keyPredicates,
             ConsistencyLevel consistency_level)
@@ -100,7 +100,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public List<KeySlice> get_range_slices(
-            String kvsMethodName,
+            String _kvsMethodName,
             TableReference tableRef,
             SlicePredicate predicate,
             KeyRange range,
@@ -124,7 +124,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public void batch_mutate(
-            String kvsMethodName,
+            String _kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
@@ -143,7 +143,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public void remove(
-            String kvsMethodName,
+            String _kvsMethodName,
             TableReference tableRef,
             byte[] row,
             long timestamp,

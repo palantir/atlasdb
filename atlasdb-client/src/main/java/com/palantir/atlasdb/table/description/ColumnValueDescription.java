@@ -362,7 +362,7 @@ public final class ColumnValueDescription {
                 CompressionUtils.decompress(value, compression));
     }
 
-    public Object hydratePersister(ClassLoader classLoader, byte[] value) {
+    public Object hydratePersister(ClassLoader _classLoader, byte[] value) {
         Preconditions.checkState(format == Format.PERSISTER, "Column value is not a Persister.");
         Persister<?> persister = getPersister();
         return persister.hydrateFromBytes(CompressionUtils.decompress(value, compression));

@@ -180,10 +180,10 @@ public final class SnapshotsStreamHashAidxTable implements
 
         public static final Hydrator<SnapshotsStreamHashAidxRow> BYTES_HYDRATOR = new Hydrator<SnapshotsStreamHashAidxRow>() {
             @Override
-            public SnapshotsStreamHashAidxRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
-                __index += 32;
+            public SnapshotsStreamHashAidxRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(_input, _index));
+                _index += 32;
                 return new SnapshotsStreamHashAidxRow(hash);
             }
         };
@@ -272,10 +272,10 @@ public final class SnapshotsStreamHashAidxTable implements
 
         public static final Hydrator<SnapshotsStreamHashAidxColumn> BYTES_HYDRATOR = new Hydrator<SnapshotsStreamHashAidxColumn>() {
             @Override
-            public SnapshotsStreamHashAidxColumn hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long streamId = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+            public SnapshotsStreamHashAidxColumn hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long streamId = Long.MIN_VALUE ^ PtBytes.toLong(_input, _index);
+                _index += 8;
                 return new SnapshotsStreamHashAidxColumn(streamId);
             }
         };
@@ -642,15 +642,15 @@ public final class SnapshotsStreamHashAidxTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

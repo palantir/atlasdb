@@ -46,7 +46,7 @@ public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         Object target = shouldUseFirstService.get() ? firstService : secondService;
         try {
             return method.invoke(target, args);

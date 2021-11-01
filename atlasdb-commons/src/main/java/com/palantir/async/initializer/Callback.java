@@ -52,7 +52,7 @@ public abstract class Callback<R> {
      *
      * @param initException Throwable thrown by init()
      */
-    public void cleanup(R resource, Throwable initException) {
+    public void cleanup(R _resource, Throwable initException) {
         throw Throwables.rewrapAndThrowUncheckedException(initException);
     }
 
@@ -102,7 +102,7 @@ public abstract class Callback<R> {
      * Factory method for a callback that does nothing.
      */
     public static <R> Callback<R> noOp() {
-        return LambdaCallback.of(ignored -> {});
+        return LambdaCallback.of(_ignored -> {});
     }
 
     /**
@@ -162,7 +162,7 @@ public abstract class Callback<R> {
         }
 
         @Override
-        public void cleanup(T resource, Throwable cleanupException) {
+        public void cleanup(T _resource, Throwable cleanupException) {
             // Rethrows, because each callback's runWithRetry is responsible for cleanup of any resources needed
             // to be cleaned up for that task.
             throw Throwables.rewrapAndThrowUncheckedException(cleanupException);

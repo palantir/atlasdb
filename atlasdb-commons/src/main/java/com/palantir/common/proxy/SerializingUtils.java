@@ -33,7 +33,7 @@ public final class SerializingUtils {
     }
 
     public static <T> T copy(T orig) {
-        return copy(orig, (is, codebase) -> new ObjectInputStream(is));
+        return copy(orig, (is, _codebase) -> new ObjectInputStream(is));
     }
 
     @SuppressWarnings("unchecked")

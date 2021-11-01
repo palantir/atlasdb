@@ -20,7 +20,7 @@ import com.palantir.util.sql.SqlStats;
 
 public final class DurationSqlTimer implements SqlTimer {
     @Override
-    public Handle start(String module, final String sqlKey, final String rawSql) {
+    public Handle start(String _module, final String sqlKey, final String rawSql) {
         final long startNs = System.nanoTime();
         return () -> {
             long durationNs = System.nanoTime() - startNs;

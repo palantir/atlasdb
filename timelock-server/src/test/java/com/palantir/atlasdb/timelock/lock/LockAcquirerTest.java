@@ -92,7 +92,7 @@ public class LockAcquirerTest {
     @Test(timeout = 10_000)
     public void doesNotStackOverflowIfLocksAreAcquiredSynchronously() {
         List<AsyncLock> locks = IntStream.range(0, 10_000)
-                .mapToObj(i -> new ExclusiveLock(LOCK_DESCRIPTOR))
+                .mapToObj(_i -> new ExclusiveLock(LOCK_DESCRIPTOR))
                 .collect(Collectors.toList());
 
         AsyncResult<HeldLocks> acquisitions = acquire(locks);
@@ -105,7 +105,7 @@ public class LockAcquirerTest {
         lockA.lock(REQUEST_ID);
 
         List<AsyncResult<Void>> results = IntStream.range(0, 10_000)
-                .mapToObj(i -> lockA.waitUntilAvailable(UUID.randomUUID()))
+                .mapToObj(_i -> lockA.waitUntilAvailable(UUID.randomUUID()))
                 .collect(Collectors.toList());
 
         lockA.unlock(REQUEST_ID);
@@ -197,7 +197,7 @@ public class LockAcquirerTest {
     @Test
     public void stopsAcquiringAndUnlocksAfterTimeout() {
         acquire(lockB);
-        AsyncResult<?> result = acquire(lockA, lockB, lockC);
+        acquire(lockA, lockB, lockC);
 
         executor.tick(TIMEOUT.getTimeMillis() + 1L, TimeUnit.MILLISECONDS);
 

@@ -65,7 +65,7 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
             TaggedMetricRegistry taggedMetricRegistry, CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         return config.servers().accept(new CassandraServersConfigs.Visitor<Optional<CqlClient>>() {
             @Override
-            public Optional<CqlClient> visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
+            public Optional<CqlClient> visit(CassandraServersConfigs.DefaultConfig _defaultConfig) {
                 return Optional.empty();
             }
 

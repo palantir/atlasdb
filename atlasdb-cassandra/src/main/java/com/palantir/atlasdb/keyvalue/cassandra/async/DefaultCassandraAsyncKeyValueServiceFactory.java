@@ -51,7 +51,7 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
 
         ExecutorService executorService = config.servers().accept(new Visitor<ExecutorService>() {
             @Override
-            public ExecutorService visit(DefaultConfig defaultConfig) {
+            public ExecutorService visit(DefaultConfig _defaultConfig) {
                 return MoreExecutors.newDirectExecutorService();
             }
 

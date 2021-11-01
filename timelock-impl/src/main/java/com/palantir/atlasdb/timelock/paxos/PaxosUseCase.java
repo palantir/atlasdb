@@ -30,7 +30,7 @@ public enum PaxosUseCase {
     // <data-directory>/<client="leaderPaxos">/{acceptor/learner}
     LEADER_FOR_ALL_CLIENTS(LEADER_PAXOS_NAMESPACE, Paths.get("")) {
         @Override
-        public Client resolveClient(Client client) {
+        public Client resolveClient(Client _client) {
             return PSEUDO_LEADERSHIP_CLIENT;
         }
     },
@@ -47,7 +47,7 @@ public enum PaxosUseCase {
     // <data-directory>/<client>/{acceptor/learner}
     TIMESTAMP(CLIENT_PAXOS_NAMESPACE, Paths.get("")) {
         @Override
-        public Client resolveClient(Client client) {
+        public Client resolveClient(Client _client) {
             throw new SafeIllegalArgumentException("timestamp paxos should not be resolving clients");
         }
     };

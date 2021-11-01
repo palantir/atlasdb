@@ -51,7 +51,7 @@ final class TypeToExtend {
                         Function.identity(),
                         // In the case of methods with same signature, just pick any of them,
                         // since they're both the same.
-                        (methodSignature1, methodSignature2) -> methodSignature1));
+                        (methodSignature1, _methodSignature2) -> methodSignature1));
 
         methods = new HashSet<>(methodSignatureToMethod.values());
     }

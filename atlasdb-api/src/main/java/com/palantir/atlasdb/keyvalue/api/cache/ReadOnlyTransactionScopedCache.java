@@ -39,12 +39,12 @@ public final class ReadOnlyTransactionScopedCache implements TransactionScopedCa
     }
 
     @Override
-    public void write(TableReference tableReference, Map<Cell, byte[]> values) {
+    public void write(TableReference _tableReference, Map<Cell, byte[]> _values) {
         throw new UnsupportedOperationException("Cannot write via the read only transaction cache");
     }
 
     @Override
-    public void delete(TableReference tableReference, Set<Cell> cells) {
+    public void delete(TableReference _tableReference, Set<Cell> _cells) {
         throw new UnsupportedOperationException("Cannot delete via the read only transaction cache");
     }
 
@@ -90,7 +90,7 @@ public final class ReadOnlyTransactionScopedCache implements TransactionScopedCa
     }
 
     @Override
-    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate _commitUpdate) {
         throw new UnsupportedOperationException("Cannot create a read only transaction cache from itself");
     }
 }

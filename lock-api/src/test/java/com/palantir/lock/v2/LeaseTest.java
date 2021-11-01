@@ -27,7 +27,11 @@ import org.junit.Test;
 public class LeaseTest {
     private static final LeadershipId LEADERSHIP_ID_1 = LeadershipId.random();
     private static final LeadershipId LEADERSHIP_ID_2 = LeadershipId.random();
-    private static final LeaderTime leaderTime = LeaderTime.of(LEADERSHIP_ID_1, NanoTime.createForTests(10));
+
+    static {
+        LeaderTime.of(LEADERSHIP_ID_1, NanoTime.createForTests(10));
+    }
+
     private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private static final String SERIALIZED_LEASE = "{"

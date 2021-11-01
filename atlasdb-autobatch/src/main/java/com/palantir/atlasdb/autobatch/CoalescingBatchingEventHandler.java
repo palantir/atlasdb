@@ -37,7 +37,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     }
 
     @Override
-    public void onEvent(BatchElement<T, R> event, long sequence, boolean endOfBatch) {
+    public void onEvent(BatchElement<T, R> event, long _sequence, boolean endOfBatch) {
         pending.put(event.argument(), event.result());
         if (endOfBatch) {
             flush();
@@ -58,7 +58,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
                 }
             });
         } catch (Throwable t) {
-            pending.forEach((unused, future) -> future.setException(t));
+            pending.forEach((_unused, future) -> future.setException(t));
         }
         pending.clear();
     }

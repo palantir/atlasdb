@@ -81,7 +81,7 @@ public final class SweepOutcomeMetrics {
                         .putAll(additionalTags)
                         .put(AtlasDbMetricNames.TAG_OUTCOME, outcome.name())
                         .build();
-                filter.ifPresent(presentFilter ->
+                filter.ifPresent(_presentFilter ->
                         manager.addMetricFilter(forClass, AtlasDbMetricNames.SWEEP_OUTCOME, tags, filter.get()));
                 manager.registerOrGet(
                         forClass, AtlasDbMetricNames.SWEEP_OUTCOME, () -> getOutcomeCount(metrics, outcome), tags);

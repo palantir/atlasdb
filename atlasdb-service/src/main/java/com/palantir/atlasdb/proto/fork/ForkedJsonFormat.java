@@ -899,7 +899,7 @@ public final class ForkedJsonFormat {
             throws ParseException {
         FieldDescriptor field;
         Descriptor type = builder.getDescriptorForType();
-        ExtensionRegistry.ExtensionInfo extension = null;
+
         boolean unknown = false;
 
         String name = tokenizer.consumeIdentifier();
@@ -933,7 +933,7 @@ public final class ForkedJsonFormat {
         }
 
         // Finally, look for extensions
-        extension = extensionRegistry.findExtensionByName(name);
+        ExtensionRegistry.ExtensionInfo extension = extensionRegistry.findExtensionByName(name);
         if (extension != null) {
             if (extension.descriptor.getContainingType() != type) {
                 throw tokenizer.parseExceptionPreviousToken(

@@ -350,7 +350,7 @@ public abstract class BasicSQL {
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        public Object invoke(Object _proxy, Method method, Object[] args) throws Throwable {
             if (method.getName().equals("close")) { // $NON-NLS-1$
                 for (BlobHandler cleanup : toCleanup) {
                     try {
@@ -981,12 +981,12 @@ public abstract class BasicSQL {
     protected JdbcHandler getJdbcHandler() {
         return new JdbcHandler() {
             @Override
-            public ArrayHandler createStructArray(String structType, String arrayType, List<Object[]> elements) {
+            public ArrayHandler createStructArray(String _structType, String _arrayType, List<Object[]> _elements) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public BlobHandler createBlob(Connection c) throws SQLException {
+            public BlobHandler createBlob(Connection _c) throws SQLException {
                 throw new UnsupportedOperationException();
             }
         };

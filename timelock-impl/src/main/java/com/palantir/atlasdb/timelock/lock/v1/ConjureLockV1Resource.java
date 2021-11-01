@@ -62,7 +62,7 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
 
     @Override
     public ListenableFuture<Optional<HeldLocksToken>> lockAndGetHeldLocks(
-            AuthHeader authHeader, String namespace, ConjureLockV1Request request) {
+            AuthHeader _authHeader, String namespace, ConjureLockV1Request request) {
         return exceptionHandler.handleExceptions(() -> {
             try {
                 return Futures.immediateFuture(Optional.ofNullable(lockServices
@@ -77,7 +77,7 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
 
     @Override
     public ListenableFuture<Set<ConjureLockRefreshToken>> refreshLockRefreshTokens(
-            AuthHeader authHeader, String namespace, List<ConjureLockRefreshToken> request) {
+            AuthHeader _authHeader, String namespace, List<ConjureLockRefreshToken> request) {
         return exceptionHandler.handleExceptions(() -> {
             ListenableFuture<Set<LockRefreshToken>> serviceTokens = Futures.immediateFuture(lockServices
                     .apply(namespace)
@@ -91,7 +91,7 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
 
     @Override
     public ListenableFuture<Boolean> unlockSimple(
-            AuthHeader authHeader, String namespace, ConjureSimpleHeldLocksToken request) {
+            AuthHeader _authHeader, String namespace, ConjureSimpleHeldLocksToken request) {
         return exceptionHandler.handleExceptions(() -> {
             SimpleHeldLocksToken serverToken =
                     new SimpleHeldLocksToken(request.getTokenId(), request.getCreationDateMs());

@@ -108,7 +108,7 @@ public class NoSimultaneousServiceCheckTest {
         when(checker1.getFreshTimestampFromNodeForClient(CLIENT.value()))
                 .then(getNextTimestamp())
                 .then(getNextTimestamp())
-                .then(ignore -> OptionalLong.of(timestamps.getAndIncrement() - 1));
+                .then(_ignore -> OptionalLong.of(timestamps.getAndIncrement() - 1));
         when(checker2.getFreshTimestampFromNodeForClient(CLIENT.value())).then(getNextTimestamp());
 
         noSimultaneousServiceCheck.processHealthCheckDigest(DIGEST);
@@ -120,7 +120,7 @@ public class NoSimultaneousServiceCheckTest {
         when(checker1.getFreshTimestampFromNodeForClient(CLIENT.value())).then(getNextTimestamp());
         when(checker2.getFreshTimestampFromNodeForClient(CLIENT.value()))
                 .then(getNextTimestamp())
-                .then(ignore -> OptionalLong.of(timestamps.getAndIncrement() - 1));
+                .then(_ignore -> OptionalLong.of(timestamps.getAndIncrement() - 1));
 
         noSimultaneousServiceCheck.processHealthCheckDigest(DIGEST);
         verify(failureMechanism).accept(CLIENT.value());
@@ -143,6 +143,6 @@ public class NoSimultaneousServiceCheckTest {
     }
 
     private Answer<OptionalLong> getNextTimestamp() {
-        return ignore -> OptionalLong.of(timestamps.getAndIncrement());
+        return _ignore -> OptionalLong.of(timestamps.getAndIncrement());
     }
 }

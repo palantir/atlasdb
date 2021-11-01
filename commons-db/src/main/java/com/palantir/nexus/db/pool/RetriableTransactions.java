@@ -277,7 +277,7 @@ public final class RetriableTransactions {
             .weakKeys()
             .build(new CacheLoader<ConnectionManager, AtomicBoolean>() {
                 @Override
-                public AtomicBoolean load(ConnectionManager cm) {
+                public AtomicBoolean load(ConnectionManager _cm) {
                     return new AtomicBoolean(false);
                 }
             });

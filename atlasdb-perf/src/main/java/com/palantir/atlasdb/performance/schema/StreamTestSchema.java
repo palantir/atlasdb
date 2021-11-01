@@ -65,7 +65,7 @@ public final class StreamTestSchema implements AtlasSchema {
         return STREAM_TEST_SCHEMA;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] _args) throws Exception {
         STREAM_TEST_SCHEMA.renderTables(new File("src/main/java"));
     }
 

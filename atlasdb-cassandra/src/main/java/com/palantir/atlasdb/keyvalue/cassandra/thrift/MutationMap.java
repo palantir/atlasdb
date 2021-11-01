@@ -42,10 +42,10 @@ public class MutationMap {
      */
     public void addMutationForCell(Cell cell, TableReference tableRef, Mutation mutation) {
         ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
-        Map<String, List<Mutation>> rowPuts = mutationMap.computeIfAbsent(rowName, row -> new HashMap<>());
+        Map<String, List<Mutation>> rowPuts = mutationMap.computeIfAbsent(rowName, _row -> new HashMap<>());
 
         List<Mutation> tableMutations =
-                rowPuts.computeIfAbsent(AbstractKeyValueService.internalTableName(tableRef), k -> new ArrayList<>());
+                rowPuts.computeIfAbsent(AbstractKeyValueService.internalTableName(tableRef), _k -> new ArrayList<>());
 
         tableMutations.add(mutation);
     }

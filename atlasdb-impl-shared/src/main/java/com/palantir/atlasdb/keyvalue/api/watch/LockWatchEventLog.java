@@ -223,7 +223,7 @@ final class LockWatchEventLog {
     private final class NewLeaderVisitor implements LockWatchStateUpdate.Visitor<CacheUpdate> {
 
         @Override
-        public CacheUpdate visit(LockWatchStateUpdate.Success success) {
+        public CacheUpdate visit(LockWatchStateUpdate.Success _success) {
             processFailed();
             return CacheUpdate.FAILED;
         }

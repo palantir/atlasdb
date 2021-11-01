@@ -130,7 +130,7 @@ public class IndexTestSchema implements AtlasSchema {
         return INDEX_TEST_SCHEMA;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] _args) throws Exception {
         INDEX_TEST_SCHEMA.renderTables(new File("src/test/java"));
     }
 

@@ -171,7 +171,7 @@ public class WriteBatchingTransactionServiceTest {
         int numRequests = 100;
         List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
                         0, numRequests)
-                .mapToObj(unused -> TestTransactionBatchElement.of(5L, 9L))
+                .mapToObj(_unused -> TestTransactionBatchElement.of(5L, 9L))
                 .collect(Collectors.toList());
 
         WriteBatchingTransactionService.processBatch(mockTransactionService, batchedRequest);
@@ -196,7 +196,7 @@ public class WriteBatchingTransactionServiceTest {
         int numRequests = 100;
         List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
                         0, numRequests)
-                .mapToObj(unused -> TestTransactionBatchElement.of(5L, 9L))
+                .mapToObj(_unused -> TestTransactionBatchElement.of(5L, 9L))
                 .collect(Collectors.toList());
 
         WriteBatchingTransactionService.processBatch(mockTransactionService, batchedRequest);
@@ -223,7 +223,7 @@ public class WriteBatchingTransactionServiceTest {
         int numFailingRequests = 100;
         List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
                         0, numFailingRequests)
-                .mapToObj(unused -> TestTransactionBatchElement.of(6L, 9L))
+                .mapToObj(_unused -> TestTransactionBatchElement.of(6L, 9L))
                 .collect(Collectors.toList());
         batchedRequest.add(TestTransactionBatchElement.of(5L, 888L));
 
@@ -266,7 +266,7 @@ public class WriteBatchingTransactionServiceTest {
         int numRequests = 100;
         List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
                         0, numRequests)
-                .mapToObj(unused -> TestTransactionBatchElement.of(1L, 5L))
+                .mapToObj(_unused -> TestTransactionBatchElement.of(1L, 5L))
                 .collect(Collectors.toList());
 
         WriteBatchingTransactionService.processBatch(encodingTransactionService, batchedRequest);

@@ -34,7 +34,8 @@ public class TableRowSelectionSerializer extends StdSerializer<TableRowSelection
     }
 
     @Override
-    public void serialize(TableRowSelection value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(TableRowSelection value, JsonGenerator jgen, SerializerProvider _provider)
+            throws IOException {
         TableMetadata metadata = metadataCache.getMetadata(value.getTableName());
         Preconditions.checkNotNull(metadata, "Unknown table %s", value.getTableName());
         jgen.writeStartObject();

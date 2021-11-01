@@ -182,10 +182,10 @@ public final class HotspottyDataStreamMetadataTable implements
 
         public static final Hydrator<HotspottyDataStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<HotspottyDataStreamMetadataRow>() {
             @Override
-            public HotspottyDataStreamMetadataRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long id = EncodingUtils.decodeSignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfSignedVarLong(id);
+            public HotspottyDataStreamMetadataRow hydrateFromBytes(byte[] _input) {
+                int _index = 0;
+                Long id = EncodingUtils.decodeSignedVarLong(_input, _index);
+                _index += EncodingUtils.sizeOfSignedVarLong(id);
                 return new HotspottyDataStreamMetadataRow(id);
             }
         };
@@ -608,15 +608,15 @@ public final class HotspottyDataStreamMetadataTable implements
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> _writes,
+                                               ConstraintCheckingTransaction _transaction,
+                                               AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> _writes,
+                                                     AtlasDbConstraintCheckingMode _constraintCheckingMode) {
         return ImmutableList.of();
     }
 

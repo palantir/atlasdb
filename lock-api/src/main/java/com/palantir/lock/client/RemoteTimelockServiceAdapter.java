@@ -116,7 +116,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
-    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
+    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions _options) {
         log.warn(
                 "Locking with client options should not happen at the level of the remote adapter. We will perform a"
                         + " normal lock, disregarding these options here.",

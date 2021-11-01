@@ -40,7 +40,7 @@ public abstract class InterceptorDataSource {
     protected InterceptorDataSource(final DataSource delegate) {
         this.handler = new AbstractInvocationHandler() {
             @Override
-            protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+            protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
                 Object ret;
                 try {
                     ret = method.invoke(delegate, args);

@@ -54,7 +54,7 @@ public final class CachingStatementPreparer implements StatementPreparer {
                 .cqlQueryContext(querySpec.cqlQueryContext())
                 .queryType(querySpec.queryType())
                 .build();
-        return cache.get(cacheKey, key -> statementPreparer.prepare(querySpec));
+        return cache.get(cacheKey, _key -> statementPreparer.prepare(querySpec));
     }
 
     @Value.Immutable

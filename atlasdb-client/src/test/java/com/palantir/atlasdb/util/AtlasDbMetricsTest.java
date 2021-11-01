@@ -142,7 +142,7 @@ public final class AtlasDbMetricsTest {
     public void instrumentTaggedAsyncFunctionWithExtraTags() {
         Map<String, String> extraTags = ImmutableMap.of("key", "value");
         AsyncTestService asyncTestService = AtlasDbMetrics.instrumentWithTaggedMetrics(
-                taggedMetrics, AsyncTestService.class, this.asyncTestService, $ -> extraTags);
+                taggedMetrics, AsyncTestService.class, this.asyncTestService, _$ -> extraTags);
 
         List<ListenableFuture<String>> futures = fireOffTenAsyncPings(asyncTestService);
 
@@ -169,7 +169,7 @@ public final class AtlasDbMetricsTest {
 
     private static List<ListenableFuture<String>> fireOffTenAsyncPings(AsyncTestService asyncTestService) {
         return IntStream.range(0, 10)
-                .mapToObj($ -> asyncTestService.asyncPing())
+                .mapToObj(_$ -> asyncTestService.asyncPing())
                 .collect(Collectors.toList());
     }
 

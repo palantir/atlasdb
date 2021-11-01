@@ -41,7 +41,7 @@ public class LockCheckingTransactionTaskTest {
     private final Transaction transaction = mock(Transaction.class);
     private final TransactionTask<String, Exception> delegate = spy(new TransactionTask<>() {
         @Override
-        public String execute(Transaction txn) throws Exception {
+        public String execute(Transaction _txn) throws Exception {
             return "result";
         }
     });

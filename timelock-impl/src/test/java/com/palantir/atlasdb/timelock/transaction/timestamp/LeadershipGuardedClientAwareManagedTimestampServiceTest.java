@@ -51,7 +51,7 @@ public class LeadershipGuardedClientAwareManagedTimestampServiceTest {
 
     @Test
     public void doNotReturnIfClosedAfterDelegateInvocationBegins() {
-        when(delegate.getFreshTimestamp()).thenAnswer(invocation -> {
+        when(delegate.getFreshTimestamp()).thenAnswer(_invocation -> {
             delegatingService.close();
             return 42L;
         });
