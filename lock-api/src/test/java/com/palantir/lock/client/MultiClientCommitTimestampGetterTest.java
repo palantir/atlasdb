@@ -147,7 +147,7 @@ public class MultiClientCommitTimestampGetterTest {
                     getCommitTimestampResponse(invocation.getArgument(0));
             commitTimestamps.forEach((namespace, response) -> {
                 expectedResponseMap
-                        .computeIfAbsent(namespace, _unused -> new ArrayList())
+                        .computeIfAbsent(namespace, _unused -> new ArrayList<>())
                         .add(response);
             });
             return commitTimestamps;

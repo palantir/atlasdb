@@ -96,7 +96,7 @@ public abstract class ResultsExtractor<T> {
 
     public abstract Map<Cell, T> asMap();
 
-    protected Counter getNotLatestVisibleValueCellFilterCounter(Class clazz) {
+    protected Counter getNotLatestVisibleValueCellFilterCounter(Class<?> clazz) {
         // TODO(hsaraogi): add table names as a tag
         return metricsManager.registerOrGetCounter(
                 clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);

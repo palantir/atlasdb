@@ -212,7 +212,7 @@ public class AwaitingLeadershipProxyTest {
     public void shouldGainLeadershipImmediatelyIfAlreadyLeading() throws Exception {
         when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.of(leadershipToken));
 
-        Callable proxy = proxyFor(() -> null);
+        Callable<Void> proxy = proxyFor(() -> null);
 
         proxy.call();
 
@@ -221,7 +221,7 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldBlockOnGainingLeadershipIfNotCurrentlyLeading() throws Exception {
-        Callable proxy = proxyFor(() -> null);
+        Callable<Void> proxy = proxyFor(() -> null);
         waitForLeadershipToBeGained();
 
         proxy.call();
@@ -253,7 +253,7 @@ public class AwaitingLeadershipProxyTest {
         waitForLeadershipToBeGained();
 
         proxy.val();
-        Callable callable = () -> {
+        Callable<Void> callable = () -> {
             proxy.val();
             return null;
         };
@@ -354,7 +354,7 @@ public class AwaitingLeadershipProxyTest {
         }
     }
 
-    private void loseLeadership(Callable proxy) throws InterruptedException {
+    private void loseLeadership(Callable<?> proxy) throws InterruptedException {
         when(leaderElectionService.isStillLeading(any()))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
         when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> {
@@ -390,8 +390,8 @@ public class AwaitingLeadershipProxyTest {
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
     }
 
-    private Callable proxyFor(Callable fn) {
-        return AwaitingLeadershipProxy.newProxyInstance(
+    private <T> Callable<T> proxyFor(Callable<T> fn) {
+        return (Callable<T>) AwaitingLeadershipProxy.newProxyInstance(
                 Callable.class, () -> fn, LeadershipCoordinator.create(leaderElectionService));
     }
 

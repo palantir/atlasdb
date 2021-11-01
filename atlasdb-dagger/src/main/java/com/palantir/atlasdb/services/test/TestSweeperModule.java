@@ -68,11 +68,6 @@ public class TestSweeperModule {
         LongSupplier unreadable = unreadableTs.orElse(txm::getUnreadableTimestamp);
         LongSupplier immutable = immutableTs.orElse(txm::getImmutableTimestamp);
         return new SweepTaskRunner(
-                kvs,
-                unreadable,
-                immutable,
-                transactionService,
-                sweepStrategyManager,
-                new CellsSweeper(txm, kvs, ImmutableList.of(follower)));
+                kvs, unreadable, immutable, transactionService, new CellsSweeper(txm, kvs, ImmutableList.of(follower)));
     }
 }

@@ -45,7 +45,7 @@ final class LockWatchEventLog {
     }
 
     CacheUpdate processUpdate(LockWatchStateUpdate update) {
-        if (!latestVersion.isPresent()
+        if (latestVersion.isEmpty()
                 || !update.logId().equals(latestVersion.get().id())) {
             return update.accept(new NewLeaderVisitor());
         } else {
@@ -62,7 +62,7 @@ final class LockWatchEventLog {
         Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
         LockWatchVersion currentVersion = getLatestVersionAndVerify(versionBounds.endVersion());
 
-        if (!startVersion.isPresent()
+        if (startVersion.isEmpty()
                 || differentLeaderOrTooFarBehind(
                         currentVersion, versionBounds.startVersion().get(), startVersion.get())) {
             long snapshotVersion = versionBounds.snapshotVersion() + 1;
@@ -73,7 +73,7 @@ final class LockWatchEventLog {
                 afterSnapshotEvents = eventStore.getEventsBetweenVersionsInclusive(
                         Optional.of(snapshotVersion), versionBounds.endVersion().version());
             }
-            return new ClientLogEvents.Builder()
+            return ClientLogEvents.builder()
                     .clearCache(true)
                     .events(LockWatchEvents.builder()
                             .addEvents(getCompressedSnapshot(versionBounds))
@@ -87,7 +87,7 @@ final class LockWatchEventLog {
                             version.version() <= versionBounds.endVersion().version(),
                             "Cannot get update for transactions when the last known version is more recent than the "
                                     + "transactions"));
-            return new ClientLogEvents.Builder()
+            return ClientLogEvents.builder()
                     .clearCache(false)
                     .events(LockWatchEvents.builder()
                             .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
@@ -130,13 +130,27 @@ final class LockWatchEventLog {
 
     private boolean differentLeaderOrTooFarBehind(
             LockWatchVersion currentVersion, LockWatchVersion lastKnownVersion, LockWatchVersion startVersion) {
-        if (!startVersion.id().equals(currentVersion.id())) {
+        if (differentLeader(currentVersion, startVersion)) {
             return true;
         }
-        if (latestVersion.filter(lastKnownVersion::equals).isPresent()) {
+
+        if (lastKnownVersionEqualsLatestVersion(lastKnownVersion)) {
             return false;
         }
+
+        return tooFarBehindEventLog(startVersion);
+    }
+
+    private boolean lastKnownVersionEqualsLatestVersion(LockWatchVersion lastKnownVersion) {
+        return latestVersion.filter(lastKnownVersion::equals).isPresent();
+    }
+
+    private boolean tooFarBehindEventLog(LockWatchVersion startVersion) {
         return !eventStore.containsEntryLessThanOrEqualTo(startVersion.version());
+    }
+
+    private boolean differentLeader(LockWatchVersion currentVersion, LockWatchVersion startVersion) {
+        return !startVersion.id().equals(currentVersion.id());
     }
 
     private LockWatchVersion createStartVersion(LockWatchVersion startVersion) {

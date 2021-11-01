@@ -65,7 +65,8 @@ public class ServiceDiscoveringAtlasSupplier {
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
 
-        AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
+        AtlasDbFactory<KeyValueServiceConfig> atlasFactory =
+                AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
         mergedKeyValueServiceConfig = atlasFactory.createMergedKeyValueServiceConfig(config, runtimeConfig, namespace);
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
                 metricsManager,

@@ -133,7 +133,7 @@ public abstract class TimestampPartitioningMap<T> {
     }
 
     private void copyOldRangesFromPreviousMap(
-            RangeAndValue latestRangeAndValue, @Output ImmutableRangeMap.Builder<Long, T> builder) {
+            RangeAndValue<T> latestRangeAndValue, @Output ImmutableRangeMap.Builder<Long, T> builder) {
         timestampMappings().stream()
                 .filter(rangeAndValue -> !rangeAndValue.equals(latestRangeAndValue))
                 .forEach(rangeAndValue -> builder.put(rangeAndValue.longRange(), rangeAndValue.value()));

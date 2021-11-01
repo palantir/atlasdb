@@ -43,7 +43,7 @@ public final class ColumnSelection implements Serializable {
         this.selectedColumns = selectedColumns;
     }
 
-    @SuppressWarnings("BadAssert") // performance sensitive asserts
+    @SuppressWarnings({"BadAssert", "StringSplitter"}) // this code is performance sensitive!
     public static ColumnSelection valueOf(String serialized) {
         Set<byte[]> columns = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
         for (String columnString : serialized.split("\\s*,\\s*")) {

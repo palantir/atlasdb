@@ -26,7 +26,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 public class InMemoryAtlasDbFactoryTest {
-    private final AtlasDbFactory factory = new InMemoryAtlasDbFactory();
+    private final AtlasDbFactory<?> factory = new InMemoryAtlasDbFactory();
 
     @Test
     public void syncInitKvsSynchronous() {

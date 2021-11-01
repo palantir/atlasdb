@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Rename `getServerId` endpoint to `getServerLifecycleId`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5734

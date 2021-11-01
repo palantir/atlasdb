@@ -40,6 +40,15 @@ import java.util.Set;
 import java.util.UUID;
 import org.immutables.value.Value;
 
+/**
+ * Encapsulates a response from the event log, containing both a list of events relevant to those requested, as well
+ * information around whether it is necessary to clear cache upstream.
+ *
+ * It is important to note that the additional logic in this class does *not* change any of the state here, and instead
+ * just performs additional verification (mainly around confirming that the events contained here span a sufficient
+ * version range). Events are never filtered here - while those passed in should be minimal, it is the responsibility
+ * of the consumer of {@link TransactionsLockWatchUpdate} or {@link CommitUpdate} to filter out additional events.
+ */
 @Value.Immutable
 interface ClientLogEvents {
     SafeLogger log = SafeLoggerFactory.get(ClientLogEvents.class);
@@ -47,11 +56,6 @@ interface ClientLogEvents {
     LockWatchEvents events();
 
     boolean clearCache();
-
-    @Value.Derived
-    default Optional<Long> latestVersion() {
-        return events().versionRange().map(Range::upperEndpoint);
-    }
 
     default TransactionsLockWatchUpdate toTransactionsLockWatchUpdate(
             TimestampMapping timestampMapping, Optional<LockWatchVersion> lastKnownVersion) {
@@ -113,7 +117,9 @@ interface ClientLogEvents {
         });
     }
 
-    class Builder extends ImmutableClientLogEvents.Builder {}
+    static ImmutableClientLogEvents.Builder builder() {
+        return ImmutableClientLogEvents.builder();
+    }
 
     final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         private final Optional<UUID> commitRequestId;

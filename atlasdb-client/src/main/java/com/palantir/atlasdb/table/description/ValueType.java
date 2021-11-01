@@ -67,12 +67,12 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<Long> getJavaClass() {
             return long.class;
         }
 
         @Override
-        public Class getJavaObjectClass() {
+        public Class<Long> getJavaObjectClass() {
             return Long.class;
         }
 
@@ -147,12 +147,12 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<Long> getJavaClass() {
             return long.class;
         }
 
         @Override
-        public Class getJavaObjectClass() {
+        public Class<Long> getJavaObjectClass() {
             return Long.class;
         }
 
@@ -226,12 +226,12 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<Long> getJavaClass() {
             return long.class;
         }
 
         @Override
-        public Class getJavaObjectClass() {
+        public Class<Long> getJavaObjectClass() {
             return Long.class;
         }
 
@@ -306,12 +306,12 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<Long> getJavaClass() {
             return long.class;
         }
 
         @Override
-        public Class getJavaObjectClass() {
+        public Class<Long> getJavaObjectClass() {
             return Long.class;
         }
 
@@ -393,7 +393,7 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<Sha256Hash> getJavaClass() {
             return Sha256Hash.class;
         }
 
@@ -463,7 +463,7 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<String> getJavaClass() {
             return String.class;
         }
 
@@ -533,7 +533,7 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<String> getJavaClass() {
             return String.class;
         }
 
@@ -603,7 +603,7 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<byte[]> getJavaClass() {
             return byte[].class;
         }
 
@@ -675,7 +675,7 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<byte[]> getJavaClass() {
             return byte[].class;
         }
 
@@ -748,7 +748,7 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<Long> getJavaClass() {
             return Long.class;
         }
 
@@ -824,7 +824,7 @@ public enum ValueType {
         }
 
         @Override
-        public Class getJavaClass() {
+        public Class<java.util.UUID> getJavaClass() {
             return java.util.UUID.class;
         }
 
@@ -877,9 +877,9 @@ public enum ValueType {
         return true;
     }
 
-    public abstract Class getJavaClass();
+    public abstract Class<?> getJavaClass();
 
-    public Class getJavaObjectClass() {
+    public Class<?> getJavaObjectClass() {
         return getJavaClass();
     }
 

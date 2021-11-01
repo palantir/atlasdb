@@ -90,7 +90,7 @@ public class CassandraSchemaLockTest {
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
-    private void async(Callable callable) {
+    private void async(Callable<Void> callable) {
         executorService.submit(callable);
     }
 }

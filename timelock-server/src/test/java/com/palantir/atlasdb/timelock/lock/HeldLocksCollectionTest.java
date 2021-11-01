@@ -45,9 +45,9 @@ public class HeldLocksCollectionTest {
     private static final UUID REQUEST_ID_2 = UUID.randomUUID();
     private static final LockDescriptor LOCK_DESCRIPTOR = StringLockDescriptor.of("foo");
 
-    private AtomicLong atomicLong = new AtomicLong(1);
+    private final AtomicLong atomicLong = new AtomicLong(1);
     private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, atomicLong::incrementAndGet);
-    private LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> time.get());
+    private final LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> time.get());
     private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(leaderClock);
     private final LockWatchingService lockWatcher = mock(LockWatchingService.class);
 
@@ -62,7 +62,7 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void doesNotCallSupplierForExistingRequest() {
-        heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> new AsyncResult<>());
+        heldLocksCollection.getExistingOrAcquire(REQUEST_ID, AsyncResult::new);
 
         Supplier<AsyncResult<HeldLocks>> supplier = mock(Supplier.class);
         heldLocksCollection.getExistingOrAcquire(REQUEST_ID, supplier);
@@ -203,7 +203,7 @@ public class HeldLocksCollectionTest {
     public void lockWatchingServiceIsUpdatedAfterLockIsCreatedAndUnlocked() {
         setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
-        AsyncResult<Leased<LockToken>> asyncResult = heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
         verify(lockWatcher)
                 .registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
@@ -313,7 +313,7 @@ public class HeldLocksCollectionTest {
 
     private LockToken mockFailedRequest() {
         LockToken request = LockToken.of(UUID.randomUUID());
-        AsyncResult failedLocks = new AsyncResult();
+        AsyncResult<HeldLocks> failedLocks = new AsyncResult<>();
         failedLocks.fail(new RuntimeException());
 
         heldLocksCollection.getExistingOrAcquire(request.getRequestId(), () -> failedLocks);
@@ -323,7 +323,7 @@ public class HeldLocksCollectionTest {
 
     private LockToken mockTimedOutRequest() {
         LockToken request = LockToken.of(UUID.randomUUID());
-        AsyncResult timedOutResult = new AsyncResult();
+        AsyncResult<HeldLocks> timedOutResult = new AsyncResult<>();
         timedOutResult.timeout();
 
         heldLocksCollection.getExistingOrAcquire(request.getRequestId(), () -> timedOutResult);
