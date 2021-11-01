@@ -22,6 +22,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Runnables;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.Tracers;
@@ -574,7 +575,7 @@ public final class PTExecutors {
         Preconditions.checkArgument(
                 corePoolSize >= 0,
                 "Cannot create a ScheduledThreadPoolExecutor with %s threads - thread count must not be negative!",
-                corePoolSize);
+                SafeArg.of("corePoolSize", corePoolSize));
         int positiveCorePoolSize = corePoolSize > 0 ? corePoolSize : 1;
         String executorName = getExecutorName(threadFactory);
         ScheduledThreadPoolExecutor ret =
