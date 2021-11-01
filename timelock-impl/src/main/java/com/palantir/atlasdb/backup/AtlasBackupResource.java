@@ -17,16 +17,23 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.backup.api.AtlasBackupService;
+import com.palantir.atlasdb.backup.api.AtlasBackupServiceEndpoints;
+import com.palantir.atlasdb.backup.api.UndertowAtlasBackupService;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
+import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -34,31 +41,35 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class AtlasBackupResource implements AtlasBackupService {
+public class AtlasBackupResource implements UndertowAtlasBackupService {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupResource.class);
     private final Function<String, AsyncTimelockService> timelockServices;
+    private final ConjureResourceExceptionHandler exceptionHandler;
 
     @VisibleForTesting
-    AtlasBackupResource(Function<String, AsyncTimelockService> timelockServices) {
+    AtlasBackupResource(
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
-    // TODO(gs): add handleExceptions stuff
-    // public static UndertowService undertow(
-    //         RedirectRetryTargeter _redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-    //     return AtlasBackupServiceEndpoints.of(new AtlasBackupResource(timelockServices));
-    // }
-    //
-    // // TOOO(gs): jersey wrapper
-    // public static AtlasBackupService jersey(
-    //         RedirectRetryTargeter _redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-    //     return new AtlasBackupResource(timelockServices);
-    // }
+    public static UndertowService undertow(
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+        return AtlasBackupServiceEndpoints.of(new AtlasBackupResource(redirectRetryTargeter, timelockServices));
+    }
+
+    public static AtlasBackupService jersey(
+            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+        return new JerseyAtlasBackupServiceAdapter(new AtlasBackupResource(redirectRetryTargeter, timelockServices));
+    }
 
     // public static AtlasBackupResource create(
     //         Refreshable<ServerListConfig> serverListConfig,
@@ -69,11 +80,15 @@ public class AtlasBackupResource implements AtlasBackupService {
     //             serverListConfig, reloadingFactory, userAgent, taggedMetricRegistry);
     //     ConjureTimelockService timelockService = serviceProvider.getConjureTimelockService();
     //
-    //     return new AtlasBackupResource(timelockService);
+    //     return new AtlasBackupResource(null, timelockService);
     // }
 
     @Override
-    public PrepareBackupResponse prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
+    public ListenableFuture<PrepareBackupResponse> prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
+        return handleExceptions(() -> Futures.immediateFuture(prepareBackupInternal(request)));
+    }
+
+    private PrepareBackupResponse prepareBackupInternal(PrepareBackupRequest request) {
         Set<BackupToken> preparedBackups = request.getNamespaces().stream()
                 .map(this::prepareBackup)
                 .flatMap(Optional::stream)
@@ -81,7 +96,6 @@ public class AtlasBackupResource implements AtlasBackupService {
         return PrepareBackupResponse.of(preparedBackups);
     }
 
-    // TODO(gs): refresh locks
     Optional<BackupToken> prepareBackup(Namespace namespace) {
         try {
             return Optional.of(tryPrepareBackup(namespace));
@@ -104,19 +118,35 @@ public class AtlasBackupResource implements AtlasBackupService {
     }
 
     @Override
-    public CompleteBackupResponse completeBackup(AuthHeader authHeader, CompleteBackupRequest request) {
-        Set<BackupToken> completedBackups = request.getBackupTokens().stream()
-                .filter(this::wasCompleteBackupSuccessful)
-                .map(this::fetchFastForwardTimestamp)
-                .collect(Collectors.toSet());
-        return CompleteBackupResponse.of(completedBackups);
+    public ListenableFuture<CompleteBackupResponse> completeBackup(
+            AuthHeader authHeader, CompleteBackupRequest request) {
+        Map<BackupToken, ListenableFuture<Optional<BackupToken>>> futureMap =
+                request.getBackupTokens().stream().collect(Collectors.toMap(token -> token, this::completeBackupAsync));
+        ListenableFuture<Map<BackupToken, BackupToken>> singleFuture = AtlasFutures.futuresCombiner(
+                        MoreExecutors.newDirectExecutorService())
+                .allAsMap(futureMap);
+        return Futures.transform(
+                singleFuture,
+                map -> CompleteBackupResponse.of(new HashSet<>(map.values())),
+                MoreExecutors.directExecutor());
     }
 
-    private boolean wasCompleteBackupSuccessful(BackupToken backupToken) {
-        LockToken lockToken = backupToken.getLockToken();
-        ListenableFuture<Set<LockToken>> unlockResult =
-                timelock(backupToken.getNamespace()).unlock(Set.of(lockToken));
-        return AtlasFutures.getUnchecked(unlockResult).contains(lockToken);
+    private ListenableFuture<Optional<BackupToken>> completeBackupAsync(BackupToken backupToken) {
+        return Futures.transform(
+                unlockAsync(backupToken),
+                tokens -> fetchFastForwardTimestampIfSuccessful(backupToken, tokens),
+                MoreExecutors.directExecutor());
+    }
+
+    private ListenableFuture<Set<LockToken>> unlockAsync(BackupToken backupToken) {
+        return timelock(backupToken.getNamespace()).unlock(Set.of(backupToken.getLockToken()));
+    }
+
+    private Optional<BackupToken> fetchFastForwardTimestampIfSuccessful(
+            BackupToken backupToken, Set<LockToken> tokens) {
+        return (tokens != null && tokens.contains(backupToken.getLockToken()))
+                ? Optional.of(fetchFastForwardTimestamp(backupToken))
+                : Optional.empty();
     }
 
     private BackupToken fetchFastForwardTimestamp(BackupToken backupToken) {
@@ -130,5 +160,31 @@ public class AtlasBackupResource implements AtlasBackupService {
 
     private AsyncTimelockService timelock(Namespace namespace) {
         return timelockServices.apply(namespace.get());
+    }
+
+    private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
+        return exceptionHandler.handleExceptions(supplier);
+    }
+
+    public static final class JerseyAtlasBackupServiceAdapter implements AtlasBackupService {
+        private final AtlasBackupResource resource;
+
+        public JerseyAtlasBackupServiceAdapter(AtlasBackupResource resource) {
+            this.resource = resource;
+        }
+
+        @Override
+        public PrepareBackupResponse prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
+            return unwrap(resource.prepareBackup(authHeader, request));
+        }
+
+        @Override
+        public CompleteBackupResponse completeBackup(AuthHeader authHeader, CompleteBackupRequest request) {
+            return unwrap(resource.completeBackup(authHeader, request));
+        }
+
+        private static <T> T unwrap(ListenableFuture<T> future) {
+            return AtlasFutures.getUnchecked(future);
+        }
     }
 }
