@@ -99,7 +99,7 @@ types:
           namespaces: set<Namespace>
       PrepareBackupResponse:
         fields:
-          successful: set<BackupToken> # set<Namespace>?
+          successful: set<BackupToken>
       CompleteBackupRequest:
         fields:
           backupTokens: set<BackupToken>

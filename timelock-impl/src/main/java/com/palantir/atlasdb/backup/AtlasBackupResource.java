@@ -71,18 +71,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
         return new JerseyAtlasBackupServiceAdapter(new AtlasBackupResource(redirectRetryTargeter, timelockServices));
     }
 
-    // public static AtlasBackupResource create(
-    //         Refreshable<ServerListConfig> serverListConfig,
-    //         DialogueClients.ReloadingFactory reloadingFactory,
-    //         UserAgent userAgent,
-    //         TaggedMetricRegistry taggedMetricRegistry) {
-    //     AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
-    //             serverListConfig, reloadingFactory, userAgent, taggedMetricRegistry);
-    //     ConjureTimelockService timelockService = serviceProvider.getConjureTimelockService();
-    //
-    //     return new AtlasBackupResource(null, timelockService);
-    // }
-
     @Override
     public ListenableFuture<PrepareBackupResponse> prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
         return handleExceptions(() -> Futures.immediateFuture(prepareBackupInternal(request)));
