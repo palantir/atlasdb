@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.logsafe.Preconditions;
+
 public final class PathTypeTrackers {
     private PathTypeTrackers() {
         // static utility class
@@ -57,12 +59,12 @@ public final class PathTypeTrackers {
 
             @Override
             public void expectedToBeInAsync() {
-                com.palantir.logsafe.Preconditions.checkState(inAsyncBoolean, "Not expected to be in sync path");
+                Preconditions.checkState(inAsyncBoolean, "Not expected to be in sync path");
             }
 
             @Override
             public void checkNotInAsync() {
-                com.palantir.logsafe.Preconditions.checkState(!inAsyncBoolean, "Not expected to be in async path");
+                Preconditions.checkState(!inAsyncBoolean, "Not expected to be in async path");
             }
         };
     }

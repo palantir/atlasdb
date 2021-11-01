@@ -18,10 +18,10 @@ package com.palantir.common.concurrent;
 import com.google.common.annotations.Beta;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Runnables;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.Tracers;
@@ -112,8 +112,8 @@ public final class PTExecutors {
      * @return the newly created thread pool
      */
     public static ExecutorService newCachedThreadPool(String name) {
-        com.palantir.logsafe.Preconditions.checkNotNull(name, "Name is required");
-        com.palantir.logsafe.Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        Preconditions.checkNotNull(name, "Name is required");
+        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
         return newCachedThreadPoolWithMaxThreads(Short.MAX_VALUE, name);
     }
 
@@ -165,9 +165,9 @@ public final class PTExecutors {
      */
     @Beta
     public static ExecutorService newCachedThreadPoolWithMaxThreads(int maxThreads, String name) {
-        com.palantir.logsafe.Preconditions.checkNotNull(name, "Name is required");
-        com.palantir.logsafe.Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
-        com.palantir.logsafe.Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
+        Preconditions.checkNotNull(name, "Name is required");
+        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
         return MetricRegistries.executor()
                 .registry(SharedTaggedMetricRegistries.getSingleton())
                 .name(name)

@@ -26,6 +26,7 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -325,24 +326,24 @@ public abstract class AtlasDbConfig {
 
     private void checkLeaderAndTimelockBlocks() {
         if (leader().isPresent()) {
-            com.palantir.logsafe.Preconditions.checkState(
+            Preconditions.checkState(
                     areTimeAndLockConfigsAbsent(),
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");
-            com.palantir.logsafe.Preconditions.checkState(
+            Preconditions.checkState(
                     !timelock().isPresent(), "If the leader block is present, then the timelock block must be absent.");
-            com.palantir.logsafe.Preconditions.checkState(
+            Preconditions.checkState(
                     !leader().get().leaders().isEmpty(), "Leader config must have at least one server.");
         }
 
         if (timelock().isPresent()) {
-            com.palantir.logsafe.Preconditions.checkState(
+            Preconditions.checkState(
                     areTimeAndLockConfigsAbsent(),
                     "If the timelock block is present, then the lock and timestamp blocks must both be absent.");
         }
     }
 
     private void checkLockAndTimestampBlocks() {
-        com.palantir.logsafe.Preconditions.checkState(
+        Preconditions.checkState(
                 lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
         checkServersListHasAtLeastOneServerIfPresent(lock());
@@ -350,28 +351,27 @@ public abstract class AtlasDbConfig {
     }
 
     private static void checkServersListHasAtLeastOneServerIfPresent(Optional<ServerListConfig> serverListOptional) {
-        serverListOptional.ifPresent(serverList -> com.palantir.logsafe.Preconditions.checkState(
+        serverListOptional.ifPresent(serverList -> Preconditions.checkState(
                 serverList.hasAtLeastOneServer(), "Server list must have at least one server."));
     }
 
     private void checkNamespaceConfigConsistent() {
         if (namespace().isPresent()) {
             String presentNamespace = namespace().get();
-            com.palantir.logsafe.Preconditions.checkState(
-                    !presentNamespace.contains("\""), "Namespace should not be quoted");
+            Preconditions.checkState(!presentNamespace.contains("\""), "Namespace should not be quoted");
 
             boolean allowDifferentKvsNamespace =
                     enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces();
             keyValueService()
                     .namespace()
-                    .ifPresent(kvsNamespace -> com.palantir.logsafe.Preconditions.checkState(
+                    .ifPresent(kvsNamespace -> Preconditions.checkState(
                             kvsNamespace.equals(presentNamespace) || allowDifferentKvsNamespace,
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
             timelock()
                     .flatMap(TimeLockClientConfig::client)
-                    .ifPresent(client -> com.palantir.logsafe.Preconditions.checkState(
+                    .ifPresent(client -> Preconditions.checkState(
                             client.equals(presentNamespace),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config."));
@@ -387,23 +387,23 @@ public abstract class AtlasDbConfig {
         }
 
         // There is no top level namespace AND the config is not an in-memory config
-        com.palantir.logsafe.Preconditions.checkState(
+        Preconditions.checkState(
                 keyValueService().namespace().isPresent(),
                 "Either the atlas root-level namespace" + " or the keyspace/dbName/sid config needs to be set.");
         String keyValueServiceNamespace = keyValueService().namespace().get();
-        com.palantir.logsafe.Preconditions.checkState(
+        Preconditions.checkState(
                 !keyValueServiceNamespace.contains("\""), "KeyValueService namespace should not be quoted");
 
         if (timelock().isPresent()) {
             TimeLockClientConfig timeLockConfig = timelock().get();
 
-            com.palantir.logsafe.Preconditions.checkState(
+            Preconditions.checkState(
                     timeLockConfig.client().isPresent(),
                     "Either the atlas root-level namespace config or the TimeLock client config should be present.");
 
             if (keyValueService().type().equals("cassandra")
                     || !enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces()) {
-                com.palantir.logsafe.Preconditions.checkState(
+                Preconditions.checkState(
                         timeLockConfig.client().equals(Optional.of(keyValueServiceNamespace)),
                         "AtlasDB refused to start, in order to avoid potential data corruption."
                                 + " Please contact AtlasDB support to remediate this. Specific steps are required;"
