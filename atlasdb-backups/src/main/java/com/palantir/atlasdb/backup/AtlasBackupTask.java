@@ -36,7 +36,7 @@ public final class AtlasBackupTask {
     private final AtlasBackupServiceBlocking atlasBackupServiceBlocking;
     private final BackupTokenPersister backupTokenPersister;
 
-    public AtlasBackupTask(AtlasBackupServiceBlocking atlasBackupServiceBlocking) {
+    private AtlasBackupTask(AtlasBackupServiceBlocking atlasBackupServiceBlocking) {
         this.atlasBackupServiceBlocking = atlasBackupServiceBlocking;
         this.backupTokenPersister = new InMemoryBackupTokenPersister();
     }
