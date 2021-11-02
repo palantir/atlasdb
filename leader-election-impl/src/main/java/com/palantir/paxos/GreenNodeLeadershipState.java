@@ -28,6 +28,9 @@ import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 public final class GreenNodeLeadershipState {
+    // We use a constant node_id to ensure the table takes up a constant amount of space.
+    // Latest attempts for previous versions are not relevant once we start upgrading to a new version, so
+    // we don't want to keep them around.
     private static final int NODE_ID = 0;
 
     private final Jdbi jdbi;

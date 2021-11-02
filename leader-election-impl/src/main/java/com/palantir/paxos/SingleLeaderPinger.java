@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
@@ -102,8 +103,11 @@ public final class SingleLeaderPinger implements LeaderPinger {
             UUID localUuid,
             boolean cancelRemainingCalls,
             Optional<OrderableSlsVersion> timeLockVersion) {
-        GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser = DbGreenNodeLeadershipPrioritiser.create(
-                timeLockVersion, () -> Duration.ofMinutes(30L), sqliteDataSource);
+        // TODO(gs): extract runtime config for this
+        Supplier<Duration> leadershipAttemptBackoff = () -> Duration.ofMinutes(30L);
+
+        GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser =
+                DbGreenNodeLeadershipPrioritiser.create(timeLockVersion, leadershipAttemptBackoff, sqliteDataSource);
         return new SingleLeaderPinger(
                 otherPingableExecutors,
                 leaderPingResponseWait,
