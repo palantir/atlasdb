@@ -24,6 +24,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
@@ -246,7 +247,7 @@ public final class PaxosQuorumChecker {
             }
 
             if (!receivedResponses.hasQuorum()) {
-                RuntimeException exceptionForSuppression = new RuntimeException("exception for suppresion");
+                RuntimeException exceptionForSuppression = new SafeRuntimeException("exception for suppresion");
                 encounteredErrors.forEach(throwable -> {
                     throwable.addSuppressed(exceptionForSuppression);
                     log.warn(PAXOS_MESSAGE_ERROR, throwable);
