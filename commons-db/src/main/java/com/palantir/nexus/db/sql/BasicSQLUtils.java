@@ -195,6 +195,7 @@ public class BasicSQLUtils {
     private static final String ORACLE_SINGLE_ID_COLUMN = "%s.nextval"; // $NON-NLS-1$
     private static final String POSTGRESQL_SINGLE_ID_COLUMN = "nextval('%s')"; // $NON-NLS-1$
 
+    @SuppressWarnings("StringSplitter") // Legacy code, uncertainty of full implications of change
     public static String qualifyFields(String fieldList, String tableName) {
         String fields[] = fieldList.split("\\s*,\\s*"); // $NON-NLS-1$
         StringBuilder out = new StringBuilder();
@@ -234,6 +235,7 @@ public class BasicSQLUtils {
      *
      * @param fieldList - in form of "field1, field2,..."
      */
+    @SuppressWarnings("StringSplitter") // Legacy code, uncertainty of full implications of change
     public static String generateUpdateString(String fieldList) {
         String fields[] = fieldList.split("\\s*,\\s*"); // $NON-NLS-1$
         StringBuilder out = new StringBuilder();

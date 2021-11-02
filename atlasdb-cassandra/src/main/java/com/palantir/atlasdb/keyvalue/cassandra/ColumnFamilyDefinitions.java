@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -26,6 +27,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -220,8 +222,8 @@ final class ColumnFamilyDefinitions {
 
     private static String getLastElementOfClasspath(String classpath) {
         if (classpath.contains(".")) {
-            String[] periodDelimitedClasspath = classpath.split("\\.");
-            return periodDelimitedClasspath[periodDelimitedClasspath.length - 1];
+            List<String> periodDelimitedClasspath = Splitter.on('.').splitToList(classpath);
+            return periodDelimitedClasspath.get(periodDelimitedClasspath.size() - 1);
         } else {
             return classpath;
         }

@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,6 +34,8 @@ import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.common.concurrent.PTExecutors;
@@ -48,6 +52,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -195,6 +200,21 @@ public final class LockWatchEventIntegrationTest {
         assertThat(watchDescriptors(update.events())).isEmpty();
     }
 
+    @Test
+    public void leaderElectionDuringTransactionCausesTransactionToFailRetriably() {
+        assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
+                    txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
+                    CLUSTER.failoverToNewLeader(NAMESPACE);
+                    return null;
+                }))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Start timestamp missing from map");
+
+        assertThatCode(() -> performWriteTransactionLockingAndUnlockingCells(ImmutableMap.of(CELL_1, DATA_1)))
+                .doesNotThrowAnyException();
+    }
+
     private Runnable performWriteTransactionThatBlocksAfterLockingCells() {
         CountDownLatch endOfTest = new CountDownLatch(1);
         CountDownLatch inCommitBlock = new CountDownLatch(1);
@@ -243,7 +263,7 @@ public final class LockWatchEventIntegrationTest {
                 .orElseThrow();
     }
 
-    private void performWriteTransactionLockingAndUnlockingCells(ImmutableMap<Cell, byte[]> values) {
+    private void performWriteTransactionLockingAndUnlockingCells(Map<Cell, byte[]> values) {
         txnManager.runTaskThrowOnConflict(txn -> {
             txn.put(TABLE_REF, values);
             return null;
