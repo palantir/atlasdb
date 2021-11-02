@@ -95,6 +95,7 @@ public class SingleLeaderPinger implements LeaderPinger {
                 greenNodeLeadershipPrioritiser);
     }
 
+    // TODO(gs): add tests that use the DbGreenNodeLeadershipPrioritiser
     public static SingleLeaderPinger create(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
             DataSource sqliteDataSource,
