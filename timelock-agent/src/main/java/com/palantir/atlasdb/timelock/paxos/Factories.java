@@ -82,6 +82,7 @@ public interface Factories {
         SingleLeaderPinger pinger() {
             return SingleLeaderPinger.create(
                     WithDedicatedExecutor.convert(remoteClients().nonBatchPingableLeadersWithContext()),
+                    dataSource(),
                     leaderPingResponseWait(),
                     leaderUuid(),
                     PaxosConstants.CANCEL_REMAINING_CALLS,

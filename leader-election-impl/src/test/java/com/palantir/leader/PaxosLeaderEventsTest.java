@@ -131,7 +131,7 @@ public class PaxosLeaderEventsTest {
     }
 
     private LeaderPinger pingerWithTimeout(Duration leaderPingResponseWait) {
-        return SingleLeaderPinger.create(
+        return SingleLeaderPinger.createForTests(
                 ImmutableMap.of(
                         ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT),
                         new CheckedRejectionExecutorService(executorService)),
@@ -142,7 +142,7 @@ public class PaxosLeaderEventsTest {
     }
 
     private LeaderPinger pingerWithVersion(OrderableSlsVersion version) {
-        return SingleLeaderPinger.create(
+        return SingleLeaderPinger.createForTests(
                 ImmutableMap.of(
                         ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT),
                         new CheckedRejectionExecutorService(executorService)),

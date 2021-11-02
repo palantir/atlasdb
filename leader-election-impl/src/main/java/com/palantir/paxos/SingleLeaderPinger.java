@@ -16,6 +16,7 @@
 
 package com.palantir.paxos;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.RateLimiter;
@@ -77,8 +78,8 @@ public class SingleLeaderPinger implements LeaderPinger {
         this.greenNodeLeadershipPrioritiser = greenNodeLeadershipPrioritiser;
     }
 
-    // TODO(gs): remove this factory method
-    public static SingleLeaderPinger create(
+    @VisibleForTesting
+    public static SingleLeaderPinger createForTests(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             UUID localUuid,

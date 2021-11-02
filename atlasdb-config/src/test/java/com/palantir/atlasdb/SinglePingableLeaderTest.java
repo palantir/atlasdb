@@ -151,7 +151,7 @@ public class SinglePingableLeaderTest {
                 () -> RemotingClientConfigs.DEFAULT,
                 ServiceCreator.createTrustContext(Optional.of(SSL_CONFIGURATION)),
                 USER_AGENT);
-        return SingleLeaderPinger.create(
+        return SingleLeaderPinger.createForTests(
                 ImmutableMap.of(otherLeaders.get(0), new CheckedRejectionExecutorService(executorService)),
                 Duration.ofSeconds(5),
                 LOCAL_UUID,
