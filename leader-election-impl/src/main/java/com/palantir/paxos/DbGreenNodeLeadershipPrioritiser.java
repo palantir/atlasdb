@@ -17,10 +17,12 @@
 package com.palantir.paxos;
 
 import com.palantir.common.time.Clock;
+import com.palantir.common.time.SystemClock;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
+import javax.sql.DataSource;
 
 public class DbGreenNodeLeadershipPrioritiser implements GreenNodeLeadershipPrioritiser {
     private final Optional<OrderableSlsVersion> timeLockVersion;
@@ -37,6 +39,15 @@ public class DbGreenNodeLeadershipPrioritiser implements GreenNodeLeadershipPrio
         this.leadershipAttemptBackoff = leadershipAttemptBackoff;
         this.greenNodeLeadershipState = greenNodeLeadershipState;
         this.clock = clock;
+    }
+
+    public static DbGreenNodeLeadershipPrioritiser create(
+            Optional<OrderableSlsVersion> timeLockVersion,
+            Supplier<Duration> leadershipAttemptBackoff,
+            DataSource sqliteDataSource) {
+        GreenNodeLeadershipState greenNodeLeadershipState = GreenNodeLeadershipState.create(sqliteDataSource);
+        return new DbGreenNodeLeadershipPrioritiser(
+                timeLockVersion, leadershipAttemptBackoff, greenNodeLeadershipState, new SystemClock());
     }
 
     @Override
