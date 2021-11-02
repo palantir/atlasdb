@@ -16,7 +16,6 @@
 
 package com.palantir.paxos;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.RateLimiter;
@@ -48,7 +47,7 @@ import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
-public class SingleLeaderPinger implements LeaderPinger {
+public final class SingleLeaderPinger implements LeaderPinger {
     private static final SafeLogger log = SafeLoggerFactory.get(SingleLeaderPinger.class);
 
     private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache =
@@ -78,7 +77,7 @@ public class SingleLeaderPinger implements LeaderPinger {
         this.greenNodeLeadershipPrioritiser = greenNodeLeadershipPrioritiser;
     }
 
-    @VisibleForTesting
+    // VisibleForTesting
     public static SingleLeaderPinger createForTests(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,

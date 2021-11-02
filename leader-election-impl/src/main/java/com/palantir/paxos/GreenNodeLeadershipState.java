@@ -27,7 +27,7 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
-public class GreenNodeLeadershipState {
+public final class GreenNodeLeadershipState {
     private static final int NODE_ID = 0;
 
     private final Jdbi jdbi;
