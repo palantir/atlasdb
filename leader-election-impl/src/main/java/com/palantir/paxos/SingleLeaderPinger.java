@@ -62,7 +62,7 @@ public class SingleLeaderPinger implements LeaderPinger {
 
     private Map<LeaderPingerContext<PingableLeader>, Boolean> pingV2StatusOnRemotes = new HashMap<>();
 
-    public SingleLeaderPinger(
+    private SingleLeaderPinger(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             UUID localUuid,
@@ -73,6 +73,16 @@ public class SingleLeaderPinger implements LeaderPinger {
         this.localUuid = localUuid;
         this.cancelRemainingCalls = cancelRemainingCalls;
         this.timeLockVersion = timeLockVersion;
+    }
+
+    public static SingleLeaderPinger create(
+            Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
+            Duration leaderPingResponseWait,
+            UUID localUuid,
+            boolean cancelRemainingCalls,
+            Optional<OrderableSlsVersion> timeLockVersion) {
+        return new SingleLeaderPinger(
+                otherPingableExecutors, leaderPingResponseWait, localUuid, cancelRemainingCalls, timeLockVersion);
     }
 
     public static SingleLeaderPinger createLegacy(

@@ -80,7 +80,7 @@ public interface Factories {
 
         @Value.Derived
         SingleLeaderPinger pinger() {
-            return new SingleLeaderPinger(
+            return SingleLeaderPinger.create(
                     WithDedicatedExecutor.convert(remoteClients().nonBatchPingableLeadersWithContext()),
                     leaderPingResponseWait(),
                     leaderUuid(),
