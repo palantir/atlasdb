@@ -57,7 +57,8 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final boolean cancelRemainingCalls;
     private final Optional<OrderableSlsVersion> timeLockVersion;
     private final RateLimiter pingV2RateLimiter = RateLimiter.create(1.0 / (5 * 60));
-    private final RateLimiter greeningNodeShouldBecomeLeaderRateLimiter = RateLimiter.create(1.0 / (10 * 60));
+    private final GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser =
+            new RateLimitedGreenNodeLeadershipPrioritiser();
 
     private Map<LeaderPingerContext<PingableLeader>, Boolean> pingV2StatusOnRemotes = new HashMap<>();
 
@@ -137,7 +138,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture =
                     multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(
-                    uuid, pingFuture, timeLockVersion, greeningNodeShouldBecomeLeaderRateLimiter::tryAcquire);
+                    uuid, pingFuture, timeLockVersion, greenNodeLeadershipPrioritiser::shouldGreeningNodeBecomeLeader);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(e);
