@@ -17,6 +17,8 @@
 package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.EvictingQueue;
+import com.google.common.collect.Queues;
 import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -37,6 +39,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
@@ -44,10 +47,13 @@ import org.immutables.value.Value;
 
 public final class TimestampCorroboratingTimelockService implements NamespacedConjureTimelockService {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampCorroboratingTimelockService.class);
+    private static final int HISTORY_RECORD_SIZE = 20;
     private static final String CLOCKS_WENT_BACKWARDS_MESSAGE = "It appears that clocks went backwards!";
 
     private final Runnable timestampViolationCallback;
     private final NamespacedConjureTimelockService delegate;
+    private final Queue<TimestampBoundsRecord> timestampBoundsHistory =
+            Queues.synchronizedQueue(EvictingQueue.create(HISTORY_RECORD_SIZE));
     private final AtomicLong lowerBoundFromTimestamps = new AtomicLong(Long.MIN_VALUE);
     private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
 
@@ -148,12 +154,18 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
             TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
         if (lowerFreshTimestamp <= Math.max(bounds.boundFromTimestamps(), bounds.boundFromTransactions())) {
             timestampViolationCallback.run();
-            throw clocksWentBackwards(bounds, type, lowerFreshTimestamp, upperFreshTimestamp);
+            throw clocksWentBackwards(bounds, type, lowerFreshTimestamp, upperFreshTimestamp, timestampBoundsHistory);
         }
+        timestampBoundsHistory.add(
+                ImmutableTimestampBoundsRecord.of(bounds, type, lowerFreshTimestamp, System.currentTimeMillis()));
     }
 
     private static RuntimeException clocksWentBackwards(
-            TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
+            TimestampBounds bounds,
+            OperationType type,
+            long lowerFreshTimestamp,
+            long upperFreshTimestamp,
+            Queue<TimestampBoundsRecord> timestampBoundsHistory) {
         RuntimeException runtimeException = new SafeRuntimeException(CLOCKS_WENT_BACKWARDS_MESSAGE);
         log.error(
                 CLOCKS_WENT_BACKWARDS_MESSAGE + ": bounds were {}, operation {}, fresh timestamp of {}.",
@@ -161,6 +173,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
                 SafeArg.of("operationType", type),
                 SafeArg.of("lowerFreshTimestamp", lowerFreshTimestamp),
                 SafeArg.of("upperFreshTimestamp", upperFreshTimestamp),
+                SafeArg.of("history", timestampBoundsHistory),
                 runtimeException);
         throw runtimeException;
     }
@@ -182,7 +195,22 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
         long boundFromTransactions();
     }
 
-    private enum OperationType {
+    @Value.Immutable
+    interface TimestampBoundsRecord {
+        @Value.Parameter
+        TimestampBounds timestampBounds();
+
+        @Value.Parameter
+        OperationType operationType();
+
+        @Value.Parameter
+        long lowerFreshTimestamp();
+
+        @Value.Parameter
+        long wallClockTime();
+    }
+
+    enum OperationType {
         TIMESTAMP,
         TRANSACTION;
     }
