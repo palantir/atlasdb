@@ -60,7 +60,7 @@ public class InMemoryAsyncAtlasDbFactoryTest {
     public void asyncInitTimestampServiceWithReadyKvsSynchronous() {
         KeyValueService kvs = createRawKeyValueService(false);
         TimestampService timestampService = factory.createManagedTimestampService(kvs, Optional.empty(), true);
-        assertThat(timestampService.isInitialized()).isTrue();
+        Awaitility.await().atMost(Duration.ofSeconds(2)).until(timestampService::isInitialized);
         assertThat(timestampService.getFreshTimestamp()).isEqualTo(1L);
     }
 

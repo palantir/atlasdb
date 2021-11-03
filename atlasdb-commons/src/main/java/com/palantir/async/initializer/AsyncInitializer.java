@@ -50,15 +50,19 @@ public abstract class AsyncInitializer {
 
         initializationStartTime = System.currentTimeMillis();
 
-        if (!initializeAsync) {
+        if (initializeAsync) {
+            scheduleInitialization(0);
+        } else {
             tryInitializeInternal();
-            return;
         }
-
-        tryInitializationLoop();
     }
 
     private void tryInitializationLoop() {
+        if (state.isCancelled()) {
+            singleThreadedExecutor.shutdown();
+            return;
+        }
+
         try {
             tryInitializeInternal();
             log.info(
@@ -82,23 +86,13 @@ public abstract class AsyncInitializer {
                         SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime),
                         cleanupThrowable);
             }
-            scheduleInitialization();
+            scheduleInitialization(sleepIntervalInMillis());
         }
     }
 
     // Not final for tests.
-    void scheduleInitialization() {
-        singleThreadedExecutor.schedule(
-                () -> {
-                    if (state.isCancelled()) {
-                        singleThreadedExecutor.shutdown();
-                        return;
-                    }
-
-                    tryInitializationLoop();
-                },
-                sleepIntervalInMillis(),
-                TimeUnit.MILLISECONDS);
+    void scheduleInitialization(long delayMillis) {
+        singleThreadedExecutor.schedule(this::tryInitializationLoop, delayMillis, TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests
