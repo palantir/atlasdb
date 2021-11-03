@@ -40,14 +40,20 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public final class TimestampCorroboratingTimelockService implements NamespacedConjureTimelockService {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampCorroboratingTimelockService.class);
-    private static final int HISTORY_RECORD_SIZE = 20;
+
+    @VisibleForTesting
+    static final int HISTORY_RECORD_SIZE = 20;
+
     private static final String CLOCKS_WENT_BACKWARDS_MESSAGE = "It appears that clocks went backwards!";
 
     private final Runnable timestampViolationCallback;
@@ -163,7 +169,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
         if (lowerFreshTimestamp <= Math.max(bounds.boundFromTimestamps(), bounds.boundFromTransactions())) {
             timestampViolationCallback.run();
             throw clocksWentBackwards(
-                    bounds, type, lowerFreshTimestamp, upperFreshTimestamp, timestampBoundRecordHistory);
+                    bounds, type, lowerFreshTimestamp, upperFreshTimestamp, getTimestampBoundsRecordHistory());
         }
     }
 
@@ -172,7 +178,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
             OperationType type,
             long lowerFreshTimestamp,
             long upperFreshTimestamp,
-            Cache<Instant, TimestampBoundsRecord> timestampBoundsHistory) {
+            Collection<TimestampBoundsRecord> timestampBoundsHistory) {
         RuntimeException runtimeException = new SafeRuntimeException(CLOCKS_WENT_BACKWARDS_MESSAGE);
         log.error(
                 CLOCKS_WENT_BACKWARDS_MESSAGE + ": bounds were {}, operation {}, fresh timestamp of {}.",
@@ -180,9 +186,14 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
                 SafeArg.of("operationType", type),
                 SafeArg.of("lowerFreshTimestamp", lowerFreshTimestamp),
                 SafeArg.of("upperFreshTimestamp", upperFreshTimestamp),
-                SafeArg.of("history", timestampBoundsHistory.asMap().values()),
+                SafeArg.of("history", timestampBoundsHistory),
                 runtimeException);
         throw runtimeException;
+    }
+
+    @VisibleForTesting
+    List<TimestampBoundsRecord> getTimestampBoundsRecordHistory() {
+        return timestampBoundRecordHistory.asMap().values().stream().collect(Collectors.toUnmodifiableList());
     }
 
     private void updateLowerBound(OperationType type, long freshTimestamp) {

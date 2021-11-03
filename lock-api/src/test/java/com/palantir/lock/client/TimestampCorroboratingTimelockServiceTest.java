@@ -36,6 +36,8 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.time.NanoTime;
+import com.palantir.lock.client.TimestampCorroboratingTimelockService.OperationType;
+import com.palantir.lock.client.TimestampCorroboratingTimelockService.TimestampBoundsRecord;
 import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
@@ -47,10 +49,12 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -238,6 +242,45 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
         getFreshTimestamp();
         assertThat(taggedMetricRegistry.getMetrics()).isEmpty();
+    }
+
+    @Test
+    public void historyIsCorrectlyMaintained() {
+        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
+
+        timelockService = (TimestampCorroboratingTimelockService) TimestampCorroboratingTimelockService.create(
+                NAMESPACE_1, new DefaultTaggedMetricRegistry(), rawTimelockService);
+
+        getFreshTimestamp();
+        assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
+
+        List<TimestampBoundsRecord> timestampBoundsRecordHistory = timelockService.getTimestampBoundsRecordHistory();
+        assertThat(timestampBoundsRecordHistory).hasSize(2);
+        assertThat(timestampBoundsRecordHistory).isUnmodifiable();
+
+        TimestampBoundsRecord timestampBoundsRecord =
+                timestampBoundsRecordHistory.get(timestampBoundsRecordHistory.size() - 1);
+        assertThat(timestampBoundsRecord.timestampBounds()).isEqualTo(ImmutableTimestampBounds.of(1L, Long.MIN_VALUE));
+        assertThat(timestampBoundsRecord.lowerFreshTimestamp()).isEqualTo(1L);
+        assertThat(timestampBoundsRecord.operationType()).isEqualTo(OperationType.TIMESTAMP);
+    }
+
+    @Test
+    public void limitedHistoryIsStored() {
+        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
+        timelockService = (TimestampCorroboratingTimelockService) TimestampCorroboratingTimelockService.create(
+                NAMESPACE_1, new DefaultTaggedMetricRegistry(), rawTimelockService);
+        getFreshTimestamp();
+
+        int epsilon = 50;
+        IntStream.range(2, 2 * TimestampCorroboratingTimelockService.HISTORY_RECORD_SIZE)
+                .forEach(index -> {
+                    assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
+                    int expectedSize = Math.min(index, TimestampCorroboratingTimelockService.HISTORY_RECORD_SIZE);
+                    // the cache may take some time to actually evict excessive records
+                    assertThat(timelockService.getTimestampBoundsRecordHistory())
+                            .hasSizeBetween(expectedSize, expectedSize + epsilon);
+                });
     }
 
     private ConjureGetFreshTimestampsResponse getFreshTimestamp() {
