@@ -35,14 +35,11 @@ import java.util.stream.Collectors;
 public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
     private final ConsensusForgettingPutUnlessExistsStore store;
 
-    private ComplexPutUnlessExistsTable(
-            ConsensusForgettingPutUnlessExistsStore store) {
+    private ComplexPutUnlessExistsTable(ConsensusForgettingPutUnlessExistsStore store) {
         this.store = store;
     }
 
-    public static PutUnlessExistsTable create(
-            KeyValueService keyValueService,
-            TableReference tableReference) {
+    public static PutUnlessExistsTable create(KeyValueService keyValueService, TableReference tableReference) {
         return new ComplexPutUnlessExistsTable(
                 new ConsensusForgettingPutUnlessExistsStore(keyValueService, tableReference));
     }
@@ -58,9 +55,7 @@ public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
         ListenableFuture<Map<Cell, PutUnlessExistsState>> currentState =
                 store.get(Streams.stream(cells).collect(Collectors.toSet()));
         return Futures.transform(
-                currentState,
-                this::resolvePendingDecisions,
-                MoreExecutors.directExecutor()); // TODO (jkong): Naughty
+                currentState, this::resolvePendingDecisions, MoreExecutors.directExecutor());
     }
 
     @Override

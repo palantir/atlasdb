@@ -54,9 +54,7 @@ public final class PueTablingTransactionService implements CellEncodingTransacti
 
     private static PutUnlessExistsTable getPutUnlessExistsTable(KeyValueService keyValueService) {
         if (keyValueService.checkAndSetMayPersistPartialValuesOnFailure()) {
-            return ComplexPutUnlessExistsTable.create(
-                    keyValueService,
-                    TransactionConstants.TRANSACTIONS3_TABLE);
+            return ComplexPutUnlessExistsTable.create(keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
         }
         return new DirectPutUnlessExistsTable(keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
     }
