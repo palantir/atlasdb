@@ -24,9 +24,9 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.pue.ComplexPutUnlessExistsTable;
-import com.palantir.atlasdb.keyvalue.pue.DirectPutUnlessExistsTable;
-import com.palantir.atlasdb.keyvalue.pue.PutUnlessExistsTable;
+import com.palantir.atlasdb.keyvalue.pue.ComplexInternalPutUnlessExistsTable;
+import com.palantir.atlasdb.keyvalue.pue.DirectInternalPutUnlessExistsTable;
+import com.palantir.atlasdb.keyvalue.pue.InternalPutUnlessExistsTable;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -38,11 +38,11 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 public final class PueTablingTransactionService implements CellEncodingTransactionService {
-    private final PutUnlessExistsTable transactionsTable;
+    private final InternalPutUnlessExistsTable transactionsTable;
     private final TimestampEncodingStrategy encodingStrategy;
 
     private PueTablingTransactionService(
-            PutUnlessExistsTable transactionsTable, TimestampEncodingStrategy encodingStrategy) {
+            InternalPutUnlessExistsTable transactionsTable, TimestampEncodingStrategy encodingStrategy) {
         this.transactionsTable = transactionsTable;
         this.encodingStrategy = encodingStrategy;
     }
@@ -52,11 +52,12 @@ public final class PueTablingTransactionService implements CellEncodingTransacti
                 getPutUnlessExistsTable(keyValueService), TicketsEncodingStrategy.INSTANCE);
     }
 
-    private static PutUnlessExistsTable getPutUnlessExistsTable(KeyValueService keyValueService) {
+    private static InternalPutUnlessExistsTable getPutUnlessExistsTable(KeyValueService keyValueService) {
         if (keyValueService.checkAndSetMayPersistPartialValuesOnFailure()) {
-            return ComplexPutUnlessExistsTable.create(keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
+            return ComplexInternalPutUnlessExistsTable.create(
+                    keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
         }
-        return new DirectPutUnlessExistsTable(keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
+        return new DirectInternalPutUnlessExistsTable(keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
     }
 
     @Override

@@ -22,7 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
 import java.util.Optional;
 
-public interface PutUnlessExistsTable {
+public interface InternalPutUnlessExistsTable {
     ListenableFuture<Optional<byte[]>> get(Cell c);
 
     ListenableFuture<Map<Cell, byte[]>> get(Iterable<Cell> cells);

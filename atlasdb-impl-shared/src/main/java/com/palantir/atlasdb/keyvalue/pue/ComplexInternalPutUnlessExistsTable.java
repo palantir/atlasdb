@@ -32,15 +32,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
+public final class ComplexInternalPutUnlessExistsTable implements InternalPutUnlessExistsTable {
     private final ConsensusForgettingPutUnlessExistsStore store;
 
-    private ComplexPutUnlessExistsTable(ConsensusForgettingPutUnlessExistsStore store) {
+    private ComplexInternalPutUnlessExistsTable(ConsensusForgettingPutUnlessExistsStore store) {
         this.store = store;
     }
 
-    public static PutUnlessExistsTable create(KeyValueService keyValueService, TableReference tableReference) {
-        return new ComplexPutUnlessExistsTable(
+    public static InternalPutUnlessExistsTable create(KeyValueService keyValueService, TableReference tableReference) {
+        return new ComplexInternalPutUnlessExistsTable(
                 new ConsensusForgettingPutUnlessExistsStore(keyValueService, tableReference));
     }
 
@@ -54,8 +54,7 @@ public final class ComplexPutUnlessExistsTable implements PutUnlessExistsTable {
     public ListenableFuture<Map<Cell, byte[]>> get(Iterable<Cell> cells) {
         ListenableFuture<Map<Cell, PutUnlessExistsState>> currentState =
                 store.get(Streams.stream(cells).collect(Collectors.toSet()));
-        return Futures.transform(
-                currentState, this::resolvePendingDecisions, MoreExecutors.directExecutor());
+        return Futures.transform(currentState, this::resolvePendingDecisions, MoreExecutors.directExecutor());
     }
 
     @Override

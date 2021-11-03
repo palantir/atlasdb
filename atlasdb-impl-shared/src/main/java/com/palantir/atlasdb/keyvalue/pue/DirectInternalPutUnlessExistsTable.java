@@ -28,11 +28,11 @@ import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
 
-public class DirectPutUnlessExistsTable implements PutUnlessExistsTable {
+public class DirectInternalPutUnlessExistsTable implements InternalPutUnlessExistsTable {
     private final KeyValueService keyValueService;
     private final TableReference tableReference;
 
-    public DirectPutUnlessExistsTable(KeyValueService keyValueService, TableReference tableReference) {
+    public DirectInternalPutUnlessExistsTable(KeyValueService keyValueService, TableReference tableReference) {
         this.keyValueService = keyValueService;
         this.tableReference = tableReference;
     }
