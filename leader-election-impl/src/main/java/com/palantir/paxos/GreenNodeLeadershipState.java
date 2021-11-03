@@ -68,7 +68,7 @@ public final class GreenNodeLeadershipState {
                 + "attemptTime BIGINT, PRIMARY KEY(nodeId))")
         boolean createGreenNodeLeadershipStateTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO greenNodeLeadershipState (node, productVersion, attemptTime) VALUES "
+        @SqlUpdate("INSERT OR REPLACE INTO greenNodeLeadershipState (nodeId, productVersion, attemptTime) VALUES "
                 + "(:nodeId, :productVersion, :attemptTime)")
         boolean updateLatestAttemptTime(
                 @Bind("nodeId") int nodeId,
