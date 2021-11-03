@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 import com.palantir.common.time.Clock;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import javax.sql.DataSource;
 import org.junit.Before;
@@ -58,7 +59,7 @@ public class PersistedRateLimitingLeadershipPrioritiserTest {
                 greenNodeLeadershipAttemptHistory,
                 clock);
 
-        when(clock.getTimeMillis()).thenReturn(INITIAL_TIME_MILLIS);
+        when(clock.instant()).thenReturn(Instant.ofEpochMilli(INITIAL_TIME_MILLIS));
     }
 
     @Test
@@ -80,8 +81,8 @@ public class PersistedRateLimitingLeadershipPrioritiserTest {
         // store initial state
         persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
 
-        long withinBackoffTime = INITIAL_TIME_MILLIS + (BACKOFF_MILLIS / 2);
-        when(clock.getTimeMillis()).thenReturn(withinBackoffTime);
+        Instant withinBackoffTime = Instant.ofEpochMilli(INITIAL_TIME_MILLIS + (BACKOFF_MILLIS / 2));
+        when(clock.instant()).thenReturn(withinBackoffTime);
 
         assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isFalse();
@@ -92,8 +93,8 @@ public class PersistedRateLimitingLeadershipPrioritiserTest {
         // store initial state
         persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
 
-        long withinBackoffTime = INITIAL_TIME_MILLIS + BACKOFF_MILLIS + 1;
-        when(clock.getTimeMillis()).thenReturn(withinBackoffTime);
+        Instant afterBackoffTime = Instant.ofEpochMilli(INITIAL_TIME_MILLIS + BACKOFF_MILLIS + 1);
+        when(clock.instant()).thenReturn(afterBackoffTime);
 
         assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isTrue();
@@ -103,8 +104,8 @@ public class PersistedRateLimitingLeadershipPrioritiserTest {
     public void shouldNotBecomeLeaderAgainWithinSecondBackoffPeriod() {
         persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
 
-        long withinBackoffTime = INITIAL_TIME_MILLIS + BACKOFF_MILLIS + 1;
-        when(clock.getTimeMillis()).thenReturn(withinBackoffTime);
+        Instant afterBackoffTime = Instant.ofEpochMilli(INITIAL_TIME_MILLIS + BACKOFF_MILLIS + 1);
+        when(clock.instant()).thenReturn(afterBackoffTime);
 
         assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isTrue();
