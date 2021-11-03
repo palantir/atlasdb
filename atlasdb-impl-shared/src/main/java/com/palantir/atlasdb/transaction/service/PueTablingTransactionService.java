@@ -26,7 +26,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.pue.ComplexInternalPutUnlessExistsTable;
 import com.palantir.atlasdb.keyvalue.pue.DirectInternalPutUnlessExistsTable;
+import com.palantir.atlasdb.keyvalue.pue.ImmutableValueSerializers;
 import com.palantir.atlasdb.keyvalue.pue.InternalPutUnlessExistsTable;
+import com.palantir.atlasdb.keyvalue.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -38,11 +40,11 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 public final class PueTablingTransactionService implements CellEncodingTransactionService {
-    private final InternalPutUnlessExistsTable transactionsTable;
-    private final TimestampEncodingStrategy encodingStrategy;
+    private final PutUnlessExistsTable<Long> transactionsTable;
+    private final TimestampEncodingStrategy encodingStrategy; // for cells only
 
     private PueTablingTransactionService(
-            InternalPutUnlessExistsTable transactionsTable, TimestampEncodingStrategy encodingStrategy) {
+            PutUnlessExistsTable<Long> transactionsTable, TimestampEncodingStrategy encodingStrategy) {
         this.transactionsTable = transactionsTable;
         this.encodingStrategy = encodingStrategy;
     }
@@ -52,7 +54,26 @@ public final class PueTablingTransactionService implements CellEncodingTransacti
                 getPutUnlessExistsTable(keyValueService), TicketsEncodingStrategy.INSTANCE);
     }
 
-    private static InternalPutUnlessExistsTable getPutUnlessExistsTable(KeyValueService keyValueService) {
+    private static PutUnlessExistsTable<Long> getPutUnlessExistsTable(KeyValueService keyValueService) {
+        return new PutUnlessExistsTable<Long>(getInternalPutUnlessExistsTable(keyValueService),
+                ImmutableValueSerializers.<Long>builder()
+                        .byteSerializer(value -> {
+                            if (value == TransactionConstants.FAILED_COMMIT_TS) {
+                                return new byte[0];
+                            }
+                            return TransactionConstants.getValueForTimestamp(value);
+                        })
+                        .byteDeserializer(valueBytes -> {
+                            if (valueBytes.length == 0) {
+                                return TransactionConstants.FAILED_COMMIT_TS;
+                            }
+                            return TransactionConstants.getTimestampForValue(valueBytes);
+                        })
+                        .build());
+    }
+
+    // TODO (jkong): This logic should probably live somewhere else
+    private static InternalPutUnlessExistsTable getInternalPutUnlessExistsTable(KeyValueService keyValueService) {
         if (keyValueService.checkAndSetMayPersistPartialValuesOnFailure()) {
             return ComplexInternalPutUnlessExistsTable.create(
                     keyValueService, TransactionConstants.TRANSACTIONS3_TABLE);
@@ -84,14 +105,14 @@ public final class PueTablingTransactionService implements CellEncodingTransacti
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         Cell key = getTransactionCell(startTimestamp);
-        byte[] value = encodingStrategy.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
-        transactionsTable.putUnlessExists(key, value);
+        // TODO (jkong): Delta encoding class
+        transactionsTable.putUnlessExists(key, commitTimestamp - startTimestamp);
     }
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
         transactionsTable.putUnlessExistsMultiple(KeyedStream.stream(startTimestampToCommitTimestamp)
-                .map(encodingStrategy::encodeCommitTimestampAsValue)
+                .map((start, commit) -> commit - start)
                 .mapKeys(encodingStrategy::encodeStartTimestampAsCell)
                 .collectToMap());
     }
@@ -111,9 +132,9 @@ public final class PueTablingTransactionService implements CellEncodingTransacti
                 MoreExecutors.directExecutor());
     }
 
-    private Long decodeTimestamp(long startTimestamp, Optional<byte[]> returnValue) {
+    private Long decodeTimestamp(long startTimestamp, Optional<Long> returnValue) {
         return returnValue
-                .map(bytes -> encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, bytes))
+                .map(delta -> startTimestamp + delta)
                 .orElse(null);
     }
 
@@ -127,11 +148,11 @@ public final class PueTablingTransactionService implements CellEncodingTransacti
         return Futures.transform(transactionsTable.get(cells), this::decodeTimestamps, MoreExecutors.directExecutor());
     }
 
-    private Map<Long, Long> decodeTimestamps(Map<Cell, byte[]> rawResults) {
+    private Map<Long, Long> decodeTimestamps(Map<Cell, Long> rawResults) {
         Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
-        for (Map.Entry<Cell, byte[]> e : rawResults.entrySet()) {
+        for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
             long startTs = encodingStrategy.decodeCellAsStartTimestamp(e.getKey());
-            long commitTs = encodingStrategy.decodeValueAsCommitTimestamp(startTs, e.getValue());
+            long commitTs = startTs + e.getValue();
             result.put(startTs, commitTs);
         }
         return result;
