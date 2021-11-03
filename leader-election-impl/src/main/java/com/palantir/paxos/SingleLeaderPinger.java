@@ -16,6 +16,7 @@
 
 package com.palantir.paxos;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.RateLimiter;
@@ -63,7 +64,8 @@ public final class SingleLeaderPinger implements LeaderPinger {
 
     private Map<LeaderPingerContext<PingableLeader>, Boolean> pingV2StatusOnRemotes = new HashMap<>();
 
-    private SingleLeaderPinger(
+    @VisibleForTesting
+    SingleLeaderPinger(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             UUID localUuid,

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.leader;
+package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -21,10 +21,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
-import com.palantir.paxos.ImmutableLeaderPingerContext;
-import com.palantir.paxos.LeaderPingResults;
-import com.palantir.paxos.LeaderPinger;
-import com.palantir.paxos.SingleLeaderPinger;
+import com.palantir.leader.PingResult;
+import com.palantir.leader.PingableLeader;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.time.Duration;
 import java.util.Optional;
@@ -32,13 +30,14 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PaxosLeaderEventsTest {
+public class SingleLeaderPingerTest {
 
     private static final UUID LOCAL_UUID = UUID.randomUUID();
     private static final UUID REMOTE_UUID = UUID.randomUUID();
@@ -49,6 +48,14 @@ public class PaxosLeaderEventsTest {
 
     @Mock
     private PingableLeader pingableLeader;
+
+    @Mock
+    private GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser;
+
+    @Before
+    public void setup() {
+        when(greenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader()).thenReturn(true);
+    }
 
     @After
     public void after() {
@@ -104,12 +111,7 @@ public class PaxosLeaderEventsTest {
     @Test
     public void recordsLeaderPingReturnedTrueWithOlderVersion() {
         OrderableSlsVersion oldTimeLockVersion = OrderableSlsVersion.valueOf("1.1.2");
-        when(pingableLeader.pingV2())
-                .thenReturn(PingResult.builder()
-                        .isLeader(true)
-                        .timeLockVersion(oldTimeLockVersion)
-                        .build());
-        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
+        whenRemoteLeaderHasVersion(oldTimeLockVersion);
 
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("2.1.1"));
         assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
@@ -117,17 +119,32 @@ public class PaxosLeaderEventsTest {
     }
 
     @Test
+    public void ignoresOlderVersionWhenGreenNodeShouldNotGainLeadership() {
+        OrderableSlsVersion oldTimeLockVersion = OrderableSlsVersion.valueOf("1.1.2");
+        whenRemoteLeaderHasVersion(oldTimeLockVersion);
+        when(greenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader()).thenReturn(false);
+
+        LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("2.1.1"));
+        assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
+                .isEqualTo(LeaderPingResults.pingReturnedTrue(REMOTE_UUID, HOST_AND_PORT));
+    }
+
+    @Test
     public void leaderPingReturnsTrueWithLeaderOnNewerVersion() {
-        when(pingableLeader.pingV2())
-                .thenReturn(PingResult.builder()
-                        .isLeader(true)
-                        .timeLockVersion(OrderableSlsVersion.valueOf("2.1.1"))
-                        .build());
-        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
+        whenRemoteLeaderHasVersion(OrderableSlsVersion.valueOf("2.1.1"));
 
         LeaderPinger pinger = pingerWithVersion(OrderableSlsVersion.valueOf("1.1.1"));
         assertThat(pinger.pingLeaderWithUuid(REMOTE_UUID))
                 .isEqualTo(LeaderPingResults.pingReturnedTrue(REMOTE_UUID, HOST_AND_PORT));
+    }
+
+    private void whenRemoteLeaderHasVersion(OrderableSlsVersion version) {
+        when(pingableLeader.pingV2())
+                .thenReturn(PingResult.builder()
+                        .isLeader(true)
+                        .timeLockVersion(version)
+                        .build());
+        when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
     }
 
     private LeaderPinger pingerWithTimeout(Duration leaderPingResponseWait) {
@@ -142,13 +159,14 @@ public class PaxosLeaderEventsTest {
     }
 
     private LeaderPinger pingerWithVersion(OrderableSlsVersion version) {
-        return SingleLeaderPinger.createForTests(
+        return new SingleLeaderPinger(
                 ImmutableMap.of(
                         ImmutableLeaderPingerContext.of(pingableLeader, HOST_AND_PORT),
                         new CheckedRejectionExecutorService(executorService)),
                 Duration.ofSeconds(5),
                 LOCAL_UUID,
                 true,
-                Optional.of(version));
+                Optional.of(version),
+                greenNodeLeadershipPrioritiser);
     }
 }
