@@ -16,9 +16,9 @@
 
 package com.palantir.lock.client;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.EvictingQueue;
-import com.google.common.collect.Queues;
 import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -39,7 +39,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.Queue;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
@@ -52,8 +52,9 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
 
     private final Runnable timestampViolationCallback;
     private final NamespacedConjureTimelockService delegate;
-    private final Queue<TimestampBoundsRecord> timestampBoundsHistory =
-            Queues.synchronizedQueue(EvictingQueue.create(HISTORY_RECORD_SIZE));
+    private final Cache<Instant, TimestampBoundsRecord> timestampBoundRecordHistory =
+            Caffeine.newBuilder().maximumSize(HISTORY_RECORD_SIZE).build();
+
     private final AtomicLong lowerBoundFromTimestamps = new AtomicLong(Long.MIN_VALUE);
     private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
 
@@ -152,12 +153,14 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
 
     private void checkTimestamp(
             TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
+        timestampBoundRecordHistory.put(
+                Instant.now(), ImmutableTimestampBoundsRecord.of(bounds, type, lowerFreshTimestamp, Instant.now()));
+
         if (lowerFreshTimestamp <= Math.max(bounds.boundFromTimestamps(), bounds.boundFromTransactions())) {
             timestampViolationCallback.run();
-            throw clocksWentBackwards(bounds, type, lowerFreshTimestamp, upperFreshTimestamp, timestampBoundsHistory);
+            throw clocksWentBackwards(
+                    bounds, type, lowerFreshTimestamp, upperFreshTimestamp, timestampBoundRecordHistory);
         }
-        timestampBoundsHistory.add(
-                ImmutableTimestampBoundsRecord.of(bounds, type, lowerFreshTimestamp, System.currentTimeMillis()));
     }
 
     private static RuntimeException clocksWentBackwards(
@@ -165,7 +168,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
             OperationType type,
             long lowerFreshTimestamp,
             long upperFreshTimestamp,
-            Queue<TimestampBoundsRecord> timestampBoundsHistory) {
+            Cache<Instant, TimestampBoundsRecord> timestampBoundsHistory) {
         RuntimeException runtimeException = new SafeRuntimeException(CLOCKS_WENT_BACKWARDS_MESSAGE);
         log.error(
                 CLOCKS_WENT_BACKWARDS_MESSAGE + ": bounds were {}, operation {}, fresh timestamp of {}.",
@@ -173,7 +176,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
                 SafeArg.of("operationType", type),
                 SafeArg.of("lowerFreshTimestamp", lowerFreshTimestamp),
                 SafeArg.of("upperFreshTimestamp", upperFreshTimestamp),
-                SafeArg.of("history", timestampBoundsHistory),
+                SafeArg.of("history", timestampBoundsHistory.asMap().values()),
                 runtimeException);
         throw runtimeException;
     }
@@ -207,7 +210,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
         long lowerFreshTimestamp();
 
         @Value.Parameter
-        long wallClockTime();
+        Instant wallClockTime();
     }
 
     enum OperationType {

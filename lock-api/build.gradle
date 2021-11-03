@@ -26,6 +26,7 @@ dependencies {
     compile group: 'com.palantir.refreshable', name: 'refreshable'
     compile group: 'one.util', name: 'streamex'
 
+    implementation 'com.github.ben-manes.caffeine:caffeine'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
