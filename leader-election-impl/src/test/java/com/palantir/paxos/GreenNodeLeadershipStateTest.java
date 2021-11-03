@@ -58,6 +58,13 @@ public class GreenNodeLeadershipStateTest {
     }
 
     @Test
+    public void latestAttemptTimeIsAbsentForDifferentVersion() {
+        state.setLatestAttemptTime(VERSION, INITIAL_TIME);
+
+        assertThat(state.getLatestAttemptTime(NEW_VERSION)).isEmpty();
+    }
+
+    @Test
     public void updatingToNewVersionClearsPreviousVersion() {
         state.setLatestAttemptTime(VERSION, INITIAL_TIME);
         state.setLatestAttemptTime(NEW_VERSION, SECOND_TIME);

@@ -16,6 +16,7 @@
 
 package com.palantir.paxos;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -24,13 +25,14 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
 
-public class DbGreenNodeLeadershipPrioritiser implements GreenNodeLeadershipPrioritiser {
+public final class DbGreenNodeLeadershipPrioritiser implements GreenNodeLeadershipPrioritiser {
     private final Optional<OrderableSlsVersion> timeLockVersion;
     private final Supplier<Duration> leadershipAttemptBackoff;
     private final GreenNodeLeadershipState greenNodeLeadershipState;
     private final Clock clock;
 
-    public DbGreenNodeLeadershipPrioritiser(
+    @VisibleForTesting
+    DbGreenNodeLeadershipPrioritiser(
             Optional<OrderableSlsVersion> timeLockVersion,
             Supplier<Duration> leadershipAttemptBackoff,
             GreenNodeLeadershipState greenNodeLeadershipState,
