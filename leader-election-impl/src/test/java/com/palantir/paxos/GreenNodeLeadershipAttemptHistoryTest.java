@@ -25,7 +25,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class GreenNodeLeadershipStateTest {
+public class GreenNodeLeadershipAttemptHistoryTest {
     private static final OrderableSlsVersion VERSION = OrderableSlsVersion.valueOf("3.14.15");
     private static final OrderableSlsVersion NEW_VERSION = OrderableSlsVersion.valueOf("3.141.59");
     private static final long INITIAL_TIME = 100L;
@@ -34,13 +34,13 @@ public class GreenNodeLeadershipStateTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private GreenNodeLeadershipState state;
+    private GreenNodeLeadershipAttemptHistory state;
 
     @Before
     public void setup() {
         DataSource dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath());
-        state = GreenNodeLeadershipState.create(dataSource);
+        state = GreenNodeLeadershipAttemptHistory.create(dataSource);
     }
 
     @Test

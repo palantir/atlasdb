@@ -26,39 +26,40 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
 
-public final class DbGreenNodeLeadershipPrioritiser implements GreenNodeLeadershipPrioritiser {
+public final class PersistedRateLimitingLeadershipPrioritiser implements GreenNodeLeadershipPrioritiser {
     private final Optional<OrderableSlsVersion> timeLockVersion;
     private final Supplier<Duration> leadershipAttemptBackoff;
-    private final GreenNodeLeadershipState greenNodeLeadershipState;
+    private final GreenNodeLeadershipAttemptHistory greenNodeLeadershipAttemptHistory;
     private final Clock clock;
 
     @VisibleForTesting
-    DbGreenNodeLeadershipPrioritiser(
+    PersistedRateLimitingLeadershipPrioritiser(
             Optional<OrderableSlsVersion> timeLockVersion,
             Supplier<Duration> leadershipAttemptBackoff,
-            GreenNodeLeadershipState greenNodeLeadershipState,
+            GreenNodeLeadershipAttemptHistory greenNodeLeadershipAttemptHistory,
             Clock clock) {
         this.timeLockVersion = timeLockVersion;
         this.leadershipAttemptBackoff = leadershipAttemptBackoff;
-        this.greenNodeLeadershipState = greenNodeLeadershipState;
+        this.greenNodeLeadershipAttemptHistory = greenNodeLeadershipAttemptHistory;
         this.clock = clock;
     }
 
-    public static DbGreenNodeLeadershipPrioritiser create(
+    public static PersistedRateLimitingLeadershipPrioritiser create(
             Optional<OrderableSlsVersion> timeLockVersion,
             Supplier<Duration> leadershipAttemptBackoff,
             DataSource sqliteDataSource) {
-        GreenNodeLeadershipState greenNodeLeadershipState = GreenNodeLeadershipState.create(sqliteDataSource);
-        return new DbGreenNodeLeadershipPrioritiser(
-                timeLockVersion, leadershipAttemptBackoff, greenNodeLeadershipState, new SystemClock());
+        GreenNodeLeadershipAttemptHistory greenNodeLeadershipAttemptHistory =
+                GreenNodeLeadershipAttemptHistory.create(sqliteDataSource);
+        return new PersistedRateLimitingLeadershipPrioritiser(
+                timeLockVersion, leadershipAttemptBackoff, greenNodeLeadershipAttemptHistory, new SystemClock());
     }
 
     @Override
     public boolean shouldGreeningNodeBecomeLeader() {
         OrderableSlsVersion currentVersion = timeLockVersion.orElse(null);
-        Optional<Long> latestAttemptTime = greenNodeLeadershipState.getLatestAttemptTime(currentVersion);
+        Optional<Long> latestAttemptTime = greenNodeLeadershipAttemptHistory.getLatestAttemptTime(currentVersion);
         if (latestAttemptTime.isEmpty()) {
-            greenNodeLeadershipState.setLatestAttemptTime(currentVersion, clock.getTimeMillis());
+            greenNodeLeadershipAttemptHistory.setLatestAttemptTime(currentVersion, clock.getTimeMillis());
             return true;
         }
 
@@ -66,7 +67,7 @@ public final class DbGreenNodeLeadershipPrioritiser implements GreenNodeLeadersh
         Instant currentTime = clock.instant();
         Duration durationSinceLatestAttempt = Duration.between(latestAttempt, currentTime);
         if (durationSinceLatestAttempt.compareTo(leadershipAttemptBackoff.get()) > 0) {
-            greenNodeLeadershipState.setLatestAttemptTime(currentVersion, currentTime.toEpochMilli());
+            greenNodeLeadershipAttemptHistory.setLatestAttemptTime(currentVersion, currentTime.toEpochMilli());
             return true;
         }
 

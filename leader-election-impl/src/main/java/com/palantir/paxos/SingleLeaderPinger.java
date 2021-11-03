@@ -106,7 +106,8 @@ public final class SingleLeaderPinger implements LeaderPinger {
             boolean cancelRemainingCalls,
             Optional<OrderableSlsVersion> timeLockVersion) {
         GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser =
-                DbGreenNodeLeadershipPrioritiser.create(timeLockVersion, greenNodeLeadershipBackoff, sqliteDataSource);
+                PersistedRateLimitingLeadershipPrioritiser.create(
+                        timeLockVersion, greenNodeLeadershipBackoff, sqliteDataSource);
         return new SingleLeaderPinger(
                 otherPingableExecutors,
                 leaderPingResponseWait,

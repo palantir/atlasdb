@@ -33,7 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DbGreenNodeLeadershipPrioritiserTest {
+public class PersistedRateLimitingLeadershipPrioritiserTest {
     private static final OrderableSlsVersion VERSION = OrderableSlsVersion.valueOf("3.14.15");
     private static final long INITIAL_TIME_MILLIS = 100L;
     private static final long BACKOFF_MILLIS = 1000L;
@@ -44,67 +44,71 @@ public class DbGreenNodeLeadershipPrioritiserTest {
     @Mock
     private Clock clock;
 
-    private DbGreenNodeLeadershipPrioritiser dbGreenNodeLeadershipPrioritiser;
+    private PersistedRateLimitingLeadershipPrioritiser persistedRateLimitingLeadershipPrioritiser;
 
     @Before
     public void setup() {
         DataSource dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath());
-        GreenNodeLeadershipState greenNodeLeadershipState = GreenNodeLeadershipState.create(dataSource);
-        dbGreenNodeLeadershipPrioritiser = new DbGreenNodeLeadershipPrioritiser(
-                Optional.of(VERSION), () -> Duration.ofMillis(BACKOFF_MILLIS), greenNodeLeadershipState, clock);
+        GreenNodeLeadershipAttemptHistory greenNodeLeadershipAttemptHistory =
+                GreenNodeLeadershipAttemptHistory.create(dataSource);
+        persistedRateLimitingLeadershipPrioritiser = new PersistedRateLimitingLeadershipPrioritiser(
+                Optional.of(VERSION),
+                () -> Duration.ofMillis(BACKOFF_MILLIS),
+                greenNodeLeadershipAttemptHistory,
+                clock);
 
         when(clock.getTimeMillis()).thenReturn(INITIAL_TIME_MILLIS);
     }
 
     @Test
     public void shouldBecomeLeaderWhenNoAttemptTimeStored() {
-        assertThat(dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
+        assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isTrue();
     }
 
     @Test
     public void shouldNotBecomeLeaderTwice() {
-        assertThat(dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
+        assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isTrue();
-        assertThat(dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
+        assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isFalse();
     }
 
     @Test
     public void shouldNotBecomeLeaderWithinBackoffPeriod() {
         // store initial state
-        dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
+        persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
 
         long withinBackoffTime = INITIAL_TIME_MILLIS + (BACKOFF_MILLIS / 2);
         when(clock.getTimeMillis()).thenReturn(withinBackoffTime);
 
-        assertThat(dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
+        assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isFalse();
     }
 
     @Test
     public void shouldBecomeLeaderAgainOutsideBackoffPeriod() {
         // store initial state
-        dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
+        persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
 
         long withinBackoffTime = INITIAL_TIME_MILLIS + BACKOFF_MILLIS + 1;
         when(clock.getTimeMillis()).thenReturn(withinBackoffTime);
 
-        assertThat(dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
+        assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isTrue();
     }
 
     @Test
     public void shouldNotBecomeLeaderAgainWithinSecondBackoffPeriod() {
-        dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
+        persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader();
 
         long withinBackoffTime = INITIAL_TIME_MILLIS + BACKOFF_MILLIS + 1;
         when(clock.getTimeMillis()).thenReturn(withinBackoffTime);
 
-        assertThat(dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
+        assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isTrue();
-        assertThat(dbGreenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
+        assertThat(persistedRateLimitingLeadershipPrioritiser.shouldGreeningNodeBecomeLeader())
                 .isFalse();
     }
 }

@@ -27,7 +27,7 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
-public final class GreenNodeLeadershipState {
+public final class GreenNodeLeadershipAttemptHistory {
     // We use a constant node_id to ensure the table takes up a constant amount of space.
     // Latest attempts for previous versions are not relevant once we start upgrading to a new version, so
     // we don't want to keep them around.
@@ -35,14 +35,14 @@ public final class GreenNodeLeadershipState {
 
     private final Jdbi jdbi;
 
-    private GreenNodeLeadershipState(Jdbi jdbi) {
+    private GreenNodeLeadershipAttemptHistory(Jdbi jdbi) {
         this.jdbi = jdbi;
     }
 
-    public static GreenNodeLeadershipState create(DataSource dataSource) {
+    public static GreenNodeLeadershipAttemptHistory create(DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class);
-        GreenNodeLeadershipState state = new GreenNodeLeadershipState(jdbi);
+        GreenNodeLeadershipAttemptHistory state = new GreenNodeLeadershipAttemptHistory(jdbi);
         state.initialise();
         return state;
     }
@@ -59,8 +59,8 @@ public final class GreenNodeLeadershipState {
         return execute(dao -> dao.updateLatestAttemptTime(NODE_ID, currentVersion.getValue(), attemptTimeMillis));
     }
 
-    private <T> T execute(Function<GreenNodeLeadershipState.Queries, T> call) {
-        return jdbi.withExtension(GreenNodeLeadershipState.Queries.class, call::apply);
+    private <T> T execute(Function<GreenNodeLeadershipAttemptHistory.Queries, T> call) {
+        return jdbi.withExtension(GreenNodeLeadershipAttemptHistory.Queries.class, call::apply);
     }
 
     public interface Queries {
