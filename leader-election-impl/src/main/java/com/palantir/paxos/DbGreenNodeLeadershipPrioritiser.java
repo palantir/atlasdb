@@ -21,6 +21,7 @@ import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
@@ -61,11 +62,11 @@ public final class DbGreenNodeLeadershipPrioritiser implements GreenNodeLeadersh
             return true;
         }
 
-        long latestAttemptMillis = latestAttemptTime.get();
-        long currentTime = clock.getTimeMillis();
-        long backoffMillis = leadershipAttemptBackoff.get().toMillis();
-        if (currentTime - latestAttemptMillis > backoffMillis) {
-            greenNodeLeadershipState.setLatestAttemptTime(currentVersion, currentTime);
+        Instant latestAttempt = Instant.ofEpochMilli(latestAttemptTime.get());
+        Instant currentTime = clock.instant();
+        Duration durationSinceLatestAttempt = Duration.between(latestAttempt, currentTime);
+        if (durationSinceLatestAttempt.compareTo(leadershipAttemptBackoff.get()) > 0) {
+            greenNodeLeadershipState.setLatestAttemptTime(currentVersion, currentTime.toEpochMilli());
             return true;
         }
 
