@@ -97,19 +97,16 @@ public final class SingleLeaderPinger implements LeaderPinger {
                 greenNodeLeadershipPrioritiser);
     }
 
-    // TODO(gs): add tests that use the DbGreenNodeLeadershipPrioritiser
     public static SingleLeaderPinger create(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
             DataSource sqliteDataSource,
             Duration leaderPingResponseWait,
+            Supplier<Duration> greenNodeLeadershipBackoff,
             UUID localUuid,
             boolean cancelRemainingCalls,
             Optional<OrderableSlsVersion> timeLockVersion) {
-        // TODO(gs): extract runtime config for this
-        Supplier<Duration> leadershipAttemptBackoff = () -> Duration.ofMinutes(30L);
-
         GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser =
-                DbGreenNodeLeadershipPrioritiser.create(timeLockVersion, leadershipAttemptBackoff, sqliteDataSource);
+                DbGreenNodeLeadershipPrioritiser.create(timeLockVersion, greenNodeLeadershipBackoff, sqliteDataSource);
         return new SingleLeaderPinger(
                 otherPingableExecutors,
                 leaderPingResponseWait,

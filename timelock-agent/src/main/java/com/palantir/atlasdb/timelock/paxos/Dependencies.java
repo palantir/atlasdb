@@ -52,6 +52,8 @@ public interface Dependencies {
 
         Duration leaderPingResponseWait();
 
+        Supplier<Duration> greenNodeLeadershipBackoff();
+
         DataSource dataSource();
     }
 

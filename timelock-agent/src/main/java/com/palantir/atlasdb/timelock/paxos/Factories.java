@@ -84,6 +84,7 @@ public interface Factories {
                     WithDedicatedExecutor.convert(remoteClients().nonBatchPingableLeadersWithContext()),
                     dataSource(),
                     leaderPingResponseWait(),
+                    greenNodeLeadershipBackoff(),
                     leaderUuid(),
                     PaxosConstants.CANCEL_REMAINING_CALLS,
                     Optional.of(remoteClients().context().timeLockVersion()));
