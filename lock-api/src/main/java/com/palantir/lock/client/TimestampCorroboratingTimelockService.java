@@ -135,11 +135,12 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
             ToLongFunction<T> upperBoundExtractor,
             OperationType operationType) {
         TimestampBounds timestampBounds = getTimestampBounds();
+        Instant timeOfRequest = Instant.now();
         T timestampContainer = timestampContainerSupplier.get();
 
         long lowerFreshTimestamp = lowerBoundExtractor.applyAsLong(timestampContainer);
         long upperFreshTimestamp = upperBoundExtractor.applyAsLong(timestampContainer);
-        checkTimestamp(timestampBounds, operationType, lowerFreshTimestamp, upperFreshTimestamp);
+        checkTimestamp(timestampBounds, operationType, lowerFreshTimestamp, upperFreshTimestamp, timeOfRequest);
         updateLowerBound(operationType, upperFreshTimestamp);
         return timestampContainer;
     }
@@ -152,10 +153,13 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
     }
 
     private void checkTimestamp(
-            TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
+            TimestampBounds bounds,
+            OperationType type,
+            long lowerFreshTimestamp,
+            long upperFreshTimestamp,
+            Instant timeOfRequest) {
         timestampBoundRecordHistory.put(
-                Instant.now(), ImmutableTimestampBoundsRecord.of(bounds, type, lowerFreshTimestamp, Instant.now()));
-
+                timeOfRequest, ImmutableTimestampBoundsRecord.of(bounds, type, lowerFreshTimestamp, timeOfRequest));
         if (lowerFreshTimestamp <= Math.max(bounds.boundFromTimestamps(), bounds.boundFromTransactions())) {
             timestampViolationCallback.run();
             throw clocksWentBackwards(
