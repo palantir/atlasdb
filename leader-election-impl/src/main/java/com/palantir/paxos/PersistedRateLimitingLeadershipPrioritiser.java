@@ -57,20 +57,24 @@ public final class PersistedRateLimitingLeadershipPrioritiser implements GreenNo
     @Override
     public boolean shouldGreeningNodeBecomeLeader() {
         OrderableSlsVersion currentVersion = timeLockVersion.orElse(null);
+        Instant currentTime = clock.instant();
+        boolean shouldBecomeLeader = shouldBecomeLeader(currentVersion, currentTime);
+
+        if (shouldBecomeLeader) {
+            greenNodeLeadershipAttemptHistory.setLatestAttemptTime(currentVersion, currentTime.toEpochMilli());
+        }
+
+        return shouldBecomeLeader;
+    }
+
+    private boolean shouldBecomeLeader(OrderableSlsVersion currentVersion, Instant currentTime) {
         Optional<Long> latestAttemptTime = greenNodeLeadershipAttemptHistory.getLatestAttemptTime(currentVersion);
         if (latestAttemptTime.isEmpty()) {
-            greenNodeLeadershipAttemptHistory.setLatestAttemptTime(currentVersion, clock.getTimeMillis());
             return true;
         }
 
         Instant latestAttempt = Instant.ofEpochMilli(latestAttemptTime.get());
-        Instant currentTime = clock.instant();
         Duration durationSinceLatestAttempt = Duration.between(latestAttempt, currentTime);
-        if (durationSinceLatestAttempt.compareTo(leadershipAttemptBackoff.get()) > 0) {
-            greenNodeLeadershipAttemptHistory.setLatestAttemptTime(currentVersion, currentTime.toEpochMilli());
-            return true;
-        }
-
-        return false;
+        return durationSinceLatestAttempt.compareTo(leadershipAttemptBackoff.get()) > 0;
     }
 }
