@@ -50,6 +50,7 @@ import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
+import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
@@ -395,6 +396,8 @@ public class TimeLockAgent {
     }
 
     private void registerManagementResource() {
+        ServiceLifecycleController serviceLifecycleController =
+                new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor());
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
@@ -402,13 +405,13 @@ public class TimeLockAgent {
                             timestampStorage.persistentNamespaceContext(),
                             namespaces,
                             redirectRetryTargeter(),
-                            serviceStopper));
+                            serviceLifecycleController));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
                     timestampStorage.persistentNamespaceContext(),
                     namespaces,
                     redirectRetryTargeter(),
-                    serviceStopper));
+                    serviceLifecycleController));
         }
     }
 

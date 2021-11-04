@@ -38,8 +38,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.lock.v2.TimelockService;
 import dagger.Module;
 import dagger.Provides;
 import javax.inject.Named;
@@ -65,20 +64,12 @@ public class TestTransactionManagerModule {
     public Cleaner provideCleaner(
             ServicesConfig config,
             @Named("kvs") KeyValueService kvs,
-            LockService lock,
-            TimestampService tss,
-            LockClient lockClient,
+            TimelockService tl,
             Follower follower,
             TransactionService transactionService) {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
-                        kvs,
-                        lock,
-                        tss,
-                        lockClient,
-                        ImmutableList.of(follower),
-                        transactionService,
-                        MetricsManagers.createForTests())
+                        kvs, tl, ImmutableList.of(follower), transactionService, MetricsManagers.createForTests())
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
                 .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
                 .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())

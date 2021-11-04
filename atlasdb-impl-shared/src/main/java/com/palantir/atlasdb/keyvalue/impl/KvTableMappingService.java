@@ -130,7 +130,7 @@ public class KvTableMappingService implements TableMappingService {
 
     public static byte[] getBytesForTableRef(TableReference tableRef) {
         byte[] nameSpace = EncodingUtils.encodeVarString(tableRef.getNamespace().getName());
-        byte[] table = PtBytes.toBytes(tableRef.getTablename());
+        byte[] table = PtBytes.toBytes(tableRef.getTableName());
         return Bytes.concat(nameSpace, table);
     }
 

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,30 +39,38 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Map;
 import org.awaitility.Awaitility;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 public class TransactionServicesTest {
     private final KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
-    private final TimestampService timestampService = new InMemoryTimestampService();
-    private final CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-            keyValueService, timestampService, MetricsManagers.createForTests(), false);
-    private final TransactionService transactionService = TransactionServices.createTransactionService(
-            keyValueService, new TransactionSchemaManager(coordinationService));
+
+    private TimestampService timestampService;
+    private CoordinationService<InternalSchemaMetadata> coordinationService;
+    private TransactionService transactionService;
 
     private long startTs;
     private long commitTs;
 
+    @ClassRule
+    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
+
     @Before
-    public void setup() {
+    public void setUp() {
         TransactionTables.createTables(keyValueService);
+        timestampService = services.getTimestampService();
+        coordinationService = CoordinationServices.createDefault(
+                keyValueService, timestampService, MetricsManagers.createForTests(), false);
+        transactionService = TransactionServices.createTransactionService(
+                keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
     @Test
@@ -131,7 +139,7 @@ public class TransactionServicesTest {
 
     private void forceInstallV2() {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> {
+        Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> {
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(2);
             ((TimestampManagementService) timestampService)
                     .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);

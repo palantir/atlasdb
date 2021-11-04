@@ -47,7 +47,7 @@ public class CheckAndSetQueriesTest {
         Object[] loggedObjects = objects.get();
         Map<String, Boolean> argumentSafety = new HashMap<>();
         Arrays.stream(loggedObjects).forEach(object -> {
-            Arg<?> arg = (Arg) object;
+            Arg<?> arg = (Arg<?>) object;
             argumentSafety.put(arg.getName(), arg.isSafeForLogging());
         });
 
@@ -72,7 +72,7 @@ public class CheckAndSetQueriesTest {
         Object[] loggedObjects = objects.get();
         Map<String, Boolean> argumentSafety = new HashMap<>();
         Arrays.stream(loggedObjects).forEach(object -> {
-            Arg<?> arg = (Arg) object;
+            Arg<?> arg = (Arg<?>) object;
             argumentSafety.put(arg.getName(), arg.isSafeForLogging());
         });
 

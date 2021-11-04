@@ -253,7 +253,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     }
 
     private List<WriteInfo> getEnqueuedWritesNumber(int index) {
-        ArgumentCaptor<List> writes = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<WriteInfo>> writes = ArgumentCaptor.forClass(List.class);
         verify(sweepQueue, atLeast(index)).enqueue(writes.capture());
         return writes.getAllValues().get(index - 1);
     }

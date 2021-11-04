@@ -30,8 +30,18 @@ services:
           users will not see two different lock services servicing the same startTransactions request), but not atomic
           as a whole.
 
+      getServerLifecycleId:
+        http: POST /getServerLifecycleId
+        returns: uuid
+        docs: |
+          Gets the randomly generated server id associated with the server's current lifecycle upon start up.
+
       forceKillTimeLockServer:
         http: POST /forceKillTimeLockServer
+        returns: uuid
         docs: |
-          Kills TimeLock server i.e. current server will not be able to talk to peer nodes or serve requests. After
-          hitting this endpoint, the server will require external intervention to start up the service again.
+          Kills TimeLock server asynchronously i.e. current server will not be able to talk to
+          peer nodes or serve requests once the task is executed. After hitting this endpoint, the server will require
+          external intervention to start up the service again. The endpoint returns the (randomly generated) server id
+          associated with server upon start up. A client can then make `getServerId` requests wherein change in
+          server id would imply that the server was bounced.

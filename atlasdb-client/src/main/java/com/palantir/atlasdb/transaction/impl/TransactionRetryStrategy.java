@@ -65,6 +65,7 @@ public final class TransactionRetryStrategy {
         this.blockStrategy = blockStrategy;
     }
 
+    @SuppressWarnings("rawtypes") // StopStrategy uses raw Attempt
     public <T, E extends Exception> T runWithRetry(IntPredicate shouldStopRetrying, Retryable<T, E> task) throws E {
         UUID runId = UUID.randomUUID();
         Retryer<T> retryer = RetryerBuilder.<T>newBuilder()
@@ -92,7 +93,7 @@ public final class TransactionRetryStrategy {
         }
     }
 
-    private void logAttempt(UUID runId, Attempt<?> attempt, IntPredicate shouldStopRetrying) {
+    private <T> void logAttempt(UUID runId, Attempt<T> attempt, IntPredicate shouldStopRetrying) {
         int failureCount = Ints.checkedCast(attempt.getAttemptNumber()) - 1;
         if (attempt.hasResult()) {
             if (failureCount > 0) {
@@ -149,6 +150,7 @@ public final class TransactionRetryStrategy {
         T run() throws E;
     }
 
+    @SuppressWarnings("rawtypes") // WaitStrategy uses raw Attempt
     private static WaitStrategy randomize(Random random, WaitStrategy strategy) {
         return attempt -> random.nextInt(Ints.checkedCast(strategy.computeSleepTime(attempt)));
     }

@@ -201,7 +201,7 @@ public final class ColumnValueDescription {
         return type.getJavaObjectClassName();
     }
 
-    public Class getJavaTypeClass() {
+    public Class<?> getJavaTypeClass() {
         if (format == Format.PERSISTER) {
             return getPersister().getPersistingClassType();
         }
@@ -215,7 +215,7 @@ public final class ColumnValueDescription {
         return type.getJavaClass();
     }
 
-    public Class getJavaObjectTypeClass() {
+    public Class<?> getJavaObjectTypeClass() {
         if (format == Format.PERSISTER || canonicalClassName != null) {
             return getJavaTypeClass();
         }
@@ -227,8 +227,7 @@ public final class ColumnValueDescription {
         @SuppressWarnings("unchecked")
         Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
         try {
-            Persister<?> persister = persisterClass.getConstructor().newInstance();
-            return persister;
+            return persisterClass.getConstructor().newInstance();
         } catch (InstantiationException
                 | IllegalAccessException
                 | IllegalArgumentException

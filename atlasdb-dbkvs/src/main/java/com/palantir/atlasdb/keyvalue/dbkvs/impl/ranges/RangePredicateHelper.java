@@ -83,7 +83,7 @@ public final class RangePredicateHelper {
 
     public RangePredicateHelper columnSelection(Collection<byte[]> columns) {
         if (!columns.isEmpty()) {
-            Iterable colnameConditions = Iterables.limit(Iterables.cycle("col_name = ?"), columns.size());
+            Iterable<String> colnameConditions = Iterables.limit(Iterables.cycle("col_name = ?"), columns.size());
             queryBuilder.append(" AND (" + Joiner.on(" OR ").join(colnameConditions) + ") ");
             queryBuilder.addAllArgs(columns);
         }

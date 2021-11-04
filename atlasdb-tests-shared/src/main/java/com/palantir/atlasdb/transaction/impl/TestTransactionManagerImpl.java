@@ -36,12 +36,11 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
+import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -61,9 +60,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimestampService timestampService,
-            TimestampManagementService timestampManagementService,
-            LockClient lockClient,
+            InMemoryTimelockServices inMemoryTimelockServices,
             LockService lockService,
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
@@ -74,9 +71,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         this(
                 metricsManager,
                 keyValueService,
-                timestampService,
-                timestampManagementService,
-                lockClient,
+                inMemoryTimelockServices,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -92,16 +87,15 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimestampService timestampService,
             TimestampManagementService timestampManagementService,
-            LockClient lockClient,
+            TimelockService legacyTimelockService,
             LockService lockService,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                legacyTimelockService,
                 NoOpLockWatchManager.create(),
                 timestampManagementService,
                 lockService,
@@ -128,9 +122,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
-            TimestampService timestampService,
-            TimestampManagementService timestampManagementService,
-            LockClient lockClient,
+            InMemoryTimelockServices services,
             LockService lockService,
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
@@ -143,9 +135,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         super(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
-                new LegacyTimelockService(timestampService, lockService, lockClient),
+                services.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
-                timestampManagementService,
+                services.getTimestampManagementService(),
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),

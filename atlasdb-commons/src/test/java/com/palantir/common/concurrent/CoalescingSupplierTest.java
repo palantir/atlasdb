@@ -60,7 +60,7 @@ public class CoalescingSupplierTest {
     private final Supplier<Integer> supplier;
 
     public CoalescingSupplierTest(String name, Object parameter) {
-        Function<CoalescingSupplierTest, Integer> factory = (Function) parameter;
+        Function<CoalescingSupplierTest, Integer> factory = (Function<CoalescingSupplierTest, Integer>) parameter;
         supplier = () -> factory.apply(this);
     }
 

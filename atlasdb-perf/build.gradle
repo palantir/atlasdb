@@ -54,8 +54,8 @@ dependencies {
     testImplementation 'com.google.guava:guava'
     testImplementation 'org.apache.commons:commons-math3'
 
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
 
     compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
     annotationProcessor group: 'org.immutables', name: 'value'

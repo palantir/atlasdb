@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public final class TableReference {
     private final Namespace namespace;
-    private final String tablename;
+    private final String tableName;
 
     /**
      * Creates a table reference based on fullTableName.
@@ -38,22 +38,22 @@ public final class TableReference {
                 fullTableName.substring(index + 1));
     }
 
-    public static TableReference create(Namespace namespace, String tablename) {
-        return new TableReference(namespace, tablename);
+    public static TableReference create(Namespace namespace, String tableName) {
+        return new TableReference(namespace, tableName);
     }
 
     /**
      * Creates a table reference with an empty namespace, based on tablename.
      * This should only be used when creating a TableReference for a system table.
      */
-    public static TableReference createWithEmptyNamespace(String tablename) {
-        return new TableReference(Namespace.EMPTY_NAMESPACE, tablename);
+    public static TableReference createWithEmptyNamespace(String tableName) {
+        return new TableReference(Namespace.EMPTY_NAMESPACE, tableName);
     }
 
     public static TableReference createLowerCased(TableReference table) {
         String name = table.namespace.getName().toLowerCase();
         Namespace namespace = name.isEmpty() ? Namespace.EMPTY_NAMESPACE : Namespace.create(name);
-        return create(namespace, table.tablename.toLowerCase());
+        return create(namespace, table.tableName.toLowerCase());
     }
 
     /**
@@ -70,9 +70,9 @@ public final class TableReference {
 
     @JsonCreator
     private TableReference(
-            @JsonProperty("namespace") Namespace namespace, @JsonProperty("tablename") String tablename) {
+            @JsonProperty("namespace") Namespace namespace, @JsonProperty("tablename") String tableName) {
         this.namespace = namespace;
-        this.tablename = tablename;
+        this.tableName = tableName;
     }
 
     /**
@@ -90,15 +90,26 @@ public final class TableReference {
         return namespace;
     }
 
+    /**
+     * @deprecated Please use {@link TableReference#getTableName()}, which is consistent with broader AtlasDB
+     *  naming conventions.
+     */
+    @JsonIgnore
+    @Deprecated
     public String getTablename() {
-        return tablename;
+        return getTableName();
+    }
+
+    @JsonProperty("tablename") // Backwards compatibility - DO NOT CHANGE THIS WITHOUT A MIGRATION!
+    public String getTableName() {
+        return tableName;
     }
 
     @JsonIgnore
     public String getQualifiedName() {
         return namespace.isEmptyNamespace() || namespace.getName().equals("met")
-                ? tablename
-                : namespace.getName() + "." + tablename;
+                ? tableName
+                : namespace.getName() + "." + tableName;
     }
 
     public static boolean isFullyQualifiedName(String tableName) {
@@ -119,12 +130,12 @@ public final class TableReference {
             return false;
         }
         TableReference that = (TableReference) obj;
-        return Objects.equals(namespace, that.namespace) && Objects.equals(tablename, that.tablename);
+        return Objects.equals(namespace, that.namespace) && Objects.equals(tableName, that.tableName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, tablename);
+        return Objects.hash(namespace, tableName);
     }
 
     @Override

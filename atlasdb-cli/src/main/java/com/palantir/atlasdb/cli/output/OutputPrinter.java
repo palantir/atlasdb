@@ -22,28 +22,28 @@ import org.slf4j.helpers.MessageFormatter;
 
 @SuppressWarnings("Slf4jConstantLogMessage")
 public class OutputPrinter implements OutputStateLogger {
-    private Logger logger;
+    private final Logger logger;
 
     public OutputPrinter(Logger logger) {
         this.logger = logger;
     }
 
     @Override
-    public void info(String message, Arg... args) {
+    public void info(String message, Arg<?>... args) {
         String infoMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.info(message, (Object[]) args);
         System.out.println(infoMessage);
     }
 
     @Override
-    public void warn(String message, Arg... args) {
+    public void warn(String message, Arg<?>... args) {
         String warnMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.warn(message, (Object[]) args);
         System.err.println(warnMessage);
     }
 
     @Override
-    public void error(final String message, Arg... args) {
+    public void error(final String message, Arg<?>... args) {
         String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.error(message, (Object[]) args);
         System.err.println(errorMessage);

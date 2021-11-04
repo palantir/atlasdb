@@ -208,7 +208,7 @@ public final class Throwables {
         Preconditions.checkNotNull(throwable);
         log.info(
                 "Rewrapping throwable {} with newMessage {}",
-                UnsafeArg.of("throwable", throwable),
+                UnsafeArg.of("wrappedThrowable", throwable),
                 UnsafeArg.of("newMessage", newMessage));
         try {
             Constructor<?>[] constructors = throwable.getClass().getConstructors();

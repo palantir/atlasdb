@@ -28,8 +28,7 @@ import org.junit.runners.Suite;
     TodoEteTest.class,
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
-    LockWithTimelockEteTest.class,
-    LockWatchEteTest.class
+    LockWithTimelockEteTest.class
 })
 public class PostgresDbPersistenceTimeLockTestSuite extends EteSetup {
     private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");

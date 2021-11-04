@@ -30,6 +30,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampRange;
@@ -120,7 +121,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         log.warn(
                 "Locking with client options should not happen at the level of the remote adapter. We will perform a"
                         + " normal lock, disregarding these options here.",
-                new RuntimeException("I exist to show you the stack trace"));
+                new SafeRuntimeException("I exist to show you the stack trace"));
         return lockLeaseService.lock(lockRequest);
     }
 

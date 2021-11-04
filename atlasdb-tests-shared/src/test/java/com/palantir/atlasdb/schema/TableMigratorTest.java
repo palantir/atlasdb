@@ -63,7 +63,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
     public void testMigrationToDifferentKvs() throws TableMappingNotFoundException {
         final TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
         final TableReference namespacedTableRef =
-                TableReference.createFromFullyQualifiedName("namespace." + tableRef.getTablename());
+                TableReference.createFromFullyQualifiedName("namespace." + tableRef.getTableName());
         TableDefinition definition = new TableDefinition() {
             {
                 rowName();
@@ -94,9 +94,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
-                timestampService,
-                timelockServices.getTimestampManagementService(),
-                lockClient,
+                timelockServices,
                 lockService,
                 transactionService,
                 cdm2,
@@ -133,9 +131,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
-                timestampService,
-                timelockServices.getTimelockService(),
-                lockClient,
+                timelockServices,
                 lockService,
                 transactionService,
                 verifyCdm,

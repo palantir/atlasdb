@@ -18,32 +18,32 @@ dependencies {
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':timestamp-api')
 
-    testCompile project(":atlasdb-cassandra")
-    testCompile project(":atlasdb-cli")
-    testCompile project(":atlasdb-tests-shared")
-    testCompile project(":atlasdb-container-test-utils")
-    testCompile project(":atlasdb-ete-test-utils")
-    testCompile project(":timelock-impl")
+    testImplementation project(":atlasdb-cassandra")
+    testImplementation project(":atlasdb-cli")
+    testImplementation project(":atlasdb-tests-shared")
+    testImplementation project(":atlasdb-container-test-utils")
+    testImplementation project(":atlasdb-ete-test-utils")
+    testImplementation project(":timelock-impl")
 
-    testCompile('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
+    testImplementation('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
         exclude module: 'junit'
 
       exclude group: 'org.apache.httpcomponents'
   }
-  testCompile ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+  testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
     exclude module: 'junit'
 
     exclude group: 'org.apache.httpcomponents'
   }
 
-    testCompile project(':flake-rule')
+    testImplementation project(':flake-rule')
 
-    testCompile('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+    testImplementation('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
         exclude(group: 'com.codahale.metrics', module: 'metrics-core')
     }
 
-    testCompile group: 'org.mockito', name: 'mockito-core'
-    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
 }
 
 task longTest(type: Test) {
@@ -58,4 +58,11 @@ test {
     dependsOn longTest
     exclude '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
     exclude '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
+}
+
+tasks.withType(Test) {
+    testLogging {
+        // set options for log level LIFECYCLE
+        events "passed", "skipped", "failed"
+    }
 }

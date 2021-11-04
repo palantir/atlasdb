@@ -39,13 +39,14 @@ public class LockCheckingTransactionTaskTest {
     private final TimelockService timelockService = mock(TimelockService.class);
     private final LockToken lockToken = mock(LockToken.class);
     private final Transaction transaction = mock(Transaction.class);
-    private final TransactionTask delegate = spy(new TransactionTask() {
+    private final TransactionTask<String, Exception> delegate = spy(new TransactionTask<>() {
         @Override
-        public Object execute(Transaction txn) throws Exception {
+        public String execute(Transaction txn) throws Exception {
             return "result";
         }
     });
-    private final TransactionTask wrappingTask = new LockCheckingTransactionTask(delegate, timelockService, lockToken);
+    private final TransactionTask<?, Exception> wrappingTask =
+            new LockCheckingTransactionTask<>(delegate, timelockService, lockToken);
 
     @Before
     public void setUp() {

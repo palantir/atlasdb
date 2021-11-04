@@ -22,6 +22,7 @@ import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerStressTest;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
+import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.Collection;
 import org.junit.Rule;
@@ -36,24 +37,30 @@ public final class SingleLeaderPaxosStressTests {
     public static final TestableTimelockCluster NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9080, builder -> builder.clientPaxosBuilder(
-                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
-                    .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(
+                    TestableTimeLockClusterPorts.SINGLE_LEADER_PAXOS_STRESS_TESTS_1,
+                    builder -> builder.clientPaxosBuilder(
+                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
+                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     public static final TestableTimelockCluster BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
             "batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9086, builder -> builder.clientPaxosBuilder(
-                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
-                    .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(
+                    TestableTimeLockClusterPorts.SINGLE_LEADER_PAXOS_STRESS_TESTS_2,
+                    builder -> builder.clientPaxosBuilder(
+                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
+                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
             "batched single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9092, builder -> builder.clientPaxosBuilder(builder.clientPaxosBuilder()
-                            .isUseBatchPaxosTimestamp(false)
-                            .isBatchSingleLeader(true))
-                    .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(
+                    TestableTimeLockClusterPorts.SINGLE_LEADER_PAXOS_STRESS_TESTS_3,
+                    builder -> builder.clientPaxosBuilder(builder.clientPaxosBuilder()
+                                    .isUseBatchPaxosTimestamp(false)
+                                    .isBatchSingleLeader(true))
+                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestableTimelockCluster> params() {

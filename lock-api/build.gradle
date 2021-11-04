@@ -3,6 +3,10 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.sls-recommended-dependencies'
 apply plugin: 'com.palantir.metric-schema'
 
+license {
+    exclude '**/TimestampCorrectnessMetrics.java'
+}
+
 libsDirName = file('build/artifacts')
 dependencies {
     compile project(":atlasdb-autobatch")
@@ -51,12 +55,12 @@ dependencies {
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
-    testCompile group: 'junit', name: 'junit'
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.awaitility', name: 'awaitility'
-    testCompile(group: 'org.jmock', name: 'jmock') {
+    testImplementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
+    testImplementation group: 'junit', name: 'junit'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.awaitility', name: 'awaitility'
+    testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
 }

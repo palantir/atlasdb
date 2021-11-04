@@ -94,6 +94,7 @@ public final class BatchColumnRangeSelection implements Serializable {
 
     private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");
 
+    @SuppressWarnings("StringSplitter") // Uncertainty around performance implications
     public static BatchColumnRangeSelection valueOf(String serialized) {
         String[] split = deserializeRegex.split(serialized);
         byte[] startCol = PtBytes.decodeBase64(split[0]);

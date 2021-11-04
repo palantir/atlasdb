@@ -76,7 +76,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
         Mockito.when(identityChecker.check(Matchers.anyListOf(Event.class)))
                 .then(list -> ImmutableCheckerResult.builder()
                         .valid(false)
-                        .errors((List) list.getArguments()[0])
+                        .errors((List<Event>) list.getArguments()[0])
                         .build());
     }
 
@@ -85,7 +85,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
         Checker universalChecker = Mockito.mock(Checker.class);
         Mockito.when(universalChecker.check(Matchers.anyList())).thenReturn(validResult);
 
-        assertNoError(() -> universalChecker, ImmutableList.<Event>of());
+        assertNoError(() -> universalChecker, ImmutableList.of());
     }
 
     @Test
@@ -162,7 +162,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
     private Checker filterChecker(String lockName) {
         Checker mockChecker = Mockito.mock(Checker.class);
         Mockito.when(mockChecker.check(Matchers.anyListOf(Event.class))).then(args -> {
-            List<Event> events = (List) args.getArguments()[0];
+            List<Event> events = (List<Event>) args.getArguments()[0];
             return checkLockName(lockName, events);
         });
         return mockChecker;
