@@ -82,9 +82,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public synchronized CommitUpdate getCommitUpdate(long startTs) {
-        Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
-        Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
+    public CommitUpdate getCommitUpdate(long startTs) {
+        Optional<TimestampStateStore.TimestampVersionInfo> timestampInfo =
+                timestampStateStore.getTimestampInfo(startTs);
+        Optional<LockWatchVersion> startVersion = timestampInfo.map(TimestampStateStore.TimestampVersionInfo::version);
+        Optional<CommitInfo> maybeCommitInfo =
+                timestampInfo.flatMap(TimestampStateStore.TimestampVersionInfo::commitInfo);
 
         assertTrue(
                 maybeCommitInfo.isPresent() && startVersion.isPresent(),
@@ -136,7 +139,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
-        removeFromTimestampState(startTimestamp);
+        timestampStateStore.remove(startTimestamp);
         if (rateLimiter.tryAcquire()) {
             retentionEvents();
         }
@@ -148,10 +151,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .timestampStoreState(timestampStateStore.getStateForTesting())
                 .logState(eventLog.getStateForTesting())
                 .build();
-    }
-
-    private synchronized void removeFromTimestampState(long startTimestamp) {
-        timestampStateStore.remove(startTimestamp);
     }
 
     private synchronized TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
