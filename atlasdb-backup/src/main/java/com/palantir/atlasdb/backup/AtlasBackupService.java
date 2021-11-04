@@ -35,30 +35,29 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// TODO(gs): renames (AtlasBackupClient -> AtlasBackupClient, AtlasBackupTask -> AtlasBackupClient)
 // TODO(gs): add tests
 public final class AtlasBackupService {
     private final AuthHeader authHeader;
-    private final AtlasBackupClientBlocking atlasBackupServiceBlocking;
+    private final AtlasBackupClientBlocking atlasBackupClientBlocking;
     private final Map<Namespace, InProgressBackupToken> storedTokens;
 
-    private AtlasBackupService(AuthHeader authHeader, AtlasBackupClientBlocking atlasBackupServiceBlocking) {
+    private AtlasBackupService(AuthHeader authHeader, AtlasBackupClientBlocking atlasBackupClientBlocking) {
         this.authHeader = authHeader;
-        this.atlasBackupServiceBlocking = atlasBackupServiceBlocking;
+        this.atlasBackupClientBlocking = atlasBackupClientBlocking;
         this.storedTokens = new HashMap<>();
     }
 
     public static AtlasBackupService create(
             AuthHeader authHeader, Refreshable<ServicesConfigBlock> servicesConfigBlock, String serviceName) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
-        AtlasBackupClientBlocking atlasBackupServiceBlocking =
+        AtlasBackupClientBlocking atlasBackupClientBlocking =
                 reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName);
-        return new AtlasBackupService(authHeader, atlasBackupServiceBlocking);
+        return new AtlasBackupService(authHeader, atlasBackupClientBlocking);
     }
 
     public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {
         PrepareBackupRequest request = PrepareBackupRequest.of(namespaces);
-        PrepareBackupResponse response = atlasBackupServiceBlocking.prepareBackup(authHeader, request);
+        PrepareBackupResponse response = atlasBackupClientBlocking.prepareBackup(authHeader, request);
 
         return response.getSuccessful().stream()
                 .peek(this::storeBackupToken)
@@ -78,7 +77,7 @@ public final class AtlasBackupService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
-        CompleteBackupResponse response = atlasBackupServiceBlocking.completeBackup(authHeader, request);
+        CompleteBackupResponse response = atlasBackupClientBlocking.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
                 .map(CompletedBackup::getNamespace)
