@@ -136,7 +136,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     @SuppressWarnings("ConstantConditions") // Set of locks is never null
     private ListenableFuture<Optional<LockToken>> maybeUnlock(InProgressBackupToken backupToken) {
         return Futures.transform(
-                timelock(backupToken.getNamespace()).unlock(Set.of(backupToken.getLockToken())),
+                timelock(backupToken.getNamespace()).unlock(ImmutableSet.of(backupToken.getLockToken())),
                 singletonOrEmptySet -> singletonOrEmptySet.stream().findFirst(),
                 MoreExecutors.directExecutor());
     }

@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
@@ -51,11 +52,14 @@ public class AtlasBackupResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("header");
     private static final Namespace NAMESPACE = Namespace.of("test");
     private static final Namespace OTHER_NAMESPACE = Namespace.of("other");
-    private static final PrepareBackupRequest PREPARE_BACKUP_REQUEST = PrepareBackupRequest.of(Set.of(NAMESPACE));
+    private static final PrepareBackupRequest PREPARE_BACKUP_REQUEST =
+            PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE));
     private static final long IMMUTABLE_TIMESTAMP = 1L;
     private static final long BACKUP_START_TIMESTAMP = 2L;
-    private static final CompleteBackupResponse EMPTY_COMPLETE_BACKUP_RESPONSE = CompleteBackupResponse.of(Set.of());
-    private static final PrepareBackupResponse EMPTY_PREPARE_BACKUP_RESPONSE = PrepareBackupResponse.of(Set.of());
+    private static final CompleteBackupResponse EMPTY_COMPLETE_BACKUP_RESPONSE =
+            CompleteBackupResponse.of(ImmutableSet.of());
+    private static final PrepareBackupResponse EMPTY_PREPARE_BACKUP_RESPONSE =
+            PrepareBackupResponse.of(ImmutableSet.of());
 
     private final AsyncTimelockService mockTimelock = mock(AsyncTimelockService.class);
     private final AsyncTimelockService otherTimelock = mock(AsyncTimelockService.class);
@@ -92,7 +96,7 @@ public class AtlasBackupResourceTest {
         when(mockTimelock.getFreshTimestamp()).thenReturn(BACKUP_START_TIMESTAMP);
         when(otherTimelock.lockImmutableTimestamp(any())).thenThrow(new RuntimeException("agony"));
 
-        PrepareBackupRequest request = PrepareBackupRequest.of(Set.of(NAMESPACE, OTHER_NAMESPACE));
+        PrepareBackupRequest request = PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
         assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, request)))
                 .isEqualTo(prepareBackupResponseWith(inProgressBackupToken(lockToken)));
     }
@@ -135,7 +139,7 @@ public class AtlasBackupResourceTest {
         LockToken lockToken = lockToken();
         InProgressBackupToken backupToken = inProgressBackupToken(lockToken);
 
-        Set<LockToken> singleLockToken = Set.of(lockToken);
+        Set<LockToken> singleLockToken = ImmutableSet.of(lockToken);
         when(mockTimelock.unlock(singleLockToken)).thenReturn(Futures.immediateFuture(singleLockToken));
 
         return backupToken;
@@ -149,21 +153,21 @@ public class AtlasBackupResourceTest {
         LockToken lockToken = lockToken();
         InProgressBackupToken backupToken = inProgressBackupToken(namespace, lockToken);
 
-        when(timelock.unlock(Set.of(lockToken))).thenReturn(Futures.immediateFuture(Set.of()));
+        when(timelock.unlock(ImmutableSet.of(lockToken))).thenReturn(Futures.immediateFuture(ImmutableSet.of()));
 
         return backupToken;
     }
 
     private static PrepareBackupResponse prepareBackupResponseWith(InProgressBackupToken expected) {
-        return PrepareBackupResponse.of(Set.of(expected));
+        return PrepareBackupResponse.of(ImmutableSet.of(expected));
     }
 
     private static CompleteBackupRequest completeBackupRequest(InProgressBackupToken... backupTokens) {
-        return CompleteBackupRequest.of(Set.of(backupTokens));
+        return CompleteBackupRequest.of(ImmutableSet.of(backupTokens));
     }
 
     private static CompleteBackupResponse completeBackupResponseWith(CompletedBackup expected) {
-        return CompleteBackupResponse.of(Set.of(expected));
+        return CompleteBackupResponse.of(ImmutableSet.of(expected));
     }
 
     private static InProgressBackupToken inProgressBackupToken(LockToken lockToken) {

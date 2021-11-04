@@ -91,7 +91,7 @@ public class AtlasBackupServiceTest {
                 .build();
         when(atlasBackupClient.completeBackup(
                         authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS, otherInProgress))))
-                .thenReturn(CompleteBackupResponse.of(Set.of(completedBackup)));
+                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
 
         atlasBackupService.prepareBackup(namespaces);
 
