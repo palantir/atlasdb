@@ -163,7 +163,7 @@ public class AtlasBackupResourceTest {
     }
 
     private static CompleteBackupRequest completeBackupRequest(InProgressBackupToken... backupTokens) {
-        return CompleteBackupRequest.of(ImmutableSet.of(backupTokens));
+        return CompleteBackupRequest.of(ImmutableSet.copyOf(backupTokens));
     }
 
     private static CompleteBackupResponse completeBackupResponseWith(CompletedBackup expected) {
