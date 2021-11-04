@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
@@ -38,20 +37,20 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.URL;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.Test;
 
-// TODO(gs): tests with multiple namespaces, including ones where some succeed and some fail
 public class AtlasBackupResourceTest {
     private static final int REMOTE_PORT = 4321;
     private static final URL LOCAL = TimelockTestUtils.url("https://localhost:1234");
     private static final URL REMOTE = TimelockTestUtils.url("https://localhost:" + REMOTE_PORT);
-    private static final RedirectRetryTargeter TARGETER =
-            RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
+    private static final RedirectRetryTargeter TARGETER = RedirectRetryTargeter.create(LOCAL, List.of(LOCAL, REMOTE));
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("header");
     private static final Namespace NAMESPACE = Namespace.of("test");
+    private static final Namespace OTHER_NAMESPACE = Namespace.of("other");
     private static final PrepareBackupRequest PREPARE_BACKUP_REQUEST = PrepareBackupRequest.of(Set.of(NAMESPACE));
     private static final long IMMUTABLE_TIMESTAMP = 1L;
     private static final long BACKUP_START_TIMESTAMP = 2L;
@@ -59,8 +58,10 @@ public class AtlasBackupResourceTest {
     private static final PrepareBackupResponse EMPTY_PREPARE_BACKUP_RESPONSE = PrepareBackupResponse.of(Set.of());
 
     private final AsyncTimelockService mockTimelock = mock(AsyncTimelockService.class);
+    private final AsyncTimelockService otherTimelock = mock(AsyncTimelockService.class);
 
-    private final AtlasBackupResource atlasBackupService = new AtlasBackupResource(TARGETER, _unused -> mockTimelock);
+    private final AtlasBackupResource atlasBackupService =
+            new AtlasBackupResource(TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
 
     @Test
     public void preparesBackupSuccessfully() {
@@ -84,15 +85,24 @@ public class AtlasBackupResourceTest {
     }
 
     @Test
-    public void completeBackupContainsNamespaceWhenLockIsHeld() {
-        InProgressBackupToken backupToken = getValidBackupToken();
+    public void prepareBackupFiltersOutUnsuccessfulNamespaces() {
+        LockToken lockToken = lockToken();
+        when(mockTimelock.lockImmutableTimestamp(any()))
+                .thenReturn(LockImmutableTimestampResponse.of(IMMUTABLE_TIMESTAMP, lockToken));
+        when(mockTimelock.getFreshTimestamp()).thenReturn(BACKUP_START_TIMESTAMP);
+        when(otherTimelock.lockImmutableTimestamp(any())).thenThrow(new RuntimeException("agony"));
 
+        PrepareBackupRequest request = PrepareBackupRequest.of(Set.of(NAMESPACE, OTHER_NAMESPACE));
+        assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, request)))
+                .isEqualTo(prepareBackupResponseWith(inProgressBackupToken(lockToken)));
+    }
+
+    @Test
+    public void completeBackupContainsNamespaceWhenLockIsHeld() {
         when(mockTimelock.getFreshTimestamp()).thenReturn(3L);
-        CompletedBackup expected = CompletedBackup.builder()
-                .namespace(backupToken.getNamespace())
-                .backupStartTimestamp(backupToken.getBackupStartTimestamp())
-                .backupEndTimestamp(3L)
-                .build();
+
+        InProgressBackupToken backupToken = validBackupToken();
+        CompletedBackup expected = completedBackup(backupToken);
 
         assertThat(AtlasFutures.getUnchecked(
                         atlasBackupService.completeBackup(AUTH_HEADER, completeBackupRequest(backupToken))))
@@ -101,14 +111,27 @@ public class AtlasBackupResourceTest {
 
     @Test
     public void completeBackupDoesNotContainNamespaceWhenLockIsLost() {
-        InProgressBackupToken backupToken = getInvalidBackupToken();
+        InProgressBackupToken backupToken = invalidBackupToken();
 
         assertThat(AtlasFutures.getUnchecked(
                         atlasBackupService.completeBackup(AUTH_HEADER, completeBackupRequest(backupToken))))
                 .isEqualTo(EMPTY_COMPLETE_BACKUP_RESPONSE);
     }
 
-    private InProgressBackupToken getValidBackupToken() {
+    @Test
+    public void completeBackupFiltersOutUnsuccessfulNamespaces() {
+        when(mockTimelock.getFreshTimestamp()).thenReturn(3L);
+
+        InProgressBackupToken validToken = validBackupToken();
+        InProgressBackupToken invalidToken = invalidBackupToken(OTHER_NAMESPACE, otherTimelock);
+        CompletedBackup expected = completedBackup(validToken);
+
+        assertThat(AtlasFutures.getUnchecked(atlasBackupService.completeBackup(
+                        AUTH_HEADER, completeBackupRequest(validToken, invalidToken))))
+                .isEqualTo(completeBackupResponseWith(expected));
+    }
+
+    private InProgressBackupToken validBackupToken() {
         LockToken lockToken = lockToken();
         InProgressBackupToken backupToken = inProgressBackupToken(lockToken);
 
@@ -118,11 +141,15 @@ public class AtlasBackupResourceTest {
         return backupToken;
     }
 
-    private InProgressBackupToken getInvalidBackupToken() {
-        LockToken lockToken = lockToken();
-        InProgressBackupToken backupToken = inProgressBackupToken(lockToken);
+    private InProgressBackupToken invalidBackupToken() {
+        return invalidBackupToken(NAMESPACE, mockTimelock);
+    }
 
-        when(mockTimelock.unlock(Set.of(lockToken))).thenReturn(Futures.immediateFuture(Set.of()));
+    private static InProgressBackupToken invalidBackupToken(Namespace namespace, AsyncTimelockService timelock) {
+        LockToken lockToken = lockToken();
+        InProgressBackupToken backupToken = inProgressBackupToken(namespace, lockToken);
+
+        when(timelock.unlock(Set.of(lockToken))).thenReturn(Futures.immediateFuture(Set.of()));
 
         return backupToken;
     }
@@ -131,8 +158,8 @@ public class AtlasBackupResourceTest {
         return PrepareBackupResponse.of(Set.of(expected));
     }
 
-    private static CompleteBackupRequest completeBackupRequest(InProgressBackupToken backupToken) {
-        return CompleteBackupRequest.of(Set.of(backupToken));
+    private static CompleteBackupRequest completeBackupRequest(InProgressBackupToken... backupTokens) {
+        return CompleteBackupRequest.of(Set.of(backupTokens));
     }
 
     private static CompleteBackupResponse completeBackupResponseWith(CompletedBackup expected) {
@@ -140,8 +167,12 @@ public class AtlasBackupResourceTest {
     }
 
     private static InProgressBackupToken inProgressBackupToken(LockToken lockToken) {
+        return inProgressBackupToken(NAMESPACE, lockToken);
+    }
+
+    private static InProgressBackupToken inProgressBackupToken(Namespace namespace, LockToken lockToken) {
         return InProgressBackupToken.builder()
-                .namespace(NAMESPACE)
+                .namespace(namespace)
                 .lockToken(lockToken)
                 .immutableTimestamp(IMMUTABLE_TIMESTAMP)
                 .backupStartTimestamp(BACKUP_START_TIMESTAMP)
@@ -151,5 +182,13 @@ public class AtlasBackupResourceTest {
     private static LockToken lockToken() {
         UUID requestId = UUID.randomUUID();
         return LockToken.of(requestId);
+    }
+
+    private static CompletedBackup completedBackup(InProgressBackupToken backupToken) {
+        return CompletedBackup.builder()
+                .namespace(backupToken.getNamespace())
+                .backupStartTimestamp(backupToken.getBackupStartTimestamp())
+                .backupEndTimestamp(3L)
+                .build();
     }
 }
