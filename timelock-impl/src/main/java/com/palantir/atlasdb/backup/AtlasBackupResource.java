@@ -106,9 +106,13 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
     }
 
     @Override
-    @SuppressWarnings("ConstantConditions")
     public ListenableFuture<CompleteBackupResponse> completeBackup(
             AuthHeader authHeader, CompleteBackupRequest request) {
+        return handleExceptions(() -> completeBackupInternal(request));
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private ListenableFuture<CompleteBackupResponse> completeBackupInternal(CompleteBackupRequest request) {
         Map<BackupToken, ListenableFuture<Optional<BackupToken>>> futureMap =
                 request.getBackupTokens().stream().collect(Collectors.toMap(token -> token, this::completeBackupAsync));
         ListenableFuture<Map<BackupToken, BackupToken>> singleFuture =
