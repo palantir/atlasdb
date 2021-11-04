@@ -86,7 +86,6 @@ types:
         union:
           successful: SuccessfulLockResponse
           unsuccessful: UnsuccessfulLockResponse
-      # in-progress backup information may be kept in TimeLock/Atlas somewhere.
       InProgressBackupToken:
         fields:
           namespace: Namespace
