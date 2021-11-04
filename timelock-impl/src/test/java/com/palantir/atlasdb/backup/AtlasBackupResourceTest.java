@@ -33,10 +33,10 @@ import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
+import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Set;
 import java.util.UUID;
@@ -45,8 +45,8 @@ import org.junit.Test;
 // TODO(gs): tests with multiple namespaces, including ones where some succeed and some fail
 public class AtlasBackupResourceTest {
     private static final int REMOTE_PORT = 4321;
-    private static final URL LOCAL = url("https://localhost:1234");
-    private static final URL REMOTE = url("https://localhost:" + REMOTE_PORT);
+    private static final URL LOCAL = TimelockTestUtils.url("https://localhost:1234");
+    private static final URL REMOTE = TimelockTestUtils.url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER =
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
 
@@ -151,14 +151,5 @@ public class AtlasBackupResourceTest {
     private static LockToken lockToken() {
         UUID requestId = UUID.randomUUID();
         return LockToken.of(requestId);
-    }
-
-    // TODO(gs): copied from ConjureTimelockResourceTest
-    private static URL url(String url) {
-        try {
-            return new URL(url);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
