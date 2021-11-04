@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
@@ -35,13 +36,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// TODO(gs): add tests
 public final class AtlasBackupService {
     private final AuthHeader authHeader;
     private final AtlasBackupClientBlocking atlasBackupClientBlocking;
     private final Map<Namespace, InProgressBackupToken> storedTokens;
 
-    private AtlasBackupService(AuthHeader authHeader, AtlasBackupClientBlocking atlasBackupClientBlocking) {
+    @VisibleForTesting
+    AtlasBackupService(AuthHeader authHeader, AtlasBackupClientBlocking atlasBackupClientBlocking) {
         this.authHeader = authHeader;
         this.atlasBackupClientBlocking = atlasBackupClientBlocking;
         this.storedTokens = new HashMap<>();
