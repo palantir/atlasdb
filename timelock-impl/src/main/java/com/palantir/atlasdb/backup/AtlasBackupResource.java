@@ -28,9 +28,10 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
-import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
+import com.palantir.atlasdb.timelock.api.CompletedBackup;
+import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
@@ -77,14 +78,14 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
     }
 
     private PrepareBackupResponse prepareBackupInternal(PrepareBackupRequest request) {
-        Set<BackupToken> preparedBackups = request.getNamespaces().stream()
+        Set<InProgressBackupToken> preparedBackups = request.getNamespaces().stream()
                 .map(this::prepareBackup)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
         return PrepareBackupResponse.of(preparedBackups);
     }
 
-    Optional<BackupToken> prepareBackup(Namespace namespace) {
+    Optional<InProgressBackupToken> prepareBackup(Namespace namespace) {
         try {
             return Optional.of(tryPrepareBackup(namespace));
         } catch (Exception ex) {
@@ -93,11 +94,11 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
         }
     }
 
-    private BackupToken tryPrepareBackup(Namespace namespace) {
+    private InProgressBackupToken tryPrepareBackup(Namespace namespace) {
         AsyncTimelockService timelock = timelock(namespace);
         LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long timestamp = timelock.getFreshTimestamp();
-        return BackupToken.builder()
+        return InProgressBackupToken.builder()
                 .namespace(namespace)
                 .lockToken(response.getLock())
                 .immutableTimestamp(response.getImmutableTimestamp())
@@ -113,9 +114,9 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
 
     @SuppressWarnings("ConstantConditions")
     private ListenableFuture<CompleteBackupResponse> completeBackupInternal(CompleteBackupRequest request) {
-        Map<BackupToken, ListenableFuture<Optional<BackupToken>>> futureMap =
+        Map<InProgressBackupToken, ListenableFuture<Optional<CompletedBackup>>> futureMap =
                 request.getBackupTokens().stream().collect(Collectors.toMap(token -> token, this::completeBackupAsync));
-        ListenableFuture<Map<BackupToken, BackupToken>> singleFuture =
+        ListenableFuture<Map<InProgressBackupToken, CompletedBackup>> singleFuture =
                 AtlasFutures.allAsMap(futureMap, MoreExecutors.newDirectExecutorService());
 
         return Futures.transform(
@@ -125,7 +126,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
     }
 
     @SuppressWarnings("ConstantConditions") // optional token is never null
-    private ListenableFuture<Optional<BackupToken>> completeBackupAsync(BackupToken backupToken) {
+    private ListenableFuture<Optional<CompletedBackup>> completeBackupAsync(InProgressBackupToken backupToken) {
         return Futures.transform(
                 maybeUnlock(backupToken),
                 maybeToken -> maybeToken.map(_unused -> fetchFastForwardTimestamp(backupToken)),
@@ -133,18 +134,19 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
     }
 
     @SuppressWarnings("ConstantConditions") // Set of locks is never null
-    private ListenableFuture<Optional<LockToken>> maybeUnlock(BackupToken backupToken) {
+    private ListenableFuture<Optional<LockToken>> maybeUnlock(InProgressBackupToken backupToken) {
         return Futures.transform(
                 timelock(backupToken.getNamespace()).unlock(Set.of(backupToken.getLockToken())),
                 singletonOrEmptySet -> singletonOrEmptySet.stream().findFirst(),
                 MoreExecutors.directExecutor());
     }
 
-    private BackupToken fetchFastForwardTimestamp(BackupToken backupToken) {
+    private CompletedBackup fetchFastForwardTimestamp(InProgressBackupToken backupToken) {
         Namespace namespace = backupToken.getNamespace();
         long fastForwardTimestamp = timelock(namespace).getFreshTimestamp();
-        return BackupToken.builder()
-                .from(backupToken)
+        return CompletedBackup.builder()
+                .namespace(namespace)
+                .backupStartTimestamp(backupToken.getBackupStartTimestamp())
                 .backupEndTimestamp(fastForwardTimestamp)
                 .build();
     }

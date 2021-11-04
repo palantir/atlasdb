@@ -26,9 +26,10 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
+import com.palantir.atlasdb.timelock.api.CompletedBackup;
+import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
@@ -68,7 +69,7 @@ public class AtlasBackupResourceTest {
                 .thenReturn(LockImmutableTimestampResponse.of(IMMUTABLE_TIMESTAMP, lockToken));
         when(mockTimelock.getFreshTimestamp()).thenReturn(BACKUP_START_TIMESTAMP);
 
-        BackupToken expectedBackupToken = backupToken(lockToken);
+        InProgressBackupToken expectedBackupToken = inProgressBackupToken(lockToken);
 
         assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
                 .isEqualTo(prepareBackupResponseWith(expectedBackupToken));
@@ -84,11 +85,14 @@ public class AtlasBackupResourceTest {
 
     @Test
     public void completeBackupContainsNamespaceWhenLockIsHeld() {
-        BackupToken backupToken = getValidBackupToken();
+        InProgressBackupToken backupToken = getValidBackupToken();
 
         when(mockTimelock.getFreshTimestamp()).thenReturn(3L);
-        BackupToken expected =
-                BackupToken.builder().from(backupToken).backupEndTimestamp(3L).build();
+        CompletedBackup expected = CompletedBackup.builder()
+                .namespace(backupToken.getNamespace())
+                .backupStartTimestamp(backupToken.getBackupStartTimestamp())
+                .backupEndTimestamp(3L)
+                .build();
 
         assertThat(AtlasFutures.getUnchecked(
                         atlasBackupService.completeBackup(AUTH_HEADER, completeBackupRequest(backupToken))))
@@ -97,16 +101,16 @@ public class AtlasBackupResourceTest {
 
     @Test
     public void completeBackupDoesNotContainNamespaceWhenLockIsLost() {
-        BackupToken backupToken = getInvalidBackupToken();
+        InProgressBackupToken backupToken = getInvalidBackupToken();
 
         assertThat(AtlasFutures.getUnchecked(
                         atlasBackupService.completeBackup(AUTH_HEADER, completeBackupRequest(backupToken))))
                 .isEqualTo(EMPTY_COMPLETE_BACKUP_RESPONSE);
     }
 
-    private BackupToken getValidBackupToken() {
+    private InProgressBackupToken getValidBackupToken() {
         LockToken lockToken = lockToken();
-        BackupToken backupToken = backupToken(lockToken);
+        InProgressBackupToken backupToken = inProgressBackupToken(lockToken);
 
         Set<LockToken> singleLockToken = Set.of(lockToken);
         when(mockTimelock.unlock(singleLockToken)).thenReturn(Futures.immediateFuture(singleLockToken));
@@ -114,29 +118,29 @@ public class AtlasBackupResourceTest {
         return backupToken;
     }
 
-    private BackupToken getInvalidBackupToken() {
+    private InProgressBackupToken getInvalidBackupToken() {
         LockToken lockToken = lockToken();
-        BackupToken backupToken = backupToken(lockToken);
+        InProgressBackupToken backupToken = inProgressBackupToken(lockToken);
 
         when(mockTimelock.unlock(Set.of(lockToken))).thenReturn(Futures.immediateFuture(Set.of()));
 
         return backupToken;
     }
 
-    private static PrepareBackupResponse prepareBackupResponseWith(BackupToken expected) {
+    private static PrepareBackupResponse prepareBackupResponseWith(InProgressBackupToken expected) {
         return PrepareBackupResponse.of(Set.of(expected));
     }
 
-    private static CompleteBackupRequest completeBackupRequest(BackupToken backupToken) {
+    private static CompleteBackupRequest completeBackupRequest(InProgressBackupToken backupToken) {
         return CompleteBackupRequest.of(Set.of(backupToken));
     }
 
-    private static CompleteBackupResponse completeBackupResponseWith(BackupToken expected) {
+    private static CompleteBackupResponse completeBackupResponseWith(CompletedBackup expected) {
         return CompleteBackupResponse.of(Set.of(expected));
     }
 
-    private static BackupToken backupToken(LockToken lockToken) {
-        return BackupToken.builder()
+    private static InProgressBackupToken inProgressBackupToken(LockToken lockToken) {
+        return InProgressBackupToken.builder()
                 .namespace(NAMESPACE)
                 .lockToken(lockToken)
                 .immutableTimestamp(IMMUTABLE_TIMESTAMP)

@@ -17,9 +17,10 @@
 package com.palantir.atlasdb.backup;
 
 import com.palantir.atlasdb.backup.api.AtlasBackupServiceBlocking;
-import com.palantir.atlasdb.timelock.api.BackupToken;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
+import com.palantir.atlasdb.timelock.api.CompletedBackup;
+import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
 import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
@@ -38,7 +39,7 @@ import java.util.stream.Collectors;
 public final class AtlasBackupTask {
     private final AuthHeader authHeader;
     private final AtlasBackupServiceBlocking atlasBackupServiceBlocking;
-    private final Map<Namespace, BackupToken> storedTokens;
+    private final Map<Namespace, InProgressBackupToken> storedTokens;
 
     private AtlasBackupTask(AuthHeader authHeader, AtlasBackupServiceBlocking atlasBackupServiceBlocking) {
         this.authHeader = authHeader;
@@ -60,18 +61,18 @@ public final class AtlasBackupTask {
 
         return response.getSuccessful().stream()
                 .peek(this::storeBackupToken)
-                .map(BackupToken::getNamespace)
+                .map(InProgressBackupToken::getNamespace)
                 .collect(Collectors.toSet());
     }
 
-    private void storeBackupToken(BackupToken backupToken) {
+    private void storeBackupToken(InProgressBackupToken backupToken) {
         storedTokens.put(backupToken.getNamespace(), backupToken);
     }
 
     // TODO(gs): actually persist the token using a persister passed into this class.
     //   Then we have an atlas-side implementation of the persister that conforms with the current backup story
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
-        Set<BackupToken> tokens = namespaces.stream()
+        Set<InProgressBackupToken> tokens = namespaces.stream()
                 .map(storedTokens::get)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -79,7 +80,7 @@ public final class AtlasBackupTask {
         CompleteBackupResponse response = atlasBackupServiceBlocking.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
-                .map(BackupToken::getNamespace)
+                .map(CompletedBackup::getNamespace)
                 .collect(Collectors.toSet());
     }
 }

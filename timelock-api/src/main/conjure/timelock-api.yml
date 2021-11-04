@@ -87,25 +87,29 @@ types:
           successful: SuccessfulLockResponse
           unsuccessful: UnsuccessfulLockResponse
       # in-progress backup information may be kept in TimeLock/Atlas somewhere.
-      BackupToken: # separate objects for in-progress vs complete backups?
+      InProgressBackupToken:
         fields:
           namespace: Namespace
           lockToken: LockToken
           immutableTimestamp: Long
           backupStartTimestamp: Long
-          backupEndTimestamp: optional<Long>
+      CompletedBackup:
+        fields:
+          namespace: Namespace
+          backupStartTimestamp: Long
+          backupEndTimestamp: Long
       PrepareBackupRequest:
         fields:
           namespaces: set<Namespace>
       PrepareBackupResponse:
         fields:
-          successful: set<BackupToken>
+          successful: set<InProgressBackupToken>
       CompleteBackupRequest:
         fields:
-          backupTokens: set<BackupToken>
+          backupTokens: set<InProgressBackupToken>
       CompleteBackupResponse:
         fields:
-          successfulBackups: set<BackupToken>
+          successfulBackups: set<CompletedBackup>
       ConjureWaitForLocksResponse:
         fields:
           wasSuccessful: boolean
