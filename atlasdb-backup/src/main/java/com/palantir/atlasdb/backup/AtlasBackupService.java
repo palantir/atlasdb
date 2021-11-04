@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.backup;
 
-import com.palantir.atlasdb.backup.api.AtlasBackupServiceBlocking;
+import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
 import com.palantir.atlasdb.timelock.api.CompletedBackup;
@@ -35,24 +35,25 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+// TODO(gs): renames (AtlasBackupClient -> AtlasBackupClient, AtlasBackupTask -> AtlasBackupClient)
 // TODO(gs): add tests
-public final class AtlasBackupTask {
+public final class AtlasBackupService {
     private final AuthHeader authHeader;
-    private final AtlasBackupServiceBlocking atlasBackupServiceBlocking;
+    private final AtlasBackupClientBlocking atlasBackupServiceBlocking;
     private final Map<Namespace, InProgressBackupToken> storedTokens;
 
-    private AtlasBackupTask(AuthHeader authHeader, AtlasBackupServiceBlocking atlasBackupServiceBlocking) {
+    private AtlasBackupService(AuthHeader authHeader, AtlasBackupClientBlocking atlasBackupServiceBlocking) {
         this.authHeader = authHeader;
         this.atlasBackupServiceBlocking = atlasBackupServiceBlocking;
         this.storedTokens = new HashMap<>();
     }
 
-    public static AtlasBackupTask create(
+    public static AtlasBackupService create(
             AuthHeader authHeader, Refreshable<ServicesConfigBlock> servicesConfigBlock, String serviceName) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
-        AtlasBackupServiceBlocking atlasBackupServiceBlocking =
-                reloadingFactory.get(AtlasBackupServiceBlocking.class, serviceName);
-        return new AtlasBackupTask(authHeader, atlasBackupServiceBlocking);
+        AtlasBackupClientBlocking atlasBackupServiceBlocking =
+                reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName);
+        return new AtlasBackupService(authHeader, atlasBackupServiceBlocking);
     }
 
     public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {

@@ -21,9 +21,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.backup.api.AtlasBackupService;
-import com.palantir.atlasdb.backup.api.AtlasBackupServiceEndpoints;
-import com.palantir.atlasdb.backup.api.UndertowAtlasBackupService;
+import com.palantir.atlasdb.backup.api.AtlasBackupClient;
+import com.palantir.atlasdb.backup.api.AtlasBackupClientEndpoints;
+import com.palantir.atlasdb.backup.api.UndertowAtlasBackupClient;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
@@ -50,7 +50,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class AtlasBackupResource implements UndertowAtlasBackupService {
+public class AtlasBackupResource implements UndertowAtlasBackupClient {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupResource.class);
     private final Function<String, AsyncTimelockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
@@ -64,12 +64,12 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
 
     public static UndertowService undertow(
             RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return AtlasBackupServiceEndpoints.of(new AtlasBackupResource(redirectRetryTargeter, timelockServices));
+        return AtlasBackupClientEndpoints.of(new AtlasBackupResource(redirectRetryTargeter, timelockServices));
     }
 
-    public static AtlasBackupService jersey(
+    public static AtlasBackupClient jersey(
             RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return new JerseyAtlasBackupServiceAdapter(new AtlasBackupResource(redirectRetryTargeter, timelockServices));
+        return new JerseyAtlasBackupClientAdapter(new AtlasBackupResource(redirectRetryTargeter, timelockServices));
     }
 
     @Override
@@ -159,10 +159,10 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
         return exceptionHandler.handleExceptions(supplier);
     }
 
-    public static final class JerseyAtlasBackupServiceAdapter implements AtlasBackupService {
+    public static final class JerseyAtlasBackupClientAdapter implements AtlasBackupClient {
         private final AtlasBackupResource resource;
 
-        public JerseyAtlasBackupServiceAdapter(AtlasBackupResource resource) {
+        public JerseyAtlasBackupClientAdapter(AtlasBackupResource resource) {
             this.resource = resource;
         }
 

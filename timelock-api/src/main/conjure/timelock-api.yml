@@ -145,8 +145,8 @@ types:
           leaderTimes: map<Namespace, LeaderTime>
 
 services:
-  AtlasBackupService:
-    name: Backup service
+  AtlasBackupClient:
+    name: Internal backup service
     default-auth: header
     package: com.palantir.atlasdb.backup.api
     base-path: /backup
