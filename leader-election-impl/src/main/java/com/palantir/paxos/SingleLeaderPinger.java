@@ -205,7 +205,7 @@ public final class SingleLeaderPinger implements LeaderPinger {
             if (!pingResult.isLeader()) {
                 return LeaderPingResults.pingReturnedFalse();
             }
-            return (!shouldGreeningNodeBecomeLeader.getAsBoolean() || isAtLeastOurVersion(pingResult, timeLockVersion))
+            return (isAtLeastOurVersion(pingResult, timeLockVersion) || !shouldGreeningNodeBecomeLeader.getAsBoolean())
                     ? LeaderPingResults.pingReturnedTrue(
                             uuid, Futures.getDone(pingFuture).getKey().hostAndPort())
                     : LeaderPingResults.pingReturnedTrueWithOlderVersion(

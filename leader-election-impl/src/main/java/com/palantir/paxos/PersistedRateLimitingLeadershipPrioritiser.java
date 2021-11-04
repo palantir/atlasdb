@@ -19,6 +19,9 @@ package com.palantir.paxos;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.time.Duration;
 import java.time.Instant;
@@ -27,6 +30,8 @@ import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 public final class PersistedRateLimitingLeadershipPrioritiser implements GreenNodeLeadershipPrioritiser {
+    private static final SafeLogger log = SafeLoggerFactory.get(PersistedRateLimitingLeadershipPrioritiser.class);
+
     private final Optional<OrderableSlsVersion> timeLockVersion;
     private final Supplier<Duration> leadershipAttemptBackoff;
     private final GreenNodeLeadershipAttemptHistory greenNodeLeadershipAttemptHistory;
@@ -70,11 +75,29 @@ public final class PersistedRateLimitingLeadershipPrioritiser implements GreenNo
     private boolean shouldBecomeLeader(OrderableSlsVersion currentVersion, Instant currentTime) {
         Optional<Long> latestAttemptTime = greenNodeLeadershipAttemptHistory.getLatestAttemptTime(currentVersion);
         if (latestAttemptTime.isEmpty()) {
+            log.info(
+                    "Attempting to become the leader for the first time on this version",
+                    SafeArg.of("version", currentVersion));
             return true;
         }
 
         Instant latestAttempt = Instant.ofEpochMilli(latestAttemptTime.get());
         Duration durationSinceLatestAttempt = Duration.between(latestAttempt, currentTime);
-        return durationSinceLatestAttempt.compareTo(leadershipAttemptBackoff.get()) > 0;
+        boolean shouldBecomeLeader = durationSinceLatestAttempt.compareTo(leadershipAttemptBackoff.get()) > 0;
+        if (shouldBecomeLeader) {
+            log.info(
+                    "Attempting to become the leader on this version again,"
+                            + " as enough time has passed since the last attempt",
+                    SafeArg.of("version", currentVersion),
+                    SafeArg.of("durationSinceLastAttempt", durationSinceLatestAttempt));
+        } else {
+            log.info(
+                    "Not attempting to become the leader on this version again,"
+                            + " as not enough time has passed since the last attempt",
+                    SafeArg.of("version", currentVersion),
+                    SafeArg.of("durationSinceLastAttempt", durationSinceLatestAttempt));
+        }
+
+        return shouldBecomeLeader;
     }
 }
