@@ -28,40 +28,52 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+// TODO(gs): add tests
 public final class AtlasBackupTask {
+    private final AuthHeader authHeader;
     private final AtlasBackupServiceBlocking atlasBackupServiceBlocking;
-    private final BackupTokenPersister backupTokenPersister;
+    private final Map<Namespace, BackupToken> storedTokens;
 
-    private AtlasBackupTask(AtlasBackupServiceBlocking atlasBackupServiceBlocking) {
+    private AtlasBackupTask(AuthHeader authHeader, AtlasBackupServiceBlocking atlasBackupServiceBlocking) {
+        this.authHeader = authHeader;
         this.atlasBackupServiceBlocking = atlasBackupServiceBlocking;
-        this.backupTokenPersister = new InMemoryBackupTokenPersister();
+        this.storedTokens = new HashMap<>();
     }
 
-    public static AtlasBackupTask create(Refreshable<ServicesConfigBlock> servicesConfigBlock, String serviceName) {
+    public static AtlasBackupTask create(
+            AuthHeader authHeader, Refreshable<ServicesConfigBlock> servicesConfigBlock, String serviceName) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
         AtlasBackupServiceBlocking atlasBackupServiceBlocking =
                 reloadingFactory.get(AtlasBackupServiceBlocking.class, serviceName);
-        return new AtlasBackupTask(atlasBackupServiceBlocking);
+        return new AtlasBackupTask(authHeader, atlasBackupServiceBlocking);
     }
 
-    public Set<Namespace> prepareBackup(AuthHeader authHeader, Set<Namespace> namespaces) {
+    public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {
         PrepareBackupRequest request = PrepareBackupRequest.of(namespaces);
         PrepareBackupResponse response = atlasBackupServiceBlocking.prepareBackup(authHeader, request);
 
         return response.getSuccessful().stream()
-                .filter(backupTokenPersister::storeBackupToken)
+                .peek(this::storeBackupToken)
                 .map(BackupToken::getNamespace)
                 .collect(Collectors.toSet());
     }
 
-    public Set<Namespace> completeBackup(AuthHeader authHeader, Set<Namespace> namespaces) {
+    private void storeBackupToken(BackupToken backupToken) {
+        storedTokens.put(backupToken.getNamespace(), backupToken);
+    }
+
+    // TODO(gs): actually persist the token using a persister passed into this class.
+    //   Then we have an atlas-side implementation of the persister that conforms with the current backup story
+    public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
         Set<BackupToken> tokens = namespaces.stream()
-                .map(backupTokenPersister::retrieveBackupToken)
-                .flatMap(Optional::stream)
+                .map(storedTokens::get)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
         CompleteBackupResponse response = atlasBackupServiceBlocking.completeBackup(authHeader, request);

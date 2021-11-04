@@ -46,6 +46,7 @@ public interface TimelockService {
 
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
+    // TODO(gs): Deprecate this once users outside of Atlas transactions have been eliminated
     LockImmutableTimestampResponse lockImmutableTimestamp();
 
     @DoNotDelegate

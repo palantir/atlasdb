@@ -39,7 +39,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Set;
 import java.util.UUID;
-import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 // TODO(gs): tests with multiple namespaces, including ones where some succeed and some fail
@@ -52,8 +51,11 @@ public class AtlasBackupResourceTest {
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("header");
     private static final Namespace NAMESPACE = Namespace.of("test");
+    private static final PrepareBackupRequest PREPARE_BACKUP_REQUEST = PrepareBackupRequest.of(Set.of(NAMESPACE));
     private static final long IMMUTABLE_TIMESTAMP = 1L;
     private static final long BACKUP_START_TIMESTAMP = 2L;
+    private static final CompleteBackupResponse EMPTY_COMPLETE_BACKUP_RESPONSE = CompleteBackupResponse.of(Set.of());
+    private static final PrepareBackupResponse EMPTY_PREPARE_BACKUP_RESPONSE = PrepareBackupResponse.of(Set.of());
 
     private final AsyncTimelockService mockTimelock = mock(AsyncTimelockService.class);
 
@@ -67,44 +69,39 @@ public class AtlasBackupResourceTest {
         when(mockTimelock.getFreshTimestamp()).thenReturn(BACKUP_START_TIMESTAMP);
 
         BackupToken expectedBackupToken = backupToken(lockToken);
-        PrepareBackupResponse expected = PrepareBackupResponse.of(Set.of(expectedBackupToken));
 
-        PrepareBackupResponse response = AtlasFutures.getUnchecked(
-                atlasBackupService.prepareBackup(AUTH_HEADER, PrepareBackupRequest.of(Set.of(NAMESPACE))));
-
-        assertThat(response).isEqualTo(expected);
+        assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
+                .isEqualTo(prepareBackupResponseWith(expectedBackupToken));
     }
 
     @Test
     public void prepareBackupUnsuccessfulWhenLockImmutableTimestampFails() {
         when(mockTimelock.lockImmutableTimestamp(any())).thenThrow(new RuntimeException("agony"));
 
-        PrepareBackupResponse response = AtlasFutures.getUnchecked(
-                atlasBackupService.prepareBackup(AUTH_HEADER, PrepareBackupRequest.of(Set.of(NAMESPACE))));
-        PrepareBackupResponse expected = PrepareBackupResponse.of(Set.of());
-        assertThat(response).isEqualTo(expected);
+        assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
+                .isEqualTo(EMPTY_PREPARE_BACKUP_RESPONSE);
     }
 
     @Test
-    public void completeBackupReturnsTrueWhenLockIsHeld() {
+    public void completeBackupContainsNamespaceWhenLockIsHeld() {
         BackupToken backupToken = getValidBackupToken();
 
         when(mockTimelock.getFreshTimestamp()).thenReturn(3L);
         BackupToken expected =
                 BackupToken.builder().from(backupToken).backupEndTimestamp(3L).build();
 
-        Assertions.assertThat(AtlasFutures.getUnchecked(
-                        atlasBackupService.completeBackup(AUTH_HEADER, CompleteBackupRequest.of(Set.of(backupToken)))))
-                .isEqualTo(CompleteBackupResponse.of(Set.of(expected)));
+        assertThat(AtlasFutures.getUnchecked(
+                        atlasBackupService.completeBackup(AUTH_HEADER, completeBackupRequest(backupToken))))
+                .isEqualTo(completeBackupResponseWith(expected));
     }
 
     @Test
-    public void completeBackupReturnsFalseWhenLockIsLost() {
+    public void completeBackupDoesNotContainNamespaceWhenLockIsLost() {
         BackupToken backupToken = getInvalidBackupToken();
 
-        Assertions.assertThat(AtlasFutures.getUnchecked(
-                        atlasBackupService.completeBackup(AUTH_HEADER, CompleteBackupRequest.of(Set.of(backupToken)))))
-                .isEqualTo(CompleteBackupResponse.of(Set.of()));
+        assertThat(AtlasFutures.getUnchecked(
+                        atlasBackupService.completeBackup(AUTH_HEADER, completeBackupRequest(backupToken))))
+                .isEqualTo(EMPTY_COMPLETE_BACKUP_RESPONSE);
     }
 
     private BackupToken getValidBackupToken() {
@@ -126,7 +123,19 @@ public class AtlasBackupResourceTest {
         return backupToken;
     }
 
-    private BackupToken backupToken(LockToken lockToken) {
+    private static PrepareBackupResponse prepareBackupResponseWith(BackupToken expected) {
+        return PrepareBackupResponse.of(Set.of(expected));
+    }
+
+    private static CompleteBackupRequest completeBackupRequest(BackupToken backupToken) {
+        return CompleteBackupRequest.of(Set.of(backupToken));
+    }
+
+    private static CompleteBackupResponse completeBackupResponseWith(BackupToken expected) {
+        return CompleteBackupResponse.of(Set.of(expected));
+    }
+
+    private static BackupToken backupToken(LockToken lockToken) {
         return BackupToken.builder()
                 .namespace(NAMESPACE)
                 .lockToken(lockToken)
@@ -135,7 +144,7 @@ public class AtlasBackupResourceTest {
                 .build();
     }
 
-    private LockToken lockToken() {
+    private static LockToken lockToken() {
         UUID requestId = UUID.randomUUID();
         return LockToken.of(requestId);
     }

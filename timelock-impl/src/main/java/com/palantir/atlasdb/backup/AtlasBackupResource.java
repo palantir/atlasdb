@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -41,7 +42,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -106,35 +106,34 @@ public class AtlasBackupResource implements UndertowAtlasBackupService {
     }
 
     @Override
+    @SuppressWarnings("ConstantConditions")
     public ListenableFuture<CompleteBackupResponse> completeBackup(
             AuthHeader authHeader, CompleteBackupRequest request) {
         Map<BackupToken, ListenableFuture<Optional<BackupToken>>> futureMap =
                 request.getBackupTokens().stream().collect(Collectors.toMap(token -> token, this::completeBackupAsync));
-        ListenableFuture<Map<BackupToken, BackupToken>> singleFuture = AtlasFutures.futuresCombiner(
-                        MoreExecutors.newDirectExecutorService())
-                .allAsMap(futureMap);
+        ListenableFuture<Map<BackupToken, BackupToken>> singleFuture =
+                AtlasFutures.allAsMap(futureMap, MoreExecutors.newDirectExecutorService());
+
         return Futures.transform(
                 singleFuture,
-                map -> CompleteBackupResponse.of(new HashSet<>(map.values())),
+                map -> CompleteBackupResponse.of(ImmutableSet.copyOf(map.values())),
                 MoreExecutors.directExecutor());
     }
 
+    @SuppressWarnings("ConstantConditions") // optional token is never null
     private ListenableFuture<Optional<BackupToken>> completeBackupAsync(BackupToken backupToken) {
         return Futures.transform(
-                unlockAsync(backupToken),
-                tokens -> fetchFastForwardTimestampIfSuccessful(backupToken, tokens),
+                maybeUnlock(backupToken),
+                maybeToken -> maybeToken.map(_unused -> fetchFastForwardTimestamp(backupToken)),
                 MoreExecutors.directExecutor());
     }
 
-    private ListenableFuture<Set<LockToken>> unlockAsync(BackupToken backupToken) {
-        return timelock(backupToken.getNamespace()).unlock(Set.of(backupToken.getLockToken()));
-    }
-
-    private Optional<BackupToken> fetchFastForwardTimestampIfSuccessful(
-            BackupToken backupToken, Set<LockToken> tokens) {
-        return (tokens != null && tokens.contains(backupToken.getLockToken()))
-                ? Optional.of(fetchFastForwardTimestamp(backupToken))
-                : Optional.empty();
+    @SuppressWarnings("ConstantConditions") // Set of locks is never null
+    private ListenableFuture<Optional<LockToken>> maybeUnlock(BackupToken backupToken) {
+        return Futures.transform(
+                timelock(backupToken.getNamespace()).unlock(Set.of(backupToken.getLockToken())),
+                singletonOrEmptySet -> singletonOrEmptySet.stream().findFirst(),
+                MoreExecutors.directExecutor());
     }
 
     private BackupToken fetchFastForwardTimestamp(BackupToken backupToken) {
