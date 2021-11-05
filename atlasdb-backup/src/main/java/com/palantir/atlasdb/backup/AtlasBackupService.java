@@ -74,14 +74,13 @@ public final class AtlasBackupService {
     //   Then we have an atlas-side implementation of the persister that conforms with the current backup story
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
         Set<InProgressBackupToken> tokens = namespaces.stream()
-                .map(storedTokens::get)
+                .map(storedTokens::remove)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
         CompleteBackupResponse response = atlasBackupClientBlocking.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
-                .peek(backup -> storedTokens.remove(backup.getNamespace()))
                 .map(CompletedBackup::getNamespace)
                 .collect(Collectors.toSet());
     }
