@@ -30,10 +30,10 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public final class AtlasBackupService {
@@ -45,7 +45,7 @@ public final class AtlasBackupService {
     AtlasBackupService(AuthHeader authHeader, AtlasBackupClientBlocking atlasBackupClientBlocking) {
         this.authHeader = authHeader;
         this.atlasBackupClientBlocking = atlasBackupClientBlocking;
-        this.storedTokens = new HashMap<>();
+        this.storedTokens = new ConcurrentHashMap<>();
     }
 
     public static AtlasBackupService create(
