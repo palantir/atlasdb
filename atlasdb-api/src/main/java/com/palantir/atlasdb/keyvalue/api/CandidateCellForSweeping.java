@@ -41,11 +41,4 @@ public interface CandidateCellForSweeping {
      * Otherwise, the return value is undefined and depends on the implementation.
      */
     boolean isLatestValueEmpty();
-
-    static CandidateCellForSweeping of(Cell cell, Collection<Long> sortedTimestamps) {
-        return ImmutableCandidateCellForSweeping.builder()
-                .sortedTimestamps(sortedTimestamps)
-                .cell(cell)
-                .build();
-    }
 }
