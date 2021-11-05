@@ -22,7 +22,7 @@ blocks must be absent from the config if you are using the Timelock Server.
     This may result in **SEVERE DATA CORRUPTION** as the timestamp service's guarantees may be broken.
     Doing this safely requires a fast forward of the new client to at least the highest timestamp given out from the old client.
     Please contact the AtlasDB team for assistance on such an operation.
-
+    
 Required parameters:
 
 .. list-table::
@@ -39,6 +39,13 @@ Required parameters:
 
            Note that client names must be non-empty and consist of only alphanumeric characters, dashes and
            underscores (succinctly, ``[a-zA-Z0-9_-]+``) and for backwards compatibility cannot be the reserved word ``leader``.
+           
+.. warning::
+
+    First-time installations of some services using DbKvs may require these names to be different.
+    Additional configuration is required in these specific cases, but in these cases you must **never** change either the client or namespace name,
+    as doing so will cause **SEVERE DATA CORRUPTION**.
+    Please consult internal documentation or contact AtlasDB support if you think you need these parameters to be different. 
 
 Optional parameters:
 
