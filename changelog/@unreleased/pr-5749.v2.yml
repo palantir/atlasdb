@@ -1,0 +1,6 @@
+type: break
+break:
+  description: Removed the LeaderElectionHealthCheck. This is a compile break for
+    TimeLock.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5749

@@ -22,7 +22,6 @@ import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.logsafe.SafeArg;
@@ -58,14 +57,6 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
     @Value.Derived
     LeadershipObserver leadershipObserver() {
         return leadershipObserverFactory().create(proxyClient());
-    }
-
-    public void registerLeaderElectionHealthCheck() {
-        leaderElectionHealthCheck()
-                .registerClient(
-                        proxyClient(),
-                        LeaderElectionServiceMetrics.of(
-                                metrics().clientScopedMetrics().metricRegistryForClient(proxyClient())));
     }
 
     public <T> T instrument(Class<T> clazz, T instance) {
