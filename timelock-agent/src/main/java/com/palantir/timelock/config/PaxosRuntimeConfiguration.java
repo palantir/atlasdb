@@ -69,7 +69,7 @@ public interface PaxosRuntimeConfiguration {
     @JsonProperty("green-node-leadership-backoff-ms")
     @Value.Default
     default long greenNodeLeadershipBackoffMs() {
-        return 30L * 60L * 1000L; // 30 minutes
+        return 10L * 60L * 1000L; // 10 minutes
     }
 
     @JsonIgnore
