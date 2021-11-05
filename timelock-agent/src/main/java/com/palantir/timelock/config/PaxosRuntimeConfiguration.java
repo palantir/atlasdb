@@ -66,13 +66,10 @@ public interface PaxosRuntimeConfiguration {
         return Duration.ofMillis(leaderPingResponseWaitMs());
     }
 
-    // A backoff of 0 will result in RateLimitedGreenNodeLeadershipPrioritiser being used
-    // TODO(gs): disable this shim and switch default to 30 mins once we're ready to roll this out
     @JsonProperty("green-node-leadership-backoff-ms")
     @Value.Default
     default long greenNodeLeadershipBackoffMs() {
-        return 0L;
-        // return 30L * 60L * 1000L; // 30 minutes
+        return 30L * 60L * 1000L; // 30 minutes
     }
 
     @JsonIgnore
