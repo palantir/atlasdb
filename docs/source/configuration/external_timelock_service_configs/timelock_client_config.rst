@@ -22,7 +22,7 @@ blocks must be absent from the config if you are using the Timelock Server.
     This may result in **SEVERE DATA CORRUPTION** as the timestamp service's guarantees may be broken.
     Doing this safely requires a fast forward of the new client to at least the highest timestamp given out from the old client.
     Please contact the AtlasDB team for assistance on such an operation.
-    
+
 Required parameters:
 
 .. list-table::
