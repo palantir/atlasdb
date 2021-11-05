@@ -2253,7 +2253,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 lockAcquireTimeoutMillis,
                 Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
 
-        RuntimeException stackTraceSnapshot = new RuntimeException("I exist to show you the stack trace");
+        RuntimeException stackTraceSnapshot = new SafeRuntimeException("I exist to show you the stack trace");
         LockResponse lockResponse = timelockService.lock(
                 request,
                 ClientLockingOptions.builder()

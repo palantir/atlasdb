@@ -18,13 +18,13 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Supplier;
+import javax.sql.DataSource;
 
 public interface Dependencies {
 
@@ -38,8 +38,6 @@ public interface Dependencies {
         UUID leaderUuid();
 
         Client proxyClient();
-
-        LeaderElectionHealthCheck leaderElectionHealthCheck();
     }
 
     interface LeaderPinger {
@@ -50,6 +48,10 @@ public interface Dependencies {
         Duration leaderPingRate();
 
         Duration leaderPingResponseWait();
+
+        Supplier<Duration> greenNodeLeadershipBackoff();
+
+        DataSource dataSource();
     }
 
     interface NetworkClientFactories {

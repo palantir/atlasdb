@@ -22,10 +22,10 @@ dependencies {
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
 
-  testCompile group: 'junit', name: 'junit'
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation group: 'junit', name: 'junit'
+  testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
   }
-  testCompile group: 'org.awaitility', name: 'awaitility'
-  testCompile group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'org.awaitility', name: 'awaitility'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
 }

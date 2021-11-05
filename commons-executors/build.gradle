@@ -15,6 +15,6 @@ dependencies {
     testImplementation 'com.palantir.tritium:tritium-registry'
     testImplementation 'io.dropwizard.metrics:metrics-core'
 
-    testCompile group: 'com.google.guava', name: 'guava'
+    testImplementation group: 'com.google.guava', name: 'guava'
     testCompileOnly 'org.immutables:value::annotations'
 }

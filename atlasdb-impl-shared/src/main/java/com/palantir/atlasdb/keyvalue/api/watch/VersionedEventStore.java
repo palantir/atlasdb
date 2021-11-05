@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
 final class VersionedEventStore {
@@ -39,7 +39,7 @@ final class VersionedEventStore {
 
     private final int minEvents;
     private final int maxEvents;
-    private final NavigableMap<Sequence, LockWatchEvent> eventMap = new TreeMap<>();
+    private final NavigableMap<Sequence, LockWatchEvent> eventMap = new ConcurrentSkipListMap<>();
 
     VersionedEventStore(CacheMetrics cacheMetrics, int minEvents, int maxEvents) {
         Preconditions.checkArgument(minEvents > 0, "minEvents must be positive", SafeArg.of("minEvents", minEvents));

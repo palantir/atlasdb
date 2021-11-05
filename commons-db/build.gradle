@@ -36,7 +36,7 @@ dependencies {
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':atlasdb-commons')
 
-  testCompile group: 'junit', name: 'junit'
-  testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'org.assertj', name: 'assertj-core'
+  testImplementation group: 'junit', name: 'junit'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
 }

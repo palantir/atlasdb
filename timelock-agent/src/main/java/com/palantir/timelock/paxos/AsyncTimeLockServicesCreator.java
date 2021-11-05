@@ -81,8 +81,6 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 LockService.class,
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get));
 
-        leadershipComponents.registerClientForLeaderElectionHealthCheck(client);
-
         return TimeLockServices.create(
                 asyncTimelockService, lockService, asyncTimelockService, asyncTimelockResource, asyncTimelockService);
     }

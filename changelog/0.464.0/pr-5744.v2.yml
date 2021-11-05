@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: During blue-green adjudication, the green node will only attempt to
+    gain leadership once every 30 minutes, even across restarts. This will prevent
+    leadership thrashing when the green node repeatedly dies and restarts.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5744
