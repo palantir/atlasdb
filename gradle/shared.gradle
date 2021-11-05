@@ -7,7 +7,6 @@ apply plugin: 'com.palantir.external-publish-jar'
 
 apply from: "${rootDir}/gradle/versions.gradle"
 
-
 version = rootProject.version
 group = rootProject.group
 

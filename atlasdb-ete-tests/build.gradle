@@ -148,4 +148,3 @@ distribution {
     args 'server', 'var/conf/atlasdb-ete.yml'
     defaultJvmOpts '-Xmx768M'
 }
-
