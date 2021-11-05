@@ -29,6 +29,8 @@ import com.palantir.timelock.paxos.HealthCheckPinger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.function.Supplier;
+import javax.sql.DataSource;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -100,6 +102,18 @@ public abstract class LeadershipContextFactory
     @Value.Derived
     public Duration leaderPingRate() {
         return runtime().get().pingRate();
+    }
+
+    @Override
+    @Value.Derived
+    public Supplier<Duration> greenNodeLeadershipBackoff() {
+        return () -> runtime().get().greenNodeLeadershipBackoff();
+    }
+
+    @Override
+    @Value.Derived
+    public DataSource dataSource() {
+        return install().sqliteDataSource();
     }
 
     @Value.Derived

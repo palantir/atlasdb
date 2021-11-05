@@ -25,6 +25,7 @@ import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Supplier;
+import javax.sql.DataSource;
 
 public interface Dependencies {
 
@@ -50,6 +51,10 @@ public interface Dependencies {
         Duration leaderPingRate();
 
         Duration leaderPingResponseWait();
+
+        Supplier<Duration> greenNodeLeadershipBackoff();
+
+        DataSource dataSource();
     }
 
     interface NetworkClientFactories {
