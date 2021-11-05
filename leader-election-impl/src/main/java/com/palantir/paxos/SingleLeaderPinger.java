@@ -105,8 +105,10 @@ public final class SingleLeaderPinger implements LeaderPinger {
             UUID localUuid,
             boolean cancelRemainingCalls,
             Optional<OrderableSlsVersion> timeLockVersion) {
-        GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser =
-                PersistedRateLimitingLeadershipPrioritiser.create(
+        boolean shouldUseOldPrioritiser = greenNodeLeadershipBackoff.get().isZero();
+        GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser = shouldUseOldPrioritiser
+                ? new RateLimitedGreenNodeLeadershipPrioritiser()
+                : PersistedRateLimitingLeadershipPrioritiser.create(
                         timeLockVersion, greenNodeLeadershipBackoff, sqliteDataSource);
         return new SingleLeaderPinger(
                 otherPingableExecutors,
