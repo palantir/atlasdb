@@ -39,7 +39,6 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
@@ -78,23 +77,12 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     private PrepareBackupResponse prepareBackupInternal(PrepareBackupRequest request) {
-        Set<InProgressBackupToken> preparedBackups = request.getNamespaces().stream()
-                .map(this::prepareBackup)
-                .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
+        Set<InProgressBackupToken> preparedBackups =
+                request.getNamespaces().stream().map(this::prepareBackup).collect(Collectors.toSet());
         return PrepareBackupResponse.of(preparedBackups);
     }
 
-    Optional<InProgressBackupToken> prepareBackup(Namespace namespace) {
-        try {
-            return Optional.of(tryPrepareBackup(namespace));
-        } catch (Exception ex) {
-            log.info("Failed to prepare backup for namespace", SafeArg.of("namespace", namespace), ex);
-            return Optional.empty();
-        }
-    }
-
-    private InProgressBackupToken tryPrepareBackup(Namespace namespace) {
+    private InProgressBackupToken prepareBackup(Namespace namespace) {
         AsyncTimelockService timelock = timelock(namespace);
         LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long timestamp = timelock.getFreshTimestamp();
@@ -129,7 +117,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     private ListenableFuture<Optional<CompletedBackup>> completeBackupAsync(InProgressBackupToken backupToken) {
         return Futures.transform(
                 maybeUnlock(backupToken),
-                maybeToken -> maybeToken.map(_unused -> fetchFastForwardTimestamp(backupToken)),
+                maybeToken -> maybeToken.map(_successfulUnlock -> fetchFastForwardTimestamp(backupToken)),
                 MoreExecutors.directExecutor());
     }
 

@@ -58,8 +58,6 @@ public class AtlasBackupResourceTest {
     private static final long BACKUP_START_TIMESTAMP = 2L;
     private static final CompleteBackupResponse EMPTY_COMPLETE_BACKUP_RESPONSE =
             CompleteBackupResponse.of(ImmutableSet.of());
-    private static final PrepareBackupResponse EMPTY_PREPARE_BACKUP_RESPONSE =
-            PrepareBackupResponse.of(ImmutableSet.of());
 
     private final AsyncTimelockService mockTimelock = mock(AsyncTimelockService.class);
     private final AsyncTimelockService otherTimelock = mock(AsyncTimelockService.class);
@@ -78,27 +76,6 @@ public class AtlasBackupResourceTest {
 
         assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
                 .isEqualTo(prepareBackupResponseWith(expectedBackupToken));
-    }
-
-    @Test
-    public void prepareBackupUnsuccessfulWhenLockImmutableTimestampFails() {
-        when(mockTimelock.lockImmutableTimestamp(any())).thenThrow(new RuntimeException("agony"));
-
-        assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
-                .isEqualTo(EMPTY_PREPARE_BACKUP_RESPONSE);
-    }
-
-    @Test
-    public void prepareBackupFiltersOutUnsuccessfulNamespaces() {
-        LockToken lockToken = lockToken();
-        when(mockTimelock.lockImmutableTimestamp(any()))
-                .thenReturn(LockImmutableTimestampResponse.of(IMMUTABLE_TIMESTAMP, lockToken));
-        when(mockTimelock.getFreshTimestamp()).thenReturn(BACKUP_START_TIMESTAMP);
-        when(otherTimelock.lockImmutableTimestamp(any())).thenThrow(new RuntimeException("agony"));
-
-        PrepareBackupRequest request = PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
-        assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, request)))
-                .isEqualTo(prepareBackupResponseWith(inProgressBackupToken(lockToken)));
     }
 
     @Test
