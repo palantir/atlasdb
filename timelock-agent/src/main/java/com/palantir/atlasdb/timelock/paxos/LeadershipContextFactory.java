@@ -20,14 +20,12 @@ import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContex
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.proxy.LeadershipCoordinator;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.UUID;
 import org.immutables.value.Value;
 
@@ -113,11 +111,6 @@ public abstract class LeadershipContextFactory
     }
 
     @Value.Derived
-    public LeaderElectionHealthCheck leaderElectionHealthCheck() {
-        return new LeaderElectionHealthCheck(Instant::now);
-    }
-
-    @Value.Derived
     LeadershipCoordinatorFactory leadershipCoordinatorFactory() {
         return new LeadershipCoordinatorFactory();
     }
@@ -127,7 +120,6 @@ public abstract class LeadershipContextFactory
         ClientAwareComponents clientAwareComponents = ImmutableClientAwareComponents.builder()
                 .from(this)
                 .proxyClient(client)
-                .leaderElectionHealthCheck(leaderElectionHealthCheck())
                 .build();
 
         BatchingLeaderElectionService leaderElectionService =
