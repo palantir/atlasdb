@@ -81,6 +81,7 @@ public final class AtlasBackupService {
         CompleteBackupResponse response = atlasBackupClientBlocking.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
+                .peek(backup -> storedTokens.remove(backup.getNamespace()))
                 .map(CompletedBackup::getNamespace)
                 .collect(Collectors.toSet());
     }
