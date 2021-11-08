@@ -1,10 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-schemas = [
-    'com.palantir.atlasdb.schema.indexing.IndexTestSchema',
-    'com.palantir.atlasdb.schema.stream.StreamTestSchema'
-]
-
 dependencies {
   compile project(":atlasdb-config")
   testImplementation project(":atlasdb-config")
@@ -23,13 +18,16 @@ dependencies {
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.conjure.java.api:service-config'
+  implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.palantir.sls.versions:sls-versions'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.assertj:assertj-guava'
   implementation 'org.rocksdb:rocksdbjni'
+
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-client')
   implementation project(':atlasdb-client-protobufs')
@@ -70,6 +68,11 @@ dependencies {
 
   testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
   testImplementation(group: 'org.jmock', name: 'jmock') {
-      exclude group: 'org.hamcrest'
+    exclude group: 'org.hamcrest'
   }
 }
+schemas = [
+    'com.palantir.atlasdb.schema.indexing.IndexTestSchema',
+    'com.palantir.atlasdb.schema.stream.StreamTestSchema'
+]
+

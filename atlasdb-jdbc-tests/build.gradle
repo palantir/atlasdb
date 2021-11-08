@@ -1,10 +1,6 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  testImplementation project(":atlasdb-jdbc")
-  testImplementation project(":atlasdb-tests-shared")
-  testImplementation project(":atlasdb-hikari")
-
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.palantir.common:streams'
@@ -24,6 +20,9 @@ dependencies {
   implementation project(':timelock-api:timelock-api-objects')
   implementation project(':timestamp-api')
 
+  testImplementation project(":atlasdb-jdbc")
+  testImplementation project(":atlasdb-tests-shared")
+  testImplementation project(":atlasdb-hikari")
   testImplementation project(':atlasdb-api')
   testImplementation project(':timestamp-api')
 

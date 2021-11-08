@@ -25,6 +25,12 @@ dependencies {
     testImplementation project(":atlasdb-ete-test-utils")
     testImplementation project(":timelock-impl")
 
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
+    testCompileOnly 'org.immutables:value::annotations'
+    annotationProcessor project(":atlasdb-processors")
+    compileOnly project(":atlasdb-processors")
+
     testImplementation('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
         exclude module: 'junit'
 
