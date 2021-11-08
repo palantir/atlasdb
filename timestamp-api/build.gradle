@@ -5,13 +5,8 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
-    compileOnly project(':atlasdb-processors')
-    compileOnly 'org.immutables:value::annotations'
-
     annotationProcessor project(':atlasdb-processors')
-    annotationProcessor project(":atlasdb-processors")
-    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly project(':atlasdb-processors')
 
-    testCompileOnly 'org.immutables:value::annotations'
     testImplementation group: 'org.assertj', name: 'assertj-core'
 }
