@@ -110,7 +110,6 @@ allprojects {
                 'GetClassOnEnum',
                 'ImmutableEnumChecker',
                 'ImmutablesBuilderMissingInitialization',
-                'InlineFormatString',
                 'JavaTimeDefaultTimeZone',
                 'LogSafePreconditionsMessageFormat',
                 'MissingSummary',
