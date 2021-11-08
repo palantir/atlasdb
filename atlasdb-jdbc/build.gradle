@@ -18,6 +18,7 @@ dependencies {
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'org.slf4j:slf4j-api'
+  implementation group: "com.google.protobuf", name: "protobuf-java"
   implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
   implementation project(':atlasdb-commons')
   implementation project(':timestamp-api')

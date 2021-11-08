@@ -15,6 +15,7 @@ dependencies {
 
     implementation group: 'junit', name: 'junit'
     implementation group: 'org.assertj', name: 'assertj-core'
+    implementation group: "com.google.protobuf", name: "protobuf-java"
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
