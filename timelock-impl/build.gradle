@@ -17,6 +17,7 @@ dependencies {
 
     implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
     implementation group: 'org.mindrot', name: 'jbcrypt'
+    implementation group: 'com.zaxxer', name: 'HikariCP'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'

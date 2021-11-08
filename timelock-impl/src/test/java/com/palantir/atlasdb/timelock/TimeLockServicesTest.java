@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockService;
 import java.io.IOException;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class TimeLockServicesTest {
@@ -68,7 +67,6 @@ public class TimeLockServicesTest {
         verify(asyncTimelockService).close();
     }
 
-    @NotNull
     private TimeLockServices getTimeLockServices(
             LockService lockService,
             AsyncTimelockService asyncTimelockService,
