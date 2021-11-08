@@ -19,7 +19,10 @@ import java.time.Instant;
 
 public interface Clock {
     /**
-     * Returns the time in milliseconds. This is conventionally interpreted as the number of milliseconds since 1970-01-01T00:00Z excluding leap seconds not included in the present UTC day, which means it is not monotonic even if the underlying clock is perfectly accurate and never adjusted! Clock geekery aside, this should just return System.currentTimeMillis().
+     * Returns the time in milliseconds. This is conventionally interpreted as the number of milliseconds since
+     * 1970-01-01T00:00Z excluding leap seconds not included in the present UTC day, which means it is not monotonic
+     * even if the underlying clock is perfectly accurate and never adjusted! Clock geekery aside, this should just
+     * return System.currentTimeMillis().
      */
     long getTimeMillis();
 
