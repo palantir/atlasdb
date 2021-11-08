@@ -19,11 +19,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
+import com.google.common.collect.*;
 import com.palantir.common.annotation.Inclusive;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
@@ -86,7 +82,7 @@ public final class BatchingVisitables {
     }
 
     /**
-     * @return Visitable containing elements from the start of the visitable
+     * Returns a visitable containing elements from the start of the visitable
      * for which the predicate holds true. Once boundingPredicate returns false for an
      * element of visitable, no more elements will be included in the returned visitable.
      */
@@ -113,7 +109,7 @@ public final class BatchingVisitables {
     }
 
     /**
-     * @return the first element or null if the visitable is empty
+     * Returns the first element or null if the visitable is empty
      */
     @Nullable
     public static <T> T getFirst(BatchingVisitable<T> visitable) {
