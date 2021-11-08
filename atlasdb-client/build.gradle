@@ -138,5 +138,3 @@ dependencies {
   integrationInputAnnotationProcessor group: 'org.immutables', name: 'value'
   integrationInputCompileOnly 'org.immutables:value::annotations'
 }
-
-
