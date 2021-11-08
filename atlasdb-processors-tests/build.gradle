@@ -4,7 +4,7 @@ dependencies {
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
 
-    testCompile group: 'com.google.guava', name: 'guava'
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'com.google.guava', name: 'guava'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
 }

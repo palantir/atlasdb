@@ -21,15 +21,15 @@ import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.LivenessChecker;
+import com.palantir.logsafe.Preconditions;
 import java.util.List;
-import java.util.Objects;
 
 public class LockAcquisitionLivenessChecker implements Checker {
     private final LivenessChecker delegate;
 
     public LockAcquisitionLivenessChecker() {
         delegate = new LivenessChecker(okEvent -> okEvent.function().equals(RequestType.LOCK)
-                && !Objects.requireNonNull(okEvent.value()).isEmpty());
+                && !Preconditions.checkNotNull(okEvent.value()).isEmpty());
     }
 
     @Override

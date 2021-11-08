@@ -66,6 +66,19 @@ public interface PaxosRuntimeConfiguration {
         return Duration.ofMillis(leaderPingResponseWaitMs());
     }
 
+    @JsonProperty("green-node-leadership-backoff-ms")
+    @Value.Default
+    default long greenNodeLeadershipBackoffMs() {
+        return 10L * 60L * 1000L; // 10 minutes
+    }
+
+    @JsonIgnore
+    @Value.Derived
+    @Value.Auxiliary
+    default Duration greenNodeLeadershipBackoff() {
+        return Duration.ofMillis(greenNodeLeadershipBackoffMs());
+    }
+
     @JsonProperty("only-log-on-quorum-failure")
     @Value.Default
     default boolean onlyLogOnQuorumFailure() {

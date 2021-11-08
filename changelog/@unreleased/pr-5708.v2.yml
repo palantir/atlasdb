@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: Add AtlasBackupService, which encapsulates the steps of the backup
+    process where communication with Timelock and/or knowledge of AtlasDB internals
+    is required.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5708

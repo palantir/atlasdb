@@ -26,6 +26,6 @@ dependencies {
   testImplementation project(':atlasdb-api')
   testImplementation project(':timestamp-api')
 
-  testCompile "com.h2database:h2:1.4.190"
+  testImplementation "com.h2database:h2:1.4.190"
 }
 

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -34,10 +35,30 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
+/**
+ * Stores mappings of a timestamp to associated information, as well as tracks the earliest live version for the sake
+ * of determining how far we can retention in the {@link VersionedEventStore}.
+ *
+ * Each timestamp has a mapping to its start version (as timestamps are added here at start transaction time, and thus
+ * definitely have this information). Each timestamp may also be updated with its commit version and commit lock
+ * token (in a single operation). These together may then be used to retrieve relevant events for that transaction.
+ *
+ * Note that this class may not be thread safe in the general case, but can be used safely, depending on the caller. The
+ * main things to call out are:
+ *
+ * 1. Each timestamp is independent of each other, and thus updates should not interact. Updates to the same key may
+ *    be executed in any order (and indeed, an update may race the initial put), but these should be handled by the
+ *    caller.
+ * 2. The entries in the living versions multimap may not be independent (as a single version may correspond to many
+ *    timestamps), but the update concurrency should be handled by the data structure.
+ * 3. Calls to {@link #getEarliestLiveSequence()} are synchronised on the livingVersions map, and thus are blocking;
+ *    this method should be called sparsely. Given that it is only used for retentioning events, which can be eventually
+ *    consistent (as it is always correct to keep more events rather than less), this is acceptable for performance.
+ */
 @NotThreadSafe
 final class TimestampStateStore {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampStateStore.class);
@@ -45,14 +66,15 @@ final class TimestampStateStore {
     @VisibleForTesting
     static final int MAXIMUM_SIZE = 20_000;
 
-    private final NavigableMap<StartTimestamp, MapEntry> timestampMap = new TreeMap<>();
-    private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions = TreeMultimap.create();
+    private final NavigableMap<StartTimestamp, TimestampVersionInfo> timestampMap = new ConcurrentSkipListMap<>();
+    private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions =
+            Multimaps.synchronizedSortedSetMultimap(TreeMultimap.create());
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
         validateStateSize();
 
         startTimestamps.stream().map(StartTimestamp::of).forEach(startTimestamp -> {
-            MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
+            TimestampVersionInfo previous = timestampMap.putIfAbsent(startTimestamp, TimestampVersionInfo.of(version));
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
             livingVersions.put(Sequence.of(version.version()), startTimestamp);
         });
@@ -61,7 +83,7 @@ final class TimestampStateStore {
     void putCommitUpdates(Collection<TransactionUpdate> transactionUpdates, LockWatchVersion newVersion) {
         transactionUpdates.forEach(transactionUpdate -> {
             StartTimestamp startTimestamp = StartTimestamp.of(transactionUpdate.startTs());
-            MapEntry previousEntry = timestampMap.get(startTimestamp);
+            TimestampVersionInfo previousEntry = timestampMap.get(startTimestamp);
             if (previousEntry == null) {
                 throw new TransactionLockWatchFailedException("Start timestamp missing from map");
             }
@@ -88,24 +110,38 @@ final class TimestampStateStore {
 
     Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
         return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)))
-                .map(MapEntry::version);
+                .map(TimestampVersionInfo::version);
     }
 
+    Optional<TimestampVersionInfo> getTimestampInfo(long startTimestamp) {
+        return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)));
+    }
+
+    /**
+     * As per the documentation of {@link Multimaps#synchronizedSortedSetMultimap(SortedSetMultimap)}, we must
+     * synchronise on the collection when using any kind of collection view, including keySet. While this impacts the
+     * concurrency of this class, this method does not need to be called on every transaction, and thus should not
+     * impact performance.
+     */
+    Optional<Sequence> getEarliestLiveSequence() {
+        synchronized (livingVersions) {
+            return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
+        }
+    }
+
+    @VisibleForTesting
     Optional<CommitInfo> getCommitInfo(long startTimestamp) {
         return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)))
-                .flatMap(MapEntry::commitInfo);
+                .flatMap(TimestampVersionInfo::commitInfo);
     }
 
     @VisibleForTesting
     TimestampStateStoreState getStateForTesting() {
+        // This method doesn't need to read a thread-safe snapshot of timestampMap and livingVersions
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(timestampMap)
                 .livingVersions(livingVersions)
                 .build();
-    }
-
-    Optional<Sequence> getEarliestLiveSequence() {
-        return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
     }
 
     private void validateStateSize() {
@@ -123,21 +159,24 @@ final class TimestampStateStore {
     }
 
     @Value.Immutable
-    @JsonDeserialize(as = ImmutableMapEntry.class)
-    @JsonSerialize(as = ImmutableMapEntry.class)
-    interface MapEntry {
+    @JsonDeserialize(as = ImmutableTimestampVersionInfo.class)
+    @JsonSerialize(as = ImmutableTimestampVersionInfo.class)
+    interface TimestampVersionInfo {
         @Value.Parameter
         LockWatchVersion version();
 
         @Value.Parameter
         Optional<CommitInfo> commitInfo();
 
-        static MapEntry of(LockWatchVersion version) {
-            return ImmutableMapEntry.of(version, Optional.empty());
+        static TimestampVersionInfo of(LockWatchVersion version) {
+            return ImmutableTimestampVersionInfo.of(version, Optional.empty());
         }
 
-        default MapEntry withCommitInfo(CommitInfo commitInfo) {
-            return ImmutableMapEntry.builder().from(this).commitInfo(commitInfo).build();
+        default TimestampVersionInfo withCommitInfo(CommitInfo commitInfo) {
+            return ImmutableTimestampVersionInfo.builder()
+                    .from(this)
+                    .commitInfo(commitInfo)
+                    .build();
         }
     }
 

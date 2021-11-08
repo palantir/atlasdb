@@ -54,7 +54,7 @@ public final class LocalLockTracker {
     void logLockResponse(Set<ConjureLockDescriptor> lockDescriptors, ConjureLockResponse response) {
         TrackedLockEvent event = getTimestampedLockEventBuilder()
                 .eventType(EventType.LOCK)
-                .eventDescription(response.accept(new ConjureLockResponse.Visitor<String>() {
+                .eventDescription(response.accept(new ConjureLockResponse.Visitor<>() {
                     @Override
                     public String visitSuccessful(SuccessfulLockResponse value) {
                         return "SUCCESS - locked " + lockDescriptors + "; obtained " + value;

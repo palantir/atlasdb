@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: '`SweepPriorityOverrideConfig` now has a `runLeakySweepOnThoroughTables`
+    property which, if set, will cause iterations of legacy sweep on thorough tables
+    to not sweep ~1% of entries. This is highly recommended for sweeping tables that
+    switched from conservative to thorough and may have a large number of sweep sentinels.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5729
