@@ -30,8 +30,8 @@ public interface PingResult extends Serializable {
     boolean isLeader();
 
     /**
-     * @return The current version of TimeLock that server is on
-     * if this ping result came from a TimeLock server, and empty otherwise.
+     * Returns the current version of TimeLock that server is on if this ping result came from a TimeLock server, and
+     * empty otherwise.
      */
     Optional<OrderableSlsVersion> timeLockVersion();
 
