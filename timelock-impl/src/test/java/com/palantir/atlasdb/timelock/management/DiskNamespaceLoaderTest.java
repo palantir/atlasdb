@@ -25,6 +25,7 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.MalformedURLException;
@@ -73,7 +74,10 @@ public class DiskNamespaceLoaderTest {
                 new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
 
         timeLockManagementResource = TimeLockManagementResource.create(
-                persistentNamespaceContext, namespaces, redirectRetryTargeter, serviceStopper);
+                persistentNamespaceContext,
+                namespaces,
+                redirectRetryTargeter,
+                new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor()));
 
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
         createDirectoryInRootDataDirectory(NAMESPACE_2);

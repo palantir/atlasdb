@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
 
 public final class PathTypeTrackers {
     private PathTypeTrackers() {

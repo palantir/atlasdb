@@ -30,6 +30,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.LeaderPingerContext;
@@ -142,7 +143,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
         }
 
         IllegalStateException exception =
-                new IllegalStateException("There is a fatal problem with the leadership election configuration! "
+                new SafeIllegalStateException("There is a fatal problem with the leadership election configuration! "
                         + "This is probably caused by invalid pref files setting up the cluster "
                         + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
                         + "If the preferences are specified with a host port pair list and localhost index "

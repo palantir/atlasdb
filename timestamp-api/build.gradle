@@ -8,5 +8,5 @@ dependencies {
     annotationProcessor project(':atlasdb-processors')
     compileOnly project(':atlasdb-processors')
 
-    testCompile group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
 }

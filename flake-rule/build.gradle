@@ -5,7 +5,7 @@ dependencies {
   implementation group: 'org.slf4j', name: 'slf4j-api'
   implementation group: 'com.google.guava', name: 'guava'
 
-  testCompile group: 'ch.qos.logback', name: 'logback-classic'
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'ch.qos.logback', name: 'logback-classic'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
 }

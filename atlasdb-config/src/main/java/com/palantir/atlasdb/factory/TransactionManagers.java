@@ -139,7 +139,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -519,7 +518,6 @@ public abstract class TransactionManagers {
                         registrar(),
                         keyValueService,
                         transactionService,
-                        sweepStrategyManager,
                         follower,
                         transactionManager,
                         runBackgroundSweepProcess()),
@@ -785,7 +783,6 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             KeyValueService kvs,
             TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
             TransactionManager transactionManager,
             boolean runInBackground) {
@@ -798,10 +795,8 @@ public abstract class TransactionManagers {
                 transactionManager::getUnreadableTimestamp,
                 transactionManager::getImmutableTimestamp,
                 transactionService,
-                sweepStrategyManager,
                 cellsSweeper,
-                sweepMetrics,
-                () -> ThreadLocalRandom.current().nextInt(100) == 0);
+                sweepMetrics);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(
                 metricsManager,

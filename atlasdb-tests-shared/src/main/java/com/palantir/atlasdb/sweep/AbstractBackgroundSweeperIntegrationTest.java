@@ -100,10 +100,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 AbstractBackgroundSweeperIntegrationTest::getTimestamp,
                 AbstractBackgroundSweeperIntegrationTest::getTimestamp,
                 txService,
-                ssm,
                 cellsSweeper,
-                null,
-                skipCellVersion);
+                null);
         LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,

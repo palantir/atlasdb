@@ -17,6 +17,7 @@
 package com.palantir.common.compression;
 
 import com.google.common.io.Closeables;
+import com.palantir.logsafe.exceptions.SafeIoException;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -96,7 +97,7 @@ public enum StreamCompression {
 
         @Override
         public int read() throws IOException {
-            throw new IOException("Could not construct decompressed stream", thrown);
+            throw new SafeIoException("Could not construct decompressed stream", thrown);
         }
     }
 }

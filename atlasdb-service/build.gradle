@@ -6,7 +6,7 @@ dependencies {
     compile project(':atlasdb-config')
     implementation group: 'jakarta.inject', name: 'jakarta.inject-api'
 
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -29,5 +29,5 @@ dependencies {
     testImplementation project(':atlasdb-client')
 
     // Needed for Jersey Response-based tests
-    testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
+    testImplementation group: 'org.glassfish.jersey.core', name: 'jersey-common'
 }

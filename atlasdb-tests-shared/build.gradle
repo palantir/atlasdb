@@ -7,9 +7,9 @@ schemas = [
 
 dependencies {
   compile project(":atlasdb-config")
-  testCompile project(":atlasdb-config")
+  testImplementation project(":atlasdb-config")
 
-  testCompile project(":commons-api")
+  testImplementation project(":commons-api")
 
   implementation group: 'com.palantir.tracing', name: 'tracing'
   implementation group: 'com.palantir.tritium', name: 'tritium-lib'
@@ -68,8 +68,8 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
 
-  testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
+  testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
   }
 }
