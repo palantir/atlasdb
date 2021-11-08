@@ -109,7 +109,6 @@ allprojects {
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
                 'ImmutableEnumChecker',
-                'ImmutablesBuilderMissingInitialization',
                 'InlineFormatString',
                 'JavaTimeDefaultTimeZone',
                 'LogSafePreconditionsMessageFormat',
