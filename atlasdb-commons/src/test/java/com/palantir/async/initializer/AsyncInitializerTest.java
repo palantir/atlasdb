@@ -17,7 +17,7 @@ package com.palantir.async.initializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -25,6 +25,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,8 +48,8 @@ public class AsyncInitializerTest {
         }
 
         @Override
-        protected int sleepIntervalInMillis() {
-            return ASYNC_INIT_DELAY;
+        protected Duration sleepInterval() {
+            return Duration.ofMillis(10);
         }
 
         @Override
@@ -80,7 +81,7 @@ public class AsyncInitializerTest {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Failed initializing");
         verify(initializer).tryInitialize();
-        verify(initializer, never()).scheduleInitialization(anyLong());
+        verify(initializer, never()).scheduleInitialization(any());
     }
 
     @Test
@@ -89,7 +90,7 @@ public class AsyncInitializerTest {
 
         initializer.initialize(true);
         verify(initializer, never()).tryInitialize();
-        verify(initializer).scheduleInitialization(anyLong());
+        verify(initializer).scheduleInitialization(any());
     }
 
     @Test
@@ -241,7 +242,7 @@ public class AsyncInitializerTest {
         AsyncInitializer initializer = mock(AsyncInitializer.class, Mockito.CALLS_REAL_METHODS);
         doNothing().when(initializer).assertNeverCalledInitialize();
         doThrow(new RuntimeException("Failed initializing")).when(initializer).tryInitialize();
-        doNothing().when(initializer).scheduleInitialization(anyLong());
+        doNothing().when(initializer).scheduleInitialization(any());
         return initializer;
     }
 

@@ -21,6 +21,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,7 +52,7 @@ public abstract class AsyncInitializer {
         initializationStartTime = System.currentTimeMillis();
 
         if (initializeAsync) {
-            scheduleInitialization(0);
+            scheduleInitialization(Duration.ZERO);
         } else {
             tryInitializeInternal();
         }
@@ -86,13 +87,13 @@ public abstract class AsyncInitializer {
                         SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime),
                         cleanupThrowable);
             }
-            scheduleInitialization(sleepIntervalInMillis());
+            scheduleInitialization(sleepInterval());
         }
     }
 
     // Not final for tests.
-    void scheduleInitialization(long delayMillis) {
-        singleThreadedExecutor.schedule(this::tryInitializationLoop, delayMillis, TimeUnit.MILLISECONDS);
+    void scheduleInitialization(Duration delay) {
+        singleThreadedExecutor.schedule(this::tryInitializationLoop, delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests
@@ -110,8 +111,8 @@ public abstract class AsyncInitializer {
         }
     }
 
-    protected int sleepIntervalInMillis() {
-        return 10_000;
+    protected Duration sleepInterval() {
+        return Duration.ofSeconds(10);
     }
 
     /**
