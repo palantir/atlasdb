@@ -4,7 +4,7 @@ dependencies {
     compile project(":commons-executors")
     compile project(":commons-annotations")
 
-    compile (group: 'io.dropwizard.metrics', name: 'metrics-core') {
+    implementation (group: 'io.dropwizard.metrics', name: 'metrics-core') {
         exclude (module: 'slf4j-api')
     }
     implementation group: 'net.jpountz.lz4', name: 'lz4'
