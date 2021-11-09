@@ -16,13 +16,18 @@
 
 package com.palantir.atlasdb.backup;
 
-import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
-import com.palantir.atlasdb.timelock.api.Namespace;
+public enum TimestampType {
+    BACKUP("_backup"),
+    FAST_FORWARD("");
+    //    IMMUTABLE; // TODO(gs): will we need IMMUTABLE?
 
-public interface SchemaMetadataPersister {
-    void persist(
-            Namespace namespace,
-            long timestamp,
-            TimestampType timestampType,
-            InternalSchemaMetadataState internalSchemaMetadataState);
+    private final String filenameSuffix;
+
+    public TimestampType(String filenameSuffix) {
+        this.filenameSuffix = filenameSuffix;
+    }
+
+    public String filename() {
+        return String.format("internal_schema_metadata_state%s", filenameSuffix);
+    }
 }

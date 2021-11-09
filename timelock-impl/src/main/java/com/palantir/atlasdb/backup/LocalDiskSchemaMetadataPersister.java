@@ -35,9 +35,10 @@ public class LocalDiskSchemaMetadataPersister implements SchemaMetadataPersister
     private static final File backupFile = new File("var/data/backup"); // TODO(gs): configurable
 
     @Override
-    public void persist(Namespace namespace, long timestamp, InternalSchemaMetadataState state) {
+    public void persist(
+            Namespace namespace, long timestamp, TimestampType timestampType, InternalSchemaMetadataState state) {
         createNamespaceDirectory(namespace);
-        File file = getInternalSchemaMetadataStateFile(namespace);
+        File file = getInternalSchemaMetadataStateFile(namespace, timestampType);
         try {
             OBJECT_MAPPER.writeValue(file, state);
         } catch (IOException e) {
@@ -57,8 +58,7 @@ public class LocalDiskSchemaMetadataPersister implements SchemaMetadataPersister
         return Paths.get(backupFile.getPath(), namespace.get()).toFile();
     }
 
-    private static File getInternalSchemaMetadataStateFile(Namespace namespace) {
-        String filename = "internal_schema_metadata_state"; // TODO(gs): different ts types
-        return new File(getNamespaceDirectory(namespace), filename);
+    private static File getInternalSchemaMetadataStateFile(Namespace namespace, TimestampType timestampType) {
+        return new File(getNamespaceDirectory(namespace), timestampType.filename());
     }
 }
