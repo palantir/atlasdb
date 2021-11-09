@@ -4,7 +4,7 @@ dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
-    compile group: 'jakarta.inject', name: 'jakarta.inject-api'
+    implementation group: 'jakarta.inject', name: 'jakarta.inject-api'
 
     testImplementation group: 'org.mockito', name: 'mockito-core'
 

@@ -18,11 +18,12 @@ dependencies {
   compile project(":timestamp-client")
 
   compile 'com.github.ben-manes.caffeine:caffeine'
-  compile group: 'com.palantir.common', name: 'streams'
-  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server'
-  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-  compile group: 'com.palantir.safe-logging', name: 'preconditions'
+  implementation group: 'com.palantir.common', name: 'streams'
+  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server'
+  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'com.palantir.safe-logging', name: 'preconditions'
+  implementation group: "com.google.protobuf", name: "protobuf-java"
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -42,6 +43,7 @@ dependencies {
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.checkerframework:checker-qual'
   implementation 'org.slf4j:slf4j-api'
+
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-autobatch')
   implementation project(':atlasdb-client-protobufs')
