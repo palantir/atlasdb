@@ -8,7 +8,6 @@ schemas = ['com.palantir.atlasdb.blob.BlobSchema']
 dependencies {
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-ete-test-utils')
-    implementation project(':atlasdb-impl-shared')
     implementation project(':atlasdb-hikari')
     implementation project(":dropwizard-metrics-hack")
     implementation project(':lock-impl')
@@ -60,6 +59,7 @@ dependencies {
     testImplementation project(':atlasdb-cassandra')
     testImplementation project(':atlasdb-cassandra').sourceSets.test.output
     testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-remoting-api')
     testImplementation project(':atlasdb-tests-shared')
     testImplementation project(':lock-api-objects')

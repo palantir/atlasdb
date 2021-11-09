@@ -42,8 +42,10 @@ dependencies {
     api project(':atlasdb-remoting-api')
     api project(':leader-election-api')
     api project(':lock-api')
+    api project(':lock-conjure-api:lock-conjure-api-undertow')
     api project(':timelock-api:timelock-api-jersey')
     api project(':timelock-api:timelock-api-objects')
+    api project(':timelock-api:timelock-api-undertow')
     api project(':timestamp-api')
 
     implementation project(':atlasdb-autobatch')
@@ -53,8 +55,9 @@ dependencies {
     implementation project(':commons-executors')
     implementation project(':leader-election-impl')
     implementation project(':lock-impl')
-    implementation project(':timelock-corruption-detection:timelock-corruption-detection-jersey')
     implementation project(':timestamp-impl')
+    api project(':timelock-corruption-detection:timelock-corruption-detection-jersey')
+    api project(':timelock-corruption-detection:timelock-corruption-detection-undertow')
 
     testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
     testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
