@@ -79,15 +79,15 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
     testCompileOnly 'org.immutables:value::annotations'
 
-    runtime project(":atlasdb-jdbc")
-    runtime project(":atlasdb-hikari")
-    runtime (project(":atlasdb-cassandra")) {
+    runtimeOnly project(":atlasdb-jdbc")
+    runtimeOnly project(":atlasdb-hikari")
+    runtimeOnly (project(":atlasdb-cassandra")) {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')
     }
-    runtime project(":atlasdb-dbkvs")
-    // TODO:   runtime "org.postgresql:postgresql:${postgresJdbcDriverVersion}"
-    // TODO:   add runtime depencency on the dbkvs-oracle-driver internally
+    runtimeOnly project(":atlasdb-dbkvs")
+    // TODO:   runtimeOnly "org.postgresql:postgresql:${postgresJdbcDriverVersion}"
+    // TODO:   add runtimeOnly depencency on the dbkvs-oracle-driver internally
 
     testImplementation (project(":atlasdb-tests-shared")) {
         exclude group: 'com.fasterxml.jackson.jaxrs'

@@ -63,8 +63,8 @@ dependencies {
     testImplementation project(':lock-api-objects')
     testImplementation project(':timestamp-api')
 
-    runtime project(':atlasdb-dbkvs')
-    runtime project(':atlasdb-cassandra')
+    runtimeOnly project(':atlasdb-dbkvs')
+    runtimeOnly project(':atlasdb-cassandra')
 
     compile (group: 'org.apache.thrift', name: 'libthrift') {
         exclude group: 'org.apache.httpcomponents'
