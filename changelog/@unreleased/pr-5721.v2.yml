@@ -1,5 +1,7 @@
 type: improvement
 improvement:
-  description: Replace usages of `compile` for external dependencies.
+  description: Replace usages of `compile` for external dependencies. Users who encounter
+    compile breaks here have likely transitively relied on AtlasDB pulling in dependencies
+    - please declare them yourself.
   links:
   - https://github.com/palantir/atlasdb/pull/5721
