@@ -18,10 +18,14 @@ package com.palantir.atlasdb.backup;
 
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import java.util.Optional;
 
 public interface SchemaMetadataPersister {
-    void persist(
-            Namespace namespace,
-            TypedTimestamp typedTimestamp,
-            InternalSchemaMetadataState internalSchemaMetadataState);
+    void persistAtBackupTimestamp(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
+
+    boolean inProgressMetadataExists(Namespace namespace);
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    boolean verifyFastForwardState(
+            Namespace namespace, Optional<InternalSchemaMetadataState> fastForwardState, Long backupTimestamp);
 }
