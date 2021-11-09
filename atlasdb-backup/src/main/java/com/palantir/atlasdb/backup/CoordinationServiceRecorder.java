@@ -28,48 +28,47 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.timelock.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
-import java.util.function.LongSupplier;
+import java.util.function.Function;
 
 public class CoordinationServiceRecorder {
-    private final Namespace namespace;
-    private final KeyValueService keyValueService;
-    private final LongSupplier timestampSupplier;
+    private final Function<Namespace, KeyValueService> keyValueServiceFactory;
+    private final Function<Namespace, Long> timestampSupplier;
     private final SchemaMetadataPersister schemaMetadataPersister;
 
     public CoordinationServiceRecorder(
-            Namespace namespace,
-            KeyValueService keyValueService,
-            LongSupplier timestampSupplier,
+            Function<Namespace, KeyValueService> keyValueServiceFactory,
+            Function<Namespace, Long> timestampSupplier,
             SchemaMetadataPersister schemaMetadataPersister) {
-        this.namespace = namespace;
-        this.keyValueService = keyValueService;
+        this.keyValueServiceFactory = keyValueServiceFactory;
         this.timestampSupplier = timestampSupplier;
         this.schemaMetadataPersister = schemaMetadataPersister;
     }
 
     // TODO(gs): do away with TypedTimestamp?
-    public void recordAtBackupTimestamp(TypedTimestamp timestamp) {
-        fetchSchemaMetadata(timestamp)
+    public void recordAtBackupTimestamp(Namespace namespace, TypedTimestamp timestamp) {
+        fetchSchemaMetadata(namespace, timestamp)
                 .ifPresent(metadata -> schemaMetadataPersister.persistAtBackupTimestamp(namespace, metadata));
     }
 
     public boolean verifyFastForwardState(CompletedBackup completedBackup) {
+        Namespace namespace = completedBackup.getNamespace();
         TypedTimestamp fastForwardTimestamp =
                 TypedTimestamp.of(TimestampType.FAST_FORWARD, completedBackup.getBackupEndTimestamp());
-        Optional<InternalSchemaMetadataState> fastForwardMetadata = fetchSchemaMetadata(fastForwardTimestamp);
 
-        // TODO(gs): is this the right ts?
+        Optional<InternalSchemaMetadataState> fastForwardMetadata =
+                fetchSchemaMetadata(namespace, fastForwardTimestamp);
         schemaMetadataPersister.verifyFastForwardState(
-                namespace, fastForwardMetadata, fastForwardTimestamp.timestamp());
+                namespace, fastForwardMetadata, timestampSupplier.apply(namespace));
         return true;
     }
 
-    private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(TypedTimestamp timestamp) {
-        if (!keyValueService.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
+    private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, TypedTimestamp timestamp) {
+        KeyValueService kvs = keyValueServiceFactory.apply(namespace);
+        if (!kvs.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
             return Optional.empty();
         }
         CoordinationService<InternalSchemaMetadata> coordination =
-                CoordinationServices.createDefault(keyValueService, timestampSupplier, false);
+                CoordinationServices.createDefault(kvs, () -> timestampSupplier.apply(namespace), false);
 
         return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(timestamp.timestamp(), coordination)));
     }
