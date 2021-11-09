@@ -39,8 +39,6 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +48,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class AtlasBackupResource implements UndertowAtlasBackupClient {
-    private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupResource.class);
     private final Function<String, AsyncTimelockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
@@ -86,6 +83,9 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         AsyncTimelockService timelock = timelock(namespace);
         LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long timestamp = timelock.getFreshTimestamp();
+
+        // TODO(gs): wire up CoordinationServiceRecorder + record coordination service at this timestamp
+
         return InProgressBackupToken.builder()
                 .namespace(namespace)
                 .lockToken(response.getLock())

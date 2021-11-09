@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.coordination;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -28,6 +30,8 @@ import org.immutables.value.Value;
  * valid at that timestamp (i.e. the bound is greater than or equal to that timestamp).
  */
 @Value.Immutable
+@JsonSerialize(as = ImmutableValueAndBound.class)
+@JsonDeserialize(as = ImmutableValueAndBound.class)
 public interface ValueAndBound<T> {
     long INVALID_BOUND = -1;
 
