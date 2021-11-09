@@ -38,6 +38,7 @@ import java.util.List;
  * The aggregated result is then processed: we throw an {@link AssertionError} on a TERMINAL result and throw a
  * {@link NotInitializedException} on an INDETERMINATE result.
  */
+@SuppressWarnings("ThrowError") // Legacy API
 public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private static final SafeLogger log = SafeLoggerFactory.get(ConsistencyCheckRunner.class);

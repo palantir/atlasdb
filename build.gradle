@@ -130,7 +130,6 @@ allprojects {
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
                 'ThreadPriorityCheck',
-                'ThrowError',
                 'ThrowSpecificity',
                 'TooManyArguments',
                 'TypeParameterUnusedInFormals',
