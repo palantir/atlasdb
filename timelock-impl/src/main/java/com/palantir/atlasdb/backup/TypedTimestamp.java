@@ -16,12 +16,21 @@
 
 package com.palantir.atlasdb.backup;
 
-import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
-import com.palantir.atlasdb.timelock.api.Namespace;
+import org.immutables.value.Value;
 
-public interface SchemaMetadataPersister {
-    void persist(
-            Namespace namespace,
-            TypedTimestamp typedTimestamp,
-            InternalSchemaMetadataState internalSchemaMetadataState);
+@Value.Immutable
+public interface TypedTimestamp {
+    TimestampType type();
+
+    long timestamp();
+
+    static TypedTimestamp of(TimestampType type, long timestamp) {
+        return builder().type(type).timestamp(timestamp).build();
+    }
+
+    static Builder builder() {
+        return new Builder();
+    }
+
+    class Builder extends ImmutableTypedTimestamp.Builder {}
 }

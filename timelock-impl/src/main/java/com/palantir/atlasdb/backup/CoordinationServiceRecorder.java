@@ -46,19 +46,19 @@ public class CoordinationServiceRecorder {
         this.schemaMetadataPersister = schemaMetadataPersister;
     }
 
-    public void recordAtTimestamp(long timestamp) {
+    public void recordAtTimestamp(TypedTimestamp timestamp) {
         fetchSchemaMetadata(timestamp)
                 .ifPresent(metadata -> schemaMetadataPersister.persist(namespace, timestamp, metadata));
     }
 
-    private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(long timestamp) {
+    private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(TypedTimestamp timestamp) {
         if (!keyValueService.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
             return Optional.empty();
         }
         CoordinationService<InternalSchemaMetadata> coordination =
                 CoordinationServices.createDefault(keyValueService, timestampService::getFreshTimestamp, false);
 
-        return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(timestamp, coordination)));
+        return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(timestamp.timestamp(), coordination)));
     }
 
     private ValueAndBound<InternalSchemaMetadata> getValidMetadata(

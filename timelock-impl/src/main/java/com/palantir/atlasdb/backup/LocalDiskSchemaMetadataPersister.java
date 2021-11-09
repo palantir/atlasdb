@@ -27,13 +27,13 @@ import java.nio.file.Paths;
 
 public class LocalDiskSchemaMetadataPersister implements SchemaMetadataPersister {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final File backupFile = new File("var/data/backup"); // TODO(gs): configurable
+    private static final File backupFile = new File("var/data/backup"); // TODO(gs): configurable?
 
     @Override
-    public void persist(
-            Namespace namespace, long timestamp, TimestampType timestampType, InternalSchemaMetadataState state) {
+    public void persist(Namespace namespace, TypedTimestamp typedTimestamp, InternalSchemaMetadataState state) {
         createNamespaceDirectory(namespace);
-        File file = getInternalSchemaMetadataStateFile(namespace, timestampType);
+        File file = getInternalSchemaMetadataStateFile(namespace, typedTimestamp.type());
+        // TODO(gs): where does the timestamp fit in here?
         try {
             OBJECT_MAPPER.writeValue(file, state);
         } catch (IOException e) {
