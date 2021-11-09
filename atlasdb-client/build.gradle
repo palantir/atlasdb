@@ -38,16 +38,11 @@ artifacts {
 }
 
 dependencies {
-  api project(":atlasdb-commons")
   api project(":atlasdb-api")
-  api project(":atlasdb-client-protobufs")
 
+  implementation project(":atlasdb-commons")
+  implementation project(":atlasdb-client-protobufs")
   api group: "com.google.code.findbugs", name: "jsr305"
-  api group: "com.google.guava", name: "guava"
-  api group: "com.google.protobuf", name: "protobuf-java"
-  api group: "jakarta.annotation", name: "jakarta.annotation-api"
-  api group: "org.slf4j", name: "slf4j-api"
-
   implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
   implementation group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"

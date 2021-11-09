@@ -3,8 +3,8 @@ apply plugin: "org.inferred.processors"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":commons-api")
-  compile project(":commons-proxy")
+  implementation project(":commons-api")
+  implementation project(":commons-proxy")
 
   implementation group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils
   implementation group: 'org.apache.commons', name: 'commons-lang3'

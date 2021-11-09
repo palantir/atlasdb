@@ -6,7 +6,7 @@ apply from: "../gradle/tests.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
-    compile project(':timelock-server')
+    implementation project(':timelock-server')
 
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'

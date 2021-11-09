@@ -2,11 +2,16 @@ apply from: '../gradle/shared.gradle'
 
 
 dependencies {
-    compile project(':atlasdb-cassandra')
-    compile project(path: ':atlasdb-dagger', configuration: 'shadow')
+    api project(':atlasdb-cassandra')
+    api project(path: ':atlasdb-dagger', configuration: 'shadow')
+    api project(':atlasdb-api')
+    api project(':atlasdb-client')
+    api project(':atlasdb-config')
+    api project(':timestamp-api')
+
     compileOnly 'com.google.dagger:dagger'
-    compile 'io.airlift:airline'
-    compile 'ch.qos.logback:logback-classic'
+    implementation 'io.airlift:airline'
+    implementation 'ch.qos.logback:logback-classic'
 
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
@@ -15,12 +20,8 @@ dependencies {
     implementation 'joda-time:joda-time'
     implementation 'org.apache.commons:commons-lang3'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-client')
     implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-config')
     implementation project(':atlasdb-impl-shared')
-    implementation project(':timestamp-api')
 
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.safe-logging:preconditions'

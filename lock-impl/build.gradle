@@ -1,8 +1,8 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":lock-api")
-  compile project(":atlasdb-commons")
+  implementation project(":lock-api")
+  implementation project(":atlasdb-commons")
 
   implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
   implementation group: 'joda-time', name: 'joda-time'

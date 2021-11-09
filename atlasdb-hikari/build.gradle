@@ -3,7 +3,7 @@ apply plugin: "org.inferred.processors"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-jdbc")
+  api project(":atlasdb-jdbc")
 
   compile(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
 

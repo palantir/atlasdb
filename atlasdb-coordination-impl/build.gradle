@@ -2,7 +2,7 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-client")
+  implementation project(":atlasdb-client")
 
   implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
 

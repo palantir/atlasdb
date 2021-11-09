@@ -2,9 +2,10 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-commons")
-  compile project(":lock-api")
-  compile project(":timestamp-api")
+  api project(":lock-api")
+  api project(":timestamp-api")
+  implementation project(":atlasdb-commons")
+
   implementation group: 'org.apache.commons', name: 'commons-lang3'
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'

@@ -2,12 +2,12 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile project(':atlasdb-api')
-    compile project(':atlasdb-conjure')
-    compile project(':atlasdb-impl-shared')
-    compile project(':leader-election-impl')
-    compile project(':lock-impl')
-    compile project(':timestamp-client')
+    api project(':atlasdb-api')
+    api project(':timestamp-client')
+    api project(':atlasdb-conjure')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':leader-election-impl')
+    implementation project(':lock-impl')
 
     implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
     implementation group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'

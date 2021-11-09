@@ -1,16 +1,16 @@
 
 apply from: "../gradle/shared.gradle"
-
 dependencies {
-  compile(project(":timestamp-api"))
-  compile(project(":timestamp-client"))
-  compile(project(":atlasdb-commons"))
-  compile(project(":atlasdb-client"))
+  api(project(":timestamp-api"))
+  api(project(":timestamp-client"))
+  api(project(":atlasdb-client"))
+  implementation(project(":atlasdb-commons"))
 
   implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
 
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':lock-api-objects')
 
@@ -26,8 +26,9 @@ dependencies {
 
   testImplementation group: 'junit', name: 'junit'
   testImplementation(group: 'org.jmock', name: 'jmock') {
-      exclude group: 'org.hamcrest'
+    exclude group: 'org.hamcrest'
   }
   testImplementation group: 'org.awaitility', name: 'awaitility'
   testImplementation group: 'org.mockito', name: 'mockito-core'
 }
+

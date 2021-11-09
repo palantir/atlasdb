@@ -1,8 +1,8 @@
 apply from: '../gradle/shared.gradle'
 
 dependencies {
-  compile project(':atlasdb-commons')
-  compile project(':atlasdb-remoting-api')
+  api project(':atlasdb-remoting-api')
+  implementation project(':atlasdb-commons')
 
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.dialogue:dialogue-clients'
