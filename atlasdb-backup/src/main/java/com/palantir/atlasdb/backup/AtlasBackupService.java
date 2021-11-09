@@ -60,6 +60,10 @@ public final class AtlasBackupService {
         PrepareBackupRequest request = PrepareBackupRequest.of(namespaces);
         PrepareBackupResponse response = atlasBackupClientBlocking.prepareBackup(authHeader, request);
 
+        // TODO(gs): also store coordination service state locally
+        //   This should be done here because we want the local host to be responsible for keeping that information
+        //   AtlasBackupClient is remote (on timelock), so we might hit different nodes
+
         return response.getSuccessful().stream()
                 .peek(this::storeBackupToken)
                 .map(InProgressBackupToken::getNamespace)
