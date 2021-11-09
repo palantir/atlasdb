@@ -17,6 +17,7 @@
 package com.palantir.lock;
 
 import com.google.common.collect.Range;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.nio.charset.StandardCharsets;
 
 public final class AtlasLockDescriptorRanges {
@@ -66,6 +67,6 @@ public final class AtlasLockDescriptorRanges {
             }
         }
         // this is unreachable when a part of prefix was created from a String
-        throw new IllegalArgumentException("The prefix must be constructed using a valid table name.");
+        throw new SafeIllegalArgumentException("The prefix must be constructed using a valid table name.");
     }
 }

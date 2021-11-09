@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Improve the concurrency of the `LockWatchEventCache`, thus improving
+    performance when committing transactions.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5722

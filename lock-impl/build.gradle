@@ -33,11 +33,11 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
 
-  testCompile project(":flake-rule")
-  testCompile group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation project(":flake-rule")
+  testImplementation group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
   }
-  testCompile group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
 }

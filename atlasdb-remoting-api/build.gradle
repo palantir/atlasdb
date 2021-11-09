@@ -20,10 +20,10 @@ dependencies {
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 
-  testCompile group: 'junit', name: 'junit'
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation group: 'junit', name: 'junit'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
   }
-  testCompile group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
 }

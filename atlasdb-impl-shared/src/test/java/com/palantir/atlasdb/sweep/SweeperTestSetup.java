@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -80,7 +81,7 @@ public class SweeperTestSetup {
 
     @Before
     public void setup() {
-        specificTableSweeper = getSpecificTableSweeperService();
+        specificTableSweeper = spy(getSpecificTableSweeperService());
         backgroundSweeper = getBackgroundSweepThread(THREAD_INDEX);
         overrideConfig = SweepPriorityOverrideConfig.defaultConfig();
     }

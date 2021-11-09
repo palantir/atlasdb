@@ -20,15 +20,15 @@ import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContex
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.health.LeaderElectionHealthCheck;
 import com.palantir.leader.proxy.LeadershipCoordinator;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.UUID;
+import java.util.function.Supplier;
+import javax.sql.DataSource;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -102,6 +102,18 @@ public abstract class LeadershipContextFactory
         return runtime().get().pingRate();
     }
 
+    @Override
+    @Value.Derived
+    public Supplier<Duration> greenNodeLeadershipBackoff() {
+        return () -> runtime().get().greenNodeLeadershipBackoff();
+    }
+
+    @Override
+    @Value.Derived
+    public DataSource dataSource() {
+        return install().sqliteDataSource();
+    }
+
     @Value.Derived
     LocalAndRemotes<HealthCheckPinger> healthCheckPingers() {
         return healthCheckPingersFactory().create(this);
@@ -110,11 +122,6 @@ public abstract class LeadershipContextFactory
     @Value.Derived
     LeaderElectionServiceFactory leaderElectionServiceFactory() {
         return new LeaderElectionServiceFactory();
-    }
-
-    @Value.Derived
-    public LeaderElectionHealthCheck leaderElectionHealthCheck() {
-        return new LeaderElectionHealthCheck(Instant::now);
     }
 
     @Value.Derived
@@ -127,7 +134,6 @@ public abstract class LeadershipContextFactory
         ClientAwareComponents clientAwareComponents = ImmutableClientAwareComponents.builder()
                 .from(this)
                 .proxyClient(client)
-                .leaderElectionHealthCheck(leaderElectionHealthCheck())
                 .build();
 
         BatchingLeaderElectionService leaderElectionService =

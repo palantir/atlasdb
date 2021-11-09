@@ -87,12 +87,12 @@ dependencies {
     annotationProcessor 'org.derive4j:derive4j'
     compileOnly 'org.derive4j:derive4j-annotation'
 
-    testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
+    testImplementation project(path: ":leader-election-impl", configuration: "testArtifacts")
 
-    testCompile group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
-    testCompile group: 'com.palantir.conjure.java.api', name: 'test-utils'
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
+    testImplementation group: 'com.palantir.conjure.java.api', name: 'test-utils'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
 
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'

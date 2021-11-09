@@ -1,9 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  testCompile project(":atlasdb-jdbc")
-  testCompile project(":atlasdb-tests-shared")
-  testCompile project(":atlasdb-hikari")
+  testImplementation project(":atlasdb-jdbc")
+  testImplementation project(":atlasdb-tests-shared")
+  testImplementation project(":atlasdb-hikari")
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
@@ -27,6 +27,6 @@ dependencies {
   testImplementation project(':atlasdb-api')
   testImplementation project(':timestamp-api')
 
-  testCompile "com.h2database:h2:1.4.190"
+  testImplementation "com.h2database:h2:1.4.190"
 }
 

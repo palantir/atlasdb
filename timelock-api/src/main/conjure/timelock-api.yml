@@ -20,6 +20,10 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.Lease
+    LockToken:
+      base-type: any
+      external:
+        java: com.palantir.lock.v2.LockToken
     LockWatchStateUpdate:
       base-type: any
       external:
@@ -82,6 +86,29 @@ types:
         union:
           successful: SuccessfulLockResponse
           unsuccessful: UnsuccessfulLockResponse
+      InProgressBackupToken:
+        fields:
+          namespace: Namespace
+          lockToken: LockToken
+          immutableTimestamp: Long
+          backupStartTimestamp: Long
+      CompletedBackup:
+        fields:
+          namespace: Namespace
+          backupStartTimestamp: Long
+          backupEndTimestamp: Long
+      PrepareBackupRequest:
+        fields:
+          namespaces: set<Namespace>
+      PrepareBackupResponse:
+        fields:
+          successful: set<InProgressBackupToken>
+      CompleteBackupRequest:
+        fields:
+          backupTokens: set<InProgressBackupToken>
+      CompleteBackupResponse:
+        fields:
+          successfulBackups: set<CompletedBackup>
       ConjureWaitForLocksResponse:
         fields:
           wasSuccessful: boolean
@@ -117,6 +144,22 @@ types:
           leaderTimes: map<Namespace, LeaderTime>
 
 services:
+  AtlasBackupClient:
+    name: Internal backup service
+    default-auth: header
+    package: com.palantir.atlasdb.backup.api
+    base-path: /backup
+    endpoints:
+      prepareBackup:
+        http: POST /prepare
+        args:
+          request: PrepareBackupRequest
+        returns: PrepareBackupResponse
+      completeBackup:
+        http: POST /complete
+        args:
+          request: CompleteBackupRequest
+        returns: CompleteBackupResponse
   ConjureTimelockService:
     name: Timelock service
     default-auth: header

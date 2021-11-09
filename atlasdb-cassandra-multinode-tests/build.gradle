@@ -9,21 +9,21 @@ dependencies {
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-commons')
 
-    testCompile project(":atlasdb-cassandra")
-    testCompile project(":atlasdb-tests-shared")
-    testCompile project(":atlasdb-container-test-utils")
-    testCompile project(":atlasdb-ete-test-utils")
-    testCompile project(":flake-rule")
+    testImplementation project(":atlasdb-cassandra")
+    testImplementation project(":atlasdb-tests-shared")
+    testImplementation project(":atlasdb-container-test-utils")
+    testImplementation project(":atlasdb-ete-test-utils")
+    testImplementation project(":flake-rule")
 
-    testCompile ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+    testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
        exclude module: 'junit'
 
        exclude group: 'org.apache.httpcomponents'
     }
-    testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+    testImplementation 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
-    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    testCompile group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
 
     test {
         include '**/CassandraSchemaLockTest.class'
