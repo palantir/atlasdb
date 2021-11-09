@@ -23,7 +23,7 @@ public enum TimestampType {
 
     private final String filenameSuffix;
 
-    public TimestampType(String filenameSuffix) {
+    TimestampType(String filenameSuffix) {
         this.filenameSuffix = filenameSuffix;
     }
 

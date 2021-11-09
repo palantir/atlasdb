@@ -26,11 +26,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 public class LocalDiskSchemaMetadataPersister implements SchemaMetadataPersister {
-    // For backcompat
-    private static final String FASTFORWARD_INTERNAL_SCHEMA_METADATA_STATE_FILENAME = "internal_schema_metadata_state";
-    private static final String BACKUP_INTERNAL_SCHEMA_METADATA_STATE_FILENAME =
-            "internal_schema_metadata_state_backup";
-
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final File backupFile = new File("var/data/backup"); // TODO(gs): configurable
 
