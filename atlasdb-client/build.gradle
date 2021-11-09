@@ -38,9 +38,9 @@ artifacts {
 }
 
 dependencies {
-  compile project(":atlasdb-commons")
-  compile project(":atlasdb-api")
-  compile project(":atlasdb-client-protobufs")
+  api project(":atlasdb-api")
+  implementation project(":atlasdb-commons")
+  implementation project(":atlasdb-client-protobufs")
   implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
   implementation group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"

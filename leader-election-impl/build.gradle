@@ -6,9 +6,9 @@ license {
 }
 
 dependencies {
-  compile project(":leader-election-api")
-  compile project(":atlasdb-autobatch")
-  compile project(":atlasdb-commons")
+  implementation project(":leader-election-api")
+  implementation project(":atlasdb-autobatch")
+  implementation project(":atlasdb-commons")
 
   implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
   implementation group: "com.google.protobuf", name: "protobuf-java"

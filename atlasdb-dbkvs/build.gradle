@@ -2,13 +2,13 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-api")
-  compile project(":atlasdb-client")
-  compile project(":atlasdb-dbkvs-hikari")
-  compile project(":atlasdb-impl-shared")
-  compile project(':timestamp-impl')
-  compile project(':commons-db')
-  compile project(':commons-api')
+  implementation project(":atlasdb-api")
+  implementation project(":atlasdb-client")
+  implementation project(":atlasdb-dbkvs-hikari")
+  implementation project(":atlasdb-impl-shared")
+  implementation project(':timestamp-impl')
+  implementation project(':commons-db')
+  implementation project(':commons-api')
   implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'

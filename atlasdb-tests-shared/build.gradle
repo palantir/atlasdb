@@ -1,7 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-config")
+  implementation project(":atlasdb-config")
   testImplementation project(":atlasdb-config")
 
   testImplementation project(":commons-api")

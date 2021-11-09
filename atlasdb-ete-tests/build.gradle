@@ -5,14 +5,14 @@ apply from: "../gradle/non-client-dist.gradle"
 apply plugin: 'com.palantir.sls-java-service-distribution'
 
 schemas = ['com.palantir.atlasdb.blob.BlobSchema']
-
 dependencies {
-    compile project(":dropwizard-metrics-hack")
-    compile project(':lock-impl')
-    compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
-    compile project(':atlasdb-ete-test-utils')
-    compile project(':atlasdb-hikari')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-ete-test-utils')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-hikari')
+    implementation project(":dropwizard-metrics-hack")
+    implementation project(':lock-impl')
+    implementation project(':leader-election-impl')
 
     implementation group: 'org.awaitility', name: 'awaitility'
     implementation group: 'com.palantir.tritium', name: 'tritium-lib'
@@ -66,7 +66,7 @@ dependencies {
     runtimeOnly project(':atlasdb-dbkvs')
     runtimeOnly project(':atlasdb-cassandra')
 
-    compile (group: 'org.apache.thrift', name: 'libthrift') {
+    implementation (group: 'org.apache.thrift', name: 'libthrift') {
         exclude group: 'org.apache.httpcomponents'
     }
 
@@ -86,6 +86,7 @@ dependencies {
     testImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
     testImplementation group: 'org.assertj', name: 'assertj-core'
 }
+
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     from distTar.outputs

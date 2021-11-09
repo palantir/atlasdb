@@ -9,15 +9,15 @@ license {
 
 libsDirName = file('build/artifacts')
 dependencies {
-    compile project(":atlasdb-autobatch")
-    compile project(":atlasdb-commons")
-    compile project(':lock-api-objects')
-    compile project(':lock-conjure-api:lock-conjure-api-dialogue')
-    compile project(':lock-conjure-api:lock-conjure-api-jersey')
-    compile project(':timelock-api:timelock-api-dialogue')
-    compile project(':timelock-api:timelock-api-jersey')
-    compile project(":timestamp-api")
-    compile project(":timestamp-client")
+    api project(':lock-conjure-api:lock-conjure-api-dialogue')
+    api project(':lock-conjure-api:lock-conjure-api-jersey')
+    api project(':timelock-api:timelock-api-dialogue')
+    api project(':timelock-api:timelock-api-jersey')
+    api project(":timestamp-api")
+    api project(":timestamp-client")
+    implementation project(":atlasdb-autobatch")
+    implementation project(":atlasdb-commons")
+    implementation project(':lock-api-objects')
     implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'

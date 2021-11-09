@@ -4,8 +4,8 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
 dependencies {
-    compile project(":timelock-impl")
-    compile project(":timelock-corruption-detection")
+    implementation project(":timelock-impl")
+    implementation project(":timelock-corruption-detection")
 
     implementation group: 'com.google.guava', name: 'guava'
     implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
@@ -34,24 +34,26 @@ dependencies {
     implementation 'org.jdbi:jdbi3-core'
     implementation 'org.jdbi:jdbi3-sqlobject'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-api')
+
+    api project(':atlasdb-api')
+    api project(':atlasdb-client')
+    api project(':atlasdb-config')
+    api project(':atlasdb-conjure')
+    api project(':atlasdb-remoting-api')
+    api project(':leader-election-api')
+    api project(':lock-api')
+    api project(':timelock-api:timelock-api-jersey')
+    api project(':timelock-api:timelock-api-objects')
+    api project(':timestamp-api')
+
     implementation project(':atlasdb-autobatch')
-    implementation project(':atlasdb-client')
     implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-config')
-    implementation project(':atlasdb-conjure')
     implementation project(':atlasdb-impl-shared')
-    implementation project(':atlasdb-remoting-api')
     implementation project(':commons-annotations')
     implementation project(':commons-executors')
-    implementation project(':leader-election-api')
     implementation project(':leader-election-impl')
-    implementation project(':lock-api')
     implementation project(':lock-impl')
-    implementation project(':timelock-api:timelock-api-jersey')
-    implementation project(':timelock-api:timelock-api-objects')
     implementation project(':timelock-corruption-detection:timelock-corruption-detection-jersey')
-    implementation project(':timestamp-api')
     implementation project(':timestamp-impl')
 
     testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'

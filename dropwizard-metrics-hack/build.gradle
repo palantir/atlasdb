@@ -1,4 +1,4 @@
 apply from: "../gradle/shared.gradle"
 dependencies {
-    compile 'io.dropwizard.metrics:metrics-core'
+    implementation 'io.dropwizard.metrics:metrics-core'
 }
