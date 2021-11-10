@@ -90,8 +90,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long timestamp = timelock.getFreshTimestamp();
 
-        // TODO(gs): wire up CoordinationServiceRecorder + record coordination service at this timestamp
-
         return InProgressBackupToken.builder()
                 .namespace(namespace)
                 .lockToken(response.getLock())
