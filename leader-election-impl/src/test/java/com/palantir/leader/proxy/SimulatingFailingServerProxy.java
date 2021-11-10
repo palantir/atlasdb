@@ -16,6 +16,7 @@
 package com.palantir.leader.proxy;
 
 import com.palantir.common.proxy.SimulatingServerProxy;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class SimulatingFailingServerProxy {
@@ -30,6 +31,6 @@ public final class SimulatingFailingServerProxy {
     }
 
     private SimulatingFailingServerProxy() {
-        throw new AssertionError("uninstantiable");
+        throw new SafeIllegalStateException("uninstantiable");
     }
 }

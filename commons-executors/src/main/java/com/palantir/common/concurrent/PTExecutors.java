@@ -23,6 +23,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Runnables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.Tracers;
@@ -789,6 +790,6 @@ public final class PTExecutors {
     }
 
     private PTExecutors() {
-        throw new AssertionError("uninstantiable");
+        throw new SafeIllegalStateException("uninstantiable");
     }
 }
