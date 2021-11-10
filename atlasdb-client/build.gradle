@@ -42,10 +42,16 @@ dependencies {
   api project(":atlasdb-commons")
   api project(":atlasdb-client-protobufs")
 
+  api group: "com.google.code.findbugs", name: "jsr305"
+  api group: "com.google.guava", name: "guava"
+  api group: "com.google.protobuf", name: "protobuf-java"
+  api group: "com.palantir.common", name: "streams"
+  api group: "jakarta.annotation", name: "jakarta.annotation-api"
+  api group: "org.slf4j", name: "slf4j-api"
+
   implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
   implementation group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
-  implementation group: "com.google.protobuf", name: "protobuf-java"
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core'
   implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
@@ -70,7 +76,6 @@ dependencies {
 
   implementation group: 'com.squareup.okio', name: 'okio'
   implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
-  implementation group: 'com.palantir.common', name: 'streams'
   implementation group: 'com.github.rholder', name: 'guava-retrying'
   implementation group: 'org.rocksdb', name: 'rocksdbjni'
 
@@ -104,9 +109,7 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-slf4j'
   implementation 'com.squareup.okio:okio'
   implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'jakarta.annotation:jakarta.annotation-api'
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-autobatch')
   implementation project(':commons-annotations')
   implementation project(':commons-executors')
