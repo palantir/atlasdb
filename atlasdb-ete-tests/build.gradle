@@ -7,7 +7,9 @@ apply plugin: 'com.palantir.sls-java-service-distribution'
 schemas = ['com.palantir.atlasdb.blob.BlobSchema']
 dependencies {
     implementation project(':atlasdb-config')
+    implementation project(':atlasdb-coordination-impl')
     implementation project(':atlasdb-ete-test-utils')
+    implementation project(':atlasdb-impl-shared')
     implementation project(':atlasdb-hikari')
     implementation project(":dropwizard-metrics-hack")
     implementation project(':lock-impl')

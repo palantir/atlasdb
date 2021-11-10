@@ -2,6 +2,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   implementation project(":atlasdb-config")
+  implementation project(":timelock-impl")
   testImplementation project(":atlasdb-config")
 
   testImplementation project(":commons-api")
