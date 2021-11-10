@@ -41,6 +41,7 @@ dependencies {
   api project(":atlasdb-api")
   implementation project(":atlasdb-commons")
   implementation project(":atlasdb-client-protobufs")
+
   implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
   implementation group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
@@ -89,6 +90,8 @@ dependencies {
   testImplementation group: 'org.assertj', name: 'assertj-core'
   testImplementation group: 'org.awaitility', name: 'awaitility'
 
+  integrationInputCompile project(":atlasdb-client")
+
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
@@ -134,4 +137,5 @@ dependencies {
   integrationInputImplementation project(':atlasdb-commons')
 
   integrationInputAnnotationProcessor group: 'org.immutables', name: 'value'
+  integrationInputCompileOnly 'org.immutables:value::annotations'
 }
