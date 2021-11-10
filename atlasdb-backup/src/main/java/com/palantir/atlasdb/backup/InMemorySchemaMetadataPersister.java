@@ -27,7 +27,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemorySchemaMetadataPersister implements SchemaMetadataPersister {
-    private static final SafeLogger log = SafeLoggerFactory.get(SchemaMetadataPersister.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(InMemorySchemaMetadataPersister.class);
 
     // I think we'll only need to _persist_ for in progress.
     // We can receive and check for fast forward together
