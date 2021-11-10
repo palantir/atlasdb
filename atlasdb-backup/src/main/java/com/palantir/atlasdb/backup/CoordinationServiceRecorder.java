@@ -44,25 +44,21 @@ public class CoordinationServiceRecorder {
         this.schemaMetadataPersister = schemaMetadataPersister;
     }
 
-    // TODO(gs): do away with TypedTimestamp?
-    public void recordAtBackupTimestamp(Namespace namespace, TypedTimestamp timestamp) {
+    public void recordAtBackupTimestamp(Namespace namespace, long timestamp) {
         fetchSchemaMetadata(namespace, timestamp)
                 .ifPresent(metadata -> schemaMetadataPersister.persistAtBackupTimestamp(namespace, metadata));
     }
 
     public boolean verifyFastForwardState(CompletedBackup completedBackup) {
         Namespace namespace = completedBackup.getNamespace();
-        TypedTimestamp fastForwardTimestamp =
-                TypedTimestamp.of(TimestampType.FAST_FORWARD, completedBackup.getBackupEndTimestamp());
-
         Optional<InternalSchemaMetadataState> fastForwardMetadata =
-                fetchSchemaMetadata(namespace, fastForwardTimestamp);
+                fetchSchemaMetadata(namespace, completedBackup.getBackupEndTimestamp());
         schemaMetadataPersister.verifyFastForwardState(
                 namespace, fastForwardMetadata, timestampSupplier.apply(namespace));
         return true;
     }
 
-    private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, TypedTimestamp timestamp) {
+    private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, long timestamp) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
         if (!kvs.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
             return Optional.empty();
@@ -70,7 +66,7 @@ public class CoordinationServiceRecorder {
         CoordinationService<InternalSchemaMetadata> coordination =
                 CoordinationServices.createDefault(kvs, () -> timestampSupplier.apply(namespace), false);
 
-        return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(timestamp.timestamp(), coordination)));
+        return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(timestamp, coordination)));
     }
 
     private ValueAndBound<InternalSchemaMetadata> getValidMetadata(

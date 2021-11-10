@@ -85,10 +85,8 @@ public final class AtlasBackupService {
     // Store coordination service state locally.
     // This should be done here because we want the local host to be responsible for keeping that information
     // AtlasBackupClient is remote (on timelock), so we might hit different nodes
-    private void storeCoordinationServiceState(InProgressBackupToken inProgressBackupToken) {
-        Namespace namespace = inProgressBackupToken.getNamespace();
-        coordinationServiceRecorder.recordAtBackupTimestamp(
-                namespace, TypedTimestamp.of(TimestampType.BACKUP, inProgressBackupToken.getBackupStartTimestamp()));
+    private void storeCoordinationServiceState(InProgressBackupToken token) {
+        coordinationServiceRecorder.recordAtBackupTimestamp(token.getNamespace(), token.getBackupStartTimestamp());
     }
 
     private void storeBackupToken(InProgressBackupToken backupToken) {
