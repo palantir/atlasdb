@@ -16,10 +16,12 @@ dependencies {
     implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-client')
+
+    api project(':atlasdb-api')
+    api project(':atlasdb-client')
     implementation project(':atlasdb-commons')
     implementation project(':atlasdb-config')
+    implementation project(':atlasdb-impl-shared')
 
     testImplementation 'com.fasterxml.jackson.core:jackson-core'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
