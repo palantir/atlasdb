@@ -249,7 +249,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
                 .build();
     }
 
-    private enum OperationType {
+    enum OperationType {
         FRESH_TIMESTAMP,
         COMMIT_TIMESTAMP,
         TRANSACTION;
