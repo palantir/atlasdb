@@ -41,9 +41,6 @@ dependencies {
 
   explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
 
-  api 'com.google.protobuf:protobuf-java'
-  api 'com.palantir.common:streams'
-
   testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
   testImplementation project(":atlasdb-config")
   testImplementation group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
@@ -60,7 +57,9 @@ dependencies {
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.auto.service:auto-service-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.protobuf:protobuf-java'
   implementation 'com.palantir.cassandra:cassandra-all'
+  implementation 'com.palantir.common:streams'
   implementation 'com.palantir.conjure.java.api:service-config'
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
