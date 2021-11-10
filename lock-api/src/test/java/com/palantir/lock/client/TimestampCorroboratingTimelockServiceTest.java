@@ -88,7 +88,11 @@ public final class TimestampCorroboratingTimelockServiceTest {
     public void getFreshTimestampShouldFail() {
         when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
         assertThrowsOnSecondCall(this::getFreshTimestamp);
-        assertThat(timelockService.getTimestampBounds().boundFromFreshTimestamps().lowerBoundForNextRequest()).isEqualTo(1L);
+        assertThat(timelockService
+                        .getTimestampBounds()
+                        .boundFromFreshTimestamps()
+                        .lowerBoundForNextRequest())
+                .isEqualTo(1L);
         verify(callback).run();
     }
 
@@ -96,7 +100,11 @@ public final class TimestampCorroboratingTimelockServiceTest {
     public void getFreshTimestampsShouldFail() {
         when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 2L));
         assertThrowsOnSecondCall(() -> getFreshTimestamps(2));
-        assertThat(timelockService.getTimestampBounds().boundFromFreshTimestamps().lowerBoundForNextRequest()).isEqualTo(2L);
+        assertThat(timelockService
+                        .getTimestampBounds()
+                        .boundFromFreshTimestamps()
+                        .lowerBoundForNextRequest())
+                .isEqualTo(2L);
         verify(callback).run();
     }
 
@@ -139,7 +147,11 @@ public final class TimestampCorroboratingTimelockServiceTest {
         when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(10L, 20L));
         when(rawTimelockService.startTransactions(startTransactionsRequest)).thenReturn(makeResponse(15L, 30));
         getFreshTimestamps(11);
-        assertThat(timelockService.getTimestampBounds().boundFromFreshTimestamps().lowerBoundForNextRequest()).isEqualTo(20L);
+        assertThat(timelockService
+                        .getTimestampBounds()
+                        .boundFromFreshTimestamps()
+                        .lowerBoundForNextRequest())
+                .isEqualTo(20L);
         assertThrowsClocksWentBackwardsException(() -> timelockService.startTransactions(startTransactionsRequest));
         verify(callback).run();
     }
@@ -150,7 +162,11 @@ public final class TimestampCorroboratingTimelockServiceTest {
                 .thenReturn(GetCommitTimestampsResponse.of(1L, 3L, LOCK_WATCH_UPDATE));
         assertThrowsOnSecondCall(() -> timelockService.getCommitTimestamps(
                 GetCommitTimestampsRequest.of(3, ConjureIdentifiedVersion.of(UUID.randomUUID(), 3L))));
-        assertThat(timelockService.getTimestampBounds().boundFromCommitTimestamps().lowerBoundForNextRequest()).isEqualTo(3L);
+        assertThat(timelockService
+                        .getTimestampBounds()
+                        .boundFromCommitTimestamps()
+                        .lowerBoundForNextRequest())
+                .isEqualTo(3L);
         verify(callback).run();
     }
 
@@ -162,7 +178,11 @@ public final class TimestampCorroboratingTimelockServiceTest {
         timelockService.startTransactions(startTransactionsRequest);
         assertThrowsClocksWentBackwardsException(() -> getFreshTimestamps(2));
         assertThat(timelockService.getTimestampBounds().boundFromTransactions()).isEqualTo(1L);
-        assertThat(timelockService.getTimestampBounds().boundFromFreshTimestamps().lowerBoundForNextRequest()).isEqualTo(Long.MIN_VALUE);
+        assertThat(timelockService
+                        .getTimestampBounds()
+                        .boundFromFreshTimestamps()
+                        .lowerBoundForNextRequest())
+                .isEqualTo(Long.MIN_VALUE);
         verify(callback).run();
     }
 
@@ -193,7 +213,11 @@ public final class TimestampCorroboratingTimelockServiceTest {
         // we want to now resume the blocked call, which will return timestamp of 1 and not throw
         blockingTimestampReturning.countdown();
         assertThatCode(blockingGetFreshTimestampCall::get).doesNotThrowAnyException();
-        assertThat(timelockService.getTimestampBounds().boundFromFreshTimestamps().lowerBoundForNextRequest()).isEqualTo(2L);
+        assertThat(timelockService
+                        .getTimestampBounds()
+                        .boundFromFreshTimestamps()
+                        .lowerBoundForNextRequest())
+                .isEqualTo(2L);
         verify(callback, never()).run();
     }
 
@@ -204,7 +228,11 @@ public final class TimestampCorroboratingTimelockServiceTest {
         getFreshTimestamp();
         assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
         assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
-        assertThat(timelockService.getTimestampBounds().boundFromFreshTimestamps().lowerBoundForNextRequest()).isEqualTo(1L);
+        assertThat(timelockService
+                        .getTimestampBounds()
+                        .boundFromFreshTimestamps()
+                        .lowerBoundForNextRequest())
+                .isEqualTo(1L);
         verify(callback, times(2)).run();
     }
 
