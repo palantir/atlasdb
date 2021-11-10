@@ -41,6 +41,9 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":atlasdb-api")
   compile project(":atlasdb-client-protobufs")
+
+  api group: 'com.palantir.common', name: 'streams'
+
   implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
   implementation group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
@@ -69,7 +72,6 @@ dependencies {
 
   implementation group: 'com.squareup.okio', name: 'okio'
   implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
-  implementation group: 'com.palantir.common', name: 'streams'
   implementation group: 'com.github.rholder', name: 'guava-retrying'
   implementation group: 'org.rocksdb', name: 'rocksdbjni'
 
