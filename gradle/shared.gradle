@@ -92,7 +92,7 @@ tasks.withType(Test) {
 }
 
 task allCompileDeps(type: DependencyReportTask) {
-    configurations = [project.configurations.getByName("compile")]
+    configurations = [project.configurations.getByName("api")]
 }
 
 ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded.'
