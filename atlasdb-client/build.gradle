@@ -39,8 +39,8 @@ artifacts {
 
 dependencies {
   api project(":atlasdb-api")
-  implementation project(":atlasdb-commons")
-  implementation project(":atlasdb-client-protobufs")
+  api project(":atlasdb-commons")
+  api project(":atlasdb-client-protobufs")
 
   implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
