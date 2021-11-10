@@ -130,7 +130,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState) throws InterruptedException {
         if (!leaderEligible.get()) {
-            leaderEligibilityLogger.debug("Not eligible for leadership");
+            leaderEligibilityLogger.log(logger -> logger.debug("Not eligible for leadership"));
             throw new InterruptedException("leader no longer eligible");
         }
 

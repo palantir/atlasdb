@@ -18,6 +18,7 @@ package com.palantir.util;
 
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.logger.SafeLogger;
+import java.util.function.Consumer;
 
 @SuppressWarnings("UnstableApiUsage")
 public class RateLimitedLogger {
@@ -29,9 +30,9 @@ public class RateLimitedLogger {
         this.rateLimiter = RateLimiter.create(permitsPerSecond);
     }
 
-    public void debug(String message) {
+    public void log(Consumer<SafeLogger> loggingFunction) {
         if (rateLimiter.tryAcquire()) {
-            delegate.debug(message);
+            loggingFunction.accept(delegate);
         }
     }
 }
