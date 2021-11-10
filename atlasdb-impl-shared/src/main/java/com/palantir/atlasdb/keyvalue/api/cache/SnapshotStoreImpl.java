@@ -89,9 +89,15 @@ final class SnapshotStoreImpl implements SnapshotStore {
 
     @Override
     public void removeTimestamp(StartTimestamp timestamp) {
-        Optional.ofNullable(timestampMap.remove(timestamp)).ifPresent(sequence -> {
-            liveSequences.remove(sequence, timestamp);
-        });
+        Optional<Sequence> sequenceAssociatedWithTimestamp = Optional.ofNullable(timestampMap.remove(timestamp));
+        if (sequenceAssociatedWithTimestamp.isPresent()) {
+            liveSequences.remove(sequenceAssociatedWithTimestamp.get(), timestamp);
+        } else {
+            if (liveSequences.containsValue(timestamp)) {
+                log.warn("Timestamp does not have entry in timestamp to sequence map, yet still exists inside live"
+                        + " sequences map. This indicates a bug");
+            }
+        }
 
         retentionSnapshots();
     }
@@ -127,6 +133,8 @@ final class SnapshotStoreImpl implements SnapshotStore {
         if (snapshotMap.size() > maximumSize
                 || liveSequences.size() > maximumSize
                 || timestampMap.size() > maximumSize) {
+            Optional<Sequence> earliestLiveSequence =
+                    liveSequences.keySet().stream().min(Comparator.naturalOrder());
             log.warn(
                     "Snapshot store has exceeded its maximum size. This likely indicates a memory leak.",
                     SafeArg.of("snapshotMapSize", snapshotMap.size()),
@@ -137,9 +145,13 @@ final class SnapshotStoreImpl implements SnapshotStore {
                     SafeArg.of(
                             "earliestSnapshotSequence",
                             snapshotMap.keySet().stream().min(Comparator.naturalOrder())),
+                    SafeArg.of("earliestLiveSequence", earliestLiveSequence),
+                    SafeArg.of("timestampsForEarliestSequence", earliestLiveSequence.map(liveSequences::get)),
                     SafeArg.of(
-                            "earliestLiveSequence",
-                            liveSequences.keySet().stream().min(Comparator.naturalOrder())),
+                            "firstHundredTimestampMappings",
+                            timestampMap.entrySet().stream()
+                                    .limit(100)
+                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))),
                     SafeArg.of("maximumSize", maximumSize));
             throw new SafeIllegalStateException("Exceeded max snapshot store size");
         }
