@@ -17,11 +17,9 @@
 package com.palantir.atlasdb.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
@@ -35,6 +33,7 @@ public class InMemoryAsyncAtlasDbFactoryTest {
     @Test
     public void syncInitKvs() {
         KeyValueService kvs = createRawKeyValueService(false);
+
         assertThat(kvs.isInitialized()).isTrue();
         assertThat(kvs.getAllTableNames()).isEmpty();
     }
@@ -42,8 +41,6 @@ public class InMemoryAsyncAtlasDbFactoryTest {
     @Test
     public void asyncInitKvs() {
         KeyValueService kvs = createRawKeyValueService(true);
-        assertThat(kvs.isInitialized()).isFalse();
-        assertThatThrownBy(kvs::getAllTableNames).isInstanceOf(NotInitializedException.class);
 
         Awaitility.await().atMost(Duration.ofSeconds(2)).until(kvs::isInitialized);
         assertThat(kvs.getAllTableNames()).isEmpty();
@@ -53,6 +50,7 @@ public class InMemoryAsyncAtlasDbFactoryTest {
     public void syncInitTimestampService() {
         KeyValueService kvs = createRawKeyValueService(false);
         TimestampService timestampService = factory.createManagedTimestampService(kvs, Optional.empty(), false);
+
         assertThat(timestampService.isInitialized()).isTrue();
         assertThat(timestampService.getFreshTimestamp()).isEqualTo(1L);
     }
@@ -61,8 +59,6 @@ public class InMemoryAsyncAtlasDbFactoryTest {
     public void asyncInitTimestampService() {
         KeyValueService kvs = createRawKeyValueService(false);
         TimestampService timestampService = factory.createManagedTimestampService(kvs, Optional.empty(), true);
-        assertThat(timestampService.isInitialized()).isFalse();
-        assertThatThrownBy(timestampService::getFreshTimestamp).isInstanceOf(NotInitializedException.class);
 
         Awaitility.await().atMost(Duration.ofSeconds(2)).until(timestampService::isInitialized);
         assertThat(timestampService.getFreshTimestamp()).isEqualTo(1L);
