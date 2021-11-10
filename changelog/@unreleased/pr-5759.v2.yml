@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: The AtlasBackupService will now verify the consistency of backups by
+    checking state of the internal CoordinationService. This will simplify the process
+    of safely taking a backup of an AtlasDB namespace.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5759
