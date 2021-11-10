@@ -56,7 +56,7 @@ dependencies {
 
 configurations {
     testArtifacts {
-       extendsFrom testRuntime
+       extendsFrom testRuntimeOnly
     }
 }
 
