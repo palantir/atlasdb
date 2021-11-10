@@ -30,12 +30,12 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class CoordinationServiceRecorder {
+final class CoordinationServiceRecorder {
     private final Function<Namespace, KeyValueService> keyValueServiceFactory;
     private final Function<Namespace, Long> timestampSupplier;
     private final SchemaMetadataPersister schemaMetadataPersister;
 
-    public CoordinationServiceRecorder(
+    CoordinationServiceRecorder(
             Function<Namespace, KeyValueService> keyValueServiceFactory,
             Function<Namespace, Long> timestampSupplier,
             SchemaMetadataPersister schemaMetadataPersister) {

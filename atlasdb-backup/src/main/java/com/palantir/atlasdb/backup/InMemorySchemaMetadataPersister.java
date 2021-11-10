@@ -26,23 +26,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class InMemorySchemaMetadataPersister implements SchemaMetadataPersister {
+class InMemorySchemaMetadataPersister implements SchemaMetadataPersister {
     private static final SafeLogger log = SafeLoggerFactory.get(InMemorySchemaMetadataPersister.class);
 
     private final Map<Namespace, InternalSchemaMetadataState> metadataForInProgressBackups;
 
-    public InMemorySchemaMetadataPersister() {
+    InMemorySchemaMetadataPersister() {
         metadataForInProgressBackups = new ConcurrentHashMap<>();
     }
 
     @Override
     public void persistAtBackupTimestamp(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
         metadataForInProgressBackups.put(namespace, internalSchemaMetadataState);
-    }
-
-    @Override
-    public boolean inProgressMetadataExists(Namespace namespace) {
-        return metadataForInProgressBackups.containsKey(namespace);
     }
 
     @Override
