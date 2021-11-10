@@ -21,6 +21,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,15 +51,19 @@ public abstract class AsyncInitializer {
 
         initializationStartTime = System.currentTimeMillis();
 
-        if (!initializeAsync) {
+        if (initializeAsync) {
+            scheduleInitialization(Duration.ZERO);
+        } else {
             tryInitializeInternal();
-            return;
         }
-
-        tryInitializationLoop();
     }
 
     private void tryInitializationLoop() {
+        if (state.isCancelled()) {
+            singleThreadedExecutor.shutdown();
+            return;
+        }
+
         try {
             tryInitializeInternal();
             log.info(
@@ -82,23 +87,13 @@ public abstract class AsyncInitializer {
                         SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime),
                         cleanupThrowable);
             }
-            scheduleInitialization();
+            scheduleInitialization(sleepInterval());
         }
     }
 
     // Not final for tests.
-    void scheduleInitialization() {
-        singleThreadedExecutor.schedule(
-                () -> {
-                    if (state.isCancelled()) {
-                        singleThreadedExecutor.shutdown();
-                        return;
-                    }
-
-                    tryInitializationLoop();
-                },
-                sleepIntervalInMillis(),
-                TimeUnit.MILLISECONDS);
+    void scheduleInitialization(Duration delay) {
+        singleThreadedExecutor.schedule(this::tryInitializationLoop, delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests
@@ -116,8 +111,8 @@ public abstract class AsyncInitializer {
         }
     }
 
-    protected int sleepIntervalInMillis() {
-        return 10_000;
+    protected Duration sleepInterval() {
+        return Duration.ofSeconds(10);
     }
 
     /**

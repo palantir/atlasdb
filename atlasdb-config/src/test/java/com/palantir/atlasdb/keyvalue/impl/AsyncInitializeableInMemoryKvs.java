@@ -21,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
 
 public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer implements AutoDelegate_KeyValueService {
     private final InMemoryKeyValueService delegate;
@@ -70,8 +71,8 @@ public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer imple
     }
 
     @Override
-    protected int sleepIntervalInMillis() {
-        return 1_000;
+    protected Duration sleepInterval() {
+        return Duration.ofSeconds(1);
     }
 
     @Override
