@@ -147,7 +147,7 @@ public class AsyncResult<T> {
     }
 
     /**
-     * @return an AsyncResult whose value will be set to the value of this instance transformed by {@code mapper}, if
+     * Returns an AsyncResult whose value will be set to the value of this instance transformed by {@code mapper}, if
      * and when this instance completes successfully. If this instance fails or times out, {@code mapper} is never
      * called, and the returned AsyncResult will contain the error or timeout status associated with this instance.
      */

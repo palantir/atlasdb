@@ -42,6 +42,8 @@ public interface Cleaner extends Closeable {
     }
 
     /**
+     * Queues cells to be scrubbed.
+     *
      * @param cellToTableRefs Cells that were touched as part of the hard delete transaction
      * @param scrubTimestamp The start timestamp of the hard delete transaction whose
      *        cells need to be scrubbed; at the time queueCellsForScrubbing is called,
@@ -51,6 +53,8 @@ public interface Cleaner extends Closeable {
     void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp);
 
     /**
+     * Scrubs cells immediately.
+     *
      * @param tableRefToCell Cells to be scrubbed immediately
      * @param scrubTimestamp The start timestamp of the hard delete transaction whose
      *        cells need to be scrubbed; at the time scrubImmediately is called, the
@@ -74,10 +78,9 @@ public interface Cleaner extends Closeable {
     void punch(long timestamp);
 
     /**
-     * @return The timeout for transactions reads in milliseconds.  SnapshotTransaction enforces that
-     *         transactions that have been open for longer than this timeout can no longer perform reads;
-     *         waiting for the timeout to elapse after cleaning allows us to avoid causing currently
-     *         open read transactions to abort
+     * Returns the timeout for transactions reads in milliseconds.  SnapshotTransaction enforces that transactions that
+     * have been open for longer than this timeout can no longer perform reads; waiting for the timeout to elapse after
+     * cleaning allows us to avoid causing currently open read transactions to abort.
      */
     long getTransactionReadTimeoutMillis();
 

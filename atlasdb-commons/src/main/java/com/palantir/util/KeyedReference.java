@@ -15,10 +15,6 @@
  */
 package com.palantir.util;
 
-/**
- *
- *
- */
 public interface KeyedReference {
     Object getKey();
 }

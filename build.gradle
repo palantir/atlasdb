@@ -112,7 +112,6 @@ allprojects {
                 'InlineFormatString',
                 'JavaTimeDefaultTimeZone',
                 'LogSafePreconditionsMessageFormat',
-                'MissingSummary',
                 'MixedMutabilityReturnType',
                 'MockitoInternalUsage',
                 'ModifyCollectionInEnhancedForLoop',
