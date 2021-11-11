@@ -16,19 +16,13 @@
 
 package com.palantir.atlasdb.backup;
 
-import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 class InMemorySchemaMetadataPersister implements SchemaMetadataPersister {
-    private static final SafeLogger log = SafeLoggerFactory.get(InMemorySchemaMetadataPersister.class);
-
     private final Map<Namespace, InternalSchemaMetadataState> metadataForInProgressBackups;
 
     InMemorySchemaMetadataPersister() {
@@ -41,32 +35,7 @@ class InMemorySchemaMetadataPersister implements SchemaMetadataPersister {
     }
 
     @Override
-    public boolean verifyFastForwardState(
-            Namespace namespace, Optional<InternalSchemaMetadataState> fastForwardState, Long backupTimestamp) {
-        Optional<InternalSchemaMetadataState> maybeBackupTsMetadata =
-                Optional.ofNullable(metadataForInProgressBackups.remove(namespace));
-
-        if (maybeBackupTsMetadata.equals(fastForwardState)) {
-            // States equal - don't need to compare
-            return true;
-        }
-
-        Optional<Long> maybeBackupBound = maybeBackupTsMetadata
-                .flatMap(InternalSchemaMetadataState::value)
-                .map(ValueAndBound::bound);
-
-        if (maybeBackupBound.isPresent() && backupTimestamp <= maybeBackupBound.get()) {
-            return true;
-        }
-
-        log.warn(
-                "The coordination service is in a state where we cannot guarantee a consistent backup. This state"
-                        + " is valid, but expected to occur very infrequently. One can retry the backup without other"
-                        + " manual intervention.",
-                SafeArg.of("namespace", namespace.get()),
-                SafeArg.of("backupInternalSchemaMetadataState", maybeBackupTsMetadata),
-                SafeArg.of("fastForwardInternalSchemaMetadataState", fastForwardState),
-                SafeArg.of("backupTimestamp", backupTimestamp));
-        return false;
+    public Optional<InternalSchemaMetadataState> get(Namespace namespace) {
+        return Optional.ofNullable(metadataForInProgressBackups.get(namespace));
     }
 }

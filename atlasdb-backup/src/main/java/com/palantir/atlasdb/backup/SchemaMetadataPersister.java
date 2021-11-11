@@ -20,10 +20,10 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 
+// TODO(gs): also store backup info
 interface SchemaMetadataPersister {
     void put(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    boolean verifyFastForwardState(
-            Namespace namespace, Optional<InternalSchemaMetadataState> fastForwardState, Long backupTimestamp);
+    // TODO(gs): tests
+    Optional<InternalSchemaMetadataState> get(Namespace namespace);
 }
