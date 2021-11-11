@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -58,9 +57,6 @@ public class AtlasBackupServiceTest {
 
     @Before
     public void setup() {
-        // TODO(gs): tests when coord service is unhappy
-        when(coordinationServiceRecorder.verifyFastForwardState(any())).thenReturn(true);
-
         atlasBackupService = new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder);
     }
 

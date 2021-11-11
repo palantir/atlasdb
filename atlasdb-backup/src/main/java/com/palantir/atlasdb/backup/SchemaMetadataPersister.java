@@ -21,7 +21,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 
 interface SchemaMetadataPersister {
-    void persistAtBackupTimestamp(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
+    void put(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     boolean verifyFastForwardState(

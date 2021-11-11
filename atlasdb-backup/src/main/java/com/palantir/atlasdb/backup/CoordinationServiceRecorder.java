@@ -44,18 +44,13 @@ final class CoordinationServiceRecorder {
         this.schemaMetadataPersister = schemaMetadataPersister;
     }
 
-    public void recordAtBackupTimestamp(Namespace namespace, long timestamp) {
-        fetchSchemaMetadata(namespace, timestamp)
-                .ifPresent(metadata -> schemaMetadataPersister.persistAtBackupTimestamp(namespace, metadata));
-    }
-
-    public boolean verifyFastForwardState(CompletedBackup completedBackup) {
+    public void storeFastForwardState(CompletedBackup completedBackup) {
         Namespace namespace = completedBackup.getNamespace();
-        Optional<InternalSchemaMetadataState> fastForwardMetadata =
+        Optional<InternalSchemaMetadataState> maybeMetadata =
                 fetchSchemaMetadata(namespace, completedBackup.getBackupEndTimestamp());
-        schemaMetadataPersister.verifyFastForwardState(
-                namespace, fastForwardMetadata, timestampSupplier.apply(namespace));
-        return true;
+
+        // TODO(gs): log if not present?
+        maybeMetadata.ifPresent(metadata -> schemaMetadataPersister.put(namespace, metadata));
     }
 
     private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, long timestamp) {

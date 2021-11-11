@@ -36,7 +36,7 @@ class InMemorySchemaMetadataPersister implements SchemaMetadataPersister {
     }
 
     @Override
-    public void persistAtBackupTimestamp(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
+    public void put(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
         metadataForInProgressBackups.put(namespace, internalSchemaMetadataState);
     }
 

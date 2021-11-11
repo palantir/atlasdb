@@ -55,6 +55,7 @@ public final class AtlasBackupService {
         this.storedTokens = new ConcurrentHashMap<>();
     }
 
+    // TODO(gs): pass persister into this class
     public static AtlasBackupService create(
             AuthHeader authHeader,
             Refreshable<ServicesConfigBlock> servicesConfigBlock,
@@ -77,16 +78,8 @@ public final class AtlasBackupService {
 
         return response.getSuccessful().stream()
                 .peek(this::storeBackupToken)
-                .peek(this::storeCoordinationServiceState)
                 .map(InProgressBackupToken::getNamespace)
                 .collect(Collectors.toSet());
-    }
-
-    // Store coordination service state locally.
-    // This should be done here because we want the local host to be responsible for keeping that information
-    // AtlasBackupClient is remote (on timelock), so we might hit different nodes
-    private void storeCoordinationServiceState(InProgressBackupToken token) {
-        coordinationServiceRecorder.recordAtBackupTimestamp(token.getNamespace(), token.getBackupStartTimestamp());
     }
 
     private void storeBackupToken(InProgressBackupToken backupToken) {
@@ -104,7 +97,11 @@ public final class AtlasBackupService {
         CompleteBackupResponse response = atlasBackupClientBlocking.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
-                .filter(coordinationServiceRecorder::verifyFastForwardState)
+                // Store coordination service state locally.
+                // This should be done here because we want the local host to be responsible for keeping that
+                // information
+                // AtlasBackupClient is remote (on timelock), so we might hit different nodes
+                .peek(coordinationServiceRecorder::storeFastForwardState)
                 .map(CompletedBackup::getNamespace)
                 .collect(Collectors.toSet());
     }
