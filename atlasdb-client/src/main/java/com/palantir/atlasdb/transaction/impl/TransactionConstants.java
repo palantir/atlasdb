@@ -31,6 +31,7 @@ public final class TransactionConstants {
 
     public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
     public static final TableReference TRANSACTIONS2_TABLE = TableReference.createWithEmptyNamespace("_transactions2");
+    public static final TableReference TRANSACTIONS3_TABLE = TableReference.createWithEmptyNamespace("_transactions3");
 
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);

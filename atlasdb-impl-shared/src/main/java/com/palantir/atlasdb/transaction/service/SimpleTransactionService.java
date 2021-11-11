@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -25,14 +24,17 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import java.util.HashMap;
+import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
+    private final PutUnlessExistsTable<Long> txnTable = null;
     private final KeyValueService kvs;
     private final TimestampEncodingStrategy encodingStrategy;
     private final TableReference transactionsTable;
@@ -64,37 +66,34 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp, immediateAsyncCellGetter));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamp));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps, immediateAsyncCellGetter));
+        return AtlasFutures.getUnchecked(getInternal(startTimestamps));
     }
 
     @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return getInternal(startTimestamp, asyncCellGetter);
+        return getInternal(startTimestamp);
     }
 
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return getInternal(startTimestamps, asyncCellGetter);
+        return getInternal(startTimestamps);
     }
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) {
-        Cell key = getTransactionCell(startTimestamp);
-        byte[] value = encodingStrategy.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
-        kvs.putUnlessExists(transactionsTable, ImmutableMap.of(key, value));
+        txnTable.putUnlessExists(getTransactionCell(startTimestamp), commitTimestamp);
     }
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        Map<Cell, byte[]> values = Maps.newHashMapWithExpectedSize(startTimestampToCommitTimestamp.size());
-        startTimestampToCommitTimestamp.forEach((start, commit) ->
-                values.put(getTransactionCell(start), encodingStrategy.encodeCommitTimestampAsValue(start, commit)));
-        kvs.putUnlessExists(transactionsTable, values);
+        txnTable.putUnlessExistsMultiple(KeyedStream.stream(startTimestampToCommitTimestamp)
+                .mapKeys(encodingStrategy::encodeStartTimestampAsCell)
+                .collectToMap());
     }
 
     private Cell getTransactionCell(long startTimestamp) {
@@ -111,22 +110,19 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         // we do not close the injected kvs
     }
 
-    private ListenableFuture<Long> getInternal(long startTimestamp, AsyncCellGetter cellGetter) {
+    private ListenableFuture<Long> getInternal(long startTimestamp) {
         Cell cell = getTransactionCell(startTimestamp);
-        return Futures.transform(
-                cellGetter.get(ImmutableMap.of(cell, MAX_TIMESTAMP)),
-                returnMap -> decodeTimestamp(startTimestamp, cell, returnMap),
-                MoreExecutors.directExecutor());
+        return txnTable.get(cell);
     }
 
-    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps, AsyncCellGetter cellGetter) {
-        Map<Cell, Long> startTsMap = new HashMap<>();
-        for (Long startTimestamp : startTimestamps) {
-            Cell cell = getTransactionCell(startTimestamp);
-            startTsMap.put(cell, MAX_TIMESTAMP);
-        }
-
-        return Futures.transform(cellGetter.get(startTsMap), this::decodeTimestamps, MoreExecutors.directExecutor());
+    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps) {
+        Map<Cell, Long> cells = KeyedStream.of(StreamSupport.stream(startTimestamps.spliterator(), false))
+                .mapKeys(this::getTransactionCell)
+                .collectToMap();
+        return Futures.transform(
+                txnTable.get(cells.keySet()),
+                map -> KeyedStream.stream(map).mapKeys(cells::get).collectToMap(),
+                MoreExecutors.directExecutor());
     }
 
     private Long decodeTimestamp(long startTimestamp, Cell cell, Map<Cell, Value> rawResults) {
