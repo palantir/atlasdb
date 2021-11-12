@@ -197,6 +197,9 @@ public abstract class TransactionManagers {
 
     abstract Optional<LockAndTimestampServiceFactory> lockAndTimestampServiceFactory();
 
+    // TODO(gs): maybe more than one follower if this is productionised?
+    abstract Optional<Follower> customFollower();
+
     abstract UserAgent userAgent();
 
     abstract Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders();
@@ -427,12 +430,14 @@ public abstract class TransactionManagers {
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schemas());
+        List<Follower> allFollowers =
+                customFollower().map(cf -> List.of(cf, follower)).orElseGet(() -> List.of(follower));
 
         Cleaner cleaner = initializeCloseable(
                 () -> new DefaultCleanerBuilder(
                                 keyValueService,
                                 lockAndTimestampServices.timelock(),
-                                ImmutableList.of(follower),
+                                allFollowers,
                                 transactionService,
                                 metricsManager)
                         .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
@@ -449,7 +454,7 @@ public abstract class TransactionManagers {
                 () -> uninitializedTargetedSweeper(
                         metricsManager,
                         config().targetedSweep(),
-                        follower,
+                        allFollowers,
                         runtime.map(AtlasDbRuntimeConfig::targetedSweep)),
                 closeables);
 
@@ -934,12 +939,12 @@ public abstract class TransactionManagers {
     private static MultiTableSweepQueueWriter uninitializedTargetedSweeper(
             MetricsManager metricsManager,
             TargetedSweepInstallConfig install,
-            Follower follower,
+            List<Follower> followers,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
         if (!install.enableSweepQueueWrites()) {
             return MultiTableSweepQueueWriter.NO_OP;
         }
-        return TargetedSweeper.createUninitialized(metricsManager, runtime, install, ImmutableList.of(follower));
+        return TargetedSweeper.createUninitialized(metricsManager, runtime, install, followers);
     }
 
     @Value.Immutable
