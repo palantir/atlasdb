@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.crdt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -26,12 +24,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.crdt.bucket.BucketRangeLockingService;
+import com.palantir.atlasdb.crdt.bucket.LockingBucketSelector;
 import com.palantir.atlasdb.crdt.bucket.ShotgunSeriesBucketSelector;
 import com.palantir.atlasdb.crdt.generated.CrdtTable;
 import com.palantir.atlasdb.crdt.generated.CrdtTableFactory;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.serialization.ObjectMappers;
+import org.immutables.value.Value;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,8 +44,8 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.immutables.value.Value;
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConflictFreeReplicatedDataTypeIntegrationTest {
     private static final Series TOM = ImmutableSeries.of("tom");
@@ -72,6 +75,61 @@ public class ConflictFreeReplicatedDataTypeIntegrationTest {
                                         crdtTable,
                                         ResourceStatisticsAdapter.INSTANCE,
                                         new ShotgunSeriesBucketSelector(100));
+                        latch.countDown();
+                        latch.await();
+                        writer.aggregateValue(TOM, resourceStatistic);
+                        return null;
+                    });
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+            });
+            futures.add(future);
+        }
+        futures.forEach(Futures::getUnchecked);
+
+        ResourceStatistics actualCombinedStats = txMgr.runTaskWithRetry(txn -> {
+            CrdtTable crdtTable = CrdtTableFactory.of().getCrdtTable(txn);
+            ConflictFreeReplicatedDataTypeReader<ResourceStatistics> reader =
+                    new ConflictFreeReplicatedDataTypeReader<>(crdtTable, ResourceStatisticsAdapter.INSTANCE);
+            return reader.read(ImmutableList.of(TOM)).get(TOM);
+        });
+
+        assertThat(actualCombinedStats.numRemoteCalls())
+                .isEqualTo(resourceStatistics.stream()
+                        .mapToLong(ResourceStatistics::numRemoteCalls)
+                        .sum());
+        assertThat(actualCombinedStats.filesLoaded())
+                .isEqualTo(Sets.union(
+                        ImmutableSet.of("everywhere.txt"),
+                        IntStream.range(0, 1000).mapToObj(i -> i + ".out").collect(Collectors.toSet())));
+    }
+
+    @Test
+    public void integratesStatisticsWithBucketing() {
+        List<ResourceStatistics> resourceStatistics = IntStream.range(0, 1000)
+                .mapToObj(index -> ImmutableResourceStatistics.builder()
+                        .numRemoteCalls(ThreadLocalRandom.current().nextLong(3L, 88L))
+                        .addFilesLoaded("everywhere.txt", index + ".out")
+                        .build())
+                .collect(Collectors.toList());
+
+        CountDownLatch latch = new CountDownLatch(resourceStatistics.size());
+        ExecutorService executorService = Executors.newFixedThreadPool(resourceStatistics.size());
+        List<Future<?>> futures = new ArrayList<>(resourceStatistics.size());
+        LockingBucketSelector lockingBucketSelector = new LockingBucketSelector(
+                new BucketRangeLockingService(txMgr.getTimelockService()));
+        for (ResourceStatistics resourceStatistic : resourceStatistics) {
+            Future<?> future = executorService.submit(() -> {
+                try {
+                    txMgr.runTaskWithRetry(txn -> {
+                        CrdtTable crdtTable = CrdtTableFactory.of().getCrdtTable(txn);
+                        ConflictFreeReplicatedDataTypeWriter<ResourceStatistics> writer =
+                                new ConflictFreeReplicatedDataTypeWriter<>(
+                                        crdtTable,
+                                        ResourceStatisticsAdapter.INSTANCE,
+                                        lockingBucketSelector);
                         latch.countDown();
                         latch.await();
                         writer.aggregateValue(TOM, resourceStatistic);

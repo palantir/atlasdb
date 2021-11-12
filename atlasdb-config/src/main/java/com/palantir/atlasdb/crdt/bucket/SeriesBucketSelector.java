@@ -20,4 +20,6 @@ import com.palantir.atlasdb.crdt.Series;
 
 public interface SeriesBucketSelector {
     long getBucket(Series series);
+
+    void releaseBucket(Series series, long bucket);
 }

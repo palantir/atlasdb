@@ -30,4 +30,9 @@ public class ShotgunSeriesBucketSelector implements SeriesBucketSelector {
     public long getBucket(Series _series) {
         return ThreadLocalRandom.current().nextLong(maximumBuckets);
     }
+
+    @Override
+    public void releaseBucket(Series _series, long _bucket) {
+        // No op
+    }
 }

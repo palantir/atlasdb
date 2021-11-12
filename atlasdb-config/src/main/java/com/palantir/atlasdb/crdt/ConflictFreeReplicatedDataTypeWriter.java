@@ -19,12 +19,16 @@ package com.palantir.atlasdb.crdt;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.crdt.bucket.SeriesBucketSelector;
 import com.palantir.atlasdb.crdt.generated.CrdtTable;
-import java.util.List;
 
-public class ConflictFreeReplicatedDataTypeWriter<T> {
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class ConflictFreeReplicatedDataTypeWriter<T> implements AutoCloseable {
     private final CrdtTable crdtTable;
     private final ConflictFreeReplicatedDataTypeAdapter<T> adapter;
     private final SeriesBucketSelector seriesBucketSelector;
+    private final Map<Series, Long> acquiredPartitions = new HashMap<>();
 
     public ConflictFreeReplicatedDataTypeWriter(
             CrdtTable crdtTable,
@@ -36,7 +40,7 @@ public class ConflictFreeReplicatedDataTypeWriter<T> {
     }
 
     public void aggregateValue(Series series, T value) {
-        long partition = seriesBucketSelector.getBucket(series);
+        long partition = acquiredPartitions.computeIfAbsent(series, seriesBucketSelector::getBucket);
         CrdtTable.CrdtRow seriesRow = CrdtTable.CrdtRow.of(series.value());
         List<CrdtTable.CrdtColumnValue> rowColumns =
                 crdtTable.getRowColumns(seriesRow, CrdtTable.getColumnSelection(CrdtTable.CrdtColumn.of(partition)));
@@ -58,5 +62,10 @@ public class ConflictFreeReplicatedDataTypeWriter<T> {
                         adapter.serializer()
                                 .apply(adapter.merge()
                                         .apply(adapter.deserializer().apply(presentColumnValue.getValue()), value))));
+    }
+
+    @Override
+    public void close() {
+        acquiredPartitions.forEach(seriesBucketSelector::releaseBucket);
     }
 }

@@ -16,13 +16,15 @@
 
 package com.palantir.atlasdb.crdt.bucket;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.crdt.Series;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import org.immutables.value.Value;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class LockingBucketSelector implements SeriesBucketSelector {
@@ -30,7 +32,7 @@ public final class LockingBucketSelector implements SeriesBucketSelector {
 
     // TODO (jkong): Better handle cases where concurrency on a local node exceeds the bucketing quantum
     private final AtomicReference<BucketRangeAndToken> activeBucketRangeAndToken = new AtomicReference<>();
-    private final AtomicLong internalBucketOffset = new AtomicLong(0);
+    private final Set<Long> usedOffsets = Sets.newConcurrentHashSet();
 
     public LockingBucketSelector(BucketRangeLockingService lockingService) {
         this.lockingService = lockingService;
@@ -39,7 +41,40 @@ public final class LockingBucketSelector implements SeriesBucketSelector {
     @Override
     public long getBucket(Series series) {
         BucketRange range = getActiveBucketRange();
-        return range.startInclusive() + internalBucketOffset.getAndUpdate(n -> (n + 1) % BucketRange.BUCKET_BUCKETING);
+        return range.startInclusive() + acquireOffset();
+    }
+
+    @Override
+    public void releaseBucket(Series series, long bucket) {
+        BucketRange range = getActiveBucketRange();
+        if (range.startInclusive() <= bucket && bucket < range.endExclusive()) {
+            usedOffsets.remove(bucket % BucketRange.BUCKET_BUCKETING);
+            if (usedOffsets.isEmpty()) {
+                // TODO (jkong): Add some time delay here?
+                releaseBucketRange();
+            }
+        }
+    }
+
+    private void releaseBucketRange() {
+        BucketRangeAndToken activeRange = activeBucketRangeAndToken.get();
+        synchronized (this) {
+            lockingService.unlock(activeRange.lockToken());
+            activeBucketRangeAndToken.set(null);
+        }
+    }
+
+    private long acquireOffset() {
+        // This really can be done in O(log N), where N is the set of used offsets.
+        for (long i = 0; i < BucketRange.BUCKET_BUCKETING; i++) {
+            if (!usedOffsets.contains(i)) {
+                if (usedOffsets.add(i)) {
+                    return i;
+                }
+            }
+        }
+        // womp
+        return ThreadLocalRandom.current().nextLong(BucketRange.BUCKET_BUCKETING);
     }
 
     public BucketRange getActiveBucketRange() {
@@ -60,7 +95,7 @@ public final class LockingBucketSelector implements SeriesBucketSelector {
 
             // In this case, we need to acquire a new bucket
             BucketRangeAndToken newRange = attemptToAcquireNewBucket();
-            internalBucketOffset.set(0);
+            usedOffsets.clear();
             activeBucketRangeAndToken.set(newRange);
             return newRange.bucketRange();
         }
