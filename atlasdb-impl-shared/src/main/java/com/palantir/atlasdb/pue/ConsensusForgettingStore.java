@@ -32,6 +32,8 @@ public interface ConsensusForgettingStore {
 
     ListenableFuture<Optional<byte[]>> get(Cell cell);
 
+    ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells);
+
     void put(Cell cell, byte[] value);
 
     void put(Map<Cell, byte[]> values);

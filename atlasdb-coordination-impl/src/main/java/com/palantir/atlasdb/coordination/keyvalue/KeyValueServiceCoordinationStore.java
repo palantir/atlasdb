@@ -176,7 +176,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private Optional<CoordinationStoreState<T>> readLatestState() {
         while (true) {
             Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-            if (!coordinationValue.isPresent()) {
+            if (coordinationValue.isEmpty()) {
                 return Optional.empty();
             }
             SequenceAndBound presentCoordinationValue = coordinationValue.get();

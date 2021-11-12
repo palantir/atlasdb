@@ -19,7 +19,6 @@ package com.palantir.atlasdb.pue;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.ToDoEncodingStrategy;
@@ -27,6 +26,7 @@ import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
     private final ConsensusForgettingStore store;
@@ -47,9 +47,9 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
-        Map<Cell, Long> startTsToCell = keyValues.keySet().stream()
+        Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
-        Map<Cell, byte[]> stagingValues = KeyedStream.stream(startTsToCell)
+        Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
                 .map(startTs -> encodingStrategy.encodeCommitTimestampAsValue(
                         startTs, PutUnlessExistsValue.staging(keyValues.get(startTs))))
                 .collectToMap();
@@ -62,20 +62,23 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     @Override
     public ListenableFuture<Long> get(Long startTs) {
         Cell cell = encodingStrategy.encodeStartTimestampAsCell(startTs);
-        ListenableFuture<Optional<byte[]>> actual = store.get(cell);
-        return Futures.transform(actual, read -> processRead(cell, startTs, read), MoreExecutors.directExecutor());
+        ListenableFuture<Optional<byte[]>> asyncRead = store.get(cell);
+        return Futures.transform(asyncRead, read -> processRead(cell, startTs, read), MoreExecutors.directExecutor());
     }
 
     @Override
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> cells) {
-        Map<Long, ListenableFuture<Long>> mapOfFutures =
-                KeyedStream.of(cells).map(this::get).collectToMap();
-        return Futures.whenAllSucceed(mapOfFutures.values())
-                .call(
-                        () -> KeyedStream.stream(mapOfFutures)
-                                .map(AtlasFutures::getDone)
-                                .collectToMap(),
-                        MoreExecutors.directExecutor());
+        Map<Long, Cell> startTsToCell = StreamSupport.stream(cells.spliterator(), false)
+                .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell));
+        ListenableFuture<Map<Cell, byte[]>> asyncReads = store.getMultiple(startTsToCell.values());
+        // todo(gmaretic): This can be further optimised if we add a multi check and touch, also can use multiput
+        return Futures.transform(
+                asyncReads,
+                presentValues -> KeyedStream.stream(startTsToCell)
+                        .map((startTs, cell) ->
+                                processRead(cell, startTs, Optional.ofNullable(presentValues.get(cell))))
+                        .collectToMap(),
+                MoreExecutors.directExecutor());
     }
 
     private byte[] pueStaging(Cell cell, long startTs, long commitTs) {

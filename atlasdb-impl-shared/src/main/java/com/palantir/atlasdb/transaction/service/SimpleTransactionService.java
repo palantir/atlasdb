@@ -25,6 +25,7 @@ import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.pue.SimpleCommitTimestampPutUnlessExistsTable;
+import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.ToDoEncodingStrategy;
@@ -104,7 +105,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
-    public TimestampEncodingStrategy<?> getCellEncodingStrategy() {
+    public CellEncodingStrategy getCellEncodingStrategy() {
         return encodingStrategy;
     }
 

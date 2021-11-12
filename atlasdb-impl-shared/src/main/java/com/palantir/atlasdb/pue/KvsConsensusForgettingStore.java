@@ -28,9 +28,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
     private static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
@@ -65,6 +68,17 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
         return Futures.transform(
                 kvs.getAsync(tableRef, ImmutableMap.of(cell, Long.MAX_VALUE)),
                 result -> Optional.ofNullable(result.get(cell)).map(Value::getContents),
+                MoreExecutors.directExecutor());
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells) {
+        return Futures.transform(
+                kvs.getAsync(
+                        tableRef,
+                        StreamSupport.stream(cells.spliterator(), false)
+                                .collect(Collectors.toMap(x -> x, _ignore -> Long.MAX_VALUE))),
+                result -> KeyedStream.stream(result).map(Value::getContents).collectToMap(),
                 MoreExecutors.directExecutor());
     }
 

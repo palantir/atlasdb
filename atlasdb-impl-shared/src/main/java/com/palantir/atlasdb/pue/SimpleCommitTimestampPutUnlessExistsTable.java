@@ -65,7 +65,7 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
         Cell startTsAsCell = encodingStrategy.encodeStartTimestampAsCell(startTs);
         return Futures.transform(
                 kvs.getAsync(tableRef, ImmutableMap.of(startTsAsCell, Long.MAX_VALUE)),
-                map -> Optional.ofNullable(map.get(startTsAsCell))
+                presentValues -> Optional.ofNullable(presentValues.get(startTsAsCell))
                         .map(commitValue ->
                                 encodingStrategy.decodeValueAsCommitTimestamp(startTs, commitValue.getContents()))
                         .orElse(null),
@@ -81,8 +81,8 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
                 tableRef, startTsToCell.values().stream().collect(Collectors.toMap(x -> x, _ignore -> Long.MAX_VALUE)));
         return Futures.transform(
                 result,
-                map -> KeyedStream.stream(startTsToCell)
-                        .map(map::get)
+                presentValues -> KeyedStream.stream(startTsToCell)
+                        .map(presentValues::get)
                         .map(Optional::ofNullable)
                         .map((startTs, maybeValue) -> maybeValue
                                 .map(value ->

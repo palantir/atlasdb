@@ -21,13 +21,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
 
 public interface PutUnlessExistsTable<C, V> {
+    void putUnlessExists(C key, V value) throws KeyAlreadyExistsException;
+
+    void putUnlessExistsMultiple(Map<C, V> keyValues) throws KeyAlreadyExistsException;
+
     ListenableFuture<V> get(C key);
 
     ListenableFuture<Map<C, V>> get(Iterable<C> keys);
-
-    void putUnlessExists(C key, V value) throws KeyAlreadyExistsException;
-
-    default void putUnlessExistsMultiple(Map<C, V> keyValues) throws KeyAlreadyExistsException {
-        keyValues.forEach(this::putUnlessExists);
-    }
 }
