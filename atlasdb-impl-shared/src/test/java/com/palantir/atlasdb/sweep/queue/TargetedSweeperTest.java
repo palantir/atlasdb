@@ -298,9 +298,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS2);
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
-        ArgumentCaptor<Set<Cell>> captor = ArgumentCaptor.forClass(Set.class);
+        ArgumentCaptor<Multimap<Cell, Long>> captor = ArgumentCaptor.forClass(Multimap.class);
         verify(mockFollower, times(1)).run(eq(TABLE_CONS), captor.capture());
-        assertThat(Iterables.getOnlyElement(captor.getAllValues())).containsExactly(DEFAULT_CELL);
+        assertThat(Iterables.getOnlyElement(
+                        captor.getAllValues().stream().map(Multimap::keySet).collect(Collectors.toSet())))
+                .containsExactly(DEFAULT_CELL);
     }
 
     @Test
@@ -309,9 +311,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_THOR, LOW_TS2);
         sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
 
-        ArgumentCaptor<Set<Cell>> captor = ArgumentCaptor.forClass(Set.class);
+        ArgumentCaptor<Multimap<Cell, Long>> captor = ArgumentCaptor.forClass(Multimap.class);
         verify(mockFollower, times(1)).run(eq(TABLE_THOR), captor.capture());
-        assertThat(Iterables.getOnlyElement(captor.getAllValues())).containsExactly(DEFAULT_CELL);
+        assertThat(Iterables.getOnlyElement(
+                        captor.getAllValues().stream().map(Multimap::keySet).collect(Collectors.toSet())))
+                .containsExactly(DEFAULT_CELL);
     }
 
     @Test
