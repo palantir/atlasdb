@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
 
 public final class TransactionRetryStrategy {
+    @SuppressWarnings("ImmutableEnumChecker") // TransactionRetryStrategy is immutable, despite what error-prone thinks
     public enum Strategies {
         LEGACY(createLegacy(BlockStrategies.threadSleepStrategy())),
         EXPONENTIAL(createExponential(BlockStrategies.threadSleepStrategy(), new Random()));
