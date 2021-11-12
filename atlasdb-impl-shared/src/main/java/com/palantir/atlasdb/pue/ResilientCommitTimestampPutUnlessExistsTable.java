@@ -63,7 +63,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     public ListenableFuture<Long> get(Long startTs) {
         Cell cell = encodingStrategy.encodeStartTimestampAsCell(startTs);
         ListenableFuture<Optional<byte[]>> actual = store.get(cell);
-        return Futures.transform(actual, read -> (processRead(cell, startTs, read)), MoreExecutors.directExecutor());
+        return Futures.transform(actual, read -> processRead(cell, startTs, read), MoreExecutors.directExecutor());
     }
 
     @Override

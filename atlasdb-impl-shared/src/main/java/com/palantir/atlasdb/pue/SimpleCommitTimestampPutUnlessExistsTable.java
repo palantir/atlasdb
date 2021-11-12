@@ -74,22 +74,20 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
 
     @Override
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> cells) {
-        Map<Cell, Long> cellToStartTs = StreamSupport.stream(cells.spliterator(), false)
-                .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
+        Map<Long, Cell> startTsToCell = StreamSupport.stream(cells.spliterator(), false)
+                .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell));
 
         ListenableFuture<Map<Cell, Value>> result = kvs.getAsync(
-                tableRef,
-                StreamSupport.stream(cells.spliterator(), false)
-                        .collect(Collectors.toMap(
-                                encodingStrategy::encodeStartTimestampAsCell, _ignore -> Long.MAX_VALUE)));
+                tableRef, startTsToCell.values().stream().collect(Collectors.toMap(x -> x, _ignore -> Long.MAX_VALUE)));
         return Futures.transform(
                 result,
-                map -> KeyedStream.stream(map)
-                        .mapKeys(cellToStartTs::get)
-                        .map((startTs, value) ->
-                                encodingStrategy.decodeValueAsCommitTimestamp(startTs, value.getContents()))
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
+                map -> KeyedStream.stream(startTsToCell)
+                        .map(map::get)
+                        .map(Optional::ofNullable)
+                        .map((startTs, maybeValue) -> maybeValue
+                                .map(value ->
+                                        encodingStrategy.decodeValueAsCommitTimestamp(startTs, value.getContents()))
+                                .orElse(null))
                         .collectToMap(),
                 MoreExecutors.directExecutor());
     }

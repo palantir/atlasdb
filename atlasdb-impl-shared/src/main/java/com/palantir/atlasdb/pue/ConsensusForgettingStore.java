@@ -18,15 +18,17 @@ package com.palantir.atlasdb.pue;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
 import java.util.Optional;
 
 public interface ConsensusForgettingStore {
-    void putUnlessExists(Cell cell, byte[] value);
+    void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException;
 
-    void putUnlessExists(Map<Cell, byte[]> values);
+    void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
-    void checkAndTouch(Cell cell, byte[] value);
+    void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
 
     ListenableFuture<Optional<byte[]>> get(Cell cell);
 

@@ -33,7 +33,7 @@ public class CheckAndSetCompatibilityTest {
     @Test
     public void minReturnsNotSupportedIfOneKvsHasNotSupported() {
         assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
                         CheckAndSetCompatibility.NOT_SUPPORTED,
                         CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
                 .isEqualTo(CheckAndSetCompatibility.NOT_SUPPORTED);
@@ -42,8 +42,8 @@ public class CheckAndSetCompatibilityTest {
     @Test
     public void minReturnsSupportedNoDetailIfNotSupportedAbsent() {
         assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
                         CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
                 .isEqualTo(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE);
     }
@@ -51,10 +51,10 @@ public class CheckAndSetCompatibilityTest {
     @Test
     public void minReturnsSupportedWithDetailIfAllAreSupportedWithDetail() {
         assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE))
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE);
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST))
+                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST);
     }
 
     private CheckAndSetCompatibility getMinCompatibility(CheckAndSetCompatibility... compatibilities) {

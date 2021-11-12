@@ -156,7 +156,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     /**
      * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
      * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} is
-     * {@link com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility#SUPPORTED_DETAIL_ON_FAILURE}.
+     * {@link com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility#SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST}.
      */
     @Override
     public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {

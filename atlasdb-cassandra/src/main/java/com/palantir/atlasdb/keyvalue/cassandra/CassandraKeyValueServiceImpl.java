@@ -1884,7 +1884,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
+        return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST;
     }
 
     /**

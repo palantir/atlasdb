@@ -39,7 +39,8 @@ public final class TransactionServices {
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
-        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
+        if (keyValueService.getCheckAndSetCompatibility()
+                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST) {
             return createSplitKeyTransactionService(keyValueService, transactionSchemaManager);
         }
         return createV1TransactionService(keyValueService);
@@ -54,7 +55,9 @@ public final class TransactionServices {
                         TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV1TransactionService(keyValueService),
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV2TransactionService(keyValueService))));
+                        createV2TransactionService(keyValueService),
+                        TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                        createV3TransactionService(keyValueService))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -64,6 +67,11 @@ public final class TransactionServices {
     private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
         return new PreStartHandlingTransactionService(
                 WriteBatchingTransactionService.create(SimpleTransactionService.createV2(keyValueService)));
+    }
+
+    private static TransactionService createV3TransactionService(KeyValueService keyValueService) {
+        return new PreStartHandlingTransactionService(
+                WriteBatchingTransactionService.create(SimpleTransactionService.createV3(keyValueService)));
     }
 
     /**

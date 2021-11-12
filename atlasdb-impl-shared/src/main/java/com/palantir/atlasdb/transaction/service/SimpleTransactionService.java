@@ -17,13 +17,17 @@ package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.pue.ConsensusForgettingStore;
+import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.pue.SimpleCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.ToDoEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Map;
@@ -39,29 +43,34 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     public static SimpleTransactionService createV1(KeyValueService kvs) {
-        return new SimpleTransactionService(
-                new SimpleCommitTimestampPutUnlessExistsTable(
-                        kvs, TransactionConstants.TRANSACTION_TABLE, V1EncodingStrategy.INSTANCE),
-                V1EncodingStrategy.INSTANCE);
+        return createSimple(kvs, TransactionConstants.TRANSACTION_TABLE, V1EncodingStrategy.INSTANCE);
     }
 
     public static SimpleTransactionService createV2(KeyValueService kvs) {
-        return new SimpleTransactionService(
-                new SimpleCommitTimestampPutUnlessExistsTable(
-                        kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE),
-                TicketsEncodingStrategy.INSTANCE);
+        return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
     }
 
-    public static SimpleTransactionService createV3Simple(KeyValueService kvs) {
-        return new SimpleTransactionService(
-                new SimpleCommitTimestampPutUnlessExistsTable(
-                        kvs, TransactionConstants.TRANSACTIONS3_TABLE, TicketsEncodingStrategy.INSTANCE),
-                TicketsEncodingStrategy.INSTANCE);
+    public static SimpleTransactionService createV3(KeyValueService kvs) {
+        if (kvs.getCheckAndSetCompatibility()
+                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST) {
+            return createResilient(kvs, TransactionConstants.TRANSACTIONS3_TABLE, ToDoEncodingStrategy.INSTANCE);
+        }
+        return createSimple(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TicketsEncodingStrategy.INSTANCE);
     }
 
-    public static SimpleTransactionService createV3Complex(KeyValueService kvs) {
-        PutUnlessExistsTable<Long, Long> table = new ResilientCommitTimestampPutUnlessExistsTable(null, null);
-        return new SimpleTransactionService(table, null);
+    private static SimpleTransactionService createSimple(
+            KeyValueService kvs, TableReference tableRef, TimestampEncodingStrategy<Long> encodingStrategy) {
+        PutUnlessExistsTable<Long, Long> pueTable =
+                new SimpleCommitTimestampPutUnlessExistsTable(kvs, tableRef, encodingStrategy);
+        return new SimpleTransactionService(pueTable, encodingStrategy);
+    }
+
+    private static SimpleTransactionService createResilient(
+            KeyValueService kvs, TableReference tableRef, ToDoEncodingStrategy encodingStrategy) {
+        ConsensusForgettingStore store = new KvsConsensusForgettingStore(kvs, tableRef);
+        PutUnlessExistsTable<Long, Long> pueTable =
+                new ResilientCommitTimestampPutUnlessExistsTable(store, encodingStrategy);
+        return new SimpleTransactionService(pueTable, encodingStrategy);
     }
 
     @Override
@@ -94,12 +103,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         txnTable.putUnlessExistsMultiple(startTimestampToCommitTimestamp);
     }
 
-    private Cell getTransactionCell(long startTimestamp) {
-        return encodingStrategy.encodeStartTimestampAsCell(startTimestamp);
-    }
-
     @Override
-    public TimestampEncodingStrategy<?> getEncodingStrategy() {
+    public TimestampEncodingStrategy<?> getCellEncodingStrategy() {
         return encodingStrategy;
     }
 

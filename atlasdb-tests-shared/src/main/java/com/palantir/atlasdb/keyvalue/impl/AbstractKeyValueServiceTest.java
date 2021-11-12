@@ -1544,8 +1544,8 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void putUnlessExistsDecodesCellsCorrectlyIfSupported() {
-        assumeTrue(
-                keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE);
+        assumeTrue(keyValueService.getCheckAndSetCompatibility()
+                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST);
 
         keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
 

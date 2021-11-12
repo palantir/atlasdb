@@ -16,9 +16,37 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 
-public interface ToDoEncodingStrategy extends TimestampEncodingStrategy<PutUnlessExistsValue<Long>> {
+@SuppressWarnings("DoNotCallSuggester") // yolo
+public enum ToDoEncodingStrategy implements TimestampEncodingStrategy<PutUnlessExistsValue<Long>> {
+    INSTANCE;
+
+    @Override
+    public Cell encodeStartTimestampAsCell(long startTimestamp) {
+        return TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTimestamp);
+    }
+
+    @Override
+    public long decodeCellAsStartTimestamp(Cell cell) {
+        return TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(cell);
+    }
+
+    // todo(gmaretic): implement
+    @Override
+    public byte[] encodeCommitTimestampAsValue(long startTimestamp, PutUnlessExistsValue<Long> commitTimestamp) {
+        throw new UnsupportedOperationException();
+    }
+
+    // todo(gmaretic): implement
+    @Override
+    public PutUnlessExistsValue<Long> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+        throw new UnsupportedOperationException();
+    }
+
     // todo(gmaretic): this method is not necessary, but it should make the PUE table more efficient
-    byte[] transformStagingToCommitted(byte[] stagingValue);
+    public byte[] transformStagingToCommitted(byte[] stagingValue) {
+        throw new UnsupportedOperationException();
+    }
 }

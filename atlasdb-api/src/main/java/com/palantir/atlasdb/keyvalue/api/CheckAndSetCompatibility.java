@@ -42,12 +42,16 @@ public enum CheckAndSetCompatibility {
      * - PUE: {@link KeyAlreadyExistsException#getExistingKeys()} on any such exception thrown must return the list
      *        of all pre-existing cells for any row which the implementation attempted to put into the key value
      *        service. Note that there is no guarantee that the implementation attempts to put all rows atomically.
+     * - Other failure: values may have persisted partially, possibly causing non-repeatable reads.
      */
-    SUPPORTED_DETAIL_ON_FAILURE;
+    SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST;
 
     public static CheckAndSetCompatibility min(Stream<CheckAndSetCompatibility> compatibilities) {
         Set<CheckAndSetCompatibility> presentCompatibilities = compatibilities.collect(Collectors.toSet());
-        return Stream.of(NOT_SUPPORTED, SUPPORTED_NO_DETAIL_ON_FAILURE, SUPPORTED_DETAIL_ON_FAILURE)
+        return Stream.of(
+                        NOT_SUPPORTED,
+                        SUPPORTED_NO_DETAIL_ON_FAILURE,
+                        SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST)
                 .filter(presentCompatibilities::contains)
                 .findFirst()
                 .orElseThrow(() -> new SafeIllegalArgumentException("min requires at least 1 element, but 0 provided"));
