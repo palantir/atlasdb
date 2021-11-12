@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -23,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
@@ -62,7 +65,10 @@ public class SweepQueueDeleter {
                         .forEach(cells -> {
                             Map<Cell, TimestampRangeDelete> maxTimestampByCellPartition = cells.stream()
                                     .collect(Collectors.toMap(Function.identity(), entry.getValue()::get));
-                            follower.run(entry.getKey(), maxTimestampByCellPartition.keySet());
+                            Multimap<Cell, Long> cellsWithTimestamps = KeyedStream.stream(maxTimestampByCellPartition)
+                                    .map(TimestampRangeDelete::maxTimestampToDelete)
+                                    .collectToMultimap(LinkedListMultimap::create);
+                            follower.run(entry.getKey(), cellsWithTimestamps);
                             if (sweeper.shouldAddSentinels()) {
                                 kvs.addGarbageCollectionSentinelValues(
                                         entry.getKey(), maxTimestampByCellPartition.keySet());

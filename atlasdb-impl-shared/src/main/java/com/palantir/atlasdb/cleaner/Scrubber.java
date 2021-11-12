@@ -569,7 +569,7 @@ public class Scrubber {
             Transaction.TransactionType transactionType) {
         if (!cellToTimestamp.isEmpty()) {
             for (Follower follower : followers) {
-                follower.run(txManager, tableRef, cellToTimestamp.keySet(), transactionType);
+                follower.run(txManager, tableRef, cellToTimestamp, transactionType);
             }
             keyValueService.addGarbageCollectionSentinelValues(tableRef, cellToTimestamp.keySet());
             for (List<Map.Entry<Cell, Long>> batch :

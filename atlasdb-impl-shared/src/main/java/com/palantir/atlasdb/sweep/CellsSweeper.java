@@ -60,7 +60,7 @@ public class CellsSweeper {
                 SafeArg.of("numGarbageCollectionSentinelsToAdd", sentinelsToAdd.size()));
 
         for (Follower follower : followers) {
-            follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), Transaction.TransactionType.HARD_DELETE);
+            follower.run(txManager, tableRef, cellTsPairsToSweep, Transaction.TransactionType.HARD_DELETE);
         }
 
         if (!sentinelsToAdd.isEmpty()) {

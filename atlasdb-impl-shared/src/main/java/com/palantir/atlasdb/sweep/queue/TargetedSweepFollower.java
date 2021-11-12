@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.List;
-import java.util.Set;
 
 public class TargetedSweepFollower {
     private final List<Follower> followers;
@@ -38,7 +38,7 @@ public class TargetedSweepFollower {
         this.txManager = txManager;
     }
 
-    public void run(TableReference tableRef, Set<Cell> cells) {
+    public void run(TableReference tableRef, Multimap<Cell, Long> cells) {
         followers.forEach(flwr -> flwr.run(txManager, tableRef, cells, Transaction.TransactionType.HARD_DELETE));
     }
 }

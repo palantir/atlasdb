@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -38,4 +39,12 @@ public interface Follower {
             TableReference tableRef,
             Set<Cell> cells,
             Transaction.TransactionType transactionType);
+
+    default void run(
+            TransactionManager txManager,
+            TableReference tableRef,
+            Multimap<Cell, Long> cellTsPairs,
+            Transaction.TransactionType transactionType) {
+        run(txManager, tableRef, cellTsPairs.keySet(), transactionType);
+    }
 }

@@ -70,8 +70,7 @@ public class CellsSweeperShould {
     public void ensureFollowersRunAgainstCellsToSweep() {
         sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
 
-        verify(mockFollower)
-                .run(any(), any(), eq(SINGLE_CELL_TS_PAIR.keySet()), eq(Transaction.TransactionType.HARD_DELETE));
+        verify(mockFollower).run(any(), any(), eq(SINGLE_CELL_TS_PAIR), eq(Transaction.TransactionType.HARD_DELETE));
     }
 
     @Test
