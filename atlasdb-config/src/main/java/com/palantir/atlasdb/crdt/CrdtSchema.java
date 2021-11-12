@@ -25,7 +25,6 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-
 import java.io.File;
 import java.util.function.Supplier;
 
@@ -61,10 +60,7 @@ public enum CrdtSchema implements AtlasSchema {
 
     private static Schema newSchemaObject() {
         return new Schema(
-                "Crdt",
-                CrdtSchema.class.getPackage().getName() + ".generated",
-                NAMESPACE,
-                OptionalType.JAVA8);
+                "Crdt", CrdtSchema.class.getPackage().getName() + ".generated", NAMESPACE, OptionalType.JAVA8);
     }
 
     @Override

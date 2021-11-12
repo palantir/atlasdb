@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.crdt;
 
-import org.immutables.value.Value;
-
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ConflictFreeReplicatedDataTypeAdapter<T> {

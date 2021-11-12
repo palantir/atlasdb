@@ -18,7 +18,6 @@ package com.palantir.atlasdb.crdt;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.crdt.generated.CrdtTable;
-
 import java.util.List;
 
 public class ConflictFreeReplicatedDataTypeWriter<T> {
@@ -26,7 +25,10 @@ public class ConflictFreeReplicatedDataTypeWriter<T> {
     private final ConflictFreeReplicatedDataTypeAdapter<T> adapter;
     private final SeriesBucketSelector seriesBucketSelector;
 
-    public ConflictFreeReplicatedDataTypeWriter(CrdtTable crdtTable, ConflictFreeReplicatedDataTypeAdapter<T> adapter, SeriesBucketSelector seriesBucketSelector) {
+    public ConflictFreeReplicatedDataTypeWriter(
+            CrdtTable crdtTable,
+            ConflictFreeReplicatedDataTypeAdapter<T> adapter,
+            SeriesBucketSelector seriesBucketSelector) {
         this.crdtTable = crdtTable;
         this.adapter = adapter;
         this.seriesBucketSelector = seriesBucketSelector;
@@ -35,18 +37,25 @@ public class ConflictFreeReplicatedDataTypeWriter<T> {
     public void aggregateValue(Series series, T value) {
         long partition = seriesBucketSelector.getBucket(series);
         CrdtTable.CrdtRow seriesRow = CrdtTable.CrdtRow.of(series.value());
-        List<CrdtTable.CrdtColumnValue> rowColumns = crdtTable.getRowColumns(seriesRow, CrdtTable.getColumnSelection(CrdtTable.CrdtColumn.of(partition)));
+        List<CrdtTable.CrdtColumnValue> rowColumns =
+                crdtTable.getRowColumns(seriesRow, CrdtTable.getColumnSelection(CrdtTable.CrdtColumn.of(partition)));
 
         if (rowColumns.isEmpty()) {
-            crdtTable.put(seriesRow, CrdtTable.CrdtColumnValue.of(
-                    CrdtTable.CrdtColumn.of(partition), adapter.serializer().apply(value)));
+            crdtTable.put(
+                    seriesRow,
+                    CrdtTable.CrdtColumnValue.of(
+                            CrdtTable.CrdtColumn.of(partition),
+                            adapter.serializer().apply(value)));
             return;
         }
 
         CrdtTable.CrdtColumnValue presentColumnValue = Iterables.getOnlyElement(rowColumns);
-        crdtTable.put(seriesRow, CrdtTable.CrdtColumnValue.of(
-                CrdtTable.CrdtColumn.of(partition), adapter.serializer().apply(
-                        adapter.merge().apply(
-                                adapter.deserializer().apply(presentColumnValue.getValue()), value))));
+        crdtTable.put(
+                seriesRow,
+                CrdtTable.CrdtColumnValue.of(
+                        CrdtTable.CrdtColumn.of(partition),
+                        adapter.serializer()
+                                .apply(adapter.merge()
+                                        .apply(adapter.deserializer().apply(presentColumnValue.getValue()), value))));
     }
 }

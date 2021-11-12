@@ -21,7 +21,6 @@ import com.palantir.atlasdb.crdt.generated.CrdtTable;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.common.streams.KeyedStream;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +37,9 @@ public class ConflictFreeReplicatedDataTypeReader<T> {
 
     public Map<Series, T> read(List<Series> seriesList) {
         Map<CrdtTable.CrdtRow, Iterator<CrdtTable.CrdtColumnValue>> values = crdtTable.getRowsColumnRangeIterator(
-                seriesList.stream().map(series -> CrdtTable.CrdtRow.of(series.value())).collect(Collectors.toList()),
+                seriesList.stream()
+                        .map(series -> CrdtTable.CrdtRow.of(series.value()))
+                        .collect(Collectors.toList()),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1_000));
 
         return KeyedStream.stream(values)
