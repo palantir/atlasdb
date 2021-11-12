@@ -18,8 +18,16 @@ package com.palantir.atlasdb.crdt;
 
 import org.immutables.value.Value;
 
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+
 @Value.Immutable
-public interface Series {
-    @Value.Parameter
-    String value();
+public interface ConflictFreeReplicatedDataTypeAdapter<T> {
+    Function<T, byte[]> serializer();
+
+    Function<byte[], T> deserializer();
+
+    BinaryOperator<T> merge();
+
+    T identity();
 }

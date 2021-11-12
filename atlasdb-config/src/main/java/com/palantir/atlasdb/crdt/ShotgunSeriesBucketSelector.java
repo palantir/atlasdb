@@ -16,11 +16,17 @@
 
 package com.palantir.atlasdb.crdt;
 
-import org.immutables.value.Value;
+import java.util.concurrent.ThreadLocalRandom;
 
-@Value.Immutable
-public interface TypeResolver<T> {
-    T merge(T first, T second);
+public class ShotgunSeriesBucketSelector implements SeriesBucketSelector {
+    private final long maximumBuckets;
 
-    T identity();
+    public ShotgunSeriesBucketSelector(long maximumBuckets) {
+        this.maximumBuckets = maximumBuckets;
+    }
+
+    @Override
+    public long getBucket(Series _series) {
+        return ThreadLocalRandom.current().nextLong(maximumBuckets);
+    }
 }

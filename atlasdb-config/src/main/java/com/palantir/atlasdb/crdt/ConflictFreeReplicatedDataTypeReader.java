@@ -16,42 +16,40 @@
 
 package com.palantir.atlasdb.crdt;
 
-import com.google.common.hash.Hashing;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.description.ValueType;
+import com.google.common.collect.Streams;
+import com.palantir.atlasdb.crdt.generated.CrdtTable;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.common.streams.KeyedStream;
+
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ConflictFreeReplicatedDataTypeReader<T> {
-    private final KeyValueService keyValueService;
-    private final TableReference crdtTable;
-    private final Function<byte[], >
+    private final CrdtTable crdtTable;
+    private final ConflictFreeReplicatedDataTypeAdapter<T> adapter;
 
-    public ConflictFreeReplicatedDataTypeReader(
-            KeyValueService keyValueService,
-            TableReference crdtTable) {
-        this.keyValueService = keyValueService;
+    public ConflictFreeReplicatedDataTypeReader(CrdtTable crdtTable, ConflictFreeReplicatedDataTypeAdapter<T> adapter) {
         this.crdtTable = crdtTable;
+        this.adapter = adapter;
     }
 
     public Map<Series, T> read(List<Series> seriesList) {
-        Map<Cell, Value> values = keyValueService.getRows(crdtTable,
-                seriesList.stream().map(ConflictFreeReplicatedDataTypeReader::serializeSeries).collect(Collectors.toList()),
-                ColumnSelection.all(),
-                Long.MAX_VALUE);
+        Map<CrdtTable.CrdtRow, Iterator<CrdtTable.CrdtColumnValue>> values = crdtTable.getRowsColumnRangeIterator(
+                seriesList.stream().map(series -> CrdtTable.CrdtRow.of(series.value())).collect(Collectors.toList()),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1_000));
 
+        return KeyedStream.stream(values)
+                .<Series>mapKeys(row -> ImmutableSeries.of(row.getSeries()))
+                .map(this::processValueIterator)
+                .collectToMap();
     }
 
-    @SuppressWarnings("all") // murmur3_128
-    private static byte[] serializeSeries(Series series) {
-        byte[] seriesBytes = ValueType.STRING.convertFromJava(series.value());
-        return EncodingUtils.add(Hashing.murmur3_128().hashBytes(seriesBytes).asBytes(), seriesBytes);
+    private T processValueIterator(Iterator<CrdtTable.CrdtColumnValue> valueIterator) {
+        return Streams.stream(valueIterator)
+                .map(cv -> adapter.deserializer().apply(cv.getValue()))
+                .reduce(adapter.identity(), (first, second) -> adapter.merge().apply(first, second));
     }
 }

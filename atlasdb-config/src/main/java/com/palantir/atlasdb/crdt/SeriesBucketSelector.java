@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.crdt;
 
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface Series {
-    @Value.Parameter
-    String value();
+public interface SeriesBucketSelector {
+    long getBucket(Series series);
 }
