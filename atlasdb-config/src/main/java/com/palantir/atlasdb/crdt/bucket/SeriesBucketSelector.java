@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.crdt;
+package com.palantir.atlasdb.crdt.bucket;
+
+import com.palantir.atlasdb.crdt.Series;
 
 public interface SeriesBucketSelector {
     long getBucket(Series series);

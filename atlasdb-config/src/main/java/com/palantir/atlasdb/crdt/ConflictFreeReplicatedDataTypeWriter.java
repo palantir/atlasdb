@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.crdt;
 
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.crdt.bucket.SeriesBucketSelector;
 import com.palantir.atlasdb.crdt.generated.CrdtTable;
 import java.util.List;
 

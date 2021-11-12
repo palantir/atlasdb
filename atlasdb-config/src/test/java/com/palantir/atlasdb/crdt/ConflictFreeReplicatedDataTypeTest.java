@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.crdt.bucket.ShotgunSeriesBucketSelector;
 import com.palantir.atlasdb.crdt.generated.CrdtTable;
 import com.palantir.atlasdb.crdt.generated.CrdtTableFactory;
 import com.palantir.atlasdb.factory.TransactionManagers;
