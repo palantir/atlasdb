@@ -25,9 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.transaction.encoding.KeyAndValue;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
@@ -67,46 +65,32 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
         Cell startTsAsCell = encodingStrategy.encodeStartTimestampAsCell(startTs);
         return Futures.transform(
                 kvs.getAsync(tableRef, ImmutableMap.of(startTsAsCell, Long.MAX_VALUE)),
-                map -> encodingStrategy
-                        .de(startTsAsCell, map.get(startTsAsCell).getContents())
-                        .commitValue(),
+                map -> Optional.ofNullable(map.get(startTsAsCell))
+                        .map(commitValue ->
+                                encodingStrategy.decodeValueAsCommitTimestamp(startTs, commitValue.getContents()))
+                        .orElse(null),
                 MoreExecutors.directExecutor());
-    }
-
-    private Long processRead(Cell cell, Long startTs, byte[] actual) {
-        Optional<Long> commitValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
-        if (commitValue.isEmpty()) {
-            kvs.putUnlessExists(
-                    tableRef,
-                    ImmutableMap.of(
-                            cell,
-                            encodingStrategy.encodeCommitTimestampAsValue(
-                                    startTs, TransactionConstants.FAILED_COMMIT_TS)));
-            return TransactionConstants.FAILED_COMMIT_TS;
-        }
-        PutUnlessExistsValue<Long> valueSeen = commitValue.get();
-        Long commitTs = valueSeen.value();
-        if (valueSeen.isCommitted()) {
-            return commitTs;
-        }
-        store.checkAndTouch(cell, actual);
-        putCommitted(cell, actual);
-        return commitTs;
     }
 
     @Override
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> cells) {
+        Map<Cell, Long> cellToStartTs = StreamSupport.stream(cells.spliterator(), false)
+                .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
+
         ListenableFuture<Map<Cell, Value>> result = kvs.getAsync(
                 tableRef,
                 StreamSupport.stream(cells.spliterator(), false)
                         .collect(Collectors.toMap(
-                                timestampEncodingStrategy::encodeStartTimestampAsCell, _ignore -> Long.MAX_VALUE)));
+                                encodingStrategy::encodeStartTimestampAsCell, _ignore -> Long.MAX_VALUE)));
         return Futures.transform(
                 result,
-                map -> map.entrySet().stream()
-                        .map(entry -> encodingStrategy.decode(
-                                entry.getKey(), entry.getValue().getContents()))
-                        .collect(Collectors.toMap(KeyAndValue::startTimestamp, KeyAndValue::commitValue)),
+                map -> KeyedStream.stream(map)
+                        .mapKeys(cellToStartTs::get)
+                        .map((startTs, value) ->
+                                encodingStrategy.decodeValueAsCommitTimestamp(startTs, value.getContents()))
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .collectToMap(),
                 MoreExecutors.directExecutor());
     }
 }

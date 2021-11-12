@@ -15,53 +15,53 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.pue.PutUnlessExistsTable;
+import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
+import com.palantir.atlasdb.pue.SimpleCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
-import java.util.stream.StreamSupport;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
-    private final PutUnlessExistsTable<Long> txnTable = null;
-    private final KeyValueService kvs;
-    private final TimestampEncodingStrategy encodingStrategy;
-    private final TableReference transactionsTable;
-
-    // The maximum key-value store timestamp (exclusive) at which data is stored
-    // in transaction table.
-    // All entries in transaction table are stored with timestamp 0
-    private static final long MAX_TIMESTAMP = 1L;
-    private final AsyncCellGetter immediateAsyncCellGetter;
-    private final AsyncCellGetter asyncCellGetter;
+    private final PutUnlessExistsTable<Long, Long> txnTable;
+    private final TimestampEncodingStrategy<?> encodingStrategy;
 
     private SimpleTransactionService(
-            KeyValueService kvs, TimestampEncodingStrategy encodingStrategy, TableReference transactionsTable) {
-        this.kvs = kvs;
+            PutUnlessExistsTable<Long, Long> txnTable, TimestampEncodingStrategy<?> encodingStrategy) {
         this.encodingStrategy = encodingStrategy;
-        this.transactionsTable = transactionsTable;
-        this.immediateAsyncCellGetter = startTsMap -> Futures.immediateFuture(kvs.get(transactionsTable, startTsMap));
-        this.asyncCellGetter = startTsMap -> kvs.getAsync(transactionsTable, startTsMap);
+        this.txnTable = txnTable;
     }
 
     public static SimpleTransactionService createV1(KeyValueService kvs) {
-        return new SimpleTransactionService(kvs, V1EncodingStrategy.INSTANCE, TransactionConstants.TRANSACTION_TABLE);
+        return new SimpleTransactionService(
+                new SimpleCommitTimestampPutUnlessExistsTable(
+                        kvs, TransactionConstants.TRANSACTION_TABLE, V1EncodingStrategy.INSTANCE),
+                V1EncodingStrategy.INSTANCE);
     }
 
     public static SimpleTransactionService createV2(KeyValueService kvs) {
         return new SimpleTransactionService(
-                kvs, TicketsEncodingStrategy.INSTANCE, TransactionConstants.TRANSACTIONS2_TABLE);
+                new SimpleCommitTimestampPutUnlessExistsTable(
+                        kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE),
+                TicketsEncodingStrategy.INSTANCE);
+    }
+
+    public static SimpleTransactionService createV3Simple(KeyValueService kvs) {
+        return new SimpleTransactionService(
+                new SimpleCommitTimestampPutUnlessExistsTable(
+                        kvs, TransactionConstants.TRANSACTIONS3_TABLE, TicketsEncodingStrategy.INSTANCE),
+                TicketsEncodingStrategy.INSTANCE);
+    }
+
+    public static SimpleTransactionService createV3Complex(KeyValueService kvs) {
+        PutUnlessExistsTable<Long, Long> table = new ResilientCommitTimestampPutUnlessExistsTable(null, null);
+        return new SimpleTransactionService(table, null);
     }
 
     @Override
@@ -86,14 +86,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) {
-        txnTable.putUnlessExists(getTransactionCell(startTimestamp), commitTimestamp);
+        txnTable.putUnlessExists(startTimestamp, commitTimestamp);
     }
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        txnTable.putUnlessExistsMultiple(KeyedStream.stream(startTimestampToCommitTimestamp)
-                .mapKeys(encodingStrategy::encodeStartTimestampAsCell)
-                .collectToMap());
+        txnTable.putUnlessExistsMultiple(startTimestampToCommitTimestamp);
     }
 
     private Cell getTransactionCell(long startTimestamp) {
@@ -101,7 +99,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
-    public TimestampEncodingStrategy getEncodingStrategy() {
+    public TimestampEncodingStrategy<?> getEncodingStrategy() {
         return encodingStrategy;
     }
 
@@ -111,40 +109,10 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     private ListenableFuture<Long> getInternal(long startTimestamp) {
-        Cell cell = getTransactionCell(startTimestamp);
-        return txnTable.get(cell);
+        return txnTable.get(startTimestamp);
     }
 
     private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps) {
-        Map<Cell, Long> cells = KeyedStream.of(StreamSupport.stream(startTimestamps.spliterator(), false))
-                .mapKeys(this::getTransactionCell)
-                .collectToMap();
-        return Futures.transform(
-                txnTable.get(cells.keySet()),
-                map -> KeyedStream.stream(map).mapKeys(cells::get).collectToMap(),
-                MoreExecutors.directExecutor());
-    }
-
-    private Long decodeTimestamp(long startTimestamp, Cell cell, Map<Cell, Value> rawResults) {
-        if (rawResults.containsKey(cell)) {
-            return encodingStrategy.decodeValueAsCommitTimestamp(
-                    startTimestamp, rawResults.get(cell).getContents());
-        }
-        return null;
-    }
-
-    private Map<Long, Long> decodeTimestamps(Map<Cell, Value> rawResults) {
-        Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
-        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-            long startTs = encodingStrategy.decodeCellAsStartTimestamp(e.getKey());
-            long commitTs = encodingStrategy.decodeValueAsCommitTimestamp(
-                    startTs, e.getValue().getContents());
-            result.put(startTs, commitTs);
-        }
-        return result;
-    }
-
-    private interface AsyncCellGetter {
-        ListenableFuture<Map<Cell, Value>> get(Map<Cell, Long> startTsMap);
+        return txnTable.get(startTimestamps);
     }
 }

@@ -23,7 +23,6 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.ToDoEncodingStrategy;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
@@ -63,7 +62,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     @Override
     public ListenableFuture<Long> get(Long startTs) {
         Cell cell = encodingStrategy.encodeStartTimestampAsCell(startTs);
-        ListenableFuture<byte[]> actual = store.get(cell);
+        ListenableFuture<Optional<byte[]>> actual = store.get(cell);
         return Futures.transform(actual, read -> (processRead(cell, startTs, read)), MoreExecutors.directExecutor());
     }
 
@@ -79,25 +78,25 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                         MoreExecutors.directExecutor());
     }
 
-    byte[] pueStaging(Cell cell, long startTs, long commitTs) {
+    private byte[] pueStaging(Cell cell, long startTs, long commitTs) {
         byte[] stagingValue =
                 encodingStrategy.encodeCommitTimestampAsValue(startTs, PutUnlessExistsValue.staging(commitTs));
         store.putUnlessExists(cell, stagingValue);
         return stagingValue;
     }
 
-    void putCommitted(Cell cell, byte[] stagingValue) {
+    private void putCommitted(Cell cell, byte[] stagingValue) {
         store.put(cell, encodingStrategy.transformStagingToCommitted(stagingValue));
     }
 
-    private Long processRead(Cell cell, Long startTs, byte[] actual) {
-        Optional<PutUnlessExistsValue<Long>> commitValue =
-                encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
-        if (commitValue.isEmpty()) {
-            pueStaging(cell, startTs, TransactionConstants.FAILED_COMMIT_TS);
-            return TransactionConstants.FAILED_COMMIT_TS;
+    private Long processRead(Cell cell, Long startTs, Optional<byte[]> maybeActual) {
+        if (maybeActual.isEmpty()) {
+            return null;
         }
-        PutUnlessExistsValue<Long> valueSeen = commitValue.get();
+
+        byte[] actual = maybeActual.get();
+        PutUnlessExistsValue<Long> valueSeen = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+
         Long commitTs = valueSeen.value();
         if (valueSeen.isCommitted()) {
             return commitTs;

@@ -19,6 +19,7 @@ package com.palantir.atlasdb.pue;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.util.Map;
+import java.util.Optional;
 
 public interface ConsensusForgettingStore {
     void putUnlessExists(Cell cell, byte[] value);
@@ -27,7 +28,7 @@ public interface ConsensusForgettingStore {
 
     void checkAndTouch(Cell cell, byte[] value);
 
-    ListenableFuture<byte[]> get(Cell cell);
+    ListenableFuture<Optional<byte[]>> get(Cell cell);
 
     void put(Cell cell, byte[] value);
 
