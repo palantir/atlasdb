@@ -16,5 +16,42 @@
 
 package com.palantir.atlasdb.crdt;
 
-public class ConflictFreeReplicatedDataTypeReader {
+import com.google.common.hash.Hashing;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.common.streams.KeyedStream;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class ConflictFreeReplicatedDataTypeReader<T> {
+    private final KeyValueService keyValueService;
+    private final TableReference crdtTable;
+    private final Function<byte[], >
+
+    public ConflictFreeReplicatedDataTypeReader(
+            KeyValueService keyValueService,
+            TableReference crdtTable) {
+        this.keyValueService = keyValueService;
+        this.crdtTable = crdtTable;
+    }
+
+    public Map<Series, T> read(List<Series> seriesList) {
+        Map<Cell, Value> values = keyValueService.getRows(crdtTable,
+                seriesList.stream().map(ConflictFreeReplicatedDataTypeReader::serializeSeries).collect(Collectors.toList()),
+                ColumnSelection.all(),
+                Long.MAX_VALUE);
+
+    }
+
+    @SuppressWarnings("all") // murmur3_128
+    private static byte[] serializeSeries(Series series) {
+        byte[] seriesBytes = ValueType.STRING.convertFromJava(series.value());
+        return EncodingUtils.add(Hashing.murmur3_128().hashBytes(seriesBytes).asBytes(), seriesBytes);
+    }
 }
