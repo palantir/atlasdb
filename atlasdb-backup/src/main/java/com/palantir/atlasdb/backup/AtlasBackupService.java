@@ -22,9 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
 import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
 import com.palantir.atlasdb.timelock.api.CompletedBackup;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
@@ -71,24 +68,11 @@ public final class AtlasBackupService {
         AtlasBackupClientBlocking atlasBackupClientBlocking =
                 reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName);
 
-        // TODO(gs): will this work in practice? do we need a different serviceName?
-        ConjureTimelockServiceBlocking conjureTimelockServiceBlocking =
-                reloadingFactory.get(ConjureTimelockServiceBlocking.class, serviceName);
-        CoordinationServiceRecorder coordinationServiceRecorder = new CoordinationServiceRecorder(
-                keyValueServiceFactory,
-                ns -> getFreshTimestamp(conjureTimelockServiceBlocking, authHeader, ns),
-                backupPersister);
+        CoordinationServiceRecorder coordinationServiceRecorder =
+                new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
 
         return new AtlasBackupService(
                 authHeader, atlasBackupClientBlocking, coordinationServiceRecorder, backupPersister);
-    }
-
-    private static Long getFreshTimestamp(
-            ConjureTimelockServiceBlocking conjureTimelockServiceBlocking, AuthHeader authHeader, Namespace ns) {
-        ConjureGetFreshTimestampsRequest request = ConjureGetFreshTimestampsRequest.of(1);
-        ConjureGetFreshTimestampsResponse response =
-                conjureTimelockServiceBlocking.getFreshTimestamps(authHeader, ns.get(), request);
-        return response.getInclusiveLower();
     }
 
     public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {

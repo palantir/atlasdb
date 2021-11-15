@@ -32,15 +32,11 @@ import java.util.function.Function;
 
 final class CoordinationServiceRecorder {
     private final Function<Namespace, KeyValueService> keyValueServiceFactory;
-    private final Function<Namespace, Long> timestampSupplier;
     private final BackupPersister backupPersister;
 
     CoordinationServiceRecorder(
-            Function<Namespace, KeyValueService> keyValueServiceFactory,
-            Function<Namespace, Long> timestampSupplier,
-            BackupPersister backupPersister) {
+            Function<Namespace, KeyValueService> keyValueServiceFactory, BackupPersister backupPersister) {
         this.keyValueServiceFactory = keyValueServiceFactory;
-        this.timestampSupplier = timestampSupplier;
         this.backupPersister = backupPersister;
     }
 
@@ -59,19 +55,16 @@ final class CoordinationServiceRecorder {
                 return Optional.empty();
             }
             CoordinationService<InternalSchemaMetadata> coordination =
-                    CoordinationServices.createDefault(kvs, () -> timestampSupplier.apply(namespace), false);
+                    CoordinationServices.createDefault(kvs, () -> timestamp, false);
 
-            return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(timestamp, coordination)));
+            return getValidMetadata(timestamp, coordination).map(InternalSchemaMetadataState::of);
         }
     }
 
-    private ValueAndBound<InternalSchemaMetadata> getValidMetadata(
+    private Optional<ValueAndBound<InternalSchemaMetadata>> getValidMetadata(
             long timestamp, CoordinationService<InternalSchemaMetadata> coordination) {
         Optional<ValueAndBound<InternalSchemaMetadata>> state = coordination.getValueForTimestamp(timestamp);
-        while (state.isEmpty()) {
-            state = tryExtendValidityBound(coordination, timestamp);
-        }
-        return state.get();
+        return state.or(() -> tryExtendValidityBound(coordination, timestamp));
     }
 
     private Optional<ValueAndBound<InternalSchemaMetadata>> tryExtendValidityBound(
