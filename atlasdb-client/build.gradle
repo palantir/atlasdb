@@ -45,7 +45,6 @@ dependencies {
   api group: "com.google.code.findbugs", name: "jsr305"
   api group: "com.google.guava", name: "guava"
   api group: "com.google.protobuf", name: "protobuf-java"
-  api group: "com.palantir.common", name: "streams"
   api group: "jakarta.annotation", name: "jakarta.annotation-api"
   api group: "org.slf4j", name: "slf4j-api"
 
@@ -77,6 +76,7 @@ dependencies {
   implementation group: 'com.squareup.okio', name: 'okio'
   implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
   implementation group: 'com.github.rholder', name: 'guava-retrying'
+  implementation group: 'com.palantir.common', name: 'streams'
   implementation group: 'org.rocksdb', name: 'rocksdbjni'
 
   implementation group: 'com.squareup', name:'javapoet'
