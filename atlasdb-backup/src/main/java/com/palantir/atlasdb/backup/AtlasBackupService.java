@@ -43,7 +43,7 @@ public final class AtlasBackupService {
     private final AtlasBackupClientBlocking atlasBackupClientBlocking;
     private final CoordinationServiceRecorder coordinationServiceRecorder;
     private final BackupPersister backupPersister;
-    private final Map<Namespace, InProgressBackupToken> storedTokens;
+    private final Map<Namespace, InProgressBackupToken> inProgressBackups;
 
     @VisibleForTesting
     AtlasBackupService(
@@ -55,7 +55,7 @@ public final class AtlasBackupService {
         this.atlasBackupClientBlocking = atlasBackupClientBlocking;
         this.coordinationServiceRecorder = coordinationServiceRecorder;
         this.backupPersister = backupPersister;
-        this.storedTokens = new ConcurrentHashMap<>();
+        this.inProgressBackups = new ConcurrentHashMap<>();
     }
 
     public static AtlasBackupService create(
@@ -86,12 +86,12 @@ public final class AtlasBackupService {
     }
 
     private void storeBackupToken(InProgressBackupToken backupToken) {
-        storedTokens.put(backupToken.getNamespace(), backupToken);
+        inProgressBackups.put(backupToken.getNamespace(), backupToken);
     }
 
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
         Set<InProgressBackupToken> tokens = namespaces.stream()
-                .map(storedTokens::remove)
+                .map(inProgressBackups::remove)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);

@@ -67,14 +67,13 @@ final class CoordinationServiceRecorder {
             CoordinationService<InternalSchemaMetadata> coordination =
                     CoordinationServices.createDefault(kvs, () -> timestamp, false);
 
-            return getValidMetadata(timestamp, coordination).map(InternalSchemaMetadataState::of);
+            return getValidMetadata(coordination, timestamp).map(InternalSchemaMetadataState::of);
         }
     }
 
     private Optional<ValueAndBound<InternalSchemaMetadata>> getValidMetadata(
-            long timestamp, CoordinationService<InternalSchemaMetadata> coordination) {
-        Optional<ValueAndBound<InternalSchemaMetadata>> state = coordination.getValueForTimestamp(timestamp);
-        return state.or(() -> tryExtendValidityBound(coordination, timestamp));
+            CoordinationService<InternalSchemaMetadata> coordination, long timestamp) {
+        return coordination.getValueForTimestamp(timestamp).or(() -> tryExtendValidityBound(coordination, timestamp));
     }
 
     private Optional<ValueAndBound<InternalSchemaMetadata>> tryExtendValidityBound(
