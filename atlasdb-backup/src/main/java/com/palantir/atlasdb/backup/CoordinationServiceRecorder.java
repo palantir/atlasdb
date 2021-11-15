@@ -33,15 +33,15 @@ import java.util.function.Function;
 final class CoordinationServiceRecorder {
     private final Function<Namespace, KeyValueService> keyValueServiceFactory;
     private final Function<Namespace, Long> timestampSupplier;
-    private final SchemaMetadataPersister schemaMetadataPersister;
+    private final BackupPersister backupPersister;
 
     CoordinationServiceRecorder(
             Function<Namespace, KeyValueService> keyValueServiceFactory,
             Function<Namespace, Long> timestampSupplier,
-            SchemaMetadataPersister schemaMetadataPersister) {
+            BackupPersister backupPersister) {
         this.keyValueServiceFactory = keyValueServiceFactory;
         this.timestampSupplier = timestampSupplier;
-        this.schemaMetadataPersister = schemaMetadataPersister;
+        this.backupPersister = backupPersister;
     }
 
     public void storeFastForwardState(CompletedBackup completedBackup) {
@@ -50,7 +50,7 @@ final class CoordinationServiceRecorder {
                 fetchSchemaMetadata(namespace, completedBackup.getBackupEndTimestamp());
 
         // TODO(gs): log if not present?
-        maybeMetadata.ifPresent(metadata -> schemaMetadataPersister.put(namespace, metadata));
+        maybeMetadata.ifPresent(metadata -> backupPersister.storeSchemaMetadata(namespace, metadata));
     }
 
     private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, long timestamp) {

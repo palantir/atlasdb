@@ -45,22 +45,25 @@ public final class AtlasBackupService {
     private final AuthHeader authHeader;
     private final AtlasBackupClientBlocking atlasBackupClientBlocking;
     private final CoordinationServiceRecorder coordinationServiceRecorder;
+    private final BackupPersister backupPersister;
     private final Map<Namespace, InProgressBackupToken> storedTokens;
 
     @VisibleForTesting
     AtlasBackupService(
             AuthHeader authHeader,
             AtlasBackupClientBlocking atlasBackupClientBlocking,
-            CoordinationServiceRecorder coordinationServiceRecorder) {
+            CoordinationServiceRecorder coordinationServiceRecorder,
+            BackupPersister backupPersister) {
         this.authHeader = authHeader;
         this.atlasBackupClientBlocking = atlasBackupClientBlocking;
         this.coordinationServiceRecorder = coordinationServiceRecorder;
+        this.backupPersister = backupPersister;
         this.storedTokens = new ConcurrentHashMap<>();
     }
 
-    // TODO(gs): pass persister into this class
     public static AtlasBackupService create(
             AuthHeader authHeader,
+            BackupPersister backupPersister,
             Refreshable<ServicesConfigBlock> servicesConfigBlock,
             String serviceName,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
@@ -74,9 +77,10 @@ public final class AtlasBackupService {
         CoordinationServiceRecorder coordinationServiceRecorder = new CoordinationServiceRecorder(
                 keyValueServiceFactory,
                 ns -> getFreshTimestamp(conjureTimelockServiceBlocking, authHeader, ns),
-                new InMemorySchemaMetadataPersister());
+                backupPersister);
 
-        return new AtlasBackupService(authHeader, atlasBackupClientBlocking, coordinationServiceRecorder);
+        return new AtlasBackupService(
+                authHeader, atlasBackupClientBlocking, coordinationServiceRecorder, backupPersister);
     }
 
     private static Long getFreshTimestamp(
@@ -101,8 +105,6 @@ public final class AtlasBackupService {
         storedTokens.put(backupToken.getNamespace(), backupToken);
     }
 
-    // TODO(gs): actually persist the token using a persister passed into this class.
-    //   Then we have an atlas-side implementation of the persister that conforms with the current backup story
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
         Set<InProgressBackupToken> tokens = namespaces.stream()
                 .map(storedTokens::remove)
@@ -117,6 +119,7 @@ public final class AtlasBackupService {
                 // information
                 // AtlasBackupClient is remote (on timelock), so we might hit different nodes
                 .peek(coordinationServiceRecorder::storeFastForwardState)
+                .peek(backupPersister::storeCompletedBackup)
                 .map(CompletedBackup::getNamespace)
                 .collect(Collectors.toSet());
     }

@@ -17,25 +17,18 @@
 package com.palantir.atlasdb.backup;
 
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
+import com.palantir.atlasdb.timelock.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
-class InMemorySchemaMetadataPersister implements SchemaMetadataPersister {
-    private final Map<Namespace, InternalSchemaMetadataState> metadataForInProgressBackups;
+// TODO(gs): also store backup info
+interface BackupPersister {
+    void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
 
-    InMemorySchemaMetadataPersister() {
-        metadataForInProgressBackups = new ConcurrentHashMap<>();
-    }
+    // TODO(gs): tests
+    Optional<InternalSchemaMetadataState> getSchemaMetadata(Namespace namespace);
 
-    @Override
-    public void put(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
-        metadataForInProgressBackups.put(namespace, internalSchemaMetadataState);
-    }
+    void storeCompletedBackup(CompletedBackup completedBackup);
 
-    @Override
-    public Optional<InternalSchemaMetadataState> get(Namespace namespace) {
-        return Optional.ofNullable(metadataForInProgressBackups.get(namespace));
-    }
+    Optional<CompletedBackup> getCompletedBackup(Namespace namespace, CompletedBackup completedBackup);
 }

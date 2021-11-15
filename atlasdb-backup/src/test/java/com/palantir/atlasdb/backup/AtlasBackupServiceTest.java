@@ -57,7 +57,8 @@ public class AtlasBackupServiceTest {
 
     @Before
     public void setup() {
-        atlasBackupService = new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder);
+        atlasBackupService = new AtlasBackupService(
+                authHeader, atlasBackupClient, coordinationServiceRecorder, new InMemoryBackupPersister());
     }
 
     @Test
