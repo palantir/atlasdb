@@ -49,7 +49,7 @@ class InMemoryBackupPersister implements BackupPersister {
 
     // TODO(gs): store for multiple backups?
     @Override
-    public Optional<CompletedBackup> getCompletedBackup(Namespace namespace, CompletedBackup completedBackup) {
+    public Optional<CompletedBackup> getCompletedBackup(Namespace namespace) {
         return Optional.ofNullable(completedBackups.get(namespace));
     }
 }

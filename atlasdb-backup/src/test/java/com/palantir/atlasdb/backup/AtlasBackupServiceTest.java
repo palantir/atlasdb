@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -54,11 +55,13 @@ public class AtlasBackupServiceTest {
     private CoordinationServiceRecorder coordinationServiceRecorder;
 
     private AtlasBackupService atlasBackupService;
+    private BackupPersister backupPersister;
 
     @Before
     public void setup() {
-        atlasBackupService = new AtlasBackupService(
-                authHeader, atlasBackupClient, coordinationServiceRecorder, new InMemoryBackupPersister());
+        backupPersister = new InMemoryBackupPersister();
+        atlasBackupService =
+                new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
     }
 
     @Test
@@ -100,6 +103,27 @@ public class AtlasBackupServiceTest {
         atlasBackupService.prepareBackup(namespaces);
 
         assertThat(atlasBackupService.completeBackup(namespaces)).containsExactly(NAMESPACE);
+    }
+
+    @Test
+    public void completeBackupStoresBackupInfoAndMetadata() {
+        ImmutableSet<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
+                .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
+
+        CompletedBackup completedBackup = CompletedBackup.builder()
+                .namespace(NAMESPACE)
+                .backupStartTimestamp(2L)
+                .backupEndTimestamp(3L)
+                .build();
+        when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS))))
+                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
+
+        atlasBackupService.prepareBackup(oneNamespace);
+        atlasBackupService.completeBackup(oneNamespace);
+
+        verify(coordinationServiceRecorder).storeFastForwardState(completedBackup);
+        assertThat(backupPersister.getCompletedBackup(NAMESPACE)).contains(completedBackup);
     }
 
     private static InProgressBackupToken inProgressBackupToken(Namespace namespace) {

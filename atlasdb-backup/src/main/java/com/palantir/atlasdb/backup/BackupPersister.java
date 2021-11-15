@@ -24,10 +24,9 @@ import java.util.Optional;
 interface BackupPersister {
     void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
 
-    // TODO(gs): tests
     Optional<InternalSchemaMetadataState> getSchemaMetadata(Namespace namespace);
 
     void storeCompletedBackup(CompletedBackup completedBackup);
 
-    Optional<CompletedBackup> getCompletedBackup(Namespace namespace, CompletedBackup completedBackup);
+    Optional<CompletedBackup> getCompletedBackup(Namespace namespace);
 }
