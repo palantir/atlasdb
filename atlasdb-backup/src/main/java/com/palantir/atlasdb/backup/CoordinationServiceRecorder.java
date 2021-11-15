@@ -27,10 +27,15 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.timelock.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 import java.util.function.Function;
 
 final class CoordinationServiceRecorder {
+    private static final SafeLogger log = SafeLoggerFactory.get(CoordinationServiceRecorder.class);
+
     private final Function<Namespace, KeyValueService> keyValueServiceFactory;
     private final BackupPersister backupPersister;
 
@@ -45,8 +50,13 @@ final class CoordinationServiceRecorder {
         Optional<InternalSchemaMetadataState> maybeMetadata =
                 fetchSchemaMetadata(namespace, completedBackup.getBackupEndTimestamp());
 
-        // TODO(gs): log if not present?
-        maybeMetadata.ifPresent(metadata -> backupPersister.storeSchemaMetadata(namespace, metadata));
+        maybeMetadata.ifPresentOrElse(
+                metadata -> backupPersister.storeSchemaMetadata(namespace, metadata),
+                () -> logEmptyMetadata(namespace));
+    }
+
+    private void logEmptyMetadata(Namespace namespace) {
+        log.info("No metadata stored in coordination service for namespace.", SafeArg.of("namespace", namespace));
     }
 
     private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, long timestamp) {

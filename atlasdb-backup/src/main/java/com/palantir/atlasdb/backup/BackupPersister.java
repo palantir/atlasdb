@@ -21,7 +21,6 @@ import com.palantir.atlasdb.timelock.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 
-// TODO(gs): also store backup info
 interface BackupPersister {
     void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
 
