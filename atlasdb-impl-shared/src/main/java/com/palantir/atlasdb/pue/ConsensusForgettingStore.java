@@ -30,6 +30,10 @@ public interface ConsensusForgettingStore {
 
     void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
 
+    default void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+        values.forEach(this::checkAndTouch);
+    }
+
     ListenableFuture<Optional<byte[]>> get(Cell cell);
 
     ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells);

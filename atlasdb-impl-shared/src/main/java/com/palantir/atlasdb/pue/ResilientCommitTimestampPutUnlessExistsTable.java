@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.pue;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -23,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.ToDoEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -71,13 +73,9 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
         Map<Long, Cell> startTsToCell = StreamSupport.stream(cells.spliterator(), false)
                 .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell));
         ListenableFuture<Map<Cell, byte[]>> asyncReads = store.getMultiple(startTsToCell.values());
-        // todo(gmaretic): This can be further optimised if we add a multi check and touch, also can use multiput
         return Futures.transform(
                 asyncReads,
-                presentValues -> KeyedStream.stream(startTsToCell)
-                        .map((startTs, cell) ->
-                                processRead(cell, startTs, Optional.ofNullable(presentValues.get(cell))))
-                        .collectToMap(),
+                presentValues -> processReads(presentValues, startTsToCell),
                 MoreExecutors.directExecutor());
     }
 
@@ -107,5 +105,34 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
         store.checkAndTouch(cell, actual);
         putCommitted(cell, actual);
         return commitTs;
+    }
+
+    private Map<Long, Long> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
+        Map<Cell, byte[]> checkAndTouch = new HashMap<>();
+        ImmutableMap.Builder<Long, Long> resultBuilder = ImmutableMap.builder();
+        for (Map.Entry<Long, Cell> startTsAndCell : startTsToCell.entrySet()) {
+            Cell cell = startTsAndCell.getValue();
+            Optional<byte[]> maybeActual = Optional.ofNullable(reads.get(cell));
+            if (maybeActual.isEmpty()) {
+                continue;
+            }
+
+            Long startTs = startTsAndCell.getKey();
+            byte[] actual = maybeActual.get();
+            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+
+            Long commitTs = currentValue.value();
+            if (currentValue.isCommitted()) {
+                resultBuilder.put(startTs, commitTs);
+                continue;
+            }
+            checkAndTouch.put(cell, actual);
+            resultBuilder.put(startTs, commitTs);
+        }
+        store.checkAndTouch(checkAndTouch);
+        store.put(KeyedStream.stream(checkAndTouch)
+                .map(encodingStrategy::transformStagingToCommitted)
+                .collectToMap());
+        return resultBuilder.build();
     }
 }
