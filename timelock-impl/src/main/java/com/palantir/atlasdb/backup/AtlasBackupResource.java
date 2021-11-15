@@ -73,12 +73,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         return handleExceptions(() -> Futures.immediateFuture(prepareBackupInternal(request)));
     }
 
-    @Override
-    public ListenableFuture<Long> getFreshTimestamp(AuthHeader authHeader, Namespace namespace) {
-        long freshTimestamp = timelockServices.apply(namespace.get()).getFreshTimestamp();
-        return Futures.immediateFuture(freshTimestamp);
-    }
-
     private PrepareBackupResponse prepareBackupInternal(PrepareBackupRequest request) {
         Set<InProgressBackupToken> preparedBackups =
                 request.getNamespaces().stream().map(this::prepareBackup).collect(Collectors.toSet());
@@ -161,11 +155,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         @Override
         public PrepareBackupResponse prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
             return unwrap(resource.prepareBackup(authHeader, request));
-        }
-
-        @Override
-        public long getFreshTimestamp(AuthHeader authHeader, Namespace namespace) {
-            return unwrap(resource.getFreshTimestamp(authHeader, namespace));
         }
 
         @Override

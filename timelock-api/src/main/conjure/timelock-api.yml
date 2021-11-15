@@ -155,11 +155,6 @@ services:
         args:
           request: PrepareBackupRequest
         returns: PrepareBackupResponse
-      getFreshTimestamp:
-        http: POST /ts
-        args:
-          namespace: Namespace
-        returns: Long
       completeBackup:
         http: POST /complete
         args:
