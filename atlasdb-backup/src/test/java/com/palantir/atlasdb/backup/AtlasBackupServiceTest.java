@@ -22,13 +22,14 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
-import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
-import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
-import com.palantir.atlasdb.timelock.api.CompletedBackup;
-import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
+import com.palantir.atlasdb.backup.api.BackupId;
+import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
+import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
+import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.InProgressBackupToken;
+import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
+import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
-import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
@@ -43,6 +44,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AtlasBackupServiceTest {
     private static final Namespace NAMESPACE = Namespace.of("foo");
     private static final Namespace OTHER_NAMESPACE = Namespace.of("other");
+    private static final BackupId BACKUP_ID = BackupId.of("my_awesome_backup");
     private static final InProgressBackupToken IN_PROGRESS = inProgressBackupToken(NAMESPACE);
 
     @Mock
@@ -92,6 +94,7 @@ public class AtlasBackupServiceTest {
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS, otherInProgress)));
 
         CompletedBackup completedBackup = CompletedBackup.builder()
+                .backupId(BACKUP_ID)
                 .namespace(NAMESPACE)
                 .backupStartTimestamp(2L)
                 .backupEndTimestamp(3L)
@@ -112,6 +115,7 @@ public class AtlasBackupServiceTest {
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
 
         CompletedBackup completedBackup = CompletedBackup.builder()
+                .backupId(BACKUP_ID)
                 .namespace(NAMESPACE)
                 .backupStartTimestamp(2L)
                 .backupEndTimestamp(3L)
@@ -123,11 +127,12 @@ public class AtlasBackupServiceTest {
         atlasBackupService.completeBackup(oneNamespace);
 
         verify(coordinationServiceRecorder).storeFastForwardState(completedBackup);
-        assertThat(backupPersister.getCompletedBackup(NAMESPACE)).contains(completedBackup);
+        assertThat(backupPersister.getCompletedBackup(BACKUP_ID, NAMESPACE)).contains(completedBackup);
     }
 
     private static InProgressBackupToken inProgressBackupToken(Namespace namespace) {
         return InProgressBackupToken.builder()
+                .backupId(BACKUP_ID)
                 .namespace(namespace)
                 .immutableTimestamp(1L)
                 .backupStartTimestamp(2L)

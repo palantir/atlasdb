@@ -18,6 +18,7 @@ package com.palantir.atlasdb.backup;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -25,7 +26,6 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.atlasdb.timelock.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -51,7 +51,7 @@ final class CoordinationServiceRecorder {
                 fetchSchemaMetadata(namespace, completedBackup.getBackupEndTimestamp());
 
         maybeMetadata.ifPresentOrElse(
-                metadata -> backupPersister.storeSchemaMetadata(namespace, metadata),
+                metadata -> backupPersister.storeSchemaMetadata(completedBackup.getBackupId(), namespace, metadata),
                 () -> logEmptyMetadata(namespace));
     }
 

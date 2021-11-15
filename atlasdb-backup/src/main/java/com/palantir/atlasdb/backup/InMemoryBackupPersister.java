@@ -16,16 +16,17 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.palantir.atlasdb.backup.api.BackupId;
+import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
-import com.palantir.atlasdb.timelock.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 class InMemoryBackupPersister implements BackupPersister {
-    private final Map<Namespace, InternalSchemaMetadataState> schemaMetadatas;
-    private final Map<Namespace, CompletedBackup> completedBackups;
+    private final Map<BackupId, InternalSchemaMetadataState> schemaMetadatas;
+    private final Map<BackupId, CompletedBackup> completedBackups;
 
     InMemoryBackupPersister() {
         schemaMetadatas = new ConcurrentHashMap<>();
@@ -33,23 +34,23 @@ class InMemoryBackupPersister implements BackupPersister {
     }
 
     @Override
-    public void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
-        schemaMetadatas.put(namespace, internalSchemaMetadataState);
+    public void storeSchemaMetadata(
+            BackupId backupId, Namespace _namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
+        schemaMetadatas.put(backupId, internalSchemaMetadataState);
     }
 
     @Override
-    public Optional<InternalSchemaMetadataState> getSchemaMetadata(Namespace namespace) {
-        return Optional.ofNullable(schemaMetadatas.get(namespace));
+    public Optional<InternalSchemaMetadataState> getSchemaMetadata(BackupId backupId, Namespace _namespace) {
+        return Optional.ofNullable(schemaMetadatas.get(backupId));
     }
 
     @Override
     public void storeCompletedBackup(CompletedBackup completedBackup) {
-        completedBackups.put(completedBackup.getNamespace(), completedBackup);
+        completedBackups.put(completedBackup.getBackupId(), completedBackup);
     }
 
-    // TODO(gs): store for multiple backups?
     @Override
-    public Optional<CompletedBackup> getCompletedBackup(Namespace namespace) {
-        return Optional.ofNullable(completedBackups.get(namespace));
+    public Optional<CompletedBackup> getCompletedBackup(BackupId backupId, Namespace _namespace) {
+        return Optional.ofNullable(completedBackups.get(backupId));
     }
 }
