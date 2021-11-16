@@ -69,10 +69,10 @@ public class AtlasBackupServiceTest {
     @Test
     public void prepareBackupReturnsSuccessfulNamespaces() {
         when(atlasBackupClient.prepareBackup(
-                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                        authHeader, PrepareBackupRequest.of(BACKUP_ID, ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
 
-        assertThat(atlasBackupService.prepareBackup(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE)))
+        assertThat(atlasBackupService.prepareBackup(BACKUP_ID, ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE)))
                 .containsExactly(NAMESPACE);
     }
 
@@ -90,7 +90,7 @@ public class AtlasBackupServiceTest {
         InProgressBackupToken otherInProgress = inProgressBackupToken(OTHER_NAMESPACE);
         Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
 
-        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(namespaces)))
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(BACKUP_ID, namespaces)))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS, otherInProgress)));
 
         CompletedBackup completedBackup = CompletedBackup.builder()
@@ -103,7 +103,7 @@ public class AtlasBackupServiceTest {
                         authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS, otherInProgress))))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
 
-        atlasBackupService.prepareBackup(namespaces);
+        atlasBackupService.prepareBackup(BACKUP_ID, namespaces);
 
         assertThat(atlasBackupService.completeBackup(namespaces)).containsExactly(NAMESPACE);
     }
@@ -111,7 +111,7 @@ public class AtlasBackupServiceTest {
     @Test
     public void completeBackupStoresBackupInfoAndMetadata() {
         ImmutableSet<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
-        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(BACKUP_ID, oneNamespace)))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
 
         CompletedBackup completedBackup = CompletedBackup.builder()
@@ -123,7 +123,7 @@ public class AtlasBackupServiceTest {
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS))))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
 
-        atlasBackupService.prepareBackup(oneNamespace);
+        atlasBackupService.prepareBackup(BACKUP_ID, oneNamespace);
         atlasBackupService.completeBackup(oneNamespace);
 
         verify(coordinationServiceRecorder).storeFastForwardState(completedBackup);

@@ -107,6 +107,7 @@ types:
       PrepareBackupRequest:
         package: com.palantir.atlasdb.backup.api
         fields:
+          backupId: BackupId
           namespaces: set<Namespace>
       PrepareBackupResponse:
         package: com.palantir.atlasdb.backup.api
