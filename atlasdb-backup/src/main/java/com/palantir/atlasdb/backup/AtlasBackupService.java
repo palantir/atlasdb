@@ -58,6 +58,7 @@ public final class AtlasBackupService {
         this.inProgressBackups = new ConcurrentHashMap<>();
     }
 
+    // TODO: add create method that passes in BiFunction<BackupId, Namespace, Path>, and instantiate external persister
     public static AtlasBackupService create(
             AuthHeader authHeader,
             BackupPersister backupPersister,
