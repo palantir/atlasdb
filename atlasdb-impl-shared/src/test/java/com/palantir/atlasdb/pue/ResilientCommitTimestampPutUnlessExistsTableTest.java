@@ -19,6 +19,8 @@ package com.palantir.atlasdb.pue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -47,9 +49,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         pueTable.putUnlessExists(1L, 2L);
         assertThat(pueTable.get(1L).get()).isEqualTo(2L);
 
-        verify(spiedStore).putUnlessExists(any(), any());
-        verify(spiedStore).put(any(), any());
-        verify(spiedStore).get(any());
+        verify(spiedStore).putUnlessExists(anyMap());
+        verify(spiedStore, atLeastOnce()).put(anyMap());
+        verify(spiedStore).getMultiple(any());
     }
 
     @Test
@@ -74,10 +76,10 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     public void pueThatThrowsIsCorrectedOnGet() throws ExecutionException, InterruptedException {
         kvs.setThrowOnNextPue();
         assertThatThrownBy(() -> pueTable.putUnlessExists(1L, 2L)).isInstanceOf(RuntimeException.class);
-        verify(spiedStore, never()).put(any(), any());
+        verify(spiedStore, never()).put(anyMap());
 
         assertThat(pueTable.get(1L).get()).isEqualTo(2L);
-        verify(spiedStore).put(any(), any());
+        verify(spiedStore).put(anyMap());
     }
 
     private static class UnreliableInMemoryKvs extends InMemoryKeyValueService {
