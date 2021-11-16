@@ -101,10 +101,6 @@ public final class AtlasBackupService {
         CompleteBackupResponse response = atlasBackupClientBlocking.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
-                // Store coordination service state locally.
-                // This should be done here because we want the local host to be responsible for keeping that
-                // information
-                // AtlasBackupClient is remote (on timelock), so we might hit different nodes
                 .peek(coordinationServiceRecorder::storeFastForwardState)
                 .peek(backupPersister::storeCompletedBackup)
                 .map(CompletedBackup::getNamespace)
