@@ -31,6 +31,7 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -58,20 +59,17 @@ public final class AtlasBackupService {
         this.inProgressBackups = new ConcurrentHashMap<>();
     }
 
-    // TODO(gs): add create() that passes in Function<Namespace, Path>, and instantiate external persister
-    // Given a Function<Namespace, Path>, a BackupPersister can only support one backup/restore per namespace.
-    // However, the internal backup solution will pass in a slightly different function given the internal BackupId,
-    // which is different for each backup.
     public static AtlasBackupService create(
             AuthHeader authHeader,
-            BackupPersister backupPersister,
             Refreshable<ServicesConfigBlock> servicesConfigBlock,
             String serviceName,
+            Function<Namespace, Path> backupFolderFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
         AtlasBackupClientBlocking atlasBackupClientBlocking =
                 reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName);
 
+        BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
         CoordinationServiceRecorder coordinationServiceRecorder =
                 new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
 
