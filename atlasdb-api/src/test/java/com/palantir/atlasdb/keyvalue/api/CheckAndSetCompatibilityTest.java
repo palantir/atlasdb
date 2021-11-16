@@ -25,8 +25,8 @@ public class CheckAndSetCompatibilityTest {
     @Test
     public void intersectReturnsLeastRestrictiveWhenNoCompatibilitiesProvided() {
         CheckAndSetCompatibility minCompatibility = intersectCompatibility();
-        assertThat(minCompatibility.supportsDetailOnFailure()).isFalse();
-        assertThat(minCompatibility.consistentOnFailure()).isFalse();
+        assertThat(minCompatibility.supportsDetailOnFailure()).isTrue();
+        assertThat(minCompatibility.consistentOnFailure()).isTrue();
     }
 
     @Test
