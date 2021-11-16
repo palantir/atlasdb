@@ -30,8 +30,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class ResilientCommitTimestampPutUnlessExistsTableTest {
@@ -78,6 +82,52 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         assertThat(pueTable.get(1L).get()).isEqualTo(2L);
         verify(spiedStore).put(any(), any());
+    }
+
+    @Test
+    public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
+        PutUnlessExistsTable<Long, Long> putUnlessExistsTable = new ResilientCommitTimestampPutUnlessExistsTable(
+                new CassandraImitatingConsensusForgettingStore(0.5d), TwoPhaseEncodingStrategy.INSTANCE);
+
+        for (long startTs = 1L; startTs < 1000; startTs++) {
+            long ts = startTs;
+            List<Long> successfulCommitTs = IntStream.range(0, 3)
+                    .mapToObj(offset -> tryPue(putUnlessExistsTable, ts, ts + offset))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toList());
+            assertThat(successfulCommitTs.size()).isLessThanOrEqualTo(1);
+
+            Optional<Long> onlyAllowedCommitTs = successfulCommitTs.stream().findFirst();
+            for (int i = 0; i < 30; i++) {
+                Long valueRead = firstSuccessfulRead(putUnlessExistsTable, startTs);
+                onlyAllowedCommitTs.ifPresentOrElse(
+                        commit -> assertThat(valueRead).isEqualTo(commit),
+                        () -> assertThat(valueRead).isIn(null, ts, ts + 1, ts + 2));
+                onlyAllowedCommitTs = Optional.ofNullable(valueRead);
+            }
+        }
+    }
+
+    private static Optional<Long> tryPue(
+            PutUnlessExistsTable<Long, Long> putUnlessExistsTable, long startTs, long commitTs) {
+        try {
+            putUnlessExistsTable.putUnlessExists(startTs, commitTs);
+            return Optional.of(commitTs);
+        } catch (Exception e) {
+            // this is ok, we may have failed because it already exists or randomly. Either way, continue.
+            return Optional.empty();
+        }
+    }
+
+    private static Long firstSuccessfulRead(PutUnlessExistsTable<Long, Long> putUnlessExistsTable, long ts) {
+        while (true) {
+            try {
+                return putUnlessExistsTable.get(ts).get();
+            } catch (Exception e) {
+                // this is ok, when we try to read we may end up doing a write, which can throw -- we will retry
+            }
+        }
     }
 
     private static class UnreliableInMemoryKvs extends InMemoryKeyValueService {
