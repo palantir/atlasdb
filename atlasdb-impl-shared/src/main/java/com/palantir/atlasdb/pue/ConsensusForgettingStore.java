@@ -59,7 +59,8 @@ public interface ConsensusForgettingStore {
     ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells);
 
     /**
-     * A put operation that offers no consistency guarantees when an exception is thrown.
+     * A put operation that offers no consistency guarantees when an exception is thrown. Multiple puts into the same
+     * cell with different values may result in non-repeatable reads.
      */
     void put(Cell cell, byte[] value);
 
