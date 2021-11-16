@@ -18,7 +18,6 @@ package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
-import com.palantir.atlasdb.backup.api.BackupId;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
@@ -59,7 +58,10 @@ public final class AtlasBackupService {
         this.inProgressBackups = new ConcurrentHashMap<>();
     }
 
-    // TODO(gs): add create() that passes in BiFunction<BackupId, Namespace, Path>, and instantiate external persister
+    // TODO(gs): add create() that passes in Function<Namespace, Path>, and instantiate external persister
+    // Given a Function<Namespace, Path>, a BackupPersister can only support one backup/restore per namespace.
+    // However, the internal backup solution will pass in a slightly different function given the internal BackupId,
+    // which is different for each backup.
     public static AtlasBackupService create(
             AuthHeader authHeader,
             BackupPersister backupPersister,
@@ -77,8 +79,8 @@ public final class AtlasBackupService {
                 authHeader, atlasBackupClientBlocking, coordinationServiceRecorder, backupPersister);
     }
 
-    public Set<Namespace> prepareBackup(BackupId backupId, Set<Namespace> namespaces) {
-        PrepareBackupRequest request = PrepareBackupRequest.of(backupId, namespaces);
+    public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {
+        PrepareBackupRequest request = PrepareBackupRequest.of(namespaces);
         PrepareBackupResponse response = atlasBackupClientBlocking.prepareBackup(authHeader, request);
 
         return response.getSuccessful().stream()
@@ -91,7 +93,6 @@ public final class AtlasBackupService {
         inProgressBackups.put(backupToken.getNamespace(), backupToken);
     }
 
-    // TODO(gs): validate backup ID?
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
         Set<InProgressBackupToken> tokens = namespaces.stream()
                 .map(inProgressBackups::remove)

@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.backup.api.BackupId;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
@@ -51,11 +50,10 @@ public class AtlasBackupResourceTest {
     private static final RedirectRetryTargeter TARGETER = RedirectRetryTargeter.create(LOCAL, List.of(LOCAL, REMOTE));
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("header");
-    private static final BackupId BACKUP_ID = BackupId.of("backup");
     private static final Namespace NAMESPACE = Namespace.of("test");
     private static final Namespace OTHER_NAMESPACE = Namespace.of("other");
     private static final PrepareBackupRequest PREPARE_BACKUP_REQUEST =
-            PrepareBackupRequest.of(BACKUP_ID, ImmutableSet.of(NAMESPACE));
+            PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE));
     private static final long IMMUTABLE_TIMESTAMP = 1L;
     private static final long BACKUP_START_TIMESTAMP = 2L;
     private static final CompleteBackupResponse EMPTY_COMPLETE_BACKUP_RESPONSE =
@@ -155,7 +153,6 @@ public class AtlasBackupResourceTest {
 
     private static InProgressBackupToken inProgressBackupToken(Namespace namespace, LockToken lockToken) {
         return InProgressBackupToken.builder()
-                .backupId(BACKUP_ID)
                 .namespace(namespace)
                 .lockToken(lockToken)
                 .immutableTimestamp(IMMUTABLE_TIMESTAMP)
@@ -170,7 +167,6 @@ public class AtlasBackupResourceTest {
 
     private static CompletedBackup completedBackup(InProgressBackupToken backupToken) {
         return CompletedBackup.builder()
-                .backupId(backupToken.getBackupId())
                 .namespace(backupToken.getNamespace())
                 .backupStartTimestamp(backupToken.getBackupStartTimestamp())
                 .backupEndTimestamp(3L)

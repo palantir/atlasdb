@@ -23,7 +23,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientEndpoints;
-import com.palantir.atlasdb.backup.api.BackupId;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
@@ -75,19 +74,17 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     private PrepareBackupResponse prepareBackupInternal(PrepareBackupRequest request) {
-        Set<InProgressBackupToken> preparedBackups = request.getNamespaces().stream()
-                .map(ns -> prepareBackup(request.getBackupId(), ns))
-                .collect(Collectors.toSet());
+        Set<InProgressBackupToken> preparedBackups =
+                request.getNamespaces().stream().map(this::prepareBackup).collect(Collectors.toSet());
         return PrepareBackupResponse.of(preparedBackups);
     }
 
-    private InProgressBackupToken prepareBackup(BackupId backupId, Namespace namespace) {
+    private InProgressBackupToken prepareBackup(Namespace namespace) {
         AsyncTimelockService timelock = timelock(namespace);
         LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long timestamp = timelock.getFreshTimestamp();
 
         return InProgressBackupToken.builder()
-                .backupId(backupId)
                 .namespace(namespace)
                 .lockToken(response.getLock())
                 .immutableTimestamp(response.getImmutableTimestamp())
@@ -134,7 +131,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         Namespace namespace = backupToken.getNamespace();
         long fastForwardTimestamp = timelock(namespace).getFreshTimestamp();
         return CompletedBackup.builder()
-                .backupId(backupToken.getBackupId())
                 .namespace(namespace)
                 .backupStartTimestamp(backupToken.getBackupStartTimestamp())
                 .backupEndTimestamp(fastForwardTimestamp)

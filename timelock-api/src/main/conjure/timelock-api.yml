@@ -86,13 +86,9 @@ types:
         union:
           successful: SuccessfulLockResponse
           unsuccessful: UnsuccessfulLockResponse
-      BackupId:
-        package: com.palantir.atlasdb.backup.api
-        alias: string
       InProgressBackupToken:
         package: com.palantir.atlasdb.backup.api
         fields:
-          backupId: BackupId
           namespace: Namespace
           lockToken: LockToken
           immutableTimestamp: Long
@@ -100,14 +96,12 @@ types:
       CompletedBackup:
         package: com.palantir.atlasdb.backup.api
         fields:
-          backupId: BackupId
           namespace: Namespace
           backupStartTimestamp: Long
           backupEndTimestamp: Long
       PrepareBackupRequest:
         package: com.palantir.atlasdb.backup.api
         fields:
-          backupId: BackupId
           namespaces: set<Namespace>
       PrepareBackupResponse:
         package: com.palantir.atlasdb.backup.api

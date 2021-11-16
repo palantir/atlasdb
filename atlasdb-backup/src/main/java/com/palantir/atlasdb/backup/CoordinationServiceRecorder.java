@@ -51,7 +51,7 @@ final class CoordinationServiceRecorder {
                 fetchSchemaMetadata(namespace, completedBackup.getBackupEndTimestamp());
 
         maybeMetadata.ifPresentOrElse(
-                metadata -> backupPersister.storeSchemaMetadata(completedBackup.getBackupId(), namespace, metadata),
+                metadata -> backupPersister.storeSchemaMetadata(namespace, metadata),
                 () -> logEmptyMetadata(namespace));
     }
 

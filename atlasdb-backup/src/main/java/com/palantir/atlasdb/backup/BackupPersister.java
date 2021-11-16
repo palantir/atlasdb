@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.backup;
 
-import com.palantir.atlasdb.backup.api.BackupId;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 
 interface BackupPersister {
-    void storeSchemaMetadata(
-            BackupId backupId, Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
+    void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
 
-    Optional<InternalSchemaMetadataState> getSchemaMetadata(BackupId backupId, Namespace namespace);
+    Optional<InternalSchemaMetadataState> getSchemaMetadata(Namespace namespace);
 
     void storeCompletedBackup(CompletedBackup completedBackup);
 
-    Optional<CompletedBackup> getCompletedBackup(BackupId backupId, Namespace namespace);
+    Optional<CompletedBackup> getCompletedBackup(Namespace namespace);
 }
