@@ -25,7 +25,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 
-public enum ToDoEncodingStrategy implements TimestampEncodingStrategy<PutUnlessExistsValue<Long>> {
+public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnlessExistsValue<Long>> {
     INSTANCE;
 
     private static final byte[] STAGING = new byte[] {0};

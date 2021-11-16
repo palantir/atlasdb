@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.transaction.encoding.ToDoEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -40,7 +40,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
             spy(new KvsConsensusForgettingStore(kvs, TableReference.createFromFullyQualifiedName("test.table")));
 
     private final PutUnlessExistsTable<Long, Long> pueTable =
-            new ResilientCommitTimestampPutUnlessExistsTable(spiedStore, ToDoEncodingStrategy.INSTANCE);
+            new ResilientCommitTimestampPutUnlessExistsTable(spiedStore, TwoPhaseEncodingStrategy.INSTANCE);
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {

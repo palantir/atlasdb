@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.pue;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -29,7 +28,6 @@ import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -46,11 +44,6 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
     }
 
     @Override
-    public void putUnlessExists(Long cell, Long value) throws KeyAlreadyExistsException {
-        putUnlessExistsMultiple(ImmutableMap.of(cell, value));
-    }
-
-    @Override
     public void putUnlessExistsMultiple(Map<Long, Long> values) throws KeyAlreadyExistsException {
         kvs.putUnlessExists(
                 tableRef,
@@ -59,18 +52,6 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
                                 encodingStrategy.encodeStartTimestampAsCell(startTs),
                                 encodingStrategy.encodeCommitTimestampAsValue(startTs, commitTs)))
                         .collectToMap());
-    }
-
-    @Override
-    public ListenableFuture<Long> get(Long startTs) {
-        Cell startTsAsCell = encodingStrategy.encodeStartTimestampAsCell(startTs);
-        return Futures.transform(
-                kvs.getAsync(tableRef, ImmutableMap.of(startTsAsCell, Long.MAX_VALUE)),
-                presentValues -> Optional.ofNullable(presentValues.get(startTsAsCell))
-                        .map(commitValue ->
-                                encodingStrategy.decodeValueAsCommitTimestamp(startTs, commitValue.getContents()))
-                        .orElse(null),
-                MoreExecutors.directExecutor());
     }
 
     @Override

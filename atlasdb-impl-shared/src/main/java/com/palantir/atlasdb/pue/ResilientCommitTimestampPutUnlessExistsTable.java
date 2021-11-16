@@ -22,7 +22,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.transaction.encoding.ToDoEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,19 +32,12 @@ import java.util.stream.StreamSupport;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
     private final ConsensusForgettingStore store;
-    private final ToDoEncodingStrategy encodingStrategy;
+    private final TwoPhaseEncodingStrategy encodingStrategy;
 
     public ResilientCommitTimestampPutUnlessExistsTable(
-            ConsensusForgettingStore store, ToDoEncodingStrategy encodingStrategy) {
+            ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
         this.store = store;
         this.encodingStrategy = encodingStrategy;
-    }
-
-    @Override
-    public void putUnlessExists(Long startTimestamp, Long commitTimestamp) throws KeyAlreadyExistsException {
-        Cell cell = encodingStrategy.encodeStartTimestampAsCell(startTimestamp);
-        byte[] stagingValue = pueStaging(cell, startTimestamp, commitTimestamp);
-        putCommitted(cell, stagingValue);
     }
 
     @Override
@@ -62,13 +55,6 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     @Override
-    public ListenableFuture<Long> get(Long startTs) {
-        Cell cell = encodingStrategy.encodeStartTimestampAsCell(startTs);
-        ListenableFuture<Optional<byte[]>> asyncRead = store.get(cell);
-        return Futures.transform(asyncRead, read -> processRead(cell, startTs, read), MoreExecutors.directExecutor());
-    }
-
-    @Override
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> cells) {
         Map<Long, Cell> startTsToCell = StreamSupport.stream(cells.spliterator(), false)
                 .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell));
@@ -77,34 +63,6 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 asyncReads,
                 presentValues -> processReads(presentValues, startTsToCell),
                 MoreExecutors.directExecutor());
-    }
-
-    private byte[] pueStaging(Cell cell, long startTs, long commitTs) {
-        byte[] stagingValue =
-                encodingStrategy.encodeCommitTimestampAsValue(startTs, PutUnlessExistsValue.staging(commitTs));
-        store.putUnlessExists(cell, stagingValue);
-        return stagingValue;
-    }
-
-    private void putCommitted(Cell cell, byte[] stagingValue) {
-        store.put(cell, encodingStrategy.transformStagingToCommitted(stagingValue));
-    }
-
-    private Long processRead(Cell cell, Long startTs, Optional<byte[]> maybeActual) {
-        if (maybeActual.isEmpty()) {
-            return null;
-        }
-
-        byte[] actual = maybeActual.get();
-        PutUnlessExistsValue<Long> valueSeen = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
-
-        Long commitTs = valueSeen.value();
-        if (valueSeen.isCommitted()) {
-            return commitTs;
-        }
-        store.checkAndTouch(cell, actual);
-        putCommitted(cell, actual);
-        return commitTs;
     }
 
     private Map<Long, Long> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
@@ -126,6 +84,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
+            // if we reach here, actual is guaranteed to be a staging value
             checkAndTouch.put(cell, actual);
             resultBuilder.put(startTs, commitTs);
         }

@@ -16,16 +16,37 @@
 
 package com.palantir.atlasdb.pue;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
 
-public interface PutUnlessExistsTable<C, V> {
-    void putUnlessExists(C key, V value) throws KeyAlreadyExistsException;
+/**
+ * A generally persisted key value store that supports an atomic put unless exists operation.
+ * @param <K> Key for the mapping
+ * @param <V> Value for the mapping
+ */
+public interface PutUnlessExistsTable<K, V> {
+    /**
+     * Atomic put unless exists. If the method does not throw, any subsequent get is guaranteed to return V. If the
+     * method throws an exception, subsequent gets may return V or null but all gets are guaranteed to be consistent.
+     */
+    default void putUnlessExists(K key, V value) throws KeyAlreadyExistsException {
+        putUnlessExistsMultiple(ImmutableMap.of(key, value));
+    }
 
-    void putUnlessExistsMultiple(Map<C, V> keyValues) throws KeyAlreadyExistsException;
+    /**
+     * Similar to {@link PutUnlessExistsTable#putUnlessExists(Object, Object)}, but may be implemented to batch
+     * efficiently.
+     */
+    void putUnlessExistsMultiple(Map<K, V> keyValues) throws KeyAlreadyExistsException;
 
-    ListenableFuture<V> get(C key);
+    default ListenableFuture<V> get(K key) {
+        return Futures.transform(get(ImmutableList.of(key)), result -> result.get(key), MoreExecutors.directExecutor());
+    }
 
-    ListenableFuture<Map<C, V>> get(Iterable<C> keys);
+    ListenableFuture<Map<K, V>> get(Iterable<K> keys);
 }

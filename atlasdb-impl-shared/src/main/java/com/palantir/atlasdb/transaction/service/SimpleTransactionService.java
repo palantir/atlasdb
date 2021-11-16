@@ -28,7 +28,7 @@ import com.palantir.atlasdb.pue.SimpleCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
-import com.palantir.atlasdb.transaction.encoding.ToDoEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Map;
@@ -54,7 +54,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     public static SimpleTransactionService createV3(KeyValueService kvs) {
         if (kvs.getCheckAndSetCompatibility()
                 == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST) {
-            return createResilient(kvs, TransactionConstants.TRANSACTIONS3_TABLE, ToDoEncodingStrategy.INSTANCE);
+            return createResilient(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TwoPhaseEncodingStrategy.INSTANCE);
         }
         return createSimple(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TicketsEncodingStrategy.INSTANCE);
     }
@@ -67,7 +67,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     private static SimpleTransactionService createResilient(
-            KeyValueService kvs, TableReference tableRef, ToDoEncodingStrategy encodingStrategy) {
+            KeyValueService kvs, TableReference tableRef, TwoPhaseEncodingStrategy encodingStrategy) {
         ConsensusForgettingStore store = new KvsConsensusForgettingStore(kvs, tableRef);
         PutUnlessExistsTable<Long, Long> pueTable =
                 new ResilientCommitTimestampPutUnlessExistsTable(store, encodingStrategy);

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.pue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -37,6 +38,7 @@ import java.util.stream.StreamSupport;
 
 public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
     private static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
+
     private final KeyValueService kvs;
     private final TableReference tableRef;
 
@@ -49,7 +51,7 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
 
     @Override
     public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        kvs.putUnlessExists(tableRef, ImmutableMap.of(cell, value));
+        putUnlessExists(ImmutableMap.of(cell, value));
     }
 
     @Override
@@ -66,8 +68,8 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
     @Override
     public ListenableFuture<Optional<byte[]>> get(Cell cell) {
         return Futures.transform(
-                kvs.getAsync(tableRef, ImmutableMap.of(cell, Long.MAX_VALUE)),
-                result -> Optional.ofNullable(result.get(cell)).map(Value::getContents),
+                getMultiple(ImmutableList.of(cell)),
+                result -> Optional.ofNullable(result.get(cell)),
                 MoreExecutors.directExecutor());
     }
 
