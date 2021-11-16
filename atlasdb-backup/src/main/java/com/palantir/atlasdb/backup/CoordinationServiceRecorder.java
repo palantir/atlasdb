@@ -67,13 +67,26 @@ final class CoordinationServiceRecorder {
             CoordinationService<InternalSchemaMetadata> coordination =
                     CoordinationServices.createDefault(kvs, () -> timestamp, false);
 
-            return getValidMetadata(coordination, timestamp).map(InternalSchemaMetadataState::of);
+            return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(coordination, timestamp)));
         }
     }
 
-    private Optional<ValueAndBound<InternalSchemaMetadata>> getValidMetadata(
+    private ValueAndBound<InternalSchemaMetadata> getValidMetadata(
             CoordinationService<InternalSchemaMetadata> coordination, long timestamp) {
-        return coordination.getValueForTimestamp(timestamp).or(() -> tryExtendValidityBound(coordination, timestamp));
+        return coordination
+                .getValueForTimestamp(timestamp)
+                .orElseGet(() -> extendValidityBound(coordination, timestamp));
+    }
+
+    // Keep trying to extend the validity bound until it succeeds. Transactions can't commit until _someone_ succeeds
+    // in doing this - so this is effectively guaranteed to terminate eventually.
+    private ValueAndBound<InternalSchemaMetadata> extendValidityBound(
+            CoordinationService<InternalSchemaMetadata> coordination, long timestamp) {
+        Optional<ValueAndBound<InternalSchemaMetadata>> maybeBound = Optional.empty();
+        while (maybeBound.isEmpty()) {
+            maybeBound = tryExtendValidityBound(coordination, timestamp);
+        }
+        return maybeBound.get();
     }
 
     private Optional<ValueAndBound<InternalSchemaMetadata>> tryExtendValidityBound(
