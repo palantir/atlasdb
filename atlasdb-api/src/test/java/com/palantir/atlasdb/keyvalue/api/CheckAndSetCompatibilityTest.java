@@ -17,47 +17,56 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.Stream;
 import org.junit.Test;
 
 public class CheckAndSetCompatibilityTest {
     @Test
-    public void minThrowsExceptionIfNoCompatibilitiesProvided() {
-        assertThatThrownBy(this::getMinCompatibility)
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("min requires at least 1 element");
+    public void intersectReturnsLeastRestrictiveWhenNoCompatibilitiesProvided() {
+        CheckAndSetCompatibility minCompatibility = intersectCompatibility();
+        assertThat(minCompatibility.supportsDetailOnFailure()).isFalse();
+        assertThat(minCompatibility.consistentOnFailure()).isFalse();
     }
 
     @Test
-    public void minReturnsNotSupportedIfOneKvsHasNotSupported() {
-        assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
-                        CheckAndSetCompatibility.NOT_SUPPORTED,
-                        CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
-                .isEqualTo(CheckAndSetCompatibility.NOT_SUPPORTED);
+    public void intersectAppliesToBothProperties() {
+        CheckAndSetCompatibility minCompatibility = intersectCompatibility(
+                CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE,
+                CheckAndSetCompatibility.NO_DETAIL_CONSISTENT_ON_FAILURE,
+                CheckAndSetCompatibility.SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+        assertThat(minCompatibility.supportsDetailOnFailure()).isFalse();
+        assertThat(minCompatibility.consistentOnFailure()).isFalse();
     }
 
     @Test
-    public void minReturnsSupportedNoDetailIfNotSupportedAbsent() {
-        assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
-                        CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE);
+    public void intersectReturnsDetailSupportedWhenAllSupport() {
+        CheckAndSetCompatibility minCompatibility = intersectCompatibility(
+                CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE,
+                CheckAndSetCompatibility.SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+        assertThat(minCompatibility.supportsDetailOnFailure()).isTrue();
+        assertThat(minCompatibility.consistentOnFailure()).isFalse();
     }
 
     @Test
-    public void minReturnsSupportedWithDetailIfAllAreSupportedWithDetail() {
-        assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST))
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST);
+    public void intersectReturnsConsistentWhenAllConsistent() {
+        CheckAndSetCompatibility minCompatibility = intersectCompatibility(
+                CheckAndSetCompatibility.SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE,
+                CheckAndSetCompatibility.NO_DETAIL_CONSISTENT_ON_FAILURE);
+        assertThat(minCompatibility.supportsDetailOnFailure()).isFalse();
+        assertThat(minCompatibility.consistentOnFailure()).isTrue();
     }
 
-    private CheckAndSetCompatibility getMinCompatibility(CheckAndSetCompatibility... compatibilities) {
-        return CheckAndSetCompatibility.min(Stream.of(compatibilities));
+    @Test
+    public void intersectDoesNotRestrictUnnecessarily() {
+        CheckAndSetCompatibility minCompatibility = intersectCompatibility(
+                CheckAndSetCompatibility.SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE,
+                CheckAndSetCompatibility.SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+        assertThat(minCompatibility.supportsDetailOnFailure()).isTrue();
+        assertThat(minCompatibility.consistentOnFailure()).isTrue();
+    }
+
+    private CheckAndSetCompatibility intersectCompatibility(CheckAndSetCompatibility... compatibilities) {
+        return CheckAndSetCompatibility.intersect(Stream.of(compatibilities));
     }
 }

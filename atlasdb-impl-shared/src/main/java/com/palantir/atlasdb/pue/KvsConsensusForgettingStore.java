@@ -22,7 +22,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -43,8 +42,7 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
     private final TableReference tableRef;
 
     public KvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
-        Preconditions.checkState(kvs.getCheckAndSetCompatibility()
-                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST);
+        Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.kvs = kvs;
         this.tableRef = tableRef;
     }

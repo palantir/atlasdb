@@ -328,7 +328,8 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.min(getDelegates().stream().map(KeyValueService::getCheckAndSetCompatibility));
+        return CheckAndSetCompatibility.intersect(
+                getDelegates().stream().map(KeyValueService::getCheckAndSetCompatibility));
     }
 
     @Override

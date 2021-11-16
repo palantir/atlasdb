@@ -143,13 +143,13 @@ public class TableSplittingKeyValueServiceTest {
         mockery.checking(new Expectations() {
             {
                 oneOf(defaultKvs).getCheckAndSetCompatibility();
-                will(returnValue(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST));
+                will(returnValue(CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE));
                 oneOf(tableDelegate).getCheckAndSetCompatibility();
-                will(returnValue(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE));
+                will(returnValue(CheckAndSetCompatibility.SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE));
             }
         });
         assertThat(splittingKvs.getCheckAndSetCompatibility())
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE);
+                .isEqualTo(CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE);
     }
 
     private Map<TableReference, byte[]> merge(

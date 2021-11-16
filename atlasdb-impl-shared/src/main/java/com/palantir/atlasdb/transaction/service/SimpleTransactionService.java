@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.pue.ConsensusForgettingStore;
@@ -52,11 +51,10 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     public static SimpleTransactionService createV3(KeyValueService kvs) {
-        if (kvs.getCheckAndSetCompatibility()
-                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST) {
-            return createResilient(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TwoPhaseEncodingStrategy.INSTANCE);
+        if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
+            return createSimple(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TicketsEncodingStrategy.INSTANCE);
         }
-        return createSimple(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TicketsEncodingStrategy.INSTANCE);
+        return createResilient(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TwoPhaseEncodingStrategy.INSTANCE);
     }
 
     private static SimpleTransactionService createSimple(

@@ -83,7 +83,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE;
+        return CheckAndSetCompatibility.SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE;
     }
 
     @Override

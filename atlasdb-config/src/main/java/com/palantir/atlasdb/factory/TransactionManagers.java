@@ -55,7 +55,6 @@ import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMetrics;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
@@ -688,8 +687,7 @@ public abstract class TransactionManagers {
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TransactionSchemaManager transactionSchemaManager) {
-        if (keyValueService.getCheckAndSetCompatibility()
-                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST) {
+        if (keyValueService.getCheckAndSetCompatibility().supportsDetailOnFailure()) {
             return Optional.of(
                     initializeTransactionSchemaInstaller(closeables, runtimeConfigSupplier, transactionSchemaManager));
         }

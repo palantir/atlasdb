@@ -26,33 +26,53 @@ import java.util.stream.Stream;
  * if so the granularity with which it can provide feedback.
  */
 public enum CheckAndSetCompatibility {
-    NOT_SUPPORTED,
     /**
-     * The {@link KeyValueService} supports CAS and PUE operations. However, in the event of failure, there are no
-     * guarantees that {@link CheckAndSetException#getActualValues()} or
-     * {@link KeyAlreadyExistsException#getExistingKeys()} actually return any meaningful data (other than the
-     * fact that the operation failed).
+     * This is the only value that is allowed if a {@link KeyValueService} does NOT support check and set.
      */
-    SUPPORTED_NO_DETAIL_ON_FAILURE,
-    /**
-     * The {@link KeyValueService} supports CAS and PUE operations. In the event of failure:
-     *
-     * - CAS: {@link CheckAndSetException#getActualValues()} on any such exception thrown must return the list
-     *        of existing values. (In practice, this should have zero or one elements.)
-     * - PUE: {@link KeyAlreadyExistsException#getExistingKeys()} on any such exception thrown must return the list
-     *        of all pre-existing cells for any row which the implementation attempted to put into the key value
-     *        service. Note that there is no guarantee that the implementation attempts to put all rows atomically.
-     * - Other failure: values may have persisted partially, possibly causing non-repeatable reads.
-     */
-    SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST;
+    NO_DETAIL_CONSISTENT_ON_FAILURE(false, true),
 
-    public static CheckAndSetCompatibility min(Stream<CheckAndSetCompatibility> compatibilities) {
+    SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE(true, true),
+
+    SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE(true, false),
+
+    NO_DETAIL_NOT_CONSISTENT_ON_FAILURE(false, false);
+
+    private final boolean supportsDetailOnFailure;
+    private final boolean consistentOnFailure;
+
+    CheckAndSetCompatibility(boolean supportsDetailOnFailure, boolean consistentOnFailure) {
+        this.supportsDetailOnFailure = supportsDetailOnFailure;
+        this.consistentOnFailure = consistentOnFailure;
+    }
+
+    /**
+     * If false, there are no guarantees that a {@link CheckAndSetException#getActualValues()} or
+     * {@link KeyAlreadyExistsException#getExistingKeys()} from exceptions thrown by the the {@link KeyValueService}
+     * will actually return any meaningful data (other than the fact that the operation failed).
+     */
+    public boolean supportsDetailOnFailure() {
+        return supportsDetailOnFailure;
+    }
+
+    /**
+     *  If true, on CAS or PUE failure other than a {@link CheckAndSetException} or a
+     *  {@link KeyAlreadyExistsException}, the values may or may not have been persisted but the state is guaranteed to
+     *  be consistent: any subsequent reads will be repeatable. If false, the value may have been persisted
+     *  in a way that subsequent reads are not repeatable: if a read before the operation could have returned values
+     *  from a set S, it can non-deterministically return a value from S U {newValue} afterwards.
+     */
+    public boolean consistentOnFailure() {
+        return consistentOnFailure;
+    }
+
+    public static CheckAndSetCompatibility intersect(Stream<CheckAndSetCompatibility> compatibilities) {
         Set<CheckAndSetCompatibility> presentCompatibilities = compatibilities.collect(Collectors.toSet());
-        return Stream.of(
-                        NOT_SUPPORTED,
-                        SUPPORTED_NO_DETAIL_ON_FAILURE,
-                        SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST)
-                .filter(presentCompatibilities::contains)
+        boolean detail = presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::supportsDetailOnFailure);
+        boolean consistency = presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::consistentOnFailure);
+
+        return Stream.of(CheckAndSetCompatibility.values())
+                .filter(compatibility -> compatibility.supportsDetailOnFailure() == detail)
+                .filter(compatibility -> compatibility.consistentOnFailure() == consistency)
                 .findFirst()
                 .orElseThrow(() -> new SafeIllegalArgumentException("min requires at least 1 element, but 0 provided"));
     }

@@ -258,14 +258,14 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @DoDelegate
     default boolean supportsCheckAndSet() {
-        return getCheckAndSetCompatibility() != CheckAndSetCompatibility.NOT_SUPPORTED;
+        return getCheckAndSetCompatibility() != CheckAndSetCompatibility.NO_DETAIL_CONSISTENT_ON_FAILURE;
     }
 
     /**
      * Get the {@link CheckAndSetCompatibility} that this {@link KeyValueService} exhibits.
      *
      * This method should be consistent with {@link KeyValueService#supportsCheckAndSet()} - this method should
-     * return {@link CheckAndSetCompatibility#NOT_SUPPORTED} if and only if that method returns false.
+     * return {@link CheckAndSetCompatibility#NO_DETAIL_CONSISTENT_ON_FAILURE} if and only if that method returns false.
      *
      * @return check and set compatibility
      */

@@ -35,11 +35,11 @@ public class DualWriteKeyValueServiceTest {
     @Test
     public void checkAndSetCompatibilityIsBasedOnTheFirstDelegate() {
         when(delegate1.getCheckAndSetCompatibility())
-                .thenReturn(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST);
-        when(delegate2.getCheckAndSetCompatibility()).thenReturn(CheckAndSetCompatibility.NOT_SUPPORTED);
+                .thenReturn(CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE);
+        when(delegate2.getCheckAndSetCompatibility()).thenReturn(CheckAndSetCompatibility.NO_DETAIL_CONSISTENT_ON_FAILURE);
 
         assertThat(dualWriteService.getCheckAndSetCompatibility())
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_MAY_PARTIALLY_PERSIST);
+                .isEqualTo(CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE);
         verify(delegate1).getCheckAndSetCompatibility();
         verifyNoMoreInteractions(delegate1, delegate2);
     }
