@@ -33,7 +33,6 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.Function;
 
-// TODO(gs): store immutable ts
 public class ExternalBackupPersister implements BackupPersister {
     private static final SafeLogger log = SafeLoggerFactory.get(ExternalBackupPersister.class);
 
@@ -131,7 +130,7 @@ public class ExternalBackupPersister implements BackupPersister {
         if (!file.exists()) {
             log.info(
                     "Tried to load file, but it did not exist",
-                    SafeArg.of("fileType", file.getName()),
+                    SafeArg.of("fileName", file.getName()),
                     SafeArg.of("namespace", namespace));
             return Optional.empty();
         }
@@ -140,13 +139,13 @@ public class ExternalBackupPersister implements BackupPersister {
             T state = OBJECT_MAPPER.readValue(file, clazz);
             log.info(
                     "Successfully loaded file",
-                    SafeArg.of("fileType", file.getName()),
+                    SafeArg.of("fileName", file.getName()),
                     SafeArg.of("namespace", namespace));
             return Optional.of(state);
         } catch (IOException e) {
             log.warn(
                     "Failed to read file",
-                    SafeArg.of("fileType", file.getName()),
+                    SafeArg.of("fileName", file.getName()),
                     SafeArg.of("namespace", namespace),
                     e);
             return Optional.empty();
