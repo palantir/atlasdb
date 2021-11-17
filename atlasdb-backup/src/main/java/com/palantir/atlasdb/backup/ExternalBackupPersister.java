@@ -18,6 +18,7 @@ package com.palantir.atlasdb.backup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.conjure.java.serialization.ObjectMappers;
@@ -81,8 +82,23 @@ public class ExternalBackupPersister implements BackupPersister {
                 .build());
     }
 
+    @Override
+    public void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken) {
+        Namespace namespace = inProgressBackupToken.getNamespace();
+        writeToFile(namespace, getImmutableTimestampFile(namespace), inProgressBackupToken.getImmutableTimestamp());
+    }
+
+    @Override
+    public Optional<Long> getImmutableTimestamp(Namespace namespace) {
+        return loadFromFile(namespace, getImmutableTimestampFile(namespace), Long.class);
+    }
+
     private File getSchemaMetadataFile(Namespace namespace) {
         return getFile(namespace, SCHEMA_METADATA_FILE_NAME);
+    }
+
+    private File getImmutableTimestampFile(Namespace namespace) {
+        return getFile(namespace, IMMUTABLE_TIMESTAMP_FILE_NAME);
     }
 
     private File getBackupTimestampFile(Namespace namespace) {

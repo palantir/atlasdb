@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Map;
@@ -24,12 +25,14 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 class InMemoryBackupPersister implements BackupPersister {
+    private final Map<Namespace, Long> immutableTimestamps;
     private final Map<Namespace, InternalSchemaMetadataState> schemaMetadatas;
     private final Map<Namespace, CompletedBackup> completedBackups;
 
     InMemoryBackupPersister() {
         schemaMetadatas = new ConcurrentHashMap<>();
         completedBackups = new ConcurrentHashMap<>();
+        immutableTimestamps = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -50,5 +53,15 @@ class InMemoryBackupPersister implements BackupPersister {
     @Override
     public Optional<CompletedBackup> getCompletedBackup(Namespace namespace) {
         return Optional.ofNullable(completedBackups.get(namespace));
+    }
+
+    @Override
+    public void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken) {
+        immutableTimestamps.put(inProgressBackupToken.getNamespace(), inProgressBackupToken.getImmutableTimestamp());
+    }
+
+    @Override
+    public Optional<Long> getImmutableTimestamp(Namespace namespace) {
+        return Optional.ofNullable(immutableTimestamps.get(namespace));
     }
 }

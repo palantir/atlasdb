@@ -89,6 +89,7 @@ public final class AtlasBackupService {
 
     private void storeBackupToken(InProgressBackupToken backupToken) {
         inProgressBackups.put(backupToken.getNamespace(), backupToken);
+        backupPersister.storeImmutableTimestamp(backupToken);
     }
 
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
