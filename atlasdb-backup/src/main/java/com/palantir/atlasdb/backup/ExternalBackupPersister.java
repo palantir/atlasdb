@@ -32,12 +32,15 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.Function;
 
+// TODO(gs): store immutable ts
 public class ExternalBackupPersister implements BackupPersister {
     private static final SafeLogger log = SafeLoggerFactory.get(ExternalBackupPersister.class);
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newClientObjectMapper();
-    private static final String SCHEMA_METADATA_FILE_NAME = "schemaMetadata";
-    private static final String COMPLETED_BACKUP_FILE_NAME = "completedBackup";
+    private static final String SCHEMA_METADATA_FILE_NAME = "internal_schema_metadata_state";
+    private static final String BACKUP_TIMESTAMP_FILE_NAME = "backup.timestamp";
+    private static final String IMMUTABLE_TIMESTAMP_FILE_NAME = "immutable.timestamp";
+    private static final String FAST_FORWARD_TIMESTAMP_FILE_NAME = "fast-forward.timestamp";
 
     private final Function<Namespace, Path> pathFactory;
 
@@ -59,21 +62,35 @@ public class ExternalBackupPersister implements BackupPersister {
     @Override
     public void storeCompletedBackup(CompletedBackup completedBackup) {
         Namespace namespace = completedBackup.getNamespace();
-        File completedBackupFile = getCompletedBackupFile(namespace);
-        writeToFile(namespace, completedBackupFile, completedBackup);
+        writeToFile(namespace, getBackupTimestampFile(namespace), completedBackup.getBackupStartTimestamp());
+        writeToFile(namespace, getFastForwardTimestampFile(namespace), completedBackup.getBackupEndTimestamp());
     }
 
     @Override
     public Optional<CompletedBackup> getCompletedBackup(Namespace namespace) {
-        return loadFromFile(namespace, getCompletedBackupFile(namespace), CompletedBackup.class);
+        Optional<Long> startTimestamp = loadFromFile(namespace, getBackupTimestampFile(namespace), Long.class);
+        Optional<Long> endTimestamp = loadFromFile(namespace, getFastForwardTimestampFile(namespace), Long.class);
+        if (startTimestamp.isEmpty() || endTimestamp.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(CompletedBackup.builder()
+                .namespace(namespace)
+                .backupStartTimestamp(startTimestamp.get())
+                .backupEndTimestamp(endTimestamp.get())
+                .build());
     }
 
     private File getSchemaMetadataFile(Namespace namespace) {
         return getFile(namespace, SCHEMA_METADATA_FILE_NAME);
     }
 
-    private File getCompletedBackupFile(Namespace namespace) {
-        return getFile(namespace, COMPLETED_BACKUP_FILE_NAME);
+    private File getBackupTimestampFile(Namespace namespace) {
+        return getFile(namespace, BACKUP_TIMESTAMP_FILE_NAME);
+    }
+
+    private File getFastForwardTimestampFile(Namespace namespace) {
+        return getFile(namespace, FAST_FORWARD_TIMESTAMP_FILE_NAME);
     }
 
     private File getFile(Namespace namespace, String fileName) {
