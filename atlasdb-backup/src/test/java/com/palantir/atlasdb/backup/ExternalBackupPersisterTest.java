@@ -19,13 +19,16 @@ package com.palantir.atlasdb.backup;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.v2.LockToken;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.UUID;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,6 +60,24 @@ public class ExternalBackupPersisterTest {
         externalBackupPersister.storeSchemaMetadata(NAMESPACE, state);
 
         assertThat(externalBackupPersister.getSchemaMetadata(NAMESPACE)).contains(state);
+    }
+
+    @Test
+    public void getImmutableTimestampWhenEmpty() {
+        assertThat(externalBackupPersister.getImmutableTimestamp(NAMESPACE)).isEmpty();
+    }
+
+    @Test
+    public void putAndGetImmutableTimestamp() {
+        long immutableTimestamp = 1337L;
+        InProgressBackupToken inProgressBackupToken = InProgressBackupToken.builder()
+                .namespace(NAMESPACE)
+                .immutableTimestamp(immutableTimestamp)
+                .backupStartTimestamp(3141L)
+                .lockToken(LockToken.of(UUID.randomUUID()))
+                .build();
+        externalBackupPersister.storeImmutableTimestamp(inProgressBackupToken);
+        assertThat(externalBackupPersister.getImmutableTimestamp(NAMESPACE)).contains(immutableTimestamp);
     }
 
     @Test
