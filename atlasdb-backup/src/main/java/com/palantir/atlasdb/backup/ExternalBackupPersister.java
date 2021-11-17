@@ -50,8 +50,7 @@ public class ExternalBackupPersister implements BackupPersister {
 
     @Override
     public void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
-        File schemaMetadataFile = getSchemaMetadataFile(namespace);
-        writeToFile(namespace, schemaMetadataFile, internalSchemaMetadataState);
+        writeToFile(namespace, getSchemaMetadataFile(namespace), internalSchemaMetadataState);
     }
 
     @Override
