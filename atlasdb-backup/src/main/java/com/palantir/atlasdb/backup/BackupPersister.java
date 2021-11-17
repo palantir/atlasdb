@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
@@ -29,4 +30,8 @@ interface BackupPersister {
     void storeCompletedBackup(CompletedBackup completedBackup);
 
     Optional<CompletedBackup> getCompletedBackup(Namespace namespace);
+
+    void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken);
+
+    Optional<Long> getImmutableTimestamp(Namespace namespace);
 }
