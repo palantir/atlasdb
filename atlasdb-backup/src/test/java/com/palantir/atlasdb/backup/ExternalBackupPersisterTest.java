@@ -18,12 +18,12 @@ package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.backup.api.BackupId;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -32,7 +32,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class ExternalBackupPersisterTest {
-    private static final BackupId BACKUP_ID = BackupId.of("back_when_stuff_worked");
     private static final Namespace NAMESPACE = Namespace.of("broken_namespace");
 
     @Rule
@@ -47,8 +46,7 @@ public class ExternalBackupPersisterTest {
 
     @Test
     public void getSchemaMetadataWhenEmpty() {
-        assertThat(externalBackupPersister.getSchemaMetadata(BACKUP_ID, NAMESPACE))
-                .isEmpty();
+        assertThat(externalBackupPersister.getSchemaMetadata(NAMESPACE)).isEmpty();
     }
 
     @Test
@@ -56,37 +54,38 @@ public class ExternalBackupPersisterTest {
         InternalSchemaMetadata internalSchemaMetadata = InternalSchemaMetadata.defaultValue();
         InternalSchemaMetadataState state =
                 InternalSchemaMetadataState.of(ValueAndBound.of(internalSchemaMetadata, 100L));
-        externalBackupPersister.storeSchemaMetadata(BACKUP_ID, NAMESPACE, state);
+        externalBackupPersister.storeSchemaMetadata(NAMESPACE, state);
 
-        assertThat(externalBackupPersister.getSchemaMetadata(BACKUP_ID, NAMESPACE))
-                .contains(state);
+        assertThat(externalBackupPersister.getSchemaMetadata(NAMESPACE)).contains(state);
     }
 
     @Test
     public void getCompletedBackupWhenEmpty() {
-        assertThat(externalBackupPersister.getCompletedBackup(BACKUP_ID, NAMESPACE))
-                .isEmpty();
+        assertThat(externalBackupPersister.getCompletedBackup(NAMESPACE)).isEmpty();
     }
 
     @Test
     public void putAndGetCompletedBackup() {
         CompletedBackup completedBackup = CompletedBackup.builder()
-                .backupId(BACKUP_ID)
                 .namespace(NAMESPACE)
                 .backupStartTimestamp(1L)
                 .backupEndTimestamp(2L)
                 .build();
         externalBackupPersister.storeCompletedBackup(completedBackup);
 
-        assertThat(externalBackupPersister.getCompletedBackup(BACKUP_ID, NAMESPACE))
-                .contains(completedBackup);
+        assertThat(externalBackupPersister.getCompletedBackup(NAMESPACE)).contains(completedBackup);
     }
 
-    private Path getPath(BackupId backupId, Namespace namespace) {
+    private Path getPath(Namespace namespace) {
         try {
-            return tempFolder.newFolder(backupId.get(), namespace.get()).toPath();
+            return getOrCreateFolder(namespace).toPath();
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    private File getOrCreateFolder(Namespace namespace) throws IOException {
+        File file = new File(tempFolder.getRoot(), namespace.get());
+        return file.exists() ? file : tempFolder.newFolder(namespace.get());
     }
 }
