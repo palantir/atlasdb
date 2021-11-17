@@ -18,13 +18,14 @@ package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
-import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
-import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
-import com.palantir.atlasdb.timelock.api.CompletedBackup;
-import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
+import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
+import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
+import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.InProgressBackupToken;
+import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
+import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
-import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
@@ -34,26 +35,48 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class AtlasBackupService {
     private final AuthHeader authHeader;
     private final AtlasBackupClientBlocking atlasBackupClientBlocking;
-    private final Map<Namespace, InProgressBackupToken> storedTokens;
+    private final CoordinationServiceRecorder coordinationServiceRecorder;
+    private final BackupPersister backupPersister;
+    private final Map<Namespace, InProgressBackupToken> inProgressBackups;
 
     @VisibleForTesting
-    AtlasBackupService(AuthHeader authHeader, AtlasBackupClientBlocking atlasBackupClientBlocking) {
+    AtlasBackupService(
+            AuthHeader authHeader,
+            AtlasBackupClientBlocking atlasBackupClientBlocking,
+            CoordinationServiceRecorder coordinationServiceRecorder,
+            BackupPersister backupPersister) {
         this.authHeader = authHeader;
         this.atlasBackupClientBlocking = atlasBackupClientBlocking;
-        this.storedTokens = new ConcurrentHashMap<>();
+        this.coordinationServiceRecorder = coordinationServiceRecorder;
+        this.backupPersister = backupPersister;
+        this.inProgressBackups = new ConcurrentHashMap<>();
     }
 
+    // TODO(gs): add create() that passes in Function<Namespace, Path>, and instantiate external persister
+    // Given a Function<Namespace, Path>, a BackupPersister can only support one backup/restore per namespace.
+    // However, the internal backup solution will pass in a slightly different function given the internal BackupId,
+    // which is different for each backup.
     public static AtlasBackupService create(
-            AuthHeader authHeader, Refreshable<ServicesConfigBlock> servicesConfigBlock, String serviceName) {
+            AuthHeader authHeader,
+            BackupPersister backupPersister,
+            Refreshable<ServicesConfigBlock> servicesConfigBlock,
+            String serviceName,
+            Function<Namespace, KeyValueService> keyValueServiceFactory) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
         AtlasBackupClientBlocking atlasBackupClientBlocking =
                 reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName);
-        return new AtlasBackupService(authHeader, atlasBackupClientBlocking);
+
+        CoordinationServiceRecorder coordinationServiceRecorder =
+                new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
+
+        return new AtlasBackupService(
+                authHeader, atlasBackupClientBlocking, coordinationServiceRecorder, backupPersister);
     }
 
     public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {
@@ -67,20 +90,20 @@ public final class AtlasBackupService {
     }
 
     private void storeBackupToken(InProgressBackupToken backupToken) {
-        storedTokens.put(backupToken.getNamespace(), backupToken);
+        inProgressBackups.put(backupToken.getNamespace(), backupToken);
     }
 
-    // TODO(gs): actually persist the token using a persister passed into this class.
-    //   Then we have an atlas-side implementation of the persister that conforms with the current backup story
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
         Set<InProgressBackupToken> tokens = namespaces.stream()
-                .map(storedTokens::remove)
+                .map(inProgressBackups::remove)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
         CompleteBackupResponse response = atlasBackupClientBlocking.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
+                .peek(coordinationServiceRecorder::storeFastForwardState)
+                .peek(backupPersister::storeCompletedBackup)
                 .map(CompletedBackup::getNamespace)
                 .collect(Collectors.toSet());
     }
