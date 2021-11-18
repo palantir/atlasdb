@@ -18,10 +18,6 @@ package com.palantir.util;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 
-/**
- *
- *
- */
 public class KeyedWeakReference<K, V> extends WeakReference<V> implements KeyedReference {
 
     private final K key;

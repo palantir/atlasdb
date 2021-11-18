@@ -34,6 +34,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.NanoTime;
 import com.palantir.conjure.java.api.errors.QosException.RetryOther;
@@ -47,7 +48,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.HashMap;
@@ -62,15 +62,15 @@ import org.junit.Test;
 public class MultiClientConjureTimelockResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
     private static final int REMOTE_PORT = 4321;
-    private static final URL LOCAL = url("https://localhost:1234");
-    private static final URL REMOTE = url("https://localhost:" + REMOTE_PORT);
+    private static final URL LOCAL = TimelockTestUtils.url("https://localhost:1234");
+    private static final URL REMOTE = TimelockTestUtils.url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER =
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
     private static final int DUMMY_COMMIT_TS_COUNT = 5;
 
-    private Map<String, AsyncTimelockService> namespaces = new HashMap();
-    private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap();
-    private Map<String, Integer> namespaceToCommitTsLowerBound = new HashMap();
+    private Map<String, AsyncTimelockService> namespaces = new HashMap<>();
+    private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap<>();
+    private Map<String, Integer> namespaceToCommitTsLowerBound = new HashMap<>();
 
     private MultiClientConjureTimelockResource resource;
 
@@ -210,13 +210,5 @@ public class MultiClientConjureTimelockResourceTest {
 
     private Integer getInclusiveLowerCommitTs(String namespace) {
         return namespaceToCommitTsLowerBound.computeIfAbsent(namespace, _u -> commitTsLowerInclusive++);
-    }
-
-    private static URL url(String url) {
-        try {
-            return new URL(url);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

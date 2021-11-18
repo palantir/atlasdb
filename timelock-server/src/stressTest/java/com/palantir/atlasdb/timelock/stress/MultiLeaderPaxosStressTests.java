@@ -22,6 +22,7 @@ import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerStressTest;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
+import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.Collection;
 import org.junit.Rule;
@@ -36,9 +37,10 @@ public final class MultiLeaderPaxosStressTests {
     public static final TestableTimelockCluster MULTI_LEADER_PAXOS = new TestableTimelockCluster(
             "batched timestamp paxos multi leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9086, builder -> builder.clientPaxosBuilder(
-                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
-                    .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)));
+            generateThreeNodeTimelockCluster(
+                    TestableTimeLockClusterPorts.MULTI_LEADER_PAXOS_STRESS_TESTS, builder -> builder.clientPaxosBuilder(
+                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
+                            .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)));
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestableTimelockCluster> params() {

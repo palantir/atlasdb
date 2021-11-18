@@ -3,11 +3,11 @@ apply plugin: 'groovy'
 
 dependencies {
     compile project(':atlasdb-service')
-    compile group: 'commons-cli', name:'commons-cli'
-    compile 'jline:jline:2.12'
-    compile group: 'org.codehaus.groovy', name: 'groovy'
-    compile group: 'org.codehaus.groovy', name: 'groovy-groovysh'
-    compile group: 'org.codehaus.groovy', name: 'groovy-json'
+    implementation group: 'commons-cli', name:'commons-cli'
+    implementation 'jline:jline:2.12'
+    implementation group: 'org.codehaus.groovy', name: 'groovy'
+    implementation group: 'org.codehaus.groovy', name: 'groovy-groovysh'
+    implementation group: 'org.codehaus.groovy', name: 'groovy-json'
 
     implementation 'com.palantir.dialogue:dialogue-clients'
     implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -27,11 +27,11 @@ dependencies {
     testImplementation 'org.codehaus.groovy:groovy-test'
     testImplementation project(':atlasdb-client')
 
-    testCompile(group: 'org.jmock', name: 'jmock-legacy') {
+    testImplementation(group: 'org.jmock', name: 'jmock-legacy') {
         exclude group: 'org.hamcrest'
     }
-    testCompile(group: 'org.jmock', name: 'jmock') {
+    testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile 'org.gmock:gmock:0.8.3'
+    testImplementation 'org.gmock:gmock:0.8.3'
 }

@@ -26,7 +26,7 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableTimestampStateStoreState.class)
 @JsonDeserialize(as = ImmutableTimestampStateStoreState.class)
 interface TimestampStateStoreState {
-    Map<StartTimestamp, TimestampStateStore.MapEntry> timestampMap();
+    Map<StartTimestamp, TimestampStateStore.TimestampVersionInfo> timestampMap();
 
     SortedSetMultimap<Sequence, StartTimestamp> livingVersions();
 }

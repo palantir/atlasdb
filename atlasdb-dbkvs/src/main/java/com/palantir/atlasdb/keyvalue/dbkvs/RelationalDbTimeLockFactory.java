@@ -43,7 +43,7 @@ import java.util.Optional;
 public class RelationalDbTimeLockFactory implements DbTimeLockFactory {
     public static final String TYPE = "relational";
 
-    private final AtlasDbFactory delegate = new DbAtlasDbFactory();
+    private final AtlasDbFactory<KeyValueServiceConfig> delegate = new DbAtlasDbFactory();
 
     @Override
     public String getType() {

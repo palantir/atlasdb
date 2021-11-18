@@ -7,7 +7,7 @@ apply from: "../gradle/tests.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
-    runtime project(':timelock-server')
+    runtimeOnly project(':timelock-server')
 }
 
 distribution {

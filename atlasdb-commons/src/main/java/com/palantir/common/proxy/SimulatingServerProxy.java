@@ -15,6 +15,8 @@
  */
 package com.palantir.common.proxy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+
 /**
  * A static method to return a proxy which simulates a remote server. The
  * returned proxy is a combination of  {@link InterruptibleProxy} and {@link DelayProxy}.
@@ -27,6 +29,6 @@ public final class SimulatingServerProxy {
     }
 
     private SimulatingServerProxy() {
-        throw new AssertionError("uninstantiable");
+        throw new SafeIllegalStateException("uninstantiable");
     }
 }

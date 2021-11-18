@@ -55,5 +55,7 @@ interface TimestampMapping {
         Preconditions.checkArgument(!timestampMapping().isEmpty(), "Cannot process an empty timestamp map");
     }
 
-    class Builder extends ImmutableTimestampMapping.Builder {}
+    static ImmutableTimestampMapping.Builder builder() {
+        return ImmutableTimestampMapping.builder();
+    }
 }

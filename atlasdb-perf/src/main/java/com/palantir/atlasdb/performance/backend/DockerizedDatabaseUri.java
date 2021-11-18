@@ -15,7 +15,9 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
+import com.google.common.base.Splitter;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 public class DockerizedDatabaseUri {
 
@@ -30,11 +32,11 @@ public class DockerizedDatabaseUri {
     }
 
     public static DockerizedDatabaseUri fromUriString(String uri) throws IllegalArgumentException {
-        String[] parts = uri.trim().split(DELIMITER);
-        String[] addrParts = parts[1].split(":");
+        List<String> parts = Splitter.on(DELIMITER).splitToList(uri.trim());
+        List<String> addrParts = Splitter.on(':').splitToList(parts.get(1));
         return new DockerizedDatabaseUri(
-                KeyValueServiceInstrumentation.forDatabase(parts[0]),
-                InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
+                KeyValueServiceInstrumentation.forDatabase(parts.get(0)),
+                InetSocketAddress.createUnresolved(addrParts.get(0), Integer.parseInt(addrParts.get(1))));
     }
 
     public KeyValueServiceInstrumentation getKeyValueServiceInstrumentation() {

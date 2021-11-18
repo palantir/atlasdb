@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javax.annotation.Nullable;
 
+@SuppressWarnings("ImmutableEnumChecker") // TODO(gs): remove this class
 enum SimpleSqlProfiler implements SqlProfiler {
     INSTANCE;
 

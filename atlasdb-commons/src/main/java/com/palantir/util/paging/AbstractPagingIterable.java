@@ -35,10 +35,6 @@ public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> i
         return new PagingIterator<T, P>(this);
     }
 
-    /**
-     *
-     * @author manthony
-     */
     public static class PagingIterator<T, P extends BasicResultsPage<T>> extends AbstractIterator<T> {
         private final AbstractPagingIterable<T, P> iterable;
         private P currentPage = null;

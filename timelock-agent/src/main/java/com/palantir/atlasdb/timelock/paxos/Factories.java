@@ -80,9 +80,11 @@ public interface Factories {
 
         @Value.Derived
         SingleLeaderPinger pinger() {
-            return new SingleLeaderPinger(
+            return SingleLeaderPinger.create(
                     WithDedicatedExecutor.convert(remoteClients().nonBatchPingableLeadersWithContext()),
+                    dataSource(),
                     leaderPingResponseWait(),
+                    greenNodeLeadershipBackoff(),
                     leaderUuid(),
                     PaxosConstants.CANCEL_REMAINING_CALLS,
                     Optional.of(remoteClients().context().timeLockVersion()));

@@ -23,6 +23,7 @@ import com.palantir.timestamp.AutoDelegate_TimestampService;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
+import java.time.Duration;
 
 public final class AsyncInitializeableInMemoryTimestampService extends AsyncInitializer
         implements AutoDelegate_TimestampService, ManagedTimestampService {
@@ -63,8 +64,8 @@ public final class AsyncInitializeableInMemoryTimestampService extends AsyncInit
     }
 
     @Override
-    protected int sleepIntervalInMillis() {
-        return 1_000;
+    protected Duration sleepInterval() {
+        return Duration.ofSeconds(1);
     }
 
     @Override

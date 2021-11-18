@@ -7,13 +7,13 @@ dependencies {
     compile project(':atlasdb-tests-shared')
     compile project(":flake-rule")
 
-    compile group: 'com.google.guava', name: 'guava'
-    compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-    compile group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-core'
-    compile group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-junit4'
-    compile group: 'org.awaitility', name: 'awaitility'
-    compile group: 'io.netty', name: 'netty-handler-proxy'
+    implementation group: 'com.google.guava', name: 'guava'
+    implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
+    implementation group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-core'
+    implementation group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-junit4'
+    implementation group: 'org.awaitility', name: 'awaitility'
+    implementation group: 'io.netty', name: 'netty-handler-proxy'
 
     implementation 'com.datastax.cassandra:cassandra-driver-core'
     implementation 'com.palantir.safe-logging:preconditions'
@@ -29,7 +29,7 @@ dependencies {
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
 
-    testCompile group: 'com.github.stefanbirkner', name: 'system-rules'
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'com.github.stefanbirkner', name: 'system-rules'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
 }

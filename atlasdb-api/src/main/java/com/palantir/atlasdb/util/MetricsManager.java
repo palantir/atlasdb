@@ -109,7 +109,7 @@ public class MetricsManager {
     }
 
     public void addMetricFilter(
-            Class clazz, String metricName, Map<String, String> tags, MetricPublicationFilter publicationFilter) {
+            Class<?> clazz, String metricName, Map<String, String> tags, MetricPublicationFilter publicationFilter) {
         addMetricFilter(getTaggedMetricName(clazz, metricName, tags), publicationFilter);
     }
 
@@ -121,7 +121,7 @@ public class MetricsManager {
         return publishableMetricsView;
     }
 
-    public void registerMetric(Class clazz, String metricName, Gauge gauge) {
+    public void registerMetric(Class<?> clazz, String metricName, Gauge<?> gauge) {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricName), gauge);
     }
 
@@ -130,11 +130,11 @@ public class MetricsManager {
      *
      * @throws IllegalStateException if a non-gauge metric with the same name already exists.
      */
-    public Gauge registerOrGet(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+    public <T> Gauge<T> registerOrGet(Class<?> clazz, String metricName, Gauge<T> gauge, Map<String, String> tag) {
         MetricName metricToAdd = getTaggedMetricName(clazz, metricName, tag);
 
         try {
-            Gauge registeredGauge = taggedMetricRegistry.gauge(metricToAdd, gauge);
+            Gauge<T> registeredGauge = taggedMetricRegistry.gauge(metricToAdd, gauge);
             registerTaggedMetricName(metricToAdd);
             return registeredGauge;
         } catch (IllegalArgumentException ex) {
@@ -147,12 +147,12 @@ public class MetricsManager {
         }
     }
 
-    private MetricName getTaggedMetricName(Class clazz, String metricName, Map<String, String> tags) {
+    private MetricName getTaggedMetricName(Class<?> clazz, String metricName, Map<String, String> tags) {
         return metricNameCache.get(clazz, metricName, tags);
     }
 
     public Map<String, String> getTableNameTagFor(@Nullable TableReference tableRef) {
-        String tableName = tableRef == null ? "unknown" : tableRef.getTablename();
+        String tableName = tableRef == null ? "unknown" : tableRef.getTableName();
         if (!isSafeToLog.test(tableRef)) {
             tableName = "unsafeTable";
         }
@@ -167,29 +167,29 @@ public class MetricsManager {
         } catch (Exception e) {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
             log.warn(
-                    "Unable to register metric {}. This may occur if you are running integration tests that don't"
-                        + " clean up completely after  themselves, or if you are trying to use multiple"
-                        + " TransactionManagers concurrently in the same JVM (e.g. in a KVS migration). If this is not"
-                        + " the case, this is likely to be a product and/or an AtlasDB bug. This is no cause for"
-                        + " immediate alarm, but it does mean that your telemetry for the aforementioned metric may be"
-                        + " reported incorrectly. Turn on TRACE logging to see the full exception.",
+                    "Unable to register metric {}. This may occur if you are running integration tests that "
+                            + "don't clean up completely after themselves, or if you are trying to use multiple "
+                            + "TransactionManagers concurrently in the same JVM (e.g. in a KVS migration). If this is "
+                            + "not the case, this is likely to be a product and/or an AtlasDB bug. This is no cause "
+                            + "for immediate alarm, but it does mean that your telemetry for the aforementioned metric "
+                            + "may be reported incorrectly. Turn on TRACE logging to see the full exception.",
                     SafeArg.of("metricName", fullyQualifiedMetricName));
             log.trace("Full exception follows:", e);
         }
     }
 
-    public <M extends Gauge> M registerOrGetGauge(Class clazz, String metricName, Supplier<M> gaugeSupplier) {
+    public <M extends Gauge<?>> M registerOrGetGauge(Class<?> clazz, String metricName, Supplier<M> gaugeSupplier) {
         String fullyQualifiedGaugeName = MetricRegistry.name(clazz, metricName);
         M gauge = (M) metricRegistry.gauge(fullyQualifiedGaugeName, gaugeSupplier::get);
         registerMetricName(fullyQualifiedGaugeName);
         return gauge;
     }
 
-    public Histogram registerOrGetHistogram(Class clazz, String metricName) {
+    public Histogram registerOrGetHistogram(Class<?> clazz, String metricName) {
         return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
     }
 
-    public Histogram registerOrGetHistogram(Class clazz, String metricName, Supplier<Histogram> histogramSupplier) {
+    public Histogram registerOrGetHistogram(Class<?> clazz, String metricName, Supplier<Histogram> histogramSupplier) {
         String fullyQualifiedHistogramName = MetricRegistry.name(clazz, metricName);
         Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName, histogramSupplier::get);
         registerMetricName(fullyQualifiedHistogramName);
@@ -202,7 +202,7 @@ public class MetricsManager {
         return histogram;
     }
 
-    public Timer registerOrGetTimer(Class clazz, String metricName) {
+    public Timer registerOrGetTimer(Class<?> clazz, String metricName) {
         return registerOrGetTimer(MetricRegistry.name(clazz, metricName));
     }
 
@@ -212,7 +212,7 @@ public class MetricsManager {
         return timer;
     }
 
-    public Counter registerOrGetCounter(Class clazz, String counterName) {
+    public Counter registerOrGetCounter(Class<?> clazz, String counterName) {
         return registerOrGetCounter(MetricRegistry.name(clazz, "", counterName));
     }
 
@@ -222,11 +222,11 @@ public class MetricsManager {
         return counter;
     }
 
-    public Meter registerOrGetMeter(Class clazz, String meterName) {
+    public Meter registerOrGetMeter(Class<?> clazz, String meterName) {
         return registerOrGetMeter(MetricRegistry.name(clazz, "", meterName));
     }
 
-    public Meter registerOrGetMeter(Class clazz, String metricPrefix, String meterName) {
+    public Meter registerOrGetMeter(Class<?> clazz, String metricPrefix, String meterName) {
         return registerOrGetMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
     }
 
@@ -236,14 +236,14 @@ public class MetricsManager {
         return meter;
     }
 
-    public Meter registerOrGetTaggedMeter(Class clazz, String metricName, Map<String, String> tags) {
+    public Meter registerOrGetTaggedMeter(Class<?> clazz, String metricName, Map<String, String> tags) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
         Meter meter = taggedMetricRegistry.meter(name);
         registerTaggedMetricName(name);
         return meter;
     }
 
-    public Histogram registerOrGetTaggedHistogram(Class clazz, String metricName, Map<String, String> tags) {
+    public Histogram registerOrGetTaggedHistogram(Class<?> clazz, String metricName, Map<String, String> tags) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
         Histogram histogram = taggedMetricRegistry.histogram(name);
         registerTaggedMetricName(name);
@@ -251,14 +251,14 @@ public class MetricsManager {
     }
 
     public Histogram registerOrGetTaggedHistogram(
-            Class clazz, String metricName, Map<String, String> tags, Supplier<Histogram> supplier) {
+            Class<?> clazz, String metricName, Map<String, String> tags, Supplier<Histogram> supplier) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
         Histogram histogram = taggedMetricRegistry.histogram(name, supplier);
         registerTaggedMetricName(name);
         return histogram;
     }
 
-    public Counter registerOrGetTaggedCounter(Class clazz, String metricName, Map<String, String> tags) {
+    public Counter registerOrGetTaggedCounter(Class<?> clazz, String metricName, Map<String, String> tags) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
         Counter counter = taggedMetricRegistry.counter(name);
         registerTaggedMetricName(name);

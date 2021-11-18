@@ -37,7 +37,7 @@ public class SweepBenchmarks {
     private static final int BATCH_SIZE = 10;
     private static final int DELETED_COUNT = RegeneratingTable.SWEEP_DUPLICATES - 1;
 
-    private Object runSingleSweep(RegeneratingTable table, int uniqueCellsToSweep) {
+    private Object runSingleSweep(RegeneratingTable<?> table, int uniqueCellsToSweep) {
         SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
         SweepBatchConfig batchConfig = ImmutableSweepBatchConfig.builder()
                 .deleteBatchSize(DELETED_COUNT * uniqueCellsToSweep)
@@ -50,7 +50,7 @@ public class SweepBenchmarks {
         return sweepResults;
     }
 
-    private Object runMultiSweep(RegeneratingTable table) {
+    private Object runMultiSweep(RegeneratingTable<?> table) {
         SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
         SweepResults sweepResults = null;
         byte[] nextStartRow = PtBytes.EMPTY_BYTE_ARRAY;

@@ -27,13 +27,13 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
@@ -47,8 +47,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ConjureTimelockResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
     private static final int REMOTE_PORT = 4321;
-    private static final URL LOCAL = url("https://localhost:1234");
-    private static final URL REMOTE = url("https://localhost:" + REMOTE_PORT);
+    private static final URL LOCAL = TimelockTestUtils.url("https://localhost:1234");
+    private static final URL REMOTE = TimelockTestUtils.url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER =
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
 
@@ -158,14 +158,6 @@ public class ConjureTimelockResourceTest {
         public Void visit(QosException.Unavailable exception) {
             fail("Did not expect unavailable");
             return null;
-        }
-    }
-
-    private static URL url(String url) {
-        try {
-            return new URL(url);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
         }
     }
 }

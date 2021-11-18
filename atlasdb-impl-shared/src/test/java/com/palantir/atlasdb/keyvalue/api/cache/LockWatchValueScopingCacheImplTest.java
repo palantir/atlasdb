@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.IterableAssert;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -526,7 +525,6 @@ public final class LockWatchValueScopingCacheImplTest {
                 successWithNoUpdates(sequence));
     }
 
-    @NotNull
     private static LockWatchStateUpdate.Success successWithNoUpdates(long sequence) {
         return LockWatchStateUpdate.success(LEADER, sequence, ImmutableList.of());
     }

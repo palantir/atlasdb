@@ -136,16 +136,16 @@ public class TestSingleBackendCommand {
     }
 
     private int runTest(String[] args) {
-        Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("test-cli")
+        Cli.CliBuilder<Callable<?>> builder = Cli.<Callable<?>>builder("test-cli")
                 .withDescription("test the cli framework")
                 .withDefaultCommand(Help.class)
                 .withCommands(Help.class, TestCommand.class);
-        Cli<Callable> parser = builder.build();
+        Cli<Callable<?>> parser = builder.build();
         try {
             parser.parse(args).call();
             return 0;
         } catch (Exception e) {
-            System.out.println(String.format("Exception running test %s: %s", Arrays.toString(args), e));
+            System.out.printf("Exception running test %s: %s%n", Arrays.toString(args), e);
             return 1;
         }
     }

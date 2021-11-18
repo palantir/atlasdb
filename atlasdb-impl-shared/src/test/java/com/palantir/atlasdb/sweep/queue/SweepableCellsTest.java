@@ -456,7 +456,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     }
 
     private void assertDeleted(TableReference tableRef, Multimap<Cell, Long> expectedDeletes) {
-        ArgumentCaptor<Multimap> argumentCaptor = ArgumentCaptor.forClass(Multimap.class);
+        ArgumentCaptor<Multimap<Cell, Long>> argumentCaptor = ArgumentCaptor.forClass(Multimap.class);
         verify(spiedKvs).delete(eq(tableRef), argumentCaptor.capture());
 
         Multimap<Cell, Long> actual = argumentCaptor.getValue();
@@ -465,7 +465,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     }
 
     private void assertDeletedNumber(TableReference tableRef, int expectedDeleted) {
-        ArgumentCaptor<Multimap> argumentCaptor = ArgumentCaptor.forClass(Multimap.class);
+        ArgumentCaptor<Multimap<Cell, Long>> argumentCaptor = ArgumentCaptor.forClass(Multimap.class);
         verify(spiedKvs).delete(eq(tableRef), argumentCaptor.capture());
 
         Multimap<Cell, Long> actual = argumentCaptor.getValue();

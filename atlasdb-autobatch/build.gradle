@@ -4,9 +4,9 @@ apply from: "../gradle/shared.gradle"
 libsDirName = file('build/artifacts')
 dependencies {
     compile project(":atlasdb-commons")
-    compile group: 'com.lmax', name: 'disruptor'
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-    compile group: 'com.palantir.tritium', name: 'tritium-registry'
+    implementation group: 'com.lmax', name: 'disruptor'
+    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+    implementation group: 'com.palantir.tritium', name: 'tritium-registry'
 
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
@@ -29,12 +29,12 @@ dependencies {
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testCompile group: 'junit', name: 'junit'
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.awaitility', name: 'awaitility'
-    testCompile(group: 'org.jmock', name: 'jmock') {
+    testImplementation group: 'junit', name: 'junit'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.awaitility', name: 'awaitility'
+    testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile group: 'org.mockito', name: 'mockito-core'
-    testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'com.palantir.tracing', name: 'tracing-test-utils'
 }

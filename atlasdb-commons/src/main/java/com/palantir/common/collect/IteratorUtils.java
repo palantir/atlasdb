@@ -26,6 +26,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.base.Visitors;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -134,7 +135,7 @@ public final class IteratorUtils {
     }
 
     private IteratorUtils() {
-        throw new AssertionError("uninstantiable");
+        throw new SafeIllegalStateException("uninstantiable");
     }
 
     /**

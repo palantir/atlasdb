@@ -20,11 +20,13 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
+import com.google.common.math.LongMath;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -35,7 +37,6 @@ import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
@@ -47,9 +48,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
@@ -61,28 +60,23 @@ public class SweepTaskRunner {
 
     private final KeyValueService keyValueService;
     private final SpecialTimestampsSupplier specialTimestampsSupplier;
-    private final SweepStrategyManager sweepStrategyManager;
     private final CellsSweeper cellsSweeper;
     private final Optional<LegacySweepMetrics> metricsManager;
     private final CommitTsCache commitTsCache;
-    private final BooleanSupplier skipCellVersion;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
             LongSupplier unreadableTimestampSupplier,
             LongSupplier immutableTimestampSupplier,
             TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper) {
         this(
                 keyValueService,
                 unreadableTimestampSupplier,
                 immutableTimestampSupplier,
                 transactionService,
-                sweepStrategyManager,
                 cellsSweeper,
-                null,
-                () -> ThreadLocalRandom.current().nextInt(100) == 0);
+                null);
     }
 
     public SweepTaskRunner(
@@ -90,17 +84,13 @@ public class SweepTaskRunner {
             LongSupplier unreadableTsSupplier,
             LongSupplier immutableTsSupplier,
             TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper,
-            LegacySweepMetrics metricsManager,
-            BooleanSupplier skipCellVersion) {
+            LegacySweepMetrics metricsManager) {
         this.keyValueService = keyValueService;
         this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
-        this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
         this.metricsManager = Optional.ofNullable(metricsManager);
         this.commitTsCache = CommitTsCache.create(transactionService);
-        this.skipCellVersion = skipCellVersion;
     }
 
     /**
@@ -163,10 +153,17 @@ public class SweepTaskRunner {
         SweepStrategy sweepStrategy = SweepStrategy.from(
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
-        if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
-            Preconditions.checkState(
-                    sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.THOROUGH)),
-                    "it is not safe to run this type of sweep on conservatively swept tables");
+        if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH
+                && sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.CONSERVATIVE))) {
+            log.info(
+                    "Attempted to run an iteration of leaky sweep on a conservatively swept table. This is "
+                            + "not supported with the current implementation, we will instead run a full conservative "
+                            + "sweep. If you believe this table should be thoroughly swept, verify the sweep strategy "
+                            + "in your table's schema.",
+                    LoggingArgs.tableRef(tableRef));
+            return maybeSweeper
+                    .map(sweeper -> doRun(tableRef, batchConfig, startRow, RunType.FULL, sweeper))
+                    .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
         }
         return maybeSweeper
                 .map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
@@ -274,7 +271,7 @@ public class SweepTaskRunner {
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
                 boolean safeToDeleteLast =
-                        addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                        addCurrentCellTimestamps(tableRef, currentBatch, cell.cell(), currentCellTimestamps, runType);
                 removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
             } else {
                 boolean safeToDeleteLast = true;
@@ -283,6 +280,7 @@ public class SweepTaskRunner {
 
                     safeToDeleteLast = safeToDeleteLast
                             && addCurrentCellTimestamps(
+                                    tableRef,
                                     currentBatch,
                                     cell.cell(),
                                     currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch),
@@ -301,7 +299,8 @@ public class SweepTaskRunner {
                 }
                 if (!currentCellTimestamps.isEmpty()) {
                     safeToDeleteLast = safeToDeleteLast
-                            && addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                            && addCurrentCellTimestamps(
+                                    tableRef, currentBatch, cell.cell(), currentCellTimestamps, runType);
                     removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
                 }
             }
@@ -326,19 +325,44 @@ public class SweepTaskRunner {
     }
 
     /**
+     * For a given cell and a list of timestamps corresponding to writes for the cell, determine candidate versions of
+     * the cell to delete and add them to the current batch:
+     *
+     * 1) if the run type is {@link RunType#WAS_CONSERVATIVE_NOW_THOROUGH}, then we want to exclude ~1% of versions;
+     *    additionally, if we skip any version of the cell, we must also keep the most recent version of the cell so
+     *    that an excluded older version does not become visible -- see
+     *    {@link SweepTaskRunner#removeLatestVersionIfNecessary(Multimap, CellToSweep, List, boolean)}.
+     * 2) otherwise, we want to delete all versions, with the usual provision that we must keep the newest version for
+     *    conservatively swept tables
+     *
+     * Note: since 1) is only performed on thoroughly swept tables, it is safe: even though we may leave some older
+     * versions and delete newer versions, all in-progress transactions that read this cell must read at a timestamp
+     * greater than the immutable timestamp and they will therefore see the newest version. This would not be safe
+     * on conservatively swept tables, as a read-only transaction could be reading at a lower timestamp and see an
+     * inconsistent version.
+     *
      * @return true, if it is safe to delete the last entry for this cell; in case it's a delete. This is not safe if
      * any entry for this cell has been skipped
      */
     private boolean addCurrentCellTimestamps(
-            Multimap<Cell, Long> currentBatch, Cell currentCell, List<Long> currentCellTimestamps, RunType runType) {
+            TableReference tableRef,
+            Multimap<Cell, Long> currentBatch,
+            Cell currentCell,
+            List<Long> currentCellTimestamps,
+            RunType runType) {
         if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
+            int cellReferenceHash = CellReference.of(tableRef, currentCell).goodHash();
             List<Long> versionsToDelete = currentCellTimestamps.stream()
-                    .filter(_ignore -> !skipCellVersion.getAsBoolean())
+                    .filter(timestamp -> !shouldSkip(cellReferenceHash, timestamp))
                     .collect(Collectors.toList());
             currentBatch.putAll(currentCell, versionsToDelete);
             return versionsToDelete.size() == currentCellTimestamps.size();
         }
         currentBatch.putAll(currentCell, currentCellTimestamps);
         return true;
+    }
+
+    private static boolean shouldSkip(int cellReferenceHash, long timestamp) {
+        return LongMath.mod(cellReferenceHash * 31L + timestamp, 100) == 0;
     }
 }

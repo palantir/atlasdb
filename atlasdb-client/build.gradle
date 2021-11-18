@@ -34,45 +34,51 @@ configurations {
 }
 
 artifacts {
-    testArtifacts clientTestJar
+  testArtifacts clientTestJar
 }
 
 dependencies {
-  compile project(":atlasdb-commons")
-  compile project(":atlasdb-api")
-  compile project(":atlasdb-client-protobufs")
-  compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
-  compile group: "com.github.ben-manes.caffeine", name: "caffeine"
-  compile group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
-  compile group: "com.google.protobuf", name: "protobuf-java"
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
-  compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
-  compile group: 'com.palantir.tracing', name: 'tracing'
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-  compile (group: 'com.palantir.tritium', name: 'tritium-caffeine') {
+  api project(":atlasdb-commons")
+  api project(":atlasdb-api")
+  api project(":atlasdb-client-protobufs")
+
+  api group: "com.google.code.findbugs", name: "jsr305"
+  api group: "com.google.guava", name: "guava"
+  api group: "com.google.protobuf", name: "protobuf-java"
+  api group: "jakarta.annotation", name: "jakarta.annotation-api"
+  api group: "org.slf4j", name: "slf4j-api"
+
+  implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
+  implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
+  implementation group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+  implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
+  implementation group: 'com.palantir.tracing', name: 'tracing'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation (group: 'com.palantir.tritium', name: 'tritium-caffeine') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
+  implementation (group: 'com.palantir.tritium', name: 'tritium-registry') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  compile (group: 'com.palantir.tritium', name: 'tritium-metrics') {
+  implementation (group: 'com.palantir.tritium', name: 'tritium-metrics') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
+  implementation (group: 'com.palantir.tritium', name: 'tritium-lib') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  
-  compile group: 'com.squareup.okio', name: 'okio'
-  compile group: 'org.hdrhistogram', name: 'HdrHistogram'
-  compile group: 'com.palantir.common', name: 'streams'
-  compile group: 'com.github.rholder', name: 'guava-retrying'
-  compile group: 'org.rocksdb', name: 'rocksdbjni'
-  
+
+  implementation group: 'com.squareup.okio', name: 'okio'
+  implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
+  implementation group: 'com.github.rholder', name: 'guava-retrying'
+  implementation group: 'com.palantir.common', name: 'streams'
+  implementation group: 'org.rocksdb', name: 'rocksdbjni'
+
   implementation group: 'com.squareup', name:'javapoet'
   implementation group: 'com.palantir.goethe', name: 'goethe'
 
@@ -80,14 +86,14 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
 
-  testCompile group: 'junit', name: 'junit'
-  testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile(group: 'org.jmock', name: 'jmock') {
-      exclude group: 'org.hamcrest'
+  testImplementation group: 'junit', name: 'junit'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'org.hamcrest'
   }
-  testCompile group: 'ch.qos.logback', name: 'logback-classic'
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.awaitility', name: 'awaitility'
+  testImplementation group: 'ch.qos.logback', name: 'logback-classic'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation group: 'org.awaitility', name: 'awaitility'
 
   integrationInputCompile project(":atlasdb-client")
 
@@ -103,9 +109,7 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-slf4j'
   implementation 'com.squareup.okio:okio'
   implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'jakarta.annotation:jakarta.annotation-api'
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-autobatch')
   implementation project(':commons-annotations')
   implementation project(':commons-executors')
@@ -131,6 +135,7 @@ dependencies {
   integrationInputImplementation 'com.google.code.findbugs:annotations'
   integrationInputImplementation 'com.google.errorprone:error_prone_annotations'
   integrationInputImplementation 'com.google.guava:guava'
+  integrationInputImplementation 'com.google.protobuf:protobuf-java'
   integrationInputImplementation project(':atlasdb-api')
   integrationInputImplementation project(':atlasdb-commons')
 

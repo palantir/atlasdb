@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.base.Function;
@@ -40,9 +39,16 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings("Guava") // BatchingVisitables uses Guava.
 public class BatchingVisitablesTest {
+    @Mock
+    private AbstractBatchingVisitable<Void> bv;
+
     @Test
     public void testGetFirstPage() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L));
@@ -197,20 +203,16 @@ public class BatchingVisitablesTest {
     }
 
     @Test
-    public void testImmutableCopyRespectsCustomBatchSize() throws Exception {
-        AbstractBatchingVisitable bv = mock(AbstractBatchingVisitable.class);
-
-        BatchingVisitableView bvv = BatchingVisitableView.of(bv);
+    public void testImmutableCopyRespectsCustomBatchSize() {
+        BatchingVisitableView<Void> bvv = BatchingVisitableView.of(bv);
         bvv.hintBatchSize(2).immutableCopy();
 
         verify(bv).batchAcceptSizeHint(eq(2), any());
     }
 
     @Test
-    public void testImmutableCopyWithDefaultBatchSize() throws Exception {
-        AbstractBatchingVisitable bv = mock(AbstractBatchingVisitable.class);
-
-        BatchingVisitableView bvv = BatchingVisitableView.of(bv);
+    public void testImmutableCopyWithDefaultBatchSize() {
+        BatchingVisitableView<Void> bvv = BatchingVisitableView.of(bv);
         bvv.immutableCopy();
 
         verify(bv).batchAcceptSizeHint(eq(BatchingVisitables.DEFAULT_BATCH_SIZE), any());

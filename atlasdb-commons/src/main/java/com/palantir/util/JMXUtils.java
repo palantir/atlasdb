@@ -52,8 +52,6 @@ import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
 
-/**
- */
 public final class JMXUtils {
     private static final SafeLogger log = SafeLoggerFactory.get(JMXUtils.class);
 
@@ -273,8 +271,7 @@ public final class JMXUtils {
     }
 
     /**
-     *
-     * @return proxy interfaces to all beans registered to the server implementing the class mbeanClazz.
+     * Returns proxy interfaces to all beans registered to the server implementing the class mbeanClazz.
      */
     public static <T> Iterable<T> getInstanceBeanProxies(final Class<T> mbeanClazz) {
         return Collections2.transform(

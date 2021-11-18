@@ -18,13 +18,13 @@ dependencies {
     compile project(':timelock-api:timelock-api-jersey')
     compile project(":timestamp-api")
     compile project(":timestamp-client")
-    compile group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-    compile group: 'com.palantir.safe-logging', name: 'preconditions'
-    compile group: 'com.palantir.refreshable', name: 'refreshable'
-    compile group: 'one.util', name: 'streamex'
+    implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+    implementation group: 'com.palantir.safe-logging', name: 'preconditions'
+    implementation group: 'com.palantir.refreshable', name: 'refreshable'
+    implementation group: 'one.util', name: 'streamex'
 
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
@@ -55,12 +55,12 @@ dependencies {
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
-    testCompile group: 'junit', name: 'junit'
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.awaitility', name: 'awaitility'
-    testCompile(group: 'org.jmock', name: 'jmock') {
+    testImplementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
+    testImplementation group: 'junit', name: 'junit'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.awaitility', name: 'awaitility'
+    testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
 }

@@ -28,6 +28,7 @@ import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.okhttp.NoOpHostEventsSink;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -48,7 +49,7 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
         ClientConfiguration clientConfiguration = relevantOptions.create(
                 ImmutableList.of(uri),
                 Optional.empty(),
-                trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
+                trustContext.orElseThrow(() -> new SafeIllegalStateException("CJR requires a trust context")));
         T client = JaxRsClient.create(
                 type,
                 addAtlasDbRemotingAgent(parameters.userAgent()),

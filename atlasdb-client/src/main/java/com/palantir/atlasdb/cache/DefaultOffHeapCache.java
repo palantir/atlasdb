@@ -85,7 +85,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
                 .handle(handle)
                 .build();
 
-        return new DefaultOffHeapCache(persistentStore, entryMapper, cacheDescriptor, maxSize, taggedMetricRegistry);
+        return new DefaultOffHeapCache<>(persistentStore, entryMapper, cacheDescriptor, maxSize, taggedMetricRegistry);
     }
 
     private DefaultOffHeapCache(

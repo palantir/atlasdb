@@ -119,7 +119,7 @@ public class SchemasTest {
     private static TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {
             {
-                javaTableName(tableRef.getTablename());
+                javaTableName(tableRef.getTableName());
                 rowName();
                 rowComponent("rowName", ValueType.STRING);
                 columns();

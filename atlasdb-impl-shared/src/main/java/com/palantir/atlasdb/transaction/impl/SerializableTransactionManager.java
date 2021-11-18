@@ -74,11 +74,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         InitializeCheckingWrapper(
                 TransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
-                Callback<TransactionManager> callBack,
+                Callback<TransactionManager> callback,
                 ScheduledExecutorService initializer) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
-            this.callback = callBack;
+            this.callback = callback;
             this.executorService = initializer;
             scheduleInitializationCheckAndCallback();
         }

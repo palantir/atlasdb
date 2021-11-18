@@ -18,10 +18,6 @@ package com.palantir.util;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 
-/**
- *
- *
- */
 public class KeyedSoftReference<K, V> extends SoftReference<V> implements KeyedReference {
 
     private final K key;

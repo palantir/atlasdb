@@ -24,6 +24,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -50,6 +51,7 @@ import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
+import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
@@ -61,7 +63,6 @@ import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
-import com.palantir.leader.health.LeaderElectionHealthReport;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -332,30 +333,34 @@ public class TimeLockAgent {
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
+        RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    ConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
+                    ConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    ConjureLockWatchingResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
+                    ConjureLockWatchingResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
-                    presentUndertowRegistrar,
-                    ConjureLockV1Resource.undertow(redirectRetryTargeter(), lockServiceGetter));
+                    presentUndertowRegistrar, ConjureLockV1Resource.undertow(redirectRetryTargeter, lockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     TimeLockPaxosHistoryProviderResource.undertow(corruptionComponents.localHistoryLoader()));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    MultiClientConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
+                    MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
+                    AtlasBackupResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
         } else {
             registrar.accept(getConjureTimelockService());
-            registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
-            registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
+            registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter, lockServiceGetter));
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
-                    MultiClientConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
+                    MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(AtlasBackupResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
         }
     }
 
@@ -398,6 +403,8 @@ public class TimeLockAgent {
     }
 
     private void registerManagementResource() {
+        ServiceLifecycleController serviceLifecycleController =
+                new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor());
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
@@ -405,13 +412,13 @@ public class TimeLockAgent {
                             timestampStorage.persistentNamespaceContext(),
                             namespaces,
                             redirectRetryTargeter(),
-                            serviceStopper));
+                            serviceLifecycleController));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
                     timestampStorage.persistentNamespaceContext(),
                     namespaces,
                     redirectRetryTargeter(),
-                    serviceStopper));
+                    serviceLifecycleController));
         }
     }
 
@@ -599,13 +606,6 @@ public class TimeLockAgent {
 
     public HealthStatusReport timeLockAdjudicationFeedback() {
         return feedbackHandler.getTimeLockHealthStatus();
-    }
-
-    public LeaderElectionHealthReport timeLockLeadershipHealthCheck() {
-        return paxosResources
-                .leadershipContextFactory()
-                .leaderElectionHealthCheck()
-                .leaderElectionRateHealthReport();
     }
 
     public CorruptionHealthReport timeLockCorruptionHealthCheck() {

@@ -43,13 +43,13 @@ public final class CachingPuncherStore implements PuncherStore {
     }
 
     private final PuncherStore puncherStore;
-    private final LoadingCache<Long, Long> timeMillisToTimeStamp;
+    private final LoadingCache<Long, Long> timeMillisToTimestamp;
     private final long granularityMillis;
 
     private CachingPuncherStore(
             PuncherStore puncherStore, LoadingCache<Long, Long> timeMillisToTimestamp, long granularityMillis) {
         this.puncherStore = puncherStore;
-        this.timeMillisToTimeStamp = timeMillisToTimestamp;
+        this.timeMillisToTimestamp = timeMillisToTimestamp;
         this.granularityMillis = granularityMillis;
     }
 
@@ -66,7 +66,7 @@ public final class CachingPuncherStore implements PuncherStore {
     @Override
     public Long get(Long timeMillis) {
         long approximateTimeMillis = timeMillis - (timeMillis % granularityMillis);
-        return timeMillisToTimeStamp.getUnchecked(approximateTimeMillis);
+        return timeMillisToTimestamp.getUnchecked(approximateTimeMillis);
     }
 
     @Override
