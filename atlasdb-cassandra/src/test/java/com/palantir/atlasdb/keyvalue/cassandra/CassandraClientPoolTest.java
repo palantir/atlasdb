@@ -365,7 +365,7 @@ public class CassandraClientPoolTest {
     }
 
     private InetSocketAddress getInvocationAddress(InvocationOnMock invocation) {
-        return (InetSocketAddress) invocation.getArguments()[0];
+        return invocation.getArgument(0);
     }
 
     private void setCassandraServersTo(InetSocketAddress... hosts) {

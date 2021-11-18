@@ -110,7 +110,7 @@ public class CommitTsCacheTest {
         long valuesToInsert = 1_000_000;
 
         doAnswer(invocation -> {
-                    Collection<Long> timestamps = (Collection<Long>) invocation.getArguments()[0];
+                    Collection<Long> timestamps = invocation.getArgument(0);
                     if (timestamps.size() > AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT) {
                         fail("Requested more timestamps in a batch than is reasonable!");
                     }
@@ -189,7 +189,7 @@ public class CommitTsCacheTest {
     @SuppressWarnings("unchecked")
     private Map<Long, Long> assertRequestedTimestampsAndMapIdentity(
             InvocationOnMock invocation, Collection<Long> expected) {
-        Collection<Long> timestamps = (Collection<Long>) invocation.getArguments()[0];
+        Collection<Long> timestamps = invocation.getArgument(0);
         assertThat(timestamps).containsExactlyElementsOf(expected);
         return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
     }

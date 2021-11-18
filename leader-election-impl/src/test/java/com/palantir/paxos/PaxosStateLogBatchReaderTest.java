@@ -44,9 +44,8 @@ public class PaxosStateLogBatchReaderTest {
 
     @Test
     public void readConsecutiveBatch() throws IOException {
-        when(mockLog.readRound(anyLong()))
-                .thenAnswer(invocation ->
-                        valueForRound((long) invocation.getArguments()[0]).persistToBytes());
+        when(mockLog.readRound(anyLong())).thenAnswer(invocation -> valueForRound(invocation.getArgument(0))
+                .persistToBytes());
 
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {
             assertThat(reader.readBatch(START_SEQUENCE, BATCH_SIZE)).isEqualTo(EXPECTED_ROUNDS);
@@ -57,7 +56,7 @@ public class PaxosStateLogBatchReaderTest {
     public void exceptionsArePropagated() throws IOException {
         IOException ioException = new IOException("test");
         when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
-            long sequence = (long) invocation.getArguments()[0];
+            long sequence = invocation.getArgument(0);
             if (sequence == 200) {
                 throw ioException;
             }
@@ -74,7 +73,7 @@ public class PaxosStateLogBatchReaderTest {
     public void readBatchFiltersOutNulls() throws IOException {
         Predicate<Long> isOdd = num -> num % 2 != 0;
         when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
-            long sequence = (long) invocation.getArguments()[0];
+            long sequence = invocation.getArgument(0);
             if (!isOdd.test(sequence)) {
                 return null;
             }
@@ -102,7 +101,7 @@ public class PaxosStateLogBatchReaderTest {
     public void executionsGetBatched() throws IOException {
         when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
             Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100));
-            return valueForRound((long) invocation.getArguments()[0]).persistToBytes();
+            return valueForRound(invocation.getArgument(0)).persistToBytes();
         });
 
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {

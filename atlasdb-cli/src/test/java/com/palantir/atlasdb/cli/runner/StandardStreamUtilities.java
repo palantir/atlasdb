@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cli.runner;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 public final class StandardStreamUtilities {
     private StandardStreamUtilities() {
@@ -37,7 +38,9 @@ public final class StandardStreamUtilities {
             standardStreamSetter.set(original);
         }
 
-        return singleLine ? baos.toString().replace("\n", " ").replace("\r", " ") : baos.toString();
+        return singleLine
+                ? baos.toString(StandardCharsets.UTF_8).replace("\n", " ").replace("\r", " ")
+                : baos.toString(StandardCharsets.UTF_8);
     }
 
     public static String wrapSystemOut(Runnable runnable, boolean singleLine) {
