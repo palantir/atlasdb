@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doReturn;
@@ -63,7 +63,7 @@ public class OracleTableNameUnmapperTest {
 
         resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection.selectResultSetUnregisteredQuery(
-                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), anyObject()))
+                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), any()))
                 .thenReturn(resultSet);
     }
 
