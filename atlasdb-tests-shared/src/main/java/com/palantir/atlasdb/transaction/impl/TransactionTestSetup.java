@@ -244,11 +244,7 @@ public abstract class TransactionTestSetup {
         return valueBytes != null ? PtBytes.toString(valueBytes) : null;
     }
 
-    String getCell(Transaction txn, String rowName, String columnName) {
-        return getCell(txn, TEST_TABLE, rowName, columnName);
-    }
-
-    private String getCell(Transaction txn, TableReference tableRef, String rowName, String columnName) {
+    public String getCell(Transaction txn, TableReference tableRef, String rowName, String columnName) {
         Cell cell = createCell(rowName, columnName);
         Map<Cell, byte[]> map = txn.get(tableRef, ImmutableSet.of(cell));
         byte[] valueBytes = map.get(cell);
