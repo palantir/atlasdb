@@ -359,6 +359,7 @@ public class KeyValueServiceMigratorsTest {
                 MetricsManagers.createForTests(),
                 kvs,
                 timeLock.getLegacyTimelockService(),
+                timeLock.get().getLockWatchManager(),
                 timestampService,
                 LockServiceImpl.create(
                         LockServerOptions.builder().isStandaloneServer(false).build()),

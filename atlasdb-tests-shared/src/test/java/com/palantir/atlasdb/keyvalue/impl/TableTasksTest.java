@@ -43,7 +43,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
@@ -74,7 +73,6 @@ public class TableTasksTest {
         kvs = new InMemoryKeyValueService(true);
         timelockServices = InMemoryTimelockServices.create(tempFolder);
 
-        LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
         txService = TransactionServices.createRaw(kvs, timelockServices.getTimestampService(), false);
