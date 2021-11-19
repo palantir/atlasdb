@@ -322,25 +322,36 @@ public class StreamTest extends AtlasDbTestCase {
 
     @SuppressWarnings("deprecation")
     private void verifyLoadStream(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
-        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
-        assertStreamHasBytes(stream, bytesToStore);
+        txManager.runTaskThrowOnConflict(t -> {
+            InputStream inputStream = store.loadStream(t, id);
+            assertStreamHasBytes(inputStream, bytesToStore);
+            return null;
+        });
     }
 
     private void verifyLoadSingleStream(PersistentStreamStore store, long id, byte[] toStore) throws IOException {
-        Optional<InputStream> stream = txManager.runTaskThrowOnConflict(t -> store.loadSingleStream(t, id));
-        assertThat(stream).isPresent();
-        assertStreamHasBytes(stream.get(), toStore);
+        txManager.runTaskThrowOnConflict(t -> {
+            Optional<InputStream> stream = store.loadSingleStream(t, id);
+            assertThat(stream).isPresent();
+            assertStreamHasBytes(stream.get(), toStore);
+            return null;
+        });
     }
 
     private void verifyLoadStreams(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
-        Map<Long, InputStream> streams =
-                txManager.runTaskThrowOnConflict(t -> store.loadStreams(t, ImmutableSet.of(id)));
-        assertStreamHasBytes(streams.get(id), bytesToStore);
+        txManager.runTaskThrowOnConflict(t -> {
+            Map<Long, InputStream> streams = store.loadStreams(t, ImmutableSet.of(id));
+            assertStreamHasBytes(streams.get(id), bytesToStore);
+            return null;
+        });
     }
 
     private void verifyLoadStreamAsFile(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
-        File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
-        assertThat(FileUtils.readFileToByteArray(file)).isEqualTo(bytesToStore);
+        txManager.runTaskThrowOnConflict(t -> {
+            File file = store.loadStreamAsFile(t, id);
+            assertThat(FileUtils.readFileToByteArray(file)).isEqualTo(bytesToStore);
+            return null;
+        });
     }
 
     private void assertStreamHasBytes(InputStream stream, byte[] bytes) throws IOException {
