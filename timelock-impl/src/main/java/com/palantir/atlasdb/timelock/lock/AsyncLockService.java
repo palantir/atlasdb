@@ -58,8 +58,15 @@ public class AsyncLockService implements Closeable {
      */
     public static AsyncLockService createDefault(
             LockLog lockLog, ScheduledExecutorService reaperExecutor, ScheduledExecutorService timeoutExecutor) {
-
         DefaultLockWatchingService defaultLockWatchingService = new DefaultLockWatchingService();
+        return createDefault(lockLog, reaperExecutor, timeoutExecutor, defaultLockWatchingService);
+    }
+
+    public static AsyncLockService createDefault(
+            LockLog lockLog,
+            ScheduledExecutorService reaperExecutor,
+            ScheduledExecutorService timeoutExecutor,
+            DefaultLockWatchingService defaultLockWatchingService) {
         LockAcquirer lockAcquirer = new LockAcquirer(
                 lockLog, timeoutExecutor, defaultLockWatchingService.clock(), defaultLockWatchingService.get());
 

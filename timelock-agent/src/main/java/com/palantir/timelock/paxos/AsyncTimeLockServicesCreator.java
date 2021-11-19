@@ -25,6 +25,7 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
+import com.palantir.atlasdb.timelock.lock.watch.DefaultLockWatchingService;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -47,6 +48,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final LockLog lockLog;
     private final LeadershipComponents leadershipComponents;
     private final Map<Client, LockDiagnosticConfig> lockDiagnosticConfig;
+    private final DefaultLockWatchingService lockWatchingService;
 
     AsyncTimeLockServicesCreator(
             MetricsManager metricsManager,
@@ -58,6 +60,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         this.lockLog = lockLog;
         this.leadershipComponents = leadershipComponents;
         this.lockDiagnosticConfig = lockDiagnosticConfig;
+        this.lockWatchingService = new DefaultLockWatchingService();
     }
 
     @Override
@@ -98,7 +101,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 metricsManager.getRegistry(),
                 "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(maybeEnhancedLockLog, reaperExecutor, timeoutExecutor),
+                AsyncLockService.createDefault(
+                        maybeEnhancedLockLog, reaperExecutor, timeoutExecutor, lockWatchingService),
                 timestampServiceSupplier.get(),
                 maybeEnhancedLockLog);
     }
