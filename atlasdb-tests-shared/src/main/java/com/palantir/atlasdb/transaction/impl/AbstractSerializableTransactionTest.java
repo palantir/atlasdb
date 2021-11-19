@@ -130,7 +130,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Override
     protected Transaction startTransaction() {
-        return startTransactionWithOptions(new TransactionOptions());
+        return Iterables.getOnlyElement(txMgr.startTransactions(List.of(PreCommitConditions.NO_OP)));
     }
 
     private Transaction startTransactionWithOptions(TransactionOptions options) {

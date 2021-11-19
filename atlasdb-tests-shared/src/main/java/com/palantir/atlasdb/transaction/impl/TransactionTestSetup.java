@@ -181,7 +181,8 @@ public abstract class TransactionTestSetup {
     }
 
     protected TransactionManager getManager() {
-        return tmManager.getLastRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
+        return createAndRegisterManager();
+        // return tmManager.getLastRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
     }
 
     TransactionManager createAndRegisterManager() {
