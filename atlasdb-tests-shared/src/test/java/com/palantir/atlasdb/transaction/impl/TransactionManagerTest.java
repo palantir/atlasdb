@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
@@ -122,6 +123,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 metricsManager,
                 getKeyValueService(),
                 mockTimeLockService,
+                mock(LockWatchManagerInternal.class),
                 mockTimestampManagementService,
                 mockLockService,
                 transactionService,

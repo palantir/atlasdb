@@ -93,7 +93,13 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createV1TransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(
-                kvs, services.getLegacyTimelockService(), services.getTimestampManagementService(), ssm, txService);
+                kvs,
+                services.getLegacyTimelockService(),
+                services.get().getLockWatchManager(),
+                services.getTimestampManagementService(),
+                services.getLockService(),
+                ssm,
+                txService);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,

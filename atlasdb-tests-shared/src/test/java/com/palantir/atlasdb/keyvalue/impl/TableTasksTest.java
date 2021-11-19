@@ -88,6 +88,7 @@ public class TableTasksTest {
                 metricsManager,
                 kvs,
                 timelockServices.getLegacyTimelockService(),
+                timelockServices.getLockWatchManager(),
                 timelockServices.getTimestampManagementService(),
                 lockService,
                 txService,

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -36,9 +37,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
@@ -53,7 +52,9 @@ public final class SweepTestUtils {
         return setupTxManager(
                 kvs,
                 timelock.getLegacyTimelockService(),
+                timelock.getLockWatchManager(),
                 timelock.getTimestampManagementService(),
+                timelock.getLockService(),
                 SweepStrategyManagers.createDefault(kvs),
                 TransactionServices.createRaw(kvs, timelock.getTimestampService(), false));
     }
@@ -61,12 +62,12 @@ public final class SweepTestUtils {
     public static TransactionManager setupTxManager(
             KeyValueService kvs,
             TimelockService legacyTimelockService,
+            LockWatchManagerInternal lockWatchManager,
             TimestampManagementService tsmService,
+            LockService lockService,
             SweepStrategyManager ssm,
             TransactionService txService) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        LockService lockService = LockServiceImpl.create(
-                LockServerOptions.builder().isStandaloneServer(false).build());
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
@@ -76,6 +77,7 @@ public final class SweepTestUtils {
                 metricsManager,
                 kvs,
                 legacyTimelockService,
+                lockWatchManager,
                 tsmService,
                 lockService,
                 txService,
