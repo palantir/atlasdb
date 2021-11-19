@@ -88,6 +88,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.Ignore;
 import org.junit.Test;
 
 @SuppressWarnings("CheckReturnValue")
@@ -603,7 +604,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Test
     public void testColumnRangeReadSupported() {
-        Transaction t1 = startTransaction();
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions());
         // The transactions table is registered as IGNORE_ALL, so the request is supported
         // Reading at timestamp 0 to avoid any repercussions for in-flight transactions
         t1.getRowsColumnRange(
