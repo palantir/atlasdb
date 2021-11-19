@@ -701,7 +701,7 @@ public class StreamTest extends AtlasDbTestCase {
             StreamTestWithHashStreamMetadataTable table =
                     StreamTestTableFactory.of().getStreamTestWithHashStreamMetadataTable(t);
             StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.of(id);
-            return table.getRow(row).get().getMetadata();
+            return table.getRow(row).orElseThrow().getMetadata();
         });
     }
 
