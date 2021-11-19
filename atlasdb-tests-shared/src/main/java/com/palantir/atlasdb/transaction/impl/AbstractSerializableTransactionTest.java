@@ -1138,7 +1138,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransactionWithSerializableConflictChecking();
         Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
-                TEST_TABLE,
+                TEST_TABLE_SERIALIZABLE,
                 rows,
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
@@ -1157,7 +1157,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransactionWithSerializableConflictChecking();
         t1.getSortedColumns(
-                TEST_TABLE,
+                TEST_TABLE_SERIALIZABLE,
                 rows,
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
@@ -1165,14 +1165,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // we write on a cell that has not been read so far (no cells have been read so far)
         Transaction t2 = startTransaction();
         Cell cell = cellsWrittenOriginally.get(0);
-        put(t2, cell.getRowName(), cell.getColumnName(), "v0_0");
+        put(t2, TEST_TABLE_SERIALIZABLE, cell.getRowName(), cell.getColumnName(), "v0_0");
         t2.commit();
 
         assertThatCode(t1::commit).doesNotThrowAnyException();
 
         Transaction t3 = startTransaction();
         Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t3.getSortedColumns(
-                TEST_TABLE,
+                TEST_TABLE_SERIALIZABLE,
                 rows,
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
@@ -1239,10 +1239,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Transaction t1 = startTransactionWithSerializableConflictChecking();
         byte[] newValue1 = PtBytes.toBytes("find a way");
         byte[] newValue2 = PtBytes.toBytes("persevere to the end");
-        t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(0), newValue1));
-        t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(17), newValue2));
+        t1.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(cellsWrittenOriginally.get(0), newValue1));
+        t1.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(cellsWrittenOriginally.get(17), newValue2));
         Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
-                TEST_TABLE,
+                TEST_TABLE_SERIALIZABLE,
                 rows,
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
@@ -1267,14 +1267,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransactionWithSerializableConflictChecking();
         Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
-                TEST_TABLE,
+                TEST_TABLE_SERIALIZABLE,
                 rows,
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
         byte[] newValue1 = PtBytes.toBytes("burning smoke and bullet fire");
         byte[] newValue2 = PtBytes.toBytes("something to protect");
-        t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(0), newValue1));
-        t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(17), newValue2));
+        t1.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(cellsWrittenOriginally.get(0), newValue1));
+        t1.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(cellsWrittenOriginally.get(17), newValue2));
 
         List<Map.Entry<Cell, byte[]>> sortedColumnValues =
                 Streams.stream(sortedColumns).collect(Collectors.toList());
@@ -1308,7 +1308,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t2.commit();
 
         Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
-                TEST_TABLE,
+                TEST_TABLE_SERIALIZABLE,
                 rows,
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
@@ -1336,7 +1336,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransactionWithSerializableConflictChecking();
         Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
-                TEST_TABLE,
+                TEST_TABLE_SERIALIZABLE,
                 rows,
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
