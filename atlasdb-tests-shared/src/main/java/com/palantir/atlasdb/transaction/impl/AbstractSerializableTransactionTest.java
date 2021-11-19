@@ -88,7 +88,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Ignore;
 import org.junit.Test;
 
 @SuppressWarnings("CheckReturnValue")
@@ -1441,8 +1440,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                     transactionService.putUnlessExists(myTs + 1, myTs + 2);
 
                     // This primes the timestamp service to give us a known commit timestamp.
-                    long commitTimestamp = myTs + 1_000_000;
-                    timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
+                    long commitTimestamp = timestampService.getFreshTimestamp() + 1;
 
                     // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at
                     // commitTimestamp + 1
