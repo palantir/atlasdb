@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.protobuf.ByteString;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -25,7 +26,6 @@ import com.palantir.lock.StringLockDescriptor;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import okio.ByteString;
 import org.junit.Test;
 
 public class AtlasLockDescriptorUtilsTest {
@@ -133,14 +133,14 @@ public class AtlasLockDescriptorUtilsTest {
     public void lockDescriptorWithOneZeroReturnsCorrectTableAndRemainder() {
         LockDescriptor descriptor = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), NO_ZERO_ROW);
         assertThat(AtlasLockDescriptorUtils.tryParseTableRef(descriptor))
-                .hasValue(ImmutableTableRefAndRemainder.of(TABLE, ByteString.of(NO_ZERO_ROW)));
+                .hasValue(ImmutableTableRefAndRemainder.of(TABLE, ByteString.copyFrom(NO_ZERO_ROW)));
     }
 
     @Test
     public void lockDescriptorWithMultipleZerosReturnsCorrectTableAndRemainder() {
         LockDescriptor descriptor = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW_WITH_ZEROS);
         assertThat(AtlasLockDescriptorUtils.tryParseTableRef(descriptor))
-                .hasValue(ImmutableTableRefAndRemainder.of(TABLE, ByteString.of(ROW_WITH_ZEROS)));
+                .hasValue(ImmutableTableRefAndRemainder.of(TABLE, ByteString.copyFrom(ROW_WITH_ZEROS)));
     }
 
     private static List<CellReference> createExpectedCells(Cell... cells) {

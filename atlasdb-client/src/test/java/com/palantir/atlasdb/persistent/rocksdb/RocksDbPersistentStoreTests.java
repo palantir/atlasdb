@@ -21,10 +21,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.File;
-import okio.ByteString;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -37,10 +37,10 @@ public final class RocksDbPersistentStoreTests {
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static final PersistentStore.Handle NON_EXISTING_NAMESPACE = PersistentStore.Handle.newHandle();
-    private static final ByteString KEY = ByteString.encodeUtf8("key");
-    private static final ByteString VALUE = ByteString.encodeUtf8("value");
-    private static final ByteString KEY2 = ByteString.encodeUtf8("key2");
-    private static final ByteString VALUE2 = ByteString.encodeUtf8("value2");
+    private static final ByteString KEY = ByteString.copyFromUtf8("key");
+    private static final ByteString VALUE = ByteString.copyFromUtf8("value");
+    private static final ByteString KEY2 = ByteString.copyFromUtf8("key2");
+    private static final ByteString VALUE2 = ByteString.copyFromUtf8("value2");
 
     private PersistentStore persistentStore;
     private PersistentStore.Handle defaultNamespace;
@@ -120,7 +120,7 @@ public final class RocksDbPersistentStoreTests {
         persistentStore.put(defaultNamespace, KEY, VALUE);
         persistentStore.put(defaultNamespace, KEY2, VALUE2);
 
-        assertThat(persistentStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, ByteString.encodeUtf8("bla"))))
+        assertThat(persistentStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, ByteString.copyFromUtf8("bla"))))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         KEY, VALUE,
                         KEY2, VALUE2));
