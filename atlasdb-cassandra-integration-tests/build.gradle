@@ -6,7 +6,7 @@ dependencies {
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.common:streams'
     testImplementation 'com.palantir.safe-logging:safe-logging'
-    testImplementation 'com.squareup.okio:okio'
+    testImplementation 'com.squareup.okio:okio-jvm'
     testImplementation 'org.apache.commons:commons-lang3'
     testImplementation 'org.apache.thrift:libthrift'
     testImplementation 'org.awaitility:awaitility'
