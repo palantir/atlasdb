@@ -16,37 +16,48 @@
 
 package com.palantir.timelock.paxos;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.lock.client.CommitTimestampGetter;
-import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.client.LockLeaseService;
+import com.palantir.lock.client.TransactionStarter;
 import com.palantir.lock.v2.ClientLockingOptions;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
+import java.util.List;
 import java.util.Set;
 
 final class DelegatingTimelockService implements TimelockService {
     private final AsyncTimelockService timelock;
+    private final TransactionStarter transactionStarter;
+    private final LockLeaseService lockLeaseService;
     private final CommitTimestampGetter commitTimestampGetter;
 
-    public DelegatingTimelockService(AsyncTimelockService timelock, CommitTimestampGetter commitTimestampGetter) {
+    public DelegatingTimelockService(
+            AsyncTimelockService timelock,
+            TransactionStarter transactionStarter,
+            LockLeaseService lockLeaseService,
+            CommitTimestampGetter commitTimestampGetter) {
         this.timelock = timelock;
+        this.transactionStarter = transactionStarter;
+        this.lockLeaseService = lockLeaseService;
         this.commitTimestampGetter = commitTimestampGetter;
     }
 
     @Override
     public long getFreshTimestamp() {
         return timelock.getFreshTimestamp();
+    }
+
+    @Override
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return transactionStarter.startIdentifiedAtlasDbTransactionBatch(count);
     }
 
     @Override
@@ -61,7 +72,7 @@ final class DelegatingTimelockService implements TimelockService {
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        return timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+        return lockLeaseService.lockImmutableTimestamp();
     }
 
     @Override
@@ -71,18 +82,7 @@ final class DelegatingTimelockService implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponseV2 lockResponseV2 = AtlasFutures.getUnchecked(timelock.lock(IdentifiedLockRequest.from(request)));
-        return lockResponseV2.accept(new LockResponseV2.Visitor<>() {
-            @Override
-            public LockResponse visit(LockResponseV2.Successful successful) {
-                return LockResponse.successful(successful.getToken());
-            }
-
-            @Override
-            public LockResponse visit(LockResponseV2.Unsuccessful failure) {
-                return LockResponse.timedOut();
-            }
-        });
+        return lockLeaseService.lock(request);
     }
 
     @Override
@@ -92,23 +92,22 @@ final class DelegatingTimelockService implements TimelockService {
 
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return AtlasFutures.getUnchecked(timelock.waitForLocks(request));
+        return lockLeaseService.waitForLocks(request);
     }
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        ListenableFuture<RefreshLockResponseV2> future = timelock.refreshLockLeases(tokens);
-        return AtlasFutures.getUnchecked(future).refreshedTokens();
+        return transactionStarter.refreshLockLeases(tokens);
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return AtlasFutures.getUnchecked(timelock.unlock(tokens));
+        return transactionStarter.unlock(tokens);
     }
 
     @Override
     public void tryUnlock(Set<LockToken> tokens) {
-        timelock.unlock(tokens);
+        unlock(tokens);
     }
 
     @Override
