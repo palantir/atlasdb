@@ -222,8 +222,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Transaction t2 = startTransaction();
-        withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, false);
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, false);
+        withdrawMoney(t1, true, false);
+        withdrawMoney(t2, false, false);
 
         t1.commit();
         assertThatThrownBy(t2::commit)
@@ -240,8 +240,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Transaction t2 = startTransaction();
-        withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, false);
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, false);
+        withdrawMoney(t1, true, false);
+        withdrawMoney(t2, false, false);
 
         t2.commit();
         assertThatThrownBy(t1::commit)
@@ -261,7 +261,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         final Transaction t1 = startTransaction();
         ExecutorService exec = PTExecutors.newCachedThreadPool();
         Future<?> future = exec.submit((Callable<Void>) () -> {
-            withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, false);
+            withdrawMoney(t1, true, false);
             barrier.await();
             t1.commit();
             return null;
@@ -269,7 +269,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         exec.shutdown();
 
         Transaction t2 = startTransaction();
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, false);
+        withdrawMoney(t2, false, false);
 
         barrier.await();
 
@@ -292,8 +292,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Transaction t2 = startTransaction();
-        withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, true);
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, true);
+        withdrawMoney(t1, true, true);
+        withdrawMoney(t2, false, true);
 
         t1.commit();
         assertThatThrownBy(t2::commit)
@@ -310,8 +310,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Transaction t2 = startTransaction();
-        withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, true);
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, true);
+        withdrawMoney(t1, true, true);
+        withdrawMoney(t2, false, true);
 
         t2.commit();
         assertThatThrownBy(t1::commit)
@@ -331,7 +331,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         final Transaction t1 = startTransaction();
         ExecutorService exec = PTExecutors.newCachedThreadPool();
         Future<?> future = exec.submit((Callable<Void>) () -> {
-            withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, true);
+            withdrawMoney(t1, true, true);
             barrier.await();
             t1.commit();
             return null;
@@ -339,7 +339,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         exec.shutdown();
 
         Transaction t2 = startTransaction();
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, true);
+        withdrawMoney(t2, false, true);
 
         barrier.await();
         assertThat(catchThrowable(() -> {
@@ -353,20 +353,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     private void withdrawMoney(Transaction txn, boolean account, boolean isCellGet) {
-        withdrawMoney(txn, TEST_TABLE, account, isCellGet);
-    }
-
-    private void withdrawMoney(
-            Transaction txn,
-            TableReference tr,
-            boolean account,
-            boolean isCellGet) {
-        long account1 = Long.parseLong(isCellGet
-                ? getCell(txn, tr, "row1", "col1")
-                : get(txn, tr, "row1", "col1"));
-        long account2 = Long.parseLong(isCellGet
-                ? getCell(txn, tr, "row2", "col1")
-                : get(txn, tr, "row2", "col1"));
+        long account1 = Long.parseLong(
+                isCellGet
+                        ? getCell(txn, TEST_TABLE_SERIALIZABLE, "row1", "col1")
+                        : get(txn, TEST_TABLE_SERIALIZABLE, "row1", "col1"));
+        long account2 = Long.parseLong(
+                isCellGet
+                        ? getCell(txn, TEST_TABLE_SERIALIZABLE, "row2", "col1")
+                        : get(txn, TEST_TABLE_SERIALIZABLE, "row2", "col1"));
         if (account) {
             account1 -= 150;
         } else {
@@ -374,9 +368,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         }
         assertThat(account1 + account2).isGreaterThanOrEqualTo(0);
         if (account) {
-            put(txn, tr, "row1", "col1", String.valueOf(account1));
+            put(txn, TEST_TABLE_SERIALIZABLE, "row1", "col1", String.valueOf(account1));
         } else {
-            put(txn, tr, "row2", "col1", String.valueOf(account2));
+            put(txn, TEST_TABLE_SERIALIZABLE, "row2", "col1", String.valueOf(account2));
         }
     }
 
@@ -622,7 +616,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteConflict_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRange(
@@ -645,7 +639,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteConflict_iterator() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRangeIterator(
@@ -669,7 +663,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteConflictOnNewCell_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRange(
@@ -693,7 +687,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteConflictOnNewCell_iterator() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRangeIterator(
@@ -718,7 +712,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteNoConflict_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRange(
@@ -741,7 +735,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteNoConflict_iterator() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRangeIterator(
@@ -1558,10 +1552,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     private void writeColumns() {
-        writeColumns(TEST_TABLE);
-    }
-
-    private void writeColumns(TableReference table) {
         byte[] row = PtBytes.toBytes(DEFAULT_ROW);
         Transaction t1 = startTransaction();
         // Record expected results using byte ordering
@@ -1569,7 +1559,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < DEFAULT_COL_COUNT; i++) {
             String columnName = getColumnWithIndex(i);
-            put(t1, table, PtBytes.toString(row), columnName, "v" + i);
+            put(t1, TEST_TABLE_SERIALIZABLE, PtBytes.toString(row), columnName, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes(columnName)), PtBytes.toBytes("v" + i));
         }
         t1.commit();

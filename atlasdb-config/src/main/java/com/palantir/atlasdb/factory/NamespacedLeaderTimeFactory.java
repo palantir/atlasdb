@@ -49,8 +49,8 @@ public final class NamespacedLeaderTimeFactory implements LeaderTimeFactory {
     }
 
     private static ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher> getReferenceTrackingWrapper(
-            TimeLockRequestBatcherProviders timelockRequestBatcherProviders,
+            TimeLockRequestBatcherProviders timeLockRequestBatcherProviders,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
-        return timelockRequestBatcherProviders.leaderTime().getBatcher(multiClientTimelockServiceSupplier);
+        return timeLockRequestBatcherProviders.leaderTime().getBatcher(multiClientTimelockServiceSupplier);
     }
 }
