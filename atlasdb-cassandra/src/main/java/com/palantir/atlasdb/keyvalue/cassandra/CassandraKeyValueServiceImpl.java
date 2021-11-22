@@ -1884,7 +1884,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE;
+        return CheckAndSetCompatibility.supportedBuilder()
+                .supportsDetailOnFailure(true)
+                .consistentOnFailure(false)
+                .build();
     }
 
     /**
