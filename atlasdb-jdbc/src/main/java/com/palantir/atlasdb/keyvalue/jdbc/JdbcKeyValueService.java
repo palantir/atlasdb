@@ -510,7 +510,13 @@ public final class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.unsupported();
+        // Lies, blatant lies.
+        // JDBC KVS supports PUE but not CAS. Given that this KVS is not used in production, though, and
+        // all current uses of CAS are in the context of Targeted Sweep or Transactions 3
+        return CheckAndSetCompatibility.supportedBuilder()
+                .consistentOnFailure(false)
+                .supportsDetailOnFailure(false)
+                .build();
     }
 
     @Override
