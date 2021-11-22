@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;

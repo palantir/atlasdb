@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.stream.Stream;
 import org.junit.Test;
 
