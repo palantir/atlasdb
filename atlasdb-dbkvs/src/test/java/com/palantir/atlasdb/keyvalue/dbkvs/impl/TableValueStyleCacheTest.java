@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doReturn;
@@ -48,7 +48,7 @@ public class TableValueStyleCacheTest {
         when(connectionSupplier.get()).thenReturn(mockConnection);
 
         AgnosticResultSet resultSet = mock(AgnosticResultSet.class);
-        when(mockConnection.selectResultSetUnregisteredQuery(startsWith("SELECT table_size FROM"), anyObject()))
+        when(mockConnection.selectResultSetUnregisteredQuery(startsWith("SELECT table_size FROM"), any()))
                 .thenReturn(resultSet);
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);

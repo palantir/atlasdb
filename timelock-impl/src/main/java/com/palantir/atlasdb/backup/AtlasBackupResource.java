@@ -23,24 +23,22 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientEndpoints;
+import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
+import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
+import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.InProgressBackupToken;
+import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
+import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.backup.api.UndertowAtlasBackupClient;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
-import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
-import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
-import com.palantir.atlasdb.timelock.api.CompletedBackup;
-import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
-import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +48,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class AtlasBackupResource implements UndertowAtlasBackupClient {
-    private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupResource.class);
     private final Function<String, AsyncTimelockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
@@ -86,6 +83,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         AsyncTimelockService timelock = timelock(namespace);
         LockImmutableTimestampResponse response = timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long timestamp = timelock.getFreshTimestamp();
+
         return InProgressBackupToken.builder()
                 .namespace(namespace)
                 .lockToken(response.getLock())

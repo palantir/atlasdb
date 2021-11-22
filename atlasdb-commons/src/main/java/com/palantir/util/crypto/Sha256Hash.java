@@ -163,7 +163,11 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      * Use {@link MessageDigest} prototypes as a workaround for
      * https://bugs.openjdk.java.net/browse/JDK-7092821, similar to Guava's
      * workaround https://github.com/google/guava/issues/1197
+     *
+     * We can remove this once we get to JDK 17, see https://github.com/openjdk/jdk/pull/1933
      */
+    // MessageDigest#update() is never called here, so this enum instance is effectively immutable.
+    @SuppressWarnings("ImmutableEnumChecker")
     private enum MessageDigestPrototype {
         SHA_256("SHA-256"); // $NON-NLS-1$
 

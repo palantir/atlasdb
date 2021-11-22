@@ -115,8 +115,7 @@ public class SweeperTestSetup {
     public static TransactionManager mockTxManager() {
         TransactionManager txManager = mock(TransactionManager.class);
         Answer<?> runTaskAnswer = inv -> {
-            Object[] args = inv.getArguments();
-            TransactionTask<?, ?> task = (TransactionTask<?, ?>) args[0];
+            TransactionTask<?, ?> task = inv.getArgument(0);
             return task.execute(mock(Transaction.class));
         };
         doAnswer(runTaskAnswer).when(txManager).runTaskReadOnly(any());
