@@ -21,12 +21,11 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import org.apache.commons.lang3.ArrayUtils;
-
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
+import org.apache.commons.lang3.ArrayUtils;
 
 public abstract class AbstractTestRunner implements SingleBackendCliTestRunner {
 
