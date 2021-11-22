@@ -17,7 +17,6 @@
 package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -43,6 +42,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 public final class TimestampCorroboratingTimelockService implements NamespacedConjureTimelockService {
@@ -159,7 +159,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
     TimestampBounds getTimestampBounds() {
         return ImmutableTimestampBounds.builder()
                 .boundFromFreshTimestamps(lowerBoundFromFreshTimestamps.get())
-                .boundFromCommitTimestamps(lowerBoundFromFreshTimestamps.get())
+                .boundFromCommitTimestamps(lowerBoundFromCommitTimestamps.get())
                 .boundFromTransactions(lowerBoundFromTransaction.get())
                 .build();
     }
@@ -215,8 +215,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
         TimestampBoundsRecord boundFromTransactions();
 
         default long getMaxLowerBound() {
-            return ImmutableList.of(boundFromTransactions(), boundFromCommitTimestamps(), boundFromFreshTimestamps())
-                    .stream()
+            return Stream.of(boundFromTransactions(), boundFromCommitTimestamps(), boundFromFreshTimestamps())
                     .map(TimestampBoundsRecord::lowerBoundForNextRequest)
                     .reduce(Math::max)
                     .orElse(Long.MIN_VALUE);
