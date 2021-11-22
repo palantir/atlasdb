@@ -90,13 +90,13 @@ public interface CheckAndSetCompatibility {
         @Override
         public boolean supportsDetailOnFailure() {
             throw new SafeIllegalStateException(
-                    "Should not check a KVS that does not support CAS operations for " + "detail");
+                    "Should not check a KVS that does not support CAS operations for detail");
         }
 
         @Override
         public boolean consistentOnFailure() {
             throw new SafeIllegalStateException(
-                    "Should not check a KVS that does not support CAS operations for " + "consistency");
+                    "Should not check a KVS that does not support CAS operations for consistency");
         }
     }
 
