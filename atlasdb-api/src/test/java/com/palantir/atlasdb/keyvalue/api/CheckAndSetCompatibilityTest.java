@@ -56,16 +56,18 @@ public class CheckAndSetCompatibilityTest {
 
     @Test
     public void unsupportedDoesNotSupportCheckAndSetOperations() {
-        assertThat(CheckAndSetCompatibility.unsupported().supportsCheckAndSetOperations()).isFalse();
+        assertThat(CheckAndSetCompatibility.unsupported().supportsCheckAndSetOperations())
+                .isFalse();
     }
 
     @Test
     public void supportedBuilderSupportsCheckAndSetOperations() {
         assertThat(CheckAndSetCompatibility.supportedBuilder()
-                .supportsDetailOnFailure(false)
-                .consistentOnFailure(false)
-                .build()
-                .supportsCheckAndSetOperations()).isTrue();
+                        .supportsDetailOnFailure(false)
+                        .consistentOnFailure(false)
+                        .build()
+                        .supportsCheckAndSetOperations())
+                .isTrue();
     }
 
     @Test
@@ -90,8 +92,7 @@ public class CheckAndSetCompatibilityTest {
     @Test
     public void intersectReturnsDetailSupportedWhenAllSupport() {
         CheckAndSetCompatibility intersection = intersectCompatibility(
-                SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE,
-                SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+                SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE, SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
         assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
         assertThat(intersection.supportsDetailOnFailure()).isTrue();
         assertThat(intersection.consistentOnFailure()).isFalse();
@@ -99,9 +100,8 @@ public class CheckAndSetCompatibilityTest {
 
     @Test
     public void intersectReturnsConsistentWhenAllConsistent() {
-        CheckAndSetCompatibility intersection = intersectCompatibility(
-                SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE,
-                NO_DETAIL_CONSISTENT_ON_FAILURE);
+        CheckAndSetCompatibility intersection =
+                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, NO_DETAIL_CONSISTENT_ON_FAILURE);
         assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
         assertThat(intersection.supportsDetailOnFailure()).isFalse();
         assertThat(intersection.consistentOnFailure()).isTrue();
@@ -109,9 +109,8 @@ public class CheckAndSetCompatibilityTest {
 
     @Test
     public void intersectDoesNotRestrictUnnecessarily() {
-        CheckAndSetCompatibility intersection = intersectCompatibility(
-                SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE,
-                SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+        CheckAndSetCompatibility intersection =
+                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
         assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
         assertThat(intersection.supportsDetailOnFailure()).isTrue();
         assertThat(intersection.consistentOnFailure()).isTrue();
@@ -119,9 +118,8 @@ public class CheckAndSetCompatibilityTest {
 
     @Test
     public void intersectWithUnsupportedIsUnsupported() {
-        CheckAndSetCompatibility intersection = intersectCompatibility(
-                SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE,
-                CheckAndSetCompatibility.unsupported());
+        CheckAndSetCompatibility intersection =
+                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, CheckAndSetCompatibility.unsupported());
         assertThat(intersection.supportsCheckAndSetOperations()).isFalse();
     }
 
