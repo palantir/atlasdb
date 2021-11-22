@@ -43,14 +43,14 @@ public class CheckAndSetCompatibilityTest {
     @Test
     public void checkingDetailSupportedOnUnsupportedThrows() {
         assertThatThrownBy(() -> CheckAndSetCompatibility.unsupported().supportsDetailOnFailure())
-                .isInstanceOf(SafeIllegalStateException.class)
+                .isInstanceOf(UnsupportedOperationException.class)
                 .hasMessageContaining("Should not check a KVS that does not support CAS operations for detail");
     }
 
     @Test
     public void checkingConsistencyOnUnsupportedThrows() {
         assertThatThrownBy(() -> CheckAndSetCompatibility.unsupported().consistentOnFailure())
-                .isInstanceOf(SafeIllegalStateException.class)
+                .isInstanceOf(UnsupportedOperationException.class)
                 .hasMessageContaining("Should not check a KVS that does not support CAS operations for consistency");
     }
 
