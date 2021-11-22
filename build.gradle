@@ -130,7 +130,6 @@ allprojects {
                 'ThreadPriorityCheck',
                 'ThrowSpecificity',
                 'TooManyArguments',
-                'TypeParameterUnusedInFormals',
                 'ValidateConstantMessage'
     }
 }

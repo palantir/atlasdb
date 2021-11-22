@@ -21,19 +21,20 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import org.apache.commons.lang3.ArrayUtils;
+
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
-import org.apache.commons.lang3.ArrayUtils;
 
-public abstract class AbstractTestRunner<S extends AtlasDbServices> implements SingleBackendCliTestRunner {
+public abstract class AbstractTestRunner implements SingleBackendCliTestRunner {
 
     private final Class<? extends SingleBackendCommand> cmdClass;
 
     private String[] args;
     private SingleBackendCommand cmd;
-    private S services;
+    private AtlasDbServices services;
 
     protected AbstractTestRunner(Class<? extends SingleBackendCommand> cmdClass, String... args) {
         this.cmdClass = cmdClass;
@@ -41,7 +42,7 @@ public abstract class AbstractTestRunner<S extends AtlasDbServices> implements S
     }
 
     @Override
-    public S connect(AtlasDbServicesFactory factory) throws Exception {
+    public AtlasDbServices connect(AtlasDbServicesFactory factory) throws Exception {
         cmd = buildCommand(cmdClass, buildArgs());
         services = cmd.connect(factory);
         return services;

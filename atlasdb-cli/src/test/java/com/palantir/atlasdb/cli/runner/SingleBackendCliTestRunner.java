@@ -17,11 +17,12 @@ package com.palantir.atlasdb.cli.runner;
 
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
+
 import java.net.URISyntaxException;
 
 public interface SingleBackendCliTestRunner extends AutoCloseable {
 
-    <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws Exception;
+    AtlasDbServices connect(AtlasDbServicesFactory factory) throws Exception;
 
     void parse(String... args);
 
