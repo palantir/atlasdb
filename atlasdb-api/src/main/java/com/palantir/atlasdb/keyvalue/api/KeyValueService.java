@@ -264,7 +264,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * Get the {@link CheckAndSetCompatibility} that this {@link KeyValueService} exhibits.
      *
-     * This method should be consistent with {@link KeyValueService#supportsCheckAndSet()}.
+     * This method must be consistent with {@link KeyValueService#supportsCheckAndSet()}.
      *
      * @return check and set compatibility
      */
