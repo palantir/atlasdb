@@ -52,9 +52,9 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     public static SimpleTransactionService createV3(KeyValueService kvs) {
         if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
-            return createSimple(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TicketsEncodingStrategy.INSTANCE);
+            return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
         }
-        return createResilient(kvs, TransactionConstants.TRANSACTIONS3_TABLE, TwoPhaseEncodingStrategy.INSTANCE);
+        return createResilient(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TwoPhaseEncodingStrategy.INSTANCE);
     }
 
     private static SimpleTransactionService createSimple(
@@ -74,22 +74,22 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp));
+        return AtlasFutures.getUnchecked(getAsync(startTimestamp));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps));
+        return AtlasFutures.getUnchecked(getAsync(startTimestamps));
     }
 
     @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return getInternal(startTimestamp);
+        return txnTable.get(startTimestamp);
     }
 
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return getInternal(startTimestamps);
+        return txnTable.get(startTimestamps);
     }
 
     @Override
@@ -110,13 +110,5 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     @Override
     public void close() {
         // we do not close the injected kvs
-    }
-
-    private ListenableFuture<Long> getInternal(long startTimestamp) {
-        return txnTable.get(startTimestamp);
-    }
-
-    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps) {
-        return txnTable.get(startTimestamps);
     }
 }
