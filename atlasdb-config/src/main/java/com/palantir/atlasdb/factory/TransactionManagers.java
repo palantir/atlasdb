@@ -111,6 +111,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -420,10 +421,11 @@ public abstract class TransactionManagers {
 
         if (config().targetedSweep().enableSweepQueueWrites()) {
             initializeCloseable(
-                    () -> OldestTargetedSweepTrackedTimestamp.track(
+                    () -> OldestTargetedSweepTrackedTimestamp.createStarted(
                             keyValueService,
                             lockAndTimestampServices.timestamp(),
-                            PTExecutors.newSingleThreadScheduledExecutor()),
+                            PTExecutors.newSingleThreadScheduledExecutor(
+                                    new NamedThreadFactory("OldestTargetedSweepTrackedTimestamp", true))),
                     closeables);
         }
 

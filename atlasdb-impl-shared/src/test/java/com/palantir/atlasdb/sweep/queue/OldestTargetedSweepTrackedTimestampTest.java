@@ -18,7 +18,10 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -33,7 +36,7 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 
 public class OldestTargetedSweepTrackedTimestampTest {
-    private final InMemoryKeyValueService kvs = new InMemoryKeyValueService(true);
+    private final KeyValueService kvs = spy(new InMemoryKeyValueService(true));
     private final LongSupplier timestampSupplier = mock(LongSupplier.class);
     private final AtomicBoolean schedulerShutDown = new AtomicBoolean(false);
     private final DeterministicScheduler deterministicScheduler = new DeterministicScheduler() {
@@ -50,18 +53,22 @@ public class OldestTargetedSweepTrackedTimestampTest {
     public void persistsValidTimestampAndShutsDown() {
         when(timestampSupplier.getAsLong()).thenReturn(42L);
 
-        tracker.run();
+        tracker.start();
         deterministicScheduler.tick(0, TimeUnit.SECONDS);
 
         assertThat(tracker.getOldestTimestamp()).hasValue(42L);
         assertThat(schedulerShutDown).isTrue();
+
+        clearInvocations(kvs);
+        deterministicScheduler.tick(5, TimeUnit.SECONDS);
+        verifyNoInteractions(kvs);
     }
 
     @Test
     public void resilientToTimestampThrowing() {
         when(timestampSupplier.getAsLong()).thenThrow(new RuntimeException()).thenReturn(17L);
 
-        tracker.run();
+        tracker.start();
         deterministicScheduler.tick(0, TimeUnit.SECONDS);
 
         assertThat(tracker.getOldestTimestamp()).isEmpty();
@@ -76,13 +83,13 @@ public class OldestTargetedSweepTrackedTimestampTest {
         OldestTargetedSweepTrackedTimestamp otherTracker =
                 new OldestTargetedSweepTrackedTimestamp(kvs, () -> 1L, deterministicScheduler);
 
-        otherTracker.run();
+        otherTracker.start();
         deterministicScheduler.tick(0, TimeUnit.SECONDS);
 
         assertThat(tracker.getOldestTimestamp()).hasValue(1L);
 
         when(timestampSupplier.getAsLong()).thenReturn(100L);
-        tracker.run();
+        tracker.start();
         deterministicScheduler.tick(1, TimeUnit.SECONDS);
 
         assertThat(tracker.getOldestTimestamp()).hasValue(1L);
@@ -93,13 +100,13 @@ public class OldestTargetedSweepTrackedTimestampTest {
         OldestTargetedSweepTrackedTimestamp otherTracker =
                 new OldestTargetedSweepTrackedTimestamp(kvs, () -> 100L, deterministicScheduler);
 
-        otherTracker.run();
+        otherTracker.start();
         deterministicScheduler.tick(0, TimeUnit.SECONDS);
 
         assertThat(tracker.getOldestTimestamp()).hasValue(100L);
 
         when(timestampSupplier.getAsLong()).thenReturn(13L);
-        tracker.run();
+        tracker.start();
         deterministicScheduler.tick(1, TimeUnit.SECONDS);
 
         assertThat(tracker.getOldestTimestamp()).hasValue(13L);
@@ -111,7 +118,7 @@ public class OldestTargetedSweepTrackedTimestampTest {
         OldestTargetedSweepTrackedTimestamp otherTracker =
                 new OldestTargetedSweepTrackedTimestamp(nonInitialisedKvs, () -> 1L, deterministicScheduler);
 
-        otherTracker.run();
+        otherTracker.start();
         deterministicScheduler.tick(1, TimeUnit.SECONDS);
 
         assertThatThrownBy(otherTracker::getOldestTimestamp).isInstanceOf(RuntimeException.class);

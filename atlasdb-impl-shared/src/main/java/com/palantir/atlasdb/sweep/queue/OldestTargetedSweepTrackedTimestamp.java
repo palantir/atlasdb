@@ -51,11 +51,11 @@ public class OldestTargetedSweepTrackedTimestamp implements AutoCloseable {
         this.executor = executor;
     }
 
-    public static OldestTargetedSweepTrackedTimestamp track(
+    public static OldestTargetedSweepTrackedTimestamp createStarted(
             KeyValueService kvs, TimestampService timestampService, ScheduledExecutorService executor) {
         OldestTargetedSweepTrackedTimestamp timestampTracker =
                 new OldestTargetedSweepTrackedTimestamp(kvs, timestampService::getFreshTimestamp, executor);
-        timestampTracker.run();
+        timestampTracker.start();
         return timestampTracker;
     }
 
@@ -64,19 +64,27 @@ public class OldestTargetedSweepTrackedTimestamp implements AutoCloseable {
     }
 
     @VisibleForTesting
-    void run() {
-        executor.scheduleAtFixedRate(this::tryToPersist, 0, 1, TimeUnit.SECONDS);
+    void start() {
+        executor.schedule(this::runOneIteration, 0, TimeUnit.SECONDS);
     }
 
-    private void tryToPersist() {
+    void runOneIteration() {
+        if (!tryToPersist()) {
+            executor.schedule(this::runOneIteration, 1, TimeUnit.SECONDS);
+        }
+    }
+
+    private boolean tryToPersist() {
         try {
             if (oldestTimestamp.isEmpty()) {
                 oldestTimestamp = OptionalLong.of(timestampService.getAsLong());
             }
             persist();
             executor.shutdownNow();
+            return true;
         } catch (Exception e) {
             log.info("Failed to persist timestamp", SafeArg.of("oldestSeenTs", oldestTimestamp), e);
+            return false;
         }
     }
 
