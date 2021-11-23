@@ -136,22 +136,28 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
             OperationType operationType) {
         // take snapshot before making the request
         Instant wallClockTimeBeforeRequest = Instant.now();
+
         TimestampBounds timestampBounds = getTimestampBounds();
+
         T timestampContainer = timestampContainerSupplier.get();
+
+        // take snapshot after making the request
+        Instant wallClockTimeAfterRequest = Instant.now();
 
         long lowerFreshTimestamp = lowerBoundExtractor.applyAsLong(timestampContainer);
         long upperFreshTimestamp = upperBoundExtractor.applyAsLong(timestampContainer);
 
-        checkTimestamp(timestampBounds, operationType, lowerFreshTimestamp, upperFreshTimestamp);
-
-        TimestampBoundsRecord boundsRecord = ImmutableTimestampBoundsRecord.builder()
+        TimestampBoundsRecord currentTimestampsBoundsRecord = ImmutableTimestampBoundsRecord.builder()
                 .operationType(operationType)
                 .inclusiveLowerBoundFromLastRequest(lowerFreshTimestamp)
                 .inclusiveUpperBoundFromLastRequest(upperFreshTimestamp)
                 .wallClockTimeBeforeRequest(wallClockTimeBeforeRequest)
-                .wallClockTimeAfterResponse(Instant.now())
+                .wallClockTimeAfterResponse(wallClockTimeAfterRequest)
                 .build();
-        updateLowerBound(operationType, boundsRecord);
+
+        checkTimestamp(timestampBounds, currentTimestampsBoundsRecord, lowerFreshTimestamp);
+        updateLowerBound(currentTimestampsBoundsRecord);
+
         return timestampContainer;
     }
 
@@ -165,28 +171,26 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
     }
 
     private void checkTimestamp(
-            TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
+            TimestampBounds bounds, TimestampBoundsRecord currentBoundsRecord, long lowerFreshTimestamp) {
         if (lowerFreshTimestamp <= bounds.getMaxLowerBound()) {
             timestampViolationCallback.run();
-            throw clocksWentBackwards(bounds, type, lowerFreshTimestamp, upperFreshTimestamp);
+            throw clocksWentBackwards(bounds, currentBoundsRecord);
         }
     }
 
     private static RuntimeException clocksWentBackwards(
-            TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
+            TimestampBounds bounds, TimestampBoundsRecord currentBoundsRecord) {
         RuntimeException runtimeException = new SafeRuntimeException(CLOCKS_WENT_BACKWARDS_MESSAGE);
         log.error(
                 CLOCKS_WENT_BACKWARDS_MESSAGE + ": bounds were {}, operation {}, fresh timestamp of {}.",
-                SafeArg.of("bounds", bounds),
-                SafeArg.of("operationType", type),
-                SafeArg.of("lowerFreshTimestamp", lowerFreshTimestamp),
-                SafeArg.of("upperFreshTimestamp", upperFreshTimestamp),
+                SafeArg.of("persistedBounds", bounds),
+                SafeArg.of("boundsRecordForCurrentRequest", currentBoundsRecord),
                 runtimeException);
         throw runtimeException;
     }
 
-    private void updateLowerBound(OperationType type, TimestampBoundsRecord boundsRecord) {
-        switch (type) {
+    private void updateLowerBound(TimestampBoundsRecord boundsRecord) {
+        switch (boundsRecord.operationType()) {
             case FRESH_TIMESTAMP:
                 lowerBoundFromFreshTimestamps.accumulateAndGet(boundsRecord, this::maxBoundsRecord);
                 return;
