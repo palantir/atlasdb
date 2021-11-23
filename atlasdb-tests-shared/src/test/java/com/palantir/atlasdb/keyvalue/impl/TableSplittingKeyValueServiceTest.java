@@ -136,20 +136,29 @@ public class TableSplittingKeyValueServiceTest {
     }
 
     @Test
-    public void evaluatesCheckAndSetCompatibilityCorrectly() {
+    public void defensivelyEvaluatesCheckAndSetCompatibility() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(defaultKvs, tableDelegate), ImmutableMap.of(TABLE, tableDelegate));
 
         mockery.checking(new Expectations() {
             {
                 oneOf(defaultKvs).getCheckAndSetCompatibility();
-                will(returnValue(CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE));
+                will(returnValue(CheckAndSetCompatibility.supportedBuilder()
+                        .consistentOnFailure(true)
+                        .supportsDetailOnFailure(false)
+                        .build()));
                 oneOf(tableDelegate).getCheckAndSetCompatibility();
-                will(returnValue(CheckAndSetCompatibility.SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE));
+                will(returnValue(CheckAndSetCompatibility.supportedBuilder()
+                        .consistentOnFailure(false)
+                        .supportsDetailOnFailure(true)
+                        .build()));
             }
         });
         assertThat(splittingKvs.getCheckAndSetCompatibility())
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE);
+                .isEqualTo(CheckAndSetCompatibility.supportedBuilder()
+                        .consistentOnFailure(false)
+                        .supportsDetailOnFailure(false)
+                        .build());
     }
 
     private Map<TableReference, byte[]> merge(

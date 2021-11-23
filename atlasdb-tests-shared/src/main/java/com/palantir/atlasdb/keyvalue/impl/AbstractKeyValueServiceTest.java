@@ -1543,7 +1543,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void putUnlessExistsDecodesCellsCorrectlyIfSupported() {
-        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsDetailOnFailure());
+        assumeDetailOnFailureSupported();
 
         keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
 
@@ -1994,5 +1994,10 @@ public abstract class AbstractKeyValueServiceTest {
         return LongStream.rangeClosed(1L, numberOfTimestamps)
                 .mapToObj(timestamp -> Value.create(data, timestamp))
                 .collect(Collectors.toList());
+    }
+
+    private void assumeDetailOnFailureSupported() {
+        assumeTrue(checkAndSetSupported());
+        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsDetailOnFailure());
     }
 }

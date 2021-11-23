@@ -431,7 +431,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE;
+        // We advertise inconsistency on failure, for the purposes of test re-usability.
+        return CheckAndSetCompatibility.supportedBuilder()
+                .supportsDetailOnFailure(true)
+                .consistentOnFailure(false)
+                .build();
     }
 
     @Override
