@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: AtlasDB now tracks the lowest timestamp guaranteed to be included in
+    the targeted sweep queue. This may be used in the future to avoid transactions
+    table lookups.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5772
