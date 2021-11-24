@@ -41,7 +41,7 @@ import java.util.Arrays;
  * Note the usage of {@link PtBytes#EMPTY_BYTE_ARRAY} for transactions that were rolled back; this is a space
  * optimisation, as we would otherwise store a negative value which uses 9 bytes in a VAR_LONG.
  */
-public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
+public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
     INSTANCE;
 
     private static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
@@ -68,7 +68,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, long commitTimestamp) {
+    public byte[] encodeCommitTimestampAsValue(long startTimestamp, Long commitTimestamp) {
         if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
             return ABORTED_TRANSACTION_VALUE;
         }
@@ -76,7 +76,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
     }
 
     @Override
-    public long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+    public Long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
         if (Arrays.equals(value, ABORTED_TRANSACTION_VALUE)) {
             return TransactionConstants.FAILED_COMMIT_TS;
         }

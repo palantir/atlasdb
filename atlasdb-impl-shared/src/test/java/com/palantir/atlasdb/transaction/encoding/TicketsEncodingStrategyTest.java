@@ -143,7 +143,7 @@ public class TicketsEncodingStrategyTest {
 
     @Test
     public void canStoreTransactionsCommittingInstantaneously() {
-        assertThatCode(() -> STRATEGY.encodeCommitTimestampAsValue(10, 10)).doesNotThrowAnyException();
+        assertThatCode(() -> STRATEGY.encodeCommitTimestampAsValue(10, 10L)).doesNotThrowAnyException();
     }
 
     @Test

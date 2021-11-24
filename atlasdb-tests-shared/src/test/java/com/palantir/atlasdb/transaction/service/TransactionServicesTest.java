@@ -154,7 +154,7 @@ public class TransactionServicesTest {
         return argument.getValue();
     }
 
-    private void assertExpectedArgument(Map<Cell, byte[]> actualArgument, TimestampEncodingStrategy strategy) {
+    private void assertExpectedArgument(Map<Cell, byte[]> actualArgument, TimestampEncodingStrategy<Long> strategy) {
         Cell cell = strategy.encodeStartTimestampAsCell(startTs);
         byte[] value = strategy.encodeCommitTimestampAsValue(startTs, commitTs);
 

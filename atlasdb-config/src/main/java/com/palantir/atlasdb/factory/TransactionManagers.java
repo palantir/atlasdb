@@ -688,7 +688,8 @@ public abstract class TransactionManagers {
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TransactionSchemaManager transactionSchemaManager) {
-        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
+        CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
+        if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
             return Optional.of(
                     initializeTransactionSchemaInstaller(closeables, runtimeConfigSupplier, transactionSchemaManager));
         }

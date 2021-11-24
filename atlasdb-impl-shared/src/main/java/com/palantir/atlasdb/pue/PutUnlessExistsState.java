@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.service;
+package com.palantir.atlasdb.pue;
 
-import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
-
-public interface EncodingTransactionService extends TransactionService {
-    CellEncodingStrategy getCellEncodingStrategy();
+public enum PutUnlessExistsState {
+    STAGING,
+    COMMITTED;
 }
