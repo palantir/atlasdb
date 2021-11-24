@@ -84,7 +84,7 @@ public final class ForkedJsonFormat {
         generator.print("}");
     }
 
-    protected static void print(Message message, JsonGenerator generator) throws IOException {
+    private static void print(Message message, JsonGenerator generator) throws IOException {
         for (Iterator<Map.Entry<FieldDescriptor, Object>> iter =
                         message.getAllFields().entrySet().iterator();
                 iter.hasNext(); ) {
@@ -240,8 +240,7 @@ public final class ForkedJsonFormat {
         }
     }
 
-    protected static void printUnknownFields(UnknownFieldSet unknownFields, JsonGenerator generator)
-            throws IOException {
+    private static void printUnknownFields(UnknownFieldSet unknownFields, JsonGenerator generator) throws IOException {
         boolean firstField = true;
         for (Map.Entry<Integer, UnknownFieldSet.Field> entry :
                 unknownFields.asMap().entrySet()) {
@@ -875,7 +874,7 @@ public final class ForkedJsonFormat {
 
     // TODO(chrisn): See if working around java.io.Reader#read(CharBuffer)
     // overhead is worthwhile
-    protected static StringBuilder toStringBuilder(Readable input) throws IOException {
+    private static StringBuilder toStringBuilder(Readable input) throws IOException {
         StringBuilder text = new StringBuilder();
         CharBuffer buffer = CharBuffer.allocate(BUFFER_SIZE);
         while (true) {
@@ -895,7 +894,7 @@ public final class ForkedJsonFormat {
      * Parse a single field from {@code tokenizer} and merge it into {@code builder}. If a ',' is
      * detected after the field ends, the next field will be parsed automatically
      */
-    protected static void mergeField(Tokenizer tokenizer, ExtensionRegistry extensionRegistry, Message.Builder builder)
+    private static void mergeField(Tokenizer tokenizer, ExtensionRegistry extensionRegistry, Message.Builder builder)
             throws ParseException {
         FieldDescriptor field;
         Descriptor type = builder.getDescriptorForType();
@@ -1183,7 +1182,7 @@ public final class ForkedJsonFormat {
     }
 
     /**
-     * Un-escape a byte sequence as escaped using
+     * Un-escape a byte sequence as escaped usin
      * {@link #escapeBytes(com.googlecode.protobuf.format.ByteString)}. Two-digit hex escapes (starting with
      * "\x") are also recognized.
      */

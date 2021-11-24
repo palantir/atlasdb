@@ -118,7 +118,6 @@ allprojects {
                 'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
-                'ProtectedMembersInFinalClass',
                 'PublicConstructorForAbstractClass',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
