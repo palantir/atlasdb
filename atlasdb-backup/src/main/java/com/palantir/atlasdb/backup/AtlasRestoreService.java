@@ -27,12 +27,15 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.cassandra.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.containers.SocksProxyNettyOptions;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
@@ -60,6 +63,7 @@ public class AtlasRestoreService {
     private final BackupPersister backupPersister;
     private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
     private final Function<Namespace, CassandraKeyValueServiceRuntimeConfig> runtimeConfigFactory;
+    private final Function<Namespace, KeyValueService> keyValueServiceFactory;
     private final MetricsManager metricsManager;
 
     // TODO(gs): factor out Cassandra utils
@@ -75,16 +79,32 @@ public class AtlasRestoreService {
             // TODO(gs): wrapper class for config, runtimeConfig, KVS?
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, CassandraKeyValueServiceRuntimeConfig> runtimeConfigFactory,
+            Function<Namespace, KeyValueService> keyValueServiceFactory,
             MetricsManager metricsManager) {
         this.backupPersister = backupPersister;
         this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
         this.runtimeConfigFactory = runtimeConfigFactory;
+        this.keyValueServiceFactory = keyValueServiceFactory;
         this.metricsManager = metricsManager;
     }
 
+    // TODO(gs): get from where these table names are defined?
+    private static final String COORDINATION = "_coordination";
+    private static final String TARGETED_SWEEP_PROGRESS = "sweep__sweepProgressPerShard";
+    private static final String TARGETED_SWEEP_ID_TO_NAME = "sweep__sweepIdToName";
+    private static final String TARGETED_SWEEP_NAME_TO_ID = "sweep__sweepNameToId";
+    private static final String TARGETED_SWEEP_TABLE_CLEARS = "sweep__tableClears";
+
+    private static final Set<String> TABLES_TO_REPAIR = ImmutableSet.of(
+            COORDINATION,
+            TARGETED_SWEEP_PROGRESS,
+            TARGETED_SWEEP_ID_TO_NAME,
+            TARGETED_SWEEP_NAME_TO_ID,
+            TARGETED_SWEEP_TABLE_CLEARS);
+
     // ConsistentCasTablesTask
     public boolean repairInternalTables(
-            Namespace namespace, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairer) {
+            Namespace namespace, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
         Optional<CompletedBackup> maybeCompletedBackup = backupPersister.getCompletedBackup(namespace);
 
         if (maybeCompletedBackup.isEmpty()) {
@@ -92,10 +112,13 @@ public class AtlasRestoreService {
             return false;
         }
 
-        // Fixed table name for now - TODO(gs): list + iteration
-        String tableName = "_coordination";
-        Map<InetSocketAddress, Set<TokenRange>> rangesToRepair = getRangesToRepair(namespace, tableName);
-        repairer.accept(rangesToRepair);
+        KeyValueService kvs = keyValueServiceFactory.apply(namespace);
+        Set<TableReference> allTableNames = kvs.getAllTableNames();
+        allTableNames.stream()
+                .map(TableReference::getTableName)
+                .filter(TABLES_TO_REPAIR::contains)
+                .map(tableName -> getRangesToRepair(namespace, tableName))
+                .forEach(repairTable);
         return true;
     }
 
