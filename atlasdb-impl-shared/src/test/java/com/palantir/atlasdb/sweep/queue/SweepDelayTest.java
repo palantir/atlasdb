@@ -16,15 +16,17 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import static com.palantir.atlasdb.sweep.queue.SweepDelay.BACKOFF;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.BATCH_CELLS_LOW_THRESHOLD;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.DEFAULT_MAX_PAUSE_MILLIS;
+import static com.palantir.atlasdb.sweep.queue.SweepDelay.MAX_BACKOFF;
+import static com.palantir.atlasdb.sweep.queue.SweepDelay.MIN_BACKOFF;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.MIN_PAUSE_MILLIS;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class SweepDelayTest {
@@ -72,8 +74,46 @@ public class SweepDelayTest {
     public void insufficientConsistencyReturnsBackoff() {
         delay.getNextPause(SUCCESS);
         assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
-                .isEqualTo(BACKOFF);
+                .isEqualTo(MIN_BACKOFF);
         assertThat(metrics).hasValue(INITIAL_DELAY);
+    }
+
+    @Test
+    public void repeatedInsufficientConsistencyWithoutSuccessIncreasesUntilMax() {
+        delay.getNextPause(SUCCESS);
+        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .isEqualTo(MIN_BACKOFF);
+
+        long secondPause = delay.getNextPause(SweepIterationResults.insufficientConsistency());
+        assertThat(secondPause).isGreaterThan(MIN_BACKOFF);
+
+        assertThat(delay.getNextPause(SweepIterationResults.otherError())).isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
+        assertThat(delay.getNextPause(SweepIterationResults.disabled())).isEqualTo(MIN_BACKOFF);
+        assertThat(delay.getNextPause(SweepIterationResults.unableToAcquireShard()))
+                .isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
+
+        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .isGreaterThan(secondPause);
+
+        IntStream.range(0, 100)
+                .mapToObj(_ignore -> delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .forEach(pause -> assertThat(pause).isLessThanOrEqualTo(MAX_BACKOFF));
+
+        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .isEqualTo(MAX_BACKOFF);
+    }
+
+    @Test
+    public void successResetsInsufficientConsistencyExponentialBackoff() {
+        delay.getNextPause(SUCCESS);
+        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .isEqualTo(MIN_BACKOFF);
+        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .isGreaterThan(MIN_BACKOFF);
+
+        delay.getNextPause(SUCCESS);
+        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .isEqualTo(MIN_BACKOFF);
     }
 
     @Test
@@ -86,7 +126,7 @@ public class SweepDelayTest {
     @Test
     public void disabledReturnsBackoff() {
         delay.getNextPause(SUCCESS);
-        assertThat(delay.getNextPause(SweepIterationResults.disabled())).isEqualTo(BACKOFF);
+        assertThat(delay.getNextPause(SweepIterationResults.disabled())).isEqualTo(MIN_BACKOFF);
         assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
