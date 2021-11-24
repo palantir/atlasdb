@@ -32,12 +32,9 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.cassandra.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.containers.SocksProxyNettyOptions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -54,7 +51,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class AtlasRestoreService {
@@ -62,7 +58,6 @@ public class AtlasRestoreService {
 
     private final BackupPersister backupPersister;
     private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
-    private final Function<Namespace, CassandraKeyValueServiceRuntimeConfig> runtimeConfigFactory;
     private final Function<Namespace, KeyValueService> keyValueServiceFactory;
     private final MetricsManager metricsManager;
 
@@ -78,12 +73,10 @@ public class AtlasRestoreService {
             BackupPersister backupPersister,
             // TODO(gs): wrapper class for config, runtimeConfig, KVS?
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
-            Function<Namespace, CassandraKeyValueServiceRuntimeConfig> runtimeConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory,
             MetricsManager metricsManager) {
         this.backupPersister = backupPersister;
         this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
-        this.runtimeConfigFactory = runtimeConfigFactory;
         this.keyValueServiceFactory = keyValueServiceFactory;
         this.metricsManager = metricsManager;
     }
@@ -102,9 +95,16 @@ public class AtlasRestoreService {
             TARGETED_SWEEP_NAME_TO_ID,
             TARGETED_SWEEP_TABLE_CLEARS);
 
-    // ConsistentCasTablesTask
-    public boolean repairInternalTables(
-            Namespace namespace, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
+    // Returns the set of namespaces for which we successfully repaired internal tables
+    public Set<Namespace> repairInternalTables(
+            Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
+        return namespaces.stream()
+                .filter(this::backupExists)
+                .peek(namespace -> repairInternalTables(namespace, repairTable))
+                .collect(Collectors.toSet());
+    }
+
+    private boolean backupExists(Namespace namespace) {
         Optional<CompletedBackup> maybeCompletedBackup = backupPersister.getCompletedBackup(namespace);
 
         if (maybeCompletedBackup.isEmpty()) {
@@ -112,6 +112,11 @@ public class AtlasRestoreService {
             return false;
         }
 
+        return true;
+    }
+
+    private void repairInternalTables(
+            Namespace namespace, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
         Set<TableReference> allTableNames = kvs.getAllTableNames();
         allTableNames.stream()
@@ -119,14 +124,11 @@ public class AtlasRestoreService {
                 .filter(TABLES_TO_REPAIR::contains)
                 .map(tableName -> getRangesToRepair(namespace, tableName))
                 .forEach(repairTable);
-        return true;
     }
 
     // TODO(gs): return type
     private Map<InetSocketAddress, Set<TokenRange>> getRangesToRepair(Namespace namespace, String tableName) {
         CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig = () -> runtimeConfigFactory.apply(namespace);
-        CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager, config, runtimeConfig, true);
 
         // TODO(gs): error handling/retry
         Collection<InetSocketAddress> addresses = config.addressTranslation().values();
