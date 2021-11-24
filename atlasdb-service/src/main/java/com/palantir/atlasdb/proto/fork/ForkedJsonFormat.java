@@ -1182,7 +1182,7 @@ public final class ForkedJsonFormat {
     }
 
     /**
-     * Un-escape a byte sequence as escaped usin
+     * Un-escape a byte sequence as escaped using
      * {@link #escapeBytes(com.googlecode.protobuf.format.ByteString)}. Two-digit hex escapes (starting with
      * "\x") are also recognized.
      */
