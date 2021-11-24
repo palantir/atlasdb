@@ -294,6 +294,30 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
 
     /**
+     * Performs an atomic check-and-set into the key-value store. This method differs from
+     * {@link #checkAndSet(CheckAndSetRequest)} in that implementations may be able to perform this more efficiently.
+     * <p>
+     * Note that this call <i>does not</i> guarantee atomicity across Cells (even multiple cells within the same call),
+     * and it operates independently of transactions. It is therefore not recommended to attempt to perform
+     * checkAndSet operations alongside other operations in a single transaction.
+     * <p>
+     * If the call completes successfully, then you know that there existed some point in time at which all Cells
+     * present in your {@link MultiCellCheckAndSetRequest} had the value you expected at some point since you began
+     * the query, although individual Cells may have taken on another value and then been written back to the
+     * expected value since said value was obtained. Furthermore, proposed updates that were successfully applied may
+     * have since been overwritten, perhaps even before later proposed updates were applied. You should NOT assume
+     * any atomicity guarantees beyond the level of an individual {@link Cell}.
+     * <p>
+     * If a {@link CheckAndSetException} is thrown, it is likely that the value stored was not as you expected.
+     * In this case, you may want to check the stored value and determine why it was different from the expected value.
+     *
+     * @param multiCellCheckAndSetRequest the request, including table, cell, old value and new value.
+     * @throws CheckAndSetException if the stored value for the cell was not as expected.
+     */
+    @Timed
+    void checkAndSet(MultiCellCheckAndSetRequest multiCellCheckAndSetRequest) throws CheckAndSetException;
+
+    /**
      * Deletes values from the key-value store.
      * <p>
      * This call <i>does not</i> guarantee atomicity for deletes across (Cell, ts) pairs. However it

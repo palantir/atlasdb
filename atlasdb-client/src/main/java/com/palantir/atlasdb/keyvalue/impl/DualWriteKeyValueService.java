@@ -23,12 +23,14 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCellCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -115,6 +117,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         delegate1.checkAndSet(checkAndSetRequest);
+    }
+
+    @Override
+    public void checkAndSet(MultiCellCheckAndSetRequest multiCellCheckAndSetRequest) throws CheckAndSetException {
+        delegate1.checkAndSet(multiCellCheckAndSetRequest);
     }
 
     @Override

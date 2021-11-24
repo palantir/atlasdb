@@ -26,8 +26,11 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ImmutableCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCellCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -87,6 +90,17 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 .consistentOnFailure(true)
                 .supportsDetailOnFailure(false)
                 .build();
+    }
+
+    @Override
+    public void checkAndSet(MultiCellCheckAndSetRequest multiCellCheckAndSetRequest) throws CheckAndSetException {
+        multiCellCheckAndSetRequest
+                .proposedUpdates()
+                .forEach(update -> checkAndSet(ImmutableCheckAndSetRequest.singleCell(
+                        multiCellCheckAndSetRequest.tableReference(),
+                        update.cell(),
+                        update.oldValue(),
+                        update.newValue())));
     }
 
     @Override

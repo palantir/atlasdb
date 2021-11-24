@@ -70,6 +70,11 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
     }
 
     @Override
+    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+        // TODO (jkong): Implement me
+    }
+
+    @Override
     public ListenableFuture<Optional<byte[]>> get(Cell cell) {
         return Futures.transform(
                 getMultiple(ImmutableList.of(cell)),
