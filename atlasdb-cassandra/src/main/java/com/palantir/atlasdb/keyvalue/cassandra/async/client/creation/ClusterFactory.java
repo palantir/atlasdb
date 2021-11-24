@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ProtocolOptions;
@@ -40,9 +39,9 @@ import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 
 public class ClusterFactory {
-    private final Supplier<Builder> cqlClusterBuilderFactory;
+    private final Supplier<Cluster.Builder> cqlClusterBuilderFactory;
 
-    public ClusterFactory(Supplier<Builder> cqlClusterBuilderFactory) {
+    public ClusterFactory(Supplier<Cluster.Builder> cqlClusterBuilderFactory) {
         this.cqlClusterBuilderFactory = cqlClusterBuilderFactory;
     }
 

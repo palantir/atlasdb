@@ -44,7 +44,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class CqlCluster {
+public final class CqlCluster {
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCluster.class);
 
     // this is the partition key column name for the coord/TS tables
