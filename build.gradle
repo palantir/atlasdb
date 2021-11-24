@@ -109,7 +109,6 @@ allprojects {
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
                 'InlineFormatString',
-                'JavaTimeDefaultTimeZone',
                 'LogSafePreconditionsMessageFormat',
                 'MixedMutabilityReturnType',
                 'MockitoInternalUsage',
