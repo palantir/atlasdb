@@ -32,18 +32,19 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.cassandra.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
 import com.palantir.atlasdb.containers.SocksProxyNettyOptions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -126,52 +127,62 @@ public class AtlasRestoreService {
                 .forEach(repairTable);
     }
 
-    // TODO(gs): return type
     private Map<InetSocketAddress, Set<TokenRange>> getRangesToRepair(Namespace namespace, String tableName) {
         CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
 
         // TODO(gs): error handling/retry
-        Collection<InetSocketAddress> addresses = config.addressTranslation().values();
-        InetSocketAddress inetSocketAddress = addresses.stream().findAny().orElseThrow();
-        DefaultCqlClientFactory cqlClientFactory = new DefaultCqlClientFactory(
-                () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(inetSocketAddress)));
-        CqlClient cqlClient = cqlClientFactory
-                .constructClient(metricsManager.getTaggedRegistry(), config, false)
-                .orElseThrow();
-        Session session = cqlClient.getSession();
-        Metadata metadata = session.getCluster().getMetadata();
-        String keyspaceName = config.getKeyspaceOrThrow();
-        KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
-        TableMetadata tableMetadata = keyspace.getTable(tableName);
-        Set<Token> partitionTokens = getPartitionTokens(session, tableMetadata);
-        Map<InetSocketAddress, Set<TokenRange>> tokenRangesByNode =
-                ClusterMetadataUtils.getTokenMapping(addresses, metadata, keyspaceName, partitionTokens);
+        Set<InetSocketAddress> hosts = config.servers().accept(new Visitor<>() {
+            @Override
+            public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
+                // TODO(gs): fail instead here? can we assume CQL support?
+                return defaultConfig.thriftHosts();
+            }
 
-        if (partitionTokens.isEmpty()) {
-            log.trace(
-                    "No token ranges identified requiring repair",
-                    SafeArg.of("keyspace", keyspace),
-                    SafeArg.of("table", tableName));
-        } else {
-            log.trace(
-                    "Identified token ranges requiring repair",
-                    SafeArg.of("keyspace", keyspace),
-                    SafeArg.of("table", tableName),
-                    SafeArg.of("numPartitionKeys", partitionTokens.size()),
-                    SafeArg.of("tokenRanges", tokenRangesByNode));
+            @Override
+            public Set<InetSocketAddress> visit(CqlCapableConfig cqlCapableConfig) {
+                return cqlCapableConfig.cqlHosts();
+            }
+        });
+        InetSocketAddress firstHost = hosts.stream().findAny().orElseThrow();
+        Cluster cluster = new ClusterFactory(
+                        () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(firstHost)))
+                .constructCluster(hosts, config);
 
-            int numTokenRanges =
-                    tokenRangesByNode.values().stream().mapToInt(Set::size).sum();
+        try (Session session = cluster.connect()) {
+            Metadata metadata = session.getCluster().getMetadata();
+            String keyspaceName = config.getKeyspaceOrThrow();
+            KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
+            TableMetadata tableMetadata = keyspace.getTable(tableName);
+            Set<Token> partitionTokens = getPartitionTokens(session, tableMetadata);
+            Map<InetSocketAddress, Set<TokenRange>> tokenRangesByNode =
+                    ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, partitionTokens);
 
-            log.debug(
-                    "Identified token ranges requiring repair",
-                    SafeArg.of("keyspace", keyspace),
-                    SafeArg.of("table", tableName),
-                    SafeArg.of("numPartitionKeys", partitionTokens.size()),
-                    SafeArg.of("numTokenRanges", numTokenRanges));
+            if (partitionTokens.isEmpty()) {
+                log.trace(
+                        "No token ranges identified requiring repair",
+                        SafeArg.of("keyspace", keyspace),
+                        SafeArg.of("table", tableName));
+            } else {
+                log.trace(
+                        "Identified token ranges requiring repair",
+                        SafeArg.of("keyspace", keyspace),
+                        SafeArg.of("table", tableName),
+                        SafeArg.of("numPartitionKeys", partitionTokens.size()),
+                        SafeArg.of("tokenRanges", tokenRangesByNode));
+
+                int numTokenRanges =
+                        tokenRangesByNode.values().stream().mapToInt(Set::size).sum();
+
+                log.debug(
+                        "Identified token ranges requiring repair",
+                        SafeArg.of("keyspace", keyspace),
+                        SafeArg.of("table", tableName),
+                        SafeArg.of("numPartitionKeys", partitionTokens.size()),
+                        SafeArg.of("numTokenRanges", numTokenRanges));
+            }
+
+            return tokenRangesByNode;
         }
-
-        return tokenRangesByNode;
     }
 
     // TODO(gs): copied from IBRP
