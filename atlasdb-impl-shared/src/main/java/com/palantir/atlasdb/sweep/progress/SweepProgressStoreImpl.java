@@ -102,7 +102,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         return hydrateProgress(entry);
     }
 
-    protected Map<Cell, Value> getStoredProgress(TableReference tableRef) {
+    private Map<Cell, Value> getStoredProgress(TableReference tableRef) {
         return kvs.get(AtlasDbConstants.SWEEP_PROGRESS_TABLE, ImmutableMap.of(getCell(tableRef), 1L));
     }
 
