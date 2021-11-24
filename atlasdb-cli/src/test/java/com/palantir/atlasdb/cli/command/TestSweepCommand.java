@@ -100,7 +100,7 @@ public class TestSweepCommand {
     public void testSweepTable() throws Exception {
         try (SingleBackendCliTestRunner runner =
                 makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName()))) {
-            TestAtlasDbServices services = runner.connect(moduleFactory);
+            TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getManagedTimestampService();
             KeyValueService kvs = services.getKeyValueService();
@@ -135,7 +135,7 @@ public class TestSweepCommand {
     public void testSweepNonExistingTable() throws Exception {
         try (SingleBackendCliTestRunner runner =
                 makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-t", NON_EXISTING_TABLE.getQualifiedName()))) {
-            TestAtlasDbServices services = runner.connect(moduleFactory);
+            TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
 
             long ts5 = services.getManagedTimestampService().getFreshTimestamp();
             String stdout = sweep(runner, ts5);
@@ -149,7 +149,7 @@ public class TestSweepCommand {
     @Test
     public void testSweepNamespace() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-n", NS1.getName()))) {
-            TestAtlasDbServices services = runner.connect(moduleFactory);
+            TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getManagedTimestampService();
             KeyValueService kvs = services.getKeyValueService();
@@ -181,7 +181,7 @@ public class TestSweepCommand {
     @Test
     public void testSweepAll() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-a"))) {
-            TestAtlasDbServices services = runner.connect(moduleFactory);
+            TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getManagedTimestampService();
             KeyValueService kvs = services.getKeyValueService();
@@ -218,7 +218,7 @@ public class TestSweepCommand {
                 TABLE_ONE.getQualifiedName(),
                 "-r",
                 BaseEncoding.base16().encode("foo".getBytes(StandardCharsets.UTF_8))))) {
-            TestAtlasDbServices services = runner.connect(moduleFactory);
+            TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getManagedTimestampService();
             KeyValueService kvs = services.getKeyValueService();

@@ -16,10 +16,9 @@
 package com.palantir.atlasdb.cli.runner;
 
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
-import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
-public class InMemoryTestRunner extends AbstractTestRunner<AtlasDbServices> {
+public class InMemoryTestRunner extends AbstractTestRunner {
 
     public static final String CONFIG_LOCATION = "cli_test_config.yml";
 
