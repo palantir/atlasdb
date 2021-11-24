@@ -27,12 +27,14 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCellCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -371,6 +373,16 @@ public final class ProfilingKeyValueService implements KeyValueService {
         maybeLog(
                 () -> delegate.checkAndSet(request),
                 logCellsAndSize("checkAndSet", request.table(), 1, request.newValue().length));
+    }
+
+    @Override
+    public void checkAndSet(MultiCellCheckAndSetRequest multiCellCheckAndSetRequest) throws CheckAndSetException {
+        maybeLog(
+                () -> delegate.checkAndSet(multiCellCheckAndSetRequest),
+                logCellsAndSize("checkAndSet",
+                        multiCellCheckAndSetRequest.tableReference(),
+                        multiCellCheckAndSetRequest.proposedUpdates().size(),
+                        multiCellCheckAndSetRequest.updates().values().stream().mapToInt(x -> x.length).sum()));
     }
 
     @Override

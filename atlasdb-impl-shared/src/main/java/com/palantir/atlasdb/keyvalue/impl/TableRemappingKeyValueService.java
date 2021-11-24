@@ -28,12 +28,14 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCellCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -366,6 +368,19 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
             CheckAndSetRequest request = new CheckAndSetRequest.Builder()
                     .from(checkAndSetRequest)
                     .table(tableMapper.getMappedTableName(checkAndSetRequest.table()))
+                    .build();
+            delegate().checkAndSet(request);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public void checkAndSet(MultiCellCheckAndSetRequest multiCellCheckAndSetRequest) throws CheckAndSetException {
+        try {
+            CheckAndSetRequest request = ImmutableMultiCellCheckAndSetRequest.builder()
+                    .from(multiCellCheckAndSetRequest)
+                    .table(tableMapper.getMappedTableName(multiCellCheckAndSetRequest.tableReference()))
                     .build();
             delegate().checkAndSet(request);
         } catch (TableMappingNotFoundException e) {

@@ -18,10 +18,12 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCellCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -293,6 +295,16 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         // Only update stats after put was successful.
         s.totalPutCells.incrementAndGet(); // can only CAS one value
         incrementPutBytes(s, request.cell(), request.newValue());
+    }
+
+    @Override
+    public void checkAndSet(MultiCellCheckAndSetRequest multiCellCheckAndSetRequest) throws CheckAndSetException {
+        TableStats s = timeOperation(multiCellCheckAndSetRequest.tableReference(),
+                () -> super.checkAndSet(multiCellCheckAndSetRequest));
+
+        // Only update stats after put was successful.
+        s.totalPutCells.addAndGet(multiCellCheckAndSetRequest.proposedUpdates().size()); // can only CAS one value
+        multiCellCheckAndSetRequest.updates().forEach((cell, value) -> incrementPutBytes(s, cell, value));
     }
 
     private TableStats getTableStats(TableReference tableRef) {
