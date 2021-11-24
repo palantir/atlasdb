@@ -88,11 +88,6 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     }
 
     @Test
-    public void bestTest() {
-        System.out.println(txnManager.getLockService().getLockServerOptions());
-    }
-
-    @Test
     public void canCommitWritesWithExclusiveAdvisoryLocks() throws ExecutionException, InterruptedException {
         AtomicBoolean isExecuting = new AtomicBoolean(false);
 

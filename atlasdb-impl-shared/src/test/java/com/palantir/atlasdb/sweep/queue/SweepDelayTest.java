@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.BATCH_CELLS_LOW_THRESHOLD;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.DEFAULT_MAX_PAUSE_MILLIS;
+import static com.palantir.atlasdb.sweep.queue.SweepDelay.ITERATIONS_TO_REACH_MAX_BACKOFF;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.MAX_BACKOFF;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.MIN_BACKOFF;
 import static com.palantir.atlasdb.sweep.queue.SweepDelay.MIN_PAUSE_MILLIS;
@@ -95,7 +96,7 @@ public class SweepDelayTest {
         assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
                 .isGreaterThan(secondPause);
 
-        IntStream.range(0, 100)
+        IntStream.range(0, ITERATIONS_TO_REACH_MAX_BACKOFF)
                 .mapToObj(_ignore -> delay.getNextPause(SweepIterationResults.insufficientConsistency()))
                 .forEach(pause -> assertThat(pause).isLessThanOrEqualTo(MAX_BACKOFF));
 
