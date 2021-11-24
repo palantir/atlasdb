@@ -78,32 +78,37 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
                 }
 
                 Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
-
-                Cluster.Builder clusterBuilder = cqlClusterBuilderFactory
-                        .get()
-                        .addContactPointsWithPorts(servers)
-                        .withCredentials(
-                                config.credentials().username(),
-                                config.credentials().password())
-                        .withCompression(ProtocolOptions.Compression.LZ4)
-                        .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
-                        .withoutJMXReporting()
-                        .withProtocolVersion(ProtocolVersion.V3)
-                        .withThreadingOptions(new ThreadingOptions());
-
-                clusterBuilder = withSslOptions(clusterBuilder, config);
-                clusterBuilder = withPoolingOptions(clusterBuilder, config);
-                clusterBuilder = withQueryOptions(clusterBuilder, config);
-                clusterBuilder = withLoadBalancingPolicy(clusterBuilder, config, servers);
-                clusterBuilder = withSocketOptions(clusterBuilder, config);
+                Cluster cluster = constructCluster(servers, config);
 
                 return Optional.of(CqlClientImpl.create(
-                        taggedMetricRegistry, clusterBuilder.build(), cqlCapableConfig.tuning(), initializeAsync));
+                        taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync));
             }
         });
     }
 
-    private Cluster.Builder withSocketOptions(Cluster.Builder clusterBuilder, CassandraKeyValueServiceConfig config) {
+    private Cluster constructCluster(Set<InetSocketAddress> servers, CassandraKeyValueServiceConfig config) {
+        Cluster.Builder clusterBuilder = cqlClusterBuilderFactory
+                .get()
+                .addContactPointsWithPorts(servers)
+                .withCredentials(
+                        config.credentials().username(), config.credentials().password())
+                .withCompression(ProtocolOptions.Compression.LZ4)
+                .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
+                .withoutJMXReporting()
+                .withProtocolVersion(ProtocolVersion.V3)
+                .withThreadingOptions(new ThreadingOptions());
+
+        clusterBuilder = withSslOptions(clusterBuilder, config);
+        clusterBuilder = withPoolingOptions(clusterBuilder, config);
+        clusterBuilder = withQueryOptions(clusterBuilder, config);
+        clusterBuilder = withLoadBalancingPolicy(clusterBuilder, config, servers);
+        clusterBuilder = withSocketOptions(clusterBuilder, config);
+
+        return clusterBuilder.build();
+    }
+
+    private static Cluster.Builder withSocketOptions(
+            Cluster.Builder clusterBuilder, CassandraKeyValueServiceConfig config) {
         return clusterBuilder.withSocketOptions(
                 new SocketOptions().setReadTimeoutMillis(config.socketQueryTimeoutMillis()));
     }
