@@ -18,11 +18,14 @@ package com.palantir.atlasdb.backup;
 
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.cassandra.CqlCluster;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -51,19 +54,9 @@ public class AtlasRestoreService {
         this.keyValueServiceFactory = keyValueServiceFactory;
     }
 
-    // TODO(gs): get from where these table names are defined?
-    private static final String COORDINATION = "_coordination";
-    private static final String TARGETED_SWEEP_PROGRESS = "sweep__sweepProgressPerShard";
-    private static final String TARGETED_SWEEP_ID_TO_NAME = "sweep__sweepIdToName";
-    private static final String TARGETED_SWEEP_NAME_TO_ID = "sweep__sweepNameToId";
-    private static final String TARGETED_SWEEP_TABLE_CLEARS = "sweep__tableClears";
-
-    private static final Set<String> TABLES_TO_REPAIR = ImmutableSet.of(
-            COORDINATION,
-            TARGETED_SWEEP_PROGRESS,
-            TARGETED_SWEEP_ID_TO_NAME,
-            TARGETED_SWEEP_NAME_TO_ID,
-            TARGETED_SWEEP_TABLE_CLEARS);
+    private static final String COORDINATION = AtlasDbConstants.COORDINATION_TABLE.getTableName();
+    private static final Set<String> TABLES_TO_REPAIR =
+            Sets.union(ImmutableSet.of(COORDINATION), TargetedSweepTables.REPAIR_ON_RESTORE);
 
     // Returns the set of namespaces for which we successfully repaired internal tables
     public Set<Namespace> repairInternalTables(
