@@ -21,10 +21,10 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.proxy.Socks5ProxyHandler;
 import java.net.SocketAddress;
 
-final class SocksProxyNettyOptions extends NettyOptions {
+public final class SocksProxyNettyOptions extends NettyOptions {
     private final SocketAddress proxyAddress;
 
-    SocksProxyNettyOptions(SocketAddress proxyAddress) {
+    public SocksProxyNettyOptions(SocketAddress proxyAddress) {
         this.proxyAddress = proxyAddress;
     }
 

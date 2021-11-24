@@ -76,6 +76,11 @@ public final class CqlClientImpl implements CqlClient {
     private final Session session;
     private final StatementPreparer statementPreparer;
 
+    // TDOO(gs): remove this hack
+    public Session getSession() {
+        return session;
+    }
+
     public static CqlClient create(
             TaggedMetricRegistry taggedMetricRegistry,
             Cluster cluster,

@@ -1,11 +1,14 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+    implementation project(':atlasdb-cassandra')
     implementation project(':atlasdb-config')
+    implementation project(':atlasdb-container-test-utils') // TODO(gs): remove this hack (SocksProxyNettyOptions)
     implementation project(':timelock-api:timelock-api-objects')
 
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    implementation 'one.util:streamex'
 
     testImplementation 'org.mockito:mockito-core'
 
