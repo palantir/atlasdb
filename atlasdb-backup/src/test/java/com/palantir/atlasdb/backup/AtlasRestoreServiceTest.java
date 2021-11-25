@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.backup.cassandra.CassandraRepairHelper;
+import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.net.InetSocketAddress;
 import java.util.Map;

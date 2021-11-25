@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.cassandra;
+package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.Metadata;

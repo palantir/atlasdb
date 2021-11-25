@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.cassandra;
+package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableSet;

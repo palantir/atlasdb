@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.cassandra;
+package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
@@ -32,7 +32,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
-import com.palantir.atlasdb.containers.SocksProxyNettyOptions;
+import com.palantir.atlasdb.cassandra.proxy.SocksProxyNettyOptions;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
