@@ -17,12 +17,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -30,6 +32,7 @@ import com.palantir.atlasdb.transaction.service.WriteBatchingTransactionService;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.TimestampManagementService;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +43,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -86,8 +90,29 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     }
 
     @Before
-    public void advanceTimestamp() {
-        ((TimestampManagementService) timestampService).fastForwardTimestamp(ONE_BILLION);
+    public void before() {
+        installTransactionsV3();
+        advanceTimestamp();
+    }
+
+    private void installTransactionsV3() {
+        keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
+        Awaitility.await()
+                .pollInterval(Duration.ofMillis(10))
+                .atMost(Duration.ofSeconds(10))
+                        .until(() -> {
+                            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(
+                                    TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+                            advanceTimestamp();
+                            return transactionSchemaManager.getTransactionsSchemaVersion(
+                                    timestampService.getFreshTimestamp()) == TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION;
+                        });
+    }
+
+    private void advanceTimestamp() {
+        ((TimestampManagementService) timestampService).fastForwardTimestamp(
+                timestampService.getFreshTimestamp() + ONE_BILLION
+        );
     }
 
     @Test
