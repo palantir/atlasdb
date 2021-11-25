@@ -17,15 +17,10 @@
 package com.palantir.atlasdb.backup;
 
 import com.datastax.driver.core.TokenRange;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.backup.cassandra.CqlCluster;
+import com.palantir.atlasdb.backup.cassandra.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -42,39 +37,29 @@ public class AtlasRestoreService {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasRestoreService.class);
 
     private final BackupPersister backupPersister;
-    private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
-    private final Function<Namespace, KeyValueService> keyValueServiceFactory;
+    private final CassandraRepairHelper cassandraRepairHelper;
 
-    public AtlasRestoreService(
+    public AtlasRestoreService(BackupPersister backupPersister, CassandraRepairHelper cassandraRepairHelper) {
+        this.backupPersister = backupPersister;
+        this.cassandraRepairHelper = cassandraRepairHelper;
+    }
+
+    public static AtlasRestoreService create(
             BackupPersister backupPersister,
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
-        this.backupPersister = backupPersister;
-        this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
-        this.keyValueServiceFactory = keyValueServiceFactory;
+        CassandraRepairHelper cassandraRepairHelper =
+                new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
+        return new AtlasRestoreService(backupPersister, cassandraRepairHelper);
     }
-
-    private static final String COORDINATION = AtlasDbConstants.COORDINATION_TABLE.getTableName();
-    private static final Set<String> TABLES_TO_REPAIR =
-            Sets.union(ImmutableSet.of(COORDINATION), TargetedSweepTables.REPAIR_ON_RESTORE);
 
     // Returns the set of namespaces for which we successfully repaired internal tables
     public Set<Namespace> repairInternalTables(
             Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
         return namespaces.stream()
                 .filter(this::backupExists)
-                .peek(namespace -> repairInternalTables(namespace, repairTable))
+                .peek(namespace -> cassandraRepairHelper.repairInternalTables(namespace, repairTable))
                 .collect(Collectors.toSet());
-    }
-
-    private void repairInternalTables(
-            Namespace namespace, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
-        KeyValueService kvs = keyValueServiceFactory.apply(namespace);
-        kvs.getAllTableNames().stream()
-                .map(TableReference::getTableName)
-                .filter(TABLES_TO_REPAIR::contains)
-                .map(tableName -> getRangesToRepair(namespace, tableName))
-                .forEach(repairTable);
     }
 
     private boolean backupExists(Namespace namespace) {
@@ -86,10 +71,5 @@ public class AtlasRestoreService {
         }
 
         return true;
-    }
-
-    private Map<InetSocketAddress, Set<TokenRange>> getRangesToRepair(Namespace namespace, String tableName) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        return CqlCluster.create(config).getTokenRanges(tableName);
     }
 }
