@@ -117,7 +117,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     private void installTransactionsVersion() {
         keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                transactionSchemaManager, ((ManagedTimestampService) timestampService), transactionsSchemaVersion);
+                transactionSchemaManager, (ManagedTimestampService) timestampService, transactionsSchemaVersion);
     }
 
     @Test

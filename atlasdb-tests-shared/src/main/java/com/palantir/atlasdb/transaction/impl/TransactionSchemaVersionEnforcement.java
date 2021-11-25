@@ -43,6 +43,9 @@ public final class TransactionSchemaVersionEnforcement {
             int currentSchemaVersion = transactionSchemaManager.getTransactionsSchemaVersion(
                     timestampManagementService.getFreshTimestamp());
             if (currentSchemaVersion == targetSchemaVersion) {
+                log.info(
+                        "Enforced schema version to the target.",
+                        SafeArg.of("targetSchemaVersion", targetSchemaVersion));
                 return;
             }
         }
