@@ -673,7 +673,8 @@ public abstract class TransactionManagers {
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
                         TransactionService.class,
-                        TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
+                        TransactionServices.createTransactionService(
+                                keyValueService, transactionSchemaManager, metricsManager.getTaggedRegistry())),
                 closeables);
         Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);

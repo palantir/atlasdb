@@ -24,12 +24,14 @@ import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.pue.SimpleCommitTimestampPutUnlessExistsTable;
+import com.palantir.atlasdb.pue.TimedConsensusForgettingStore;
 import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
@@ -50,11 +52,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
     }
 
-    public static SimpleTransactionService createV3(KeyValueService kvs) {
+    public static SimpleTransactionService createV3(KeyValueService kvs, TaggedMetricRegistry metricRegistry) {
         if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
             return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
         }
-        return createResilient(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TwoPhaseEncodingStrategy.INSTANCE);
+        return createResilient(
+                kvs, TransactionConstants.TRANSACTIONS2_TABLE, TwoPhaseEncodingStrategy.INSTANCE, metricRegistry);
     }
 
     private static SimpleTransactionService createSimple(
@@ -65,8 +68,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     private static SimpleTransactionService createResilient(
-            KeyValueService kvs, TableReference tableRef, TwoPhaseEncodingStrategy encodingStrategy) {
-        ConsensusForgettingStore store = new KvsConsensusForgettingStore(kvs, tableRef);
+            KeyValueService kvs,
+            TableReference tableRef,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            TaggedMetricRegistry metricRegistry) {
+        ConsensusForgettingStore store =
+                TimedConsensusForgettingStore.create(new KvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
         PutUnlessExistsTable<Long, Long> pueTable =
                 new ResilientCommitTimestampPutUnlessExistsTable(store, encodingStrategy);
         return new SimpleTransactionService(pueTable, encodingStrategy);

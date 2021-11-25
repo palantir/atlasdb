@@ -30,6 +30,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 
 public final class TransactionServices {
@@ -39,15 +41,25 @@ public final class TransactionServices {
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+        // Should only be used for testing, or in contexts where users are not concerned about metrics
+        return createTransactionService(keyValueService, transactionSchemaManager, new DefaultTaggedMetricRegistry());
+    }
+
+    public static TransactionService createTransactionService(
+            KeyValueService keyValueService,
+            TransactionSchemaManager transactionSchemaManager,
+            TaggedMetricRegistry metricRegistry) {
         CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
         if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
-            return createSplitKeyTransactionService(keyValueService, transactionSchemaManager);
+            return createSplitKeyTransactionService(keyValueService, transactionSchemaManager, metricRegistry);
         }
         return createV1TransactionService(keyValueService);
     }
 
     private static TransactionService createSplitKeyTransactionService(
-            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+            KeyValueService keyValueService,
+            TransactionSchemaManager transactionSchemaManager,
+            TaggedMetricRegistry metricRegistry) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
         return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
                 transactionSchemaManager::getTransactionsSchemaVersion,
@@ -57,7 +69,7 @@ public final class TransactionServices {
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV2TransactionService(keyValueService),
                         TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV3TransactionService(keyValueService))));
+                        createV3TransactionService(keyValueService, metricRegistry))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -69,9 +81,10 @@ public final class TransactionServices {
                 WriteBatchingTransactionService.create(SimpleTransactionService.createV2(keyValueService)));
     }
 
-    private static TransactionService createV3TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(
-                WriteBatchingTransactionService.create(SimpleTransactionService.createV3(keyValueService)));
+    private static TransactionService createV3TransactionService(
+            KeyValueService keyValueService, TaggedMetricRegistry metricRegistry) {
+        return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
+                SimpleTransactionService.createV3(keyValueService, metricRegistry)));
     }
 
     /**
