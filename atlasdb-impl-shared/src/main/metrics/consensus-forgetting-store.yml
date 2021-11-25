@@ -5,7 +5,7 @@ namespaces:
   consensusForgettingStore:
     docs: Metrics for tracking operations on the consensus forgetting store.
     metrics:
-      concurrentCatOperations:
+      concurrentCheckAndTouches:
         type: gauge # Looks like a counter, but we generally aren't interested in rates.
         docs: The number of concurrent checkAndTouch operations that needed to be performed.
       checkAndTouch:

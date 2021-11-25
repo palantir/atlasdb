@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.pue;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -30,7 +31,8 @@ public class TimedConsensusForgettingStore implements ConsensusForgettingStore {
     private final ConsensusForgettingStoreMetrics metrics;
     private final AtomicInteger concurrentCheckAndTouchOperations;
 
-    private TimedConsensusForgettingStore(
+    @VisibleForTesting
+    TimedConsensusForgettingStore(
             ConsensusForgettingStore delegate,
             ConsensusForgettingStoreMetrics metrics,
             AtomicInteger concurrentCheckAndTouchOperations) {
@@ -42,7 +44,7 @@ public class TimedConsensusForgettingStore implements ConsensusForgettingStore {
     public static ConsensusForgettingStore create(ConsensusForgettingStore delegate, TaggedMetricRegistry registry) {
         ConsensusForgettingStoreMetrics metrics = ConsensusForgettingStoreMetrics.of(registry);
         AtomicInteger concurrentCheckAndTouchOperationTracker = new AtomicInteger(0);
-        metrics.concurrentCatOperations(concurrentCheckAndTouchOperationTracker::get);
+        metrics.concurrentCheckAndTouches(concurrentCheckAndTouchOperationTracker::get);
         return new TimedConsensusForgettingStore(delegate, metrics, concurrentCheckAndTouchOperationTracker);
     }
 
