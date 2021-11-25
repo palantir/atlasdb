@@ -15,13 +15,27 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.MultiCellCheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.MultiCellCheckAndSetRequest.ProposedUpdate;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
+import com.palantir.atlasdb.keyvalue.cassandra.MultiCellCheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.common.streams.KeyedStream;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import okio.ByteString;
+import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
@@ -50,5 +64,52 @@ public class CheckAndSetRunner {
             throw new InsufficientConsistencyException(
                     "Check-and-set requires " + writeConsistency + " Cassandra nodes to be up and available.", e);
         }
+    }
+
+    public MultiCellCheckAndSetResult<ByteString> executeCheckAndSet(CassandraClient client, MultiCellCheckAndSetRequest request)
+            throws TException {
+        try {
+            // This method differs from the above owing to performance considerations, but different semantics for
+            // put-unless-exists style workflows.
+            TableReference table = request.tableReference();
+
+            Map<byte[], List<ProposedUpdate>> updatesByRow =
+                    request.proposedUpdates().stream().collect(Collectors.groupingBy(update -> update.cell().getRowName()));
+            for (Map.Entry<byte[], List<ProposedUpdate>> singleRowUpdates : updatesByRow.entrySet()) {
+                CASResult result = queryRunner.run(client, table, () -> client.cas(
+                        table,
+                        ByteBuffer.wrap(singleRowUpdates.getKey()),
+                        singleRowUpdates.getValue().stream().map(t -> prepareCassandraColumn(t.cell(),
+                                t.oldValue())).collect(Collectors.toList()),
+                        singleRowUpdates.getValue().stream().map(t -> prepareCassandraColumn(t.cell(),
+                                t.newValue())).collect(Collectors.toList()),
+                        ConsistencyLevel.SERIAL,
+                        ConsistencyLevel.QUORUM));
+                if (!result.isSuccess()) {
+                    return MultiCellCheckAndSetResult.failure(
+                            KeyedStream.of(IntStream.range(0, singleRowUpdates.getValue().size())
+                                    .boxed())
+                                    .mapKeys(index -> singleRowUpdates.getValue().get(index).cell())
+                                    .map(index -> result.current_values.get(index).getValue())
+                                    .map(ByteString::new)
+                                    .collectToMap());
+                }
+            }
+            // all requests successful
+            return MultiCellCheckAndSetResult.success(request.relevantCells());
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException(
+                    "Check-and-set requires " + writeConsistency + " Cassandra nodes to be up and available.", e);
+        }
+    }
+
+    private static Column prepareCassandraColumn(Cell cell, byte[] proposedValue) {
+        return new Column(CassandraKeyValueServices.makeCompositeBuffer(
+                cell.getColumnName(),
+                // Atlas timestamp
+                CassandraConstants.CAS_TABLE_TIMESTAMP))
+                // Cassandra timestamp
+                .setTimestamp(CassandraConstants.CAS_TABLE_TIMESTAMP)
+                .setValue(proposedValue);
     }
 }

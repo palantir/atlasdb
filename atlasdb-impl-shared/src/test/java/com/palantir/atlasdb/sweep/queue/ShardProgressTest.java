@@ -168,7 +168,7 @@ public class ShardProgressTest {
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(5L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(15L)));
-        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any(CheckAndSetRequest.class));
         ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
 
         assertThat(instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
@@ -183,7 +183,7 @@ public class ShardProgressTest {
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(5L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)));
-        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any(CheckAndSetRequest.class));
         ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
 
         assertThatThrownBy(() -> instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
@@ -209,7 +209,7 @@ public class ShardProgressTest {
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(8L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(4L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(RESET_TIMESTAMP)));
-        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any(CheckAndSetRequest.class));
         ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
 
         assertThatCode(() -> instrumentedProgress.resetProgressForShard(CONSERVATIVE_TEN))
@@ -223,12 +223,12 @@ public class ShardProgressTest {
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(8L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(9L)))
                 .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)));
-        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any(CheckAndSetRequest.class));
         ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
 
         assertThatCode(() -> instrumentedProgress.resetProgressForShard(CONSERVATIVE_TEN))
                 .isInstanceOf(CheckAndSetException.class);
-        verify(mockKvs, times(3)).checkAndSet(any());
+        verify(mockKvs, times(3)).checkAndSet(any(CheckAndSetRequest.class));
     }
 
     private Value createValue(long num) {

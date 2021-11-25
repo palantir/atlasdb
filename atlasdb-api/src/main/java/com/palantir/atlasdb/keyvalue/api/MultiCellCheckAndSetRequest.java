@@ -26,10 +26,6 @@ import org.immutables.value.Value;
 /**
  * See also {@link CheckAndSetRequest}. This object is a parameter object for
  * {@link KeyValueService#checkAndSet(MultiCellCheckAndSetRequest)}.
- *
- * Note that individual key-value service may not support a fully general request, because the guarantees of the API
- * require atomicity across updates and the underlying key-value services may not always provide that (e.g., across
- * partitions).
  */
 @Value.Immutable
 public interface MultiCellCheckAndSetRequest {
@@ -38,21 +34,8 @@ public interface MultiCellCheckAndSetRequest {
     List<ProposedUpdate> proposedUpdates();
 
     @Value.Lazy
-    default boolean isSingleRowScoped() {
-        int uniqueRows = proposedUpdates().stream()
-                .map(ProposedUpdate::cell)
-                .map(Cell::getRowName)
-                .collect(Collectors.toSet())
-                .size();
-        return uniqueRows == 1;
-    }
-
-    @Value.Lazy
-    default Map<Cell, byte[]> expectations() {
-        return KeyedStream.of(proposedUpdates())
-                .mapKeys(ProposedUpdate::cell)
-                .map(ProposedUpdate::oldValue)
-                .collectToMap();
+    default List<Cell> relevantCells() {
+        return proposedUpdates().stream().map(ProposedUpdate::cell).collect(Collectors.toList());
     }
 
     @Value.Lazy

@@ -301,18 +301,19 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * and it operates independently of transactions. It is therefore not recommended to attempt to perform
      * checkAndSet operations alongside other operations in a single transaction.
      * <p>
-     * If the call completes successfully, then you know that there existed some point in time at which all Cells
-     * present in your {@link MultiCellCheckAndSetRequest} had the value you expected at some point since you began
-     * the query, although individual Cells may have taken on another value and then been written back to the
-     * expected value since said value was obtained. Furthermore, proposed updates that were successfully applied may
-     * have since been overwritten, perhaps even before later proposed updates were applied. You should NOT assume
+     * If the call completes successfully, then you know that for each Cell present in the expectations of your
+     * {@link MultiCellCheckAndSetRequest}, there existed some point in time since the beginning of your query
+     * where it had the value you expected. However, individual Cells may have taken on another value since said
+     * value was obtained. Furthermore, proposed updates that were successfully applied may have since been
+     * overwritten, possibly even before later proposed updates were applied. You should NOT assume
      * any atomicity guarantees beyond the level of an individual {@link Cell}.
      * <p>
-     * If a {@link CheckAndSetException} is thrown, it is likely that the value stored was not as you expected.
+     * If a {@link CheckAndSetException} is thrown, the value for at least one cell was not as expected.
      * In this case, you may want to check the stored value and determine why it was different from the expected value.
+     * Note that some of your updates may have already been applied.
      *
      * @param multiCellCheckAndSetRequest the request, including table, cell, old value and new value.
-     * @throws CheckAndSetException if the stored value for the cell was not as expected.
+     * @throws CheckAndSetException if the stored value for some cell in the request was not as expected.
      */
     @Timed
     void checkAndSet(MultiCellCheckAndSetRequest multiCellCheckAndSetRequest) throws CheckAndSetException;

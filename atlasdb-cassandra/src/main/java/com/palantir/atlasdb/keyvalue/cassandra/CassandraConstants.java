@@ -69,7 +69,7 @@ public final class CassandraConstants {
     static final int DEFAULT_MIN_INDEX_INTERVAL = 128;
     static final int DEFAULT_MAX_INDEX_INTERVAL = 2048;
 
-    static final long CAS_TABLE_TIMESTAMP = 0L;
+    public static final long CAS_TABLE_TIMESTAMP = 0L;
 
     private CassandraConstants() {
         // Utility class

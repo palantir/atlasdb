@@ -56,6 +56,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingReques
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCellCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
@@ -1904,6 +1905,26 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
         try {
             CheckAndSetResult<ByteString> casResult =
+                    clientPool.runWithRetry(client -> checkAndSetRunner.executeCheckAndSet(client, request));
+            if (!casResult.successful()) {
+                List<byte[]> currentValues = casResult.existingValues().stream()
+                        .map(ByteString::toByteArray)
+                        .collect(Collectors.toList());
+
+                throw new CheckAndSetException(
+                        request.cell(), request.table(), request.oldValue().orElse(null), currentValues);
+            }
+        } catch (CheckAndSetException e) {
+            throw e;
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    @Override
+    public void checkAndSet(final MultiCellCheckAndSetRequest request) throws CheckAndSetException {
+        try {
+            MultiCellCheckAndSetResult<ByteString> casResult =
                     clientPool.runWithRetry(client -> checkAndSetRunner.executeCheckAndSet(client, request));
             if (!casResult.successful()) {
                 List<byte[]> currentValues = casResult.existingValues().stream()
