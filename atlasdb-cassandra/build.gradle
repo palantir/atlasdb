@@ -68,6 +68,7 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'com.squareup.okio:okio'
   implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'one.util:streamex'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.apache.thrift:libthrift'
   implementation 'org.slf4j:slf4j-api'

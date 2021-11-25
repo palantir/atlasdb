@@ -7,7 +7,6 @@ dependencies {
 
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
-    implementation 'one.util:streamex'
 
     testImplementation 'org.mockito:mockito-core'
 
