@@ -46,6 +46,7 @@ import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -54,6 +55,7 @@ import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
@@ -93,11 +95,10 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         TaggedMetricRegistry taggedMetrics = SharedTaggedMetricRegistries.getSingleton();
         TransactionManager txManager = tryToCreateTransactionManager(config, environment, taggedMetrics);
-        Supplier<SweepTaskRunner> sweepTaskRunner =
-                Suppliers.memoize(() -> getSweepTaskRunner(txManager));
+        Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(txManager));
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
-        ensureTransactionSchemaVersionInstalled(txManager);
+        ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
         environment
                 .jersey()
                 .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
@@ -110,14 +111,29 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     private void ensureTransactionSchemaVersionInstalled(
-            AtlasDbConfig config, TransactionManager transactionManager) {
+            AtlasDbConfig config, Optional<AtlasDbRuntimeConfig> runtimeConfig, TransactionManager transactionManager) {
+        if (runtimeConfig.isEmpty()
+                || runtimeConfig
+                        .get()
+                        .internalSchema()
+                        .targetTransactionsSchemaVersion()
+                        .isEmpty()) {
+            return;
+        }
         CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                 transactionManager.getKeyValueService(),
                 transactionManager.getTimestampService(),
                 MetricsManagers.createForTests(),
                 config.initializeAsync());
         TransactionSchemaManager manager = new TransactionSchemaManager(coordinationService);
-        
+
+        int targetSchemaVersion = runtimeConfig
+                .get()
+                .internalSchema()
+                .targetTransactionsSchemaVersion()
+                .get();
+        TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
+                manager, (ManagedTimestampService) transactionManager.getTimestampService(), targetSchemaVersion);
     }
 
     private TransactionManager tryToCreateTransactionManager(
@@ -132,8 +148,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
-    private SweepTaskRunner getSweepTaskRunner(
-            TransactionManager transactionManager) {
+    private SweepTaskRunner getSweepTaskRunner(TransactionManager transactionManager) {
         KeyValueService kvs = transactionManager.getKeyValueService();
         LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
         TransactionService txnService =
