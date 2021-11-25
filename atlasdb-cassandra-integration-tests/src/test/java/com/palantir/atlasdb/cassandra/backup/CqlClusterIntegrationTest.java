@@ -42,7 +42,6 @@ public class CqlClusterIntegrationTest {
 
     // private SortedMap<Token, TokenRange> tokenRangesByEnd;
     private Cluster cluster;
-    private Token token1;
     // private Token token2;
     // private Token token8;
 
@@ -56,7 +55,6 @@ public class CqlClusterIntegrationTest {
         //         .mapToEntry(TokenRange::getEnd)
         //         .invert()
         //         .toSortedMap();
-        token1 = getToken("10");
         // token2 = getToken("30");
         // token8 = getToken("f0");
     }
@@ -70,7 +68,7 @@ public class CqlClusterIntegrationTest {
 
         assertThat(mapping.get(host)).hasSize(1);
         assertThat(mapping.get(host).iterator().next())
-                .isEqualTo(cluster.getMetadata().newTokenRange(token1, getToken("20")));
+                .isEqualTo(cluster.getMetadata().newTokenRange(getToken("10"), getToken("20")));
     }
 
     private Token getToken(String hex) {
