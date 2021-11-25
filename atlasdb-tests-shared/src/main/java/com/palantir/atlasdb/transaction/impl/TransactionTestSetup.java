@@ -178,8 +178,8 @@ public abstract class TransactionTestSetup {
         timelockService = inMemoryTimelockServices.getLegacyTimelockService();
         lockWatchManager = NoOpLockWatchManager.create();
 
-        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-                keyValueService, timestampService, metricsManager, false);
+        CoordinationService<InternalSchemaMetadata> coordinationService =
+                CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
         transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         transactionService = createTransactionService(keyValueService, transactionSchemaManager);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);

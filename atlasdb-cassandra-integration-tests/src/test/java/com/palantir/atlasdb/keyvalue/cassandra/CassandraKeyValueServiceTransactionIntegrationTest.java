@@ -25,14 +25,14 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.WriteBatchingTransactionService;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
-import com.palantir.timestamp.TimestampManagementService;
-import java.time.Duration;
+import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -43,7 +43,6 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -55,16 +54,30 @@ import org.junit.runners.Parameterized;
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 @RunWith(Parameterized.class)
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
-    private static final String SYNC = "sync";
-    private static final String ASYNC = "async";
+    private static final String SYNC_TRANSACTIONS_1 = "sync, transactions1";
+    private static final String ASYNC_TRANSACTIONS_2 = "async, transactions2";
+    private static final String ASYNC_TRANSACTIONS_3 = "async, transactions3";
     private static final Supplier<KeyValueService> KVS_SUPPLIER =
             Suppliers.memoize(CassandraKeyValueServiceTransactionIntegrationTest::createAndRegisterKeyValueService);
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-            {SYNC, UnaryOperator.identity()},
-            {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
+            {
+                SYNC_TRANSACTIONS_1,
+                UnaryOperator.identity(),
+                TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION
+            },
+            {
+                ASYNC_TRANSACTIONS_2,
+                (UnaryOperator<Transaction>) GetAsyncDelegate::new,
+                TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION
+            },
+            {
+                ASYNC_TRANSACTIONS_3,
+                (UnaryOperator<Transaction>) GetAsyncDelegate::new,
+                TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION
+            }
         };
         return Arrays.asList(data);
     }
@@ -81,38 +94,30 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     private final String name;
     private final UnaryOperator<Transaction> transactionWrapper;
+    private final int transactionsSchemaVersion;
 
     public CassandraKeyValueServiceTransactionIntegrationTest(
-            String name, UnaryOperator<Transaction> transactionWrapper) {
+            String name, UnaryOperator<Transaction> transactionWrapper, int transactionsSchemaVersion) {
         super(CASSANDRA, CASSANDRA);
         this.name = name;
         this.transactionWrapper = transactionWrapper;
+        this.transactionsSchemaVersion = transactionsSchemaVersion;
     }
 
     @Before
     public void before() {
-        installTransactionsV3();
         advanceTimestamp();
-    }
-
-    private void installTransactionsV3() {
-        keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
-        Awaitility.await()
-                .pollInterval(Duration.ofMillis(10))
-                .atMost(Duration.ofSeconds(10))
-                        .until(() -> {
-                            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(
-                                    TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
-                            advanceTimestamp();
-                            return transactionSchemaManager.getTransactionsSchemaVersion(
-                                    timestampService.getFreshTimestamp()) == TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION;
-                        });
+        installTransactionsVersion();
     }
 
     private void advanceTimestamp() {
-        ((TimestampManagementService) timestampService).fastForwardTimestamp(
-                timestampService.getFreshTimestamp() + ONE_BILLION
-        );
+        timestampManagementService.fastForwardTimestamp(ONE_BILLION);
+    }
+
+    private void installTransactionsVersion() {
+        keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
+        TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
+                transactionSchemaManager, ((ManagedTimestampService) timestampService), transactionsSchemaVersion);
     }
 
     @Test
