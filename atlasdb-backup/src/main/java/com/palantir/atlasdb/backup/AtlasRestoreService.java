@@ -67,6 +67,16 @@ public class AtlasRestoreService {
                 .collect(Collectors.toSet());
     }
 
+    private void repairInternalTables(
+            Namespace namespace, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
+        KeyValueService kvs = keyValueServiceFactory.apply(namespace);
+        kvs.getAllTableNames().stream()
+                .map(TableReference::getTableName)
+                .filter(TABLES_TO_REPAIR::contains)
+                .map(tableName -> getRangesToRepair(namespace, tableName))
+                .forEach(repairTable);
+    }
+
     private boolean backupExists(Namespace namespace) {
         Optional<CompletedBackup> maybeCompletedBackup = backupPersister.getCompletedBackup(namespace);
 
@@ -78,20 +88,8 @@ public class AtlasRestoreService {
         return true;
     }
 
-    private void repairInternalTables(
-            Namespace namespace, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
-        KeyValueService kvs = keyValueServiceFactory.apply(namespace);
-        Set<TableReference> allTableNames = kvs.getAllTableNames();
-        allTableNames.stream()
-                .map(TableReference::getTableName)
-                .filter(TABLES_TO_REPAIR::contains)
-                .map(tableName -> getRangesToRepair(namespace, tableName))
-                .forEach(repairTable);
-    }
-
     private Map<InetSocketAddress, Set<TokenRange>> getRangesToRepair(Namespace namespace, String tableName) {
         CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        CqlCluster cqlCluster = CqlCluster.create(config);
-        return cqlCluster.getTokenRanges(tableName);
+        return CqlCluster.create(config).getTokenRanges(tableName);
     }
 }
