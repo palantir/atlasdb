@@ -46,7 +46,7 @@ import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TimedConsensusForgettingStoreTest {
+public class InstrumentedConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(PtBytes.toBytes("roh"), PtBytes.toBytes("kaulem-won"));
     private static final Cell CELL_2 = Cell.create(PtBytes.toBytes("roh"), PtBytes.toBytes("kaulem-too"));
     private static final byte[] VALUE = PtBytes.toBytes("valyew");
@@ -98,28 +98,56 @@ public class TimedConsensusForgettingStoreTest {
     @Test
     public void tracksConcurrentCheckAndTouchOperations() throws BrokenBarrierException, InterruptedException {
         int iterations = 5;
-        CountDownLatch latch = new CountDownLatch(iterations);
-        CyclicBarrier barrier = new CyclicBarrier(2);
+        CountDownLatch latchEnsuringAllTasksAreConcurrent = new CountDownLatch(iterations);
+        CyclicBarrier barrierEnsuringOperationHasBegun = new CyclicBarrier(2);
 
         doAnswer(invocation -> {
-                    latch.countDown();
-                    barrier.await();
-                    latch.await();
+                    latchEnsuringAllTasksAreConcurrent.countDown();
+                    barrierEnsuringOperationHasBegun.await();
+                    latchEnsuringAllTasksAreConcurrent.await();
                     return null;
                 })
                 .when(delegate)
                 .checkAndTouch(any(), any());
 
         ExecutorService executorService = PTExecutors.newFixedThreadPool(iterations);
-        for (int iteration = 1; iteration <= iterations; iteration++) {
-            executorService.execute(() -> consensusForgettingStore.checkAndTouch(CELL, VALUE));
-            barrier.await();
-            if (iteration != iterations) {
-                // On the last iteration, they may have completed the task after clearing the barrier.
-                // This can be solved by introducing an additional barrier (and/or making the latch have iteration +
-                // 1 counts and counting down here), but seems unnecessarily complex.
-                assertThat(concurrentOperationTracker.get()).isEqualTo(iteration);
+        try {
+            for (int iteration = 1; iteration <= iterations; iteration++) {
+                executorService.execute(() -> consensusForgettingStore.checkAndTouch(CELL, VALUE));
+                barrierEnsuringOperationHasBegun.await();
+                if (iteration != iterations) {
+                    // On the last iteration, they may have completed the task after clearing the barrier.
+                    // This can be solved by introducing an additional barrier (and/or making the latch have iteration +
+                    // 1 counts and counting down here), but seems unnecessarily complex.
+                    assertThat(concurrentOperationTracker.get()).isEqualTo(iteration);
+                }
             }
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    @Test
+    public void batchedCheckAndTouchIsConsideredAnOngoingOperation() throws InterruptedException {
+        CountDownLatch latchEnsuringTaskStarted = new CountDownLatch(1);
+        CountDownLatch latchEnsuringTaskStillRunning = new CountDownLatch(1);
+        doAnswer(invocation -> {
+                    latchEnsuringTaskStarted.countDown();
+                    latchEnsuringTaskStillRunning.await();
+                    return null;
+                })
+                .when(delegate)
+                .checkAndTouch(any());
+
+        ExecutorService executorService = PTExecutors.newSingleThreadExecutor();
+        try {
+            executorService.execute(
+                    () -> consensusForgettingStore.checkAndTouch(ImmutableMap.of(CELL, VALUE, CELL_2, VALUE)));
+            latchEnsuringTaskStarted.await();
+            assertThat(concurrentOperationTracker.get()).isEqualTo(1);
+            latchEnsuringTaskStillRunning.countDown();
+        } finally {
+            executorService.shutdown();
         }
     }
 

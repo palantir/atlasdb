@@ -26,6 +26,22 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * In general, the purpose of this class at least in its current form is to evaluate the requirement (or lack
+ * thereof) of batching and/or auto-batching calls to the {@link com.palantir.atlasdb.keyvalue.api.KeyValueService}.
+ * In addition to tracking the time required to perform an individual {@link #checkAndTouch(Cell, byte[])} operation,
+ * we also track:
+ * <ul>
+ *     <li>
+ *         the number of concurrent check and touch operations; a high number suggests that auto-batching would be
+ *         useful, and
+ *     </li>
+ *     <li>
+ *         the size of batches that are passed through to an underlying implementation; a high number suggests that
+ *         batching (not necessarily auto-batching) would be useful.
+ *     </li>
+ * </ul>
+ */
 public class InstrumentedConsensusForgettingStore implements ConsensusForgettingStore {
     private final ConsensusForgettingStore delegate;
     private final ConsensusForgettingStoreMetrics metrics;
@@ -60,18 +76,13 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
 
     @Override
     public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
-        concurrentCheckAndTouchOperations.incrementAndGet();
-        try {
-            metrics.checkAndTouch().time(() -> delegate.checkAndTouch(cell, value));
-        } finally {
-            concurrentCheckAndTouchOperations.decrementAndGet();
-        }
+        runCheckAndTouchOperation(() -> delegate.checkAndTouch(cell, value));
     }
 
     @Override
     public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
         metrics.batchedCheckAndTouchSize().update(values.size());
-        delegate.checkAndTouch(values);
+        runCheckAndTouchOperation(() -> delegate.checkAndTouch(values));
     }
 
     @Override
@@ -92,5 +103,14 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     @Override
     public void put(Map<Cell, byte[]> values) {
         delegate.put(values);
+    }
+
+    private void runCheckAndTouchOperation(Runnable checkAndTouchOperation) {
+        concurrentCheckAndTouchOperations.incrementAndGet();
+        try {
+            metrics.checkAndTouch().time(checkAndTouchOperation);
+        } finally {
+            concurrentCheckAndTouchOperations.decrementAndGet();
+        }
     }
 }
