@@ -11,3 +11,6 @@ namespaces:
       checkAndTouch:
         type: timer
         docs: The time required for a checkAndTouch operation.
+      batchedCheckAndTouchSize:
+        type: histogram
+        docs: The number of cells involved in a batched call to checkAndTouch.

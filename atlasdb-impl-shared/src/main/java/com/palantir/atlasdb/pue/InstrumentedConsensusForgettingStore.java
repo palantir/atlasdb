@@ -26,13 +26,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TimedConsensusForgettingStore implements ConsensusForgettingStore {
+public class InstrumentedConsensusForgettingStore implements ConsensusForgettingStore {
     private final ConsensusForgettingStore delegate;
     private final ConsensusForgettingStoreMetrics metrics;
     private final AtomicInteger concurrentCheckAndTouchOperations;
 
     @VisibleForTesting
-    TimedConsensusForgettingStore(
+    InstrumentedConsensusForgettingStore(
             ConsensusForgettingStore delegate,
             ConsensusForgettingStoreMetrics metrics,
             AtomicInteger concurrentCheckAndTouchOperations) {
@@ -45,7 +45,7 @@ public class TimedConsensusForgettingStore implements ConsensusForgettingStore {
         ConsensusForgettingStoreMetrics metrics = ConsensusForgettingStoreMetrics.of(registry);
         AtomicInteger concurrentCheckAndTouchOperationTracker = new AtomicInteger(0);
         metrics.concurrentCheckAndTouches(concurrentCheckAndTouchOperationTracker::get);
-        return new TimedConsensusForgettingStore(delegate, metrics, concurrentCheckAndTouchOperationTracker);
+        return new InstrumentedConsensusForgettingStore(delegate, metrics, concurrentCheckAndTouchOperationTracker);
     }
 
     @Override
@@ -66,6 +66,12 @@ public class TimedConsensusForgettingStore implements ConsensusForgettingStore {
         } finally {
             concurrentCheckAndTouchOperations.decrementAndGet();
         }
+    }
+
+    @Override
+    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+        metrics.batchedCheckAndTouchSize().update(values.size());
+        values.forEach(this::checkAndTouch);
     }
 
     @Override

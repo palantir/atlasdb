@@ -25,11 +25,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Optional;
@@ -40,11 +42,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TimedConsensusForgettingStoreTest {
-    private static final Cell CELL = Cell.create(PtBytes.toBytes("roh"), PtBytes.toBytes("kaulem"));
+    private static final Cell CELL = Cell.create(PtBytes.toBytes("roh"), PtBytes.toBytes("kaulem-won"));
+    private static final Cell CELL_2 = Cell.create(PtBytes.toBytes("roh"), PtBytes.toBytes("kaulem-too"));
     private static final byte[] VALUE = PtBytes.toBytes("valyew");
 
     private final ConsensusForgettingStore delegate = mock(ConsensusForgettingStore.class);
@@ -52,7 +56,7 @@ public class TimedConsensusForgettingStoreTest {
     private final ConsensusForgettingStoreMetrics metrics = ConsensusForgettingStoreMetrics.of(registry);
     private final AtomicInteger concurrentOperationTracker = new AtomicInteger(0);
     private final ConsensusForgettingStore consensusForgettingStore =
-            new TimedConsensusForgettingStore(delegate, metrics, concurrentOperationTracker);
+            new InstrumentedConsensusForgettingStore(delegate, metrics, concurrentOperationTracker);
 
     @Before
     public void before() {
@@ -108,12 +112,12 @@ public class TimedConsensusForgettingStoreTest {
 
         ExecutorService executorService = PTExecutors.newFixedThreadPool(iterations);
         for (int iteration = 1; iteration <= iterations; iteration++) {
-            executorService.submit(() -> consensusForgettingStore.checkAndTouch(CELL, VALUE));
+            executorService.execute(() -> consensusForgettingStore.checkAndTouch(CELL, VALUE));
             barrier.await();
             if (iteration != iterations) {
                 // On the last iteration, they may have completed the task after clearing the barrier.
                 // This can be solved by introducing an additional barrier (and/or making the latch have iteration +
-                // 1 counts and countign down here), but seems unnecessarily complex.
+                // 1 counts and counting down here), but seems unnecessarily complex.
                 assertThat(concurrentOperationTracker.get()).isEqualTo(iteration);
             }
         }
@@ -127,5 +131,21 @@ public class TimedConsensusForgettingStoreTest {
         assertThatThrownBy(() -> consensusForgettingStore.checkAndTouch(CELL, VALUE))
                 .isEqualTo(failure);
         assertThat(concurrentOperationTracker.get()).isEqualTo(0);
+    }
+
+    @Test
+    public void sizeOfBatchesIsTracked() {
+        consensusForgettingStore.checkAndTouch(ImmutableMap.of(CELL, VALUE, CELL_2, VALUE));
+        assertThat(metrics.batchedCheckAndTouchSize().getCount()).isEqualTo(1);
+        assertThat(metrics.batchedCheckAndTouchSize().getSnapshot().getMax()).isEqualTo(2);
+
+        consensusForgettingStore.checkAndTouch(ImmutableMap.of(CELL, VALUE));
+        consensusForgettingStore.checkAndTouch(
+                KeyedStream.of(IntStream.range(0, 50).boxed())
+                        .mapKeys(index -> Cell.create(PtBytes.toBytes("ruh roh"), PtBytes.toBytes(index)))
+                        .map(_unused -> VALUE)
+                        .collectToMap());
+        assertThat(metrics.batchedCheckAndTouchSize().getCount()).isEqualTo(3);
+        assertThat(metrics.batchedCheckAndTouchSize().getSnapshot().getValues()).containsExactlyInAnyOrder(1, 2, 50);
     }
 }
