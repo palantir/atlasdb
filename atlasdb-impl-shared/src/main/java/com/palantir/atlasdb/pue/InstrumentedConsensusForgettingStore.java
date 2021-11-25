@@ -71,7 +71,7 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     @Override
     public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
         metrics.batchedCheckAndTouchSize().update(values.size());
-        values.forEach(this::checkAndTouch);
+        delegate.checkAndTouch(values);
     }
 
     @Override

@@ -20,11 +20,11 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.pue.ConsensusForgettingStore;
+import com.palantir.atlasdb.pue.InstrumentedConsensusForgettingStore;
 import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.pue.SimpleCommitTimestampPutUnlessExistsTable;
-import com.palantir.atlasdb.pue.InstrumentedConsensusForgettingStore;
 import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
@@ -72,8 +72,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             TableReference tableRef,
             TwoPhaseEncodingStrategy encodingStrategy,
             TaggedMetricRegistry metricRegistry) {
-        ConsensusForgettingStore store =
-                InstrumentedConsensusForgettingStore.create(new KvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
+        ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
+                new KvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
         PutUnlessExistsTable<Long, Long> pueTable =
                 new ResilientCommitTimestampPutUnlessExistsTable(store, encodingStrategy);
         return new SimpleTransactionService(pueTable, encodingStrategy);
