@@ -37,9 +37,12 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.concurrent.atomic.AtomicLong;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 public final class TimestampCorroboratingTimelockService implements NamespacedConjureTimelockService {
@@ -48,8 +51,12 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
 
     private final Runnable timestampViolationCallback;
     private final NamespacedConjureTimelockService delegate;
-    private final AtomicLong lowerBoundFromTimestamps = new AtomicLong(Long.MIN_VALUE);
-    private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
+    private final AtomicReference<TimestampBoundsRecord> lowerBoundFromFreshTimestamps =
+            new AtomicReference<>(getDefaultTimestampBoundsRecord(OperationType.FRESH_TIMESTAMP));
+    private final AtomicReference<TimestampBoundsRecord> lowerBoundFromCommitTimestamps =
+            new AtomicReference<>(getDefaultTimestampBoundsRecord(OperationType.COMMIT_TIMESTAMP));
+    private final AtomicReference<TimestampBoundsRecord> lowerBoundFromTransaction =
+            new AtomicReference<>(getDefaultTimestampBoundsRecord(OperationType.TRANSACTION));
 
     @VisibleForTesting
     TimestampCorroboratingTimelockService(
@@ -100,7 +107,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
                 () -> delegate.getCommitTimestamps(request),
                 GetCommitTimestampsResponse::getInclusiveLower,
                 GetCommitTimestampsResponse::getInclusiveUpper,
-                OperationType.TIMESTAMP);
+                OperationType.COMMIT_TIMESTAMP);
     }
 
     @Override
@@ -109,7 +116,7 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
                 () -> delegate.getFreshTimestamps(request),
                 ConjureGetFreshTimestampsResponse::getInclusiveLower,
                 ConjureGetFreshTimestampsResponse::getInclusiveUpper,
-                OperationType.TIMESTAMP);
+                OperationType.FRESH_TIMESTAMP);
     }
 
     @Override
@@ -127,63 +134,127 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
             ToLongFunction<T> lowerBoundExtractor,
             ToLongFunction<T> upperBoundExtractor,
             OperationType operationType) {
+        // take snapshot before making the request
+        Instant wallClockTimeBeforeRequest = Instant.now();
+
         TimestampBounds timestampBounds = getTimestampBounds();
+
         T timestampContainer = timestampContainerSupplier.get();
+
+        // take snapshot after making the request
+        Instant wallClockTimeAfterRequest = Instant.now();
 
         long lowerFreshTimestamp = lowerBoundExtractor.applyAsLong(timestampContainer);
         long upperFreshTimestamp = upperBoundExtractor.applyAsLong(timestampContainer);
-        checkTimestamp(timestampBounds, operationType, lowerFreshTimestamp, upperFreshTimestamp);
-        updateLowerBound(operationType, upperFreshTimestamp);
+
+        TimestampBoundsRecord currentTimestampsBoundsRecord = ImmutableTimestampBoundsRecord.builder()
+                .operationType(operationType)
+                .inclusiveLowerBoundFromLastRequest(lowerFreshTimestamp)
+                .inclusiveUpperBoundFromLastRequest(upperFreshTimestamp)
+                .wallClockTimeBeforeRequest(wallClockTimeBeforeRequest)
+                .wallClockTimeAfterResponse(wallClockTimeAfterRequest)
+                .build();
+
+        checkTimestamp(timestampBounds, currentTimestampsBoundsRecord, lowerFreshTimestamp);
+        updateLowerBound(currentTimestampsBoundsRecord);
+
         return timestampContainer;
     }
 
     @VisibleForTesting
     TimestampBounds getTimestampBounds() {
-        long threadLocalLowerBoundFromTimestamps = lowerBoundFromTimestamps.get();
-        long threadLocalLowerBoundFromTransactions = lowerBoundFromTransactions.get();
-        return ImmutableTimestampBounds.of(threadLocalLowerBoundFromTimestamps, threadLocalLowerBoundFromTransactions);
+        return ImmutableTimestampBounds.builder()
+                .boundFromFreshTimestamps(lowerBoundFromFreshTimestamps.get())
+                .boundFromCommitTimestamps(lowerBoundFromCommitTimestamps.get())
+                .boundFromTransactions(lowerBoundFromTransaction.get())
+                .build();
     }
 
     private void checkTimestamp(
-            TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
-        if (lowerFreshTimestamp <= Math.max(bounds.boundFromTimestamps(), bounds.boundFromTransactions())) {
+            TimestampBounds bounds, TimestampBoundsRecord currentBoundsRecord, long lowerFreshTimestamp) {
+        if (lowerFreshTimestamp <= bounds.getMaxLowerBound()) {
             timestampViolationCallback.run();
-            throw clocksWentBackwards(bounds, type, lowerFreshTimestamp, upperFreshTimestamp);
+            throw clocksWentBackwards(bounds, currentBoundsRecord);
         }
     }
 
     private static RuntimeException clocksWentBackwards(
-            TimestampBounds bounds, OperationType type, long lowerFreshTimestamp, long upperFreshTimestamp) {
+            TimestampBounds bounds, TimestampBoundsRecord currentBoundsRecord) {
         RuntimeException runtimeException = new SafeRuntimeException(CLOCKS_WENT_BACKWARDS_MESSAGE);
         log.error(
                 CLOCKS_WENT_BACKWARDS_MESSAGE + ": bounds were {}, operation {}, fresh timestamp of {}.",
-                SafeArg.of("bounds", bounds),
-                SafeArg.of("operationType", type),
-                SafeArg.of("lowerFreshTimestamp", lowerFreshTimestamp),
-                SafeArg.of("upperFreshTimestamp", upperFreshTimestamp),
+                SafeArg.of("persistedBounds", bounds),
+                SafeArg.of("boundsRecordForCurrentRequest", currentBoundsRecord),
                 runtimeException);
         throw runtimeException;
     }
 
-    private void updateLowerBound(OperationType type, long freshTimestamp) {
-        if (type == OperationType.TIMESTAMP) {
-            lowerBoundFromTimestamps.accumulateAndGet(freshTimestamp, Math::max);
-        } else {
-            lowerBoundFromTransactions.accumulateAndGet(freshTimestamp, Math::max);
+    private void updateLowerBound(TimestampBoundsRecord boundsRecord) {
+        switch (boundsRecord.operationType()) {
+            case FRESH_TIMESTAMP:
+                lowerBoundFromFreshTimestamps.accumulateAndGet(boundsRecord, this::maxBoundsRecord);
+                return;
+            case COMMIT_TIMESTAMP:
+                lowerBoundFromCommitTimestamps.accumulateAndGet(boundsRecord, this::maxBoundsRecord);
+                return;
+            case TRANSACTION:
+                lowerBoundFromTransaction.accumulateAndGet(boundsRecord, this::maxBoundsRecord);
+                return;
         }
+    }
+
+    private TimestampBoundsRecord maxBoundsRecord(TimestampBoundsRecord prev, TimestampBoundsRecord newRecord) {
+        return prev.lowerBoundForNextRequest() > newRecord.lowerBoundForNextRequest() ? prev : newRecord;
     }
 
     @Value.Immutable
     interface TimestampBounds {
         @Value.Parameter
-        long boundFromTimestamps();
+        TimestampBoundsRecord boundFromFreshTimestamps();
 
         @Value.Parameter
-        long boundFromTransactions();
+        TimestampBoundsRecord boundFromCommitTimestamps();
+
+        @Value.Parameter
+        TimestampBoundsRecord boundFromTransactions();
+
+        default long getMaxLowerBound() {
+            return Stream.of(boundFromTransactions(), boundFromCommitTimestamps(), boundFromFreshTimestamps())
+                    .map(TimestampBoundsRecord::lowerBoundForNextRequest)
+                    .reduce(Math::max)
+                    .orElse(Long.MIN_VALUE);
+        }
     }
 
-    private enum OperationType {
-        TIMESTAMP,
+    @Value.Immutable
+    interface TimestampBoundsRecord {
+        Optional<Long> inclusiveLowerBoundFromLastRequest();
+
+        long inclusiveUpperBoundFromLastRequest();
+
+        OperationType operationType();
+
+        Optional<Instant> wallClockTimeBeforeRequest();
+
+        Instant wallClockTimeAfterResponse();
+
+        @Value.Derived
+        default long lowerBoundForNextRequest() {
+            return inclusiveUpperBoundFromLastRequest();
+        }
+    }
+
+    private static TimestampBoundsRecord getDefaultTimestampBoundsRecord(OperationType operationType) {
+        return ImmutableTimestampBoundsRecord.builder()
+                .operationType(operationType)
+                .inclusiveUpperBoundFromLastRequest(Long.MIN_VALUE)
+                .wallClockTimeAfterResponse(Instant.now())
+                .build();
+    }
+
+    enum OperationType {
+        FRESH_TIMESTAMP,
+        COMMIT_TIMESTAMP,
         TRANSACTION;
     }
 }
