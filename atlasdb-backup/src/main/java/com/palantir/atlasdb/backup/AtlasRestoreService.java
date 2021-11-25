@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import com.datastax.driver.core.TokenRange;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.cassandra.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -39,7 +40,8 @@ public class AtlasRestoreService {
     private final BackupPersister backupPersister;
     private final CassandraRepairHelper cassandraRepairHelper;
 
-    public AtlasRestoreService(BackupPersister backupPersister, CassandraRepairHelper cassandraRepairHelper) {
+    @VisibleForTesting
+    AtlasRestoreService(BackupPersister backupPersister, CassandraRepairHelper cassandraRepairHelper) {
         this.backupPersister = backupPersister;
         this.cassandraRepairHelper = cassandraRepairHelper;
     }
