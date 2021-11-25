@@ -27,6 +27,7 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
@@ -56,22 +57,30 @@ public final class CqlCluster {
     private final Cluster cluster;
     private final CassandraKeyValueServiceConfig config;
 
-    private CqlCluster(Cluster cluster, CassandraKeyValueServiceConfig config) {
+    @VisibleForTesting
+    CqlCluster(Cluster cluster, CassandraKeyValueServiceConfig config) {
         this.cluster = cluster;
         this.config = config;
     }
 
     public static CqlCluster create(CassandraKeyValueServiceConfig config) {
         // TODO(gs): error handling/retry
+        Cluster cluster = createCluster(config);
+        return new CqlCluster(cluster, config);
+    }
+
+    @VisibleForTesting
+    static Cluster createCluster(CassandraKeyValueServiceConfig config) {
         Set<InetSocketAddress> hosts = getHosts(config);
         InetSocketAddress firstHost = hosts.stream().findAny().orElseThrow();
         Cluster cluster = new ClusterFactory(
                         () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(firstHost)))
                 .constructCluster(hosts, config);
-        return new CqlCluster(cluster, config);
+        return cluster;
     }
 
-    private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
+    @VisibleForTesting
+    static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
         return config.servers().accept(new Visitor<>() {
             @Override
             public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
@@ -91,8 +100,7 @@ public final class CqlCluster {
             Metadata metadata = session.getCluster().getMetadata();
             String keyspaceName = config.getKeyspaceOrThrow();
             KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
-            TableMetadata tableMetadata = keyspace.getTable(tableName);
-            Set<Token> partitionTokens = getPartitionTokens(session, tableMetadata);
+            Set<Token> partitionTokens = getPartitionTokens(session, keyspace.getTable(tableName));
             Map<InetSocketAddress, Set<TokenRange>> tokenRangesByNode =
                     ClusterMetadataUtils.getTokenMapping(getHosts(config), metadata, keyspaceName, partitionTokens);
 
