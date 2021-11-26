@@ -25,8 +25,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class MemorySerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
     public static final TestResourceManager TRM = TestResourceManager.inMemory();
