@@ -25,7 +25,6 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Supplier;
 import org.junit.Test;
 
 public class CassandraImitatingConsensusForgettingStoreTest {
@@ -115,15 +114,5 @@ public class CassandraImitatingConsensusForgettingStoreTest {
         assertThat(numberOfSuccessfulPue).isBetween(30, 70);
         assertThat(numberOfNothingPresent).isBetween(5, 35);
         assertThat(numberOfValuePresentAfterFailure).isBetween(15, 50);
-    }
-
-    public <T> T tryManyTimes(Supplier<T> supplier) {
-        while (true) {
-            try {
-                return supplier.get();
-            } catch (RuntimeException e) {
-                // we will retry
-            }
-        }
     }
 }
