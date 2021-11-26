@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.cache;
 
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
 import javax.annotation.Nonnull;
-import okio.ByteString;
 
 public final class LongEntryMapper implements EntryMapper<Long, Long> {
     @Override
@@ -50,7 +50,7 @@ public final class LongEntryMapper implements EntryMapper<Long, Long> {
     }
 
     private static ByteString toByteString(@Nonnull Long value) {
-        return ByteString.of(ValueType.VAR_LONG.convertFromJava(value));
+        return ByteString.copyFrom(ValueType.VAR_LONG.convertFromJava(value));
     }
 
     private static Long toLong(ByteString value) {

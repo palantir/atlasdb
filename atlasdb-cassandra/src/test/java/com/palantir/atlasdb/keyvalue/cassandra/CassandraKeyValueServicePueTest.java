@@ -21,10 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.util.Map;
 import java.util.stream.Collectors;
-import okio.ByteString;
 import org.junit.Test;
 
 public class CassandraKeyValueServicePueTest {
@@ -71,21 +71,21 @@ public class CassandraKeyValueServicePueTest {
 
         assertThat(getTransformedMapFor(result, 0))
                 .containsExactly(
-                        Maps.immutableEntry(Cell.create(getBytes(0), getBytes(0)), ByteString.of(getBytes(0))),
-                        Maps.immutableEntry(Cell.create(getBytes(0), getBytes(2)), ByteString.of(getBytes(2))));
+                        Maps.immutableEntry(Cell.create(getBytes(0), getBytes(0)), ByteString.copyFrom(getBytes(0))),
+                        Maps.immutableEntry(Cell.create(getBytes(0), getBytes(2)), ByteString.copyFrom(getBytes(2))));
 
         assertThat(getTransformedMapFor(result, 1))
                 .containsExactly(
-                        Maps.immutableEntry(Cell.create(getBytes(1), getBytes(1)), ByteString.of(getBytes(1))),
-                        Maps.immutableEntry(Cell.create(getBytes(1), getBytes(3)), ByteString.of(getBytes(3))));
+                        Maps.immutableEntry(Cell.create(getBytes(1), getBytes(1)), ByteString.copyFrom(getBytes(1))),
+                        Maps.immutableEntry(Cell.create(getBytes(1), getBytes(3)), ByteString.copyFrom(getBytes(3))));
 
         assertThat(getTransformedMapFor(result, 2))
                 .containsExactly(
-                        Maps.immutableEntry(Cell.create(getBytes(2), getBytes(2)), ByteString.of(getBytes(1))));
+                        Maps.immutableEntry(Cell.create(getBytes(2), getBytes(2)), ByteString.copyFrom(getBytes(1))));
     }
 
     private Map<Cell, ByteString> getTransformedMapFor(Map<ByteString, Map<Cell, byte[]>> result, int row) {
-        return Maps.transformValues(result.get(ByteString.of(getBytes(row))), ByteString::of);
+        return Maps.transformValues(result.get(ByteString.copyFrom(getBytes(row))), ByteString::copyFrom);
     }
 
     private static byte[] getBytes(int num) {
