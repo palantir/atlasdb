@@ -57,12 +57,13 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
     private static final int NUM_NODES = 5;
     private static final int QUORUM = NUM_NODES / 2 + 1;
 
-    private final double probabilityOfFailure;
     private final ThreadLocalRandom random = ThreadLocalRandom.current();
     private final AtomicLong timestamps = new AtomicLong(0);
     private final List<Node> nodes =
             IntStream.range(0, NUM_NODES).mapToObj(_ignore -> new Node()).collect(Collectors.toList());
     private final Map<Cell, ReentrantReadWriteLock> locks = new ConcurrentHashMap<>();
+
+    private volatile double probabilityOfFailure;
 
     public CassandraImitatingConsensusForgettingStore(double probabilityOfFailure) {
         this.probabilityOfFailure = probabilityOfFailure;
@@ -165,6 +166,10 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         // sort by cells to avoid deadlock
         KeyedStream.ofEntries(values.entrySet().stream().sorted(Comparator.comparing(Map.Entry::getKey)))
                 .forEach(this::put);
+    }
+
+    public void setProbabilityOfFailure(double newProbability) {
+        probabilityOfFailure = newProbability;
     }
 
     public Optional<BytesAndTimestamp> getInternal(Cell cell, Set<Node> quorumNodes) {
