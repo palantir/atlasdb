@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
 
 public interface EncodingTransactionService extends TransactionService {
-    TimestampEncodingStrategy getEncodingStrategy();
+    CellEncodingStrategy getCellEncodingStrategy();
 }

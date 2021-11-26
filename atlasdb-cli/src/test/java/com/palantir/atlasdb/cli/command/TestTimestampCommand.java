@@ -237,7 +237,7 @@ public class TestTimestampCommand {
 
     private void runAndVerifyCli(Verifier verifier) throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(cliArgs.toArray(new String[0]))) {
-            TestAtlasDbServices services = runner.connect(moduleFactory);
+            TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             LockService lockService = services.getLockService();
             TimestampService tss = services.getManagedTimestampService();
             LockClient client = services.getTestLockClient();

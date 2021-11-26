@@ -510,7 +510,7 @@ public final class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.NOT_SUPPORTED;
+        return CheckAndSetCompatibility.unsupported();
     }
 
     @Override
