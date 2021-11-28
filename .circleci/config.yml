@@ -116,7 +116,7 @@ jobs:
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
+            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ -z $CIRCLE_TAG ]; then
               ./scripts/circle-ci/publish-github-page.sh
               # Internal publishing from an external CircleCI is... not a thing.
               # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
