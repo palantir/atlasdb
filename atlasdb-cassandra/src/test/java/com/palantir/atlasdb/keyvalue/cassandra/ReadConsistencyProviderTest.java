@@ -17,9 +17,16 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.concurrent.PTExecutors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.junit.Test;
 
@@ -62,10 +69,30 @@ public class ReadConsistencyProviderTest {
     }
 
     @Test
+    public void loweringConsistencyIsIdempotent() {
+        provider.lowerConsistencyLevelToOne();
+        assertThatCode(provider::lowerConsistencyLevelToOne).doesNotThrowAnyException();
+        assertThat(provider.getConsistency(TABLE_1)).isEqualTo(ConsistencyLevel.ONE);
+    }
+
+    @Test
     public void separateProvidersHaveSeparateLifecycles() {
         ReadConsistencyProvider anotherProvider = new ReadConsistencyProvider();
         anotherProvider.lowerConsistencyLevelToOne();
         assertThat(anotherProvider.getConsistency(TABLE_1)).isEqualTo(ConsistencyLevel.ONE);
         assertThat(provider.getConsistency(TABLE_1)).isEqualTo(ConsistencyLevel.LOCAL_QUORUM);
+    }
+
+    @Test
+    public void concurrentUpdatePermitted() throws InterruptedException {
+        ExecutorService executorService = PTExecutors.newCachedThreadPool();
+        List<Future<?>> consistencyLevelLoweringFutures = new ArrayList<>();
+        for (int index = 0; index < 100; index++) {
+            consistencyLevelLoweringFutures.add(executorService.submit(provider::lowerConsistencyLevelToOne));
+        }
+        executorService.shutdown();
+        boolean successfulShutdown = executorService.awaitTermination(5, TimeUnit.SECONDS);
+        assertThat(successfulShutdown).isTrue();
+        consistencyLevelLoweringFutures.forEach(future -> assertThat(future.isDone()).isTrue());
     }
 }
