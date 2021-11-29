@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: AtlasDB now reads the coordination service's tables at ReadConsistency.LOCAL_SERIAL.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5794
