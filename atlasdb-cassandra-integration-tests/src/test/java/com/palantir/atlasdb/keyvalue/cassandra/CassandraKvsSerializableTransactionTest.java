@@ -29,7 +29,6 @@ import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest
 import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
-import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.UnaryOperator;

@@ -42,8 +42,8 @@ public final class TransactionSchemaVersionEnforcement {
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(targetSchemaVersion);
             advanceTimestamp(timestampService, timestampManagementService);
 
-            int currentSchemaVersion = transactionSchemaManager.getTransactionsSchemaVersion(
-                    timestampService.getFreshTimestamp());
+            int currentSchemaVersion =
+                    transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp());
             if (currentSchemaVersion == targetSchemaVersion) {
                 log.info(
                         "Enforced schema version to the target.",
@@ -56,8 +56,8 @@ public final class TransactionSchemaVersionEnforcement {
                 SafeArg.of("numAttempts", MAX_ATTEMPTS));
     }
 
-    private static void advanceTimestamp(TimestampService timestampService,
-            TimestampManagementService timestampManagementService) {
+    private static void advanceTimestamp(
+            TimestampService timestampService, TimestampManagementService timestampManagementService) {
         timestampManagementService.fastForwardTimestamp(timestampService.getFreshTimestamp() + ONE_BILLION);
     }
 }

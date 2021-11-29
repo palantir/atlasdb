@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
-import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Before;
