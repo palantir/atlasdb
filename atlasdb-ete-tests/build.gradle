@@ -40,6 +40,7 @@ dependencies {
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-commons')
     implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-tests-shared')
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
