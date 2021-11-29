@@ -93,6 +93,7 @@ public class ReadConsistencyProviderTest {
         executorService.shutdown();
         boolean successfulShutdown = executorService.awaitTermination(5, TimeUnit.SECONDS);
         assertThat(successfulShutdown).isTrue();
-        consistencyLevelLoweringFutures.forEach(future -> assertThat(future.isDone()).isTrue());
+        consistencyLevelLoweringFutures.forEach(
+                future -> assertThat(future.isDone()).isTrue());
     }
 }
