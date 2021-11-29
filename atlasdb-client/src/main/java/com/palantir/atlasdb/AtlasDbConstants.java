@@ -140,9 +140,11 @@ public final class AtlasDbConstants {
      * is to ensure that decisions are made the set of {@link #ATOMIC_TABLES}.
      */
     public static final ImmutableSet<TableReference> NON_SERIAL_CONSISTENCY_ATOMIC_TABLES = ImmutableSet.of(
-            NAMESPACE_TABLE, // Used for KvTableMappingService, only by Oracle
             TransactionConstants.TRANSACTION_TABLE, // Bankruptcy
-            TransactionConstants.TRANSACTIONS2_TABLE); // Bankruptcy for Transactions2, handled for Transactions3
+            TransactionConstants.TRANSACTIONS2_TABLE, // Bankruptcy for Transactions2, handled for Transactions3
+            NAMESPACE_TABLE, // Used for KvTableMappingService, only by Oracle
+            PERSISTED_LOCKS_TABLE // Maintained for legacy purposes
+    );
 
     public static final ImmutableSet<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED =
             ImmutableSet.of(TableReference.createWithEmptyNamespace("resync_object"));
