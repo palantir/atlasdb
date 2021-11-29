@@ -694,7 +694,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =
                                 wrappingQueryRunner.multiget_multislice(
-                                        "getRows", client, tableRef, query,
+                                        "getRows",
+                                        client,
+                                        tableRef,
+                                        query,
                                         readConsistencyProvider.getConsistency(tableRef));
 
                         return Maps.transformValues(results, lists -> Lists.newArrayList(Iterables.concat(lists)));
@@ -741,7 +744,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, startTs);
-        cellLoader.loadWithTs("getRows", tableRef, cells, startTs, false, collector,
+        cellLoader.loadWithTs(
+                "getRows",
+                tableRef,
+                cells,
+                startTs,
+                false,
+                collector,
                 readConsistencyProvider.getConsistency(tableRef));
         return collector.getCollectedResults();
     }
@@ -780,7 +789,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, ts);
                 try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
-                    cellLoader.loadWithTs("get", tableRef, cellsByTs.get(ts), ts, false, collector,
+                    cellLoader.loadWithTs(
+                            "get",
+                            tableRef,
+                            cellsByTs.get(ts),
+                            ts,
+                            false,
+                            collector,
                             readConsistencyProvider.getConsistency(tableRef));
                 }
                 builder.putAll(collector.getCollectedResults());
@@ -796,7 +811,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, maxTimestampExclusive);
         try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
             cellLoader.loadWithTs(
-                    kvsMethodName, tableRef, cells, maxTimestampExclusive, false, collector,
+                    kvsMethodName,
+                    tableRef,
+                    cells,
+                    maxTimestampExclusive,
+                    false,
+                    collector,
                     readConsistencyProvider.getConsistency(tableRef));
         }
         return collector.getCollectedResults();
@@ -932,7 +952,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             SlicePredicate pred = SlicePredicates.create(range, limit);
 
                             Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
-                                    "getRowsColumnRange", client, tableRef, wrap(rows), pred,
+                                    "getRowsColumnRange",
+                                    client,
+                                    tableRef,
+                                    wrap(rows),
+                                    pred,
                                     readConsistencyProvider.getConsistency(tableRef));
 
                             RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);

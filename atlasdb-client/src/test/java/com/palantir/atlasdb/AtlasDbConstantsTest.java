@@ -25,8 +25,8 @@ public class AtlasDbConstantsTest {
     @Test
     public void allAtomicTablesHaveExplicitReadConsistencyDecision() {
         assertThat(Sets.union(
-                AtlasDbConstants.NON_SERIAL_CONSISTENCY_ATOMIC_TABLES,
-                AtlasDbConstants.SERIAL_CONSISTENCY_ATOMIC_TABLES))
+                        AtlasDbConstants.NON_SERIAL_CONSISTENCY_ATOMIC_TABLES,
+                        AtlasDbConstants.SERIAL_CONSISTENCY_ATOMIC_TABLES))
                 .isEqualTo(AtlasDbConstants.ATOMIC_TABLES);
     }
 }

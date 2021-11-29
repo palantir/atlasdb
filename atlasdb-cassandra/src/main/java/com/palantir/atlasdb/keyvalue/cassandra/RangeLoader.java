@@ -50,8 +50,7 @@ public class RangeLoader {
     }
 
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long ts) {
-        return getRangeWithPageCreator(
-                tableRef, rangeRequest, ts, () -> ValueExtractor.create(metricsManager));
+        return getRangeWithPageCreator(tableRef, rangeRequest, ts, () -> ValueExtractor.create(metricsManager));
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
@@ -68,8 +67,8 @@ public class RangeLoader {
             // each column. note that if no columns are specified, it's a special case that means all columns
             predicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.NO_LIMIT);
         }
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, readConsistencyProvider.getConsistency(tableRef),
-                tableRef);
+        RowGetter rowGetter =
+                new RowGetter(clientPool, queryRunner, readConsistencyProvider.getConsistency(tableRef), tableRef);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);

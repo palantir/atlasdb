@@ -132,8 +132,8 @@ public final class AtlasDbConstants {
      * critical. See ResilientCommitTimestampPutUnlessExistsTable for an example of how to work around such
      * limitations for the {@link TransactionConstants#TRANSACTIONS2_TABLE}.
      */
-    public static final ImmutableSet<TableReference> SERIAL_CONSISTENCY_ATOMIC_TABLES = ImmutableSet.of(
-            COORDINATION_TABLE);
+    public static final ImmutableSet<TableReference> SERIAL_CONSISTENCY_ATOMIC_TABLES =
+            ImmutableSet.of(COORDINATION_TABLE);
 
     /**
      * These tables are atomic tables, but are not intended to be read in a high-cost mode. The intention of this set
@@ -144,7 +144,7 @@ public final class AtlasDbConstants {
             TransactionConstants.TRANSACTIONS2_TABLE, // Bankruptcy for Transactions2, handled for Transactions3
             NAMESPACE_TABLE, // Used for KvTableMappingService, only by Oracle
             PERSISTED_LOCKS_TABLE // Maintained for legacy purposes
-    );
+            );
 
     public static final ImmutableSet<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED =
             ImmutableSet.of(TableReference.createWithEmptyNamespace("resync_object"));

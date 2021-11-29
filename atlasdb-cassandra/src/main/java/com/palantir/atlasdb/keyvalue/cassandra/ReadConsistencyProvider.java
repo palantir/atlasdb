@@ -34,8 +34,7 @@ public final class ReadConsistencyProvider {
 
     private static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
 
-    private final AtomicReference<ConsistencyLevel> defaultReadConsistency =
-            new AtomicReference<>(DEFAULT_CONSISTENCY);
+    private final AtomicReference<ConsistencyLevel> defaultReadConsistency = new AtomicReference<>(DEFAULT_CONSISTENCY);
 
     public ConsistencyLevel getConsistency(TableReference tableReference) {
         if (AtlasDbConstants.SERIAL_CONSISTENCY_ATOMIC_TABLES.contains(tableReference)) {
@@ -48,7 +47,8 @@ public final class ReadConsistencyProvider {
         while (defaultReadConsistency.get() != ConsistencyLevel.ONE) {
             boolean update = defaultReadConsistency.compareAndSet(DEFAULT_CONSISTENCY, ConsistencyLevel.ONE);
             if (update) {
-                log.info("Lowering read consistency level to ONE.",
+                log.info(
+                        "Lowering read consistency level to ONE.",
                         SafeArg.of("originalReadConsistency", DEFAULT_CONSISTENCY),
                         new SafeRuntimeException("I exist to show you the stack trace."));
             }
