@@ -2552,7 +2552,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         throw new TransactionCommitFailedException(msg, ex);
     }
 
-    private boolean wasCommitSuccessful(long commitTs) throws Exception {
+    private boolean wasCommitSuccessful(long commitTs) {
         Map<Long, Long> commitTimestamps =
                 getCommitTimestampsSync(null, Collections.singleton(getStartTimestamp()), false);
         long storedCommit = commitTimestamps.get(getStartTimestamp());
