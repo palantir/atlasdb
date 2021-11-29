@@ -112,7 +112,6 @@ allprojects {
                 'LogSafePreconditionsMessageFormat',
                 'MixedMutabilityReturnType',
                 'MockitoInternalUsage',
-                'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
                 'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
