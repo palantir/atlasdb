@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -25,6 +23,8 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TransactionSchemaVersionEnforcementTest {
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
@@ -36,16 +36,16 @@ public class TransactionSchemaVersionEnforcementTest {
     public void canEnforceSchemaVersions() {
         long oldTimestamp = managedTimestampService.getFreshTimestamp();
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                schemaManager, managedTimestampService, 2);
+                schemaManager, managedTimestampService, managedTimestampService, 2);
         assertThat(schemaManager.getTransactionsSchemaVersion(oldTimestamp)).isEqualTo(1);
         assertThat(schemaManager.getTransactionsSchemaVersion(managedTimestampService.getFreshTimestamp()))
                 .isEqualTo(2);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                schemaManager, managedTimestampService, 3);
+                schemaManager, managedTimestampService, managedTimestampService, 3);
         assertThat(schemaManager.getTransactionsSchemaVersion(managedTimestampService.getFreshTimestamp()))
                 .isEqualTo(3);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                schemaManager, managedTimestampService, 2);
+                schemaManager, managedTimestampService, managedTimestampService, 2);
         assertThat(schemaManager.getTransactionsSchemaVersion(managedTimestampService.getFreshTimestamp()))
                 .isEqualTo(2);
     }

@@ -55,7 +55,6 @@ import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
@@ -133,7 +132,10 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 .targetTransactionsSchemaVersion()
                 .get();
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                manager, (ManagedTimestampService) transactionManager.getTimestampService(), targetSchemaVersion);
+                manager,
+                transactionManager.getTimestampService(),
+                transactionManager.getTimestampManagementService(),
+                targetSchemaVersion);
     }
 
     private TransactionManager tryToCreateTransactionManager(

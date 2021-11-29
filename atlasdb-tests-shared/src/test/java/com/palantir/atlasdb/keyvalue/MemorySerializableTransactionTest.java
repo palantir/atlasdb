@@ -56,6 +56,6 @@ public class MemorySerializableTransactionTest extends AbstractSerializableTrans
     public void before() {
         keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                transactionSchemaManager, (ManagedTimestampService) timestampService, transactionsSchemaVersion);
+                transactionSchemaManager, timestampService, timestampManagementService, transactionsSchemaVersion);
     }
 }
