@@ -5,6 +5,7 @@ apply plugin: 'com.palantir.metric-schema'
 libsDirName = file('build/artifacts')
 
 license {
+  exclude '**/ConsensusForgettingStoreMetrics.java'
   exclude '**/TargetedSweepProgressMetrics.java'
   exclude '**/TimestampCorrectnessMetrics.java'
 }

@@ -22,7 +22,6 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -39,6 +38,7 @@ import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.util.RateLimitedLogger;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,6 +54,7 @@ import org.immutables.value.Value;
  */
 public class PaxosLeaderElectionService implements LeaderElectionService {
     private static final SafeLogger log = SafeLoggerFactory.get(PaxosLeaderElectionService.class);
+    private static final RateLimitedLogger leaderEligibilityLogger = new RateLimitedLogger(log, 1);
 
     // stored here to be consistent when proposing to take over leadership
     private static final byte[] LEADERSHIP_PROPOSAL_VALUE = null;
@@ -73,7 +74,6 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
     private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
-    private final RateLimiter leaderEligibilityLoggingRateLimiter = RateLimiter.create(1);
 
     private final Cache<UUID, HostAndPort> leaderAddressCache;
 
@@ -130,9 +130,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState) throws InterruptedException {
         if (!leaderEligible.get()) {
-            if (leaderEligibilityLoggingRateLimiter.tryAcquire()) {
-                log.debug("Not eligible for leadership");
-            }
+            leaderEligibilityLogger.log(logger -> logger.debug("Not eligible for leadership"));
             throw new InterruptedException("leader no longer eligible");
         }
 

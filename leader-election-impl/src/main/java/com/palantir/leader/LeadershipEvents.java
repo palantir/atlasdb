@@ -29,9 +29,9 @@ import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 class LeadershipEvents {
-
     private static final String LEADER_LOG_NAME = "leadership";
 
+    // TODO(gs): replace with RateLimitedLogger
     @SuppressWarnings("PreferSafeLogger") // Some refactoring required
     private static final Logger leaderLog = LoggerFactory.getLogger(LEADER_LOG_NAME);
 

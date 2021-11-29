@@ -333,8 +333,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         List<List<Cell>> sweptCells = new ArrayList<>();
 
         doAnswer(invocationOnMock -> {
-                    Object[] arguments = invocationOnMock.getArguments();
-                    Collection<Cell> sentinelsToAdd = (Collection<Cell>) arguments[2];
+                    Collection<Cell> sentinelsToAdd = invocationOnMock.getArgument(2);
                     sweptCells.add(new ArrayList<>(sentinelsToAdd));
                     return null;
                 })

@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.math.DoubleMath;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntSupplier;
@@ -39,12 +41,18 @@ class SweepDelay {
     static final int BATCH_CELLS_LOW_THRESHOLD = 100;
     static final long MIN_PAUSE_MILLIS = 1;
     static final long DEFAULT_MAX_PAUSE_MILLIS = Duration.ofSeconds(15).toMillis();
-    static final long BACKOFF = Duration.ofMinutes(2).toMillis();
+    static final long MIN_BACKOFF = Duration.ofMinutes(2).toMillis();
+    static final long MAX_BACKOFF = Duration.ofMinutes(30).toMillis();
+
+    static final int ITERATIONS_TO_REACH_MAX_BACKOFF = 10;
+    static final double EXPONENTIAL_BACKOFF_MULTIPLIER =
+            Math.exp(Math.log((double) MAX_BACKOFF / MIN_BACKOFF) / ITERATIONS_TO_REACH_MAX_BACKOFF);
 
     private final long initialPause;
     private final long maxPauseMillis;
     private final LongConsumer sweepDelayMetricsUpdater;
     private final AtomicLong currentPause;
+    private final AtomicLong insufficientConsistencyPause = new AtomicLong(MIN_BACKOFF);
     private final IntSupplier readBatchThreshold;
 
     SweepDelay(long configPause, LongConsumer sweepDelayMetricsUpdater, IntSupplier readBatchThreshold) {
@@ -67,16 +75,26 @@ class SweepDelay {
         return SweepIterationResults.caseOf(result)
                 .success(this::updateCurrentPauseAndGet)
                 .unableToAcquireShard_(maxPauseMillis)
-                .insufficientConsistency_(BACKOFF)
+                .insufficientConsistency_(getInsufficientConsistencyPauseAndCalculateNext())
                 .otherError_(maxPauseMillis)
-                .disabled_(BACKOFF);
+                .disabled_(MIN_BACKOFF);
     }
 
     private long updateCurrentPauseAndGet(long numSwept) {
+        resetInsufficientConsistencyBackoff();
         long target = pauseTarget(numSwept);
         long newPause = currentPause.updateAndGet(oldPause -> (4 * oldPause + target) / 5);
         sweepDelayMetricsUpdater.accept(newPause);
         return newPause;
+    }
+
+    private void resetInsufficientConsistencyBackoff() {
+        insufficientConsistencyPause.set(MIN_BACKOFF);
+    }
+
+    private long getInsufficientConsistencyPauseAndCalculateNext() {
+        return insufficientConsistencyPause.getAndUpdate(old ->
+                Math.min(DoubleMath.roundToLong(old * EXPONENTIAL_BACKOFF_MULTIPLIER, RoundingMode.UP), MAX_BACKOFF));
     }
 
     private long pauseTarget(long numSwept) {

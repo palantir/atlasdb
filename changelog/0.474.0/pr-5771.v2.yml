@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |
+    The AtlasBackupService will now persist backup metadata in the same way as in the internal backup product.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5771

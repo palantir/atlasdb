@@ -23,6 +23,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import com.palantir.util.RateLimitedLogger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import javax.sql.DataSource;
 
 public final class PersistedRateLimitingLeadershipPrioritiser implements GreenNodeLeadershipPrioritiser {
     private static final SafeLogger log = SafeLoggerFactory.get(PersistedRateLimitingLeadershipPrioritiser.class);
+    private static final RateLimitedLogger logger = new RateLimitedLogger(log, 1.0 / 60);
 
     private final Optional<OrderableSlsVersion> timeLockVersion;
     private final Supplier<Duration> leadershipAttemptBackoff;
@@ -91,11 +93,11 @@ public final class PersistedRateLimitingLeadershipPrioritiser implements GreenNo
                     SafeArg.of("version", currentVersion),
                     SafeArg.of("durationSinceLastAttempt", durationSinceLatestAttempt));
         } else {
-            log.info(
+            logger.log(lg -> lg.info(
                     "Not attempting to become the leader on this version again,"
                             + " as not enough time has passed since the last attempt",
                     SafeArg.of("version", currentVersion),
-                    SafeArg.of("durationSinceLastAttempt", durationSinceLatestAttempt));
+                    SafeArg.of("durationSinceLastAttempt", durationSinceLatestAttempt)));
         }
 
         return shouldBecomeLeader;

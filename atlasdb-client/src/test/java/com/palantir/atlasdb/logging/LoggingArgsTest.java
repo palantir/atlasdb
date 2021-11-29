@@ -88,23 +88,23 @@ public class LoggingArgsTest {
     @BeforeClass
     public static void setUpMocks() {
         when(arbitrator.isTableReferenceSafe(any())).thenAnswer(invocation -> {
-            TableReference tableReference = (TableReference) invocation.getArguments()[0];
+            TableReference tableReference = invocation.getArgument(0);
             return tableReference.getQualifiedName().contains("safe");
         });
 
         // Technically this may be inconsistent with the above, but this will do for our testing purposes
         when(arbitrator.isInternalTableReferenceSafe(any())).thenAnswer(invocation -> {
-            String internalTableReference = (String) invocation.getArguments()[0];
+            String internalTableReference = invocation.getArgument(0);
             return internalTableReference.contains("safe");
         });
 
         when(arbitrator.isRowComponentNameSafe(any(), any(String.class))).thenAnswer(invocation -> {
-            String rowName = (String) invocation.getArguments()[1];
+            String rowName = invocation.getArgument(1);
             return rowName.contains("safe");
         });
 
         when(arbitrator.isColumnNameSafe(any(), any(String.class))).thenAnswer(invocation -> {
-            String columnName = (String) invocation.getArguments()[1];
+            String columnName = invocation.getArgument(1);
             return columnName.contains("safe");
         });
 

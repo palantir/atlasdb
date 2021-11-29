@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,22 +38,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class StreamStoreRemappingSweepPriorityCalculatorTest {
+    private static final ZonedDateTime NOW = ZonedDateTime.now(ZoneId.of("Europe/London"));
     private static final long THIRTY_MINUTES_AGO =
-            ZonedDateTime.now().minusMinutes(30).toInstant().toEpochMilli();
-    private static final long TWO_HOURS_AGO =
-            ZonedDateTime.now().minusHours(2).toInstant().toEpochMilli();
-    private static final long TWELVE_HOURS_AGO =
-            ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli();
-    private static final long THIRTY_HOURS_AGO =
-            ZonedDateTime.now().minusHours(30).toInstant().toEpochMilli();
-    private static final long FIVE_DAYS_AGO =
-            ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli();
-    private static final long SIX_DAYS_AGO =
-            ZonedDateTime.now().minusDays(6).toInstant().toEpochMilli();
-    private static final long ONE_MONTH_AGO =
-            ZonedDateTime.now().minusMonths(1).toInstant().toEpochMilli();
-    private static final long SEVEN_MONTHS_AGO =
-            ZonedDateTime.now().minusMonths(7).toInstant().toEpochMilli();
+            NOW.minusMinutes(30).toInstant().toEpochMilli();
+    private static final long TWO_HOURS_AGO = NOW.minusHours(2).toInstant().toEpochMilli();
+    private static final long TWELVE_HOURS_AGO = NOW.minusHours(12).toInstant().toEpochMilli();
+    private static final long THIRTY_HOURS_AGO = NOW.minusHours(30).toInstant().toEpochMilli();
+    private static final long FIVE_DAYS_AGO = NOW.minusDays(5).toInstant().toEpochMilli();
+    private static final long SIX_DAYS_AGO = NOW.minusDays(6).toInstant().toEpochMilli();
+    private static final long ONE_MONTH_AGO = NOW.minusMonths(1).toInstant().toEpochMilli();
+    private static final long SEVEN_MONTHS_AGO = NOW.minusMonths(7).toInstant().toEpochMilli();
 
     private KeyValueService kvs;
     private SweepPriorityStore sweepPriorityStore;

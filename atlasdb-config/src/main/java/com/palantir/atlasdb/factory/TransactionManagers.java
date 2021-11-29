@@ -55,6 +55,7 @@ import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMetrics;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
@@ -672,7 +673,8 @@ public abstract class TransactionManagers {
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
                         TransactionService.class,
-                        TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
+                        TransactionServices.createTransactionService(
+                                keyValueService, transactionSchemaManager, metricsManager.getTaggedRegistry())),
                 closeables);
         Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
@@ -687,7 +689,8 @@ public abstract class TransactionManagers {
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TransactionSchemaManager transactionSchemaManager) {
-        if (keyValueService.getCheckAndSetCompatibility().supportsDetailOnFailure()) {
+        CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
+        if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
             return Optional.of(
                     initializeTransactionSchemaInstaller(closeables, runtimeConfigSupplier, transactionSchemaManager));
         }

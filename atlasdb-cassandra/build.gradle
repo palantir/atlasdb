@@ -33,8 +33,6 @@ dependencies {
   explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
   explicitShadow group: 'com.palantir.tracing', name: 'tracing'
 
-  explicitShadow group: 'com.squareup.okio', name: 'okio'
-
   // does shadowing statically analysed annotations really buy us anything?
   explicitShadow group: 'com.google.code.findbugs', name: 'findbugs-annotations'
   explicitShadow group: 'com.google.code.findbugs', name: 'jsr305'
@@ -66,7 +64,6 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-caffeine'
   implementation 'com.palantir.tritium:tritium-metrics'
   implementation 'com.palantir.tritium:tritium-registry'
-  implementation 'com.squareup.okio:okio'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.apache.thrift:libthrift'
@@ -84,7 +81,6 @@ dependencies {
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.tritium:tritium-registry'
-  testImplementation 'com.squareup.okio:okio'
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.apache.thrift:libthrift'

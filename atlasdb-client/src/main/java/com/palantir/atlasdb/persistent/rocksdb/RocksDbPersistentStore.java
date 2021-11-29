@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -43,7 +44,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import okio.ByteString;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
@@ -140,7 +140,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
     private Optional<ByteString> getValueBytes(ColumnFamilyHandle columnFamilyHandle, ByteString key) {
         try {
             return Optional.ofNullable(rocksDB.get(columnFamilyHandle, key.toByteArray()))
-                    .map(ByteString::of);
+                    .map(ByteString::copyFrom);
         } catch (RocksDBException exception) {
             log.warn("Rocks db raised an exception", exception);
             return Optional.empty();
@@ -150,7 +150,10 @@ public final class RocksDbPersistentStore implements PersistentStore {
     private List<ByteString> multiGetValueByteStrings(ColumnFamilyHandle columnFamilyHandle, List<ByteString> keys) {
         List<byte[]> values = multiGetValueBytes(
                 columnFamilyHandle, keys.stream().map(ByteString::toByteArray).collect(Collectors.toList()));
-        return values.stream().filter(Objects::nonNull).map(ByteString::of).collect(Collectors.toList());
+        return values.stream()
+                .filter(Objects::nonNull)
+                .map(ByteString::copyFrom)
+                .collect(Collectors.toList());
     }
 
     private List<byte[]> multiGetValueBytes(ColumnFamilyHandle columnFamilyHandle, List<byte[]> keys) {
