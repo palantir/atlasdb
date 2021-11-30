@@ -39,9 +39,11 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -174,6 +176,10 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         long startTs = putWriteAndFailOnPreCommitConditionReturningStartTimestamp(SINGLE_WRITE);
 
         serializableTxManager.setUnreadableTimestamp(startTs + 1);
+        Awaitility.await()
+                .atMost(5, TimeUnit.SECONDS)
+                .pollInterval(10, TimeUnit.MILLISECONDS)
+                .until(() -> startTs < serializableTxManager.getImmutableTimestamp());
         sweepNextBatch(ShardAndStrategy.conservative(0));
         assertNoEntryForCellInKvs(TABLE_CONS, TEST_CELL);
     }
