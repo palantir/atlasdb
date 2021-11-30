@@ -19,12 +19,20 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.LightweightOppTokenRange;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -35,7 +43,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class CassandraRepairEteTest {
+    private static final byte[] FIRST_COLUMN = PtBytes.toBytes("col1");
+    private static final Cell NONEMPTY_CELL = Cell.create(PtBytes.toBytes("nonempty"), FIRST_COLUMN);
+    private static final byte[] CONTENTS = PtBytes.toBytes("default_value");
+
     private CassandraRepairHelper cassandraRepairHelper;
+    private CassandraService cassandraService;
+    private CassandraKeyValueService kvs;
 
     @Before
     public void setUp() {
@@ -44,12 +58,23 @@ public class CassandraRepairEteTest {
 
         // TODO(gs): RF2
         CassandraKeyValueServiceConfig config = ThreeNodeCassandraCluster.KVS_CONFIG;
-        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
+        kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
+
+        cassandraService = new CassandraService(
+                metricsManager, config, new Blacklist(), new CassandraClientPoolMetrics(metricsManager));
     }
 
     @Test
     public void shouldGetATokenRange() {
+        // TODO(gs): before?
+        TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
+        kvs.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.putUnlessExists(table1, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
+
+        Set<InetSocketAddress> inetSocketAddresses = cassandraService.refreshTokenRangesAndGetServers();
+        assertThat(inetSocketAddresses).isNotEmpty();
+
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
                 cassandraRepairHelper.getRangesToRepair(Namespace.of("namespace"), "doesNotMatter");
         assertThat(ranges).isNotEmpty();
