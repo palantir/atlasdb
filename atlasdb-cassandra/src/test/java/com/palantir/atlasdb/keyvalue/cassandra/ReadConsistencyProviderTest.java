@@ -92,23 +92,31 @@ public class ReadConsistencyProviderTest {
         ExecutorService executorService = PTExecutors.newCachedThreadPool();
         List<Future<ConsistencyLevel>> readFutures = new ArrayList<>();
         List<Future<?>> consistencyLevelLoweringFutures = new ArrayList<>();
-        CountDownLatch latchBlockedOnFiftyCompletedReads = new CountDownLatch(50);
-        for (int index = 0; index < 100; index++) {
+        CountDownLatch latchBlockedOnThirtyCompletedReads = new CountDownLatch(30);
+        CountDownLatch latchBlockedOnOneCompletedLowering = new CountDownLatch(1);
+        for (int index = 0; index < 50; index++) {
             readFutures.add(executorService.submit(() -> {
                 ConsistencyLevel level = provider.getConsistency(TABLE_1);
-                latchBlockedOnFiftyCompletedReads.countDown();
+                latchBlockedOnThirtyCompletedReads.countDown();
                 return level;
+            }));
+        }
+        for (int index = 0; index < 50; index++) {
+            readFutures.add(executorService.submit(() -> {
+                latchBlockedOnOneCompletedLowering.await();
+                return provider.getConsistency(TABLE_1);
             }));
         }
         for (int index = 0; index < 5; index++) {
             consistencyLevelLoweringFutures.add(executorService.submit(() -> {
                 try {
-                    latchBlockedOnFiftyCompletedReads.await();
+                    latchBlockedOnThirtyCompletedReads.await();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 }
                 provider.lowerConsistencyLevelToOne();
+                latchBlockedOnOneCompletedLowering.countDown();
             }));
         }
         executorService.shutdown();
@@ -120,8 +128,10 @@ public class ReadConsistencyProviderTest {
                 .collect(Collectors.groupingBy(x -> x, Collectors.counting()));
         assertThat(consistencyLevelReadCount.keySet())
                 .containsExactlyInAnyOrder(ConsistencyLevel.LOCAL_QUORUM, ConsistencyLevel.ONE);
-        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.LOCAL_QUORUM)).isGreaterThanOrEqualTo(50);
-        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.ONE)).isLessThanOrEqualTo(50);
+        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.LOCAL_QUORUM))
+                .isGreaterThanOrEqualTo(30);
+        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.ONE))
+                .isGreaterThanOrEqualTo(50);
         assertThat(consistencyLevelReadCount.values().stream().mapToLong(x -> x).sum())
                 .isEqualTo(100);
 

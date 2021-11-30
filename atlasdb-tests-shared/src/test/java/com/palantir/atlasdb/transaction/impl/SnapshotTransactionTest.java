@@ -376,8 +376,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             assertThat(t.getTimestamp()).isLessThan(timestampService.getFreshTimestamp());
             return t.getTimestamp();
         });
-        assertThat(firstTs).isLessThan(txManager.getImmutableTimestamp());
-        assertThat(startTs).isLessThan(txManager.getImmutableTimestamp());
+        assertThat(firstTs).isLessThan(txManager.getImmutableTimestamp()); // pass
+        assertThat(startTs).isLessThan(txManager.getImmutableTimestamp()); // startTs = 4, immutableTs = 3, failed
     }
 
     // If lock happens concurrent with get, we aren't sure that we can rollback the transaction
