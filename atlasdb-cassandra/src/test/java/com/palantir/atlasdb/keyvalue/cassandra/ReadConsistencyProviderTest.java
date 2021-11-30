@@ -128,10 +128,8 @@ public class ReadConsistencyProviderTest {
                 .collect(Collectors.groupingBy(x -> x, Collectors.counting()));
         assertThat(consistencyLevelReadCount.keySet())
                 .containsExactlyInAnyOrder(ConsistencyLevel.LOCAL_QUORUM, ConsistencyLevel.ONE);
-        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.LOCAL_QUORUM))
-                .isGreaterThanOrEqualTo(30);
-        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.ONE))
-                .isGreaterThanOrEqualTo(50);
+        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.LOCAL_QUORUM)).isGreaterThanOrEqualTo(30);
+        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.ONE)).isGreaterThanOrEqualTo(50);
         assertThat(consistencyLevelReadCount.values().stream().mapToLong(x -> x).sum())
                 .isEqualTo(100);
 
