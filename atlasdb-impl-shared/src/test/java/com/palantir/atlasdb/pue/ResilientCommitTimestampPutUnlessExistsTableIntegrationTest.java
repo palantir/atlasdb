@@ -16,29 +16,35 @@
 
 package com.palantir.atlasdb.pue;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 import org.junit.Test;
 
 public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
-    private static final double WRITE_FAILURE_PROBABILITY = 0.1;
+    private static final double WRITE_FAILURE_PROBABILITY = 0.5;
+    private static final long MAXIMUM_EVALUATED_TIMESTAMP = 100;
 
     private final ConsensusForgettingStore forgettingStore =
             new CassandraImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
@@ -47,17 +53,18 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
     @Test
     public void repeatableReads() throws InterruptedException {
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        List<Future<Object>> writerFutures = new ArrayList<>();
-        List<Future<TimestampPair>> readFutures = new ArrayList<>();
-        CountDownLatch writeExecutionLatch = new CountDownLatch(1);
+        Multimap<Long, TimestampReader> timestampReaders = createStartedTimestampReaders();
 
-        for (long startTimestamp = 1; startTimestamp <= 50; startTimestamp++) {
+        List<Future<Object>> writerFutures = new ArrayList<>();
+        CountDownLatch writeExecutionLatch = new CountDownLatch(1);
+        ExecutorService writeExecutor = Executors.newCachedThreadPool();
+
+        for (long startTimestamp = 1; startTimestamp <= MAXIMUM_EVALUATED_TIMESTAMP; startTimestamp++) {
             for (int concurrentWriter = 1; concurrentWriter <= 10; concurrentWriter++) {
                 int finalConcurrentWriter = concurrentWriter;
                 long finalStartTimestamp = startTimestamp;
 
-                Future<Object> writerFuture = executorService.submit(() -> {
+                Future<Object> writerFuture = writeExecutor.submit(() -> {
                     try {
                         writeExecutionLatch.await();
                         Uninterruptibles.sleepUninterruptibly(
@@ -72,45 +79,63 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
             }
         }
 
+        writeExecutionLatch.countDown();
+        writeExecutor.shutdown();
+        boolean terminated = writeExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        assertThat(terminated)
+                .as("must be able to resolve write contention reasonably quickly")
+                .isTrue();
+
+        timestampReaders.forEach((_startTimestamp, reader) -> reader.close());
+        timestampReaders.forEach(ResilientCommitTimestampPutUnlessExistsTableIntegrationTest::validateIndividualReaderHadRepeatableReads);
+        timestampReaders.asMap().forEach((_startTimestamp, readers) -> validateConsistencyObservedAcrossReaders(readers));
+    }
+
+    private static void validateIndividualReaderHadRepeatableReads(Long startTimestamp, TimestampReader reader) {
+        List<OptionalLong> reads = reader.getTimestampReads();
+        Set<OptionalLong> readSet = new HashSet<>(reads);
+        assertThat(readSet)
+                .as("can only read at most 2 distinct values: empty and a single fixed value")
+                .hasSizeLessThanOrEqualTo(2);
+        if (readSet.size() == 2) {
+            Set<OptionalLong> valuesRead = readSet.stream()
+                    .filter(OptionalLong::isPresent)
+                    .collect(Collectors.toSet());
+            assertThat(valuesRead)
+                    .as("can only read at most 1 fixed value")
+                    .hasSize(1);
+
+            OptionalLong concreteValue = Iterables.getOnlyElement(valuesRead);
+            assertThat(reads.subList(0, reads.indexOf(concreteValue)))
+                    .as("must only read empty before a concrete value has been read")
+                    .containsOnly(OptionalLong.empty());
+            assertThat(reads.subList(reads.indexOf(concreteValue), reads.size()))
+                    .as("must always read the concrete value once it has been read")
+                    .containsOnly(concreteValue);
+        }
+    }
+
+    private Multimap<Long, TimestampReader> createStartedTimestampReaders() {
         Multimap<Long, TimestampReader> timestampReaders = MultimapBuilder.hashKeys().arrayListValues().build();
-        for (long startTimestamp = 1; startTimestamp <= 50; startTimestamp++) {
-            for (int concurrentReader = 1; concurrentReader <= 10; concurrentReader++) {
+        for (long startTimestamp = 1; startTimestamp <= MAXIMUM_EVALUATED_TIMESTAMP; startTimestamp++) {
+            for (int concurrentReader = 1; concurrentReader <= 5; concurrentReader++) {
                 timestampReaders.put(startTimestamp, new TimestampReader(startTimestamp, pueTable));
             }
         }
         timestampReaders.forEach((_startTimestamp, reader) -> reader.start());
-
-        writeExecutionLatch.countDown();
-        executorService.shutdown();
-        executorService.awaitTermination(3, TimeUnit.SECONDS);
-
-        writerFutures.forEach(future -> {
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                // Expected - some failures will happen as part of our test.
-            } catch (ExecutionException e) {
-                // Expected - some failures will happen as part of our test.
-            }
-        });
-        timestampReaders.forEach((_startTimestamp, reader) -> reader.close());
-        timestampReaders.forEach((startTimestamp, reader) -> System.out.println(reader.getTimestampReads()));
+        return timestampReaders;
     }
 
-    static <T> Optional<T> exceptionSwallowingGet(Future<T> future) {
-        try {
-            T element = future.get();
-            if (element != null) {
-                return Optional.of(element);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            // Expected - some failures will happen as part of our test.
-        } catch (ExecutionException e) {
-            // Expected - some failures will happen as part of our test.
-        }
-        return Optional.empty();
+    private void validateConsistencyObservedAcrossReaders(Collection<TimestampReader> readers) {
+        Set<OptionalLong> concreteValuesAgreedByReaders = readers.stream()
+                .map(TimestampReader::getTimestampReads)
+                .filter(list -> !list.isEmpty())
+                .map(reads -> reads.get(reads.size() - 1))
+                .filter(OptionalLong::isPresent)
+                .collect(Collectors.toSet());
+        assertThat(concreteValuesAgreedByReaders)
+                .as("cannot have readers individually diverge on concretely observed values")
+                .hasSizeLessThanOrEqualTo(1);
     }
 
     private static class TimestampReader implements AutoCloseable {
@@ -133,7 +158,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
         }
 
         public void start() {
-            scheduledExecutorService.scheduleAtFixedRate(this::readOneIteration, 0, 10, TimeUnit.MILLISECONDS);
+            scheduledExecutorService.scheduleAtFixedRate(this::readOneIteration, 0, 20, TimeUnit.MILLISECONDS);
         }
 
         public void readOneIteration() {
