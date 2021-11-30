@@ -56,7 +56,8 @@ public class Blacklist {
 
     void checkAndUpdate(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
         // Check blacklist and re-integrate or continue to wait as necessary
-        Iterator<Entry<InetSocketAddress, Long>> blacklistIterator = blacklist.entrySet().iterator();
+        Iterator<Entry<InetSocketAddress, Long>> blacklistIterator =
+                blacklist.entrySet().iterator();
         while (blacklistIterator.hasNext()) {
             Map.Entry<InetSocketAddress, Long> blacklistedEntry = blacklistIterator.next();
             if (coolOffPeriodExpired(blacklistedEntry)) {
