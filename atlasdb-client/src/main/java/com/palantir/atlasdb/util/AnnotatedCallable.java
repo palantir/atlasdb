@@ -36,8 +36,8 @@ public final class AnnotatedCallable<T> implements Callable<T> {
         return wrapWithThreadName(AnnotationType.REPLACE, threadName, delegate);
     }
 
-    public static <T> Callable<T> wrapWithThreadName(AnnotationType type, String threadName, Callable<T> delegate) {
-        return new AnnotatedCallable<>(delegate, threadName, type);
+    public static <T> Callable<T> wrapWithThreadName(AnnotationType _type, String _threadName, Callable<T> delegate) {
+        return delegate;
     }
 
     private AnnotatedCallable(Callable<T> delegate, String name, AnnotationType type) {
