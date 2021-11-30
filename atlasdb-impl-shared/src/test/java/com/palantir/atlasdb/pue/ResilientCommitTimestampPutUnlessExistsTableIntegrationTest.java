@@ -136,7 +136,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                 .hasSizeLessThanOrEqualTo(1);
     }
 
-    private static class TimestampReader implements AutoCloseable {
+    private static final class TimestampReader implements AutoCloseable {
         private final long startTimestamp;
         private final PutUnlessExistsTable<Long, Long> pueTable;
         private final List<OptionalLong> timestampReads;
