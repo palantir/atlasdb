@@ -36,6 +36,9 @@ import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -49,6 +52,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class CassandraRepairHelper {
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraRepairHelper.class);
+
     private static final String COORDINATION = AtlasDbConstants.COORDINATION_TABLE.getTableName();
     private static final Set<String> TABLES_TO_REPAIR =
             Sets.union(ImmutableSet.of(COORDINATION), TargetedSweepTables.REPAIR_ON_RESTORE);
@@ -93,12 +98,15 @@ public class CassandraRepairHelper {
     private Map<InetSocketAddress, Set<LightweightOppTokenRange>> invert(
             RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> invertedMap = new HashMap<>();
-        tokenMap.asMapOfRanges()
-                .forEach((range, addresses) -> addresses.forEach(addr -> {
-                    Set<LightweightOppTokenRange> existingRanges = invertedMap.getOrDefault(addr, new HashSet<>());
-                    existingRanges.add(toTokenRange(range));
-                    invertedMap.put(addr, existingRanges);
-                }));
+        Map<Range<LightweightOppToken>, List<InetSocketAddress>> rangeListMap = tokenMap.asMapOfRanges();
+        log.debug("Inverting ranges", SafeArg.of("size", rangeListMap.size()));
+        rangeListMap.forEach((range, addresses) -> addresses.forEach(addr -> {
+            Set<LightweightOppTokenRange> existingRanges = invertedMap.getOrDefault(addr, new HashSet<>());
+            existingRanges.add(toTokenRange(range));
+            invertedMap.put(addr, existingRanges);
+            log.debug("Adding range for", SafeArg.of("host", addr));
+        }));
+        log.debug("Returning invertedMap");
 
         return invertedMap;
     }

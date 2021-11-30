@@ -117,6 +117,7 @@ public class CassandraService implements AutoCloseable {
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
             localHosts = refreshLocalHosts(tokenRanges);
+            log.debug("Got some token ranges", SafeArg.of("numTokenRanges", tokenRanges.size()));
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -138,15 +139,23 @@ public class CassandraService implements AutoCloseable {
                     LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
                             .decode(tokenRange.getEnd_token().toUpperCase()));
                     if (startToken.compareTo(endToken) <= 0) {
+                        log.debug("Adding token to ring");
                         newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
                     } else {
                         // Handle wrap-around
+                        log.debug("Adding wraparound token to ring");
                         newTokenRing.put(Range.greaterThan(startToken), hosts);
                         newTokenRing.put(Range.atMost(endToken), hosts);
                     }
                 }
             }
+            log.debug(
+                    "Interning token map - size before",
+                    SafeArg.of("size", tokenMap.asMapOfRanges().size()));
             tokenMap = tokensInterner.intern(newTokenRing.build());
+            log.debug(
+                    "Interning token map - size after",
+                    SafeArg.of("size", tokenMap.asMapOfRanges().size()));
             return servers;
         } catch (Exception e) {
             log.info(
@@ -292,6 +301,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
+        log.debug("getTokenMap()");
         return tokenMap;
     }
 
