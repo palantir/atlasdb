@@ -13,27 +13,17 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
-
-CONTAINER_2=(':atlasdb-ete-tests:check')
-
-CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
-
-CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
-
-CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
-
-CONTAINER_6=(':timelock-server:suiteTest')
-
-CONTAINER_7=(':timelock-server:stressTest')
-
-CONTAINER_8=(':atlasdb-ete-tests:timeLockMigrationTest')
-
-CONTAINER_9=(':atlasdb-ete-tests:oracleTest')
-
-CONTAINER_10=('atlasdb-dbkvs-tests:oracleTest')
-
-CONTAINER_11=('compileJava' 'compileTestJava')
+CONTAINER_1=(':atlasdb-tests-shared:test')
+CONTAINER_2=(':atlasdb-tests-shared:test')
+CONTAINER_3=(':atlasdb-tests-shared:test')
+CONTAINER_4=(':atlasdb-tests-shared:test')
+CONTAINER_5=(':atlasdb-tests-shared:test')
+CONTAINER_6=(':atlasdb-tests-shared:test')
+CONTAINER_7=(':atlasdb-tests-shared:test')
+CONTAINER_8=(':atlasdb-tests-shared:test')
+CONTAINER_9=(':atlasdb-tests-shared:test')
+CONTAINER_10=(':atlasdb-tests-shared:test')
+CONTAINER_11=(':atlasdb-tests-shared:test')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}" "${CONTAINER_10[@]}")
