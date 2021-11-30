@@ -19,14 +19,18 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.junit.Test;
 
@@ -84,15 +88,43 @@ public class ReadConsistencyProviderTest {
     }
 
     @Test
-    public void concurrentUpdatePermitted() throws InterruptedException {
+    public void concurrentUpdatesAndReadsPermitted() throws InterruptedException {
         ExecutorService executorService = PTExecutors.newCachedThreadPool();
+        List<Future<ConsistencyLevel>> readFutures = new ArrayList<>();
         List<Future<?>> consistencyLevelLoweringFutures = new ArrayList<>();
+        CountDownLatch latchBlockedOnFiftyCompletedReads = new CountDownLatch(50);
         for (int index = 0; index < 100; index++) {
-            consistencyLevelLoweringFutures.add(executorService.submit(provider::lowerConsistencyLevelToOne));
+            readFutures.add(executorService.submit(() -> {
+                ConsistencyLevel level = provider.getConsistency(TABLE_1);
+                latchBlockedOnFiftyCompletedReads.countDown();
+                return level;
+            }));
+        }
+        for (int index = 0; index < 5; index++) {
+            consistencyLevelLoweringFutures.add(executorService.submit(() -> {
+                try {
+                    latchBlockedOnFiftyCompletedReads.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+                provider.lowerConsistencyLevelToOne();
+            }));
         }
         executorService.shutdown();
         boolean successfulShutdown = executorService.awaitTermination(5, TimeUnit.SECONDS);
         assertThat(successfulShutdown).isTrue();
+
+        Map<ConsistencyLevel, Long> consistencyLevelReadCount = readFutures.stream()
+                .map(Futures::getUnchecked)
+                .collect(Collectors.groupingBy(x -> x, Collectors.counting()));
+        assertThat(consistencyLevelReadCount.keySet())
+                .containsExactlyInAnyOrder(ConsistencyLevel.LOCAL_QUORUM, ConsistencyLevel.ONE);
+        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.LOCAL_QUORUM)).isGreaterThanOrEqualTo(50);
+        assertThat(consistencyLevelReadCount.get(ConsistencyLevel.ONE)).isLessThanOrEqualTo(50);
+        assertThat(consistencyLevelReadCount.values().stream().mapToLong(x -> x).sum())
+                .isEqualTo(100);
+
         consistencyLevelLoweringFutures.forEach(
                 future -> assertThat(future.isDone()).isTrue());
     }

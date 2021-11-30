@@ -44,14 +44,22 @@ public final class ReadConsistencyProvider {
     }
 
     public void lowerConsistencyLevelToOne() {
-        while (defaultReadConsistency.get() != ConsistencyLevel.ONE) {
+        if (defaultReadConsistency.get() != ConsistencyLevel.ONE) {
             boolean update = defaultReadConsistency.compareAndSet(DEFAULT_CONSISTENCY, ConsistencyLevel.ONE);
             if (update) {
                 log.info(
                         "Lowering read consistency level to ONE.",
                         SafeArg.of("originalReadConsistency", DEFAULT_CONSISTENCY),
                         new SafeRuntimeException("I exist to show you the stack trace."));
+            } else {
+                log.info(
+                        "Could not lower read consistency level to ONE.",
+                        SafeArg.of("currentReadConsistency", defaultReadConsistency.get()),
+                        SafeArg.of("defaultReadConsistency", DEFAULT_CONSISTENCY),
+                        new SafeRuntimeException("I exist to show you the stack trace."));
             }
+        } else {
+            log.info("Did not lower read consistency to ONE because it was already ONE.");
         }
     }
 }
