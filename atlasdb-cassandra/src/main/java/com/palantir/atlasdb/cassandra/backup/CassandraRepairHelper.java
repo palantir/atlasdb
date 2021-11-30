@@ -76,10 +76,10 @@ public class CassandraRepairHelper {
                 .forEach(repairTable);
     }
 
-    // TODO(gs): default to using CassandraService (with empty blacklist?)
-    // Tests: use both CQL and CassandraService flavours, and compare results on 3-node/RF2 cluster
-    private Map<InetSocketAddress, Set<LightweightOppTokenRange>> getRangesToRepair(
-            Namespace namespace, String tableName) {
+    // TODO(gs): test: use both CQL and CassandraService flavours, and compare results on 3-node/RF2 cluster
+    // VisibleForTesting
+    public Map<InetSocketAddress, Set<LightweightOppTokenRange>> getRangesToRepair(
+            Namespace namespace, String _tableName) {
         CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
         Blacklist blacklist = new Blacklist(config);
         CassandraService cassandraService =
