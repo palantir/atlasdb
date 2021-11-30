@@ -16,13 +16,14 @@
 
 package com.palantir.atlasdb.backup;
 
-import com.datastax.driver.core.TokenRange;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
+import com.palantir.atlasdb.cassandra.backup.LightweightOppTokenRange;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -48,16 +49,17 @@ public class AtlasRestoreService {
 
     public static AtlasRestoreService create(
             BackupPersister backupPersister,
+            MetricsManager metricsManager,
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
         CassandraRepairHelper cassandraRepairHelper =
-                new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
+                new CassandraRepairHelper(metricsManager, keyValueServiceConfigFactory, keyValueServiceFactory);
         return new AtlasRestoreService(backupPersister, cassandraRepairHelper);
     }
 
     // Returns the set of namespaces for which we successfully repaired internal tables
     public Set<Namespace> repairInternalTables(
-            Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<TokenRange>>> repairTable) {
+            Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<LightweightOppTokenRange>>> repairTable) {
         return namespaces.stream()
                 .filter(this::backupExists)
                 .peek(namespace -> cassandraRepairHelper.repairInternalTables(namespace, repairTable))
