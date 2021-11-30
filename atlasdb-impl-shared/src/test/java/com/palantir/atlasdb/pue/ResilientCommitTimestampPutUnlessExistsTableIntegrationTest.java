@@ -34,12 +34,10 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.immutables.value.Value;
 import org.junit.Test;
 
 public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
@@ -55,7 +53,6 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
     public void repeatableReads() throws InterruptedException {
         Multimap<Long, TimestampReader> timestampReaders = createStartedTimestampReaders();
 
-        List<Future<Object>> writerFutures = new ArrayList<>();
         CountDownLatch writeExecutionLatch = new CountDownLatch(1);
         ExecutorService writeExecutor = Executors.newCachedThreadPool();
 
@@ -64,7 +61,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                 int finalConcurrentWriter = concurrentWriter;
                 long finalStartTimestamp = startTimestamp;
 
-                Future<Object> writerFuture = writeExecutor.submit(() -> {
+                writeExecutor.submit(() -> {
                     try {
                         writeExecutionLatch.await();
                         Uninterruptibles.sleepUninterruptibly(
@@ -75,7 +72,6 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                     }
                     return null;
                 });
-                writerFutures.add(writerFuture);
             }
         }
 
@@ -177,17 +173,6 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
         @Override
         public void close() {
             scheduledExecutorService.shutdown();
-        }
-    }
-
-    @Value.Immutable
-    interface TimestampPair {
-        long startTimestamp();
-
-        OptionalLong commitTimestamp();
-
-        static ImmutableTimestampPair.Builder builder() {
-            return ImmutableTimestampPair.builder();
         }
     }
 }
