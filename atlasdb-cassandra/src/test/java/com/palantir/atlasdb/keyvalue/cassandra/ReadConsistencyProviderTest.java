@@ -56,7 +56,7 @@ public class ReadConsistencyProviderTest {
     }
 
     @Test
-    public void consistencyForNonAtomicSerialTablesIsLocalSerial() {
+    public void consistencyForNonSerialAtomicTablesIsLocalQuorum() {
         AtlasDbConstants.NON_SERIAL_CONSISTENCY_ATOMIC_TABLES.forEach(tableReference ->
                 assertThat(provider.getConsistency(tableReference)).isEqualTo(ConsistencyLevel.LOCAL_QUORUM));
     }
