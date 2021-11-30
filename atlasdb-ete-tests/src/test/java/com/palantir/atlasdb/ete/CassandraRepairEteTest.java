@@ -63,6 +63,20 @@ public class CassandraRepairEteTest {
 
         cassandraService = new CassandraService(
                 metricsManager, config, new Blacklist(config), new CassandraClientPoolMetrics(metricsManager));
+        cassandraService.cacheInitialCassandraHosts();
+        // config.servers()
+        //         .accept(new Visitor<Set<InetSocketAddress>>() {
+        //             @Override
+        //             public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
+        //                 return defaultConfig.thriftHosts();
+        //             }
+        //
+        //             @Override
+        //             public Set<InetSocketAddress> visit(CqlCapableConfig cqlCapableConfig) {
+        //                 return cqlCapableConfig.thriftHosts();
+        //             }
+        //         })
+        //         .forEach(cassandraService::addPool);
     }
 
     @Test
