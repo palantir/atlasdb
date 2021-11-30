@@ -87,8 +87,12 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                 .isTrue();
 
         timestampReaders.forEach((_startTimestamp, reader) -> reader.close());
-        timestampReaders.forEach(ResilientCommitTimestampPutUnlessExistsTableIntegrationTest::validateIndividualReaderHadRepeatableReads);
-        timestampReaders.asMap().forEach((_startTimestamp, readers) -> validateConsistencyObservedAcrossReaders(readers));
+        timestampReaders.forEach(
+                ResilientCommitTimestampPutUnlessExistsTableIntegrationTest
+                        ::validateIndividualReaderHadRepeatableReads);
+        timestampReaders
+                .asMap()
+                .forEach((_startTimestamp, readers) -> validateConsistencyObservedAcrossReaders(readers));
     }
 
     private static void validateIndividualReaderHadRepeatableReads(Long startTimestamp, TimestampReader reader) {
@@ -98,12 +102,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                 .as("can only read at most 2 distinct values: empty and a single fixed value")
                 .hasSizeLessThanOrEqualTo(2);
         if (readSet.size() == 2) {
-            Set<OptionalLong> valuesRead = readSet.stream()
-                    .filter(OptionalLong::isPresent)
-                    .collect(Collectors.toSet());
-            assertThat(valuesRead)
-                    .as("can only read at most 1 fixed value")
-                    .hasSize(1);
+            Set<OptionalLong> valuesRead =
+                    readSet.stream().filter(OptionalLong::isPresent).collect(Collectors.toSet());
+            assertThat(valuesRead).as("can only read at most 1 fixed value").hasSize(1);
 
             OptionalLong concreteValue = Iterables.getOnlyElement(valuesRead);
             assertThat(reads.subList(0, reads.indexOf(concreteValue)))
@@ -116,7 +117,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
     }
 
     private Multimap<Long, TimestampReader> createStartedTimestampReaders() {
-        Multimap<Long, TimestampReader> timestampReaders = MultimapBuilder.hashKeys().arrayListValues().build();
+        Multimap<Long, TimestampReader> timestampReaders =
+                MultimapBuilder.hashKeys().arrayListValues().build();
         for (long startTimestamp = 1; startTimestamp <= MAXIMUM_EVALUATED_TIMESTAMP; startTimestamp++) {
             for (int concurrentReader = 1; concurrentReader <= 5; concurrentReader++) {
                 timestampReaders.put(startTimestamp, new TimestampReader(startTimestamp, pueTable));
@@ -144,9 +146,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
         private final List<OptionalLong> timestampReads;
         private final ScheduledExecutorService scheduledExecutorService;
 
-        private TimestampReader(
-                long startTimestamp,
-                PutUnlessExistsTable<Long, Long> pueTable) {
+        private TimestampReader(long startTimestamp, PutUnlessExistsTable<Long, Long> pueTable) {
             this.startTimestamp = startTimestamp;
             this.pueTable = pueTable;
             this.timestampReads = new ArrayList<>();
