@@ -62,7 +62,7 @@ public class CassandraRepairEteTest {
         cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
 
         cassandraService = new CassandraService(
-                metricsManager, config, new Blacklist(), new CassandraClientPoolMetrics(metricsManager));
+                metricsManager, config, new Blacklist(config), new CassandraClientPoolMetrics(metricsManager));
     }
 
     @Test
