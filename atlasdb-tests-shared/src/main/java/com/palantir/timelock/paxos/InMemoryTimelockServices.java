@@ -17,15 +17,32 @@
 package com.palantir.timelock.paxos;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.LeaderTimeGetter;
+import com.palantir.lock.client.LegacyLeaderTimeGetter;
+import com.palantir.lock.client.LockLeaseService;
+import com.palantir.lock.client.LockWatchStarter;
+import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
+import com.palantir.lock.client.RequestBatchersFactory;
+import com.palantir.lock.client.TransactionStarter;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -48,6 +65,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.rules.ExternalResource;
@@ -65,6 +83,9 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private String client;
     private TimeLockServices delegate;
     private TimeLockAgent timeLockAgent;
+
+    private LockLeaseService lockLeaseService;
+    private RequestBatchersFactory requestBatchersFactory;
 
     public InMemoryTimelockServices(TemporaryFolder tempFolder) {
         this.tempFolder = tempFolder;
@@ -103,6 +124,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 .build();
 
         timeLockAgent = TimeLockAgent.create(
+                // TODO(gs): one MetricManager to rule them all
                 MetricsManagers.of(new MetricRegistry(), SharedTaggedMetricRegistries.getSingleton()),
                 install,
                 Refreshable.only(runtime), // This won't actually live reload.
@@ -118,12 +140,38 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
 
         delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
 
+        // Create other stuff
+        createHelperServices();
+
         // Wait for leadership
         Awaitility.await()
                 .atMost(Duration.ofSeconds(30L))
                 .pollInterval(Duration.ofMillis(50))
                 .ignoreExceptions()
                 .until(() -> delegate.getTimestampService().getFreshTimestamp() > 0);
+    }
+
+    // TODO(gs): unify
+    private void createHelperServices() {
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        Set<Schema> schemas = ImmutableSet.of(); // TODO(gs): any schemas?
+        LockWatchCachingConfig cachingConfig = LockWatchCachingConfig.builder().build();
+
+        //        LeaderClock leaderClock = LeaderClock.create();
+        //        HeldLocksCollection heldLocks = HeldLocksCollection.create(leaderClock);
+        //        LeadershipId leadershipId = LeadershipId.random();
+        //        LockWatchStarter lockWatchStarter = new LockWatchingServiceImpl(heldLocks, leadershipId);
+        LockWatchStarter lockWatchStarter = delegate.getTimelockService();
+        LockWatchManagerInternal lockWatchManager =
+                LockWatchManagerImpl.create(metricsManager, schemas, lockWatchStarter, cachingConfig);
+
+        LockWatchCache lockWatchCache = lockWatchManager.getCache();
+        requestBatchersFactory = RequestBatchersFactory.create(lockWatchCache, Namespace.of(client), Optional.empty());
+
+        ConjureTimelockService cts = timeLockAgent.getConjureTimeLockService();
+        NamespacedConjureTimelockService ncts = new NamespacedConjureTimelockServiceImpl(cts, client);
+        LeaderTimeGetter ltg = new LegacyLeaderTimeGetter(ncts);
+        lockLeaseService = LockLeaseService.create(ncts, ltg);
     }
 
     @Override
@@ -200,6 +248,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     public TimelockService getLegacyTimelockService() {
-        return new DelegatingTimelockService(getTimelockService());
+        TransactionStarter transactionStarter = TransactionStarter.create(lockLeaseService, requestBatchersFactory);
+        return new DelegatingTimelockService(transactionStarter, getTimelockService());
     }
 }
