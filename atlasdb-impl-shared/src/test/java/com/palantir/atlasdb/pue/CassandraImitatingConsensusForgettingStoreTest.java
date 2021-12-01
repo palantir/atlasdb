@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.pue;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -23,9 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class CassandraImitatingConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {0});
