@@ -126,7 +126,6 @@ allprojects {
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
                 'ThreadPriorityCheck',
-                'ThrowSpecificity',
                 'TooManyArguments',
                 'ValidateConstantMessage'
     }

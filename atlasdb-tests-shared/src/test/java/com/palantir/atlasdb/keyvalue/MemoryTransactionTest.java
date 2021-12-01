@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
-import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Before;
@@ -63,7 +62,7 @@ public class MemoryTransactionTest extends AbstractTransactionTest {
     public void before() {
         keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                transactionSchemaManager, (ManagedTimestampService) timestampService, transactionsSchemaVersion);
+                transactionSchemaManager, timestampService, timestampManagementService, transactionsSchemaVersion);
     }
 
     @Test
