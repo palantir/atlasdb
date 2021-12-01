@@ -32,7 +32,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
-import com.palantir.atlasdb.cassandra.proxy.SocksProxyNettyOptions;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -65,9 +64,10 @@ public final class CqlCluster {
     public static CqlCluster create(CassandraKeyValueServiceConfig config) {
         // TODO(gs): error handling/retry
         Set<InetSocketAddress> hosts = getHosts(config);
-        InetSocketAddress firstHost = hosts.stream().findAny().orElseThrow();
-        Cluster cluster = new ClusterFactory(
-                        () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(firstHost)))
+        // InetSocketAddress firstHost = hosts.stream().findAny().orElseThrow();
+        Cluster cluster = new ClusterFactory(Cluster::builder)
+                // Cluster cluster = new ClusterFactory(() -> Cluster.builder().withNettyOptions(new
+                // SocksProxyNettyOptions(firstHost))
                 .constructCluster(hosts, config);
         return new CqlCluster(cluster, config);
     }
