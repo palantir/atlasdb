@@ -19,15 +19,16 @@ package com.palantir.atlasdb.cassandra.backup;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableLightweightOppTokenRange.class)
 @JsonSerialize(as = ImmutableLightweightOppTokenRange.class)
 @Value.Immutable
 public interface LightweightOppTokenRange {
-    LightweightOppToken left();
+    Optional<LightweightOppToken> left();
 
-    LightweightOppToken right();
+    Optional<LightweightOppToken> right();
 
     class Builder extends ImmutableLightweightOppTokenRange.Builder {}
 

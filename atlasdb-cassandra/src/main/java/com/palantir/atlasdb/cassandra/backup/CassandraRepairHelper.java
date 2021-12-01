@@ -116,12 +116,15 @@ public class CassandraRepairHelper {
         return invertedMap;
     }
 
-    // TODO(gs): handle wrap-around?
     private LightweightOppTokenRange toTokenRange(Range<LightweightOppToken> range) {
-        return LightweightOppTokenRange.builder()
-                .left(range.lowerEndpoint())
-                .right(range.upperEndpoint())
-                .build();
+        LightweightOppTokenRange.Builder rangeBuilder = LightweightOppTokenRange.builder();
+        if (range.hasLowerBound()) {
+            rangeBuilder.left(range.lowerEndpoint());
+        }
+        if (range.hasUpperBound()) {
+            rangeBuilder.right(range.upperEndpoint());
+        }
+        return rangeBuilder.build();
     }
 
     @VisibleForTesting
