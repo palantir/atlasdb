@@ -67,6 +67,7 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 
+@SuppressWarnings("CompileTimeConstant") // Temporary
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);

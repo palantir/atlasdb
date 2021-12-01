@@ -50,6 +50,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("CompileTimeConstant") // Temporary
 public class CassandraRepairHelper {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraRepairHelper.class);
 
