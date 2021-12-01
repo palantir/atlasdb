@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.pue;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -27,14 +24,23 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 public class CassandraImitatingConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {0});
     private static final byte[] VALUE = PtBytes.toBytes("VAL");
     private static final byte[] VALUE_2 = PtBytes.toBytes("VAL2");
+    // solution to (1-x)^4 = 0.5
     private static final double PROBABILITY_THROWING_ON_QUORUM_HALF = 0.16;
     ConsensusForgettingStore neverThrowing = new CassandraImitatingConsensusForgettingStore(0.0);
     CassandraImitatingConsensusForgettingStore sometimesThrowing =
             new CassandraImitatingConsensusForgettingStore(PROBABILITY_THROWING_ON_QUORUM_HALF);
+
+    @Test
+    public void trivialGet() throws ExecutionException, InterruptedException {
+        assertThat(neverThrowing.get(CELL).get()).isEmpty();
+    }
 
     @Test
     public void canGetAfterPue() throws ExecutionException, InterruptedException {
@@ -111,7 +117,9 @@ public class CassandraImitatingConsensusForgettingStoreTest {
                 sometimesThrowing.setProbabilityOfFailure(PROBABILITY_THROWING_ON_QUORUM_HALF);
             }
         }
+        // expected half succeed
         assertThat(numberOfSuccessfulPue).isBetween(30, 70);
+        // too lazy to calculate exactly, rough estimates
         assertThat(numberOfNothingPresent).isBetween(5, 35);
         assertThat(numberOfValuePresentAfterFailure).isBetween(15, 50);
     }

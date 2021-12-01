@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -44,14 +45,16 @@ import org.assertj.core.util.Streams;
 import org.immutables.value.Value;
 
 /**
- * This class simlates behaviour of Cassandra. In particular, the following :
+ * This class simulates behaviour of Cassandra. In particular, the following:
  * 1. Whenever a read operation on a quorum of nodes encounters mismatched values, the latest (as determined by its
- *    timestamp) written value is determined ot be the true value and the out of sync nodes are updated synchronously
+ *    timestamp) written value is determined to be the true value and the out of sync nodes are updated synchronously
  *    before returning.
  * 2. Only a single PuE/CaS can be executed for a given cell at any one time
  * 3. PuE/CaS are atomic: after the read that checks current values, it is guaranteed those values will not change until
  *    the write succeeds or the method throws.
  * 4. Any write operation, including the write from (1) can succeed on some number of nodes and then fail.
+ * 5. We assume that replication equals the whole cluster. In practice there are issues around range movements but the
+ *    consensus forgetting store doesn't handle that case.
  */
 public class CassandraImitatingConsensusForgettingStore implements ConsensusForgettingStore {
     private static final int NUM_NODES = 5;
@@ -176,10 +179,8 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         Set<Optional<BytesAndTimestamp>> reads = quorumNodes.stream()
                 .map(node -> Optional.ofNullable(node.get(cell)))
                 .collect(Collectors.toSet());
-        Optional<BytesAndTimestamp> result = reads.stream()
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .max(Comparator.comparing(BytesAndTimestamp::timestamp));
+        Optional<BytesAndTimestamp> result =
+                reads.stream().flatMap(Optional::stream).max(Comparator.comparing(BytesAndTimestamp::timestamp));
         if (reads.size() > 1) {
             runStateMutatingTaskOnNodes(cell, quorumNodes, node -> node.tryUpdateTo(cell, result.get()));
         }
@@ -193,16 +194,17 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
     }
 
     private void writeToQuorum(Cell cell, Set<Node> quorumNodes, byte[] value) {
-        ImmutableBytesAndTimestamp tsValue = ImmutableBytesAndTimestamp.of(value, timestamps.getAndIncrement());
+        BytesAndTimestamp tsValue = ImmutableBytesAndTimestamp.of(value, timestamps.getAndIncrement());
         runTaskOnNodesMaybeFail(quorumNodes, node -> {
             node.put(cell, tsValue);
         });
     }
 
     private Set<Node> getQuorumNodes() {
-        List<Integer> indices = IntStream.range(0, NUM_NODES).boxed().collect(Collectors.toList());
-        Collections.shuffle(indices);
-        return IntStream.range(0, QUORUM).mapToObj(indices::get).map(nodes::get).collect(Collectors.toSet());
+        return nodes.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(ArrayList::new), list -> {
+            Collections.shuffle(list);
+            return ImmutableSet.copyOf(list.subList(0, QUORUM));
+        }));
     }
 
     private void runAtomically(Cell cell, Runnable task) {
@@ -240,19 +242,18 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
     }
 
     @Value.Immutable
-    interface BytesAndTimestamp extends Comparable<BytesAndTimestamp> {
+    interface BytesAndTimestamp {
         @Value.Parameter
         byte[] bytes();
 
         @Value.Parameter
         long timestamp();
 
-        @Override
-        default int compareTo(BytesAndTimestamp other) {
+        default boolean isAfter(BytesAndTimestamp other) {
             if (other == null) {
-                return 1;
+                return true;
             }
-            return Comparator.comparing(BytesAndTimestamp::timestamp).compare(this, other);
+            return Comparator.comparing(BytesAndTimestamp::timestamp).compare(this, other) > 0;
         }
     }
 
@@ -269,7 +270,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
 
         private void tryUpdateTo(Cell cell, BytesAndTimestamp value) {
             data.compute(cell, (passedCell, oldValue) -> {
-                if (value.compareTo(oldValue) > 0) {
+                if (value.isAfter(oldValue)) {
                     return value;
                 }
                 return oldValue;
