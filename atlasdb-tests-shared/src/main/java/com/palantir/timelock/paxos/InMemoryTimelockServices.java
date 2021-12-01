@@ -33,6 +33,7 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockLeaseService;
@@ -249,6 +250,9 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
 
     public TimelockService getLegacyTimelockService() {
         TransactionStarter transactionStarter = TransactionStarter.create(lockLeaseService, requestBatchersFactory);
-        return new DelegatingTimelockService(transactionStarter, lockLeaseService, getTimelockService());
+        CommitTimestampGetter commitTimestampGetter =
+                requestBatchersFactory.createBatchingCommitTimestampGetter(lockLeaseService);
+        return new DelegatingTimelockService(
+                transactionStarter, lockLeaseService, getTimelockService(), commitTimestampGetter);
     }
 }

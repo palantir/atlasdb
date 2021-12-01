@@ -19,6 +19,7 @@ package com.palantir.timelock.paxos;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.TransactionStarter;
@@ -41,12 +42,17 @@ final class DelegatingTimelockService implements TimelockService {
     private final TransactionStarter transactionStarter;
     private final LockLeaseService lockLeaseService;
     private final AsyncTimelockService timelock;
+    private final CommitTimestampGetter commitTimestampGetter;
 
     public DelegatingTimelockService(
-            TransactionStarter transactionStarter, LockLeaseService lockLeaseService, AsyncTimelockService timelock) {
+            TransactionStarter transactionStarter,
+            LockLeaseService lockLeaseService,
+            AsyncTimelockService timelock,
+            CommitTimestampGetter commitTimestampGetter) {
         this.transactionStarter = transactionStarter;
         this.lockLeaseService = lockLeaseService;
         this.timelock = timelock;
+        this.commitTimestampGetter = commitTimestampGetter;
     }
 
     @Override
