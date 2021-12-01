@@ -31,6 +31,9 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
     private static final byte[] STAGING = new byte[] {0};
     private static final byte[] COMMITTED = new byte[] {1};
 
+    public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
+            EncodingUtils.add(TicketsEncodingStrategy.ABORTED_TRANSACTION_VALUE, COMMITTED);
+
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTimestamp);

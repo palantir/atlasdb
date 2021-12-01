@@ -1,6 +1,8 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+    implementation project(':atlasdb-cassandra')
+    implementation project(':atlasdb-client')
     implementation project(':atlasdb-config')
     implementation project(':timelock-api:timelock-api-objects')
 
