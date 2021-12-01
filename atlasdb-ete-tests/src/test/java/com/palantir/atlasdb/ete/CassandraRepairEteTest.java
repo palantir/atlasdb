@@ -90,7 +90,7 @@ public class CassandraRepairEteTest {
         assertThat(inetSocketAddresses).isNotEmpty();
 
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
-                cassandraRepairHelper.getRangesToRepair(Namespace.of("namespace"), "doesNotMatter");
+                cassandraRepairHelper.getRangesToRepair(Namespace.of("ns"), "table1");
         assertThat(ranges).isNotEmpty();
     }
 }
