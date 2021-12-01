@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("CompileTimeConstant") // Temporary
 public final class CqlCluster {
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCluster.class);
 
@@ -90,8 +91,12 @@ public final class CqlCluster {
         try (Session session = cluster.connect()) {
             Metadata metadata = session.getCluster().getMetadata();
             String keyspaceName = config.getKeyspaceOrThrow();
+            log.debug("Keyspace " + keyspaceName);
             KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
+            log.debug("KeyspaceMetadata: " + keyspace.exportAsString());
             TableMetadata tableMetadata = keyspace.getTable(tableName);
+            log.debug("TableMetadata for " + tableName + ": "
+                    + (tableMetadata != null ? tableMetadata.exportAsString() : "null"));
             Set<Token> partitionTokens = getPartitionTokens(session, tableMetadata);
             Map<InetSocketAddress, Set<TokenRange>> tokenRangesByNode =
                     ClusterMetadataUtils.getTokenMapping(getHosts(config), metadata, keyspaceName, partitionTokens);
