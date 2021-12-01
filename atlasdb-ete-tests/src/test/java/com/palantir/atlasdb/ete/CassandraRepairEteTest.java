@@ -28,11 +28,8 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -48,7 +45,6 @@ public class CassandraRepairEteTest {
     private static final byte[] CONTENTS = PtBytes.toBytes("default_value");
 
     private CassandraRepairHelper cassandraRepairHelper;
-    private CassandraService cassandraService;
     private CassandraKeyValueService kvs;
 
     @Before
@@ -60,23 +56,6 @@ public class CassandraRepairEteTest {
         CassandraKeyValueServiceConfig config = ThreeNodeCassandraCluster.KVS_CONFIG;
         kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
-
-        cassandraService = new CassandraService(
-                metricsManager, config, new Blacklist(config), new CassandraClientPoolMetrics(metricsManager));
-        cassandraService.cacheInitialCassandraHosts();
-        // config.servers()
-        //         .accept(new Visitor<Set<InetSocketAddress>>() {
-        //             @Override
-        //             public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
-        //                 return defaultConfig.thriftHosts();
-        //             }
-        //
-        //             @Override
-        //             public Set<InetSocketAddress> visit(CqlCapableConfig cqlCapableConfig) {
-        //                 return cqlCapableConfig.thriftHosts();
-        //             }
-        //         })
-        //         .forEach(cassandraService::addPool);
     }
 
     @Test
@@ -85,9 +64,6 @@ public class CassandraRepairEteTest {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
         kvs.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.putUnlessExists(table1, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
-
-        Set<InetSocketAddress> inetSocketAddresses = cassandraService.refreshTokenRangesAndGetServers();
-        assertThat(inetSocketAddresses).isNotEmpty();
 
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
                 cassandraRepairHelper.getRangesToRepair(Namespace.of("ns"), "table1");
