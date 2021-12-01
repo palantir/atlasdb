@@ -19,7 +19,7 @@ import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -47,7 +47,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
     public static ImmutableCassandraKeyValueServiceConfig getKvsConfig(int replicationFactor) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableDefaultConfig.builder()
+                .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
                                 new InetSocketAddress(
                                         FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
@@ -55,6 +55,13 @@ public class ThreeNodeCassandraCluster extends Container {
                                         SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
                                 new InetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
+                        .addCqlHosts(
+                                new InetSocketAddress(
+                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
+                                new InetSocketAddress(
+                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
+                                new InetSocketAddress(
+                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
                 .poolSize(20)
                 .keyspace("atlasdb")

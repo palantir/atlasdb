@@ -75,8 +75,7 @@ public final class CqlCluster {
         return config.servers().accept(new Visitor<>() {
             @Override
             public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
-                // TODO(gs): fail instead here? can we assume CQL support?
-                return defaultConfig.thriftHosts();
+                throw new IllegalStateException("Attempting to set up CqlCluster with thrift config!");
             }
 
             @Override
