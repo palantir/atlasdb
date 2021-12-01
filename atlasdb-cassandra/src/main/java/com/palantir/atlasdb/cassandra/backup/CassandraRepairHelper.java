@@ -107,9 +107,10 @@ public class CassandraRepairHelper {
         log.debug("Inverting ranges: " + rangeListMap.size());
         rangeListMap.forEach((range, addresses) -> addresses.forEach(addr -> {
             Set<LightweightOppTokenRange> existingRanges = invertedMap.getOrDefault(addr, new HashSet<>());
-            existingRanges.add(toTokenRange(range));
+            LightweightOppTokenRange lwRange = toTokenRange(range);
+            existingRanges.add(lwRange);
             invertedMap.put(addr, existingRanges);
-            log.debug("Adding range for host " + addr);
+            log.debug("Adding range for host " + addr + ": " + lwRange.left() + "-" + lwRange.right());
         }));
         log.debug("Returning invertedMap: " + invertedMap.size());
 

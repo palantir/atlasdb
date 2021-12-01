@@ -140,11 +140,11 @@ public class CassandraService implements AutoCloseable {
                     LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
                             .decode(tokenRange.getEnd_token().toUpperCase()));
                     if (startToken.compareTo(endToken) <= 0) {
-                        log.debug("Adding token to ring");
+                        log.debug("Adding token to ring: " + startToken + " to " + endToken);
                         newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
                     } else {
                         // Handle wrap-around
-                        log.debug("Adding wraparound token to ring");
+                        log.debug("Adding wraparound token to ring: " + startToken + " to " + endToken);
                         newTokenRing.put(Range.greaterThan(startToken), hosts);
                         newTokenRing.put(Range.atMost(endToken), hosts);
                     }
