@@ -181,27 +181,6 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         assertNoEntryForCellInKvs(TABLE_CONS, TEST_CELL);
     }
 
-    /**
-     * After this method returns successfully, there has existed some point in time when the immutable timestamp from
-     * the {@link #serializableTxManager} was strictly greater than the timestamp parameter that was passed. In the
-     * absence of concurrent transaction starts, this also means that the immutable timestamp will be
-     * strictly greater than the timestamp parameter going forward.
-     *
-     * Note that in the general case, this does not guarantee that the immutable timestamp is currently greater than
-     * the timestamp parameter in the presence of concurrent transaction starts, since under certain scheduling
-     * conditions it may go backwards.
-     *
-     * The purpose of this method is to ensure that, for tests that assert that Sweep has deleted values written in a
-     * given transaction, that that transaction has released its immutable timestamp lock. This happens
-     * asynchronously, and thus an explicit wait is needed to avoid race conditions.
-     */
-    private void waitForImmutableTimestampToBeStrictlyGreaterThan(long timestampToBePassed) {
-        Awaitility.await()
-                .atMost(5, TimeUnit.SECONDS)
-                .pollInterval(10, TimeUnit.MILLISECONDS)
-                .until(() -> timestampToBePassed < serializableTxManager.getImmutableTimestamp());
-    }
-
     @Test
     public void sweepRetainsLatestVersion() {
         useOneSweepQueueShard();
@@ -336,5 +315,26 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     private void sweepNextBatch(ShardAndStrategy shardStrategy) {
         sweepQueue.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampSupplier));
+    }
+
+    /**
+     * After this method returns successfully, we know that there has existed some point in time when the immutable
+     * timestamp from the {@link #serializableTxManager} was strictly greater than the timestamp parameter that was
+     * passed. In the absence of concurrent transaction starts, this also means that the immutable timestamp will be
+     * strictly greater than the timestamp parameter going forward.
+     *
+     * Note that in the general case, this does not guarantee that the immutable timestamp is currently greater than
+     * the timestamp parameter in the presence of concurrent transaction starts, since under certain scheduling
+     * conditions it may go backwards.
+     *
+     * The purpose of this method is to ensure that, for tests that assert that Sweep has deleted values written in a
+     * given transaction, that that transaction has released its immutable timestamp lock (and so Sweep can make
+     * progress). Releasing this lock happens asynchronously, thus an explicit wait is needed to avoid race conditions.
+     */
+    private void waitForImmutableTimestampToBeStrictlyGreaterThan(long timestampToBePassed) {
+        Awaitility.await()
+                .atMost(5, TimeUnit.SECONDS)
+                .pollInterval(10, TimeUnit.MILLISECONDS)
+                .until(() -> timestampToBePassed < serializableTxManager.getImmutableTimestamp());
     }
 }
