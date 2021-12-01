@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -43,6 +44,8 @@ public class CassandraRepairEteTest {
     private static final byte[] FIRST_COLUMN = PtBytes.toBytes("col1");
     private static final Cell NONEMPTY_CELL = Cell.create(PtBytes.toBytes("nonempty"), FIRST_COLUMN);
     private static final byte[] CONTENTS = PtBytes.toBytes("default_value");
+    private static final String NAMESPACE = "ns";
+    private static final String TABLE_1 = "table1";
 
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
@@ -54,19 +57,40 @@ public class CassandraRepairEteTest {
 
         CassandraKeyValueServiceConfig config = ThreeNodeCassandraCluster.getKvsConfig(2);
         kvs = CassandraKeyValueServiceImpl.createForTesting(config);
+
+        TableReference table1 =
+                TableReference.create(com.palantir.atlasdb.keyvalue.api.Namespace.create(NAMESPACE), TABLE_1);
+        kvs.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.putUnlessExists(table1, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
+
         cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
     }
 
     @Test
-    public void shouldGetATokenRange() {
-        // TODO(gs): before?
-        TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
-        kvs.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.putUnlessExists(table1, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
-
+    public void getThriftTokenRange() {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
-                cassandraRepairHelper.getRangesToRepair(Namespace.of("ns"), "table1");
+                cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
         assertThat(ranges).isNotEmpty();
-        // TODO(gs): check cql range is equal
+    }
+
+    @Test
+    public void getCqlTokenRange() {
+        Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
+                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), TABLE_1);
+        assertThat(ranges).isNotEmpty();
+    }
+
+    @Test
+    public void equalRanges() {
+        Map<InetSocketAddress, Set<LightweightOppTokenRange>> thriftRanges =
+                cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
+
+        Map<InetSocketAddress, Set<LightweightOppTokenRange>> cqlRanges =
+                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), TABLE_1);
+
+        KeyedStream.stream(thriftRanges).forEach((addr, range) -> {
+            Set<LightweightOppTokenRange> cqlRange = cqlRanges.get(addr);
+            assertThat(range).isEqualTo(cqlRange);
+        });
     }
 }

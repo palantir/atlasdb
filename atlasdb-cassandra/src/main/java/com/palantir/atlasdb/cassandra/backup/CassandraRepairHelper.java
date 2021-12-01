@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.utils.Bytes;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
@@ -128,16 +127,16 @@ public class CassandraRepairHelper {
         return rangeBuilder.build();
     }
 
-    @VisibleForTesting
-    Map<InetSocketAddress, Set<TokenRange>> getRangesToRepairCql(Namespace namespace, String tableName) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        return CqlCluster.create(config).getTokenRanges(tableName);
-    }
-
-    Map<InetSocketAddress, Set<LightweightOppTokenRange>> getLwRangesToRepairCql(
+    // VisibleForTesting
+    public Map<InetSocketAddress, Set<LightweightOppTokenRange>> getLwRangesToRepairCql(
             Namespace namespace, String tableName) {
         Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getRangesToRepairCql(namespace, tableName);
         return KeyedStream.stream(tokenRanges).map(this::makeLightweight).collectToMap();
+    }
+
+    private Map<InetSocketAddress, Set<TokenRange>> getRangesToRepairCql(Namespace namespace, String tableName) {
+        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
+        return CqlCluster.create(config).getTokenRanges(tableName);
     }
 
     private Set<LightweightOppTokenRange> makeLightweight(Set<TokenRange> tokenRanges) {
