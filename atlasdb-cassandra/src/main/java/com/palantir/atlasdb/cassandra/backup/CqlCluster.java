@@ -35,6 +35,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
 import com.palantir.atlasdb.cassandra.proxy.SocksProxyNettyOptions;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
@@ -75,7 +76,7 @@ public final class CqlCluster {
         return config.servers().accept(new Visitor<>() {
             @Override
             public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
-                throw new IllegalStateException("Attempting to set up CqlCluster with thrift config!");
+                throw new SafeIllegalStateException("Attempting to set up CqlCluster with thrift config!");
             }
 
             @Override
