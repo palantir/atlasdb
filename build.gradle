@@ -104,7 +104,6 @@ allprojects {
         // temporarily relax constraints until we can fix all violations
         options.errorprone.disable 'CloseableProvides',
                 'DangerousCompletableFutureUsage',
-                'DnsLookup',
                 'EqualsGetClass',
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
