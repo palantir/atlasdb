@@ -21,9 +21,16 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.policies.RetryPolicy;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public interface TransactionsTableInteraction {
+    int LONG_READ_TIMEOUT_MS = (int) TimeUnit.MINUTES.toMillis(2);
     // reduce this from default because we run CleanTransactionsTableTask across N keyspaces at the same time
     int SELECT_TRANSACTIONS_FETCH_SIZE = 1_000;
 
@@ -44,4 +51,24 @@ public interface TransactionsTableInteraction {
     boolean isRowAbortedTransaction(Row row);
 
     List<Statement> createSelectStatements(TableMetadata transactionsTable);
+
+    static List<TransactionsTableInteraction> getTransactionTableInteractions(
+            Map<FullyBoundedTimestampRange, Integer> coordinationMap, RetryPolicy abortRetryPolicy) {
+        return coordinationMap.entrySet().stream()
+                .map(entry -> {
+                    switch (entry.getValue()) {
+                        case 1:
+                            return new Transactions1TableInteraction(entry.getKey(), abortRetryPolicy);
+                        case 2:
+                            return new Transactions2TableInteraction(entry.getKey(), abortRetryPolicy);
+                        case 3:
+                            return new Transactions3TableInteraction(entry.getKey(), abortRetryPolicy);
+                        default:
+                            throw new SafeIllegalArgumentException(
+                                    "Found unsupported transactions schema version",
+                                    SafeArg.of("transactionsSchema", entry.getValue()));
+                    }
+                })
+                .collect(Collectors.toList());
+    }
 }

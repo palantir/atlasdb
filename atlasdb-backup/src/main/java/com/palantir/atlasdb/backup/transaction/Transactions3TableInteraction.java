@@ -29,7 +29,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
+import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
@@ -39,17 +39,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// todo(gmaretic): verify everything is correct when we migrate to transactions 3 in the middle of the row
 public class Transactions3TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
     private final RetryPolicy abortRetryPolicy;
-    private final int longReadTimeoutMs;
 
-    public Transactions3TableInteraction(
-            FullyBoundedTimestampRange timestampRange, RetryPolicy abortRetryPolicy, int longReadTimeoutMs) {
+    public Transactions3TableInteraction(FullyBoundedTimestampRange timestampRange, RetryPolicy abortRetryPolicy) {
         this.timestampRange = timestampRange;
         this.abortRetryPolicy = abortRetryPolicy;
-        this.longReadTimeoutMs = longReadTimeoutMs;
     }
 
     @Override
@@ -71,13 +67,10 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .with(QueryBuilder.set(CassandraConstants.VALUE, abortCommitTsBb))
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
-                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_TAS_TABLE_TIMESTAMP))
-                .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
+                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP));
         // if you change this from CAS then you must update RetryPolicy
         return session.prepare(abortStatement.toString());
     }
-
-    // todo(gmaretic): fix rest
 
     @Override
     public PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, Session session) {
@@ -85,47 +78,49 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .from(transactionsTable)
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
-                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_TAS_TABLE_TIMESTAMP));
+                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP));
         return session.prepare(checkStatement.toString());
     }
 
     @Override
     public TransactionTableEntry extractTimestamps(Row row) {
-        long startTimestamp = TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
+        long startTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        if (isRowAbortedTransaction(row)) {
+        long commitTimestamp = TwoPhaseEncodingStrategy.INSTANCE
+                .decodeValueAsCommitTimestamp(startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)))
+                .value();
+        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
             return new TransactionTableEntry(startTimestamp, Optional.empty());
         }
-        long commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
-                startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
+
         return new TransactionTableEntry(startTimestamp, Optional.of(commitTimestamp));
     }
 
     @Override
     public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, long _commitTs) {
-        Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
+        Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
         BoundStatement bound = preparedCheckStatement.bind(rowKeyBb, columnNameBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
-                .setReadTimeoutMillis(longReadTimeoutMs)
+                .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setRetryPolicy(DefaultRetryPolicy.INSTANCE);
     }
 
     @Override
     public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, long commitTs) {
-        Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
+        Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
-        ByteBuffer valueBb =
-                ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs));
-        BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
+        BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
-                .setDefaultTimestamp(CassandraConstants.CAS_TABLE_TIMESTAMP)
-                .setReadTimeoutMillis(longReadTimeoutMs)
+                // todo(gmaretic): verify this actually works as intended
+                // we must be more recent than the puts
+                .setDefaultTimestamp(KvsConsensusForgettingStore.PUT_TIMESTAMP + 1)
+                .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients
                 .setRetryPolicy(abortRetryPolicy);
     }
@@ -134,12 +129,12 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     public boolean isRowAbortedTransaction(Row row) {
         return Arrays.equals(
                 Bytes.getArray(row.getBytes(CassandraConstants.VALUE)),
-                TicketsEncodingStrategy.ABORTED_TRANSACTION_VALUE);
+                TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_COMMITTED_VALUE);
     }
 
     @Override
     public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
-        Set<ByteBuffer> encodedRowKeys = TicketsEncodingStrategy.INSTANCE
+        Set<ByteBuffer> encodedRowKeys = TwoPhaseEncodingStrategy.INSTANCE
                 .encodeRangeOfStartTimestampsAsRows(
                         timestampRange.inclusiveLowerBound(), timestampRange.inclusiveUpperBound())
                 .map(ByteBuffer::wrap)
@@ -149,9 +144,10 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                         .all()
                         .from(transactionsTable)
                         .where(QueryBuilder.eq(CassandraConstants.ROW, rowKey))
-                        .setConsistencyLevel(ConsistencyLevel.QUORUM)
+                        // we must check all nodes because of potential partial PuE
+                        .setConsistencyLevel(ConsistencyLevel.ALL)
                         .setFetchSize(SELECT_TRANSACTIONS_FETCH_SIZE)
-                        .setReadTimeoutMillis(longReadTimeoutMs))
+                        .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS))
                 .collect(Collectors.toList());
     }
 }

@@ -75,7 +75,7 @@ public final class CassandraConstants {
     public static final String VALUE = "value";
 
     public static final long CAS_TABLE_TIMESTAMP = 0L;
-    public static final long ENCODED_TAS_TABLE_TIMESTAMP = ~CAS_TABLE_TIMESTAMP;
+    public static final long ENCODED_CAS_TABLE_TIMESTAMP = ~CAS_TABLE_TIMESTAMP;
 
     private CassandraConstants() {
         // Utility class

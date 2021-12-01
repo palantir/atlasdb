@@ -42,13 +42,10 @@ import java.util.stream.Collectors;
 public class Transactions2TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
     private final RetryPolicy abortRetryPolicy;
-    private final int longReadTimeoutMs;
 
-    public Transactions2TableInteraction(
-            FullyBoundedTimestampRange timestampRange, RetryPolicy abortRetryPolicy, int longReadTimeoutMs) {
+    public Transactions2TableInteraction(FullyBoundedTimestampRange timestampRange, RetryPolicy abortRetryPolicy) {
         this.timestampRange = timestampRange;
         this.abortRetryPolicy = abortRetryPolicy;
-        this.longReadTimeoutMs = longReadTimeoutMs;
     }
 
     @Override
@@ -69,7 +66,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
                 .with(QueryBuilder.set(CassandraConstants.VALUE, abortCommitTsBb))
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
-                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_TAS_TABLE_TIMESTAMP))
+                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
                 .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
         // if you change this from CAS then you must update RetryPolicy
         return session.prepare(abortStatement.toString());
@@ -81,7 +78,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
                 .from(transactionsTable)
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
-                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_TAS_TABLE_TIMESTAMP));
+                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP));
         return session.prepare(checkStatement.toString());
     }
 
@@ -106,7 +103,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
         BoundStatement bound = preparedCheckStatement.bind(rowKeyBb, columnNameBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
-                .setReadTimeoutMillis(longReadTimeoutMs)
+                .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setRetryPolicy(DefaultRetryPolicy.INSTANCE);
     }
 
@@ -121,7 +118,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
                 .setDefaultTimestamp(CassandraConstants.CAS_TABLE_TIMESTAMP)
-                .setReadTimeoutMillis(longReadTimeoutMs)
+                .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients
                 .setRetryPolicy(abortRetryPolicy);
     }
@@ -145,9 +142,9 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
                         .all()
                         .from(transactionsTable)
                         .where(QueryBuilder.eq(CassandraConstants.ROW, rowKey))
-                        .setConsistencyLevel(ConsistencyLevel.QUORUM)
+                        .setConsistencyLevel(ConsistencyLevel.ALL)
                         .setFetchSize(SELECT_TRANSACTIONS_FETCH_SIZE)
-                        .setReadTimeoutMillis(longReadTimeoutMs))
+                        .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS))
                 .collect(Collectors.toList());
     }
 }

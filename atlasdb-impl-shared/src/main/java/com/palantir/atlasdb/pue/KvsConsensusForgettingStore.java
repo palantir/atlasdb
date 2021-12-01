@@ -21,13 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.*;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
@@ -42,7 +36,7 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
      * responsibility of the user of this class to verify that this is true for the particular KVS implementation,
      * which it is and must remain so for the Cassandra KVS.
      */
-    private static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
+    public static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
 
     private final KeyValueService kvs;
     private final TableReference tableRef;

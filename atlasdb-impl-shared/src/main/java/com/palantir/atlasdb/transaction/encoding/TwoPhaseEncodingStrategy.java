@@ -24,6 +24,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnlessExistsValue<Long>> {
     INSTANCE;
@@ -65,6 +66,10 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
         }
 
         throw new SafeIllegalArgumentException("Unknown commit state.", SafeArg.of("bytes", Arrays.toString(tail)));
+    }
+
+    public Stream<byte[]> encodeRangeOfStartTimestampsAsRows(long fromInclusive, long toInclusive) {
+        return TicketsEncodingStrategy.INSTANCE.encodeRangeOfStartTimestampsAsRows(fromInclusive, toInclusive);
     }
 
     public byte[] transformStagingToCommitted(byte[] stagingValue) {

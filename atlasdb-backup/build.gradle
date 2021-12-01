@@ -6,6 +6,7 @@ dependencies {
     implementation project(':atlasdb-config')
     implementation project(':timelock-api:timelock-api-objects')
 
+    implementation 'com.palantir.common:streams'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
 
