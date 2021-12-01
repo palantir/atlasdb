@@ -20,6 +20,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.TransactionStarter;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -35,12 +36,16 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import java.util.Set;
 
+@SuppressWarnings("unused") // temporary while wiring
 final class DelegatingTimelockService implements TimelockService {
     private final TransactionStarter transactionStarter;
+    private final LockLeaseService lockLeaseService;
     private final AsyncTimelockService timelock;
 
-    public DelegatingTimelockService(TransactionStarter transactionStarter, AsyncTimelockService timelock) {
+    public DelegatingTimelockService(
+            TransactionStarter transactionStarter, LockLeaseService lockLeaseService, AsyncTimelockService timelock) {
         this.transactionStarter = transactionStarter;
+        this.lockLeaseService = lockLeaseService;
         this.timelock = timelock;
     }
 

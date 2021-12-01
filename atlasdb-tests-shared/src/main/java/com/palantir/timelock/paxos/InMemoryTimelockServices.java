@@ -249,6 +249,6 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
 
     public TimelockService getLegacyTimelockService() {
         TransactionStarter transactionStarter = TransactionStarter.create(lockLeaseService, requestBatchersFactory);
-        return new DelegatingTimelockService(transactionStarter, getTimelockService());
+        return new DelegatingTimelockService(transactionStarter, lockLeaseService, getTimelockService());
     }
 }
