@@ -36,7 +36,6 @@ import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
@@ -99,14 +98,14 @@ public class CassandraRepairHelper {
             RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> invertedMap = new HashMap<>();
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> rangeListMap = tokenMap.asMapOfRanges();
-        log.debug("Inverting ranges", SafeArg.of("size", rangeListMap.size()));
+        log.debug("Inverting ranges: " + rangeListMap.size());
         rangeListMap.forEach((range, addresses) -> addresses.forEach(addr -> {
             Set<LightweightOppTokenRange> existingRanges = invertedMap.getOrDefault(addr, new HashSet<>());
             existingRanges.add(toTokenRange(range));
             invertedMap.put(addr, existingRanges);
-            log.debug("Adding range for", SafeArg.of("host", addr));
+            log.debug("Adding range for host " + addr);
         }));
-        log.debug("Returning invertedMap");
+        log.debug("Returning invertedMap: " + invertedMap.size());
 
         return invertedMap;
     }

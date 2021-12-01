@@ -117,7 +117,7 @@ public class CassandraService implements AutoCloseable {
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
             localHosts = refreshLocalHosts(tokenRanges);
-            log.debug("Got some token ranges", SafeArg.of("numTokenRanges", tokenRanges.size()));
+            log.debug("Got some token ranges: " + tokenRanges.size());
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -149,13 +149,11 @@ public class CassandraService implements AutoCloseable {
                     }
                 }
             }
-            log.debug(
-                    "Interning token map - size before",
-                    SafeArg.of("size", tokenMap.asMapOfRanges().size()));
+            log.debug("Interning token map - size before: "
+                    + tokenMap.asMapOfRanges().size());
             tokenMap = tokensInterner.intern(newTokenRing.build());
-            log.debug(
-                    "Interning token map - size after",
-                    SafeArg.of("size", tokenMap.asMapOfRanges().size()));
+            log.debug("Interning token map - size after: "
+                    + tokenMap.asMapOfRanges().size());
             return servers;
         } catch (Exception e) {
             log.info(
@@ -301,7 +299,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
-        log.debug("getTokenMap()");
+        log.debug("getTokenMap(): size " + tokenMap.asMapOfRanges().size());
         return tokenMap;
     }
 
