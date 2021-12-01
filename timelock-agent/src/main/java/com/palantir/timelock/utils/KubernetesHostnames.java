@@ -31,6 +31,7 @@ import java.util.stream.IntStream;
 
 public final class KubernetesHostnames {
 
+    @SuppressWarnings("ReverseDnsLookup") // This does a network request, but is only ever called once.
     public static final KubernetesHostnames INSTANCE = new KubernetesHostnames(() -> {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName();

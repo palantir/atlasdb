@@ -32,7 +32,8 @@ import java.util.Map;
 public interface PutUnlessExistsTable<K, V> {
     /**
      * Atomic put unless exists. If the method does not throw, any subsequent get is guaranteed to return V. If the
-     * method throws an exception, subsequent gets may return V or null but all gets are guaranteed to be consistent.
+     * method throws an exception, subsequent gets may return either V or null but once V is returned subsequent calls
+     * are guaranteed to return V.
      */
     default void putUnlessExists(K key, V value) throws KeyAlreadyExistsException {
         putUnlessExistsMultiple(ImmutableMap.of(key, value));
