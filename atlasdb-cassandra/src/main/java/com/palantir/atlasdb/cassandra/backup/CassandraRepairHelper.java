@@ -89,6 +89,11 @@ public class CassandraRepairHelper {
         Blacklist blacklist = new Blacklist(config);
         CassandraService cassandraService =
                 new CassandraService(metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
+
+        // janky init stuff
+        cassandraService.cacheInitialCassandraHosts();
+        cassandraService.refreshTokenRangesAndGetServers();
+
         @SuppressWarnings("UnstableApiUsage")
         RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = cassandraService.getTokenMap();
         return invert(tokenMap);
