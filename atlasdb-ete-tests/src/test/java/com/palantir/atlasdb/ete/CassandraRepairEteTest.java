@@ -37,6 +37,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,6 +47,8 @@ public class CassandraRepairEteTest {
     private static final byte[] CONTENTS = PtBytes.toBytes("default_value");
     private static final String NAMESPACE = "ns";
     private static final String TABLE_1 = "table1";
+    private static final TableReference TABLE_REF =
+            TableReference.create(com.palantir.atlasdb.keyvalue.api.Namespace.create(NAMESPACE), TABLE_1);
 
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
@@ -58,12 +61,15 @@ public class CassandraRepairEteTest {
         CassandraKeyValueServiceConfig config = ThreeNodeCassandraCluster.getKvsConfig(2);
         kvs = CassandraKeyValueServiceImpl.createForTesting(config);
 
-        TableReference table1 =
-                TableReference.create(com.palantir.atlasdb.keyvalue.api.Namespace.create(NAMESPACE), TABLE_1);
-        kvs.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.putUnlessExists(table1, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
+        kvs.createTable(TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
 
         cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
+    }
+
+    @After
+    public void tearDown() {
+        kvs.dropTable(TABLE_REF);
     }
 
     @Test
