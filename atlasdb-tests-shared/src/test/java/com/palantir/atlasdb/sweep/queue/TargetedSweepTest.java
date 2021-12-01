@@ -320,16 +320,21 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     /**
      * After this method returns successfully, we know that there has existed some point in time when the immutable
      * timestamp from the {@link #serializableTxManager} was strictly greater than the timestamp parameter that was
-     * passed. In the absence of concurrent transaction starts, this also means that the immutable timestamp will be
-     * strictly greater than the timestamp parameter going forward.
+     * passed. ote that in the general case, this does not guarantee that the immutable timestamp is currently
+     * greater than the timestamp parameter in the presence of concurrent transaction starts. This is because it may
+     * go backwards under certain (non-deterministic) scheduling conditions. Writers of sweep tests must ensure that
+     * this is the case when writing their tests.
      *
-     * Note that in the general case, this does not guarantee that the immutable timestamp is currently greater than
-     * the timestamp parameter in the presence of concurrent transaction starts, since under certain scheduling
-     * conditions it may go backwards.
+     * In the absence of concurrent transaction starts, however, this does guarantee that the immutable timestamp
+     * will be strictly greater than the timestamp parameter going forward. Test writers must ensure this is the case
+     * if they wish to meaningfully use this method.
      *
-     * The purpose of this method is to ensure that, for tests that assert that Sweep has deleted values written in a
-     * given transaction, that that transaction has released its immutable timestamp lock (and so Sweep can make
-     * progress). Releasing this lock happens asynchronously, thus an explicit wait is needed to avoid race conditions.
+     * Some tests assert that Sweep has deleted values written by a given transaction. This requires the immutable
+     * timestamp to have progressed past the start timestamp of said transaction, which in turn requires that that
+     * transaction has released its immutable timestamp lock. Releasing this lock happens asynchronously.
+     *
+     * We thus perform an explicit wait before any iterations of Sweep which change state in a way that assertions
+     * depend on.
      */
     private void waitForImmutableTimestampToBeStrictlyGreaterThan(long timestampToBePassed) {
         Awaitility.await()
