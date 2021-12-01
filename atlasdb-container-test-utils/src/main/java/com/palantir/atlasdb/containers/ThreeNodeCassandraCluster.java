@@ -42,25 +42,30 @@ public class ThreeNodeCassandraCluster extends Container {
             .password("password")
             .build();
 
-    public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .servers(ImmutableDefaultConfig.builder()
-                    .addThriftHosts(
-                            new InetSocketAddress(
-                                    FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                            new InetSocketAddress(
-                                    SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                            new InetSocketAddress(
-                                    THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
-                    .build())
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .replicationFactor(3)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .autoRefreshNodes(false)
-            .credentials(CREDENTIALS)
-            .build();
+    private static final int DEFAULT_REPLICATION_FACTOR = 3;
+    public static final CassandraKeyValueServiceConfig KVS_CONFIG = getKvsConfig(DEFAULT_REPLICATION_FACTOR);
+
+    public static ImmutableCassandraKeyValueServiceConfig getKvsConfig(int replicationFactor) {
+        return ImmutableCassandraKeyValueServiceConfig.builder()
+                .servers(ImmutableDefaultConfig.builder()
+                        .addThriftHosts(
+                                new InetSocketAddress(
+                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
+                                new InetSocketAddress(
+                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
+                                new InetSocketAddress(
+                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
+                        .build())
+                .poolSize(20)
+                .keyspace("atlasdb")
+                .replicationFactor(replicationFactor)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
+                .autoRefreshNodes(false)
+                .credentials(CREDENTIALS)
+                .build();
+    }
 
     @Override
     public String getDockerComposeFile() {

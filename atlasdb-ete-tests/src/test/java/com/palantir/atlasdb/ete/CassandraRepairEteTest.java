@@ -52,8 +52,7 @@ public class CassandraRepairEteTest {
         MetricsManager metricsManager =
                 new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), _unused -> true);
 
-        // TODO(gs): RF2
-        CassandraKeyValueServiceConfig config = ThreeNodeCassandraCluster.KVS_CONFIG;
+        CassandraKeyValueServiceConfig config = ThreeNodeCassandraCluster.getKvsConfig(2);
         kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
     }
@@ -68,5 +67,6 @@ public class CassandraRepairEteTest {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
                 cassandraRepairHelper.getRangesToRepair(Namespace.of("ns"), "table1");
         assertThat(ranges).isNotEmpty();
+        // TODO(gs): check cql range is equal
     }
 }
