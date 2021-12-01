@@ -71,7 +71,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .with(QueryBuilder.set(CassandraConstants.VALUE, abortCommitTsBb))
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
-                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, ENCODED_TRANSACTION_TIMESTAMP))
+                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_TAS_TABLE_TIMESTAMP))
                 .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
         // if you change this from CAS then you must update RetryPolicy
         return session.prepare(abortStatement.toString());
@@ -85,7 +85,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .from(transactionsTable)
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
-                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, ENCODED_TRANSACTION_TIMESTAMP));
+                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_TAS_TABLE_TIMESTAMP));
         return session.prepare(checkStatement.toString());
     }
 

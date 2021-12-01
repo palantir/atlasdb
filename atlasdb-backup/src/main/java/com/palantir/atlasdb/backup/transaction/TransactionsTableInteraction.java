@@ -21,12 +21,9 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import java.util.List;
 
 public interface TransactionsTableInteraction {
-    long ENCODED_TRANSACTION_TIMESTAMP = ~CassandraConstants.CAS_TABLE_TIMESTAMP; // two's complement of 0 is -1
-
     // reduce this from default because we run CleanTransactionsTableTask across N keyspaces at the same time
     int SELECT_TRANSACTIONS_FETCH_SIZE = 1_000;
 
