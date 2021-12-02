@@ -94,7 +94,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
         long startRow =
                 startTimestampToRow(fromInclusive - ((fromInclusive % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM));
         long endRow = startTimestampToRow(
-                toInclusive + ROWS_PER_QUANTUM - ((fromInclusive % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM) - 1);
+                toInclusive + ROWS_PER_QUANTUM - ((toInclusive % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM) - 1);
         return LongStream.rangeClosed(startRow, endRow).mapToObj(TicketsEncodingStrategy::rowToBytes);
     }
 

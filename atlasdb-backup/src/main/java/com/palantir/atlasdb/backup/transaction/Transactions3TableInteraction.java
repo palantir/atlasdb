@@ -33,7 +33,6 @@ import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -127,9 +126,11 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
 
     @Override
     public boolean isRowAbortedTransaction(Row row) {
-        return Arrays.equals(
-                Bytes.getArray(row.getBytes(CassandraConstants.VALUE)),
-                TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_COMMITTED_VALUE);
+        // start timestamp is unimportant
+        return TwoPhaseEncodingStrategy.INSTANCE
+                        .decodeValueAsCommitTimestamp(0, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)))
+                        .value()
+                == TransactionConstants.FAILED_COMMIT_TS;
     }
 
     @Override

@@ -27,15 +27,12 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,12 +45,10 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
         this.abortRetryPolicy = abortRetryPolicy;
     }
 
-    @VisibleForTesting
-    static final byte[] ABORT_COMMIT_TS_ENCODED =
+    private static final byte[] DUMMY = new byte[] {1};
+    private static final byte[] ABORT_COMMIT_TS_ENCODED =
             V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(0, TransactionConstants.FAILED_COMMIT_TS);
-
-    @VisibleForTesting
-    static final byte[] COLUMN_NAME = TransactionConstants.COMMIT_TS_COLUMN;
+    static final ByteBuffer COLUMN_NAME_BB = ByteBuffer.wrap(TransactionConstants.COMMIT_TS_COLUMN);
 
     @Override
     public FullyBoundedTimestampRange getTimestampRange() {
@@ -67,26 +62,22 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
 
     @Override
     public PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, Session session) {
-        ByteBuffer abortCommitTsBb = ByteBuffer.wrap(ABORT_COMMIT_TS_ENCODED);
-        ByteBuffer columnNameBb = ByteBuffer.wrap(COLUMN_NAME);
-
         Statement abortStatement = QueryBuilder.update(transactionsTable)
-                .with(QueryBuilder.set(CassandraConstants.VALUE, abortCommitTsBb))
-                .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker())) // startTimestampBb
-                .and(QueryBuilder.eq(CassandraConstants.COLUMN, columnNameBb))
+                .with(QueryBuilder.set(CassandraConstants.VALUE, ByteBuffer.wrap(ABORT_COMMIT_TS_ENCODED)))
+                .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
+                .and(QueryBuilder.eq(CassandraConstants.COLUMN, COLUMN_NAME_BB))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
-                .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker())); // commitTimestampBb
+                .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
         // if you change this from CAS then you must update RetryPolicy
         return session.prepare(abortStatement.toString());
     }
 
     @Override
     public PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, Session session) {
-        ByteBuffer columnNameBb = ByteBuffer.wrap(COLUMN_NAME);
         Statement checkStatement = QueryBuilder.select()
                 .from(transactionsTable)
-                .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker())) // startTimestampBb
-                .and(QueryBuilder.eq(CassandraConstants.COLUMN, columnNameBb))
+                .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
+                .and(QueryBuilder.eq(CassandraConstants.COLUMN, COLUMN_NAME_BB))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP));
         return session.prepare(checkStatement.toString());
     }
@@ -94,11 +85,11 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     @Override
     public TransactionTableEntry extractTimestamps(Row row) {
         long startTimestamp = decodeStartTs(Bytes.getArray(row.getBytes(CassandraConstants.ROW)));
-        if (isRowAbortedTransaction(row)) {
-            return new TransactionTableEntry(startTimestamp, Optional.empty());
-        }
         long commitTimestamp = decodeCommitTs(Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        return new TransactionTableEntry(startTimestamp, Optional.of(commitTimestamp));
+        Optional<Long> maybeCommitTs = commitTimestamp != TransactionConstants.FAILED_COMMIT_TS
+                ? Optional.of(commitTimestamp)
+                : Optional.empty();
+        return new TransactionTableEntry(startTimestamp, maybeCommitTs);
     }
 
     @Override
@@ -126,8 +117,8 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
 
     @Override
     public boolean isRowAbortedTransaction(Row row) {
-        byte[] value = Bytes.getArray(row.getBytes(CassandraConstants.VALUE));
-        return Arrays.equals(value, ABORT_COMMIT_TS_ENCODED);
+        return decodeCommitTs(Bytes.getArray(row.getBytes(CassandraConstants.VALUE)))
+                == TransactionConstants.FAILED_COMMIT_TS;
     }
 
     @Override
@@ -148,19 +139,18 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
         return ImmutableList.of(select);
     }
 
-    private ByteBuffer encodeStartTimestamp(long timestamp) {
+    static ByteBuffer encodeStartTimestamp(long timestamp) {
         return ByteBuffer.wrap(V1EncodingStrategy.INSTANCE
                 .encodeStartTimestampAsCell(timestamp)
                 .getRowName());
     }
 
-    private ByteBuffer encodeCommitTimestamp(long timestamp) {
-        return ByteBuffer.wrap(V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(0, timestamp));
+    private long decodeStartTs(byte[] startTsRow) {
+        return V1EncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(startTsRow, DUMMY));
     }
 
-    private long decodeStartTs(byte[] startTsRow) {
-        return V1EncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(
-                Cell.create(startTsRow, PtBytes.EMPTY_BYTE_ARRAY));
+    static ByteBuffer encodeCommitTimestamp(long timestamp) {
+        return ByteBuffer.wrap(V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(0, timestamp));
     }
 
     private long decodeCommitTs(byte[] value) {
