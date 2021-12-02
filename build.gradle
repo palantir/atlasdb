@@ -111,7 +111,6 @@ allprojects {
                 'InlineFormatString',
                 'LogSafePreconditionsMessageFormat',
                 'MixedMutabilityReturnType',
-                'MockitoInternalUsage',
                 'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
                 'OverrideThrowableToString',
