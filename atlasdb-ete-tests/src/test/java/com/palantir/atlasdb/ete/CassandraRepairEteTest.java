@@ -95,9 +95,36 @@ public class CassandraRepairEteTest {
                 // TODO(gs): the __ shenanigans should happen inside CRH
                 cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), "ns__table1");
 
+        String thriftStr = stringify(thriftRanges);
+        String cqlStr = stringify(cqlRanges);
+
+        assertThat(cqlRanges.size())
+                .withFailMessage(() -> "Thrift: " + thriftStr + "; CQL: " + cqlStr)
+                .isEqualTo(thriftRanges.size());
+
+        assertThat(cqlRanges.keySet())
+                .withFailMessage(() -> "Thrift: " + thriftStr + "; CQL: " + cqlStr)
+                .containsAll(thriftRanges.keySet());
+
+        assertThat(thriftRanges.keySet())
+                .withFailMessage(() -> "Thrift: " + thriftStr + "; CQL: " + cqlStr)
+                .containsAll(cqlRanges.keySet());
+
         KeyedStream.stream(thriftRanges).forEach((addr, range) -> {
             Set<LightweightOppTokenRange> cqlRange = cqlRanges.get(addr);
             assertThat(range).isEqualTo(cqlRange);
         });
+    }
+
+    private String stringify(Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges) {
+        StringBuilder sb = new StringBuilder();
+        KeyedStream.stream(ranges).forEach((addr, range) -> {
+            sb.append("(");
+            sb.append(addr);
+            sb.append(" -> ");
+            sb.append(range);
+            sb.append(");");
+        });
+        return sb.toString();
     }
 }
