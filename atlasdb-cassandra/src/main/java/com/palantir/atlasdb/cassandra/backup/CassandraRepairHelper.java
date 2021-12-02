@@ -138,7 +138,19 @@ public class CassandraRepairHelper {
 
     private Map<InetSocketAddress, Set<TokenRange>> getRangesToRepairCql(Namespace namespace, String tableName) {
         CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        return CqlCluster.create(config).getTokenRanges(tableName);
+        String cassandraTableName = getCassandraTableName(namespace, tableName);
+        return CqlCluster.create(config).getTokenRanges(cassandraTableName);
+    }
+
+    // TODO(gs): this should be a utility
+    private String getCassandraTableName(Namespace namespace, String tableName) {
+        return TableReference.create(toKvNamespace(namespace), tableName)
+                .getQualifiedName()
+                .replaceFirst("\\.", "__");
+    }
+
+    private com.palantir.atlasdb.keyvalue.api.Namespace toKvNamespace(Namespace namespace) {
+        return com.palantir.atlasdb.keyvalue.api.Namespace.create(namespace.get());
     }
 
     private Set<LightweightOppTokenRange> makeLightweight(Set<TokenRange> tokenRanges) {

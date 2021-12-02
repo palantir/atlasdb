@@ -92,8 +92,7 @@ public class CassandraRepairEteTest {
                 cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
 
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> cqlRanges =
-                // TODO(gs): the __ shenanigans should happen inside CRH
-                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), "ns__table1");
+                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), TABLE_1);
 
         String thriftStr = stringify(thriftRanges);
         String cqlStr = stringify(cqlRanges);
