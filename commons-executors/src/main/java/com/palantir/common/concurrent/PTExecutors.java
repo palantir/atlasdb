@@ -575,7 +575,7 @@ public final class PTExecutors {
             int corePoolSize, ThreadFactory threadFactory, RejectedExecutionHandler handler) {
         Preconditions.checkArgument(
                 corePoolSize >= 0,
-                "Cannot create a ScheduledThreadPoolExecutor with %s threads - thread count must not be negative!",
+                "Thread count for ScheduledThreadPoolExecutor must be non-negative!",
                 SafeArg.of("corePoolSize", corePoolSize));
         int positiveCorePoolSize = corePoolSize > 0 ? corePoolSize : 1;
         String executorName = getExecutorName(threadFactory);

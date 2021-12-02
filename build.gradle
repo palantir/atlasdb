@@ -109,7 +109,6 @@ allprojects {
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
                 'InlineFormatString',
-                'LogSafePreconditionsMessageFormat',
                 'MixedMutabilityReturnType',
                 'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
