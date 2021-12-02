@@ -21,19 +21,22 @@ import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import one.util.streamex.EntryStream;
@@ -103,20 +106,20 @@ public final class ClusterMetadataUtils {
                 .invert()
                 .toSortedMap();
         Set<TokenRange> ranges = getSmallTokenRangeForKey(metadata, partitionKeyTokens, tokenRangesByEnd);
-        Map<TokenRange, Host> tokenRangeToHosts = StreamEx.of(ranges)
-                .mapToEntry(range -> {
-                    List<Host> hosts = ImmutableList.copyOf(metadata.getReplicas(quotedKeyspace(keyspace), range));
-                    if (hosts.isEmpty()) {
-                        throw new SafeIllegalStateException(
-                                "Failed to find any replicas of token range for repair",
-                                SafeArg.of("tokenRange", range.toString()),
-                                SafeArg.of("keyspace", quotedKeyspace(keyspace)));
-                    }
-                    Random random = new Random();
-                    return hosts.get(random.nextInt(hosts.size()));
-                })
-                .toMap();
-        return EntryStream.of(tokenRangeToHosts).invert().grouping();
+        Multimap<Host, TokenRange> tokenMapping = ArrayListMultimap.create();
+        ranges.forEach(range -> {
+            List<Host> hosts = ImmutableList.copyOf(metadata.getReplicas(quotedKeyspace(keyspace), range));
+            if (hosts.isEmpty()) {
+                throw new SafeIllegalStateException(
+                        "Failed to find any replicas of token range for repair",
+                        SafeArg.of("tokenRange", range.toString()),
+                        SafeArg.of("keyspace", quotedKeyspace(keyspace)));
+            }
+            hosts.forEach(host -> tokenMapping.put(host, range));
+        });
+        return KeyedStream.stream(tokenMapping.asMap())
+                .map(trs -> (List<TokenRange>) new ArrayList<>(trs))
+                .collectToMap();
     }
 
     // TODO(gs): copy over tests?
