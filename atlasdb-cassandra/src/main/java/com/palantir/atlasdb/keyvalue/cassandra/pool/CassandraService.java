@@ -135,8 +135,10 @@ public class CassandraService implements AutoCloseable {
 
                     servers.addAll(hosts);
 
+                    log.debug("Decoding: " + tokenRange.getStart_token().toUpperCase());
                     LightweightOppToken startToken = new LightweightOppToken(BaseEncoding.base16()
                             .decode(tokenRange.getStart_token().toUpperCase()));
+                    log.debug("Decoding: " + tokenRange.getEnd_token().toUpperCase());
                     LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
                             .decode(tokenRange.getEnd_token().toUpperCase()));
                     if (startToken.compareTo(endToken) <= 0) {

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
+import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableSet;
@@ -39,6 +40,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -149,10 +151,21 @@ public class CassandraRepairHelper {
     private Set<LightweightOppTokenRange> makeLightweight(TokenRange tokenRange) {
         // TODO(gs): copied (almost) from CassandraService
         // TODO(gs): serialise?
-        LightweightOppToken startToken = new LightweightOppToken(
-                BaseEncoding.base16().decode(tokenRange.getStart().toString().toUpperCase()));
-        LightweightOppToken endToken = new LightweightOppToken(
-                BaseEncoding.base16().decode(tokenRange.getEnd().toString().toUpperCase()));
+        log.debug("Decoding " + tokenRange.getStart().toString().toUpperCase());
+        ByteBuffer serStart = tokenRange.getStart().serialize(ProtocolVersion.V3);
+        byte[] bytes = new byte[serStart.remaining()];
+        serStart.get(bytes);
+        log.debug("Decoding it as " + new String(bytes, StandardCharsets.US_ASCII));
+        LightweightOppToken startToken = new LightweightOppToken(bytes);
+
+        log.debug("Decoding " + tokenRange.getEnd().toString().toUpperCase());
+        ByteBuffer serEnd = tokenRange.getEnd().serialize(ProtocolVersion.V3);
+        byte[] array = new byte[serEnd.remaining()];
+        serEnd.get(array);
+        String endStr = new String(array, StandardCharsets.US_ASCII);
+        log.debug("Decoding it as " + endStr);
+        LightweightOppToken endToken =
+                new LightweightOppToken(BaseEncoding.base16().decode(endStr.toUpperCase()));
 
         if (startToken.compareTo(endToken) <= 0) {
             return ImmutableSet.of(LightweightOppTokenRange.builder()
@@ -162,6 +175,7 @@ public class CassandraRepairHelper {
         } else {
             // Handle wrap-around
             ByteBuffer minValue = ByteBuffer.allocate(0);
+            log.debug("Wraparound: decoding " + Bytes.toHexString(minValue).toUpperCase());
             // TODO(gs): extract method
             LightweightOppToken minToken = new LightweightOppToken(
                     BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
