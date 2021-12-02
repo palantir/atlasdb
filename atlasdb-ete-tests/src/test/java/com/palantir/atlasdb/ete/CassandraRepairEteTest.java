@@ -81,8 +81,8 @@ public class CassandraRepairEteTest {
 
     @Test
     public void getCqlTokenRange() {
-        Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
-                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), TABLE_REF.getQualifiedName());
+        Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges = cassandraRepairHelper.getLwRangesToRepairCql(
+                Namespace.of(NAMESPACE), TABLE_REF.getQualifiedName().replaceFirst("\\.", "__"));
         assertThat(ranges).isNotEmpty();
     }
 
