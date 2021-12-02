@@ -30,6 +30,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,6 +45,8 @@ import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 
 public final class ClusterMetadataUtils {
+    private static final SafeLogger log = SafeLoggerFactory.get(ClusterMetadataUtils.class);
+
     private ClusterMetadataUtils() {
         // util class
     }
@@ -129,8 +133,10 @@ public final class ClusterMetadataUtils {
         for (Token token : partitionKeyTokens) {
             TokenRange smallTokenRange;
             if (tokenRangesByEnd.containsKey(token)) {
+                log.debug("Keeping the range from tokenRangesByEnd");
                 smallTokenRange = tokenRangesByEnd.get(token);
             } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
+                log.debug("Returning new range based on headMap");
                 smallTokenRange =
                         metadata.newTokenRange(tokenRangesByEnd.headMap(token).lastKey(), token);
             } else {
@@ -141,14 +147,21 @@ public final class ClusterMetadataUtils {
                         "Failed to identify wraparound token range",
                         SafeArg.of("firstTokenRange", firstTokenRange),
                         SafeArg.of("token", token));
+                log.debug("Returning new range from firstTokenRange");
                 smallTokenRange = metadata.newTokenRange(firstTokenRange.getStart(), token);
             }
+            log.debug(
+                    "SmallTokenRange: " + smallTokenRange.getStart().toString().toUpperCase() + " to "
+                            + smallTokenRange.getEnd().toString().toUpperCase());
 
             //  Remove nested token ranges from list, ie would remove (A, B] from { (A, B], (A, B+1] }
             if (tokenRangesByStartToken.containsKey(smallTokenRange.getStart())) {
                 TokenRange existingRange = tokenRangesByStartToken.get(smallTokenRange.getStart());
-                tokenRangesByStartToken.put(
-                        smallTokenRange.getStart(), findLatestEndingRange(smallTokenRange, existingRange));
+                TokenRange latestEndingRange = findLatestEndingRange(smallTokenRange, existingRange);
+                log.debug("Replacing existing range ending at "
+                        + existingRange.getEnd().toString().toUpperCase() + " with range ending at "
+                        + latestEndingRange.getEnd().toString().toUpperCase());
+                tokenRangesByStartToken.put(smallTokenRange.getStart(), latestEndingRange);
             } else {
                 tokenRangesByStartToken.put(smallTokenRange.getStart(), smallTokenRange);
             }
