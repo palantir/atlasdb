@@ -140,7 +140,11 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
      */
     @Override
     public ListenableFuture<Optional<byte[]>> get(Cell cell) {
-        return Futures.immediateFuture(getInternal(cell, getQuorumNodes()).map(BytesAndTimestamp::bytes));
+        try {
+            return Futures.immediateFuture(getInternal(cell, getQuorumNodes()).map(BytesAndTimestamp::bytes));
+        } catch (RuntimeException e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     @Override
