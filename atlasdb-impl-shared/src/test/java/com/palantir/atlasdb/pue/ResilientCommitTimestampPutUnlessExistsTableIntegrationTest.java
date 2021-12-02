@@ -79,10 +79,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
     }
 
     private void submitWriteTask(
-            CountDownLatch writeExecutionLatch,
-            ExecutorService writeExecutor,
-            long startTimestamp,
-            int writerIndex) {
+            CountDownLatch writeExecutionLatch, ExecutorService writeExecutor, long startTimestamp, int writerIndex) {
         writeExecutor.submit(() -> {
             try {
                 writeExecutionLatch.await();
@@ -160,7 +157,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
         public void readOneIteration() {
             try {
-                timestampReads.add(Optional.ofNullable(pueTable.get(startTimestamp).get()));
+                timestampReads.add(
+                        Optional.ofNullable(pueTable.get(startTimestamp).get()));
             } catch (Exception e) {
                 // Expected - some failures will happen as part of our test.
             }
