@@ -92,7 +92,8 @@ public class CassandraRepairEteTest {
                 cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
 
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> cqlRanges =
-                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), TABLE_1);
+                // TODO(gs): the __ shenanigans should happen inside CRH
+                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), "ns__table1");
 
         KeyedStream.stream(thriftRanges).forEach((addr, range) -> {
             Set<LightweightOppTokenRange> cqlRange = cqlRanges.get(addr);
