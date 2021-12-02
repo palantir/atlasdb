@@ -136,7 +136,10 @@ public final class CqlCluster {
     private static Set<Token> getPartitionTokens(Session session, TableMetadata tableMetadata) {
         Statement fullTableScan = createSelectStatement(tableMetadata);
         Iterator<Row> rows = session.execute(fullTableScan).iterator();
-        return Streams.stream(rows).map(row -> row.getToken(KEY_NAME)).collect(Collectors.toSet());
+        return Streams.stream(rows)
+                .map(row -> row.getToken(KEY_NAME))
+                .peek(token -> log.info("Partition token: " + token.toString().toUpperCase()))
+                .collect(Collectors.toSet());
     }
 
     private static Statement createSelectStatement(TableMetadata table) {

@@ -98,23 +98,19 @@ public class CassandraRepairEteTest {
         String thriftStr = stringify(thriftRanges);
         String cqlStr = stringify(cqlRanges);
 
-        assertThat(cqlRanges.size())
-                .withFailMessage(() -> "Thrift: " + thriftStr + "; CQL: " + cqlStr)
-                .isEqualTo(thriftRanges.size());
-
-        assertThat(cqlRanges.keySet())
-                .withFailMessage(() -> "Thrift: " + thriftStr + "; CQL: " + cqlStr)
-                .containsAll(thriftRanges.keySet());
-
-        assertThat(thriftRanges.keySet())
-                .withFailMessage(() -> "Thrift: " + thriftStr + "; CQL: " + cqlStr)
-                .containsAll(cqlRanges.keySet());
-
-        KeyedStream.stream(thriftRanges).forEach((addr, range) -> {
+        // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
+        // such that if the thrift range is [5..9] but we don't have data after 7, then the CQL range will be [5..7]
+        KeyedStream.stream(cqlRanges).forEach((addr, cqlRangesForHost) -> {
             String hostName = addr.getHostName();
-            InetSocketAddress cqlAddr = new InetSocketAddress(hostName, 9042);
-            Set<LightweightOppTokenRange> cqlRange = cqlRanges.get(cqlAddr);
-            assertThat(range).isEqualTo(cqlRange);
+            InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
+            Set<LightweightOppTokenRange> thriftRangesForHost = thriftRanges.get(thriftAddr);
+            assertThat(thriftRangesForHost).isNotNull();
+            cqlRangesForHost.forEach(range -> {
+                assertThat(thriftRangesForHost.stream().anyMatch(range::equals))
+                        .withFailMessage(() -> "expected to find a thrift token range with matching start token. "
+                                + "CQL tokens were: " + cqlStr + "; thrift: " + thriftStr)
+                        .isTrue();
+            });
         });
     }
 

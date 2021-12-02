@@ -138,6 +138,7 @@ public final class ClusterMetadataUtils {
             Metadata metadata, Set<Token> partitionKeyTokens, SortedMap<Token, TokenRange> tokenRangesByEnd) {
         Map<Token, TokenRange> tokenRangesByStartToken = new HashMap<>();
         for (Token token : partitionKeyTokens) {
+            log.debug("PartitionKeyToken " + token.toString().toUpperCase());
             TokenRange smallTokenRange;
             if (tokenRangesByEnd.containsKey(token)) {
                 log.debug("Keeping the range from tokenRangesByEnd");
