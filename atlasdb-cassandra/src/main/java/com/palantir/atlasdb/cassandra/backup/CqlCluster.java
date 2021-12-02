@@ -120,7 +120,8 @@ public final class CqlCluster {
                             .sum();
 
                     log.debug(
-                            "Identified token ranges requiring repair",
+                            "Identified " + numTokenRanges + " token ranges requiring repair from "
+                                    + partitionTokens.size() + " partitions.",
                             SafeArg.of("keyspace", keyspace),
                             SafeArg.of("table", tableName),
                             SafeArg.of("numPartitionKeys", partitionTokens.size()),
