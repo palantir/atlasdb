@@ -44,7 +44,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("CompileTimeConstant") // Temporary
 public final class CqlCluster {
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCluster.class);
 
@@ -63,13 +62,8 @@ public final class CqlCluster {
     }
 
     public static CqlCluster create(CassandraKeyValueServiceConfig config) {
-        // TODO(gs): error handling/retry
         Set<InetSocketAddress> hosts = getHosts(config);
-        // InetSocketAddress firstHost = hosts.stream().findAny().orElseThrow();
-        Cluster cluster = new ClusterFactory(Cluster::builder)
-                // Cluster cluster = new ClusterFactory(() -> Cluster.builder().withNettyOptions(new
-                // SocksProxyNettyOptions(firstHost))
-                .constructCluster(hosts, config);
+        Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(hosts, config);
         return new CqlCluster(cluster, config);
     }
 
@@ -91,12 +85,8 @@ public final class CqlCluster {
         try (Session session = cluster.connect()) {
             Metadata metadata = session.getCluster().getMetadata();
             String keyspaceName = config.getKeyspaceOrThrow();
-            log.debug("Keyspace " + keyspaceName);
             KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
-            log.debug("KeyspaceMetadata: " + keyspace.exportAsString());
             TableMetadata tableMetadata = keyspace.getTable(tableName);
-            log.debug("TableMetadata for " + tableName + ": "
-                    + (tableMetadata != null ? tableMetadata.exportAsString() : "null"));
             Set<Token> partitionTokens = getPartitionTokens(session, tableMetadata);
             Map<InetSocketAddress, Set<TokenRange>> tokenRangesByNode =
                     ClusterMetadataUtils.getTokenMapping(getHosts(config), metadata, keyspaceName, partitionTokens);
@@ -120,8 +110,7 @@ public final class CqlCluster {
                             .sum();
 
                     log.debug(
-                            "Identified " + numTokenRanges + " token ranges requiring repair from "
-                                    + partitionTokens.size() + " partitions.",
+                            "Identified token ranges requiring repair",
                             SafeArg.of("keyspace", keyspace),
                             SafeArg.of("table", tableName),
                             SafeArg.of("numPartitionKeys", partitionTokens.size()),
@@ -136,10 +125,7 @@ public final class CqlCluster {
     private static Set<Token> getPartitionTokens(Session session, TableMetadata tableMetadata) {
         Statement fullTableScan = createSelectStatement(tableMetadata);
         Iterator<Row> rows = session.execute(fullTableScan).iterator();
-        return Streams.stream(rows)
-                .map(row -> row.getToken(KEY_NAME))
-                .peek(token -> log.info("Partition token: " + token.toString().toUpperCase()))
-                .collect(Collectors.toSet());
+        return Streams.stream(rows).map(row -> row.getToken(KEY_NAME)).collect(Collectors.toSet());
     }
 
     private static Statement createSelectStatement(TableMetadata table) {

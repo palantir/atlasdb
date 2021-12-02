@@ -41,7 +41,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -161,8 +160,8 @@ public class CassandraRepairHelper {
     }
 
     private Set<LightweightOppTokenRange> makeLightweight(TokenRange tokenRange) {
-        LightweightOppToken startToken = decode(tokenRange.getStart());
-        LightweightOppToken endToken = decodeBase16(tokenRange.getEnd());
+        LightweightOppToken startToken = serialise(tokenRange.getStart());
+        LightweightOppToken endToken = serialise(tokenRange.getEnd());
 
         if (startToken.compareTo(endToken) <= 0) {
             return ImmutableSet.of(LightweightOppTokenRange.builder()
@@ -172,8 +171,6 @@ public class CassandraRepairHelper {
         } else {
             // Handle wrap-around
             ByteBuffer minValue = ByteBuffer.allocate(0);
-            log.debug("Wraparound: decoding " + Bytes.toHexString(minValue).toUpperCase());
-            // TODO(gs): extract method?
             LightweightOppToken minToken = new LightweightOppToken(
                     BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
             LightweightOppTokenRange greaterThan = LightweightOppTokenRange.builder()
@@ -189,24 +186,19 @@ public class CassandraRepairHelper {
         }
     }
 
-    private LightweightOppToken decode(Token token) {
-        log.debug("Decoding " + token.toString().toUpperCase());
-        // TODO(gs): Base16 instead?
+    private LightweightOppToken serialise(Token token) {
         ByteBuffer serializedToken = token.serialize(ProtocolVersion.V3);
         byte[] bytes = new byte[serializedToken.remaining()];
         serializedToken.get(bytes);
-        log.debug("Serialized to " + new String(bytes, StandardCharsets.US_ASCII));
         return new LightweightOppToken(bytes);
     }
 
-    private LightweightOppToken decodeBase16(Token token) {
-        String tokenStr = token.toString().toUpperCase();
-        log.debug("Decoding (b16) " + tokenStr);
-        if (tokenStr.startsWith("0X")) {
-            tokenStr = tokenStr.substring(2);
-        }
-        byte[] bytes = BaseEncoding.base16().decode(tokenStr);
-        log.debug("Decoded to " + new String(bytes, StandardCharsets.US_ASCII));
-        return new LightweightOppToken(bytes);
-    }
+    // private LightweightOppToken decodeBase16(Token token) {
+    //     String tokenStr = token.toString().toUpperCase();
+    //     if (tokenStr.startsWith("0X")) {
+    //         tokenStr = tokenStr.substring(2);
+    //     }
+    //     byte[] bytes = BaseEncoding.base16().decode(tokenStr);
+    //     return new LightweightOppToken(bytes);
+    // }
 }
