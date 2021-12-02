@@ -111,7 +111,9 @@ public class CassandraRepairEteTest {
                 .containsAll(cqlRanges.keySet());
 
         KeyedStream.stream(thriftRanges).forEach((addr, range) -> {
-            Set<LightweightOppTokenRange> cqlRange = cqlRanges.get(addr);
+            String hostName = addr.getHostName();
+            InetSocketAddress cqlAddr = new InetSocketAddress(hostName, 9042);
+            Set<LightweightOppTokenRange> cqlRange = cqlRanges.get(cqlAddr);
             assertThat(range).isEqualTo(cqlRange);
         });
     }
