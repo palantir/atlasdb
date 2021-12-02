@@ -111,6 +111,28 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
                 MoreExecutors.directExecutor());
     }
 
+    @Override
+    public ListenableFuture<Void> disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+        return handleExceptions(() -> disableInternal(namespaces));
+    }
+
+    private ListenableFuture<Void> disableInternal(Set<Namespace> namespaces) {
+        // todo(gmaretic): disable all remote nodes
+        // todo(gmaretic): disable locally
+        return Futures.immediateVoidFuture();
+    }
+
+    @Override
+    public ListenableFuture<Void> reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+        return handleExceptions(() -> reenableInternal(namespaces));
+    }
+
+    public ListenableFuture<Void> reenableInternal(Set<Namespace> namespaces) {
+        // todo(gmaretic): reenable all remote nodes
+        // todo(gmaretic): reenable locally
+        return Futures.immediateVoidFuture();
+    }
+
     @SuppressWarnings("ConstantConditions") // optional token is never null
     private ListenableFuture<Optional<CompletedBackup>> completeBackupAsync(InProgressBackupToken backupToken) {
         return Futures.transform(
@@ -160,6 +182,16 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         @Override
         public CompleteBackupResponse completeBackup(AuthHeader authHeader, CompleteBackupRequest request) {
             return unwrap(resource.completeBackup(authHeader, request));
+        }
+
+        @Override
+        public void disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+            unwrap(resource.disableTimelock(authHeader, namespaces));
+        }
+
+        @Override
+        public void reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+            unwrap(resource.reenableTimelock(authHeader, namespaces));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
