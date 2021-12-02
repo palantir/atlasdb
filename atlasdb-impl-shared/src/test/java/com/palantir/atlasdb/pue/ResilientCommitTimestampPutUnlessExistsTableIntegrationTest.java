@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.OptionalLong;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -58,20 +58,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
         for (long startTimestamp = 1; startTimestamp <= MAXIMUM_EVALUATED_TIMESTAMP; startTimestamp++) {
             for (int concurrentWriter = 1; concurrentWriter <= 10; concurrentWriter++) {
-                int finalConcurrentWriter = concurrentWriter;
-                long finalStartTimestamp = startTimestamp;
-
-                writeExecutor.submit(() -> {
-                    try {
-                        writeExecutionLatch.await();
-                        Uninterruptibles.sleepUninterruptibly(
-                                ThreadLocalRandom.current().nextInt(10), TimeUnit.MILLISECONDS);
-                        pueTable.putUnlessExists(finalStartTimestamp, finalStartTimestamp + finalConcurrentWriter);
-                    } catch (RuntimeException e) {
-                        // Expected - some failures will happen as part of our test.
-                    }
-                    return null;
-                });
+                submitWriteTask(writeExecutionLatch, writeExecutor, startTimestamp, concurrentWriter);
             }
         }
 
@@ -91,21 +78,36 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                 .forEach((_startTimestamp, readers) -> validateConsistencyObservedAcrossReaders(readers));
     }
 
+    private void submitWriteTask(
+            CountDownLatch writeExecutionLatch,
+            ExecutorService writeExecutor,
+            long startTimestamp,
+            int writerIndex) {
+        writeExecutor.submit(() -> {
+            try {
+                writeExecutionLatch.await();
+                Uninterruptibles.sleepUninterruptibly(
+                        ThreadLocalRandom.current().nextInt(10), TimeUnit.MILLISECONDS);
+                pueTable.putUnlessExists(startTimestamp, startTimestamp + writerIndex);
+            } catch (RuntimeException e) {
+                // Expected - some failures will happen as part of our test.
+            }
+            return null;
+        });
+    }
+
     private static void validateIndividualReaderHadRepeatableReads(Long startTimestamp, TimestampReader reader) {
-        List<OptionalLong> reads = reader.getTimestampReads();
-        Set<OptionalLong> readSet = new HashSet<>(reads);
+        List<Optional<Long>> reads = reader.getTimestampReads();
+        Set<Optional<Long>> readSet = new HashSet<>(reads);
         assertThat(readSet)
                 .as("can only read at most 2 distinct values: empty and a single fixed value")
                 .hasSizeLessThanOrEqualTo(2);
         if (readSet.size() == 2) {
-            Set<OptionalLong> valuesRead =
-                    readSet.stream().filter(OptionalLong::isPresent).collect(Collectors.toSet());
+            Set<Optional<Long>> valuesRead =
+                    readSet.stream().filter(Optional::isPresent).collect(Collectors.toSet());
             assertThat(valuesRead).as("can only read at most 1 fixed value").hasSize(1);
 
-            OptionalLong concreteValue = Iterables.getOnlyElement(valuesRead);
-            assertThat(reads.subList(0, reads.indexOf(concreteValue)))
-                    .as("must only read empty before a concrete value has been read")
-                    .containsOnly(OptionalLong.empty());
+            Optional<Long> concreteValue = Iterables.getOnlyElement(valuesRead);
             assertThat(reads.subList(reads.indexOf(concreteValue), reads.size()))
                     .as("must always read the concrete value once it has been read")
                     .containsOnly(concreteValue);
@@ -125,11 +127,10 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
     }
 
     private void validateConsistencyObservedAcrossReaders(Collection<TimestampReader> readers) {
-        Set<OptionalLong> concreteValuesAgreedByReaders = readers.stream()
+        Set<Long> concreteValuesAgreedByReaders = readers.stream()
                 .map(TimestampReader::getTimestampReads)
-                .filter(list -> !list.isEmpty())
-                .map(reads -> reads.get(reads.size() - 1))
-                .filter(OptionalLong::isPresent)
+                .flatMap(List::stream)
+                .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
         assertThat(concreteValuesAgreedByReaders)
                 .as("cannot have readers individually diverge on concretely observed values")
@@ -139,7 +140,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
     private static final class TimestampReader implements AutoCloseable {
         private final long startTimestamp;
         private final PutUnlessExistsTable<Long, Long> pueTable;
-        private final List<OptionalLong> timestampReads;
+        private final List<Optional<Long>> timestampReads;
         private final ScheduledExecutorService scheduledExecutorService;
 
         private TimestampReader(long startTimestamp, PutUnlessExistsTable<Long, Long> pueTable) {
@@ -149,7 +150,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
             this.scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
         }
 
-        public List<OptionalLong> getTimestampReads() {
+        public List<Optional<Long>> getTimestampReads() {
             return ImmutableList.copyOf(timestampReads);
         }
 
@@ -159,12 +160,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
         public void readOneIteration() {
             try {
-                Long rawRead = pueTable.get(startTimestamp).get();
-                if (rawRead == null) {
-                    timestampReads.add(OptionalLong.empty());
-                } else {
-                    timestampReads.add(OptionalLong.of(rawRead));
-                }
+                timestampReads.add(Optional.ofNullable(pueTable.get(startTimestamp).get()));
             } catch (Exception e) {
                 // Expected - some failures will happen as part of our test.
             }
