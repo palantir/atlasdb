@@ -106,7 +106,8 @@ public class CassandraRepairEteTest {
             Set<LightweightOppTokenRange> thriftRangesForHost = thriftRanges.get(thriftAddr);
             assertThat(thriftRangesForHost).isNotNull();
             cqlRangesForHost.forEach(range -> {
-                assertThat(thriftRangesForHost.stream().anyMatch(range::equals))
+                assertThat(thriftRangesForHost.stream()
+                                .anyMatch(thriftRange -> thriftRange.left().equals(range.left())))
                         .withFailMessage(() -> "expected to find a thrift token range with matching start token. "
                                 + "CQL tokens were: " + cqlStr + "; thrift: " + thriftStr)
                         .isTrue();
