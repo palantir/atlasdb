@@ -44,6 +44,7 @@ import java.util.SortedMap;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 
+@SuppressWarnings("CompileTimeConstant")
 public final class ClusterMetadataUtils {
     private static final SafeLogger log = SafeLoggerFactory.get(ClusterMetadataUtils.class);
 
@@ -105,10 +106,10 @@ public final class ClusterMetadataUtils {
 
     private static Map<Host, List<TokenRange>> getTokenMappingForPartitionKeys(
             Metadata metadata, String keyspace, Set<Token> partitionKeyTokens) {
-        SortedMap<Token, TokenRange> tokenRangesByEnd = StreamEx.of(metadata.getTokenRanges())
-                .mapToEntry(TokenRange::getEnd)
-                .invert()
-                .toSortedMap();
+        Set<TokenRange> tokenRanges = metadata.getTokenRanges();
+        tokenRanges.forEach(ClusterMetadataUtils::logTokenRange);
+        SortedMap<Token, TokenRange> tokenRangesByEnd =
+                StreamEx.of(tokenRanges).mapToEntry(TokenRange::getEnd).invert().toSortedMap();
         Set<TokenRange> ranges = getSmallTokenRangeForKey(metadata, partitionKeyTokens, tokenRangesByEnd);
         Multimap<Host, TokenRange> tokenMapping = ArrayListMultimap.create();
         ranges.forEach(range -> {
@@ -124,6 +125,12 @@ public final class ClusterMetadataUtils {
         return KeyedStream.stream(tokenMapping.asMap())
                 .map(trs -> (List<TokenRange>) new ArrayList<>(trs))
                 .collectToMap();
+    }
+
+    private static void logTokenRange(TokenRange tr) {
+        String start = tr.getStart().toString().toUpperCase();
+        String end = tr.getEnd().toString().toUpperCase();
+        log.info("Token from " + start + " to " + end);
     }
 
     // TODO(gs): copy over tests?
