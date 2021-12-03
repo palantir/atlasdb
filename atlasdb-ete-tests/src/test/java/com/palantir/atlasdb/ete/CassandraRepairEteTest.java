@@ -84,10 +84,10 @@ public class CassandraRepairEteTest {
     }
 
     @Test
-    public void shouldGetATokenRange() {
+    public void shouldGetRangesForBothReplicas() {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
                 cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
-        assertThat(ranges).isNotEmpty();
+        assertThat(ranges).hasSize(2);
     }
 
     @Test
@@ -96,25 +96,24 @@ public class CassandraRepairEteTest {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> rangesToRepair =
                 cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
 
-        // TODO(gs): remove fail message, then extract method for lambda below
-        String thriftStr = stringify(fullTokenMap);
-        String cqlStr = stringify(rangesToRepair);
+        KeyedStream.stream(rangesToRepair)
+                .forEach((address, cqlRangesForHost) ->
+                        assertRangesToRepairAreSubsetsOfRangesFromTokenMap(fullTokenMap, address, cqlRangesForHost));
+    }
 
-        // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
-        // such that if the thrift range is [5..9] but we don't have data after 7, then the CQL range will be [5..7]
-        KeyedStream.stream(rangesToRepair).forEach((addr, cqlRangesForHost) -> {
-            String hostName = addr.getHostName();
-            InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
-            Set<LightweightOppTokenRange> thriftRangesForHost = fullTokenMap.get(thriftAddr);
-            assertThat(thriftRangesForHost).isNotNull();
-            cqlRangesForHost.forEach(range -> {
-                assertThat(thriftRangesForHost.stream()
-                                .anyMatch(thriftRange -> thriftRange.left().equals(range.left())))
-                        .withFailMessage(() -> "expected to find a thrift token range with matching start token. "
-                                + "CQL tokens were: " + cqlStr + "; thrift: " + thriftStr)
-                        .isTrue();
-            });
-        });
+    // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
+    // such that if the thrift range is [5..9] but we don't have data after 7, then the CQL range will be [5..7]
+    private void assertRangesToRepairAreSubsetsOfRangesFromTokenMap(
+            Map<InetSocketAddress, Set<LightweightOppTokenRange>> fullTokenMap,
+            InetSocketAddress address,
+            Set<LightweightOppTokenRange> cqlRangesForHost) {
+        String hostName = address.getHostName();
+        InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
+        Set<LightweightOppTokenRange> thriftRangesForHost = fullTokenMap.get(thriftAddr);
+        assertThat(thriftRangesForHost).isNotNull();
+        cqlRangesForHost.forEach(range -> assertThat(thriftRangesForHost.stream()
+                        .anyMatch(thriftRange -> thriftRange.left().equals(range.left())))
+                .isTrue());
     }
 
     private Map<InetSocketAddress, Set<LightweightOppTokenRange>> getFullTokenMap() {
