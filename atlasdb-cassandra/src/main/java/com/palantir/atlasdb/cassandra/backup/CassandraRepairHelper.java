@@ -141,11 +141,9 @@ public class CassandraRepairHelper {
         return CqlCluster.create(config).getTokenRanges(cassandraTableName);
     }
 
-    // TODO(gs): this should be a utility
     private String getCassandraTableName(Namespace namespace, String tableName) {
-        return TableReference.create(toKvNamespace(namespace), tableName)
-                .getQualifiedName()
-                .replaceFirst("\\.", "__");
+        TableReference tableRef = TableReference.create(toKvNamespace(namespace), tableName);
+        return AbstractKeyValueService.internalTableName(tableRef);
     }
 
     private com.palantir.atlasdb.keyvalue.api.Namespace toKvNamespace(Namespace namespace) {
