@@ -29,7 +29,7 @@ public class ClientOptionsTest {
 
     // Throws after expected outages of 1/2 * 0.01 * (2^13 - 1) = 40.96 s
     private static final ClientOptions DEFAULT_RETRYING = ImmutableClientOptions.builder()
-            .connectTimeout(Duration.ofMillis(500))
+            .connectTimeout(Duration.ofMillis(12566))
             .readTimeout(Duration.ofSeconds(65))
             .backoffSlotSize(Duration.ofMillis(10))
             .failedUrlCooldown(Duration.ofMillis(100))
@@ -38,7 +38,7 @@ public class ClientOptionsTest {
             .build();
 
     private static final ClientOptions DEFAULT_NO_RETRYING = ImmutableClientOptions.builder()
-            .connectTimeout(Duration.ofMillis(500))
+            .connectTimeout(Duration.ofMillis(12566))
             .readTimeout(Duration.ofSeconds(65))
             .backoffSlotSize(Duration.ofMillis(10))
             .failedUrlCooldown(Duration.ofMillis(1))
