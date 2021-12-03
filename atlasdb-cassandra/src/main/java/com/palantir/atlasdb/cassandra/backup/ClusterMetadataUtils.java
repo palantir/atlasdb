@@ -30,8 +30,6 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,10 +42,7 @@ import java.util.SortedMap;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 
-@SuppressWarnings("CompileTimeConstant")
 public final class ClusterMetadataUtils {
-    private static final SafeLogger log = SafeLoggerFactory.get(ClusterMetadataUtils.class);
-
     private ClusterMetadataUtils() {
         // util class
     }
@@ -107,7 +102,6 @@ public final class ClusterMetadataUtils {
     private static Map<Host, List<TokenRange>> getTokenMappingForPartitionKeys(
             Metadata metadata, String keyspace, Set<Token> partitionKeyTokens) {
         Set<TokenRange> tokenRanges = metadata.getTokenRanges();
-        tokenRanges.forEach(ClusterMetadataUtils::logTokenRange);
         SortedMap<Token, TokenRange> tokenRangesByEnd =
                 StreamEx.of(tokenRanges).mapToEntry(TokenRange::getEnd).invert().toSortedMap();
         Set<TokenRange> ranges = getSmallTokenRangeForKey(metadata, partitionKeyTokens, tokenRangesByEnd);
@@ -127,24 +121,15 @@ public final class ClusterMetadataUtils {
                 .collectToMap();
     }
 
-    private static void logTokenRange(TokenRange tr) {
-        String start = tr.getStart().toString().toUpperCase();
-        String end = tr.getEnd().toString().toUpperCase();
-        log.info("Token from " + start + " to " + end);
-    }
-
     // TODO(gs): copy over tests?
     private static Set<TokenRange> getSmallTokenRangeForKey(
             Metadata metadata, Set<Token> partitionKeyTokens, SortedMap<Token, TokenRange> tokenRangesByEnd) {
         Map<Token, TokenRange> tokenRangesByStartToken = new HashMap<>();
         for (Token token : partitionKeyTokens) {
-            log.debug("PartitionKeyToken " + token.toString().toUpperCase());
             TokenRange smallTokenRange;
             if (tokenRangesByEnd.containsKey(token)) {
-                log.debug("Keeping the range from tokenRangesByEnd");
                 smallTokenRange = tokenRangesByEnd.get(token);
             } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
-                log.debug("Returning new range based on headMap");
                 smallTokenRange =
                         metadata.newTokenRange(tokenRangesByEnd.headMap(token).lastKey(), token);
             } else {
@@ -155,20 +140,13 @@ public final class ClusterMetadataUtils {
                         "Failed to identify wraparound token range",
                         SafeArg.of("firstTokenRange", firstTokenRange),
                         SafeArg.of("token", token));
-                log.debug("Returning new range from firstTokenRange");
                 smallTokenRange = metadata.newTokenRange(firstTokenRange.getStart(), token);
             }
-            log.debug(
-                    "SmallTokenRange: " + smallTokenRange.getStart().toString().toUpperCase() + " to "
-                            + smallTokenRange.getEnd().toString().toUpperCase());
 
             //  Remove nested token ranges from list, ie would remove (A, B] from { (A, B], (A, B+1] }
             if (tokenRangesByStartToken.containsKey(smallTokenRange.getStart())) {
                 TokenRange existingRange = tokenRangesByStartToken.get(smallTokenRange.getStart());
                 TokenRange latestEndingRange = findLatestEndingRange(smallTokenRange, existingRange);
-                log.debug("Replacing existing range ending at "
-                        + existingRange.getEnd().toString().toUpperCase() + " with range ending at "
-                        + latestEndingRange.getEnd().toString().toUpperCase());
                 tokenRangesByStartToken.put(smallTokenRange.getStart(), latestEndingRange);
             } else {
                 tokenRangesByStartToken.put(smallTokenRange.getStart(), smallTokenRange);

@@ -69,7 +69,6 @@ public class ClusterFactory {
     private static Cluster.Builder withSocketOptions(
             Cluster.Builder clusterBuilder, CassandraKeyValueServiceConfig config) {
         return clusterBuilder.withSocketOptions(new SocketOptions()
-                // TODO(gs): connect timeout? it's 10 mins internally
                 .setConnectTimeoutMillis(config.socketQueryTimeoutMillis())
                 .setReadTimeoutMillis(config.socketQueryTimeoutMillis()));
     }
@@ -95,7 +94,6 @@ public class ClusterFactory {
                 .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis()));
     }
 
-    // TODO(gs): quorum consistency?
     private static Cluster.Builder withQueryOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
         return builder.withQueryOptions(new QueryOptions().setFetchSize(config.fetchBatchCount()));
     }

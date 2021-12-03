@@ -67,7 +67,6 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 
-@SuppressWarnings("CompileTimeConstant") // Temporary
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);
@@ -129,7 +128,6 @@ public class CassandraService implements AutoCloseable {
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
             localHosts = refreshLocalHosts(tokenRanges);
-            log.debug("Got some token ranges: " + tokenRanges.size());
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -146,28 +144,20 @@ public class CassandraService implements AutoCloseable {
 
                     servers.addAll(hosts);
 
-                    log.debug("Decoding: " + tokenRange.getStart_token().toUpperCase());
                     LightweightOppToken startToken = new LightweightOppToken(BaseEncoding.base16()
                             .decode(tokenRange.getStart_token().toUpperCase()));
-                    log.debug("Decoding: " + tokenRange.getEnd_token().toUpperCase());
                     LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
                             .decode(tokenRange.getEnd_token().toUpperCase()));
                     if (startToken.compareTo(endToken) <= 0) {
-                        log.debug("Adding token to ring: " + startToken + " to " + endToken);
                         newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
                     } else {
                         // Handle wrap-around
-                        log.debug("Adding wraparound token to ring: " + startToken + " to " + endToken);
                         newTokenRing.put(Range.greaterThan(startToken), hosts);
                         newTokenRing.put(Range.atMost(endToken), hosts);
                     }
                 }
             }
-            log.debug("Interning token map - size before: "
-                    + tokenMap.asMapOfRanges().size());
             tokenMap = tokensInterner.intern(newTokenRing.build());
-            log.debug("Interning token map - size after: "
-                    + tokenMap.asMapOfRanges().size());
             return servers;
         } catch (Exception e) {
             log.info(
@@ -313,7 +303,6 @@ public class CassandraService implements AutoCloseable {
     }
 
     public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
-        log.debug("getTokenMap(): size " + tokenMap.asMapOfRanges().size());
         return tokenMap;
     }
 

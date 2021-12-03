@@ -33,12 +33,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -51,10 +50,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("CompileTimeConstant") // Temporary
 public class CassandraRepairHelper {
-    private static final SafeLogger log = SafeLoggerFactory.get(CassandraRepairHelper.class);
-
     private static final String COORDINATION = AtlasDbConstants.COORDINATION_TABLE.getTableName();
     private static final Set<String> TABLES_TO_REPAIR =
             Sets.union(ImmutableSet.of(COORDINATION), TargetedSweepTables.REPAIR_ON_RESTORE);
@@ -100,15 +96,12 @@ public class CassandraRepairHelper {
             RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> invertedMap = new HashMap<>();
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> rangeListMap = tokenMap.asMapOfRanges();
-        log.debug("Inverting ranges: " + rangeListMap.size());
         rangeListMap.forEach((range, addresses) -> addresses.forEach(addr -> {
             Set<LightweightOppTokenRange> existingRanges = invertedMap.getOrDefault(addr, new HashSet<>());
             LightweightOppTokenRange lwRange = toTokenRange(range);
             existingRanges.add(lwRange);
             invertedMap.put(addr, existingRanges);
-            log.debug("Adding range for host " + addr + ": " + lwRange.left() + "-" + lwRange.right());
         }));
-        log.debug("Returning invertedMap: " + invertedMap.size());
 
         return invertedMap;
     }
@@ -186,13 +179,4 @@ public class CassandraRepairHelper {
         serializedToken.get(bytes);
         return new LightweightOppToken(bytes);
     }
-
-    // private LightweightOppToken decodeBase16(Token token) {
-    //     String tokenStr = token.toString().toUpperCase();
-    //     if (tokenStr.startsWith("0X")) {
-    //         tokenStr = tokenStr.substring(2);
-    //     }
-    //     byte[] bytes = BaseEncoding.base16().decode(tokenStr);
-    //     return new LightweightOppToken(bytes);
-    // }
 }
