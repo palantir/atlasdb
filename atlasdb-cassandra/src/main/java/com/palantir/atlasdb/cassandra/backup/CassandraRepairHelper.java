@@ -21,18 +21,13 @@ import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -41,9 +36,6 @@ import com.palantir.common.streams.KeyedStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -79,51 +71,12 @@ public class CassandraRepairHelper {
 
     // VisibleForTesting
     public Map<InetSocketAddress, Set<LightweightOppTokenRange>> getRangesToRepair(
-            Namespace namespace, String _tableName) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        Blacklist blacklist = new Blacklist(config);
-        CassandraService cassandraService = CassandraService.createInitialised(
-                metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
-
-        @SuppressWarnings("UnstableApiUsage")
-        RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = cassandraService.getTokenMap();
-        return invert(tokenMap);
-    }
-
-    @SuppressWarnings("UnstableApiUsage")
-    private Map<InetSocketAddress, Set<LightweightOppTokenRange>> invert(
-            RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
-        Map<InetSocketAddress, Set<LightweightOppTokenRange>> invertedMap = new HashMap<>();
-        Map<Range<LightweightOppToken>, List<InetSocketAddress>> rangeListMap = tokenMap.asMapOfRanges();
-        rangeListMap.forEach((range, addresses) -> addresses.forEach(addr -> {
-            Set<LightweightOppTokenRange> existingRanges = invertedMap.getOrDefault(addr, new HashSet<>());
-            LightweightOppTokenRange lwRange = toTokenRange(range);
-            existingRanges.add(lwRange);
-            invertedMap.put(addr, existingRanges);
-        }));
-
-        return invertedMap;
-    }
-
-    private LightweightOppTokenRange toTokenRange(Range<LightweightOppToken> range) {
-        LightweightOppTokenRange.Builder rangeBuilder = LightweightOppTokenRange.builder();
-        if (range.hasLowerBound()) {
-            rangeBuilder.left(range.lowerEndpoint());
-        }
-        if (range.hasUpperBound()) {
-            rangeBuilder.right(range.upperEndpoint());
-        }
-        return rangeBuilder.build();
-    }
-
-    // VisibleForTesting
-    public Map<InetSocketAddress, Set<LightweightOppTokenRange>> getLwRangesToRepairCql(
             Namespace namespace, String tableName) {
-        Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getRangesToRepairCql(namespace, tableName);
+        Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getTokenRangesToRepair(namespace, tableName);
         return KeyedStream.stream(tokenRanges).map(this::makeLightweight).collectToMap();
     }
 
-    private Map<InetSocketAddress, Set<TokenRange>> getRangesToRepairCql(Namespace namespace, String tableName) {
+    private Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(Namespace namespace, String tableName) {
         CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
         String cassandraTableName = getCassandraTableName(namespace, tableName);
         return CqlCluster.create(config).getTokenRanges(cassandraTableName);

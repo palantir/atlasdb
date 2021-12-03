@@ -73,16 +73,9 @@ public class CassandraRepairEteTest {
     }
 
     @Test
-    public void getThriftTokenRange() {
-        Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
-                cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
-        assertThat(ranges).isNotEmpty();
-    }
-
-    @Test
     public void getCqlTokenRange() {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
-                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), TABLE_1);
+                cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
         assertThat(ranges).isNotEmpty();
     }
 
@@ -92,7 +85,7 @@ public class CassandraRepairEteTest {
                 cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
 
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> cqlRanges =
-                cassandraRepairHelper.getLwRangesToRepairCql(Namespace.of(NAMESPACE), TABLE_1);
+                cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
 
         String thriftStr = stringify(thriftRanges);
         String cqlStr = stringify(cqlRanges);
@@ -113,6 +106,18 @@ public class CassandraRepairEteTest {
             });
         });
     }
+
+
+    // private LightweightOppTokenRange toTokenRange(Range<LightweightOppToken> range) {
+    //     LightweightOppTokenRange.Builder rangeBuilder = LightweightOppTokenRange.builder();
+    //     if (range.hasLowerBound()) {
+    //         rangeBuilder.left(range.lowerEndpoint());
+    //     }
+    //     if (range.hasUpperBound()) {
+    //         rangeBuilder.right(range.upperEndpoint());
+    //     }
+    //     return rangeBuilder.build();
+    // }
 
     private String stringify(Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges) {
         StringBuilder sb = new StringBuilder();
