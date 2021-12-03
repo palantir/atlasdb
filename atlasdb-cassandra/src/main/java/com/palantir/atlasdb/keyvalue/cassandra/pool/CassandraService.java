@@ -105,6 +105,17 @@ public class CassandraService implements AutoCloseable {
         this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 2, TimeUnit.MINUTES);
     }
 
+    public static CassandraService createInitialised(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics poolMetrics) {
+        CassandraService cassandraService = new CassandraService(metricsManager, config, blacklist, poolMetrics);
+        cassandraService.cacheInitialCassandraHosts();
+        cassandraService.refreshTokenRangesAndGetServers();
+        return cassandraService;
+    }
+
     @Override
     public void close() {}
 

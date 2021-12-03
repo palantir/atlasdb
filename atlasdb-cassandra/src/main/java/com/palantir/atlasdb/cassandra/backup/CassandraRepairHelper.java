@@ -87,12 +87,8 @@ public class CassandraRepairHelper {
             Namespace namespace, String _tableName) {
         CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
         Blacklist blacklist = new Blacklist(config);
-        CassandraService cassandraService =
-                new CassandraService(metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
-
-        // janky init stuff
-        cassandraService.cacheInitialCassandraHosts();
-        cassandraService.refreshTokenRangesAndGetServers();
+        CassandraService cassandraService = CassandraService.createInitialised(
+                metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
 
         @SuppressWarnings("UnstableApiUsage")
         RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = cassandraService.getTokenMap();
