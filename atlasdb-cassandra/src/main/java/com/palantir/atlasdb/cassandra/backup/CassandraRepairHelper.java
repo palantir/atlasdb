@@ -51,9 +51,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class CassandraRepairHelper {
-    private static final String COORDINATION = AtlasDbConstants.COORDINATION_TABLE.getTableName();
-    private static final Set<String> TABLES_TO_REPAIR =
-            Sets.union(ImmutableSet.of(COORDINATION), TargetedSweepTables.REPAIR_ON_RESTORE);
+    private static final Set<TableReference> TABLES_TO_REPAIR =
+            Sets.union(ImmutableSet.of(AtlasDbConstants.COORDINATION_TABLE), TargetedSweepTables.REPAIR_ON_RESTORE);
 
     private final MetricsManager metricsManager;
     private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
@@ -72,8 +71,8 @@ public class CassandraRepairHelper {
             Namespace namespace, Consumer<Map<InetSocketAddress, Set<LightweightOppTokenRange>>> repairTable) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
         kvs.getAllTableNames().stream()
-                .map(TableReference::getTableName)
                 .filter(TABLES_TO_REPAIR::contains)
+                .map(TableReference::getTableName)
                 .map(tableName -> getRangesToRepair(namespace, tableName))
                 .forEach(repairTable);
     }

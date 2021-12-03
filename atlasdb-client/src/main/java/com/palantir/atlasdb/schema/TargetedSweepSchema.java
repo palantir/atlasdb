@@ -32,7 +32,6 @@ import java.util.function.Supplier;
 public enum TargetedSweepSchema implements AtlasSchema {
     INSTANCE;
 
-    private static final Namespace NAMESPACE = Namespace.create("sweep");
     private static final Supplier<Schema> SCHEMA = Suppliers.memoize(TargetedSweepSchema::generateSchema);
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
@@ -60,7 +59,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
         return new Schema(
                 "TargetedSweep",
                 TargetedSweepSchema.class.getPackage().getName() + ".generated",
-                NAMESPACE,
+                TargetedSweepTables.NAMESPACE,
                 OptionalType.JAVA8);
     }
 
@@ -173,7 +172,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
 
     @Override
     public Namespace getNamespace() {
-        return NAMESPACE;
+        return TargetedSweepTables.NAMESPACE;
     }
 
     @Override
