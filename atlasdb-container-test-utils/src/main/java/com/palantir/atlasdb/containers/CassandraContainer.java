@@ -22,7 +22,6 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
-import com.palantir.atlasdb.cassandra.proxy.SocksProxyNettyOptions;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
