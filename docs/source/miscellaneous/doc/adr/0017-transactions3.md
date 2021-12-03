@@ -62,6 +62,17 @@ algorithm. We're thus treating dealing with these cases as outside the scope of 
 
 ## Decision
 
+### Criteria
+
+A good solution to this problem should demonstrate the following characteristics:
+
+- The transactions table should have repeatable reads: after a non-null value (a commit timestamp, or ABORTED) has been 
+  read from the table for a given timestamp, all future reads should return the same value.
+- In the average case, reading a cell in the transactions table should require 1 RPC from AtlasDB to the coordinating
+  Cassandra node, and just 1 RPC between each pair of Cassandra nodes in the relevant replication group.
+- Writing a cell in the transactions table should require as few RPCs as possible, bearing in mind the other 
+  constraints.
+
 ### Theory
 
 #### PUE Tables
