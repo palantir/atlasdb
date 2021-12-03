@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
@@ -45,20 +43,24 @@ public class DisabledNamespaces {
         execute(Queries::createTable);
     }
 
-    public void disable(Namespace namespace) {
-        execute(dao -> dao.set(namespace.get()));
+    public void disable(String namespace) {
+        execute(dao -> dao.set(namespace));
     }
 
-    public boolean isDisabled(Namespace namespace) {
-        return execute(dao -> dao.getState(namespace.get())).isPresent();
+    public boolean isDisabled(String namespace) {
+        return execute(dao -> dao.getState(namespace)).isPresent();
     }
 
-    public Set<Namespace> disabledNamespaces() {
-        return execute(Queries::getAllStates).stream().map(Namespace::of).collect(Collectors.toSet());
+    public boolean isEnabled(String namespace) {
+        return execute(dao -> dao.getState(namespace)).isEmpty();
     }
 
-    public void reenable(Namespace namespace) {
-        execute(dao -> dao.delete(namespace.get()));
+    public Set<String> disabledNamespaces() {
+        return execute(Queries::getAllStates);
+    }
+
+    public void reEnable(String namespace) {
+        execute(dao -> dao.delete(namespace));
     }
 
     private <T> T execute(Function<Queries, T> call) {

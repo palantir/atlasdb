@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static java.util.stream.Collectors.toSet;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
@@ -35,6 +34,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+
+import static java.util.stream.Collectors.toSet;
 
 public final class TimelockNamespaces {
     @VisibleForTesting
@@ -55,11 +56,16 @@ public final class TimelockNamespaces {
     private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>();
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
+    private final DisabledNamespaces disabledNamespaces;
 
     public TimelockNamespaces(
-            MetricsManager metrics, Function<String, TimeLockServices> factory, Supplier<Integer> maxNumberOfClients) {
+            MetricsManager metrics,
+            Function<String, TimeLockServices> factory,
+            Supplier<Integer> maxNumberOfClients,
+            DisabledNamespaces disabledNamespaces) {
         this.factory = factory;
         this.maxNumberOfClients = maxNumberOfClients;
+        this.disabledNamespaces = disabledNamespaces;
         registerClientCapacityMetrics(metrics);
     }
 
@@ -86,6 +92,10 @@ public final class TimelockNamespaces {
                 !namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 "The client name '%s' is reserved for the leader election service, and may not be " + "used.",
                 PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
+        Preconditions.checkArgument(
+                disabledNamespaces.isEnabled(namespace),
+                "Cannot create a client for namespace because the namespace has been explicitly disabled.",
+                SafeArg.of("namespace", namespace));
 
         if (getNumberOfActiveClients() >= getMaxNumberOfClients()) {
             log.error(
@@ -111,6 +121,7 @@ public final class TimelockNamespaces {
         if (removedServices != null) {
             removedServices.close();
         }
+        disabledNamespaces.disable(namespace);
     }
 
     private void registerClientCapacityMetrics(MetricsManager metricsManager) {

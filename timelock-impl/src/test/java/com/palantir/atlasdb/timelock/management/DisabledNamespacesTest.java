@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.paxos.SqliteConnections;
 import javax.sql.DataSource;
 import org.junit.Before;
@@ -30,15 +29,14 @@ public class DisabledNamespacesTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final Namespace FIRST = Namespace.of("fst");
-    private static final Namespace SECOND = Namespace.of("snd");
+    private static final String FIRST = "fst";
+    private static final String SECOND = "snd";
 
-    private DataSource dataSource;
     private DisabledNamespaces disabledNamespaces;
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
+        DataSource dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath());
         disabledNamespaces = DisabledNamespaces.create(dataSource);
     }
@@ -70,30 +68,30 @@ public class DisabledNamespacesTest {
     }
 
     @Test
-    public void canReenableNamespaces() {
+    public void canReEnableNamespaces() {
         disabledNamespaces.disable(FIRST);
         disabledNamespaces.disable(SECOND);
-        disabledNamespaces.reenable(FIRST);
+        disabledNamespaces.reEnable(FIRST);
 
         assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
         assertThat(disabledNamespaces.isDisabled(SECOND)).isTrue();
         assertThat(disabledNamespaces.disabledNamespaces()).containsExactly(SECOND);
 
-        disabledNamespaces.reenable(SECOND);
+        disabledNamespaces.reEnable(SECOND);
         assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
         assertThat(disabledNamespaces.disabledNamespaces()).isEmpty();
     }
 
     @Test
-    public void disablingAndReenablingAreIdempotent() {
+    public void disablingAndReEnablingAreIdempotent() {
         disabledNamespaces.disable(FIRST);
         disabledNamespaces.disable(FIRST);
         disabledNamespaces.disable(FIRST);
 
         assertThat(disabledNamespaces.isDisabled(FIRST)).isTrue();
 
-        disabledNamespaces.reenable(FIRST);
-        disabledNamespaces.reenable(FIRST);
+        disabledNamespaces.reEnable(FIRST);
+        disabledNamespaces.reEnable(FIRST);
         assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
     }
 }

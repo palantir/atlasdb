@@ -15,10 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH;
-import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
-import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
@@ -49,6 +45,7 @@ import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
+import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
 import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
@@ -102,6 +99,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH;
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
@@ -320,7 +321,8 @@ public class TimeLockAgent {
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
-                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
+                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get),
+                DisabledNamespaces.create(sqliteDataSource));
         registerManagementResource();
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
