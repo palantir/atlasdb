@@ -147,6 +147,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -377,7 +378,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return t.getTimestamp();
         });
         assertThat(firstTs).isLessThan(txManager.getImmutableTimestamp());
-        assertThat(startTs).isLessThan(txManager.getImmutableTimestamp());
+
+        // Immutable timestamp may not be cleared immediately.
+        Awaitility.await("immutable timestamp should advance past our transaction's start timestamp")
+                .atMost(5, TimeUnit.SECONDS)
+                .pollInterval(10, TimeUnit.MILLISECONDS)
+                .until(() -> startTs < txManager.getImmutableTimestamp());
     }
 
     // If lock happens concurrent with get, we aren't sure that we can rollback the transaction
