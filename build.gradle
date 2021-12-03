@@ -107,7 +107,6 @@ allprojects {
                 'DnsLookup',
                 'EqualsGetClass',
                 'FutureReturnValueIgnored',
-                'GetClassOnEnum',
                 'InlineFormatString',
                 'MixedMutabilityReturnType',
                 'ModifyCollectionInEnhancedForLoop',
