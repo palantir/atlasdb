@@ -112,7 +112,6 @@ allprojects {
                 'MixedMutabilityReturnType',
                 'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
-                'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
                 'PublicConstructorForAbstractClass',

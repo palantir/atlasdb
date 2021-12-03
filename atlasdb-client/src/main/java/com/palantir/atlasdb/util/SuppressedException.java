@@ -38,7 +38,7 @@ final class SuppressedException extends RuntimeException {
     }
 
     @Override
-    public String toString() {
+    public String getMessage() {
         String message = getLocalizedMessage();
         return (message == null) ? getClass().getSimpleName() : message;
     }
