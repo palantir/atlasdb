@@ -30,6 +30,10 @@ public interface LightweightOppTokenRange {
 
     Optional<LightweightOppToken> right();
 
+    static LightweightOppTokenRange of(LightweightOppToken left, LightweightOppToken right) {
+        return builder().left(left).right(right).build();
+    }
+
     class Builder extends ImmutableLightweightOppTokenRange.Builder {}
 
     static Builder builder() {

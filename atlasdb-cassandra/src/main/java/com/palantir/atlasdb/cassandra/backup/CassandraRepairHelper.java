@@ -103,26 +103,22 @@ public class CassandraRepairHelper {
         LightweightOppToken endToken = serialise(tokenRange.getEnd());
 
         if (startToken.compareTo(endToken) <= 0) {
-            return ImmutableSet.of(LightweightOppTokenRange.builder()
-                    .left(startToken)
-                    .right(endToken)
-                    .build());
+            return ImmutableSet.of(LightweightOppTokenRange.of(startToken, endToken));
         } else {
             // Handle wrap-around
-            ByteBuffer minValue = ByteBuffer.allocate(0);
-            LightweightOppToken minToken = new LightweightOppToken(
-                    BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
-            LightweightOppTokenRange greaterThan = LightweightOppTokenRange.builder()
-                    .left(startToken)
-                    .right(minToken)
-                    .build();
-            LightweightOppTokenRange atMost = LightweightOppTokenRange.builder()
-                    .left(minToken)
-                    .right(endToken)
-                    .build();
+            // TODO(gs): use half-empty range instead?
+            LightweightOppToken unbounded = unboundedToken();
 
+            LightweightOppTokenRange greaterThan = LightweightOppTokenRange.of(startToken, unbounded);
+            LightweightOppTokenRange atMost = LightweightOppTokenRange.of(unbounded, endToken);
             return ImmutableSet.of(greaterThan, atMost);
         }
+    }
+
+    private LightweightOppToken unboundedToken() {
+        ByteBuffer minValue = ByteBuffer.allocate(0);
+        return new LightweightOppToken(
+                BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
     }
 
     private LightweightOppToken serialise(Token token) {
