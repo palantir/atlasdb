@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
@@ -59,7 +58,6 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -124,9 +122,10 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 .clusterSnapshot(clusterConfig)
                 .build();
 
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+
         timeLockAgent = TimeLockAgent.create(
-                // TODO(gs): one MetricManager to rule them all
-                MetricsManagers.of(new MetricRegistry(), SharedTaggedMetricRegistries.getSingleton()),
+                metricsManager,
                 install,
                 Refreshable.only(runtime), // This won't actually live reload.
                 runtime.clusterSnapshot(),
@@ -142,7 +141,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
 
         // Create other stuff
-        createHelperServices();
+        createHelperServices(metricsManager);
 
         // Wait for leadership
         Awaitility.await()
@@ -153,8 +152,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     // TODO(gs): unify
-    private void createHelperServices() {
-        MetricsManager metricsManager = MetricsManagers.createForTests();
+    private void createHelperServices(MetricsManager metricsManager) {
         Set<Schema> schemas = ImmutableSet.of(); // TODO(gs): any schemas?
         LockWatchCachingConfig cachingConfig = LockWatchCachingConfig.builder().build();
 
