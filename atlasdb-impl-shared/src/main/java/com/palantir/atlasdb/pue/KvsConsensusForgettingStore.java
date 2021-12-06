@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.pue;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
@@ -42,7 +43,8 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
      * responsibility of the user of this class to verify that this is true for the particular KVS implementation,
      * which it is and must remain so for the Cassandra KVS.
      */
-    private static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
+    @VisibleForTesting
+    static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
 
     private final KeyValueService kvs;
     private final TableReference tableRef;

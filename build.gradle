@@ -119,7 +119,6 @@ allprojects {
                 'PublicConstructorForAbstractClass',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
-                'ReverseDnsLookup',
                 'SafeLoggingExceptionMessageFormat',
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
