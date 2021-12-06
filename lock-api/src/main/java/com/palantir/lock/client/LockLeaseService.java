@@ -61,7 +61,7 @@ public class LockLeaseService implements AutoCloseable {
         return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter);
     }
 
-    LockImmutableTimestampResponse lockImmutableTimestamp() {
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
         return startTransactions(1).immutableTimestamp();
     }
 
@@ -118,15 +118,15 @@ public class LockLeaseService implements AutoCloseable {
         return delegate.getCommitTimestamps(request);
     }
 
-    LockResponse lock(LockRequest request) {
+    public LockResponse lock(LockRequest request) {
         return lockService.lock(request);
     }
 
-    WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
+    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         return lockService.waitForLocks(request);
     }
 
-    Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
         if (uncastedTokens.isEmpty()) {
             return uncastedTokens;
         }
@@ -143,7 +143,7 @@ public class LockLeaseService implements AutoCloseable {
         return Sets.union(refreshedTokens, validByLease);
     }
 
-    Set<LockToken> unlock(Set<LockToken> tokens) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
         if (tokens.isEmpty()) {
             return tokens;
         }
