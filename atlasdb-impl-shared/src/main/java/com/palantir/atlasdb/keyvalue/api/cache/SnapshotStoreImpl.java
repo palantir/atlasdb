@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
@@ -33,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -40,7 +40,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 @NotThreadSafe
 final class SnapshotStoreImpl implements SnapshotStore {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotStoreImpl.class);
-    private static final Sequence MAX_VERSION = Sequence.of(Long.MAX_VALUE);
 
     private final NavigableMap<Sequence, ValueCacheSnapshot> snapshotMap;
     private final Multimap<Sequence, StartTimestamp> liveSequences;
@@ -109,15 +108,14 @@ final class SnapshotStoreImpl implements SnapshotStore {
     }
 
     private void retentionSnapshots() {
-        int snapshotMapSize = snapshotMap.size();
-        if (snapshotMapSize > minimumSize) {
-            int numToRetention = snapshotMapSize - minimumSize;
-            Sequence firstLiveSequence = Optional.ofNullable(Iterables.getFirst(liveSequences.keySet(), null))
-                    .orElse(MAX_VERSION);
+        Set<Sequence> currentLiveSequences = liveSequences.keySet();
+        int nonEssentialSnapshotCount = snapshotMap.size() - currentLiveSequences.size();
+        if (nonEssentialSnapshotCount > minimumSize) {
+            int numToRetention = nonEssentialSnapshotCount - minimumSize;
 
             List<Sequence> sequencesToRemove = snapshotMap.keySet().stream()
                     .limit(numToRetention)
-                    .filter(sequence -> sequence.value() < firstLiveSequence.value())
+                    .filter(sequence -> !currentLiveSequences.contains(sequence))
                     .collect(Collectors.toList());
             sequencesToRemove.forEach(snapshotMap::remove);
         }
