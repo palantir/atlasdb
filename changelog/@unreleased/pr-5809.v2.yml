@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Timelock adjudication feedback is disabled in this version. This is
+    only for an RC.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5809
