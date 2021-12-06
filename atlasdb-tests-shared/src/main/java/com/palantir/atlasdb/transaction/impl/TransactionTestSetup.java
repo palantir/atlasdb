@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
@@ -176,7 +175,7 @@ public abstract class TransactionTestSetup {
         timestampService = inMemoryTimelockServices.getTimestampService();
         timestampManagementService = inMemoryTimelockServices.getTimestampManagementService();
         timelockService = inMemoryTimelockServices.getLegacyTimelockService();
-        lockWatchManager = NoOpLockWatchManager.create();
+        lockWatchManager = inMemoryTimelockServices.getLockWatchManager();
 
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
