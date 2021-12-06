@@ -151,7 +151,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 .until(() -> delegate.getTimestampService().getFreshTimestamp() > 0);
     }
 
-    // TODO(gs): unify
+    // TODO(gs): use TimeLockHelperServices.create
     private void createHelperServices(MetricsManager metricsManager) {
         Set<Schema> schemas = ImmutableSet.of(); // TODO(gs): any schemas?
         LockWatchCachingConfig cachingConfig = LockWatchCachingConfig.builder().build();
@@ -170,6 +170,8 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         ConjureTimelockService cts = timeLockAgent.getConjureTimeLockService();
         NamespacedConjureTimelockService ncts = new NamespacedConjureTimelockServiceImpl(cts, client);
         LeaderTimeGetter ltg = new LegacyLeaderTimeGetter(ncts);
+
+        // TODO(gs): add LockLeaseService to creation stuff?
         lockLeaseService = LockLeaseService.create(ncts, ltg);
     }
 

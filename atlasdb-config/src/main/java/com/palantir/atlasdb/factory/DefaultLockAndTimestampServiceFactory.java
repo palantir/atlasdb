@@ -36,11 +36,9 @@ import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -77,7 +75,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -341,11 +338,17 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
 
-        LockWatchManagerInternal lockWatchManager =
-                LockWatchManagerImpl.create(metricsManager, schemas, lockWatchingService, cachingConfig);
-
         Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
                 getMultiClientTimelockServiceSupplier(serviceProvider);
+
+        Supplier<Optional<RequestBatchersFactory.MultiClientRequestBatchers>> requestBatcherProvider =
+                () -> timelockRequestBatcherProviders.map(batcherProviders -> ImmutableMultiClientRequestBatchers.of(
+                        batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier),
+                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier)));
+
+        TimeLockHelperServices timeLockHelperServices = TimeLockHelperServices.create(
+                timelockNamespace, metricsManager, schemas, lockWatchingService, cachingConfig, requestBatcherProvider);
+        LockWatchManagerInternal lockWatchManager = timeLockHelperServices.lockWatchManager();
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient,
@@ -355,11 +358,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                         timelockRequestBatcherProviders,
                         namespacedConjureTimelockService,
                         multiClientTimelockServiceSupplier),
-                getRequestBatchersFactory(
-                        timelockNamespace,
-                        timelockRequestBatcherProviders,
-                        lockWatchManager.getCache(),
-                        multiClientTimelockServiceSupplier));
+                timeLockHelperServices.requestBatchersFactory());
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -372,19 +371,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .addResources(remoteTimelockServiceAdapter::close)
                 .addResources(lockWatchManager::close)
                 .build();
-    }
-
-    private static RequestBatchersFactory getRequestBatchersFactory(
-            String namespace,
-            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            LockWatchCache lockWatchCache,
-            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
-        return RequestBatchersFactory.create(
-                lockWatchCache,
-                Namespace.of(namespace),
-                timelockRequestBatcherProviders.map(batcherProviders -> ImmutableMultiClientRequestBatchers.of(
-                        batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier),
-                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier))));
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(
