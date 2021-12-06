@@ -446,6 +446,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TimelockService legacyTimeLockService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
+            LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,

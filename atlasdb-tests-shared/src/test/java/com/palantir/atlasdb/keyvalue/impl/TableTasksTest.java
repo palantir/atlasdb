@@ -90,6 +90,7 @@ public class TableTasksTest {
                 timelockServices.getLegacyTimelockService(),
                 timelockServices.getTimestampManagementService(),
                 lockService,
+                timelockServices.getLockWatchManager(),
                 txService,
                 constraints,
                 cdm,

@@ -37,6 +37,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
@@ -362,6 +363,7 @@ public class KeyValueServiceMigratorsTest {
                 timestampService,
                 LockServiceImpl.create(
                         LockServerOptions.builder().isStandaloneServer(false).build()),
+                NoOpLockWatchManager.create(),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 ConflictDetectionManagers.createWithoutWarmingCache(kvs),
