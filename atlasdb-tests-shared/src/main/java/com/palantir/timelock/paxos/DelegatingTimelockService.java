@@ -25,10 +25,12 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
+import java.util.List;
 import java.util.Set;
 
 @SuppressWarnings("unused") // temporary while wiring
@@ -47,6 +49,11 @@ final class DelegatingTimelockService implements TimelockService {
         this.lockLeaseService = lockLeaseService;
         this.timelock = timelock;
         this.commitTimestampGetter = commitTimestampGetter;
+    }
+
+    @Override
+    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+        return transactionStarter.startIdentifiedAtlasDbTransactionBatch(count);
     }
 
     @Override
@@ -91,7 +98,7 @@ final class DelegatingTimelockService implements TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return lockLeaseService.refreshLockLeases(tokens);
+        return transactionStarter.refreshLockLeases(tokens);
     }
 
     @Override
