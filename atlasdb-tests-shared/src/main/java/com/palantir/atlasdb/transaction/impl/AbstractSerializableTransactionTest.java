@@ -353,10 +353,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                                 .hasCauseInstanceOf(TransactionFailedRetriableException.class));
     }
 
-    private void withdrawMoney(Transaction txn, boolean account, boolean isCellGet) {
-        withdrawMoney(txn, TEST_TABLE, account, isCellGet);
-    }
-
     private void withdrawMoney(Transaction txn, TableReference tr, boolean account, boolean isCellGet) {
         long account1 = Long.parseLong(isCellGet ? getCell(txn, tr, "row1", "col1") : get(txn, tr, "row1", "col1"));
         long account2 = Long.parseLong(isCellGet ? getCell(txn, tr, "row2", "col1") : get(txn, tr, "row2", "col1"));
@@ -615,7 +611,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteConflict_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRange(
@@ -638,7 +634,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteConflict_iterator() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRangeIterator(
@@ -662,7 +658,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteConflictOnNewCell_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRange(
@@ -686,7 +682,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteConflictOnNewCell_iterator() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRangeIterator(
@@ -711,7 +707,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteNoConflict_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRange(
@@ -734,7 +730,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadWriteNoConflict_iterator() {
         byte[] row = PtBytes.toBytes("row1");
-        writeColumns(TEST_TABLE_SERIALIZABLE);
+        writeColumns();
 
         Transaction t1 = startTransaction();
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange = t1.getRowsColumnRangeIterator(
@@ -1551,10 +1547,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     private void writeColumns() {
-        writeColumns(TEST_TABLE);
-    }
-
-    private void writeColumns(TableReference table) {
         byte[] row = PtBytes.toBytes(DEFAULT_ROW);
         Transaction t1 = startTransaction();
         // Record expected results using byte ordering
@@ -1562,7 +1554,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < DEFAULT_COL_COUNT; i++) {
             String columnName = getColumnWithIndex(i);
-            put(t1, table, PtBytes.toString(row), columnName, "v" + i);
+            put(t1, TransactionTestSetup.TEST_TABLE_SERIALIZABLE, PtBytes.toString(row), columnName, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes(columnName)), PtBytes.toBytes("v" + i));
         }
         t1.commit();
