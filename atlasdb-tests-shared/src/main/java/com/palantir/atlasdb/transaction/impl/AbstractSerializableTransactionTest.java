@@ -357,17 +357,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         withdrawMoney(txn, TEST_TABLE, account, isCellGet);
     }
 
-    private void withdrawMoney(
-            Transaction txn,
-            TableReference tr,
-            boolean account,
-            boolean isCellGet) {
-        long account1 = Long.parseLong(isCellGet
-                ? getCell(txn, tr, "row1", "col1")
-                : get(txn, tr, "row1", "col1"));
-        long account2 = Long.parseLong(isCellGet
-                ? getCell(txn, tr, "row2", "col1")
-                : get(txn, tr, "row2", "col1"));
+    private void withdrawMoney(Transaction txn, TableReference tr, boolean account, boolean isCellGet) {
+        long account1 = Long.parseLong(isCellGet ? getCell(txn, tr, "row1", "col1") : get(txn, tr, "row1", "col1"));
+        long account2 = Long.parseLong(isCellGet ? getCell(txn, tr, "row2", "col1") : get(txn, tr, "row2", "col1"));
         if (account) {
             account1 -= 150;
         } else {
@@ -610,7 +602,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Test
     public void testColumnRangeReadSupported() {
-        Transaction t1 = startTransaction();
+        Transaction t1 = startTransactionWithOptions(new TransactionOptions());
         // The transactions table is registered as IGNORE_ALL, so the request is supported
         // Reading at timestamp 0 to avoid any repercussions for in-flight transactions
         t1.getRowsColumnRange(
@@ -1447,7 +1439,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                     transactionService.putUnlessExists(myTs + 1, myTs + 2);
 
                     // This primes the timestamp service to give us a known commit timestamp.
-                    long commitTimestamp = myTs + 1_000_000;
+                    long commitTimestamp = timestampService.getFreshTimestamp() + 1;
                     timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
 
                     // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at

@@ -67,7 +67,7 @@ public final class TransactionStarter implements AutoCloseable {
         return Sets.union(resultLockTokenShares, resultLockTokens);
     }
 
-    Set<LockToken> unlock(Set<LockToken> tokens) {
+    public Set<LockToken> unlock(Set<LockToken> tokens) {
         return TransactionStarterHelper.unlock(tokens, lockLeaseService);
     }
 

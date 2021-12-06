@@ -103,7 +103,7 @@ final class DelegatingTimelockService implements TimelockService {
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return lockLeaseService.unlock(tokens);
+        return transactionStarter.unlock(tokens);
     }
 
     @Override
