@@ -108,7 +108,6 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -571,18 +570,6 @@ public abstract class TransactionManagers {
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
-        if (isUsingTimeLock(config, runtimeConfig.current())) {
-            Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices =
-                    getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent(), reloadingFactory());
-            return Optional.of(initializeCloseable(
-                    () -> TimeLockFeedbackBackgroundTask.create(
-                            metricsManager.getTaggedRegistry(),
-                            AtlasDbVersion::readVersion,
-                            serviceName(),
-                            refreshableTimeLockClientFeedbackServices,
-                            namespace()),
-                    closeables));
-        }
         return Optional.empty();
     }
 
