@@ -38,7 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Transactions2TableInteraction implements TransactionsTableInteraction {
+public class Transactions2TableInteraction implements TransactionsTableInteraction<Long> {
     private final FullyBoundedTimestampRange timestampRange;
     private final RetryPolicy abortRetryPolicy;
 
@@ -82,20 +82,20 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public TransactionTableEntry extractTimestamps(Row row) {
+    public TransactionTableEntry<Long> extractTimestamps(Row row) {
         long startTimestamp = TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
         if (isRowAbortedTransaction(row)) {
-            return new TransactionTableEntry(startTimestamp, Optional.empty());
+            return new TransactionTableEntry<>(startTimestamp, Optional.empty());
         }
         long commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        return new TransactionTableEntry(startTimestamp, Optional.of(commitTimestamp));
+        return new TransactionTableEntry<>(startTimestamp, Optional.of(commitTimestamp));
     }
 
     @Override
-    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, long _commitTs) {
+    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, Long _commitTs) {
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
@@ -107,7 +107,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, long commitTs) {
+    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, Long commitTs) {
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
@@ -132,7 +132,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
     @Override
     public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
         Set<ByteBuffer> encodedRowKeys = TicketsEncodingStrategy.INSTANCE
-                .encodeRangeOfStartTimestampsAsRows(
+                .getRowSetCoveringTimestampRange(
                         timestampRange.inclusiveLowerBound(), timestampRange.inclusiveUpperBound())
                 .map(ByteBuffer::wrap)
                 .collect(Collectors.toSet());
@@ -141,7 +141,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
                         .all()
                         .from(transactionsTable)
                         .where(QueryBuilder.eq(CassandraConstants.ROW, rowKey))
-                        .setConsistencyLevel(ConsistencyLevel.ALL)
+                        .setConsistencyLevel(ConsistencyLevel.QUORUM)
                         .setFetchSize(SELECT_TRANSACTIONS_FETCH_SIZE)
                         .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS))
                 .collect(Collectors.toList());

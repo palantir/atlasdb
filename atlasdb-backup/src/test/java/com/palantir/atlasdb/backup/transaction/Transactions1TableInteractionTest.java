@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.backup.transaction;
 
-import static com.palantir.atlasdb.backup.transaction.Transactions1TableInteraction.COLUMN_NAME_BB;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
@@ -36,11 +30,18 @@ import java.nio.ByteBuffer;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.Test;
 
+import static com.palantir.atlasdb.backup.transaction.Transactions1TableInteraction.COLUMN_NAME_BB;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class Transactions1TableInteractionTest {
     private static final FullyBoundedTimestampRange TXN1_RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction interaction = new Transactions1TableInteraction(TXN1_RANGE, mockPolicy);
+    private final TransactionsTableInteraction<Long> interaction =
+            new Transactions1TableInteraction(TXN1_RANGE, mockPolicy);
 
     @Test
     public void cellEncodingTest() {
@@ -64,14 +65,14 @@ public class Transactions1TableInteractionTest {
 
     @Test
     public void extractCommittedTimestampTest() {
-        TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
+        TransactionTableEntry<Long> entry = interaction.extractTimestamps(createRow(150L, 200L));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
         assertThat(entry.getCommitTimestamp()).hasValue(200L);
     }
 
     @Test
     public void extractAbortedTimestampTest() {
-        TransactionTableEntry entry = interaction.extractTimestamps(createAbortedRow(150L));
+        TransactionTableEntry<Long> entry = interaction.extractTimestamps(createAbortedRow(150L));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
         assertThat(entry.getCommitTimestamp()).isEmpty();
     }

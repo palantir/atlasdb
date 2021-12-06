@@ -89,8 +89,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
         return rowToBytes(startTimestampToRow(startTimestamp));
     }
 
-    public Stream<byte[]> encodeRangeOfStartTimestampsAsRows(long fromInclusive, long toInclusive) {
-        // todo(gmaretic): maybe calculate the exact rows, modal arithmetic is tedious and will be difficult to parse?
+    public Stream<byte[]> getRowSetCoveringTimestampRange(long fromInclusive, long toInclusive) {
         long startRow =
                 startTimestampToRow(fromInclusive - ((fromInclusive % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM));
         long endRow = startTimestampToRow(

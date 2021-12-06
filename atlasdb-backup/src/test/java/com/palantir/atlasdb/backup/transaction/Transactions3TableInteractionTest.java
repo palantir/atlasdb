@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.backup.transaction;
 
-import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.PARTITIONING_QUANTUM;
-import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.ROWS_PER_QUANTUM;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
@@ -42,12 +35,20 @@ import org.apache.commons.codec.binary.Hex;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.PARTITIONING_QUANTUM;
+import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.ROWS_PER_QUANTUM;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class Transactions3TableInteractionTest {
     private static final FullyBoundedTimestampRange RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE, mockPolicy);
+    private final TransactionsTableInteraction<PutUnlessExistsValue<Long>> interaction =
+            new Transactions3TableInteraction(RANGE, mockPolicy);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 
     @Before
@@ -58,29 +59,29 @@ public class Transactions3TableInteractionTest {
 
     @Test
     public void extractCommittedTimestampTest() {
-        TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
+        TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(createRow(150L, 200L));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitTimestamp()).hasValue(200L);
+        assertThat(entry.getCommitTimestamp()).hasValue(PutUnlessExistsValue.committed(200L));
     }
 
     @Test
     public void extractStagingCommitTimestampTest() {
-        TransactionTableEntry entry =
+        TransactionTableEntry<PutUnlessExistsValue<Long>> entry =
                 interaction.extractTimestamps(createRow(150L, PutUnlessExistsValue.staging(200L)));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitTimestamp()).hasValue(200L);
+        assertThat(entry.getCommitTimestamp()).hasValue(PutUnlessExistsValue.staging(200L));
     }
 
     @Test
     public void extractAbortedTimestampTest() {
-        TransactionTableEntry entry = interaction.extractTimestamps(createAbortedRow(150L));
+        TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(createAbortedRow(150L));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
         assertThat(entry.getCommitTimestamp()).isEmpty();
     }
 
     @Test
     public void extractStagingAbortedTimestampTest() {
-        TransactionTableEntry entry = interaction.extractTimestamps(
+        TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(
                 createRow(150L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
         assertThat(entry.getCommitTimestamp()).isEmpty();
@@ -101,8 +102,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void getAllRowsInPartition() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
-        Transactions2TableInteraction txnInteraction =
-                new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+        Transactions3TableInteraction txnInteraction =
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
         List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -113,8 +114,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void getsRowsInAllSpannedPartitions() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, PARTITIONING_QUANTUM + 1000000);
-        Transactions2TableInteraction txnInteraction =
-                new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+        Transactions3TableInteraction txnInteraction =
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
         List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
         List<String> correctSelects = createSelectStatement(0, 2 * ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -125,8 +126,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void doesntGetNextPartitionIfOpenBounded() {
         Range<Long> rangeWithinOnePartition = Range.closedOpen(100L, 25000000L);
-        Transactions2TableInteraction txnInteraction =
-                new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+        Transactions3TableInteraction txnInteraction =
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
         List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, 15L);
         assertThat(selects)

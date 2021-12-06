@@ -36,7 +36,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public class Transactions1TableInteraction implements TransactionsTableInteraction {
+public class Transactions1TableInteraction implements TransactionsTableInteraction<Long> {
     private final FullyBoundedTimestampRange timestampRange;
     private final RetryPolicy abortRetryPolicy;
 
@@ -83,17 +83,17 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public TransactionTableEntry extractTimestamps(Row row) {
+    public TransactionTableEntry<Long> extractTimestamps(Row row) {
         long startTimestamp = decodeStartTs(Bytes.getArray(row.getBytes(CassandraConstants.ROW)));
         long commitTimestamp = decodeCommitTs(Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
         Optional<Long> maybeCommitTs = commitTimestamp != TransactionConstants.FAILED_COMMIT_TS
                 ? Optional.of(commitTimestamp)
                 : Optional.empty();
-        return new TransactionTableEntry(startTimestamp, maybeCommitTs);
+        return new TransactionTableEntry<>(startTimestamp, maybeCommitTs);
     }
 
     @Override
-    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, long _commitTs) {
+    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, Long _commitTs) {
         ByteBuffer startTimestampBb = encodeStartTimestamp(startTs);
         BoundStatement bound = preparedCheckStatement.bind(startTimestampBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
@@ -103,7 +103,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, long commitTs) {
+    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, Long commitTs) {
         ByteBuffer startTimestampBb = encodeStartTimestamp(startTs);
         ByteBuffer commitTimestampBb = encodeCommitTimestamp(commitTs);
         BoundStatement bound = preparedAbortStatement.bind(startTimestampBb, commitTimestampBb);
@@ -132,7 +132,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
                 .and(QueryBuilder.gte(
                         QueryBuilder.token(CassandraConstants.ROW),
                         QueryBuilder.token(encodeStartTimestamp(timestampRange.inclusiveLowerBound()))))
-                .setConsistencyLevel(ConsistencyLevel.ALL)
+                .setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setFetchSize(SELECT_TRANSACTIONS_FETCH_SIZE)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS);
 

@@ -163,21 +163,30 @@ public class TicketsEncodingStrategyTest {
 
     @Test
     public void encodeRangeOfTimestampsAsRowsIncludesAllRowsInPartitioning() {
-        assertThat(STRATEGY.encodeRangeOfStartTimestampsAsRows(2, 7)).containsExactlyElementsOf(allRowsInPartition(0));
+        assertThat(STRATEGY.getRowSetCoveringTimestampRange(2, 7)).containsExactlyElementsOf(allRowsInPartition(0));
     }
 
     @Test
     public void encodeRangeOfTimestampsAsRowsIncludesAllRowsInEachPartitioning() {
-        assertThat(STRATEGY.encodeRangeOfStartTimestampsAsRows(
+        assertThat(STRATEGY.getRowSetCoveringTimestampRange(
                         2 * TicketsEncodingStrategy.PARTITIONING_QUANTUM - 1,
                         4 * TicketsEncodingStrategy.PARTITIONING_QUANTUM + 1))
                 .containsExactlyElementsOf(Iterables.concat(
                         allRowsInPartition(1), allRowsInPartition(2), allRowsInPartition(3), allRowsInPartition(4)));
     }
 
+    @Test
+    public void encodeRangeOfTimestampsAsRowsIncludesAllRowsInEachPartitioningRangesClosed() {
+        assertThat(STRATEGY.getRowSetCoveringTimestampRange(
+                        2 * TicketsEncodingStrategy.PARTITIONING_QUANTUM,
+                        4 * TicketsEncodingStrategy.PARTITIONING_QUANTUM))
+                .containsExactlyElementsOf(
+                        Iterables.concat(allRowsInPartition(2), allRowsInPartition(3), allRowsInPartition(4)));
+    }
+
     private static List<byte[]> allRowsInPartition(int partition) {
         return LongStream.range(0, TicketsEncodingStrategy.ROWS_PER_QUANTUM)
-                .map(x -> x + partition * TicketsEncodingStrategy.PARTITIONING_QUANTUM)
+                .map(offset -> offset + partition * TicketsEncodingStrategy.PARTITIONING_QUANTUM)
                 .mapToObj(TicketsEncodingStrategy.INSTANCE::encodeStartTimestampAsCell)
                 .map(Cell::getRowName)
                 .collect(Collectors.toList());

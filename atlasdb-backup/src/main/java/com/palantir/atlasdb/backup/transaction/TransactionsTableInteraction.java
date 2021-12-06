@@ -16,52 +16,70 @@
 
 package com.palantir.atlasdb.backup.transaction;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.Token;
 import com.datastax.driver.core.policies.RetryPolicy;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-public interface TransactionsTableInteraction {
+/**
+ * Encapsulates certain operations on transaction tables for a given range of timestamps that are needed for restores
+ * from backups.
+ */
+public interface TransactionsTableInteraction<T> {
     int LONG_READ_TIMEOUT_MS = (int) TimeUnit.MINUTES.toMillis(2);
     // reduce this from default because we run CleanTransactionsTableTask across N keyspaces at the same time
     int SELECT_TRANSACTIONS_FETCH_SIZE = 1_000;
 
-    FullyBoundedTimestampRange getTimestampRange();
-
-    String getTransactionsTableName();
+    List<Statement> createSelectStatements(TableMetadata transactionsTable);
 
     PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, Session session);
 
     PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, Session session);
 
-    TransactionTableEntry extractTimestamps(Row row);
+    Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, T commitTs);
 
-    Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, long commitTs);
+    Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, T commitTs);
 
-    Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, long commitTs);
+    String getTransactionsTableName();
+
+    FullyBoundedTimestampRange getTimestampRange();
+
+    TransactionTableEntry<T> extractTimestamps(Row row);
 
     boolean isRowAbortedTransaction(Row row);
 
-    List<Statement> createSelectStatements(TableMetadata transactionsTable);
+    default Set<Token> getPartitionTokens(TableMetadata transactionsTable, Session session) {
+        return createSelectStatements(transactionsTable).stream()
+                .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
+                .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))
+                .map(row -> row.getToken(CassandraConstants.ROW))
+                .collect(Collectors.toSet());
+    }
 
-    static List<TransactionsTableInteraction> getTransactionTableInteractions(
+    static List<TransactionsTableInteraction<?>> getTransactionTableInteractions(
             Map<FullyBoundedTimestampRange, Integer> coordinationMap, RetryPolicy abortRetryPolicy) {
         return coordinationMap.entrySet().stream()
                 .map(entry -> {
                     switch (entry.getValue()) {
-                        case 1:
+                        case TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION:
                             return new Transactions1TableInteraction(entry.getKey(), abortRetryPolicy);
-                        case 2:
+                        case TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION:
                             return new Transactions2TableInteraction(entry.getKey(), abortRetryPolicy);
-                        case 3:
+                        case TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION:
                             return new Transactions3TableInteraction(entry.getKey(), abortRetryPolicy);
                         default:
                             throw new SafeIllegalArgumentException(

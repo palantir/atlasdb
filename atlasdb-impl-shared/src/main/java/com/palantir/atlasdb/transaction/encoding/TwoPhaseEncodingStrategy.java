@@ -69,7 +69,7 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
     }
 
     public Stream<byte[]> encodeRangeOfStartTimestampsAsRows(long fromInclusive, long toInclusive) {
-        return TicketsEncodingStrategy.INSTANCE.encodeRangeOfStartTimestampsAsRows(fromInclusive, toInclusive);
+        return TicketsEncodingStrategy.INSTANCE.getRowSetCoveringTimestampRange(fromInclusive, toInclusive);
     }
 
     public byte[] transformStagingToCommitted(byte[] stagingValue) {

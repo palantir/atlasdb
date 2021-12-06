@@ -30,6 +30,7 @@ import com.datastax.driver.core.utils.Bytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
+import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
@@ -38,7 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Transactions3TableInteraction implements TransactionsTableInteraction {
+public class Transactions3TableInteraction implements TransactionsTableInteraction<PutUnlessExistsValue<Long>> {
     private final FullyBoundedTimestampRange timestampRange;
     private final RetryPolicy abortRetryPolicy;
 
@@ -66,7 +67,8 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .with(QueryBuilder.set(CassandraConstants.VALUE, abortCommitTsBb))
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
-                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP));
+                .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
+                .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
         // if you change this from CAS then you must update RetryPolicy
         return session.prepare(abortStatement.toString());
     }
@@ -82,22 +84,22 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public TransactionTableEntry extractTimestamps(Row row) {
+    public TransactionTableEntry<PutUnlessExistsValue<Long>> extractTimestamps(Row row) {
         long startTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        long commitTimestamp = TwoPhaseEncodingStrategy.INSTANCE
-                .decodeValueAsCommitTimestamp(startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)))
-                .value();
-        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-            return new TransactionTableEntry(startTimestamp, Optional.empty());
+        PutUnlessExistsValue<Long> commitTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+                startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
+        if (commitTimestamp.value() == TransactionConstants.FAILED_COMMIT_TS) {
+            return new TransactionTableEntry<>(startTimestamp, Optional.empty());
         }
 
-        return new TransactionTableEntry(startTimestamp, Optional.of(commitTimestamp));
+        return new TransactionTableEntry<>(startTimestamp, Optional.of(commitTimestamp));
     }
 
     @Override
-    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, long _commitTs) {
+    public Statement bindCheckStatement(
+            PreparedStatement preparedCheckStatement, long startTs, PutUnlessExistsValue<Long> _commitTs) {
         Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
@@ -109,15 +111,17 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, long commitTs) {
+    public Statement bindAbortStatement(
+            PreparedStatement preparedAbortStatement, long startTs, PutUnlessExistsValue<Long> commitTs) {
         Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
-        BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb);
+        ByteBuffer valueBb =
+                ByteBuffer.wrap(TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs));
+        BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
-                // todo(gmaretic): verify this actually works as intended
-                // we must be more recent than the puts
+                //
                 .setDefaultTimestamp(KvsConsensusForgettingStore.PUT_TIMESTAMP + 1)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients
@@ -145,8 +149,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                         .all()
                         .from(transactionsTable)
                         .where(QueryBuilder.eq(CassandraConstants.ROW, rowKey))
-                        // we must check all nodes because of potential partial PuE
-                        .setConsistencyLevel(ConsistencyLevel.ALL)
+                        .setConsistencyLevel(ConsistencyLevel.QUORUM)
                         .setFetchSize(SELECT_TRANSACTIONS_FETCH_SIZE)
                         .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS))
                 .collect(Collectors.toList());

@@ -20,15 +20,15 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class TransactionTableEntry extends AbstractMap.SimpleImmutableEntry<Long, Optional<Long>> {
+public class TransactionTableEntry<T> extends AbstractMap.SimpleImmutableEntry<Long, Optional<T>> {
 
     private static final long serialVersionUID = 1L;
 
-    public TransactionTableEntry(Map.Entry<? extends Long, ? extends Optional<Long>> entry) {
+    public TransactionTableEntry(Map.Entry<? extends Long, ? extends Optional<T>> entry) {
         super(entry);
     }
 
-    public TransactionTableEntry(Long key, Optional<Long> value) {
+    public TransactionTableEntry(Long key, Optional<T> value) {
         super(key, value);
     }
 
@@ -36,11 +36,11 @@ public class TransactionTableEntry extends AbstractMap.SimpleImmutableEntry<Long
         return getKey();
     }
 
-    public Optional<Long> getCommitTimestamp() {
+    public Optional<T> getCommitTimestamp() {
         return getValue();
     }
 
-    public boolean isAborted() {
+    public boolean isExplicitlyAborted() {
         return getValue().isEmpty();
     }
 }
