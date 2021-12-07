@@ -34,12 +34,12 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import one.util.streamex.EntryStream;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import one.util.streamex.StreamEx;
 
 public final class ClusterMetadataUtils {
@@ -79,31 +79,32 @@ public final class ClusterMetadataUtils {
     public static Map<InetSocketAddress, Set<TokenRange>> getTokenMapping(
             Collection<InetSocketAddress> nodeSet, Metadata metadata, String keyspace, Set<Token> partitionKeyTokens) {
 
-        Map<String, InetSocketAddress> nodeMetadataHostMap = StreamEx.of(nodeSet)
-                .mapToEntry(InetSocketAddress::getHostName)
-                .invert()
-                .toMap();
+        Map<String, InetSocketAddress> nodeMetadataHostMap =
+                KeyedStream.of(nodeSet).mapKeys(InetSocketAddress::getHostName).collectToMap();
         Map<Host, List<TokenRange>> hostToTokenRangeMap =
                 getTokenMappingForPartitionKeys(metadata, keyspace, partitionKeyTokens);
 
-        return EntryStream.of(hostToTokenRangeMap)
-                .mapValues(list -> (Set<TokenRange>) new HashSet<>(list))
-                .mapKeys(host -> {
-                    String hostname = host.getEndPoint().resolve().getHostName();
-                    Preconditions.checkArgument(
-                            nodeMetadataHostMap.containsKey(hostname),
-                            "Did not find corresponding Node to run repair",
-                            SafeArg.of("hostname", hostname));
-                    return nodeMetadataHostMap.get(hostname);
-                })
-                .toMap();
+        return KeyedStream.stream(hostToTokenRangeMap)
+                .mapKeys(host -> lookUpAddress(nodeMetadataHostMap, host))
+                .map(List::stream)
+                .map(stream -> stream.collect(Collectors.toSet()))
+                .collectToMap();
+    }
+
+    private static InetSocketAddress lookUpAddress(Map<String, InetSocketAddress> nodeMetadataHostMap, Host host) {
+        String hostname = host.getEndPoint().resolve().getHostName();
+        Preconditions.checkArgument(
+                nodeMetadataHostMap.containsKey(hostname),
+                "Did not find corresponding Node to run repair",
+                SafeArg.of("hostname", hostname));
+        return nodeMetadataHostMap.get(hostname);
     }
 
     private static Map<Host, List<TokenRange>> getTokenMappingForPartitionKeys(
             Metadata metadata, String keyspace, Set<Token> partitionKeyTokens) {
         Set<TokenRange> tokenRanges = metadata.getTokenRanges();
         SortedMap<Token, TokenRange> tokenRangesByEnd =
-                StreamEx.of(tokenRanges).mapToEntry(TokenRange::getEnd).invert().toSortedMap();
+                KeyedStream.of(tokenRanges).mapKeys(TokenRange::getEnd).collectTo(TreeMap::new);
         Set<TokenRange> ranges = getSmallTokenRangeForKey(metadata, partitionKeyTokens, tokenRangesByEnd);
         Multimap<Host, TokenRange> tokenMapping = ArrayListMultimap.create();
         ranges.forEach(range -> {
