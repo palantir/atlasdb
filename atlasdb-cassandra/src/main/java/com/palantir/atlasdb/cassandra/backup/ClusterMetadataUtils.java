@@ -31,7 +31,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +48,7 @@ public final class ClusterMetadataUtils {
 
     /**
      * Returns a mapping of Node to token ranges its host contains, where every partition key in the specified
-     * list is present in one of the token ranges on one host.
+     * list is present in the token ranges for each replica.
      *
      * <p>For example there is a cluster that has keyspace K with a simple replication strategy and replication factor
      * 2, the ring of the cluster has a range of (0, 3], and there are 3 nodes A, B, and C, where:
@@ -60,13 +59,8 @@ public final class ClusterMetadataUtils {
      *   <li>C has replicas for K for token ranges (0, 1] and (1, 2]
      * </ul>
      *
-     * <p>The value returned by calling getTokenMapping([A, B, C], metadata, K, [0.25, 0.5, 2.5]) could be: <br>
-     * { A : set[ range(2, 3] ] B : set[ range(0, 1] ] }
-     *
-     * <p>Another possible return value is: <br>
-     * { B : set[ range(0, 1], range(2, 3] ] }
-     *
-     * <p>The node chosen for each token range can be any replica, so it is non-deterministic.
+     * <p>The value returned by calling getTokenMapping([A, B, C], metadata, K, [0.25, 0.5, 2.5]) would be: <br>
+     * { A : set[ range(2, 3] ], B : set[ range(0, 1],  range(2, 3]] }, C : set[ range(0, 1] ] }
      *
      * @param nodeSet The Cassandra nodes whose replicas to check
      * @param metadata The Datastax driver metadata from the Cassandra cluster
@@ -105,7 +99,7 @@ public final class ClusterMetadataUtils {
         Set<TokenRange> tokenRanges = metadata.getTokenRanges();
         SortedMap<Token, TokenRange> tokenRangesByEnd =
                 KeyedStream.of(tokenRanges).mapKeys(TokenRange::getEnd).collectTo(TreeMap::new);
-        Set<TokenRange> ranges = getSmallTokenRangeForKey(metadata, partitionKeyTokens, tokenRangesByEnd);
+        Set<TokenRange> ranges = getMinimalSetOfRangesForTokens(metadata, partitionKeyTokens, tokenRangesByEnd);
         Multimap<Host, TokenRange> tokenMapping = ArrayListMultimap.create();
         ranges.forEach(range -> {
             List<Host> hosts = ImmutableList.copyOf(metadata.getReplicas(quotedKeyspace(keyspace), range));
@@ -118,42 +112,39 @@ public final class ClusterMetadataUtils {
             hosts.forEach(host -> tokenMapping.put(host, range));
         });
         return KeyedStream.stream(tokenMapping.asMap())
-                .map(trs -> (List<TokenRange>) new ArrayList<>(trs))
+                .map(Collection::stream)
+                .map(stream -> stream.collect(Collectors.toList()))
                 .collectToMap();
     }
 
-    // TODO(gs): copy over tests?
-    private static Set<TokenRange> getSmallTokenRangeForKey(
+    // TODO(gs): copy over tests!
+    private static Set<TokenRange> getMinimalSetOfRangesForTokens(
             Metadata metadata, Set<Token> partitionKeyTokens, SortedMap<Token, TokenRange> tokenRangesByEnd) {
         Map<Token, TokenRange> tokenRangesByStartToken = new HashMap<>();
         for (Token token : partitionKeyTokens) {
-            TokenRange smallTokenRange;
-            if (tokenRangesByEnd.containsKey(token)) {
-                smallTokenRange = tokenRangesByEnd.get(token);
-            } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
-                smallTokenRange =
-                        metadata.newTokenRange(tokenRangesByEnd.headMap(token).lastKey(), token);
-            } else {
-                // Confirm that the first entry in the sorted map is the wraparound range
-                TokenRange firstTokenRange = tokenRangesByEnd.get(tokenRangesByEnd.firstKey());
-                Preconditions.checkState(
-                        firstTokenRange.isWrappedAround(),
-                        "Failed to identify wraparound token range",
-                        SafeArg.of("firstTokenRange", firstTokenRange),
-                        SafeArg.of("token", token));
-                smallTokenRange = metadata.newTokenRange(firstTokenRange.getStart(), token);
-            }
-
-            //  Remove nested token ranges from list, ie would remove (A, B] from { (A, B], (A, B+1] }
-            if (tokenRangesByStartToken.containsKey(smallTokenRange.getStart())) {
-                TokenRange existingRange = tokenRangesByStartToken.get(smallTokenRange.getStart());
-                TokenRange latestEndingRange = findLatestEndingRange(smallTokenRange, existingRange);
-                tokenRangesByStartToken.put(smallTokenRange.getStart(), latestEndingRange);
-            } else {
-                tokenRangesByStartToken.put(smallTokenRange.getStart(), smallTokenRange);
-            }
+            TokenRange minimalTokenRange = findTokenRange(metadata, token, tokenRangesByEnd);
+            tokenRangesByStartToken.merge(
+                    minimalTokenRange.getStart(), minimalTokenRange, ClusterMetadataUtils::findLatestEndingRange);
         }
         return ImmutableSet.copyOf(tokenRangesByStartToken.values());
+    }
+
+    private static TokenRange findTokenRange(
+            Metadata metadata, Token token, SortedMap<Token, TokenRange> tokenRangesByEnd) {
+        if (tokenRangesByEnd.containsKey(token)) {
+            return tokenRangesByEnd.get(token);
+        } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
+            return metadata.newTokenRange(tokenRangesByEnd.headMap(token).lastKey(), token);
+        } else {
+            // Confirm that the first entry in the sorted map is the wraparound range
+            TokenRange firstTokenRange = tokenRangesByEnd.get(tokenRangesByEnd.firstKey());
+            Preconditions.checkState(
+                    firstTokenRange.isWrappedAround(),
+                    "Failed to identify wraparound token range",
+                    SafeArg.of("firstTokenRange", firstTokenRange),
+                    SafeArg.of("token", token));
+            return metadata.newTokenRange(firstTokenRange.getStart(), token);
+        }
     }
 
     private static String quotedKeyspace(String keyspaceName) {
