@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class ClusterMetadataUtils {
     private ClusterMetadataUtils() {
@@ -160,7 +161,7 @@ public final class ClusterMetadataUtils {
                 SafeArg.of("range2", range2));
 
         Set<TokenRange> wrapAroundTokenRanges =
-                StreamEx.of(range1, range2).filter(TokenRange::isWrappedAround).toSet();
+                Stream.of(range1, range2).filter(TokenRange::isWrappedAround).collect(Collectors.toSet());
 
         // If any token ranges are wraparound ranges, the non-wraparound ranges cannot possibly be the longest range
         if (wrapAroundTokenRanges.size() == 1) {
