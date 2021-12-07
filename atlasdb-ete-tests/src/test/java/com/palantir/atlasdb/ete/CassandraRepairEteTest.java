@@ -152,11 +152,15 @@ public class CassandraRepairEteTest {
     }
 
     private Predicate<LightweightOppTokenRange> isSubsetOf(LightweightOppTokenRange range) {
-        return thriftRange -> thriftRange.left().equals(range.left())
-                && thriftRange
-                        .right()
-                        .map(right -> right.compareTo(range.right().orElseThrow()) <= 0)
-                        .orElseGet(() -> range.right().isEmpty());
+        return thriftRange -> {
+            System.out.println("Comparing range:" + range.left() + "->" + range.right());
+            System.out.println("To thrift range:" + thriftRange.left() + "->" + thriftRange.right());
+            return thriftRange.left().equals(range.left())
+                    && thriftRange
+                            .right()
+                            .map(right -> right.compareTo(range.right().orElseThrow()) <= 0)
+                            .orElseGet(() -> range.right().isEmpty());
+        };
     }
 
     private Map<InetSocketAddress, Set<LightweightOppTokenRange>> getFullTokenMap() {
