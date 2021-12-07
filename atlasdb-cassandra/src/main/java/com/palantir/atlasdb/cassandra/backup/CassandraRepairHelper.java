@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableSet;
@@ -35,12 +33,12 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CassandraRepairHelper {
     private static final Set<TableReference> TABLES_TO_REPAIR =
@@ -62,24 +60,32 @@ public class CassandraRepairHelper {
     public void repairInternalTables(
             Namespace namespace, Consumer<Map<InetSocketAddress, Set<LightweightOppTokenRange>>> repairTable) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
+        CqlCluster cqlCluster = getCqlCluster(namespace);
         kvs.getAllTableNames().stream()
                 .filter(TABLES_TO_REPAIR::contains)
                 .map(TableReference::getTableName)
-                .map(tableName -> getRangesToRepair(namespace, tableName))
+                .map(tableName -> getRangesToRepair(cqlCluster, namespace, tableName))
+                // TODO(gs): this will do repairs serially, instead of batched. Is this fine? Port batching from
+                //   internal product?
                 .forEach(repairTable);
+    }
+
+    private CqlCluster getCqlCluster(Namespace namespace) {
+        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
+        return CqlCluster.create(config);
     }
 
     // VisibleForTesting
     public Map<InetSocketAddress, Set<LightweightOppTokenRange>> getRangesToRepair(
-            Namespace namespace, String tableName) {
-        Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getTokenRangesToRepair(namespace, tableName);
+            CqlCluster cqlCluster, Namespace namespace, String tableName) {
+        Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getTokenRangesToRepair(cqlCluster, namespace, tableName);
         return KeyedStream.stream(tokenRanges).map(this::makeLightweight).collectToMap();
     }
 
-    private Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(Namespace namespace, String tableName) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
+    private Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(
+            CqlCluster cqlCluster, Namespace namespace, String tableName) {
         String cassandraTableName = getCassandraTableName(namespace, tableName);
-        return CqlCluster.create(config).getTokenRanges(cassandraTableName);
+        return cqlCluster.getTokenRanges(cassandraTableName);
     }
 
     private String getCassandraTableName(Namespace namespace, String tableName) {
@@ -92,18 +98,15 @@ public class CassandraRepairHelper {
     }
 
     private Set<LightweightOppTokenRange> makeLightweight(Set<TokenRange> tokenRanges) {
-        return tokenRanges.stream()
-                .map(this::makeLightweight)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
+        return tokenRanges.stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
     }
 
-    private Set<LightweightOppTokenRange> makeLightweight(TokenRange tokenRange) {
-        LightweightOppToken startToken = serialise(tokenRange.getStart());
-        LightweightOppToken endToken = serialise(tokenRange.getEnd());
+    private Stream<LightweightOppTokenRange> makeLightweight(TokenRange tokenRange) {
+        LightweightOppToken startToken = LightweightOppToken.serialise(tokenRange.getStart());
+        LightweightOppToken endToken = LightweightOppToken.serialise(tokenRange.getEnd());
 
         if (startToken.compareTo(endToken) <= 0) {
-            return ImmutableSet.of(LightweightOppTokenRange.of(startToken, endToken));
+            return Stream.of(LightweightOppTokenRange.of(startToken, endToken));
         } else {
             // Handle wrap-around
             // TODO(gs): use half-empty range instead?
@@ -111,7 +114,7 @@ public class CassandraRepairHelper {
 
             LightweightOppTokenRange greaterThan = LightweightOppTokenRange.of(startToken, unbounded);
             LightweightOppTokenRange atMost = LightweightOppTokenRange.of(unbounded, endToken);
-            return ImmutableSet.of(greaterThan, atMost);
+            return Stream.of(greaterThan, atMost);
         }
     }
 
@@ -119,12 +122,5 @@ public class CassandraRepairHelper {
         ByteBuffer minValue = ByteBuffer.allocate(0);
         return new LightweightOppToken(
                 BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
-    }
-
-    private LightweightOppToken serialise(Token token) {
-        ByteBuffer serializedToken = token.serialize(ProtocolVersion.V3);
-        byte[] bytes = new byte[serializedToken.remaining()];
-        serializedToken.get(bytes);
-        return new LightweightOppToken(bytes);
     }
 }

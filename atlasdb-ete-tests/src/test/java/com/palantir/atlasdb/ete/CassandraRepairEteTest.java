@@ -25,6 +25,7 @@ import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
+import com.palantir.atlasdb.cassandra.backup.CqlCluster;
 import com.palantir.atlasdb.cassandra.backup.LightweightOppTokenRange;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -47,6 +48,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,6 +65,7 @@ public class CassandraRepairEteTest {
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
+    private CqlCluster cqlCluster;
 
     @Before
     public void setUp() {
@@ -76,6 +79,7 @@ public class CassandraRepairEteTest {
         kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
 
         cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
+        cqlCluster = CqlCluster.create(config);
     }
 
     @After
@@ -86,7 +90,7 @@ public class CassandraRepairEteTest {
     @Test
     public void shouldGetRangesForBothReplicas() {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
-                cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
+                cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
         assertThat(ranges).hasSize(2);
     }
 
@@ -94,7 +98,7 @@ public class CassandraRepairEteTest {
     public void tokenRangesToRepairShouldBeSubsetsOfTokenMap() {
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> fullTokenMap = getFullTokenMap();
         Map<InetSocketAddress, Set<LightweightOppTokenRange>> rangesToRepair =
-                cassandraRepairHelper.getRangesToRepair(Namespace.of(NAMESPACE), TABLE_1);
+                cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
 
         KeyedStream.stream(rangesToRepair)
                 .forEach((address, cqlRangesForHost) ->
@@ -111,9 +115,17 @@ public class CassandraRepairEteTest {
         InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
         Set<LightweightOppTokenRange> thriftRangesForHost = fullTokenMap.get(thriftAddr);
         assertThat(thriftRangesForHost).isNotNull();
-        cqlRangesForHost.forEach(range -> assertThat(thriftRangesForHost.stream()
-                        .anyMatch(thriftRange -> thriftRange.left().equals(range.left())))
-                .isTrue());
+        cqlRangesForHost.forEach(
+                range -> assertThat(thriftRangesForHost.stream().anyMatch(isSubsetOf(range)))
+                        .isTrue());
+    }
+
+    private Predicate<LightweightOppTokenRange> isSubsetOf(LightweightOppTokenRange range) {
+        return thriftRange -> thriftRange.left().equals(range.left())
+                && thriftRange
+                        .right()
+                        .map(right -> right.compareTo(range.right().orElseThrow()) <= 0)
+                        .orElseGet(() -> range.right().isEmpty());
     }
 
     private Map<InetSocketAddress, Set<LightweightOppTokenRange>> getFullTokenMap() {
@@ -148,17 +160,5 @@ public class CassandraRepairEteTest {
             rangeBuilder.right(range.upperEndpoint());
         }
         return rangeBuilder.build();
-    }
-
-    private String stringify(Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges) {
-        StringBuilder sb = new StringBuilder();
-        KeyedStream.stream(ranges).forEach((addr, range) -> {
-            sb.append("(");
-            sb.append(addr);
-            sb.append(" -> ");
-            sb.append(range);
-            sb.append(");");
-        });
-        return sb.toString();
     }
 }

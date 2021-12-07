@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.Token;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class LightweightOppToken implements Comparable<LightweightOppToken> {
@@ -30,6 +33,13 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
 
     public static LightweightOppToken of(Cell cell) {
         return new LightweightOppToken(cell.getRowName());
+    }
+
+    public static LightweightOppToken serialise(Token token) {
+        ByteBuffer serializedToken = token.serialize(ProtocolVersion.V3);
+        byte[] bytes = new byte[serializedToken.remaining()];
+        serializedToken.get(bytes);
+        return new LightweightOppToken(bytes);
     }
 
     @Override
