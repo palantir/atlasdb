@@ -32,7 +32,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -72,7 +71,7 @@ public final class CqlCluster {
                 .orElseThrow(
                         () -> new SafeIllegalStateException("Attempting to set up CqlCluster with thrift config!"));
     }
-]
+
     public Map<InetSocketAddress, Set<TokenRange>> getTokenRanges(String tableName) {
         try (Session session = cluster.connect()) {
             Metadata metadata = session.getCluster().getMetadata();
