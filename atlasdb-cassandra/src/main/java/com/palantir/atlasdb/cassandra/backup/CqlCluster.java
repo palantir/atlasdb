@@ -29,10 +29,10 @@ import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -68,19 +68,11 @@ public final class CqlCluster {
     }
 
     private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
-        return config.servers().accept(new Visitor<>() {
-            @Override
-            public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
-                throw new SafeIllegalStateException("Attempting to set up CqlCluster with thrift config!");
-            }
-
-            @Override
-            public Set<InetSocketAddress> visit(CqlCapableConfig cqlCapableConfig) {
-                return cqlCapableConfig.cqlHosts();
-            }
-        });
+        return CassandraServersConfigs.deriveFromCqlHosts(config, CqlCapableConfig::cqlHosts)
+                .orElseThrow(
+                        () -> new SafeIllegalStateException("Attempting to set up CqlCluster with thrift config!"));
     }
-
+]
     public Map<InetSocketAddress, Set<TokenRange>> getTokenRanges(String tableName) {
         try (Session session = cluster.connect()) {
             Metadata metadata = session.getCluster().getMetadata();

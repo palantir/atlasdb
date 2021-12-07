@@ -51,26 +51,10 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
     @Override
     public Optional<CqlClient> constructClient(
             TaggedMetricRegistry taggedMetricRegistry, CassandraKeyValueServiceConfig config, boolean initializeAsync) {
-        return config.servers().accept(new CassandraServersConfigs.Visitor<Optional<CqlClient>>() {
-            @Override
-            public Optional<CqlClient> visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<CqlClient> visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
-                if (!cqlCapableConfig.validateHosts()) {
-                    log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same, using "
-                            + "async API will be falling back to synchronous implementations.");
-                    return Optional.empty();
-                }
-
-                Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
-                Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory).constructCluster(servers, config);
-
-                return Optional.of(CqlClientImpl.create(
-                        taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync));
-            }
+        return CassandraServersConfigs.deriveFromCqlHosts(config, cqlCapableConfig -> {
+            Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
+            Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory).constructCluster(servers, config);
+            return CqlClientImpl.create(taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync);
         });
     }
 }
