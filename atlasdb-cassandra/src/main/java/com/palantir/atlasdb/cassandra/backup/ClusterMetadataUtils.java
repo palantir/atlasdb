@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import one.util.streamex.StreamEx;
 
 public final class ClusterMetadataUtils {
     private ClusterMetadataUtils() {
