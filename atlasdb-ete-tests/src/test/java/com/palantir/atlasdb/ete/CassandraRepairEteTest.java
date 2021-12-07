@@ -121,18 +121,23 @@ public class CassandraRepairEteTest {
     @Test
     public void testGetTokenRanges() {
         Metadata metadata = cluster.getMetadata();
-
-        Token token1 = metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary("10")));
         SortedMap<Token, TokenRange> tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges())
                 .mapKeys(TokenRange::getEnd)
                 .collectTo(TreeMap::new);
+
         Token partitionKeyToken = metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary("20")));
+
+        Token lastTokenBeforePartitionKey = tokenRangesByEnd.values().stream()
+                .map(TokenRange::getStart)
+                .filter(token -> token.compareTo(partitionKeyToken) < 0)
+                .max(Token::compareTo)
+                .orElseThrow();
 
         Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
                 metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
         assertThat(tokenRanges).hasSize(1);
         TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(token1);
+        assertThat(onlyRange.getStart()).isEqualTo(lastTokenBeforePartitionKey);
         assertThat(onlyRange.getEnd()).isEqualTo(partitionKeyToken);
     }
 
