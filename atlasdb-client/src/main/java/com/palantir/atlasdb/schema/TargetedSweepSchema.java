@@ -103,7 +103,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
             }
         });
 
-        schema.addTableDefinition(TargetedSweepTables.SWEEP_PROGRESS_PER_SHARD, new TableDefinition() {
+        schema.addTableDefinition("sweepProgressPerShard", new TableDefinition() {
             {
                 javaTableName("SweepShardProgress");
                 allSafeForLoggingByDefault();
@@ -122,7 +122,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
     }
 
     private static void addTableIdentifierTables(Schema schema) {
-        schema.addTableDefinition(TargetedSweepTables.SWEEP_NAME_TO_ID, new TableDefinition() {
+        schema.addTableDefinition("sweepNameToId", new TableDefinition() {
             {
                 allSafeForLoggingByDefault();
                 rowName();
@@ -137,7 +137,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
             }
         });
 
-        schema.addTableDefinition(TargetedSweepTables.SWEEP_ID_TO_NAME, new TableDefinition() {
+        schema.addTableDefinition("sweepIdToName", new TableDefinition() {
             {
                 allSafeForLoggingByDefault();
                 rowName();
@@ -154,7 +154,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
             }
         });
 
-        schema.addTableDefinition(TargetedSweepTables.TABLE_CLEARS, new TableDefinition() {
+        schema.addTableDefinition("tableClears", new TableDefinition() {
             {
                 allSafeForLoggingByDefault();
                 rowName();

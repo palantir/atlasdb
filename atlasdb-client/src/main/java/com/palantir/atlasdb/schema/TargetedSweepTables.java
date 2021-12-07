@@ -19,20 +19,21 @@ package com.palantir.atlasdb.schema;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 
 public class TargetedSweepTables {
     static final Namespace NAMESPACE = Namespace.create("sweep");
 
-    static final String SWEEP_PROGRESS_PER_SHARD = "sweepProgressPerShard";
-    static final String SWEEP_ID_TO_NAME = "sweepIdToName";
-    static final String SWEEP_NAME_TO_ID = "sweepNameToId";
-    static final String TABLE_CLEARS = "tableClears";
+    private static final TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();
 
     private static final TableReference SWEEP_PROGRESS_PER_SHARD_TABLE =
-            TableReference.create(NAMESPACE, SWEEP_ID_TO_NAME);
-    private static final TableReference SWEEP_ID_TO_NAME_TABLE = TableReference.create(NAMESPACE, SWEEP_ID_TO_NAME);
-    private static final TableReference SWEEP_NAME_TO_ID_TABLE = TableReference.create(NAMESPACE, SWEEP_NAME_TO_ID);
-    private static final TableReference TABLE_CLEARS_TABLE = TableReference.create(NAMESPACE, TABLE_CLEARS);
+            tableFactory.getSweepShardProgressTable(null).getTableRef();
+    private static final TableReference SWEEP_ID_TO_NAME_TABLE =
+            tableFactory.getSweepIdToNameTable(null).getTableRef();
+    private static final TableReference SWEEP_NAME_TO_ID_TABLE =
+            tableFactory.getSweepNameToIdTable(null).getTableRef();
+    private static final TableReference TABLE_CLEARS_TABLE =
+            tableFactory.getTableClearsTable(null).getTableRef();
 
     public static final ImmutableSet<TableReference> REPAIR_ON_RESTORE = ImmutableSet.of(
             SWEEP_PROGRESS_PER_SHARD_TABLE, SWEEP_ID_TO_NAME_TABLE, SWEEP_NAME_TO_ID_TABLE, TABLE_CLEARS_TABLE);
