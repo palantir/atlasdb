@@ -250,6 +250,10 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 transactionStarter, lockLeaseService, getTimelockService(), commitTimestampGetter);
     }
 
+    public LockLeaseService getLockLeaseService() {
+        return lockLeaseService;
+    }
+
     public LockWatchManagerInternal getLockWatchManager() {
         return helperServices.lockWatchManager();
     }

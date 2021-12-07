@@ -160,6 +160,7 @@ public class AtlasDbTestCase {
                 timelockServices.getTimestampManagementService(),
                 timelockServices.getLegacyTimelockService(),
                 lockService,
+                timelockServices.getLockWatchManager(),
                 transactionService,
                 mode);
     }

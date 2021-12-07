@@ -126,7 +126,8 @@ public final class TransactionStarterHelper {
                 .collect(Collectors.toList());
     }
 
-    static void updateCacheWithStartTransactionResponse(
+    // VisibleForTesting
+    public static void updateCacheWithStartTransactionResponse(
             LockWatchCache cache, ConjureStartTransactionsResponse response) {
         Set<Long> startTimestamps = response.getTimestamps().stream().boxed().collect(Collectors.toSet());
         cache.processStartTransactionsUpdate(startTimestamps, response.getLockWatchUpdate());
