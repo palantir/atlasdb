@@ -55,21 +55,20 @@ public final class CqlCluster {
     private final Cluster cluster;
     private final CassandraKeyValueServiceConfig config;
 
-    private CqlCluster(Cluster cluster, CassandraKeyValueServiceConfig config) {
+    // VisibleForTesting
+    public CqlCluster(Cluster cluster, CassandraKeyValueServiceConfig config) {
         this.cluster = cluster;
         this.config = config;
     }
 
     public static CqlCluster create(CassandraKeyValueServiceConfig config) {
-        Set<InetSocketAddress> hosts = getHosts(config);
-        Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(hosts, config);
+        Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         return new CqlCluster(cluster, config);
     }
 
     private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
         return CassandraServersConfigs.deriveFromCqlHosts(config, CqlCapableConfig::cqlHosts)
-                .orElseThrow(
-                        () -> new SafeIllegalStateException("Attempting to set up CqlCluster with thrift config!"));
+                .orElseThrow(() -> new SafeIllegalStateException("Attempting to get token ranges with thrift config!"));
     }
 
     public Map<InetSocketAddress, Set<TokenRange>> getTokenRanges(String tableName) {

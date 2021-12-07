@@ -19,12 +19,18 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.MetricRegistry;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.Token;
+import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
+import com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
 import com.palantir.atlasdb.cassandra.backup.LightweightOppTokenRange;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
@@ -35,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -43,12 +50,16 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.function.Predicate;
+import javax.xml.bind.DatatypeConverter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,6 +77,7 @@ public class CassandraRepairEteTest {
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
     private CqlCluster cqlCluster;
+    private Cluster cluster;
 
     @Before
     public void setUp() {
@@ -79,7 +91,8 @@ public class CassandraRepairEteTest {
         kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
 
         cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
-        cqlCluster = CqlCluster.create(config);
+        cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
+        cqlCluster = new CqlCluster(cluster, config);
     }
 
     @After
@@ -103,6 +116,24 @@ public class CassandraRepairEteTest {
         KeyedStream.stream(rangesToRepair)
                 .forEach((address, cqlRangesForHost) ->
                         assertRangesToRepairAreSubsetsOfRangesFromTokenMap(fullTokenMap, address, cqlRangesForHost));
+    }
+
+    @Test
+    public void testGetTokenRanges() {
+        Metadata metadata = cluster.getMetadata();
+
+        Token token1 = metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary("10")));
+        SortedMap<Token, TokenRange> tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges())
+                .mapKeys(TokenRange::getEnd)
+                .collectTo(TreeMap::new);
+        Token partitionKeyToken = metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary("20")));
+
+        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
+        assertThat(tokenRanges).hasSize(1);
+        TokenRange onlyRange = tokenRanges.iterator().next();
+        assertThat(onlyRange.getStart()).isEqualTo(token1);
+        assertThat(onlyRange.getEnd()).isEqualTo(partitionKeyToken);
     }
 
     // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,

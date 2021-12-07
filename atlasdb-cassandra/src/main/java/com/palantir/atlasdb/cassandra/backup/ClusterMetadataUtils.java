@@ -117,8 +117,8 @@ public final class ClusterMetadataUtils {
                 .collectToMap();
     }
 
-    // TODO(gs): copy over tests!
-    private static Set<TokenRange> getMinimalSetOfRangesForTokens(
+    // VisibleForTesting
+    public static Set<TokenRange> getMinimalSetOfRangesForTokens(
             Metadata metadata, Set<Token> partitionKeyTokens, SortedMap<Token, TokenRange> tokenRangesByEnd) {
         Map<Token, TokenRange> tokenRangesByStartToken = new HashMap<>();
         for (Token token : partitionKeyTokens) {

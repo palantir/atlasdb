@@ -32,7 +32,10 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -43,6 +46,11 @@ public class ClusterFactory {
 
     public ClusterFactory(Supplier<Cluster.Builder> cqlClusterBuilderFactory) {
         this.cqlClusterBuilderFactory = cqlClusterBuilderFactory;
+    }
+
+    public Cluster constructCluster(CassandraKeyValueServiceConfig config) {
+        Set<InetSocketAddress> hosts = getHosts(config);
+        return constructCluster(hosts, config);
     }
 
     public Cluster constructCluster(Set<InetSocketAddress> servers, CassandraKeyValueServiceConfig config) {
@@ -64,6 +72,12 @@ public class ClusterFactory {
         clusterBuilder = withSocketOptions(clusterBuilder, config);
 
         return clusterBuilder.build();
+    }
+
+    private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
+        return CassandraServersConfigs.deriveFromCqlHosts(config, CqlCapableConfig::cqlHosts)
+                .orElseThrow(
+                        () -> new SafeIllegalStateException("Attempting to set up CqlCluster with thrift config!"));
     }
 
     private static Cluster.Builder withSocketOptions(
