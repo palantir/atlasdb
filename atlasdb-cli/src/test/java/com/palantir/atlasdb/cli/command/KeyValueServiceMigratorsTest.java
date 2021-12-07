@@ -37,7 +37,6 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
@@ -222,12 +221,12 @@ public class KeyValueServiceMigratorsTest {
         migrator.setup();
         migrator.migrate();
 
-        assertThat(fromServices.getTransactionService().get(uncommittedTs))
-                .isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
         assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))
                         .get(TEST_CELL)
                         .getContents())
                 .containsExactly(TEST_VALUE1);
+        assertThat(fromServices.getTransactionService().get(uncommittedTs))
+                .isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
     }
 
     @Test
@@ -363,7 +362,7 @@ public class KeyValueServiceMigratorsTest {
                 timestampService,
                 LockServiceImpl.create(
                         LockServerOptions.builder().isStandaloneServer(false).build()),
-                NoOpLockWatchManager.create(),
+                timeLock.get().getLockWatchManager(),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 ConflictDetectionManagers.createWithoutWarmingCache(kvs),
