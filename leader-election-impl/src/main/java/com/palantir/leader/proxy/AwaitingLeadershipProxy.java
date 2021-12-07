@@ -124,7 +124,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
                     Preconditions.checkNotNull(
                             maybeValidDelegate,
-                            "{} backing is null",
+                            "no valid delegate present",
                             SafeArg.of("InterfaceClass", interfaceClass.getName()));
                     return Futures.immediateFuture(maybeValidDelegate);
                 },

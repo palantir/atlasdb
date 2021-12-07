@@ -109,12 +109,9 @@ allprojects {
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
                 'InlineFormatString',
-                'LogSafePreconditionsMessageFormat',
                 'MixedMutabilityReturnType',
-                'MockitoInternalUsage',
                 'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
-                'OverrideThrowableToString',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
                 'PublicConstructorForAbstractClass',
@@ -125,8 +122,7 @@ allprojects {
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
                 'ThreadPriorityCheck',
-                'TooManyArguments',
-                'ValidateConstantMessage'
+                'TooManyArguments'
     }
 }
 
