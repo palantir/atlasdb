@@ -158,7 +158,7 @@ public class CassandraRepairEteTest {
             return thriftRange.left().equals(range.left())
                     && thriftRange
                             .right()
-                            .map(right -> right.compareTo(range.right().orElseThrow()) <= 0)
+                            .map(right -> right.compareTo(range.right().orElseThrow()) >= 0)
                             .orElseGet(() -> range.right().isEmpty());
         };
     }
