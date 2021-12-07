@@ -91,31 +91,16 @@ public final class CqlCluster {
             Map<InetSocketAddress, Set<TokenRange>> tokenRangesByNode =
                     ClusterMetadataUtils.getTokenMapping(getHosts(config), metadata, keyspaceName, partitionTokens);
 
-            if (partitionTokens.isEmpty()) {
-                log.trace(
-                        "No token ranges identified requiring repair",
-                        SafeArg.of("keyspace", keyspace),
-                        SafeArg.of("table", tableName));
-            } else {
-                log.trace(
+            if (!partitionTokens.isEmpty() && log.isDebugEnabled()) {
+                int numTokenRanges =
+                        tokenRangesByNode.values().stream().mapToInt(Set::size).sum();
+
+                log.debug(
                         "Identified token ranges requiring repair",
                         SafeArg.of("keyspace", keyspace),
                         SafeArg.of("table", tableName),
                         SafeArg.of("numPartitionKeys", partitionTokens.size()),
-                        SafeArg.of("tokenRanges", tokenRangesByNode));
-
-                if (log.isDebugEnabled()) {
-                    int numTokenRanges = tokenRangesByNode.values().stream()
-                            .mapToInt(Set::size)
-                            .sum();
-
-                    log.debug(
-                            "Identified token ranges requiring repair",
-                            SafeArg.of("keyspace", keyspace),
-                            SafeArg.of("table", tableName),
-                            SafeArg.of("numPartitionKeys", partitionTokens.size()),
-                            SafeArg.of("numTokenRanges", numTokenRanges));
-                }
+                        SafeArg.of("numTokenRanges", numTokenRanges));
             }
 
             return tokenRangesByNode;
