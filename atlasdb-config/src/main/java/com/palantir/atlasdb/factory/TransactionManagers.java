@@ -571,7 +571,7 @@ public abstract class TransactionManagers {
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
-        if (isUsingTimeLock(config, runtimeConfig.current())) {
+        if (isUsingTimeLock(config, runtimeConfig.current()) && shouldGiveFeedbackToServer(config)) {
             Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices =
                     getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent(), reloadingFactory());
             return Optional.of(initializeCloseable(
@@ -903,6 +903,12 @@ public abstract class TransactionManagers {
     static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
         return atlasDbConfig.timelock().isPresent()
                 || runtimeConfig.timelockRuntime().isPresent();
+    }
+
+    private boolean shouldGiveFeedbackToServer(AtlasDbConfig config) {
+        return config.timelock()
+                .map(TimeLockClientConfig::shouldGiveFeedbackToTimeLockServer)
+                .orElse(false);
     }
 
     /**
