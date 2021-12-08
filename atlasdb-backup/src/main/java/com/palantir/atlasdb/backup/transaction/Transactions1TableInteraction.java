@@ -28,6 +28,7 @@ import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.backup.transaction.TransactionTableEntry.LegacyEntry;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
@@ -89,7 +90,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
         Optional<Long> maybeCommitTs = commitTimestamp != TransactionConstants.FAILED_COMMIT_TS
                 ? Optional.of(commitTimestamp)
                 : Optional.empty();
-        return new TransactionTableEntry<>(startTimestamp, maybeCommitTs);
+        return new LegacyEntry(startTimestamp, maybeCommitTs);
     }
 
     @Override

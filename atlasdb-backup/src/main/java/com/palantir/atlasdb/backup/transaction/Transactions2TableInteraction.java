@@ -27,6 +27,7 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
+import com.palantir.atlasdb.backup.transaction.TransactionTableEntry.LegacyEntry;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
@@ -87,11 +88,11 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
         if (isRowAbortedTransaction(row)) {
-            return new TransactionTableEntry<>(startTimestamp, Optional.empty());
+            return new LegacyEntry(startTimestamp, Optional.empty());
         }
         long commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        return new TransactionTableEntry<>(startTimestamp, Optional.of(commitTimestamp));
+        return new LegacyEntry(startTimestamp, Optional.of(commitTimestamp));
     }
 
     @Override

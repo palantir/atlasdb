@@ -16,11 +16,12 @@
 
 package com.palantir.atlasdb.backup.transaction;
 
+import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class TransactionTableEntry<T> extends AbstractMap.SimpleImmutableEntry<Long, Optional<T>> {
+public abstract class TransactionTableEntry<T> extends AbstractMap.SimpleImmutableEntry<Long, Optional<T>> {
 
     private static final long serialVersionUID = 1L;
 
@@ -36,11 +37,35 @@ public class TransactionTableEntry<T> extends AbstractMap.SimpleImmutableEntry<L
         return getKey();
     }
 
-    public Optional<T> getCommitTimestamp() {
+    public Optional<T> getCommitValue() {
         return getValue();
     }
 
+    public abstract Long getCommitTimestampValue();
+
     public boolean isExplicitlyAborted() {
         return getValue().isEmpty();
+    }
+
+    public static class LegacyEntry extends TransactionTableEntry<Long> {
+        public LegacyEntry(Long key, Optional<Long> value) {
+            super(key, value);
+        }
+
+        @Override
+        public Long getCommitTimestampValue() {
+            return getValue().orElse(null);
+        }
+    }
+
+    public static class TwoStageEntry extends TransactionTableEntry<PutUnlessExistsValue<Long>> {
+        public TwoStageEntry(Long key, Optional<PutUnlessExistsValue<Long>> value) {
+            super(key, value);
+        }
+
+        @Override
+        public Long getCommitTimestampValue() {
+            return getValue().map(PutUnlessExistsValue::value).orElse(null);
+        }
     }
 }

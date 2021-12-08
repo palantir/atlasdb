@@ -27,6 +27,7 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
+import com.palantir.atlasdb.backup.transaction.TransactionTableEntry.TwoStageEntry;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
@@ -91,10 +92,10 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         PutUnlessExistsValue<Long> commitTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
         if (commitTimestamp.value() == TransactionConstants.FAILED_COMMIT_TS) {
-            return new TransactionTableEntry<>(startTimestamp, Optional.empty());
+            return new TwoStageEntry(startTimestamp, Optional.empty());
         }
 
-        return new TransactionTableEntry<>(startTimestamp, Optional.of(commitTimestamp));
+        return new TwoStageEntry(startTimestamp, Optional.of(commitTimestamp));
     }
 
     @Override

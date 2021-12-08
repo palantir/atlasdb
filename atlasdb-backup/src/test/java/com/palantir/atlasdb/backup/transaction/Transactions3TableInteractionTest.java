@@ -61,7 +61,8 @@ public class Transactions3TableInteractionTest {
     public void extractCommittedTimestampTest() {
         TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(createRow(150L, 200L));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitTimestamp()).hasValue(PutUnlessExistsValue.committed(200L));
+        assertThat(entry.getCommitValue()).hasValue(PutUnlessExistsValue.committed(200L));
+        assertThat(entry.getCommitTimestampValue()).isEqualTo(200L);
     }
 
     @Test
@@ -69,14 +70,16 @@ public class Transactions3TableInteractionTest {
         TransactionTableEntry<PutUnlessExistsValue<Long>> entry =
                 interaction.extractTimestamps(createRow(150L, PutUnlessExistsValue.staging(200L)));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitTimestamp()).hasValue(PutUnlessExistsValue.staging(200L));
+        assertThat(entry.getCommitValue()).hasValue(PutUnlessExistsValue.staging(200L));
+        assertThat(entry.getCommitTimestampValue()).isEqualTo(200L);
     }
 
     @Test
     public void extractAbortedTimestampTest() {
         TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(createAbortedRow(150L));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitTimestamp()).isEmpty();
+        assertThat(entry.getCommitValue()).isEmpty();
+        assertThat(entry.getCommitTimestampValue()).isNull();
     }
 
     @Test
@@ -84,7 +87,8 @@ public class Transactions3TableInteractionTest {
         TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(
                 createRow(150L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitTimestamp()).isEmpty();
+        assertThat(entry.getCommitValue()).isEmpty();
+        assertThat(entry.getCommitTimestampValue()).isNull();
     }
 
     @Test

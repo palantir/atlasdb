@@ -58,14 +58,16 @@ public class Transactions2TableInteractionTest {
     public void extractCommittedTimestampTest() {
         TransactionTableEntry<Long> entry = interaction.extractTimestamps(createRow(150L, 200L));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitTimestamp()).hasValue(200L);
+        assertThat(entry.getCommitValue()).hasValue(200L);
+        assertThat(entry.getCommitTimestampValue()).isEqualTo(200L);
     }
 
     @Test
     public void extractAbortedTimestampTest() {
         TransactionTableEntry<Long> entry = interaction.extractTimestamps(createAbortedRow(150L));
         assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitTimestamp()).isEmpty();
+        assertThat(entry.getCommitValue()).isEmpty();
+        assertThat(entry.getCommitTimestampValue()).isNull();
     }
 
     @Test
