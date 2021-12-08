@@ -58,7 +58,7 @@ public interface TransactionsTableInteraction<T> {
 
     FullyBoundedTimestampRange getTimestampRange();
 
-    TransactionTableEntry<T> extractTimestamps(Row row);
+    TransactionTableEntry extractTimestamps(Row row);
 
     boolean isRowAbortedTransaction(Row row);
 

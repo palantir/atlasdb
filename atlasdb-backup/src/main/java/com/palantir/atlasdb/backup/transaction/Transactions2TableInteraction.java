@@ -27,7 +27,6 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
-import com.palantir.atlasdb.backup.transaction.TransactionTableEntry.LegacyEntry;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
@@ -35,7 +34,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -83,16 +81,16 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public TransactionTableEntry<Long> extractTimestamps(Row row) {
+    public TransactionTableEntry extractTimestamps(Row row) {
         long startTimestamp = TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
         if (isRowAbortedTransaction(row)) {
-            return new LegacyEntry(startTimestamp, Optional.empty());
+            return TransactionTableEntries.explicitlyAborted(startTimestamp);
         }
         long commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        return new LegacyEntry(startTimestamp, Optional.of(commitTimestamp));
+        return TransactionTableEntries.committedLegacy(startTimestamp, commitTimestamp);
     }
 
     @Override

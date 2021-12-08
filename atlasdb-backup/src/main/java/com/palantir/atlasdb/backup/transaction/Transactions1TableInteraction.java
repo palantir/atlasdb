@@ -28,14 +28,12 @@ import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.backup.transaction.TransactionTableEntry.LegacyEntry;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Optional;
 
 public class Transactions1TableInteraction implements TransactionsTableInteraction<Long> {
     private final FullyBoundedTimestampRange timestampRange;
@@ -84,13 +82,12 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public TransactionTableEntry<Long> extractTimestamps(Row row) {
+    public TransactionTableEntry extractTimestamps(Row row) {
         long startTimestamp = decodeStartTs(Bytes.getArray(row.getBytes(CassandraConstants.ROW)));
         long commitTimestamp = decodeCommitTs(Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        Optional<Long> maybeCommitTs = commitTimestamp != TransactionConstants.FAILED_COMMIT_TS
-                ? Optional.of(commitTimestamp)
-                : Optional.empty();
-        return new LegacyEntry(startTimestamp, maybeCommitTs);
+        return commitTimestamp == TransactionConstants.FAILED_COMMIT_TS
+                ? TransactionTableEntries.explicitlyAborted(startTimestamp)
+                : TransactionTableEntries.committedLegacy(startTimestamp, commitTimestamp);
     }
 
     @Override

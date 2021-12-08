@@ -59,36 +59,36 @@ public class Transactions3TableInteractionTest {
 
     @Test
     public void extractCommittedTimestampTest() {
-        TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(createRow(150L, 200L));
-        assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitValue()).hasValue(PutUnlessExistsValue.committed(200L));
-        assertThat(entry.getCommitTimestampValue()).isEqualTo(200L);
+        TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
+        TransactionTableEntryAssertions.twoPhase(entry, (startTs, commitValue) -> {
+            assertThat(startTs).isEqualTo(150L);
+            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.committed(200L));
+        });
     }
 
     @Test
     public void extractStagingCommitTimestampTest() {
-        TransactionTableEntry<PutUnlessExistsValue<Long>> entry =
+        TransactionTableEntry entry =
                 interaction.extractTimestamps(createRow(150L, PutUnlessExistsValue.staging(200L)));
-        assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitValue()).hasValue(PutUnlessExistsValue.staging(200L));
-        assertThat(entry.getCommitTimestampValue()).isEqualTo(200L);
+        TransactionTableEntryAssertions.twoPhase(entry, (startTs, commitValue) -> {
+            assertThat(startTs).isEqualTo(150L);
+            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.staging(200L));
+        });
     }
 
     @Test
     public void extractAbortedTimestampTest() {
-        TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(createAbortedRow(150L));
-        assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitValue()).isEmpty();
-        assertThat(entry.getCommitTimestampValue()).isNull();
+        TransactionTableEntry entry = interaction.extractTimestamps(createAbortedRow(150L));
+        TransactionTableEntryAssertions.aborted(
+                entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
 
     @Test
     public void extractStagingAbortedTimestampTest() {
-        TransactionTableEntry<PutUnlessExistsValue<Long>> entry = interaction.extractTimestamps(
+        TransactionTableEntry entry = interaction.extractTimestamps(
                 createRow(150L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
-        assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitValue()).isEmpty();
-        assertThat(entry.getCommitTimestampValue()).isNull();
+        TransactionTableEntryAssertions.aborted(
+                entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
 
     @Test

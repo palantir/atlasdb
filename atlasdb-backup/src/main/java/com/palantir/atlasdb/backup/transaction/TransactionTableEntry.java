@@ -17,55 +17,17 @@
 package com.palantir.atlasdb.backup.transaction;
 
 import com.palantir.atlasdb.pue.PutUnlessExistsValue;
-import java.util.AbstractMap;
-import java.util.Map;
-import java.util.Optional;
+import org.derive4j.Data;
 
-public abstract class TransactionTableEntry<T> extends AbstractMap.SimpleImmutableEntry<Long, Optional<T>> {
+@Data
+public abstract class TransactionTableEntry {
+    public interface Cases<R> {
+        R explicitlyAborted(long startTimestamp);
 
-    private static final long serialVersionUID = 1L;
+        R committedLegacy(long startTimestamp, long commitTimestamp);
 
-    public TransactionTableEntry(Map.Entry<? extends Long, ? extends Optional<T>> entry) {
-        super(entry);
+        R committedTwoPhase(long startTimestamp, PutUnlessExistsValue<Long> commitValue);
     }
 
-    public TransactionTableEntry(Long key, Optional<T> value) {
-        super(key, value);
-    }
-
-    public Long getStartTimestamp() {
-        return getKey();
-    }
-
-    public Optional<T> getCommitValue() {
-        return getValue();
-    }
-
-    public abstract Long getCommitTimestampValue();
-
-    public boolean isExplicitlyAborted() {
-        return getValue().isEmpty();
-    }
-
-    public static class LegacyEntry extends TransactionTableEntry<Long> {
-        public LegacyEntry(Long key, Optional<Long> value) {
-            super(key, value);
-        }
-
-        @Override
-        public Long getCommitTimestampValue() {
-            return getValue().orElse(null);
-        }
-    }
-
-    public static class TwoStageEntry extends TransactionTableEntry<PutUnlessExistsValue<Long>> {
-        public TwoStageEntry(Long key, Optional<PutUnlessExistsValue<Long>> value) {
-            super(key, value);
-        }
-
-        @Override
-        public Long getCommitTimestampValue() {
-            return getValue().map(PutUnlessExistsValue::value).orElse(null);
-        }
-    }
+    public abstract <R> R match(Cases<R> cases);
 }

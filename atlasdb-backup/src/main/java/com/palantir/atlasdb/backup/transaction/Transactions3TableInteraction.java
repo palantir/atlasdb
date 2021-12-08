@@ -27,7 +27,6 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
-import com.palantir.atlasdb.backup.transaction.TransactionTableEntry.TwoStageEntry;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
@@ -36,7 +35,6 @@ import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -85,17 +83,17 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public TransactionTableEntry<PutUnlessExistsValue<Long>> extractTimestamps(Row row) {
+    public TransactionTableEntry extractTimestamps(Row row) {
         long startTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        PutUnlessExistsValue<Long> commitTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+        PutUnlessExistsValue<Long> commitValue = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        if (commitTimestamp.value() == TransactionConstants.FAILED_COMMIT_TS) {
-            return new TwoStageEntry(startTimestamp, Optional.empty());
+        if (commitValue.value() == TransactionConstants.FAILED_COMMIT_TS) {
+            return TransactionTableEntries.explicitlyAborted(startTimestamp);
         }
 
-        return new TwoStageEntry(startTimestamp, Optional.of(commitTimestamp));
+        return TransactionTableEntries.committedTwoPhase(startTimestamp, commitValue);
     }
 
     @Override

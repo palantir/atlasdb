@@ -56,18 +56,18 @@ public class Transactions2TableInteractionTest {
 
     @Test
     public void extractCommittedTimestampTest() {
-        TransactionTableEntry<Long> entry = interaction.extractTimestamps(createRow(150L, 200L));
-        assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitValue()).hasValue(200L);
-        assertThat(entry.getCommitTimestampValue()).isEqualTo(200L);
+        TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
+        TransactionTableEntryAssertions.legacy(entry, (startTimestamp, commitTimestamp) -> {
+            assertThat(startTimestamp).isEqualTo(150L);
+            assertThat(commitTimestamp).isEqualTo(200L);
+        });
     }
 
     @Test
     public void extractAbortedTimestampTest() {
-        TransactionTableEntry<Long> entry = interaction.extractTimestamps(createAbortedRow(150L));
-        assertThat(entry.getStartTimestamp()).isEqualTo(150L);
-        assertThat(entry.getCommitValue()).isEmpty();
-        assertThat(entry.getCommitTimestampValue()).isNull();
+        TransactionTableEntry entry = interaction.extractTimestamps(createAbortedRow(150L));
+        TransactionTableEntryAssertions.aborted(
+                entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
 
     @Test
