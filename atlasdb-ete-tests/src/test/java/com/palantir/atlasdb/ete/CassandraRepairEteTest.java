@@ -119,7 +119,7 @@ public class CassandraRepairEteTest {
 
     @Test
     public void testMinimalSetOfTokenRanges() {
-        Token partitionKeyToken = getToken("20");
+        Token partitionKeyToken = getToken("9000");
 
         Token lastTokenBeforePartitionKey = tokenRangesByEnd.lowerKey(partitionKeyToken);
 
