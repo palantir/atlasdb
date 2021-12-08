@@ -18,10 +18,12 @@ package com.palantir.timelock.paxos;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TimeLockHelperServices;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -162,7 +164,9 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 Optional::empty);
 
         // TODO(gs): add LockLeaseService to creation stuff?
-        ConjureTimelockService cts = timeLockAgent.getConjureTimeLockService();
+        RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
+        ConjureTimelockService cts =
+                ConjureTimelockResource.jersey(redirectRetryTargeter, _unused -> delegate.getTimelockService());
         NamespacedConjureTimelockService ncts = new NamespacedConjureTimelockServiceImpl(cts, client);
         LeaderTimeGetter ltg = new LegacyLeaderTimeGetter(ncts);
         lockLeaseService = LockLeaseService.create(ncts, ltg);

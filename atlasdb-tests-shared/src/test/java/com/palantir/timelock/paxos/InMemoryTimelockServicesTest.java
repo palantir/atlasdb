@@ -19,6 +19,7 @@ package com.palantir.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import org.awaitility.Awaitility;
@@ -36,12 +37,14 @@ public class InMemoryTimelockServicesTest {
 
     private TimestampService timestampService;
     private AsyncTimelockService timelockService;
+    private TimelockService delegatingTimelockService;
 
     @Before
     public void setup() {
         inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder);
         timestampService = inMemoryTimelockServices.getTimestampService();
         timelockService = inMemoryTimelockServices.getTimelockService();
+        delegatingTimelockService = inMemoryTimelockServices.getLegacyTimelockService();
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10L))
@@ -59,7 +62,31 @@ public class InMemoryTimelockServicesTest {
     public void canGetTimestamp() {
         long ts1 = timestampService.getFreshTimestamp();
         long ts2 = timelockService.getFreshTimestamp();
-        assertThat(ts1).isLessThan(ts2);
+        testTs(ts1, ts2);
+    }
+
+    @Test
+    public void timestampsAreConsistent() {
+        long ts1 = delegatingTimelockService.getFreshTimestamps(1).getLowerBound();
+        long ts2 = timestampService.getFreshTimestamp();
+        testTs(ts1, ts2);
+
+        long ts3 = delegatingTimelockService.getFreshTimestamps(1).getLowerBound();
+        testTs(ts2, ts3);
+
+        long ts4 = delegatingTimelockService
+                .startIdentifiedAtlasDbTransactionBatch(1)
+                .get(0)
+                .startTimestampAndPartition()
+                .timestamp();
+        testTs(ts3, ts4);
+
+        long ts5 = delegatingTimelockService.getFreshTimestamp();
+        testTs(ts4, ts5);
+    }
+
+    private void testTs(long ts2, long ts3) {
+        assertThat(ts2).isLessThan(ts3);
     }
 
     @Test

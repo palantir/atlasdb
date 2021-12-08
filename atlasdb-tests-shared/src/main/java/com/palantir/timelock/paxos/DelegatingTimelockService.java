@@ -33,7 +33,6 @@ import com.palantir.timestamp.TimestampRange;
 import java.util.List;
 import java.util.Set;
 
-@SuppressWarnings("unused") // temporary while wiring
 final class DelegatingTimelockService implements TimelockService {
     private final TransactionStarter transactionStarter;
     private final LockLeaseService lockLeaseService;
