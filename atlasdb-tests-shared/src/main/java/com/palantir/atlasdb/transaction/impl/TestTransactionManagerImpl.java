@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -178,9 +176,35 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     @Override
     public Transaction createNewTransaction() {
+        long startTimestamp = timelockService.getFreshTimestamp();
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         return transactionWrapper.apply(
-                Iterables.getOnlyElement(startTransactions(ImmutableList.of(PreCommitConditions.NO_OP))),
+                new SnapshotTransaction(
+                        metricsManager,
+                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                        timelockService,
+                        lockWatchManager,
+                        transactionService,
+                        NoOpCleaner.INSTANCE,
+                        () -> startTimestamp,
+                        getConflictDetectionManager(),
+                        SweepStrategyManagers.createDefault(keyValueService),
+                        startTimestamp,
+                        Optional.empty(),
+                        PreCommitConditions.NO_OP,
+                        AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                        null,
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        false,
+                        timestampValidationReadCache,
+                        getRangesExecutor,
+                        defaultGetRangesConcurrency,
+                        sweepQueueWriter,
+                        deleteExecutor,
+                        validateLocksOnReads,
+                        () -> TRANSACTION_CONFIG,
+                        ConflictTracer.NO_OP,
+                        tableLevelMetricsController),
                 pathTypeTracker);
     }
 
