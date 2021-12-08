@@ -121,7 +121,7 @@ public class CassandraRepairEteTest {
     public void testMinimalSetOfTokenRanges() {
         Token partitionKeyToken = getToken("20");
 
-        Token lastTokenBeforePartitionKey = getLastTokenBefore(partitionKeyToken);
+        Token lastTokenBeforePartitionKey = tokenRangesByEnd.lowerKey(partitionKeyToken);
 
         Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
                 metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
@@ -157,8 +157,8 @@ public class CassandraRepairEteTest {
 
     @Test
     public void testSmallTokenRangeDedupe() {
-        Token partitionKeyToken1 = getToken("2000");
-        Token partitionKeyToken2 = getToken("2001");
+        Token partitionKeyToken1 = getToken("9000");
+        Token partitionKeyToken2 = getToken("9001");
         Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
                 metadata, ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByEnd);
         assertThat(tokenRanges).hasSize(1);
@@ -215,14 +215,6 @@ public class CassandraRepairEteTest {
         TokenRange wrapAroundRange = metadata.newTokenRange(duplicatedStartKey, wrapAround);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nonWrapAroundRange, wrapAroundRange))
                 .isEqualTo(wrapAroundRange);
-    }
-
-    private Token getLastTokenBefore(Token partitionKeyToken) {
-        return tokenRangesByEnd.values().stream()
-                .map(TokenRange::getStart)
-                .filter(token -> token.compareTo(partitionKeyToken) < 0)
-                .max(Token::compareTo)
-                .orElseThrow();
     }
 
     // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
