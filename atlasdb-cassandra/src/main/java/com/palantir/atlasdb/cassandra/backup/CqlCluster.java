@@ -78,8 +78,9 @@ public final class CqlCluster {
             KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
             TableMetadata tableMetadata = keyspace.getTable(tableName);
             Set<Token> partitionTokens = getPartitionTokens(session, tableMetadata);
-            Map<InetSocketAddress, Set<TokenRange>> tokenRangesByNode =
-                    ClusterMetadataUtils.getTokenMapping(getHosts(config), metadata, keyspaceName, partitionTokens);
+            Map<InetSocketAddress, Set<TokenRange>> tokenRangesByNode = new ClusterMetadataUtils(
+                            new CassandraMetadataWrapper(metadata))
+                    .getTokenMapping(getHosts(config), keyspaceName, partitionTokens);
 
             if (!partitionTokens.isEmpty() && log.isDebugEnabled()) {
                 int numTokenRanges =
