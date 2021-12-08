@@ -29,7 +29,6 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.backup.CassandraMetadataWrapper;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
@@ -79,7 +78,6 @@ public class CassandraRepairEteTest {
     private CqlCluster cqlCluster;
     private Metadata metadata;
     private TreeMap<Token, TokenRange> tokenRangesByEnd;
-    private ClusterMetadataUtils clusterMetadataUtils;
 
     @Before
     public void setUp() {
@@ -96,8 +94,6 @@ public class CassandraRepairEteTest {
         Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         cqlCluster = new CqlCluster(cluster, config);
         metadata = cluster.getMetadata();
-        CassandraMetadataWrapper cassandraMetadataWrapper = new CassandraMetadataWrapper(metadata);
-        clusterMetadataUtils = new ClusterMetadataUtils(cassandraMetadataWrapper);
 
         tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges())
                 .mapKeys(TokenRange::getEnd)
@@ -127,15 +123,14 @@ public class CassandraRepairEteTest {
                         assertRangesToRepairAreSubsetsOfRangesFromTokenMap(fullTokenMap, address, cqlRangesForHost));
     }
 
-    // TODO(gs): turn these into unit tests
     @Test
     public void testMinimalSetOfTokenRanges() {
         Token partitionKeyToken = getToken("20");
 
         Token lastTokenBeforePartitionKey = getLastTokenBefore(partitionKeyToken);
 
-        Set<TokenRange> tokenRanges = clusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
+        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
         assertThat(tokenRanges).hasSize(1);
         TokenRange onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.getStart()).isEqualTo(lastTokenBeforePartitionKey);
@@ -146,8 +141,8 @@ public class CassandraRepairEteTest {
     public void testSmallTokenRangeBeforeFirstVnode() {
         Token partitionKeyToken = getToken("0010");
 
-        Set<TokenRange> tokenRanges = clusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
+        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
         assertThat(tokenRanges).hasSize(1);
         TokenRange onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.getStart()).isEqualTo(tokenRangesByEnd.lowerKey(getToken("ff")));
@@ -158,8 +153,8 @@ public class CassandraRepairEteTest {
     public void testSmallTokenRangeOnVnode() {
         Token firstEndToken = tokenRangesByEnd.firstKey();
         Token secondEndToken = tokenRangesByEnd.higherKey(firstEndToken);
-        Set<TokenRange> tokenRanges =
-                clusterMetadataUtils.getMinimalSetOfRangesForTokens(ImmutableSet.of(secondEndToken), tokenRangesByEnd);
+        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                metadata, ImmutableSet.of(secondEndToken), tokenRangesByEnd);
         assertThat(tokenRanges).hasSize(1);
         TokenRange onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.getStart()).isEqualTo(firstEndToken);
@@ -170,8 +165,8 @@ public class CassandraRepairEteTest {
     public void testSmallTokenRangeDedupe() {
         Token partitionKeyToken1 = getToken("2000");
         Token partitionKeyToken2 = getToken("2001");
-        Set<TokenRange> tokenRanges = clusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByEnd);
+        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                metadata, ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByEnd);
         assertThat(tokenRanges).hasSize(1);
         TokenRange onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.getStart()).isEqualTo(tokenRangesByEnd.lowerKey(partitionKeyToken1));

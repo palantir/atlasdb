@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Host;
+import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ArrayListMultimap;
@@ -40,11 +41,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class ClusterMetadataUtils {
-    private final CassandraMetadataWrapper cassandraMetadataWrapper;
-
-    public ClusterMetadataUtils(CassandraMetadataWrapper cassandraMetadataWrapper) {
+    private ClusterMetadataUtils() {
         // util class
-        this.cassandraMetadataWrapper = cassandraMetadataWrapper;
     }
 
     /**
@@ -64,18 +62,20 @@ public final class ClusterMetadataUtils {
      * { A : set[ range(2, 3] ], B : set[ range(0, 1],  range(2, 3]] }, C : set[ range(0, 1] ] }
      *
      * @param nodeSet The Cassandra nodes whose replicas to check
+     * @param metadata The Datastax driver metadata from the Cassandra cluster
      * @param keyspace The keyspace containing the partition keys we want to map
      * @param partitionKeyTokens The Cassandra tokens for the partition keys we want to map
      * @return Mapping of Node to token ranges its host contains, where every partition key in the specified
      * list is present in one of the token ranges on one host
      */
     @SuppressWarnings("ReverseDnsLookup")
-    public Map<InetSocketAddress, Set<TokenRange>> getTokenMapping(
-            Collection<InetSocketAddress> nodeSet, String keyspace, Set<Token> partitionKeyTokens) {
+    public static Map<InetSocketAddress, Set<TokenRange>> getTokenMapping(
+            Collection<InetSocketAddress> nodeSet, Metadata metadata, String keyspace, Set<Token> partitionKeyTokens) {
 
         Map<String, InetSocketAddress> nodeMetadataHostMap =
                 KeyedStream.of(nodeSet).mapKeys(InetSocketAddress::getHostName).collectToMap();
-        Map<Host, List<TokenRange>> hostToTokenRangeMap = getTokenMappingForPartitionKeys(keyspace, partitionKeyTokens);
+        Map<Host, List<TokenRange>> hostToTokenRangeMap =
+                getTokenMappingForPartitionKeys(metadata, keyspace, partitionKeyTokens);
 
         return KeyedStream.stream(hostToTokenRangeMap)
                 .mapKeys(host -> lookUpAddress(nodeMetadataHostMap, host))
@@ -93,16 +93,15 @@ public final class ClusterMetadataUtils {
         return nodeMetadataHostMap.get(hostname);
     }
 
-    private Map<Host, List<TokenRange>> getTokenMappingForPartitionKeys(
-            String keyspace, Set<Token> partitionKeyTokens) {
-        Set<TokenRange> tokenRanges = cassandraMetadataWrapper.getTokenRanges();
+    private static Map<Host, List<TokenRange>> getTokenMappingForPartitionKeys(
+            Metadata metadata, String keyspace, Set<Token> partitionKeyTokens) {
+        Set<TokenRange> tokenRanges = metadata.getTokenRanges();
         SortedMap<Token, TokenRange> tokenRangesByEnd =
                 KeyedStream.of(tokenRanges).mapKeys(TokenRange::getEnd).collectTo(TreeMap::new);
-        Set<TokenRange> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByEnd);
+        Set<TokenRange> ranges = getMinimalSetOfRangesForTokens(metadata, partitionKeyTokens, tokenRangesByEnd);
         Multimap<Host, TokenRange> tokenMapping = ArrayListMultimap.create();
         ranges.forEach(range -> {
-            List<Host> hosts =
-                    ImmutableList.copyOf(cassandraMetadataWrapper.getReplicas(quotedKeyspace(keyspace), range));
+            List<Host> hosts = ImmutableList.copyOf(metadata.getReplicas(quotedKeyspace(keyspace), range));
             if (hosts.isEmpty()) {
                 throw new SafeIllegalStateException(
                         "Failed to find any replicas of token range for repair",
@@ -118,23 +117,23 @@ public final class ClusterMetadataUtils {
     }
 
     // VisibleForTesting
-    public Set<TokenRange> getMinimalSetOfRangesForTokens(
-            Set<Token> partitionKeyTokens, SortedMap<Token, TokenRange> tokenRangesByEnd) {
+    public static Set<TokenRange> getMinimalSetOfRangesForTokens(
+            Metadata metadata, Set<Token> partitionKeyTokens, SortedMap<Token, TokenRange> tokenRangesByEnd) {
         Map<Token, TokenRange> tokenRangesByStartToken = new HashMap<>();
         for (Token token : partitionKeyTokens) {
-            TokenRange minimalTokenRange = findTokenRange(token, tokenRangesByEnd);
+            TokenRange minimalTokenRange = findTokenRange(metadata, token, tokenRangesByEnd);
             tokenRangesByStartToken.merge(
                     minimalTokenRange.getStart(), minimalTokenRange, ClusterMetadataUtils::findLatestEndingRange);
         }
         return ImmutableSet.copyOf(tokenRangesByStartToken.values());
     }
 
-    private TokenRange findTokenRange(Token token, SortedMap<Token, TokenRange> tokenRangesByEnd) {
+    private static TokenRange findTokenRange(
+            Metadata metadata, Token token, SortedMap<Token, TokenRange> tokenRangesByEnd) {
         if (tokenRangesByEnd.containsKey(token)) {
             return tokenRangesByEnd.get(token);
         } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
-            return cassandraMetadataWrapper.newTokenRange(
-                    tokenRangesByEnd.headMap(token).lastKey(), token);
+            return metadata.newTokenRange(tokenRangesByEnd.headMap(token).lastKey(), token);
         } else {
             // Confirm that the first entry in the sorted map is the wraparound range
             TokenRange firstTokenRange = tokenRangesByEnd.get(tokenRangesByEnd.firstKey());
@@ -143,7 +142,7 @@ public final class ClusterMetadataUtils {
                     "Failed to identify wraparound token range",
                     SafeArg.of("firstTokenRange", firstTokenRange),
                     SafeArg.of("token", token));
-            return cassandraMetadataWrapper.newTokenRange(firstTokenRange.getStart(), token);
+            return metadata.newTokenRange(firstTokenRange.getStart(), token);
         }
     }
 
