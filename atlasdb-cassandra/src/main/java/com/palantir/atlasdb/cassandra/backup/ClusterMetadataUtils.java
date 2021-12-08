@@ -20,7 +20,6 @@ import com.datastax.driver.core.Host;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -152,8 +151,8 @@ public final class ClusterMetadataUtils {
     }
 
     // Expects all ranges to have the same start token
-    @VisibleForTesting
-    static TokenRange findLatestEndingRange(TokenRange range1, TokenRange range2) {
+    // VisibleForTesting
+    public static TokenRange findLatestEndingRange(TokenRange range1, TokenRange range2) {
         Preconditions.checkArgument(
                 range1.getStart().equals(range2.getStart()),
                 "Expects token ranges to have the same start token",
