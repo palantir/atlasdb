@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Transactions2TableInteraction implements TransactionsTableInteraction<Long> {
+public class Transactions2TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
     private final RetryPolicy abortRetryPolicy;
 
@@ -94,7 +94,8 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, Long _commitTs) {
+    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, TransactionTableEntry entry) {
+        long startTs = TransactionTableEntries.getStartTimestamp(entry);
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
@@ -106,7 +107,9 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, Long commitTs) {
+    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry) {
+        long startTs = TransactionTableEntries.getStartTimestamp(entry);
+        long commitTs = TransactionTableEntries.getCommitTimestamp(entry).orElseThrow(() -> illegalEntry(entry));
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());

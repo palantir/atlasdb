@@ -47,8 +47,7 @@ public class Transactions3TableInteractionTest {
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction<PutUnlessExistsValue<Long>> interaction =
-            new Transactions3TableInteraction(RANGE, mockPolicy);
+    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE, mockPolicy);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 
     @Before

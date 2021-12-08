@@ -35,7 +35,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-public class Transactions1TableInteraction implements TransactionsTableInteraction<Long> {
+public class Transactions1TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
     private final RetryPolicy abortRetryPolicy;
 
@@ -91,7 +91,8 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, Long _commitTs) {
+    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, TransactionTableEntry entry) {
+        long startTs = TransactionTableEntries.getStartTimestamp(entry);
         ByteBuffer startTimestampBb = encodeStartTimestamp(startTs);
         BoundStatement bound = preparedCheckStatement.bind(startTimestampBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
@@ -101,7 +102,9 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, Long commitTs) {
+    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry) {
+        long startTs = TransactionTableEntries.getStartTimestamp(entry);
+        long commitTs = TransactionTableEntries.getCommitTimestamp(entry).orElseThrow(() -> illegalEntry(entry));
         ByteBuffer startTimestampBb = encodeStartTimestamp(startTs);
         ByteBuffer commitTimestampBb = encodeCommitTimestamp(commitTs);
         BoundStatement bound = preparedAbortStatement.bind(startTimestampBb, commitTimestampBb);

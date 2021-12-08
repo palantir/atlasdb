@@ -23,6 +23,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class TransactionTableEntryAssertions {
+    private TransactionTableEntryAssertions() {
+        // no
+    }
+
     public static void aborted(TransactionTableEntry entry, Consumer<Long> assertions) {
         TransactionTableEntries.caseOf(entry)
                 .explicitlyAborted(startTs -> {

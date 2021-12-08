@@ -40,8 +40,7 @@ public class Transactions1TableInteractionTest {
     private static final FullyBoundedTimestampRange TXN1_RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction<Long> interaction =
-            new Transactions1TableInteraction(TXN1_RANGE, mockPolicy);
+    private final TransactionsTableInteraction interaction = new Transactions1TableInteraction(TXN1_RANGE, mockPolicy);
 
     @Test
     public void cellEncodingTest() {

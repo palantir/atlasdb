@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Transactions3TableInteraction implements TransactionsTableInteraction<PutUnlessExistsValue<Long>> {
+public class Transactions3TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
     private final RetryPolicy abortRetryPolicy;
 
@@ -97,8 +97,8 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindCheckStatement(
-            PreparedStatement preparedCheckStatement, long startTs, PutUnlessExistsValue<Long> _commitTs) {
+    public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, TransactionTableEntry entry) {
+        long startTs = TransactionTableEntries.getStartTimestamp(entry);
         Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
@@ -110,8 +110,10 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Statement bindAbortStatement(
-            PreparedStatement preparedAbortStatement, long startTs, PutUnlessExistsValue<Long> commitTs) {
+    public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry) {
+        long startTs = TransactionTableEntries.getStartTimestamp(entry);
+        PutUnlessExistsValue<Long> commitTs =
+                TransactionTableEntries.getCommitValue(entry).orElseThrow(() -> illegalEntry(entry));
         Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());

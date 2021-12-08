@@ -45,7 +45,7 @@ public class Transactions2TableInteractionTest {
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction<Long> interaction = new Transactions2TableInteraction(RANGE, mockPolicy);
+    private final TransactionsTableInteraction interaction = new Transactions2TableInteraction(RANGE, mockPolicy);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 
     @Before

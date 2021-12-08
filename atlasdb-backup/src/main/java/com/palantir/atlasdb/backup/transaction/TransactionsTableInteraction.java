@@ -39,7 +39,7 @@ import java.util.stream.StreamSupport;
  * Encapsulates certain operations on transaction tables for a given range of timestamps that are needed for restores
  * from backups.
  */
-public interface TransactionsTableInteraction<T> {
+public interface TransactionsTableInteraction {
     int LONG_READ_TIMEOUT_MS = (int) TimeUnit.MINUTES.toMillis(2);
     // reduce this from default because we run CleanTransactionsTableTask across N keyspaces at the same time
     int SELECT_TRANSACTIONS_FETCH_SIZE = 1_000;
@@ -50,9 +50,9 @@ public interface TransactionsTableInteraction<T> {
 
     PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, Session session);
 
-    Statement bindCheckStatement(PreparedStatement preparedCheckStatement, long startTs, T commitTs);
+    Statement bindCheckStatement(PreparedStatement preparedCheckStatement, TransactionTableEntry entry);
 
-    Statement bindAbortStatement(PreparedStatement preparedAbortStatement, long startTs, T commitTs);
+    Statement bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry);
 
     String getTransactionsTableName();
 
@@ -62,6 +62,10 @@ public interface TransactionsTableInteraction<T> {
 
     boolean isRowAbortedTransaction(Row row);
 
+    default SafeIllegalArgumentException illegalEntry(TransactionTableEntry entry) {
+        throw new SafeIllegalArgumentException("Illegal entry type", SafeArg.of("entry", entry));
+    }
+
     default Set<Token> getPartitionTokens(TableMetadata transactionsTable, Session session) {
         return createSelectStatements(transactionsTable).stream()
                 .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
@@ -70,7 +74,7 @@ public interface TransactionsTableInteraction<T> {
                 .collect(Collectors.toSet());
     }
 
-    static List<TransactionsTableInteraction<?>> getTransactionTableInteractions(
+    static List<TransactionsTableInteraction> getTransactionTableInteractions(
             Map<FullyBoundedTimestampRange, Integer> coordinationMap, RetryPolicy abortRetryPolicy) {
         return coordinationMap.entrySet().stream()
                 .map(entry -> {
