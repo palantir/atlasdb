@@ -22,7 +22,7 @@ import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class TransactionTableEntryAssertions {
+public final class TransactionTableEntryAssertions {
     private TransactionTableEntryAssertions() {
         // no
     }
