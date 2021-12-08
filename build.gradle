@@ -76,8 +76,8 @@ allprojects {
 
     configurations.all {
         resolutionStrategy.eachDependency { details ->
-            if (details.requested.group == 'io.dropwizard.metrics' && details.requested.name != 'metrics-jmx') {
-                details.useVersion '3.2.6'
+            if (details.requested.group == 'io.dropwizard.metrics') {
+                details.useVersion '4.1.1'
             }
         }
 
