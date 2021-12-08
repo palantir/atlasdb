@@ -23,7 +23,6 @@ import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.LightweightOppTokenRange;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -49,11 +48,10 @@ public class AtlasRestoreService {
 
     public static AtlasRestoreService create(
             BackupPersister backupPersister,
-            MetricsManager metricsManager,
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
         CassandraRepairHelper cassandraRepairHelper =
-                new CassandraRepairHelper(metricsManager, keyValueServiceConfigFactory, keyValueServiceFactory);
+                new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
         return new AtlasRestoreService(backupPersister, cassandraRepairHelper);
     }
 

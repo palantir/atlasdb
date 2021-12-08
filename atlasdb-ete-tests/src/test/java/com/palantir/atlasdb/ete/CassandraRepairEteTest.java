@@ -18,7 +18,6 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
@@ -45,10 +44,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFact
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -81,16 +78,13 @@ public class CassandraRepairEteTest {
 
     @Before
     public void setUp() {
-        MetricsManager metricsManager =
-                new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), _unused -> true);
-
         config = ThreeNodeCassandraCluster.getKvsConfig(2);
         kvs = CassandraKeyValueServiceImpl.createForTesting(config);
 
         kvs.createTable(TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
 
-        cassandraRepairHelper = new CassandraRepairHelper(metricsManager, _unused -> config, _unused -> kvs);
+        cassandraRepairHelper = new CassandraRepairHelper(_unused -> config, _unused -> kvs);
         Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         cqlCluster = new CqlCluster(cluster, config);
         metadata = cluster.getMetadata();

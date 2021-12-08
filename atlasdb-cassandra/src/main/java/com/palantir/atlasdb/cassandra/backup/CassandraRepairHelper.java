@@ -29,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -44,15 +43,12 @@ public class CassandraRepairHelper {
     private static final Set<TableReference> TABLES_TO_REPAIR =
             Sets.union(ImmutableSet.of(AtlasDbConstants.COORDINATION_TABLE), TargetedSweepTables.REPAIR_ON_RESTORE);
 
-    private final MetricsManager metricsManager;
     private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
     private final Function<Namespace, KeyValueService> keyValueServiceFactory;
 
     public CassandraRepairHelper(
-            MetricsManager metricsManager,
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
-        this.metricsManager = metricsManager;
         this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
         this.keyValueServiceFactory = keyValueServiceFactory;
     }
@@ -109,9 +105,7 @@ public class CassandraRepairHelper {
             return Stream.of(LightweightOppTokenRange.of(startToken, endToken));
         } else {
             // Handle wrap-around
-            // TODO(gs): use half-empty range instead?
             LightweightOppToken unbounded = unboundedToken();
-
             LightweightOppTokenRange greaterThan = LightweightOppTokenRange.of(startToken, unbounded);
             LightweightOppTokenRange atMost = LightweightOppTokenRange.of(unbounded, endToken);
             return Stream.of(greaterThan, atMost);
