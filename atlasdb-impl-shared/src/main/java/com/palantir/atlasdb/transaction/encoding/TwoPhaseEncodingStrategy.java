@@ -24,12 +24,16 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnlessExistsValue<Long>> {
     INSTANCE;
 
     private static final byte[] STAGING = new byte[] {0};
     private static final byte[] COMMITTED = new byte[] {1};
+
+    public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
+            EncodingUtils.add(TicketsEncodingStrategy.ABORTED_TRANSACTION_VALUE, COMMITTED);
 
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
@@ -62,6 +66,10 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
         }
 
         throw new SafeIllegalArgumentException("Unknown commit state.", SafeArg.of("bytes", Arrays.toString(tail)));
+    }
+
+    public Stream<byte[]> encodeRangeOfStartTimestampsAsRows(long fromInclusive, long toInclusive) {
+        return TicketsEncodingStrategy.INSTANCE.getRowSetCoveringTimestampRange(fromInclusive, toInclusive);
     }
 
     public byte[] transformStagingToCommitted(byte[] stagingValue) {
