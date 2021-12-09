@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -1270,6 +1271,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getSnapshotTransactionWith(spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP);
 
         when(spiedTimeLockService.getFreshTimestamp()).thenReturn(transactionTs + 1);
+        doReturn(transactionTs + 1).when(spiedTimeLockService).getCommitTimestamp(anyLong(), any());
 
         // forcing to try to commit a transaction that is already committed
         transactionService.putUnlessExists(transactionTs, spiedTimeLockService.getFreshTimestamp());
