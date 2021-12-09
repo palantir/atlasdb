@@ -217,14 +217,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testClassicWriteSkew() {
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", "100");
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", "100");
+        put(t0, "row1", "col1", "100");
+        put(t0, "row2", "col1", "100");
         t0.commit();
 
         Transaction t1 = startTransaction();
         Transaction t2 = startTransaction();
-        withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, false);
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, false);
+        withdrawMoney(t1, true, false);
+        withdrawMoney(t2, false, false);
 
         t1.commit();
         assertThatThrownBy(t2::commit)
@@ -235,14 +235,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testClassicWriteSkew2() {
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", "100");
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", "100");
+        put(t0, "row1", "col1", "100");
+        put(t0, "row2", "col1", "100");
         t0.commit();
 
         Transaction t1 = startTransaction();
         Transaction t2 = startTransaction();
-        withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, false);
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, false);
+        withdrawMoney(t1, true, false);
+        withdrawMoney(t2, false, false);
 
         t2.commit();
         assertThatThrownBy(t1::commit)
@@ -253,8 +253,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testConcurrentWriteSkew() throws InterruptedException, BrokenBarrierException {
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", "100");
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", "100");
+        put(t0, "row1", "col1", "100");
+        put(t0, "row2", "col1", "100");
         t0.commit();
 
         final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -262,7 +262,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         final Transaction t1 = startTransaction();
         ExecutorService exec = PTExecutors.newCachedThreadPool();
         Future<?> future = exec.submit((Callable<Void>) () -> {
-            withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, false);
+            withdrawMoney(t1, true, false);
             barrier.await();
             t1.commit();
             return null;
@@ -270,7 +270,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         exec.shutdown();
 
         Transaction t2 = startTransaction();
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, false);
+        withdrawMoney(t2, false, false);
 
         barrier.await();
 
@@ -287,14 +287,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testClassicWriteSkewCell() {
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", "100");
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", "100");
+        put(t0, "row1", "col1", "100");
+        put(t0, "row2", "col1", "100");
         t0.commit();
 
         Transaction t1 = startTransaction();
         Transaction t2 = startTransaction();
-        withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, true);
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, true);
+        withdrawMoney(t1, true, true);
+        withdrawMoney(t2, false, true);
 
         t1.commit();
         assertThatThrownBy(t2::commit)
@@ -305,14 +305,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testClassicWriteSkew2Cell() {
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", "100");
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", "100");
+        put(t0, "row1", "col1", "100");
+        put(t0, "row2", "col1", "100");
         t0.commit();
 
         Transaction t1 = startTransaction();
         Transaction t2 = startTransaction();
-        withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, true);
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, true);
+        withdrawMoney(t1, true, true);
+        withdrawMoney(t2, false, true);
 
         t2.commit();
         assertThatThrownBy(t1::commit)
@@ -323,8 +323,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testConcurrentWriteSkewCell() throws InterruptedException, BrokenBarrierException {
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", "100");
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", "100");
+        put(t0, "row1", "col1", "100");
+        put(t0, "row2", "col1", "100");
         t0.commit();
 
         final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -332,7 +332,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         final Transaction t1 = startTransaction();
         ExecutorService exec = PTExecutors.newCachedThreadPool();
         Future<?> future = exec.submit((Callable<Void>) () -> {
-            withdrawMoney(t1, TEST_TABLE_SERIALIZABLE, true, true);
+            withdrawMoney(t1, true, true);
             barrier.await();
             t1.commit();
             return null;
@@ -340,7 +340,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         exec.shutdown();
 
         Transaction t2 = startTransaction();
-        withdrawMoney(t2, TEST_TABLE_SERIALIZABLE, false, true);
+        withdrawMoney(t2, false, true);
 
         barrier.await();
         assertThat(catchThrowable(() -> {
@@ -353,9 +353,15 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                                 .hasCauseInstanceOf(TransactionFailedRetriableException.class));
     }
 
-    private void withdrawMoney(Transaction txn, TableReference tr, boolean account, boolean isCellGet) {
-        long account1 = Long.parseLong(isCellGet ? getCell(txn, tr, "row1", "col1") : get(txn, tr, "row1", "col1"));
-        long account2 = Long.parseLong(isCellGet ? getCell(txn, tr, "row2", "col1") : get(txn, tr, "row2", "col1"));
+    private void withdrawMoney(Transaction txn, boolean account, boolean isCellGet) {
+        long account1 = Long.parseLong(
+                isCellGet
+                        ? getCell(txn, TEST_TABLE_SERIALIZABLE, "row1", "col1")
+                        : get(txn, TEST_TABLE_SERIALIZABLE, "row1", "col1"));
+        long account2 = Long.parseLong(
+                isCellGet
+                        ? getCell(txn, TEST_TABLE_SERIALIZABLE, "row2", "col1")
+                        : get(txn, TEST_TABLE_SERIALIZABLE, "row2", "col1"));
         if (account) {
             account1 -= 150;
         } else {
@@ -363,9 +369,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         }
         assertThat(account1 + account2).isGreaterThanOrEqualTo(0);
         if (account) {
-            put(txn, tr, "row1", "col1", String.valueOf(account1));
+            put(txn, "row1", "col1", String.valueOf(account1));
         } else {
-            put(txn, tr, "row2", "col1", String.valueOf(account2));
+            put(txn, "row2", "col1", String.valueOf(account2));
         }
     }
 
@@ -379,16 +385,16 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         String initialValue = "100";
         String newValue = "101";
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", initialValue);
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", initialValue);
+        put(t0, "row1", "col1", initialValue);
+        put(t0, "row2", "col1", initialValue);
         t0.commit();
 
         Transaction t1 = startTransaction();
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1", "col1", newValue);
+        put(t1, "row1", "col1", newValue);
         Transaction t2 = startTransaction();
         String row1Get = get(t2, TEST_TABLE_SERIALIZABLE, "row1", "col1");
         assertThat(row1Get).isEqualTo(initialValue);
-        put(t2, TEST_TABLE_SERIALIZABLE, "row2", "col1", row1Get);
+        put(t2, "row2", "col1", row1Get);
 
         t1.commit();
         Transaction readOnly = startTransaction();
@@ -406,20 +412,20 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         String newValue = "101";
         String newValue2 = "102";
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", initialValue);
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", initialValue);
+        put(t0, "row1", "col1", initialValue);
+        put(t0, "row2", "col1", initialValue);
         t0.commit();
 
         Transaction t1 = startTransaction();
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1", "col1", newValue);
+        put(t1, "row1", "col1", newValue);
         Transaction t2 = startTransaction();
         String row1Get = get(t2, TEST_TABLE_SERIALIZABLE, "row1", "col1");
         assertThat(row1Get).isEqualTo(initialValue);
-        put(t2, TEST_TABLE_SERIALIZABLE, "row2", "col1", row1Get);
+        put(t2, "row2", "col1", row1Get);
 
         t1.commit();
         Transaction t3 = startTransaction();
-        put(t3, TEST_TABLE_SERIALIZABLE, "row1", "col1", newValue2);
+        put(t3, "row1", "col1", newValue2);
         t3.commit();
         Transaction readOnly = startTransaction();
         assertThat(get(readOnly, TEST_TABLE_SERIALIZABLE, "row1", "col1")).isEqualTo(newValue2);
@@ -454,17 +460,17 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testPhantomReadFail() {
         String initialValue = "100";
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", initialValue);
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", initialValue);
+        put(t0, "row1", "col1", initialValue);
+        put(t0, "row2", "col1", initialValue);
         t0.commit();
 
         Transaction t1 = startTransaction();
         RowResult<byte[]> first = BatchingVisitables.getFirst(
                 t1.getRange(TEST_TABLE_SERIALIZABLE, RangeRequest.builder().build()));
-        put(t1, TEST_TABLE_SERIALIZABLE, "row22", "col1", initialValue);
+        put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row0", "col1", initialValue);
+        put(t2, "row0", "col1", initialValue);
         t2.commit();
 
         assertThatThrownBy(t1::commit)
@@ -476,17 +482,17 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testPhantomReadFail2() {
         String initialValue = "100";
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", initialValue);
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", initialValue);
+        put(t0, "row1", "col1", initialValue);
+        put(t0, "row2", "col1", initialValue);
         t0.commit();
 
         Transaction t1 = startTransaction();
         BatchingVisitables.copyToList(
                 t1.getRange(TEST_TABLE_SERIALIZABLE, RangeRequest.builder().build()));
-        put(t1, TEST_TABLE_SERIALIZABLE, "row22", "col1", initialValue);
+        put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row3", "col1", initialValue);
+        put(t2, "row3", "col1", initialValue);
         t2.commit();
 
         assertThatThrownBy(t1::commit)
@@ -498,17 +504,17 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testCellReadWriteFailure() {
         String initialValue = "100";
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", initialValue);
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", initialValue);
+        put(t0, "row1", "col1", initialValue);
+        put(t0, "row2", "col1", initialValue);
         t0.commit();
 
         Transaction t1 = startTransaction();
         BatchingVisitables.copyToList(
                 t1.getRange(TEST_TABLE_SERIALIZABLE, RangeRequest.builder().build()));
-        put(t1, TEST_TABLE_SERIALIZABLE, "row22", "col1", initialValue);
+        put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row3", "col1", initialValue);
+        put(t2, "row3", "col1", initialValue);
         t2.commit();
 
         assertThatThrownBy(t1::commit)
@@ -520,17 +526,17 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testCellReadWriteFailure2() {
         String initialValue = "100";
         Transaction t0 = startTransaction();
-        put(t0, TEST_TABLE_SERIALIZABLE, "row1", "col1", initialValue);
-        put(t0, TEST_TABLE_SERIALIZABLE, "row2", "col1", initialValue);
+        put(t0, "row1", "col1", initialValue);
+        put(t0, "row2", "col1", initialValue);
         t0.commit();
 
         Transaction t1 = startTransaction();
         BatchingVisitables.copyToList(
                 t1.getRange(TEST_TABLE_SERIALIZABLE, RangeRequest.builder().build()));
-        put(t1, TEST_TABLE_SERIALIZABLE, "row22", "col1", initialValue);
+        put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row2", "col1", "101");
+        put(t2, "row2", "col1", "101");
         t2.commit();
 
         assertThatThrownBy(t1::commit)
@@ -622,10 +628,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertThat(read.getKey()).isEqualTo(Cell.create(row, PtBytes.toBytes("col0")));
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col0", "v0_0");
+        put(t2, "row1", "col0", "v0_0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -646,10 +652,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 Iterables.getOnlyElement(columnRange.values()).next();
         assertThat(read.getKey()).isEqualTo(Cell.create(row, PtBytes.toBytes("col0")));
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col0", "v0_0");
+        put(t2, "row1", "col0", "v0_0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -669,11 +675,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertThat(read.getKey()).isEqualTo(Cell.create(row, PtBytes.toBytes("col0")));
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
         // Write on the start of the range.
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col", "v");
+        put(t2, "row1", "col", "v");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -694,11 +700,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 Iterables.getOnlyElement(columnRange.values()).next();
         assertThat(read.getKey()).isEqualTo(Cell.create(row, PtBytes.toBytes("col0")));
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
         // Write on the start of the range.
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col", "v");
+        put(t2, "row1", "col", "v");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -718,10 +724,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertThat(read.getKey()).isEqualTo(Cell.create(row, PtBytes.toBytes("col0")));
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col1", "v0_0");
+        put(t2, "row1", "col1", "v0_0");
         t2.commit();
 
         t1.commit();
@@ -742,10 +748,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 Iterables.getOnlyElement(columnRange.values()).next();
         assertThat(read.getKey()).isEqualTo(Cell.create(row, PtBytes.toBytes("col0")));
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col1", "v0_0");
+        put(t2, "row1", "col1", "v0_0");
         t2.commit();
 
         t1.commit();
@@ -763,10 +769,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         assertThat(BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values())))
                 .isNull();
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col", "v0");
+        put(t2, "row1", "col", "v0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -783,10 +789,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
         assertThat(Iterables.getOnlyElement(columnRange.values()).hasNext()).isFalse();
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col", "v0");
+        put(t2, "row1", "col", "v0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -796,7 +802,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testColumnRangeReadWriteEndOfRangeNoConflict_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
         Transaction t1 = startTransaction();
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1", "col", "v0");
+        put(t1, "row1", "col", "v0");
         t1.commit();
 
         Transaction t2 = startTransaction();
@@ -807,10 +813,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // Read the first element but not the end of range following it
         BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         // Write to avoid the read only path.
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t2, "row1_1", "col0", "v0");
 
         Transaction t3 = startTransaction();
-        put(t3, TEST_TABLE_SERIALIZABLE, "row1", "col0", "v0");
+        put(t3, "row1", "col0", "v0");
         t3.commit();
 
         // No conflict since we didn't attempt to read the range where t3 wrote
@@ -821,7 +827,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testColumnRangeReadWriteEndOfRangeNoConflict_iterator() {
         byte[] row = PtBytes.toBytes("row1");
         Transaction t1 = startTransaction();
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1", "col", "v0");
+        put(t1, "row1", "col", "v0");
         t1.commit();
 
         Transaction t2 = startTransaction();
@@ -832,10 +838,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // Read the first element but not the end of range following it
         Iterables.getOnlyElement(columnRange.values()).next();
         // Write to avoid the read only path.
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t2, "row1_1", "col0", "v0");
 
         Transaction t3 = startTransaction();
-        put(t3, TEST_TABLE_SERIALIZABLE, "row1", "col0", "v0");
+        put(t3, "row1", "col0", "v0");
         t3.commit();
 
         // No conflict since we didn't attempt to read the range where t3 wrote
@@ -846,7 +852,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testColumnRangeReadWriteEndOfRangeWithConflict_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
         Transaction t1 = startTransaction();
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1", "col", "v0");
+        put(t1, "row1", "col", "v0");
         t1.commit();
 
         Transaction t2 = startTransaction();
@@ -857,10 +863,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // Attempt to read all results to cause conflicts with t3
         BatchingVisitables.getLast(Iterables.getOnlyElement(columnRange.values()));
         // Write to avoid the read only path.
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t2, "row1_1", "col0", "v0");
 
         Transaction t3 = startTransaction();
-        put(t3, TEST_TABLE_SERIALIZABLE, "row1", "col0", "v0");
+        put(t3, "row1", "col0", "v0");
         t3.commit();
 
         assertThatThrownBy(t2::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -870,7 +876,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testColumnRangeReadWriteEndOfRangeWithConflict_iterator() {
         byte[] row = PtBytes.toBytes("row1");
         Transaction t1 = startTransaction();
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1", "col", "v0");
+        put(t1, "row1", "col", "v0");
         t1.commit();
 
         Transaction t2 = startTransaction();
@@ -881,10 +887,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // Attempt to read all results to cause conflicts with t3
         Iterators.getLast(Iterables.getOnlyElement(columnRange.values()));
         // Write to avoid the read only path.
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t2, "row1_1", "col0", "v0");
 
         Transaction t3 = startTransaction();
-        put(t3, TEST_TABLE_SERIALIZABLE, "row1", "col0", "v0");
+        put(t3, "row1", "col0", "v0");
         t3.commit();
 
         assertThatThrownBy(t2::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -901,10 +907,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
         // Intentionally not reading anything from the result, so we shouldn't get a conflict.
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col", "v0");
+        put(t2, "row1", "col", "v0");
         t2.commit();
 
         t1.commit();
@@ -921,10 +927,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
         // Intentionally not reading anything from the result, so we shouldn't get a conflict.
         // Write to avoid the read only path.
-        put(t1, TEST_TABLE_SERIALIZABLE, "row1_1", "col0", "v0");
+        put(t1, "row1_1", "col0", "v0");
 
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, "row1", "col", "v0");
+        put(t2, "row1", "col", "v0");
         t2.commit();
 
         t1.commit();
@@ -1021,7 +1027,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     public void testDisableReadWriteConflictChecking() {
         byte[] row = PtBytes.toBytes("row1");
         Transaction t1 = startTransaction();
-        put(t1, "row1", "col", "v0");
+        put(t1, TEST_TABLE, "row1", "col", "v0");
         t1.commit();
 
         Transaction t2 = startTransaction();
@@ -1153,7 +1159,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // we write on a cell that has not been read so far (no cells have been read so far)
         Transaction t2 = startTransaction();
         Cell cell = cellsWrittenOriginally.get(0);
-        put(t2, TEST_TABLE_SERIALIZABLE, cell.getRowName(), cell.getColumnName(), "v0_0");
+        put(t2, cell.getRowName(), cell.getColumnName(), "v0_0");
         t2.commit();
 
         assertThatCode(t1::commit).doesNotThrowAnyException();
@@ -1187,7 +1193,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // we write to a cell that has been read to introduce conflict
         Transaction t2 = startTransaction();
         Cell cell = cellsWrittenOriginally.get(new Random().nextInt(cellsWrittenOriginally.size()));
-        put(t2, TEST_TABLE_SERIALIZABLE, cell.getRowName(), cell.getColumnName(), "v0_0");
+        put(t2, cell.getRowName(), cell.getColumnName(), "v0_0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -1212,7 +1218,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // we write to a cell that has been read to introduce conflict
         Transaction t2 = startTransaction();
         Cell cell = cellsWrittenOriginally.get(cellsWrittenOriginally.size() - 1);
-        put(t2, TEST_TABLE_SERIALIZABLE, cell.getRowName(), cell.getColumnName(), "v0_0");
+        put(t2, cell.getRowName(), cell.getColumnName(), "v0_0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -1367,7 +1373,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         // we write to a cell that has been read to introduce conflict
         Transaction t2 = startTransaction();
-        put(t2, TEST_TABLE_SERIALIZABLE, readCells.get(0).getRowName(), lastColumnName, "v0_0");
+        put(t2, readCells.get(0).getRowName(), lastColumnName, "v0_0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -1392,7 +1398,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // we write a new cell that occurs before the last read cell
         Transaction t2 = startTransaction();
         Cell cell = cellsWrittenOriginally.get(new Random().nextInt(cellsWrittenOriginally.size()));
-        put(t2, TEST_TABLE_SERIALIZABLE, cell.getRowName(), PtBytes.toBytes("00"), "v0_0");
+        put(t2, cell.getRowName(), PtBytes.toBytes("00"), "v0_0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
@@ -1460,6 +1466,16 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         });
     }
 
+    @Override
+    protected void put(Transaction txn, String rowName, String columnName, String value) {
+        put(txn, TEST_TABLE_SERIALIZABLE, rowName, columnName, value);
+    }
+
+    @Override
+    protected void put(Transaction txn, byte[] rowName, byte[] columnName, String value) {
+        put(txn, TEST_TABLE_SERIALIZABLE, rowName, columnName, value);
+    }
+
     private void readSortedColumnsAndInduceConflict(int rowCount, int colCount, boolean shouldThrow) {
         int readLimit = (rowCount * colCount) / 2;
         int indexOfCellToOverwrite = shouldThrow ? readLimit - 1 : readLimit;
@@ -1489,7 +1505,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // A different transaction tried to write cell at `indexOfCellToOverwrite`
         Transaction t2 = startTransaction();
         Cell cellToBeOverwritten = cellsToBeWrittenOriginally.get(indexOfCellToOverwrite);
-        put(t2, TEST_TABLE_SERIALIZABLE, cellToBeOverwritten.getRowName(), cellToBeOverwritten.getColumnName(), "v0_0");
+        put(t2, cellToBeOverwritten.getRowName(), cellToBeOverwritten.getColumnName(), "v0_0");
         t2.commit();
 
         if (!shouldThrow) {
@@ -1509,7 +1525,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Transaction transaction = startTransaction();
 
         // we do a random write to ensure serializable conflict checking
-        put(transaction, TEST_TABLE_SERIALIZABLE, getRandomRow(), getRandomColumn(), "v0");
+        put(transaction, getRandomRow(), getRandomColumn(), "v0");
 
         return transaction;
     }
@@ -1554,7 +1570,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < DEFAULT_COL_COUNT; i++) {
             String columnName = getColumnWithIndex(i);
-            put(t1, TransactionTestSetup.TEST_TABLE_SERIALIZABLE, PtBytes.toString(row), columnName, "v" + i);
+            put(t1, PtBytes.toString(row), columnName, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes(columnName)), PtBytes.toBytes("v" + i));
         }
         t1.commit();
@@ -1564,7 +1580,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Transaction t1 = startTransaction();
         for (int i = 0; i < cells.size(); i++) {
             Cell cell = cells.get(i);
-            put(t1, TEST_TABLE_SERIALIZABLE, cell.getRowName(), cell.getColumnName(), "v" + i);
+            put(t1, cell.getRowName(), cell.getColumnName(), "v" + i);
         }
         t1.commit();
     }
