@@ -79,13 +79,6 @@ public class Transactions1TableInteractionTest {
     }
 
     @Test
-    public void isRowAbortedTest() {
-        assertThat(interaction.isRowAbortedTransaction(createRow(12345L, 234234L)))
-                .isFalse();
-        assertThat(interaction.isRowAbortedTransaction(createAbortedRow(234L))).isTrue();
-    }
-
-    @Test
     public void selectStatementSelectsRange() {
         TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
         String keyspace = "keyspace";

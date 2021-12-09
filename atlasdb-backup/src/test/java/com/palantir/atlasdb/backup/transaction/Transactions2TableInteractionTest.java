@@ -71,13 +71,6 @@ public class Transactions2TableInteractionTest {
     }
 
     @Test
-    public void isRowAbortedTest() {
-        assertThat(interaction.isRowAbortedTransaction(createRow(12345L, 234234L)))
-                .isFalse();
-        assertThat(interaction.isRowAbortedTransaction(createAbortedRow(234L))).isTrue();
-    }
-
-    @Test
     public void getAllRowsInPartition() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
         Transactions2TableInteraction txnInteraction =

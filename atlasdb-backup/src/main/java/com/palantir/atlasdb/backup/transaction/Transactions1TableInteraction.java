@@ -117,12 +117,6 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public boolean isRowAbortedTransaction(Row row) {
-        return decodeCommitTs(Bytes.getArray(row.getBytes(CassandraConstants.VALUE)))
-                == TransactionConstants.FAILED_COMMIT_TS;
-    }
-
-    @Override
     public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
         Statement select = QueryBuilder.select()
                 .all()

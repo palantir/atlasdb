@@ -91,18 +91,6 @@ public class Transactions3TableInteractionTest {
     }
 
     @Test
-    public void isRowAbortedTest() {
-        assertThat(interaction.isRowAbortedTransaction(createRow(12345L, 234234L)))
-                .isFalse();
-        assertThat(interaction.isRowAbortedTransaction(createRow(235L, PutUnlessExistsValue.staging(2345L))))
-                .isFalse();
-        assertThat(interaction.isRowAbortedTransaction(createAbortedRow(234L))).isTrue();
-        assertThat(interaction.isRowAbortedTransaction(
-                        createRow(23546L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS))))
-                .isTrue();
-    }
-
-    @Test
     public void getAllRowsInPartition() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
         Transactions3TableInteraction txnInteraction =

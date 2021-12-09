@@ -60,8 +60,6 @@ public interface TransactionsTableInteraction {
 
     TransactionTableEntry extractTimestamps(Row row);
 
-    boolean isRowAbortedTransaction(Row row);
-
     default SafeIllegalArgumentException illegalEntry(TransactionTableEntry entry) {
         throw new SafeIllegalArgumentException("Illegal entry type", SafeArg.of("entry", entry));
     }

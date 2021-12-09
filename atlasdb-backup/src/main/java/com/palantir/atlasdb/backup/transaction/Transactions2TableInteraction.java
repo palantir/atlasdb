@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -85,11 +84,11 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
         long startTimestamp = TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        if (isRowAbortedTransaction(row)) {
-            return TransactionTableEntries.explicitlyAborted(startTimestamp);
-        }
         long commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
+        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
+            return TransactionTableEntries.explicitlyAborted(startTimestamp);
+        }
         return TransactionTableEntries.committedLegacy(startTimestamp, commitTimestamp);
     }
 
@@ -122,13 +121,6 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients
                 .setRetryPolicy(abortRetryPolicy);
-    }
-
-    @Override
-    public boolean isRowAbortedTransaction(Row row) {
-        return Arrays.equals(
-                Bytes.getArray(row.getBytes(CassandraConstants.VALUE)),
-                TicketsEncodingStrategy.ABORTED_TRANSACTION_VALUE);
     }
 
     @Override

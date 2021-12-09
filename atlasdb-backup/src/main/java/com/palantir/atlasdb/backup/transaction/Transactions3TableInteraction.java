@@ -130,15 +130,6 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public boolean isRowAbortedTransaction(Row row) {
-        // start timestamp is unimportant
-        return TwoPhaseEncodingStrategy.INSTANCE
-                        .decodeValueAsCommitTimestamp(0, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)))
-                        .value()
-                == TransactionConstants.FAILED_COMMIT_TS;
-    }
-
-    @Override
     public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
         Set<ByteBuffer> encodedRowKeys = TwoPhaseEncodingStrategy.INSTANCE
                 .encodeRangeOfStartTimestampsAsRows(
