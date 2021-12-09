@@ -122,7 +122,6 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
-                //
                 .setDefaultTimestamp(KvsConsensusForgettingStore.PUT_TIMESTAMP + 1)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients

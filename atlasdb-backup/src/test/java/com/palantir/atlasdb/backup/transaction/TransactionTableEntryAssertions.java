@@ -27,7 +27,7 @@ public final class TransactionTableEntryAssertions {
         // no
     }
 
-    public static void aborted(TransactionTableEntry entry, Consumer<Long> assertions) {
+    public static void assertAborted(TransactionTableEntry entry, Consumer<Long> assertions) {
         TransactionTableEntries.caseOf(entry)
                 .explicitlyAborted(startTs -> {
                     assertions.accept(startTs);
@@ -36,7 +36,7 @@ public final class TransactionTableEntryAssertions {
                 .otherwise(() -> fail("UnexpectedEntryType"));
     }
 
-    public static void legacy(TransactionTableEntry entry, BiConsumer<Long, Long> assertions) {
+    public static void assertLegacy(TransactionTableEntry entry, BiConsumer<Long, Long> assertions) {
         TransactionTableEntries.caseOf(entry)
                 .committedLegacy((startTs, commitTs) -> {
                     assertions.accept(startTs, commitTs);
@@ -45,7 +45,8 @@ public final class TransactionTableEntryAssertions {
                 .otherwise(() -> fail("UnexpectedEntryType"));
     }
 
-    public static void twoPhase(TransactionTableEntry entry, BiConsumer<Long, PutUnlessExistsValue<Long>> assertions) {
+    public static void assertTwoPhase(
+            TransactionTableEntry entry, BiConsumer<Long, PutUnlessExistsValue<Long>> assertions) {
         TransactionTableEntries.caseOf(entry)
                 .committedTwoPhase((startTs, commitTs) -> {
                     assertions.accept(startTs, commitTs);

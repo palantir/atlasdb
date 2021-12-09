@@ -59,7 +59,7 @@ public class Transactions3TableInteractionTest {
     @Test
     public void extractCommittedTimestampTest() {
         TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
-        TransactionTableEntryAssertions.twoPhase(entry, (startTs, commitValue) -> {
+        TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
             assertThat(commitValue).isEqualTo(PutUnlessExistsValue.committed(200L));
         });
@@ -69,7 +69,7 @@ public class Transactions3TableInteractionTest {
     public void extractStagingCommitTimestampTest() {
         TransactionTableEntry entry =
                 interaction.extractTimestamps(createRow(150L, PutUnlessExistsValue.staging(200L)));
-        TransactionTableEntryAssertions.twoPhase(entry, (startTs, commitValue) -> {
+        TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
             assertThat(commitValue).isEqualTo(PutUnlessExistsValue.staging(200L));
         });
@@ -78,7 +78,7 @@ public class Transactions3TableInteractionTest {
     @Test
     public void extractAbortedTimestampTest() {
         TransactionTableEntry entry = interaction.extractTimestamps(createAbortedRow(150L));
-        TransactionTableEntryAssertions.aborted(
+        TransactionTableEntryAssertions.assertAborted(
                 entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
 
@@ -86,7 +86,7 @@ public class Transactions3TableInteractionTest {
     public void extractStagingAbortedTimestampTest() {
         TransactionTableEntry entry = interaction.extractTimestamps(
                 createRow(150L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
-        TransactionTableEntryAssertions.aborted(
+        TransactionTableEntryAssertions.assertAborted(
                 entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
 
