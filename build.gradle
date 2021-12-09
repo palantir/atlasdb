@@ -115,7 +115,6 @@ allprojects {
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
-                'ThreadPriorityCheck',
                 'TooManyArguments'
     }
 }

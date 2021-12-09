@@ -443,6 +443,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         mockery.assertIsSatisfied();
     }
 
+    @SuppressWarnings("ThreadPriorityCheck")
     @Test
     public void testTransactionAtomicity() throws Exception {
         // This test runs multiple transactions in parallel, with KeyValueService.put calls throwing
