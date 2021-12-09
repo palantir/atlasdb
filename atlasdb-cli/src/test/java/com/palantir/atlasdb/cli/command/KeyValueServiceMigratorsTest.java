@@ -221,12 +221,12 @@ public class KeyValueServiceMigratorsTest {
         migrator.setup();
         migrator.migrate();
 
+        assertThat(fromServices.getTransactionService().get(uncommittedTs))
+                .isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
         assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))
                         .get(TEST_CELL)
                         .getContents())
                 .containsExactly(TEST_VALUE1);
-        assertThat(fromServices.getTransactionService().get(uncommittedTs))
-                .isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
     }
 
     @Test

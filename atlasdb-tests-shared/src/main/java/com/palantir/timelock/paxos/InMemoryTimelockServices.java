@@ -137,8 +137,6 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 () -> System.exit(0));
 
         delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
-
-        // Create other stuff
         createHelperServices(metricsManager);
 
         // Wait for leadership
@@ -150,20 +148,14 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     private void createHelperServices(MetricsManager metricsManager) {
-        //        LeaderClock leaderClock = LeaderClock.create();
-        //        HeldLocksCollection heldLocks = HeldLocksCollection.create(leaderClock);
-        //        LeadershipId leadershipId = LeadershipId.random();
-        //        LockWatchStarter lockWatchStarter = new LockWatchingServiceImpl(heldLocks, leadershipId);
-
         helperServices = TimeLockHelperServices.create(
                 client,
                 metricsManager,
-                ImmutableSet.of(), // TODO(gs): any schemas?
+                ImmutableSet.of(),
                 delegate.getTimelockService(),
                 LockWatchCachingConfig.builder().build(),
                 Optional::empty);
 
-        // TODO(gs): add LockLeaseService to creation stuff?
         RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
         ConjureTimelockService cts =
                 ConjureTimelockResource.jersey(redirectRetryTargeter, _unused -> delegate.getTimelockService());

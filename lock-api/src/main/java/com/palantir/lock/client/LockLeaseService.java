@@ -65,7 +65,6 @@ public class LockLeaseService implements AutoCloseable {
         return startTransactions(1).immutableTimestamp();
     }
 
-    // VisibleForTesting
     StartTransactionResponseV4 startTransactions(int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
@@ -86,7 +85,6 @@ public class LockLeaseService implements AutoCloseable {
                 LockImmutableTimestampResponse.of(immutableTs, leasedLockToken), response.timestamps(), lease);
     }
 
-    // VisibleForTesting
     public ConjureStartTransactionsResponse startTransactionsWithWatches(
             Optional<LockWatchVersion> maybeVersion, int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()

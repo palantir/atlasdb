@@ -1206,10 +1206,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         PreCommitCondition condition =
                 unused -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
 
-        ConjureStartTransactionsResponse conjureResponse =
-                timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
-        TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                timelockServices.getLockWatchManager().getCache(), conjureResponse);
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
 
@@ -1234,10 +1231,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
         TimelockService timelockService = timelockServices.getLegacyTimelockService();
-        ConjureStartTransactionsResponse conjureResponse =
-                timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
-        TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                timelockServices.getLockWatchManager().getCache(), conjureResponse);
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
 
@@ -1260,10 +1254,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         TimelockService spiedTimeLockService = spy(timelockService);
 
-        ConjureStartTransactionsResponse conjureResponse =
-                timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
-        TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                timelockServices.getLockWatchManager().getCache(), conjureResponse);
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
 
@@ -1678,10 +1669,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Cell> cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A));
         putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
 
-        ConjureStartTransactionsResponse conjureResponse =
-                timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
-        TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                timelockServices.getLockWatchManager().getCache(), conjureResponse);
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
         Transaction transaction =
@@ -1702,10 +1690,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
         putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
 
-        ConjureStartTransactionsResponse conjureResponse =
-                timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
-        TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                timelockServices.getLockWatchManager().getCache(), conjureResponse);
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
 
@@ -2015,10 +2000,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             int expectedNumberOfInvocations,
             int numElementsToBeAccessed) {
         TimelockService spiedTimeLockService = spy(timelockService);
-        ConjureStartTransactionsResponse conjureResponse =
-                timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
-        TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                timelockServices.getLockWatchManager().getCache(), conjureResponse);
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
         Transaction transaction = getSnapshotTransactionWith(
@@ -2034,6 +2016,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Assertions.assertThat(entries).containsExactlyElementsOf(cells.subList(0, numElementsToBeAccessed));
         verify(spiedTimeLockService, times(expectedNumberOfInvocations))
                 .refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    private ConjureStartTransactionsResponse startTransactionWithWatches() {
+        ConjureStartTransactionsResponse conjureResponse =
+                timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
+        TransactionStarterHelper.updateCacheWithStartTransactionResponse(
+                timelockServices.getLockWatchManager().getCache(), conjureResponse);
+        return conjureResponse;
     }
 
     private void verifyLoadOnKvs(int numColumns, int numRows, int expectedBatchHintForKvs) {
