@@ -29,7 +29,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -157,22 +156,21 @@ public final class CassandraServersConfigs {
         }
     }
 
-    public static <T> Optional<T> deriveFromCqlHosts(
-            CassandraKeyValueServiceConfig config, Function<CqlCapableConfig, T> deriver) {
+    public static Optional<CqlCapableConfig> getCqlCapableConfigIfValid(CassandraKeyValueServiceConfig config) {
         return config.servers().accept(new Visitor<>() {
             @Override
-            public Optional<T> visit(DefaultConfig defaultConfig) {
+            public Optional<CqlCapableConfig> visit(DefaultConfig defaultConfig) {
                 return Optional.empty();
             }
 
             @Override
-            public Optional<T> visit(CqlCapableConfig cqlCapableConfig) {
+            public Optional<CqlCapableConfig> visit(CqlCapableConfig cqlCapableConfig) {
                 if (!cqlCapableConfig.validateHosts()) {
                     log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same.");
                     return Optional.empty();
                 }
 
-                return Optional.of(deriver.apply(cqlCapableConfig));
+                return Optional.of(cqlCapableConfig);
             }
         });
     }

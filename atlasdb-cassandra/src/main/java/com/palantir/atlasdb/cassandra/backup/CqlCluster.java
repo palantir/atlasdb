@@ -66,7 +66,8 @@ public final class CqlCluster {
     }
 
     private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
-        return CassandraServersConfigs.deriveFromCqlHosts(config, CqlCapableConfig::cqlHosts)
+        return CassandraServersConfigs.getCqlCapableConfigIfValid(config)
+                .map(CqlCapableConfig::cqlHosts)
                 .orElseThrow(() -> new SafeIllegalStateException("Attempting to get token ranges with thrift config!"));
     }
 

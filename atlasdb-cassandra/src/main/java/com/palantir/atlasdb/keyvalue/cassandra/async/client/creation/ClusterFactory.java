@@ -75,7 +75,8 @@ public class ClusterFactory {
     }
 
     private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
-        return CassandraServersConfigs.deriveFromCqlHosts(config, CqlCapableConfig::cqlHosts)
+        return CassandraServersConfigs.getCqlCapableConfigIfValid(config)
+                .map(CqlCapableConfig::cqlHosts)
                 .orElseThrow(
                         () -> new SafeIllegalStateException("Attempting to set up CqlCluster with thrift config!"));
     }
