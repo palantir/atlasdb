@@ -86,7 +86,8 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost).isEqualTo(HOST_1);
+        assertThat(resolvedHost.getHostString()).isEqualTo(HOSTNAME_1);
+        assertThat(resolvedHost.getPort()).isEqualTo(DEFAULT_PORT);
     }
 
     @Test
@@ -95,7 +96,8 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost).isEqualTo(HOST_1);
+        assertThat(resolvedHost.getHostString()).isEqualTo(HOSTNAME_1);
+        assertThat(resolvedHost.getPort()).isEqualTo(DEFAULT_PORT);
     }
 
     @Test
@@ -104,7 +106,8 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_3);
 
-        assertThat(resolvedHost).isEqualTo(InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT));
+        assertThat(resolvedHost.getHostString()).isEqualTo(HOSTNAME_3);
+        assertThat(resolvedHost.getPort()).isEqualTo(DEFAULT_PORT);
     }
 
     @Test
