@@ -431,9 +431,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             Key key = getKey(table, entry.getKey(), timestamp);
             if (overwriteBehaviour != OverwriteBehaviour.OVERWRITE) {
                 byte[] oldContents = putIfAbsent(table, key, contents);
-                if (oldContents != null
-                        && (overwriteBehaviour == OverwriteBehaviour.OVERWRITE_SAME_VALUE
-                                && !Arrays.equals(oldContents, contents))) {
+                if (shouldThrow(overwriteBehaviour, contents, oldContents)) {
                     throw new KeyAlreadyExistsException(
                             "We already have a value for this timestamp",
                             ImmutableList.of(entry.getKey()),
@@ -444,6 +442,13 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 table.entries.put(key, copyOf(contents));
             }
         }
+    }
+
+    private boolean shouldThrow(OverwriteBehaviour overwriteBehaviour, byte[] contents, byte[] oldContents) {
+        return oldContents != null
+                && (overwriteBehaviour == OverwriteBehaviour.DO_NOT_OVERWRITE
+                        || (overwriteBehaviour == OverwriteBehaviour.OVERWRITE_SAME_VALUE
+                                && !Arrays.equals(oldContents, contents)));
     }
 
     private enum OverwriteBehaviour {

@@ -254,7 +254,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * Puts a value into the key-value store explicitly overwriting existing entries written by
      * {@link #putUnlessExists(TableReference, Map)} and {@link #checkAndSet(CheckAndSetRequest)}. Once this method
-     * ha been called for a cell, calling it again for the same cell and different value, or attempting a CAS on the
+     * has been called for a cell, calling it again for the same cell and different value, or attempting a CAS on the
      * cell is undefined.
      * <p>
      * WARNING
