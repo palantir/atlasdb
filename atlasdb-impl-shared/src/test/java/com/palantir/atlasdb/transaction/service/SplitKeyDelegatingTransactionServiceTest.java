@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.service;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.math.LongMath;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.After;
@@ -72,9 +74,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void getThrowsIfFunctionReturnsUnmappedValue() {
-        assertThatThrownBy(() -> delegatingTransactionService.get(7L))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Could not find a transaction service for timestamp {}");
+        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.get(7L))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Could not find a transaction service for the given timestamp");
     }
 
     @Test
@@ -97,9 +99,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void putUnlessExistsThrowsIfFunctionReturnsUnmappedValue() {
-        assertThatThrownBy(() -> delegatingTransactionService.putUnlessExists(4L, 12L))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Could not find a transaction service for timestamp {}");
+        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.putUnlessExists(4L, 12L))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Could not find a transaction service for the given timestamp");
     }
 
     @Test
@@ -122,10 +124,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
     @Test
     public void getMultipleThrowsAndDoesNotMakeRequestsIfAnyTimestampsCannotBeMapped() {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
-        assertThatThrownBy(() -> delegatingTransactionService.get(ImmutableList.of(1L, 7L, 41L)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining(
-                        "A batch of timestamps {} produced some transaction service keys which are" + " unknown");
+        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.get(ImmutableList.of(1L, 7L, 41L)))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("A batch of timestamps produced some transaction service keys which are unknown");
 
         Mockito.verifyNoMoreInteractions(delegate1);
     }
@@ -146,18 +147,18 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void ignoreUnknownFailsIfSeeingATimestampServiceItDoesNotRecognizeForSingleTimestamps() {
-        assertThatThrownBy(() -> lastDigitFiveImpliesUnknownTransactionService.get(7L))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Could not find a transaction service for timestamp {}");
+        assertThatLoggableExceptionThrownBy(() -> lastDigitFiveImpliesUnknownTransactionService.get(7L))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Could not find a transaction service for the given timestamp");
     }
 
     @Test
     public void ignoreUnknownFailsIfSeeingATimestampServiceItDoesNotRecognizeForMultipleTimestamps() {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
-        assertThatThrownBy(() -> lastDigitFiveImpliesUnknownTransactionService.get(ImmutableList.of(1L, 5L, 7L, 41L)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining(
-                        "A batch of timestamps {} produced some transaction service keys which are" + " unknown");
+        assertThatLoggableExceptionThrownBy(
+                        () -> lastDigitFiveImpliesUnknownTransactionService.get(ImmutableList.of(1L, 5L, 7L, 41L)))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("A batch of timestamps produced some transaction service keys which are unknown");
 
         Mockito.verifyNoMoreInteractions(delegate1);
     }

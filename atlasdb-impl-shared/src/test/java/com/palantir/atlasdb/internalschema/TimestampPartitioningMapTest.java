@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.internalschema;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import org.junit.Test;
 
 public class TimestampPartitioningMapTest {
@@ -33,32 +35,34 @@ public class TimestampPartitioningMapTest {
 
     @Test
     public void throwsIfInitialMapIsEmpty() {
-        assertThatThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatLoggableExceptionThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.of()))
+                .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("its span does not cover precisely all timestamps");
     }
 
     @Test
     public void throwsIfInitialMapDoesNotCoverFullRange() {
-        assertThatThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(42L), 1)))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatLoggableExceptionThrownBy(
+                        () -> TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(42L), 1)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("its span does not cover precisely all timestamps");
     }
 
     @Test
     public void throwsIfInitialMapHasGapsInRange() {
-        assertThatThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.<Long, Integer>builder()
+        assertThatLoggableExceptionThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.<Long, Integer>builder()
                         .put(Range.closed(1L, 6L), 1)
                         .put(Range.atLeast(8L), 2)
                         .build()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("While the span covers all timestamps, some are missing.");
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("While the span covers all timestamps, some are disconnected.");
     }
 
     @Test
     public void throwsIfInitialMapExceedsTimestampRange() {
-        assertThatThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(-42L), 1)))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatLoggableExceptionThrownBy(
+                        () -> TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(-42L), 1)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("its span does not cover precisely all timestamps");
     }
 
