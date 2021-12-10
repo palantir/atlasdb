@@ -1243,7 +1243,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
 
-        Assertions.setMaxStackTraceElementsDisplayed(40);
         assertThatExceptionOfType(TransactionCommitFailedException.class).isThrownBy(snapshot::commit);
 
         timelockService.unlock(Collections.singleton(res.getLock()));
@@ -2141,8 +2140,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController);
-        // hack (?), tracking lock
-
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

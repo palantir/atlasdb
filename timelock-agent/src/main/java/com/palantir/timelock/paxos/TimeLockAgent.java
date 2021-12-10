@@ -46,7 +46,6 @@ import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.LeaderElectionMetricAggregator;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
@@ -610,10 +609,5 @@ public class TimeLockAgent {
         paxosResources.leadershipComponents().shutdown();
         timestampStorage.close();
         sqliteDataSource.close();
-    }
-
-    public ConjureTimelockService getConjureTimeLockService() {
-        return ConjureTimelockResource.jersey(
-                redirectRetryTargeter(), ns -> namespaces.get(ns).getTimelockService());
     }
 }
