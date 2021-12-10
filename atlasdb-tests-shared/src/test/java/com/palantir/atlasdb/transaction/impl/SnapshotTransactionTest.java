@@ -116,6 +116,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -381,8 +382,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // Immutable timestamp may not be cleared immediately.
         Awaitility.await("immutable timestamp should advance past our transaction's start timestamp")
-                .atMost(5, TimeUnit.SECONDS)
-                .pollInterval(10, TimeUnit.MILLISECONDS)
+                .atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(10))
                 .until(() -> startTs < txManager.getImmutableTimestamp());
     }
 
