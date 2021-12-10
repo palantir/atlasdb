@@ -21,13 +21,9 @@ import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 
 public class ReadOnlyTransactionSchemaManager {
-    private static final SafeLogger log = SafeLoggerFactory.get(ReadOnlyTransactionSchemaManager.class);
-
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
 
     public ReadOnlyTransactionSchemaManager(CoordinationService<InternalSchemaMetadata> coordinationService) {
@@ -37,8 +33,8 @@ public class ReadOnlyTransactionSchemaManager {
     public Integer getTransactionsSchemaVersion(long timestamp) {
         if (timestamp < AtlasDbConstants.STARTING_TS) {
             throw new SafeIllegalStateException(
-                    "Query attempted for timestamp {} which was never given out by the"
-                            + " timestamp service, as timestamps start at {}",
+                    "Query attempted for timestamp (queriedTimestamp) which was never given out by the"
+                            + " timestamp service, as timestamps start at (startOfTime).",
                     SafeArg.of("queriedTimestamp", timestamp),
                     SafeArg.of("startOfTime", AtlasDbConstants.STARTING_TS));
         }
