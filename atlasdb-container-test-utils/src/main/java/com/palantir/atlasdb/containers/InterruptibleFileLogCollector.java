@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.Validate;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public class InterruptibleFileLogCollector implements LogCollector {
@@ -46,7 +45,11 @@ public class InterruptibleFileLogCollector implements LogCollector {
     public InterruptibleFileLogCollector(File logDirectory) {
         Preconditions.checkArgument(!logDirectory.isFile(), "Log directory cannot be a file");
         if (!logDirectory.exists()) {
-            Validate.isTrue(logDirectory.mkdirs(), "Error making log directory: " + logDirectory.getAbsolutePath());
+            boolean successfullyCreated = logDirectory.mkdirs();
+            Preconditions.checkState(
+                    successfullyCreated,
+                    "Error making log directory",
+                    SafeArg.of("logDirectory", logDirectory.getAbsolutePath()));
         }
         this.logDirectory = logDirectory;
     }

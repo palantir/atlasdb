@@ -41,6 +41,8 @@ public class ShardProgress {
 
     private static final int SHARD_COUNT_INDEX = -1;
     static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
+    private static final int OLDEST_SEEN_INDEX = -2;
+    private static final ShardAndStrategy OLDEST_SEEN_SAS = ShardAndStrategy.conservative(OLDEST_SEEN_INDEX);
 
     private final KeyValueService kvs;
 
@@ -86,6 +88,17 @@ public class ShardProgress {
      */
     public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
         return increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
+    }
+
+    public Optional<Long> getOldestSeenTimestamp() {
+        return maybeGet(OLDEST_SEEN_SAS);
+    }
+
+    public void tryUpdateOldestSeenTimestamp(Optional<Long> previous, long next) {
+        byte[] colValNew = createColumnValue(next);
+        CheckAndSetRequest casRequest =
+                createRequest(OLDEST_SEEN_SAS, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
+        kvs.checkAndSet(casRequest);
     }
 
     private Optional<Long> maybeGet(ShardAndStrategy shardAndStrategy) {

@@ -56,7 +56,7 @@ public final class LeasedLockToken implements LockToken {
     synchronized void updateLease(Lease newLease) {
         Preconditions.checkArgument(
                 lease.leaderTime().isComparableWith(newLease.leaderTime()),
-                "Lock leases can only be refreshed by lease owners. Current leader id: {}, new leader id: {}",
+                "Lock leases can only be refreshed by lease owners.",
                 SafeArg.of("currentLeaderId", lease.leaderTime().id()),
                 SafeArg.of("newLeaderId", newLease.leaderTime().id()));
 

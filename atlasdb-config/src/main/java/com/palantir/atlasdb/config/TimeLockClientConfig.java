@@ -35,6 +35,11 @@ public abstract class TimeLockClientConfig {
     @Deprecated
     public abstract Optional<String> client();
 
+    @Value.Default
+    public boolean shouldGiveFeedbackToTimeLockServer() {
+        return true;
+    }
+
     @JsonIgnore
     @Value.Lazy
     public String getClientOrThrow() {

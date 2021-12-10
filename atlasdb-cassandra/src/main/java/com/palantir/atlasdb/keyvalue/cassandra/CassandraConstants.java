@@ -69,7 +69,13 @@ public final class CassandraConstants {
     static final int DEFAULT_MIN_INDEX_INTERVAL = 128;
     static final int DEFAULT_MAX_INDEX_INTERVAL = 2048;
 
-    static final long CAS_TABLE_TIMESTAMP = 0L;
+    public static final String ROW = "key";
+    public static final String COLUMN = "column1";
+    public static final String TIMESTAMP = "column2";
+    public static final String VALUE = "value";
+
+    public static final long CAS_TABLE_TIMESTAMP = 0L;
+    public static final long ENCODED_CAS_TABLE_TIMESTAMP = ~CAS_TABLE_TIMESTAMP;
 
     private CassandraConstants() {
         // Utility class
