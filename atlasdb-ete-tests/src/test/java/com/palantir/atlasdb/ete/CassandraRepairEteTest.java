@@ -218,6 +218,7 @@ public class CassandraRepairEteTest {
 
     // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
     // such that if the thrift range is [5..9] but we don't have data after 7, then the CQL range will be [5..7]
+    @SuppressWarnings("ReverseDnsLookup")
     private void assertRangesToRepairAreSubsetsOfRangesFromTokenMap(
             Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap,
             InetSocketAddress address,
