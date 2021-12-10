@@ -94,8 +94,8 @@ public final class SweepQueueUtils {
             int cellsWritten = writesForShard.size();
             if (cellsWritten > MAX_CELLS_PER_SHARD) {
                 throw new SafeIllegalArgumentException(
-                        "Attempted to persist targeted sweep information for (cellsWritten) cells in the same shard."
-                                + " This exceeds the maximum number of cells (maxCells) per shard per transaction."
+                        "Attempted to persist targeted sweep information for too many cells in the same shard,"
+                                + " exceeding the maximum number of cells per shard per transaction."
                                 + " The transaction will be aborted. Consider changing your workflow to break up"
                                 + " the operation into several smaller transactions.",
                         SafeArg.of("cellsWritten", cellsWritten),

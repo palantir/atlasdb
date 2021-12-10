@@ -108,9 +108,7 @@ public abstract class TimestampPartitioningMap<T> {
             long lowerBoundForNewValue, T newValue, RangeAndValue<T> latestEntry) {
         if (lowerBoundForNewValue < latestEntry.longRange().lowerEndpoint()) {
             throw new SafeIllegalArgumentException(
-                    "Cannot install a new value at an earlier timestamp;"
-                            + " attempted to install version (attemptedNewValue) at (attemptedLowerBound), but the "
-                            + "newest interval is at (existingInterval)",
+                    "Cannot install a new value at an earlier timestamp than the newest existing interval.",
                     SafeArg.of("attemptedNewValue", newValue),
                     SafeArg.of("attemptedLowerBound", lowerBoundForNewValue),
                     SafeArg.of("existingInterval", latestEntry));
@@ -164,8 +162,7 @@ public abstract class TimestampPartitioningMap<T> {
         if (rangesCovered.asRanges().size() != 1) {
             throw new SafeIllegalArgumentException(
                     "Attempted to initialize a timestamp partitioning map."
-                            + " While the span covers all timestamps, some are missing."
-                            + " The disconnected ranges of the provided map are below,",
+                            + " While the span covers all timestamps, some are disconnected.",
                     SafeArg.of("timestampToTransactionSchemaMap", timestampRangeMap),
                     SafeArg.of("disconnectedRanges", rangesCovered));
         }
