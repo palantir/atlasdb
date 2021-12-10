@@ -111,7 +111,8 @@ final class SnapshotStoreImpl implements SnapshotStore {
         return Optional.ofNullable(snapshotMap.get(sequence));
     }
 
-    private void retentionSnapshots() {
+    @VisibleForTesting
+    void retentionSnapshots() {
         Set<Sequence> currentLiveSequences = liveSequences.keySet();
         int nonEssentialSnapshotCount = snapshotMap.size() - currentLiveSequences.size();
         if (nonEssentialSnapshotCount > minimumSize) {
