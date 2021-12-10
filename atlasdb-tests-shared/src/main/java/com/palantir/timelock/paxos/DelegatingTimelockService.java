@@ -57,7 +57,7 @@ final class DelegatingTimelockService implements TimelockService {
 
     @Override
     public long getFreshTimestamp() {
-        return getFreshTimestamps(1).getLowerBound();
+        return timelock.getFreshTimestamp();
     }
 
     @Override

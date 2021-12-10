@@ -112,7 +112,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
-import com.palantir.lock.client.TransactionStarterHelper;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -129,6 +128,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -2020,8 +2020,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private ConjureStartTransactionsResponse startTransactionWithWatches() {
         ConjureStartTransactionsResponse conjureResponse =
                 timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
-        TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                timelockServices.getLockWatchManager().getCache(), conjureResponse);
+        Set<Long> startTimestamps =
+                conjureResponse.getTimestamps().stream().boxed().collect(Collectors.toSet());
+        timelockServices
+                .getLockWatchManager()
+                .getCache()
+                .processStartTransactionsUpdate(startTimestamps, conjureResponse.getLockWatchUpdate());
         return conjureResponse;
     }
 

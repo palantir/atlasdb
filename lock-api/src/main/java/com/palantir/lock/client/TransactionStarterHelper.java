@@ -34,7 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class TransactionStarterHelper {
+final class TransactionStarterHelper {
     private TransactionStarterHelper() {
         // Do not instantiate helper class
     }
@@ -126,8 +126,7 @@ public final class TransactionStarterHelper {
                 .collect(Collectors.toList());
     }
 
-    // VisibleForTesting
-    public static void updateCacheWithStartTransactionResponse(
+    static void updateCacheWithStartTransactionResponse(
             LockWatchCache cache, ConjureStartTransactionsResponse response) {
         Set<Long> startTimestamps = response.getTimestamps().stream().boxed().collect(Collectors.toSet());
         cache.processStartTransactionsUpdate(startTimestamps, response.getLockWatchUpdate());
