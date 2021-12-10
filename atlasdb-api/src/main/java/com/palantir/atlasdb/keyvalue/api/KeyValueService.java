@@ -252,6 +252,24 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
+     * Puts a value into the key-value store explicitly overwriting existing entries written by
+     * {@link #putUnlessExists(TableReference, Map)} and {@link #checkAndSet(CheckAndSetRequest)}. Once this method
+     * ha been called for a cell, calling it again for the same cell and different value, or attempting a CAS on the
+     * cell is undefined.
+     * <p>
+     * WARNING
+     * Use this method if and only if you wish to set a value in an atomic table. Otherwise, use
+     *{@link #put(TableReference, Map, long)}.
+     * <p>
+     * @param tableRef the name of the table to put values into.
+     * @param values map containing the key-value entries to put.
+     */
+    @DoDelegate
+    default void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Check whether CAS is supported. This check can go away when JDBC KVS is deleted.
      *
      * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)

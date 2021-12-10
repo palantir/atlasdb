@@ -393,12 +393,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), false);
+        putInternal(
+                tableRef,
+                KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
+                OverwriteBehaviour.OVERWRITE_SAME_VALUE);
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        putInternal(tableRef, values.entries(), false);
+        putInternal(tableRef, values.entries(), OverwriteBehaviour.OVERWRITE_SAME_VALUE);
     }
 
     @Override
@@ -406,11 +409,19 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         putInternal(
                 tableRef,
                 KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS),
-                true);
+                OverwriteBehaviour.DO_NOT_OVERWRITE);
+    }
+
+    @Override
+    public void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
+        putInternal(
+                tableRef,
+                KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS),
+                OverwriteBehaviour.OVERWRITE);
     }
 
     private void putInternal(
-            TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
+            TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, OverwriteBehaviour overwriteBehaviour) {
         Table table = getTableMap(tableRef);
         List<Cell> knownSuccessfullyCommittedKeys = new ArrayList<>();
         for (Map.Entry<Cell, Value> entry : values) {
@@ -418,15 +429,27 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             long timestamp = entry.getValue().getTimestamp();
 
             Key key = getKey(table, entry.getKey(), timestamp);
-            byte[] oldContents = putIfAbsent(table, key, contents);
-            if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
-                throw new KeyAlreadyExistsException(
-                        "We already have a value for this timestamp",
-                        ImmutableList.of(entry.getKey()),
-                        knownSuccessfullyCommittedKeys);
+            if (overwriteBehaviour != OverwriteBehaviour.OVERWRITE) {
+                byte[] oldContents = putIfAbsent(table, key, contents);
+                if (oldContents != null
+                        && (overwriteBehaviour == OverwriteBehaviour.OVERWRITE_SAME_VALUE
+                                && !Arrays.equals(oldContents, contents))) {
+                    throw new KeyAlreadyExistsException(
+                            "We already have a value for this timestamp",
+                            ImmutableList.of(entry.getKey()),
+                            knownSuccessfullyCommittedKeys);
+                }
+                knownSuccessfullyCommittedKeys.add(entry.getKey());
+            } else {
+                table.entries.put(key, copyOf(contents));
             }
-            knownSuccessfullyCommittedKeys.add(entry.getKey());
         }
+    }
+
+    private enum OverwriteBehaviour {
+        DO_NOT_OVERWRITE,
+        OVERWRITE_SAME_VALUE,
+        OVERWRITE;
     }
 
     @Override

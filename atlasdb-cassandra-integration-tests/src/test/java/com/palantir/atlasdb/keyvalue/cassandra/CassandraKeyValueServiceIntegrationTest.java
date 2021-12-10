@@ -480,6 +480,33 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         keyValueService.dropTable(tableRef);
     }
 
+    @Test
+    public void setOnceTest() {
+        TableReference userTable = TableReference.createFromFullyQualifiedName("test.reallyDoingTHis");
+        keyValueService.createTable(userTable, ORIGINAL_METADATA);
+
+        byte[] sad = PtBytes.toBytes("sad");
+        byte[] happy = PtBytes.toBytes("happy");
+
+        keyValueService.putUnlessExists(userTable, ImmutableMap.of(CELL, sad));
+        assertThat(keyValueService
+                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                        .get(CELL)
+                        .getContents())
+                .containsExactly(sad);
+
+        keyValueService.setOnce(userTable, ImmutableMap.of(CELL, happy));
+        assertThat(keyValueService
+                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                        .get(CELL)
+                        .getContents())
+                .containsExactly(happy);
+        assertThat(keyValueService
+                        .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
+                        .size())
+                .isEqualTo(1);
+    }
+
     private static CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
