@@ -135,6 +135,7 @@ public final class CassandraServersConfigs {
             checkPortNumbers(cqlHosts(), "'cqlPort'");
         }
 
+        @SuppressWarnings("ReverseDnsLookup") // May have raw IPs that we want to validate
         public boolean validateHosts() {
             return thriftHosts().stream()
                     .map(InetSocketAddress::getHostName)

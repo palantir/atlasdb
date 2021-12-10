@@ -214,7 +214,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
 
-    private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
+    private final ReadConsistencyProvider readConsistencyProvider = new ReadConsistencyProvider();
 
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
@@ -428,7 +428,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
-        this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
+        this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistencyProvider);
         this.cellValuePutter = new CellValuePutter(
                 config,
                 clientPool,
@@ -556,8 +556,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     if (currentRf == config.replicationFactor()) {
                         if (currentRf == 2 && config.clusterMeetsNormalConsistencyGuarantees()) {
                             log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
-                            readConsistency = ConsistencyLevel.ONE;
-                            rangeLoader.setConsistencyLevel(readConsistency);
+                            readConsistencyProvider.lowerConsistencyLevelToOne();
                         }
                     }
                 }
@@ -695,7 +694,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =
                                 wrappingQueryRunner.multiget_multislice(
-                                        "getRows", client, tableRef, query, readConsistency);
+                                        "getRows",
+                                        client,
+                                        tableRef,
+                                        query,
+                                        readConsistencyProvider.getConsistency(tableRef));
 
                         return Maps.transformValues(results, lists -> Lists.newArrayList(Iterables.concat(lists)));
                     }
@@ -741,7 +744,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, startTs);
-        cellLoader.loadWithTs("getRows", tableRef, cells, startTs, false, collector, readConsistency);
+        cellLoader.loadWithTs(
+                "getRows",
+                tableRef,
+                cells,
+                startTs,
+                false,
+                collector,
+                readConsistencyProvider.getConsistency(tableRef));
         return collector.getCollectedResults();
     }
 
@@ -779,7 +789,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, ts);
                 try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
-                    cellLoader.loadWithTs("get", tableRef, cellsByTs.get(ts), ts, false, collector, readConsistency);
+                    cellLoader.loadWithTs(
+                            "get",
+                            tableRef,
+                            cellsByTs.get(ts),
+                            ts,
+                            false,
+                            collector,
+                            readConsistencyProvider.getConsistency(tableRef));
                 }
                 builder.putAll(collector.getCollectedResults());
             }
@@ -794,7 +811,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, maxTimestampExclusive);
         try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
             cellLoader.loadWithTs(
-                    kvsMethodName, tableRef, cells, maxTimestampExclusive, false, collector, readConsistency);
+                    kvsMethodName,
+                    tableRef,
+                    cells,
+                    maxTimestampExclusive,
+                    false,
+                    collector,
+                    readConsistencyProvider.getConsistency(tableRef));
         }
         return collector.getCollectedResults();
     }
@@ -929,7 +952,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             SlicePredicate pred = SlicePredicates.create(range, limit);
 
                             Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
-                                    "getRowsColumnRange", client, tableRef, wrap(rows), pred, readConsistency);
+                                    "getRowsColumnRange",
+                                    client,
+                                    tableRef,
+                                    wrap(rows),
+                                    pred,
+                                    readConsistencyProvider.getConsistency(tableRef));
 
                             RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);
                             extractor.extractResults(rows, results, startTs);
@@ -995,7 +1023,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                         tableRef,
                                                         ImmutableList.of(rowByteBuffer),
                                                         pred,
-                                                        readConsistency);
+                                                        readConsistencyProvider.getConsistency(tableRef));
 
                                         if (results.isEmpty()) {
                                             return SimpleTokenBackedResultsPage.create(

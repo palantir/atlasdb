@@ -42,7 +42,7 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
      * responsibility of the user of this class to verify that this is true for the particular KVS implementation,
      * which it is and must remain so for the Cassandra KVS.
      */
-    private static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
+    public static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
 
     private final KeyValueService kvs;
     private final TableReference tableRef;

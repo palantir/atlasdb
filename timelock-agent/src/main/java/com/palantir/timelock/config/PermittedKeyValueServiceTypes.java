@@ -43,7 +43,7 @@ public enum PermittedKeyValueServiceTypes {
     static void checkKeyValueServiceTypeIsPermitted(String typeIdentifier) {
         Preconditions.checkArgument(
                 PERMITTED_TYPES.contains(typeIdentifier),
-                "Only InMemory/Dbkvs is a supported for TimeLock's database persister. Found %s.",
+                "Only InMemory/Dbkvs is a supported for TimeLock's database persister.",
                 SafeArg.of("userTypeIdentifier", typeIdentifier));
     }
 }
