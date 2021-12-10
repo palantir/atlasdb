@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.logsafe.SafeArg;
@@ -44,6 +45,7 @@ final class SnapshotStoreImpl implements SnapshotStore {
     private final NavigableMap<Sequence, ValueCacheSnapshot> snapshotMap;
     private final Multimap<Sequence, StartTimestamp> liveSequences;
     private final Map<StartTimestamp, Sequence> timestampMap;
+    private final RateLimiter retentionRateLimiter = RateLimiter.create(1.0);
     private final int minimumSize;
     private final int maximumSize;
 
@@ -92,7 +94,9 @@ final class SnapshotStoreImpl implements SnapshotStore {
             liveSequences.remove(sequence, timestamp);
         });
 
-        retentionSnapshots();
+        if (retentionRateLimiter.tryAcquire()) {
+            retentionSnapshots();
+        }
     }
 
     @Override
@@ -114,17 +118,21 @@ final class SnapshotStoreImpl implements SnapshotStore {
             int numToRetention = nonEssentialSnapshotCount - minimumSize;
 
             List<Sequence> sequencesToRemove = snapshotMap.keySet().stream()
-                    .limit(numToRetention)
                     .filter(sequence -> !currentLiveSequences.contains(sequence))
+                    .limit(numToRetention)
                     .collect(Collectors.toList());
             sequencesToRemove.forEach(snapshotMap::remove);
         }
     }
 
     private void validateStateSize() {
-        if (snapshotMap.size() > maximumSize
-                || liveSequences.size() > maximumSize
-                || timestampMap.size() > maximumSize) {
+        if (snapshotMap.size() > maximumSize) {
+            // Since this is only occasionally done, it is plausible that with a very high throughput, we reach the
+            // maximum when actually we can retention away some old snapshots
+            retentionSnapshots();
+        }
+
+        if (maxSizeExceeded()) {
             log.warn(
                     "Snapshot store has exceeded its maximum size. This likely indicates a memory leak.",
                     SafeArg.of("snapshotMapSize", snapshotMap.size()),
@@ -141,5 +149,11 @@ final class SnapshotStoreImpl implements SnapshotStore {
                     SafeArg.of("maximumSize", maximumSize));
             throw new SafeIllegalStateException("Exceeded max snapshot store size");
         }
+    }
+
+    private boolean maxSizeExceeded() {
+        return snapshotMap.size() > maximumSize
+                || liveSequences.size() > maximumSize
+                || timestampMap.size() > maximumSize;
     }
 }
