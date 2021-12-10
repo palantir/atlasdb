@@ -228,17 +228,28 @@ public class CassandraRepairEteTest {
         Set<Range<LightweightOppToken>> thriftRangesForHost = fullTokenMap.get(thriftAddr);
         assertThat(thriftRangesForHost).isNotNull();
         cqlRangesForHost.forEach(
-                range -> assertThat(thriftRangesForHost.stream().anyMatch(isSubsetOf(range)))
+                range -> assertThat(thriftRangesForHost.stream().anyMatch(containsEntirely(range)))
                         .isTrue());
     }
 
-    private Predicate<Range<LightweightOppToken>> isSubsetOf(Range<LightweightOppToken> range) {
+    private Predicate<Range<LightweightOppToken>> containsEntirely(Range<LightweightOppToken> range) {
         return thriftRange -> {
-            System.out.println("Comparing range:" + range.lowerEndpoint() + "->" + range.upperEndpoint());
-            System.out.println("To thrift range:" + thriftRange.lowerEndpoint() + "->" + thriftRange.upperEndpoint());
+            System.out.println("Comparing range:" + getLower(range) + "->" + getUpper(range));
+            System.out.println("To thrift range:" + getLower(thriftRange) + "->" + getUpper(thriftRange));
             return thriftRange.lowerEndpoint().equals(range.lowerEndpoint())
-                    && thriftRange.upperEndpoint().equals(range.upperEndpoint());
+                    && (thriftRange.hasUpperBound()
+                            ? range.hasUpperBound()
+                                    && thriftRange.upperEndpoint().compareTo(range.upperEndpoint()) >= 0
+                            : !range.hasUpperBound());
         };
+    }
+
+    private String getLower(Range<LightweightOppToken> range) {
+        return range.hasLowerBound() ? range.lowerEndpoint().toString() : "(no lower bound)";
+    }
+
+    private String getUpper(Range<LightweightOppToken> range) {
+        return range.hasUpperBound() ? range.upperEndpoint().toString() : "(no upper bound)";
     }
 
     private Map<InetSocketAddress, Set<Range<LightweightOppToken>>> getFullTokenMap() {
