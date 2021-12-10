@@ -19,6 +19,7 @@ package com.palantir.atlasdb.cassandra.backup;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -54,7 +55,7 @@ public class CassandraRepairHelper {
     }
 
     public void repairInternalTables(
-            Namespace namespace, Consumer<Map<InetSocketAddress, Set<LightweightOppTokenRange>>> repairTable) {
+            Namespace namespace, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
         CqlCluster cqlCluster = getCqlCluster(namespace);
         kvs.getAllTableNames().stream()
@@ -72,7 +73,7 @@ public class CassandraRepairHelper {
     }
 
     // VisibleForTesting
-    public Map<InetSocketAddress, Set<LightweightOppTokenRange>> getRangesToRepair(
+    public Map<InetSocketAddress, Set<Range<LightweightOppToken>>> getRangesToRepair(
             CqlCluster cqlCluster, Namespace namespace, String tableName) {
         Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getTokenRangesToRepair(cqlCluster, namespace, tableName);
         return KeyedStream.stream(tokenRanges).map(this::makeLightweight).collectToMap();
@@ -93,21 +94,21 @@ public class CassandraRepairHelper {
         return com.palantir.atlasdb.keyvalue.api.Namespace.create(namespace.get());
     }
 
-    private Set<LightweightOppTokenRange> makeLightweight(Set<TokenRange> tokenRanges) {
+    private Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
         return tokenRanges.stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
     }
 
-    private Stream<LightweightOppTokenRange> makeLightweight(TokenRange tokenRange) {
+    private Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
         LightweightOppToken startToken = LightweightOppToken.serialize(tokenRange.getStart());
         LightweightOppToken endToken = LightweightOppToken.serialize(tokenRange.getEnd());
 
         if (startToken.compareTo(endToken) <= 0) {
-            return Stream.of(LightweightOppTokenRange.of(startToken, endToken));
+            return Stream.of(Range.closed(startToken, endToken));
         } else {
             // Handle wrap-around
             LightweightOppToken unbounded = unboundedToken();
-            LightweightOppTokenRange greaterThan = LightweightOppTokenRange.of(startToken, unbounded);
-            LightweightOppTokenRange atMost = LightweightOppTokenRange.of(unbounded, endToken);
+            Range<LightweightOppToken> greaterThan = Range.closed(startToken, unbounded);
+            Range<LightweightOppToken> atMost = Range.closed(unbounded, endToken);
             return Stream.of(greaterThan, atMost);
         }
     }

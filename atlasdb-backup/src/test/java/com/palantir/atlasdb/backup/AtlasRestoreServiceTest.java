@@ -20,9 +20,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
-import com.palantir.atlasdb.cassandra.backup.LightweightOppTokenRange;
+import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -42,12 +43,11 @@ public class AtlasRestoreServiceTest {
     @Mock
     private CassandraRepairHelper cassandraRepairHelper;
 
-    private BackupPersister backupPersister;
     private AtlasRestoreService atlasRestoreService;
 
     @Before
     public void setup() {
-        backupPersister = new InMemoryBackupPersister();
+        BackupPersister backupPersister = new InMemoryBackupPersister();
         atlasRestoreService = new AtlasRestoreService(backupPersister, cassandraRepairHelper);
 
         CompletedBackup completedBackup = CompletedBackup.builder()
@@ -60,7 +60,7 @@ public class AtlasRestoreServiceTest {
 
     @Test
     public void repairsOnlyWhenBackupPresent() {
-        Consumer<Map<InetSocketAddress, Set<LightweightOppTokenRange>>> doNothingConsumer = _unused -> {};
+        Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> doNothingConsumer = _unused -> {};
         atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);

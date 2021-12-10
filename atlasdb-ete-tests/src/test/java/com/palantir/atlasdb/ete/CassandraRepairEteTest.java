@@ -31,7 +31,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
-import com.palantir.atlasdb.cassandra.backup.LightweightOppTokenRange;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -101,15 +100,15 @@ public class CassandraRepairEteTest {
 
     @Test
     public void shouldGetRangesForBothReplicas() {
-        Map<InetSocketAddress, Set<LightweightOppTokenRange>> ranges =
+        Map<InetSocketAddress, Set<Range<LightweightOppToken>>> ranges =
                 cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
         assertThat(ranges).hasSize(2);
     }
 
     @Test
     public void tokenRangesToRepairShouldBeSubsetsOfTokenMap() {
-        Map<InetSocketAddress, Set<LightweightOppTokenRange>> fullTokenMap = getFullTokenMap();
-        Map<InetSocketAddress, Set<LightweightOppTokenRange>> rangesToRepair =
+        Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap = getFullTokenMap();
+        Map<InetSocketAddress, Set<Range<LightweightOppToken>>> rangesToRepair =
                 cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
 
         KeyedStream.stream(rangesToRepair)
@@ -220,31 +219,28 @@ public class CassandraRepairEteTest {
     // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
     // such that if the thrift range is [5..9] but we don't have data after 7, then the CQL range will be [5..7]
     private void assertRangesToRepairAreSubsetsOfRangesFromTokenMap(
-            Map<InetSocketAddress, Set<LightweightOppTokenRange>> fullTokenMap,
+            Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap,
             InetSocketAddress address,
-            Set<LightweightOppTokenRange> cqlRangesForHost) {
+            Set<Range<LightweightOppToken>> cqlRangesForHost) {
         String hostName = address.getHostName();
         InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
-        Set<LightweightOppTokenRange> thriftRangesForHost = fullTokenMap.get(thriftAddr);
+        Set<Range<LightweightOppToken>> thriftRangesForHost = fullTokenMap.get(thriftAddr);
         assertThat(thriftRangesForHost).isNotNull();
         cqlRangesForHost.forEach(
                 range -> assertThat(thriftRangesForHost.stream().anyMatch(isSubsetOf(range)))
                         .isTrue());
     }
 
-    private Predicate<LightweightOppTokenRange> isSubsetOf(LightweightOppTokenRange range) {
+    private Predicate<Range<LightweightOppToken>> isSubsetOf(Range<LightweightOppToken> range) {
         return thriftRange -> {
-            System.out.println("Comparing range:" + range.left() + "->" + range.right());
-            System.out.println("To thrift range:" + thriftRange.left() + "->" + thriftRange.right());
-            return thriftRange.left().equals(range.left())
-                    && thriftRange
-                            .right()
-                            .map(right -> right.compareTo(range.right().orElseThrow()) >= 0)
-                            .orElseGet(() -> range.right().isEmpty());
+            System.out.println("Comparing range:" + range.lowerEndpoint() + "->" + range.upperEndpoint());
+            System.out.println("To thrift range:" + thriftRange.lowerEndpoint() + "->" + thriftRange.upperEndpoint());
+            return thriftRange.lowerEndpoint().equals(range.lowerEndpoint())
+                    && thriftRange.upperEndpoint().equals(range.upperEndpoint());
         };
     }
 
-    private Map<InetSocketAddress, Set<LightweightOppTokenRange>> getFullTokenMap() {
+    private Map<InetSocketAddress, Set<Range<LightweightOppToken>>> getFullTokenMap() {
         CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
                 config,
@@ -254,13 +250,13 @@ public class CassandraRepairEteTest {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private Map<InetSocketAddress, Set<LightweightOppTokenRange>> invert(
+    private Map<InetSocketAddress, Set<Range<LightweightOppToken>>> invert(
             RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
-        Map<InetSocketAddress, Set<LightweightOppTokenRange>> invertedMap = new HashMap<>();
+        Map<InetSocketAddress, Set<Range<LightweightOppToken>>> invertedMap = new HashMap<>();
         tokenMap.asMapOfRanges()
                 .forEach((range, addresses) -> addresses.forEach(addr -> {
-                    Set<LightweightOppTokenRange> existingRanges = invertedMap.getOrDefault(addr, new HashSet<>());
-                    existingRanges.add(toTokenRange(range));
+                    Set<Range<LightweightOppToken>> existingRanges = invertedMap.getOrDefault(addr, new HashSet<>());
+                    existingRanges.add(range);
                     invertedMap.put(addr, existingRanges);
                 }));
 
@@ -273,16 +269,5 @@ public class CassandraRepairEteTest {
 
     private Token getToken(String hexBinary) {
         return metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
-    }
-
-    private LightweightOppTokenRange toTokenRange(Range<LightweightOppToken> range) {
-        LightweightOppTokenRange.Builder rangeBuilder = LightweightOppTokenRange.builder();
-        if (range.hasLowerBound()) {
-            rangeBuilder.left(range.lowerEndpoint());
-        }
-        if (range.hasUpperBound()) {
-            rangeBuilder.right(range.upperEndpoint());
-        }
-        return rangeBuilder.build();
     }
 }

@@ -17,11 +17,12 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
-import com.palantir.atlasdb.cassandra.backup.LightweightOppTokenRange;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -67,7 +68,7 @@ public class AtlasRestoreService {
      * @return the set of namespaces for which we issued a repair command via the provided Consumer.
      */
     public Set<Namespace> repairInternalTables(
-            Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<LightweightOppTokenRange>>> repairTable) {
+            Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
         Set<Namespace> namespacesToRepair =
                 namespaces.stream().filter(this::backupExists).collect(Collectors.toSet());
         namespacesToRepair.forEach(namespace -> cassandraRepairHelper.repairInternalTables(namespace, repairTable));
