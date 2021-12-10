@@ -18,6 +18,7 @@ package com.palantir.atlasdb.coordination;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -25,12 +26,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     private static final SafeLogger log = SafeLoggerFactory.get(CoordinationServiceImpl.class);
 
     private final CoordinationStore<T> store;
     private final AtomicReference<ValueAndBound<T>> cache = new AtomicReference<>(getInitialCacheValue());
+    private final Supplier<Optional<ValueAndBound<T>>> latestValueFromStoreSupplier =
+            new CoalescingSupplier<>(this::readLatestValueFromStore);
 
     public CoordinationServiceImpl(CoordinationStore<T> store) {
         this.store = store;
@@ -40,7 +44,7 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     public Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp) {
         ValueAndBound<T> cachedReference = cache.get();
         if (cachedReference.bound() < timestamp) {
-            return readLatestValueFromStore().filter(valueAndBound -> valueAndBound.bound() >= timestamp);
+            return latestValueFromStoreSupplier.get().filter(valueAndBound -> valueAndBound.bound() >= timestamp);
         }
         return Optional.of(cachedReference);
     }
