@@ -183,7 +183,7 @@ public abstract class TransactionTestSetup {
         transactionService = createTransactionService(keyValueService, transactionSchemaManager);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        txMgr = getManager();
+        txMgr = createAndRegisterManager();
     }
 
     @After
@@ -196,7 +196,7 @@ public abstract class TransactionTestSetup {
     }
 
     protected TransactionManager getManager() {
-        return createAndRegisterManager();
+        return tmManager.getLastRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
     }
 
     TransactionManager createAndRegisterManager() {
