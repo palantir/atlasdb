@@ -59,41 +59,30 @@ public class InMemoryTimelockServicesTest {
     }
 
     @Test
-    public void canGetTimestamp() {
-        long ts1 = timestampService.getFreshTimestamp();
-        long ts2 = timelockService.getFreshTimestamp();
-        testTs(ts1, ts2);
-    }
-
-    @Test
     public void timestampsAreConsistent() {
-        long ts1 = delegatingTimelockService.getFreshTimestamps(1).getLowerBound();
-        long ts2 = timestampService.getFreshTimestamp();
-        testTs(ts1, ts2);
+        long timestamp1 = delegatingTimelockService.getFreshTimestamps(1).getLowerBound();
+        long timestamp2 = timestampService.getFreshTimestamp();
+        assertThat(timestamp1).isLessThan(timestamp2);
 
-        long ts3 = delegatingTimelockService.getFreshTimestamps(1).getLowerBound();
-        testTs(ts2, ts3);
+        long timestamp3 = delegatingTimelockService.getFreshTimestamps(1).getLowerBound();
+        assertThat(timestamp2).isLessThan(timestamp3);
 
-        long ts4 = delegatingTimelockService
+        long timestamp4 = delegatingTimelockService
                 .startIdentifiedAtlasDbTransactionBatch(1)
                 .get(0)
                 .startTimestampAndPartition()
                 .timestamp();
-        testTs(ts3, ts4);
+        assertThat(timestamp3).isLessThan(timestamp4);
 
-        long ts5 = delegatingTimelockService.getFreshTimestamp();
-        testTs(ts4, ts5);
-    }
-
-    private void testTs(long ts2, long ts3) {
-        assertThat(ts2).isLessThan(ts3);
+        long timestamp5 = delegatingTimelockService.getFreshTimestamp();
+        assertThat(timestamp4).isLessThan(timestamp5);
     }
 
     @Test
     public void canFastForwardTimestamp() {
-        long target = 1234567L;
-        timelockService.fastForwardTimestamp(target);
-        long ts1 = timestampService.getFreshTimestamp();
-        assertThat(ts1).isGreaterThan(target);
+        long fastForwardTimestamp = 1234567L;
+        timelockService.fastForwardTimestamp(fastForwardTimestamp);
+        long freshTimestamp = timestampService.getFreshTimestamp();
+        assertThat(freshTimestamp).isGreaterThan(fastForwardTimestamp);
     }
 }
