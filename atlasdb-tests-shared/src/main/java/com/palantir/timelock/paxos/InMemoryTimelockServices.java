@@ -35,10 +35,11 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockLeaseService;
-import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
+import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TransactionStarter;
+import com.palantir.lock.v2.NamespacedTimelockTimestampClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
@@ -82,6 +83,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private TimeLockHelperServices helperServices;
 
     private LockLeaseService lockLeaseService;
+    private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
 
     public InMemoryTimelockServices(TemporaryFolder tempFolder) {
         this.tempFolder = tempFolder;
@@ -158,8 +160,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
         ConjureTimelockService conjureTimelockService =
                 ConjureTimelockResource.jersey(redirectRetryTargeter, _unused -> delegate.getTimelockService());
-        NamespacedConjureTimelockService namespacedConjureTimelockService =
-                new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
+        namespacedConjureTimelockService = new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
         lockLeaseService = LockLeaseService.create(
                 namespacedConjureTimelockService, new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
     }
@@ -242,8 +243,16 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         TransactionStarter transactionStarter = TransactionStarter.create(lockLeaseService, requestBatchersFactory);
         CommitTimestampGetter commitTimestampGetter =
                 requestBatchersFactory.createBatchingCommitTimestampGetter(lockLeaseService);
-        return new DelegatingTimelockService(
-                transactionStarter, lockLeaseService, getTimelockService(), commitTimestampGetter);
+
+        NamespacedTimelockTimestampClient namespacedTimelockTimestampClient =
+                new DelegatingNamespacedTimelockTimestampClient(getTimelockService());
+
+        return new RemoteTimelockServiceAdapter(
+                namespacedTimelockTimestampClient,
+                namespacedConjureTimelockService,
+                lockLeaseService,
+                transactionStarter,
+                commitTimestampGetter);
     }
 
     public LockLeaseService getLockLeaseService() {

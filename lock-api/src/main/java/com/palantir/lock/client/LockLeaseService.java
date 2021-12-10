@@ -61,7 +61,7 @@ public class LockLeaseService implements AutoCloseable {
         return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter);
     }
 
-    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+    LockImmutableTimestampResponse lockImmutableTimestamp() {
         return startTransactions(1).immutableTimestamp();
     }
 
@@ -85,6 +85,7 @@ public class LockLeaseService implements AutoCloseable {
                 LockImmutableTimestampResponse.of(immutableTs, leasedLockToken), response.timestamps(), lease);
     }
 
+    // Visible for testing
     public ConjureStartTransactionsResponse startTransactionsWithWatches(
             Optional<LockWatchVersion> maybeVersion, int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
@@ -96,7 +97,7 @@ public class LockLeaseService implements AutoCloseable {
         return assignLeasedLockTokenToImmutableTimestampLock(delegate.startTransactions(request));
     }
 
-    public static ConjureStartTransactionsResponse assignLeasedLockTokenToImmutableTimestampLock(
+    static ConjureStartTransactionsResponse assignLeasedLockTokenToImmutableTimestampLock(
             ConjureStartTransactionsResponse response) {
         Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(
@@ -118,15 +119,15 @@ public class LockLeaseService implements AutoCloseable {
         return delegate.getCommitTimestamps(request);
     }
 
-    public LockResponse lock(LockRequest request) {
+    LockResponse lock(LockRequest request) {
         return lockService.lock(request);
     }
 
-    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
+    WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         return lockService.waitForLocks(request);
     }
 
-    public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
+    Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
         if (uncastedTokens.isEmpty()) {
             return uncastedTokens;
         }
@@ -143,7 +144,7 @@ public class LockLeaseService implements AutoCloseable {
         return Sets.union(refreshedTokens, validByLease);
     }
 
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
+    Set<LockToken> unlock(Set<LockToken> tokens) {
         if (tokens.isEmpty()) {
             return tokens;
         }

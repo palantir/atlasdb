@@ -47,11 +47,11 @@ public final class TransactionStarter implements AutoCloseable {
                 lockLeaseService, requestBatchersFactory.createBatchingTransactionStarter(lockLeaseService));
     }
 
-    public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
+    List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         return batchingTransactionStarter.startIdentifiedAtlasDbTransactionBatch(count);
     }
 
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockTokenShare> lockTokenShares = TransactionStarterHelper.filterLockTokenShares(tokens);
         Set<LockToken> lockTokens = TransactionStarterHelper.filterOutTokenShares(tokens);
 
@@ -67,7 +67,7 @@ public final class TransactionStarter implements AutoCloseable {
         return Sets.union(resultLockTokenShares, resultLockTokens);
     }
 
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
+    Set<LockToken> unlock(Set<LockToken> tokens) {
         return TransactionStarterHelper.unlock(tokens, lockLeaseService);
     }
 
