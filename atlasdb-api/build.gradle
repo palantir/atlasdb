@@ -8,7 +8,6 @@ dependencies {
   implementation group: 'org.apache.commons', name: 'commons-lang3'
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  implementation group: 'com.squareup.okio', name: 'okio'
   implementation group: 'jakarta.annotation', name: 'jakarta.annotation-api'
   implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
   implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
@@ -23,11 +22,11 @@ dependencies {
 
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
+  implementation 'com.google.protobuf:protobuf-java'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
-  implementation 'com.squareup.okio:okio'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':commons-annotations')
@@ -36,7 +35,6 @@ dependencies {
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.common:streams'
   testImplementation 'com.palantir.refreshable:refreshable'
-  testImplementation 'com.squareup.okio:okio'
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation project(':lock-api-objects')
 

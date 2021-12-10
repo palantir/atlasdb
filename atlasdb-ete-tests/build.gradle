@@ -7,7 +7,6 @@ apply plugin: 'com.palantir.sls-java-service-distribution'
 schemas = ['com.palantir.atlasdb.blob.BlobSchema']
 
 dependencies {
-    compile project(":dropwizard-metrics-hack")
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
@@ -40,6 +39,7 @@ dependencies {
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-commons')
     implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-tests-shared')
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')

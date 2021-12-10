@@ -15,12 +15,18 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static com.palantir.atlasdb.transaction.service.TransactionServices.createTransactionService;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.ComparingTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -40,7 +46,6 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
@@ -66,6 +71,12 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
+/**
+ * Expectations for semantics of tests that are run as part of this class (not that the author thinks these
+ * assumptions are ideal, but this is documentation of the current state):
+ * - The timestamp and lock services are disjoint across individual tests.
+ * - The key value services may not be disjoint across individual tests.
+ */
 public abstract class TransactionTestSetup {
     @ClassRule
     public static final TemporaryFolder PERSISTENT_STORAGE_FOLDER = new TemporaryFolder();
@@ -103,6 +114,7 @@ public abstract class TransactionTestSetup {
     protected KeyValueService keyValueService;
     protected TimestampService timestampService;
     protected TimestampManagementService timestampManagementService;
+    protected TransactionSchemaManager transactionSchemaManager;
     protected TransactionService transactionService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
@@ -165,7 +177,11 @@ public abstract class TransactionTestSetup {
         timestampManagementService = inMemoryTimelockServices.getTimestampManagementService();
         timelockService = inMemoryTimelockServices.getLegacyTimelockService();
         lockWatchManager = NoOpLockWatchManager.create();
-        transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
+
+        CoordinationService<InternalSchemaMetadata> coordinationService =
+                CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
+        transactionSchemaManager = new TransactionSchemaManager(coordinationService);
+        transactionService = createTransactionService(keyValueService, transactionSchemaManager);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = getManager();

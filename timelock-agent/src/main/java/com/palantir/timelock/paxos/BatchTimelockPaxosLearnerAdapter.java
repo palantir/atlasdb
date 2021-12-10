@@ -94,7 +94,7 @@ public class BatchTimelockPaxosLearnerAdapter implements PaxosLearner {
     private <T> void checkResult(Set<T> result) {
         Preconditions.checkState(
                 result.size() <= 1,
-                "Unexpected result {} in a call for client {}.",
+                "Unexpected result in a call for client.",
                 SafeArg.of("result", result),
                 SafeArg.of("client", client));
     }

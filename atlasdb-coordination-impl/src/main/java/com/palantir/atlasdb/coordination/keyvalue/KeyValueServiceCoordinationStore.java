@@ -155,8 +155,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
 
     /**
      * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
-     * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} is
-     * {@link com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility#SUPPORTED_DETAIL_ON_FAILURE}.
+     * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} supports detail on failure.
      */
     @Override
     public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
@@ -176,7 +175,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private Optional<CoordinationStoreState<T>> readLatestState() {
         while (true) {
             Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-            if (!coordinationValue.isPresent()) {
+            if (coordinationValue.isEmpty()) {
                 return Optional.empty();
             }
             SequenceAndBound presentCoordinationValue = coordinationValue.get();

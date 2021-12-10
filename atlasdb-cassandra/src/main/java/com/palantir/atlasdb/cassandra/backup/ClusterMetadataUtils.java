@@ -84,6 +84,7 @@ public final class ClusterMetadataUtils {
                 .collectToMap();
     }
 
+    @SuppressWarnings("ReverseDnsLookup")
     private static InetSocketAddress lookUpAddress(Map<String, InetSocketAddress> nodeMetadataHostMap, Host host) {
         String hostname = host.getEndPoint().resolve().getHostName();
         Preconditions.checkArgument(

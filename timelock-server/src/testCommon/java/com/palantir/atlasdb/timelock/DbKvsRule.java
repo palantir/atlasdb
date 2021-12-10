@@ -84,7 +84,7 @@ public class DbKvsRule implements TestRule {
                 .dbName("atlas")
                 .dbLogin("palantir")
                 .dbPassword(ImmutableMaskedValue.of("palantir"))
-                .host(postgresAddress.getHostName())
+                .host(postgresAddress.getHostString())
                 .port(postgresAddress.getPort())
                 .build();
 

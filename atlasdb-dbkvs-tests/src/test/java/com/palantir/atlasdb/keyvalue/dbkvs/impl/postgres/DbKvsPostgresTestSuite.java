@@ -85,7 +85,7 @@ public final class DbKvsPostgresTestSuite {
                 .dbName("atlas")
                 .dbLogin("palantir")
                 .dbPassword(ImmutableMaskedValue.of("palantir"))
-                .host(postgresAddress.getHostName())
+                .host(postgresAddress.getHostString())
                 .port(postgresAddress.getPort())
                 .build();
     }

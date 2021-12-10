@@ -95,7 +95,7 @@ public final class DbKvsOracleTestSuite {
                 .dbLogin("palantir")
                 .dbPassword(ImmutableMaskedValue.of("palpal"))
                 .sid("palantir")
-                .host(oracleAddress.getHostName())
+                .host(oracleAddress.getHostString())
                 .port(oracleAddress.getPort())
                 .build();
 

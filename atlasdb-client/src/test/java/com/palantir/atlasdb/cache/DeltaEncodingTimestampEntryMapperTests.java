@@ -22,9 +22,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.atlasdb.table.description.ValueType;
-import okio.ByteString;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,6 +68,6 @@ public final class DeltaEncodingTimestampEntryMapperTests {
     }
 
     private static ByteString toByteString(long value) {
-        return ByteString.of(ValueType.VAR_LONG.convertFromJava(value));
+        return ByteString.copyFrom(ValueType.VAR_LONG.convertFromJava(value));
     }
 }

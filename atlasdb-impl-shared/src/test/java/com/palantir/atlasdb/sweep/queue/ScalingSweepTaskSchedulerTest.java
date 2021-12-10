@@ -90,11 +90,12 @@ public class ScalingSweepTaskSchedulerTest {
         when(sweepIteration.call())
                 .thenReturn(
                         SweepIterationResults.insufficientConsistency(),
+                        SUCCESS_MEDIUM,
                         SweepIterationResults.insufficientConsistency(),
                         SUCCESS_MEDIUM);
 
         schedulerWithDelay.start(2);
-        runSweepIterations(2, SweepDelay.BACKOFF);
+        runSweepIterations(2, SweepDelay.MIN_BACKOFF);
         runSweepIterations(5, DELAY);
 
         verify(sweepIteration, times(7 * 2)).call();

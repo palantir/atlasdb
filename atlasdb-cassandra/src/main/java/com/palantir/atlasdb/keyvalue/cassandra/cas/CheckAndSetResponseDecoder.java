@@ -17,12 +17,12 @@ package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import java.util.Arrays;
 import java.util.List;
-import okio.ByteString;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
@@ -54,7 +54,7 @@ final class CheckAndSetResponseDecoder {
         return cqlRow.getColumns().stream()
                 .filter(column -> VALUE_COLUMN.equals(decodeCqlColumnName(column)))
                 .findFirst()
-                .map(column -> ImmutableList.of(ByteString.of(column.getValue())))
+                .map(column -> ImmutableList.of(ByteString.copyFrom(column.getValue())))
                 .orElseGet(ImmutableList::of);
     }
 

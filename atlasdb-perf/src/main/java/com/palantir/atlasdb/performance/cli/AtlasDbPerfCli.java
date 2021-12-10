@@ -31,6 +31,7 @@ import io.airlift.airline.HelpOption;
 import io.airlift.airline.Option;
 import io.airlift.airline.SingleCommand;
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -92,7 +93,7 @@ public class AtlasDbPerfCli {
             description = "Run a single iteration of the benchmarks for testing purposes.")
     private boolean testRun;
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws RunnerException, IOException {
         AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
 
         if (cli.helpOption.showHelpIfRequested()) {
@@ -111,7 +112,7 @@ public class AtlasDbPerfCli {
         }
     }
 
-    private static void run(AtlasDbPerfCli cli) throws Exception {
+    private static void run(AtlasDbPerfCli cli) throws RunnerException, IOException {
         if (cli.dbUris != null) {
             runJmh(cli, getDockerUris(cli));
         } else {
@@ -126,7 +127,8 @@ public class AtlasDbPerfCli {
         }
     }
 
-    private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
+    private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris)
+            throws RunnerException, IOException {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
                 .measurementIterations(1)
@@ -152,7 +154,8 @@ public class AtlasDbPerfCli {
         }
     }
 
-    private static void runCli(AtlasDbPerfCli cli, ChainedOptionsBuilder optBuilder) throws Exception {
+    private static void runCli(AtlasDbPerfCli cli, ChainedOptionsBuilder optBuilder)
+            throws RunnerException, IOException {
         optBuilder.warmupIterations(1).mode(Mode.SampleTime);
 
         Collection<RunResult> results = new Runner(optBuilder.build()).run();

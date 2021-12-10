@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Bytes;
+import com.google.protobuf.ByteString;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -28,7 +29,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import okio.ByteString;
 import org.immutables.value.Value;
 
 public final class AtlasLockDescriptorUtils {
@@ -75,12 +75,13 @@ public final class AtlasLockDescriptorUtils {
         }
         String fullyQualifiedName = new String(rawBytes, 0, endOfTableName, StandardCharsets.UTF_8);
         TableReference tableRef = TableReference.createFromFullyQualifiedName(fullyQualifiedName);
-        ByteString remainingBytes = ByteString.of(rawBytes, endOfTableName + 1, rawBytes.length - (endOfTableName + 1));
+        ByteString remainingBytes =
+                ByteString.copyFrom(rawBytes, endOfTableName + 1, rawBytes.length - (endOfTableName + 1));
         return Optional.of(ImmutableTableRefAndRemainder.of(tableRef, remainingBytes));
     }
 
     private static boolean isZeroDelimiterIndex(ByteString remainingBytes, int candidateIndex) {
-        return remainingBytes.getByte(candidateIndex) == 0;
+        return remainingBytes.byteAt(candidateIndex) == 0;
     }
 
     private static Cell createCellFromByteString(ByteString remainingBytes, int zeroDelimiterIndex) {

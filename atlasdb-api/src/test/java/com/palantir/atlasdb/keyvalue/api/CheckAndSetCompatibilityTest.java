@@ -23,41 +23,106 @@ import java.util.stream.Stream;
 import org.junit.Test;
 
 public class CheckAndSetCompatibilityTest {
+    private static final CheckAndSetCompatibility SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE =
+            CheckAndSetCompatibility.supportedBuilder()
+                    .supportsDetailOnFailure(true)
+                    .consistentOnFailure(false)
+                    .build();
+    private static final CheckAndSetCompatibility NO_DETAIL_CONSISTENT_ON_FAILURE =
+            CheckAndSetCompatibility.supportedBuilder()
+                    .supportsDetailOnFailure(false)
+                    .consistentOnFailure(true)
+                    .build();
+    private static final CheckAndSetCompatibility SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE =
+            CheckAndSetCompatibility.supportedBuilder()
+                    .supportsDetailOnFailure(true)
+                    .consistentOnFailure(true)
+                    .build();
+
     @Test
-    public void minThrowsExceptionIfNoCompatibilitiesProvided() {
-        assertThatThrownBy(this::getMinCompatibility)
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("min requires at least 1 element");
+    public void checkingDetailSupportedOnUnsupportedThrows() {
+        assertThatThrownBy(() -> CheckAndSetCompatibility.unsupported().supportsDetailOnFailure())
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("Should not check a KVS that does not support CAS operations for detail");
     }
 
     @Test
-    public void minReturnsNotSupportedIfOneKvsHasNotSupported() {
-        assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                        CheckAndSetCompatibility.NOT_SUPPORTED,
-                        CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
-                .isEqualTo(CheckAndSetCompatibility.NOT_SUPPORTED);
+    public void checkingConsistencyOnUnsupportedThrows() {
+        assertThatThrownBy(() -> CheckAndSetCompatibility.unsupported().consistentOnFailure())
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("Should not check a KVS that does not support CAS operations for consistency");
     }
 
     @Test
-    public void minReturnsSupportedNoDetailIfNotSupportedAbsent() {
-        assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                        CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE);
+    public void unsupportedDoesNotSupportCheckAndSetOperations() {
+        assertThat(CheckAndSetCompatibility.unsupported().supportsCheckAndSetOperations())
+                .isFalse();
     }
 
     @Test
-    public void minReturnsSupportedWithDetailIfAllAreSupportedWithDetail() {
-        assertThat(getMinCompatibility(
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE))
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE);
+    public void supportedBuilderSupportsCheckAndSetOperations() {
+        assertThat(CheckAndSetCompatibility.supportedBuilder()
+                        .supportsDetailOnFailure(false)
+                        .consistentOnFailure(false)
+                        .build()
+                        .supportsCheckAndSetOperations())
+                .isTrue();
     }
 
-    private CheckAndSetCompatibility getMinCompatibility(CheckAndSetCompatibility... compatibilities) {
-        return CheckAndSetCompatibility.min(Stream.of(compatibilities));
+    @Test
+    public void intersectReturnsLeastRestrictiveWhenNoCompatibilitiesProvided() {
+        CheckAndSetCompatibility intersection = intersectCompatibility();
+        assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsDetailOnFailure()).isTrue();
+        assertThat(intersection.consistentOnFailure()).isTrue();
+    }
+
+    @Test
+    public void intersectAppliesToBothProperties() {
+        CheckAndSetCompatibility intersection = intersectCompatibility(
+                SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE,
+                NO_DETAIL_CONSISTENT_ON_FAILURE,
+                SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+        assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsDetailOnFailure()).isFalse();
+        assertThat(intersection.consistentOnFailure()).isFalse();
+    }
+
+    @Test
+    public void intersectReturnsDetailSupportedWhenAllSupport() {
+        CheckAndSetCompatibility intersection = intersectCompatibility(
+                SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE, SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+        assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsDetailOnFailure()).isTrue();
+        assertThat(intersection.consistentOnFailure()).isFalse();
+    }
+
+    @Test
+    public void intersectReturnsConsistentWhenAllConsistent() {
+        CheckAndSetCompatibility intersection =
+                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, NO_DETAIL_CONSISTENT_ON_FAILURE);
+        assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsDetailOnFailure()).isFalse();
+        assertThat(intersection.consistentOnFailure()).isTrue();
+    }
+
+    @Test
+    public void intersectDoesNotRestrictUnnecessarily() {
+        CheckAndSetCompatibility intersection =
+                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+        assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsDetailOnFailure()).isTrue();
+        assertThat(intersection.consistentOnFailure()).isTrue();
+    }
+
+    @Test
+    public void intersectWithUnsupportedIsUnsupported() {
+        CheckAndSetCompatibility intersection =
+                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, CheckAndSetCompatibility.unsupported());
+        assertThat(intersection.supportsCheckAndSetOperations()).isFalse();
+    }
+
+    private CheckAndSetCompatibility intersectCompatibility(CheckAndSetCompatibility... compatibilities) {
+        return CheckAndSetCompatibility.intersect(Stream.of(compatibilities));
     }
 }

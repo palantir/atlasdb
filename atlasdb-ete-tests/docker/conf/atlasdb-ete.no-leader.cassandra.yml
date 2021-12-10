@@ -29,6 +29,8 @@ atlasdb:
     enableSweepQueueWrites: true
 
 atlasDbRuntime:
+  internalSchema:
+    targetTransactionsSchemaVersion: 3
   sweep:
     enabled: false
   targetedSweep:
