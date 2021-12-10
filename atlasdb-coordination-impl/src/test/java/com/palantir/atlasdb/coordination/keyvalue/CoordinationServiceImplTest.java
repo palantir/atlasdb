@@ -31,7 +31,11 @@ import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.common.concurrent.PTExecutors;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public class CoordinationServiceImplTest {
@@ -128,5 +132,32 @@ public class CoordinationServiceImplTest {
         when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(OTHER_STRING_AND_ONE_THOUSAND));
         assertThat(stringCoordinationService.getLastKnownLocalValue()).isEmpty();
         verify(coordinationStore, never()).getAgreedValue();
+    }
+
+    @Test
+    public void callsToGetAgreedValuesAreCoalesced() throws InterruptedException {
+        CountDownLatch canStartMakingNonBlockingRequests = new CountDownLatch(1);
+        CountDownLatch nonBlockingRequestsDone = new CountDownLatch(1);
+        when(coordinationStore.getAgreedValue()).thenAnswer(invocation -> {
+            canStartMakingNonBlockingRequests.countDown();
+            nonBlockingRequestsDone.await();
+            return Optional.of(STRING_AND_ONE_HUNDRED);
+        });
+
+        ExecutorService blockedExecutor = PTExecutors.newSingleThreadExecutor();
+        blockedExecutor.submit(() -> stringCoordinationService.getValueForTimestamp(42));
+
+        canStartMakingNonBlockingRequests.await();
+        ExecutorService executorService = PTExecutors.newFixedThreadPool(100);
+        for (int i = 0; i < 10_000; i++) {
+            executorService.submit(() -> stringCoordinationService.getValueForTimestamp(42));
+        }
+        executorService.shutdownNow();
+        assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+        nonBlockingRequestsDone.countDown();
+
+        blockedExecutor.shutdownNow();
+        assertThat(blockedExecutor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+        verify(coordinationStore, times(1)).getAgreedValue();
     }
 }
