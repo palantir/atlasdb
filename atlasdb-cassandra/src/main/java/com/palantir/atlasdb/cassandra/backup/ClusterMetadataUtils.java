@@ -151,7 +151,6 @@ public final class ClusterMetadataUtils {
         return "\"" + keyspaceName + "\"";
     }
 
-    // Expects all ranges to have the same start token
     // VisibleForTesting
     public static TokenRange findLatestEndingRange(TokenRange range1, TokenRange range2) {
         Preconditions.checkArgument(

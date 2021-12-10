@@ -24,16 +24,16 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 public class TargetedSweepTables {
     static final Namespace NAMESPACE = Namespace.create("sweep");
 
-    private static final TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();
+    private static final TargetedSweepTableFactory TABLE_FACTORY = TargetedSweepTableFactory.of();
 
     private static final TableReference SWEEP_PROGRESS_PER_SHARD_TABLE =
-            tableFactory.getSweepShardProgressTable(null).getTableRef();
+            TABLE_FACTORY.getSweepShardProgressTable(null).getTableRef();
     private static final TableReference SWEEP_ID_TO_NAME_TABLE =
-            tableFactory.getSweepIdToNameTable(null).getTableRef();
+            TABLE_FACTORY.getSweepIdToNameTable(null).getTableRef();
     private static final TableReference SWEEP_NAME_TO_ID_TABLE =
-            tableFactory.getSweepNameToIdTable(null).getTableRef();
+            TABLE_FACTORY.getSweepNameToIdTable(null).getTableRef();
     private static final TableReference TABLE_CLEARS_TABLE =
-            tableFactory.getTableClearsTable(null).getTableRef();
+            TABLE_FACTORY.getTableClearsTable(null).getTableRef();
 
     public static final ImmutableSet<TableReference> REPAIR_ON_RESTORE = ImmutableSet.of(
             SWEEP_PROGRESS_PER_SHARD_TABLE, SWEEP_ID_TO_NAME_TABLE, SWEEP_NAME_TO_ID_TABLE, TABLE_CLEARS_TABLE);

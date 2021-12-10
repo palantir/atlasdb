@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.Token;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
@@ -35,8 +34,8 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
         return new LightweightOppToken(cell.getRowName());
     }
 
-        ByteBuffer serializedToken = token.serialize(ProtocolVersion.V3);
     public static LightweightOppToken serialize(Token token) {
+        ByteBuffer serializedToken = token.serialize(CassandraConstants.DEFAULT_PROTOCOL_VERSION);
         byte[] bytes = new byte[serializedToken.remaining()];
         serializedToken.get(bytes);
         return new LightweightOppToken(bytes);

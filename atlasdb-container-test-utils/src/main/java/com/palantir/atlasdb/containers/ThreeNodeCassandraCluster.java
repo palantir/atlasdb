@@ -45,7 +45,7 @@ public class ThreeNodeCassandraCluster extends Container {
     private static final int DEFAULT_REPLICATION_FACTOR = 3;
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = getKvsConfig(DEFAULT_REPLICATION_FACTOR);
 
-    public static ImmutableCassandraKeyValueServiceConfig getKvsConfig(int replicationFactor) {
+    public static CassandraKeyValueServiceConfig getKvsConfig(int replicationFactor) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(

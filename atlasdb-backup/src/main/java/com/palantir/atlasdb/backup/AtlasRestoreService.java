@@ -55,13 +55,23 @@ public class AtlasRestoreService {
         return new AtlasRestoreService(backupPersister, cassandraRepairHelper);
     }
 
-    // Returns the set of namespaces for which we successfully repaired internal tables
+    /**
+     *  Returns the set of namespaces for which we successfully repaired internal tables.
+     *  Only namespaces for which a known backup exists will be repaired.
+     *  Namespaces are repaired serially. If repairTable throws an exception, then this will propagate back to the
+     *  caller. In such cases, some namespaces may not have been repaired.
+     *
+     * @param namespaces the namespaces to repair.
+     * @param repairTable supplied function which is expected to repair the given ranges.
+     *
+     * @return the set of namespaces for which we issued a repair command via the provided Consumer.
+     */
     public Set<Namespace> repairInternalTables(
             Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<LightweightOppTokenRange>>> repairTable) {
-        return namespaces.stream()
-                .filter(this::backupExists)
-                .peek(namespace -> cassandraRepairHelper.repairInternalTables(namespace, repairTable))
-                .collect(Collectors.toSet());
+        Set<Namespace> namespacesToRepair =
+                namespaces.stream().filter(this::backupExists).collect(Collectors.toSet());
+        namespacesToRepair.forEach(namespace -> cassandraRepairHelper.repairInternalTables(namespace, repairTable));
+        return namespacesToRepair;
     }
 
     private boolean backupExists(Namespace namespace) {

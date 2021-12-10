@@ -20,7 +20,6 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ProtocolOptions;
-import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
 import com.datastax.driver.core.SocketOptions;
@@ -34,6 +33,7 @@ import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
@@ -62,7 +62,7 @@ public class ClusterFactory {
                 .withCompression(ProtocolOptions.Compression.LZ4)
                 .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
                 .withoutJMXReporting()
-                .withProtocolVersion(ProtocolVersion.V3)
+                .withProtocolVersion(CassandraConstants.DEFAULT_PROTOCOL_VERSION)
                 .withThreadingOptions(new ThreadingOptions());
 
         clusterBuilder = withSslOptions(clusterBuilder, config);

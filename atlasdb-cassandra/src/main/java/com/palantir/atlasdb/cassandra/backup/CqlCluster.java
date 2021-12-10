@@ -31,6 +31,7 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -46,8 +47,6 @@ import java.util.stream.Collectors;
 public final class CqlCluster {
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCluster.class);
 
-    // this is the partition key column name for the coord/TS tables
-    private static final String KEY_NAME = "key";
     private static final int LONG_READ_TIMEOUT_MS = (int) TimeUnit.MINUTES.toMillis(2);
     // reduce this from default because we run RepairTableTask across N keyspaces at the same time
     private static final int SELECT_FETCH_SIZE = 1_000;
@@ -100,11 +99,13 @@ public final class CqlCluster {
     private static Set<Token> getPartitionTokens(Session session, TableMetadata tableMetadata) {
         Statement fullTableScan = createSelectStatement(tableMetadata);
         Iterator<Row> rows = session.execute(fullTableScan).iterator();
-        return Streams.stream(rows).map(row -> row.getToken(KEY_NAME)).collect(Collectors.toSet());
+        return Streams.stream(rows)
+                .map(row -> row.getToken(CassandraConstants.ROW))
+                .collect(Collectors.toSet());
     }
 
     private static Statement createSelectStatement(TableMetadata table) {
-        return QueryBuilder.select(KEY_NAME)
+        return QueryBuilder.select(CassandraConstants.ROW)
                 // only returns the column that we need instead of all of them, otherwise we get a timeout
                 .distinct()
                 .from(table)
