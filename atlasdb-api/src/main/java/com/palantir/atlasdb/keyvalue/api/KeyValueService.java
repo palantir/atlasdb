@@ -264,10 +264,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put.
      */
-    @DoDelegate
-    default void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
-        throw new UnsupportedOperationException();
-    }
+    void setOnce(TableReference tableRef, Map<Cell, byte[]> values);
 
     /**
      * Check whether CAS is supported. This check can go away when JDBC KVS is deleted.

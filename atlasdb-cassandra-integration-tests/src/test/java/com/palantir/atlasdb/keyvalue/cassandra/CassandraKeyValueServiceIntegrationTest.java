@@ -505,6 +505,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                         .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
                         .size())
                 .isEqualTo(1);
+        keyValueService.truncateTable(userTable);
     }
 
     private static CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
