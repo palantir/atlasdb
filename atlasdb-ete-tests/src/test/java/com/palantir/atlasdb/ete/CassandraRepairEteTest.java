@@ -245,7 +245,7 @@ public class CassandraRepairEteTest {
     }
 
     private Map<InetSocketAddress, Set<LightweightOppTokenRange>> getFullTokenMap() {
-        CassandraService cassandraService = CassandraService.createInitialised(
+        CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
                 config,
                 new Blacklist(config),

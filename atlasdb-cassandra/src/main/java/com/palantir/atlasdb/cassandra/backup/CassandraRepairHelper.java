@@ -98,8 +98,8 @@ public class CassandraRepairHelper {
     }
 
     private Stream<LightweightOppTokenRange> makeLightweight(TokenRange tokenRange) {
-        LightweightOppToken startToken = LightweightOppToken.serialise(tokenRange.getStart());
-        LightweightOppToken endToken = LightweightOppToken.serialise(tokenRange.getEnd());
+        LightweightOppToken startToken = LightweightOppToken.serialize(tokenRange.getStart());
+        LightweightOppToken endToken = LightweightOppToken.serialize(tokenRange.getEnd());
 
         if (startToken.compareTo(endToken) <= 0) {
             return Stream.of(LightweightOppTokenRange.of(startToken, endToken));

@@ -35,8 +35,8 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
         return new LightweightOppToken(cell.getRowName());
     }
 
-    public static LightweightOppToken serialise(Token token) {
         ByteBuffer serializedToken = token.serialize(ProtocolVersion.V3);
+    public static LightweightOppToken serialize(Token token) {
         byte[] bytes = new byte[serializedToken.remaining()];
         serializedToken.get(bytes);
         return new LightweightOppToken(bytes);
