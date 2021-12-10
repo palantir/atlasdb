@@ -45,11 +45,11 @@ public class ThreeNodeCassandraCluster extends Container {
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
             .servers(ImmutableDefaultConfig.builder()
                     .addThriftHosts(
-                            new InetSocketAddress(
+                            InetSocketAddress.createUnresolved(
                                     FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                            new InetSocketAddress(
+                            InetSocketAddress.createUnresolved(
                                     SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                            new InetSocketAddress(
+                            InetSocketAddress.createUnresolved(
                                     THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
                     .build())
             .poolSize(20)

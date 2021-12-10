@@ -38,8 +38,8 @@ public class CassandraServiceTest {
     private static final String HOSTNAME_1 = "1.0.0.0";
     private static final String HOSTNAME_2 = "2.0.0.0";
     private static final String HOSTNAME_3 = "3.0.0.0";
-    private static final InetSocketAddress HOST_1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-    private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
 
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
@@ -86,7 +86,8 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost).isEqualTo(HOST_1);
+        assertThat(resolvedHost.getHostString()).isEqualTo(HOSTNAME_1);
+        assertThat(resolvedHost.getPort()).isEqualTo(DEFAULT_PORT);
     }
 
     @Test
@@ -95,7 +96,8 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost).isEqualTo(HOST_1);
+        assertThat(resolvedHost.getHostString()).isEqualTo(HOSTNAME_1);
+        assertThat(resolvedHost.getPort()).isEqualTo(DEFAULT_PORT);
     }
 
     @Test
@@ -104,12 +106,13 @@ public class CassandraServiceTest {
 
         InetSocketAddress resolvedHost = cassandra.getAddressForHost(HOSTNAME_3);
 
-        assertThat(resolvedHost).isEqualTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT));
+        assertThat(resolvedHost.getHostString()).isEqualTo(HOSTNAME_3);
+        assertThat(resolvedHost.getPort()).isEqualTo(DEFAULT_PORT);
     }
 
     @Test
     public void shouldThrowIfPortsAreNotTheSameAddressDoesNotMatch() throws UnknownHostException {
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, OTHER_PORT);
+        InetSocketAddress host2 = InetSocketAddress.createUnresolved(HOSTNAME_2, OTHER_PORT);
 
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, host2));
 
