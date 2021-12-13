@@ -236,7 +236,7 @@ public class CassandraRepairEteTest {
         return thriftRange -> {
             System.out.println("Comparing range:" + getLower(range) + "->" + getUpper(range));
             System.out.println("To thrift range:" + getLower(thriftRange) + "->" + getUpper(thriftRange));
-            return ((thriftRange.hasLowerBound() && range.hasLowerBound())
+            return ((!thriftRange.hasLowerBound() && !range.hasLowerBound())
                             || thriftRange.lowerEndpoint().equals(range.lowerEndpoint()))
                     && (thriftRange.hasUpperBound()
                             ? range.hasUpperBound()
