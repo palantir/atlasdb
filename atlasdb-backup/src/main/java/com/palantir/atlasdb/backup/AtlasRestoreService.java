@@ -21,6 +21,7 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -71,14 +72,34 @@ public class AtlasRestoreService {
             Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
         Set<Namespace> namespacesToRepair =
                 namespaces.stream().filter(this::backupExists).collect(Collectors.toSet());
+
+        // ConsistentCasTablesTask
         namespacesToRepair.forEach(namespace -> cassandraRepairHelper.repairInternalTables(namespace, repairTable));
+
+        // RepairTransactionsTablesTask
+        namespacesToRepair.forEach(namespace -> repairTransactionsTables(namespace, repairTable));
+
         return namespacesToRepair;
+    }
+
+    private void repairTransactionsTables(
+            Namespace namespace, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
+        // 1. get schema metadata
+        InternalSchemaMetadataState schemaMetadataState =
+                backupPersister.getSchemaMetadata(namespace).orElseThrow();
+
+        // 2. get txn tables interactions
+
+        // 3. get partition tokens
+        // 4. get repair ranges
+        // 5. repair ranges (can use repairTable method here?)
     }
 
     private boolean backupExists(Namespace namespace) {
         Optional<CompletedBackup> maybeCompletedBackup = backupPersister.getCompletedBackup(namespace);
+        Optional<InternalSchemaMetadataState> maybeInternalMetadata = backupPersister.getSchemaMetadata(namespace);
 
-        if (maybeCompletedBackup.isEmpty()) {
+        if (maybeCompletedBackup.isEmpty() || maybeInternalMetadata.isEmpty()) {
             log.error("Could not restore namespace, as no backup is stored", SafeArg.of("namespace", namespace));
             return false;
         }
