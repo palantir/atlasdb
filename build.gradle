@@ -110,7 +110,6 @@ allprojects {
                 'PublicConstructorForAbstractClass',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
-                'SafeLoggingExceptionMessageFormat',
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
