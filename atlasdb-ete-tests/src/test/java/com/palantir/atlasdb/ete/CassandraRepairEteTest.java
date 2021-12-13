@@ -218,14 +218,13 @@ public class CassandraRepairEteTest {
 
     // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
     // such that if the thrift range is [5..9] but we don't have data after 7, then the CQL range will be [5..7]
-    @SuppressWarnings("ReverseDnsLookup")
+    @SuppressWarnings({"DnsLookup", "ReverseDnsLookup"})
     private void assertRangesToRepairAreSubsetsOfRangesFromTokenMap(
             Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap,
             InetSocketAddress address,
             Set<Range<LightweightOppToken>> cqlRangesForHost) {
         String hostName = address.getHostName();
-        InetSocketAddress thriftAddr =
-                InetSocketAddress.createUnresolved(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
+        InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
         Set<Range<LightweightOppToken>> thriftRangesForHost = fullTokenMap.get(thriftAddr);
         assertThat(thriftRangesForHost).isNotNull();
         cqlRangesForHost.forEach(
@@ -237,7 +236,8 @@ public class CassandraRepairEteTest {
         return thriftRange -> {
             System.out.println("Comparing range:" + getLower(range) + "->" + getUpper(range));
             System.out.println("To thrift range:" + getLower(thriftRange) + "->" + getUpper(thriftRange));
-            return thriftRange.lowerEndpoint().equals(range.lowerEndpoint())
+            return ((!thriftRange.hasLowerBound() && !range.hasLowerBound())
+                            || thriftRange.lowerEndpoint().equals(range.lowerEndpoint()))
                     && (thriftRange.hasUpperBound()
                             ? range.hasUpperBound()
                                     && thriftRange.upperEndpoint().compareTo(range.upperEndpoint()) >= 0
