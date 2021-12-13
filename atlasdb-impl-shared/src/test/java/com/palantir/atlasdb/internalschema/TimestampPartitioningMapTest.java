@@ -74,8 +74,8 @@ public class TimestampPartitioningMapTest {
         assertThatLoggableExceptionThrownBy(() -> TimestampPartitioningMap.of(map))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage(
-                        "Attempted to initialize a timestamp partitioning map, but its span does not cover precisely all "
-                                + "timestamps.")
+                        "Attempted to initialize a timestamp partitioning map, but its span does not cover precisely"
+                                + " all timestamps.")
                 .hasExactlyArgs(SafeArg.of("timestampToTransactionSchemaMap", map));
     }
 
