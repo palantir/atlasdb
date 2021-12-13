@@ -124,6 +124,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 mockTimeLockService,
                 mockTimestampManagementService,
                 mockLockService,
+                NoOpLockWatchManager.create(),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 conflictDetectionManager,

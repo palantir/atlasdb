@@ -555,7 +555,8 @@ public class TimeLockAgent {
         registrar.accept(new TooManyRequestsExceptionMapper());
     }
 
-    private RedirectRetryTargeter redirectRetryTargeter() {
+    @VisibleForTesting // for InMemoryTimelockServices
+    RedirectRetryTargeter redirectRetryTargeter() {
         URL localServer = PaxosRemotingUtils.convertAddressToUrl(cluster, cluster.localServer());
         List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(cluster, cluster.clusterMembers());
         return RedirectRetryTargeter.create(localServer, clusterUrls);

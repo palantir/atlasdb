@@ -16,15 +16,30 @@
 
 package com.palantir.timelock.paxos;
 
-import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.factory.TimeLockHelperServices;
+import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.CommitTimestampGetter;
+import com.palantir.lock.client.LegacyLeaderTimeGetter;
+import com.palantir.lock.client.LockLeaseService;
+import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
+import com.palantir.lock.client.RemoteTimelockServiceAdapter;
+import com.palantir.lock.client.RequestBatchersFactory;
+import com.palantir.lock.client.TransactionStarter;
+import com.palantir.lock.v2.NamespacedTimelockTimestampClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
@@ -41,7 +56,6 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -63,8 +77,13 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private final TemporaryFolder tempFolder;
 
     private String client;
-    private TimeLockServices delegate;
     private TimeLockAgent timeLockAgent;
+
+    private TimeLockServices delegate;
+    private TimeLockHelperServices helperServices;
+
+    private LockLeaseService lockLeaseService;
+    private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
 
     public InMemoryTimelockServices(TemporaryFolder tempFolder) {
         this.tempFolder = tempFolder;
@@ -102,8 +121,10 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 .clusterSnapshot(clusterConfig)
                 .build();
 
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+
         timeLockAgent = TimeLockAgent.create(
-                MetricsManagers.of(new MetricRegistry(), SharedTaggedMetricRegistries.getSingleton()),
+                metricsManager,
                 install,
                 Refreshable.only(runtime), // This won't actually live reload.
                 runtime.clusterSnapshot(),
@@ -117,6 +138,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 () -> System.exit(0));
 
         delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
+        createHelperServices(metricsManager);
 
         // Wait for leadership
         Awaitility.await()
@@ -124,6 +146,23 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 .pollInterval(Duration.ofMillis(50))
                 .ignoreExceptions()
                 .until(() -> delegate.getTimestampService().getFreshTimestamp() > 0);
+    }
+
+    private void createHelperServices(MetricsManager metricsManager) {
+        helperServices = TimeLockHelperServices.create(
+                client,
+                metricsManager,
+                ImmutableSet.of(),
+                delegate.getTimelockService(),
+                LockWatchCachingConfig.builder().build(),
+                Optional::empty);
+
+        RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
+        ConjureTimelockService conjureTimelockService =
+                ConjureTimelockResource.jersey(redirectRetryTargeter, _unused -> delegate.getTimelockService());
+        namespacedConjureTimelockService = new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
+        lockLeaseService = LockLeaseService.create(
+                namespacedConjureTimelockService, new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
     }
 
     @Override
@@ -200,6 +239,27 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     public TimelockService getLegacyTimelockService() {
-        return new DelegatingTimelockService(getTimelockService());
+        RequestBatchersFactory requestBatchersFactory = helperServices.requestBatchersFactory();
+        TransactionStarter transactionStarter = TransactionStarter.create(lockLeaseService, requestBatchersFactory);
+        CommitTimestampGetter commitTimestampGetter =
+                requestBatchersFactory.createBatchingCommitTimestampGetter(lockLeaseService);
+
+        NamespacedTimelockTimestampClient namespacedTimelockTimestampClient =
+                new DelegatingNamespacedTimelockTimestampClient(getTimelockService());
+
+        return new RemoteTimelockServiceAdapter(
+                namespacedTimelockTimestampClient,
+                namespacedConjureTimelockService,
+                lockLeaseService,
+                transactionStarter,
+                commitTimestampGetter);
+    }
+
+    public LockLeaseService getLockLeaseService() {
+        return lockLeaseService;
+    }
+
+    public LockWatchManagerInternal getLockWatchManager() {
+        return helperServices.lockWatchManager();
     }
 }
