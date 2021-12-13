@@ -45,22 +45,23 @@ public class ThreeNodeCassandraCluster extends Container {
     private static final int DEFAULT_REPLICATION_FACTOR = 3;
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = getKvsConfig(DEFAULT_REPLICATION_FACTOR);
 
+    @SuppressWarnings("DnsLookup")
     public static CassandraKeyValueServiceConfig getKvsConfig(int replicationFactor) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
-                                InetSocketAddress.createUnresolved(
+                                new InetSocketAddress(
                                         FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                                InetSocketAddress.createUnresolved(
+                                new InetSocketAddress(
                                         SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                                InetSocketAddress.createUnresolved(
+                                new InetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
                         .addCqlHosts(
-                                InetSocketAddress.createUnresolved(
+                                new InetSocketAddress(
                                         FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
-                                InetSocketAddress.createUnresolved(
+                                new InetSocketAddress(
                                         SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
-                                InetSocketAddress.createUnresolved(
+                                new InetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
                 .poolSize(20)
