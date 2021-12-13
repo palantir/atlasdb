@@ -66,7 +66,6 @@ public class ThreeNodeCassandraCluster extends Container {
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .replicationFactor(replicationFactor)
-                .ignoreNodeTopologyChecks(true)
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)

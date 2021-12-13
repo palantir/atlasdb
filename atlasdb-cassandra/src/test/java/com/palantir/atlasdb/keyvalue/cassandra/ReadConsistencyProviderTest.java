@@ -47,16 +47,16 @@ public class ReadConsistencyProviderTest {
     }
 
     @Test
-    public void consistencyForAtomicSerialTablesIsActuallyQuorum() {
+    public void consistencyForAtomicSerialTablesIsLocalSerial() {
         AtlasDbConstants.SERIAL_CONSISTENCY_ATOMIC_TABLES.forEach(tableReference ->
-                assertThat(provider.getConsistency(tableReference)).isEqualTo(ConsistencyLevel.LOCAL_QUORUM));
+                assertThat(provider.getConsistency(tableReference)).isEqualTo(ConsistencyLevel.LOCAL_SERIAL));
     }
 
     @Test
-    public void consistencyForAtomicSerialTablesRemainsLocalQuorumlEvenAfterBroadConsistencyDowngrade() {
+    public void consistencyForAtomicSerialTablesRemainsLocalSeriallEvenAfterBroadConsistencyDowngrade() {
         provider.lowerConsistencyLevelToOne();
         AtlasDbConstants.SERIAL_CONSISTENCY_ATOMIC_TABLES.forEach(tableReference ->
-                assertThat(provider.getConsistency(tableReference)).isEqualTo(ConsistencyLevel.LOCAL_QUORUM));
+                assertThat(provider.getConsistency(tableReference)).isEqualTo(ConsistencyLevel.LOCAL_SERIAL));
     }
 
     @Test

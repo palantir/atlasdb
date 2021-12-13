@@ -38,8 +38,7 @@ public final class ReadConsistencyProvider {
 
     public ConsistencyLevel getConsistency(TableReference tableReference) {
         if (AtlasDbConstants.SERIAL_CONSISTENCY_ATOMIC_TABLES.contains(tableReference)) {
-            // todo (gmaretic): figure out if we can make this serial without killing users
-            return DEFAULT_CONSISTENCY;
+            return ConsistencyLevel.LOCAL_SERIAL;
         }
         return defaultReadConsistency.get();
     }
