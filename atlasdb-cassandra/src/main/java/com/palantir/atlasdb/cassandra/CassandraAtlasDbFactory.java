@@ -88,8 +88,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
         Preconditions.checkArgument(
                 config instanceof CassandraKeyValueServiceConfig,
                 "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
-                        + " CassandraKeyValueServiceConfig, found %s.",
-                config.getClass());
+                        + " CassandraKeyValueServiceConfig, but found a different type.",
+                SafeArg.of("configType", config.getClass()));
         return (CassandraKeyValueServiceConfig) config;
     }
 
