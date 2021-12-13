@@ -49,18 +49,18 @@ public class ThreeNodeCassandraCluster extends Container {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
-                                new InetSocketAddress(
+                                InetSocketAddress.createUnresolved(
                                         FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                                new InetSocketAddress(
+                                InetSocketAddress.createUnresolved(
                                         SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                                new InetSocketAddress(
+                                InetSocketAddress.createUnresolved(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
                         .addCqlHosts(
-                                new InetSocketAddress(
+                                InetSocketAddress.createUnresolved(
                                         FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
-                                new InetSocketAddress(
+                                InetSocketAddress.createUnresolved(
                                         SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
-                                new InetSocketAddress(
+                                InetSocketAddress.createUnresolved(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
                 .poolSize(20)

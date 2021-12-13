@@ -224,7 +224,8 @@ public class CassandraRepairEteTest {
             InetSocketAddress address,
             Set<Range<LightweightOppToken>> cqlRangesForHost) {
         String hostName = address.getHostName();
-        InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
+        InetSocketAddress thriftAddr =
+                InetSocketAddress.createUnresolved(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
         Set<Range<LightweightOppToken>> thriftRangesForHost = fullTokenMap.get(thriftAddr);
         assertThat(thriftRangesForHost).isNotNull();
         cqlRangesForHost.forEach(
