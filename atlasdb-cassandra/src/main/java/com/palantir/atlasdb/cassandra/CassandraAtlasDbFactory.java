@@ -17,7 +17,6 @@ package com.palantir.atlasdb.cassandra;
 
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -31,7 +30,9 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -123,20 +124,21 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
                 tableReferenceOverride
                         .map(AtlasDbConstants.TIMESTAMP_TABLE::equals)
                         .orElse(true),
-                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table override found: "
-                        + tableReferenceOverride
+                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table override was found."
                         + "\nThis can happen if you configure the timelock server to use Cassandra KVS for timestamp"
                         + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
                         + " persistence. However, if you are need to persist the timestamp service state in the"
                         + " database, please specify a valid DbKvs config in the timestampBoundPersister block."
                         + "\nNote that if the service has already been running, you will have to migrate the timestamp"
-                        + " table to Postgres/Oracle: please contact support. DO NOT TRY TO FIX THIS YOURSELF.");
+                        + " table to Postgres/Oracle: please contact support. DO NOT TRY TO FIX THIS YOURSELF.",
+                UnsafeArg.of("tableReferenceOverride", tableReferenceOverride));
 
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(
                 rawKvs instanceof CassandraKeyValueService,
-                "TimestampService must be created from an instance of" + " CassandraKeyValueService, found %s",
-                rawKvs.getClass());
+                "TimestampService must be created from an instance of CassandraKeyValueService, but found a different"
+                        + " key value service",
+                SafeArg.of("rawKvs", rawKvs.getClass()));
         return PersistentTimestampServiceImpl.create(
                 CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs, initializeAsync),
                 initializeAsync);
