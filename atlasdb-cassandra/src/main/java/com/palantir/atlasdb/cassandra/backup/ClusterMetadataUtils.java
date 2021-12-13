@@ -90,7 +90,9 @@ public final class ClusterMetadataUtils {
         Preconditions.checkArgument(
                 nodeMetadataHostMap.containsKey(hostname),
                 "Did not find corresponding Node to run repair",
-                SafeArg.of("hostname", hostname));
+                SafeArg.of("hostname", hostname),
+                SafeArg.of("availableHosts", nodeMetadataHostMap.keySet()),
+                SafeArg.of("host", host.getEndPoint().resolve()));
         return nodeMetadataHostMap.get(hostname);
     }
 
