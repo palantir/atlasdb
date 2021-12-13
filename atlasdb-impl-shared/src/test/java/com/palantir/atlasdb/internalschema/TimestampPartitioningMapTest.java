@@ -21,7 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.google.common.collect.TreeRangeSet;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import org.junit.Test;
 
@@ -35,35 +38,45 @@ public class TimestampPartitioningMapTest {
 
     @Test
     public void throwsIfInitialMapIsEmpty() {
-        assertThatLoggableExceptionThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.of()))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("its span does not cover precisely all timestamps");
+        assertTimestampsNotCoveredExceptionThrown(ImmutableRangeMap.of());
     }
 
     @Test
     public void throwsIfInitialMapDoesNotCoverFullRange() {
-        assertThatLoggableExceptionThrownBy(
-                        () -> TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(42L), 1)))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("its span does not cover precisely all timestamps");
+        assertTimestampsNotCoveredExceptionThrown(ImmutableRangeMap.of(Range.atLeast(42L), 1));
     }
 
     @Test
     public void throwsIfInitialMapHasGapsInRange() {
-        assertThatLoggableExceptionThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.<Long, Integer>builder()
-                        .put(Range.closed(1L, 6L), 1)
-                        .put(Range.atLeast(8L), 2)
-                        .build()))
+        Range<Long> closedRange = Range.closed(1L, 6L);
+        Range<Long> unboundedRange = Range.atLeast(8L);
+        ImmutableRangeMap<Long, Integer> map = ImmutableRangeMap.<Long, Integer>builder()
+                .put(closedRange, 1)
+                .put(unboundedRange, 2)
+                .build();
+        assertThatLoggableExceptionThrownBy(() -> TimestampPartitioningMap.of(map))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("While the span covers all timestamps, some are disconnected.");
+                .hasLogMessage("Attempted to initialize a timestamp partitioning map."
+                        + " While the span covers all timestamps, some are disconnected.")
+                .hasExactlyArgs(
+                        SafeArg.of("timestampToTransactionSchemaMap", map),
+                        SafeArg.of(
+                                "disconnectedRanges",
+                                TreeRangeSet.create(ImmutableSet.of(closedRange, unboundedRange))));
     }
 
     @Test
     public void throwsIfInitialMapExceedsTimestampRange() {
-        assertThatLoggableExceptionThrownBy(
-                        () -> TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(-42L), 1)))
+        assertTimestampsNotCoveredExceptionThrown(ImmutableRangeMap.of(Range.atLeast(-42L), 1));
+    }
+
+    private void assertTimestampsNotCoveredExceptionThrown(ImmutableRangeMap<Long, Integer> map) {
+        assertThatLoggableExceptionThrownBy(() -> TimestampPartitioningMap.of(map))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("its span does not cover precisely all timestamps");
+                .hasLogMessage(
+                        "Attempted to initialize a timestamp partitioning map, but its span does not cover precisely all "
+                                + "timestamps.")
+                .hasExactlyArgs(SafeArg.of("timestampToTransactionSchemaMap", map));
     }
 
     @Test

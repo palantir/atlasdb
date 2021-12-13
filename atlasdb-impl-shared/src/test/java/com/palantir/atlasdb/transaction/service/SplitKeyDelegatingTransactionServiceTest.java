@@ -38,6 +38,8 @@ import org.mockito.Mockito;
 @SuppressWarnings("unchecked") // Mocking
 public class SplitKeyDelegatingTransactionServiceTest {
     private static final Function<Long, Long> EXTRACT_LAST_DIGIT = num -> LongMath.mod(num, 10L);
+    private static final String NOT_FOUND_MESSAGE =
+            "Could not find a transaction service for the given timestamp (serviceKey not found).";
 
     private final TransactionService delegate1 = mock(TransactionService.class);
     private final TransactionService delegate2 = mock(TransactionService.class);
@@ -76,7 +78,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
     public void getThrowsIfFunctionReturnsUnmappedValue() {
         assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.get(7L))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Could not find a transaction service for the given timestamp");
+                .hasLogMessage(NOT_FOUND_MESSAGE);
     }
 
     @Test
@@ -101,7 +103,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
     public void putUnlessExistsThrowsIfFunctionReturnsUnmappedValue() {
         assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.putUnlessExists(4L, 12L))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Could not find a transaction service for the given timestamp");
+                .hasLogMessage(NOT_FOUND_MESSAGE);
     }
 
     @Test
@@ -126,7 +128,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
         assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.get(ImmutableList.of(1L, 7L, 41L)))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("A batch of timestamps produced some transaction service keys which are unknown");
+                .hasLogMessage("A batch of timestamps produced some transaction service keys which are unknown.");
 
         Mockito.verifyNoMoreInteractions(delegate1);
     }
@@ -149,7 +151,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
     public void ignoreUnknownFailsIfSeeingATimestampServiceItDoesNotRecognizeForSingleTimestamps() {
         assertThatLoggableExceptionThrownBy(() -> lastDigitFiveImpliesUnknownTransactionService.get(7L))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Could not find a transaction service for the given timestamp");
+                .hasLogMessage(NOT_FOUND_MESSAGE);
     }
 
     @Test
