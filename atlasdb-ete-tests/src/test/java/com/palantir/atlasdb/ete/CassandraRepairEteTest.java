@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -233,24 +234,14 @@ public class CassandraRepairEteTest {
     }
 
     private Predicate<Range<LightweightOppToken>> containsEntirely(Range<LightweightOppToken> range) {
-        return thriftRange -> {
-            System.out.println("Comparing range:" + getLower(range) + "->" + getUpper(range));
-            System.out.println("To thrift range:" + getLower(thriftRange) + "->" + getUpper(thriftRange));
-            return ((!thriftRange.hasLowerBound() && !range.hasLowerBound())
-                            || thriftRange.lowerEndpoint().equals(range.lowerEndpoint()))
-                    && (thriftRange.hasUpperBound()
-                            ? range.hasUpperBound()
-                                    && thriftRange.upperEndpoint().compareTo(range.upperEndpoint()) >= 0
-                            : !range.hasUpperBound());
-        };
+        return thriftRange -> safeLowerBound(thriftRange).equals(safeLowerBound(range))
+                && (thriftRange.hasUpperBound()
+                        ? range.hasUpperBound() && thriftRange.upperEndpoint().compareTo(range.upperEndpoint()) >= 0
+                        : !range.hasUpperBound());
     }
 
-    private String getLower(Range<LightweightOppToken> range) {
-        return range.hasLowerBound() ? range.lowerEndpoint().toString() : "(no lower bound)";
-    }
-
-    private String getUpper(Range<LightweightOppToken> range) {
-        return range.hasUpperBound() ? range.upperEndpoint().toString() : "(no upper bound)";
+    private Optional<LightweightOppToken> safeLowerBound(Range<LightweightOppToken> range) {
+        return range.hasLowerBound() ? Optional.of(range.lowerEndpoint()) : Optional.empty();
     }
 
     private Map<InetSocketAddress, Set<Range<LightweightOppToken>>> getFullTokenMap() {
