@@ -68,7 +68,8 @@ public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
             boolean initializeAsync) {
         Preconditions.checkArgument(
                 config instanceof DbKeyValueServiceConfig,
-                "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
+                "[Unexpected configuration] | DbAtlasDbFactory expects a configuration of type "
+                        + "DbKeyValueServiceConfiguration.",
                 SafeArg.of("configurationClass", config.getClass()));
         return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config, runtimeConfig, initializeAsync);
     }
@@ -83,7 +84,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
                 "Cannot specify the DB TimeLock timestamp table as a timestamp table override!");
         Preconditions.checkArgument(
                 rawKvs instanceof ConnectionManagerAwareDbKvs,
-                "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s",
+                "[Unexpected type] | DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs.",
                 SafeArg.of("kvsClass", rawKvs.getClass()));
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 

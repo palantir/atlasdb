@@ -32,11 +32,6 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.thrift.TException;
 
 class CassandraTableCreator {
-    private static final String ROW = "key";
-    private static final String COLUMN = "column1";
-    private static final String TIMESTAMP = "column2";
-    private static final String VALUE = "value";
-
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
 
@@ -75,10 +70,10 @@ class CassandraTableCreator {
 
         String query = SchemaBuilder.createTable(keyspace, internalTableName)
                 .ifNotExists()
-                .addPartitionKey(ROW, DataType.blob())
-                .addClusteringColumn(COLUMN, DataType.blob())
-                .addClusteringColumn(TIMESTAMP, DataType.bigint())
-                .addColumn(VALUE, DataType.blob())
+                .addPartitionKey(CassandraConstants.ROW, DataType.blob())
+                .addClusteringColumn(CassandraConstants.COLUMN, DataType.blob())
+                .addClusteringColumn(CassandraConstants.TIMESTAMP, DataType.bigint())
+                .addColumn(CassandraConstants.VALUE, DataType.blob())
                 .withOptions()
                 .bloomFilterFPChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
                 .caching(SchemaBuilder.KeyCaching.ALL, SchemaBuilder.noRows())
@@ -90,8 +85,8 @@ class CassandraTableCreator {
                 .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
                 .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
                 .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
-                .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
-                .clusteringOrder(TIMESTAMP, SchemaBuilder.Direction.ASC)
+                .clusteringOrder(CassandraConstants.COLUMN, SchemaBuilder.Direction.ASC)
+                .clusteringOrder(CassandraConstants.TIMESTAMP, SchemaBuilder.Direction.ASC)
                 .buildInternal();
 
         return CqlQuery.builder()

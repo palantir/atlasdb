@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package com.codahale.metrics.jvm;
+package com.palantir.atlasdb.backup.transaction;
 
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricSet;
-import java.util.Collections;
-import java.util.Map;
+import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import org.derive4j.Data;
 
-/**
- * We need to use Dropwizard metrics 3.x internally - this is the class that's needed to get
- * Dropwizard 2.0 working with metrics 3.x.
- */
-public final class JvmAttributeGaugeSet implements MetricSet {
-    @Override
-    public Map<String, Metric> getMetrics() {
-        return Collections.emptyMap();
+@Data
+public abstract class TransactionTableEntry {
+    public interface Cases<R> {
+        R explicitlyAborted(long startTimestamp);
+
+        R committedLegacy(long startTimestamp, long commitTimestamp);
+
+        R committedTwoPhase(long startTimestamp, PutUnlessExistsValue<Long> commitValue);
     }
+
+    public abstract <R> R match(Cases<R> cases);
 }

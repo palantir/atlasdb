@@ -32,6 +32,7 @@ public class InMemoryLockAndTimestampServiceFactory implements LockAndTimestampS
                 .timestamp(services.getTimestampService())
                 .timestampManagement(services.getTimestampManagementService())
                 .timelock(services.getLegacyTimelockService())
+                .lockWatcher(services.getLockWatchManager())
                 .build();
     }
 }

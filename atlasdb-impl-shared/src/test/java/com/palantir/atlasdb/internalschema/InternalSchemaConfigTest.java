@@ -41,6 +41,6 @@ public class InternalSchemaConfigTest {
                         .targetTransactionsSchemaVersion(Integer.MIN_VALUE)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("is not a recognised transactions schema version");
+                .hasMessageContaining("Unrecognised transactions schema version.");
     }
 }

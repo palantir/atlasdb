@@ -65,17 +65,17 @@ public class CassandraRangePagingIterable<T>
     }
 
     @Override
-    protected TokenBackedBasicResultsPage<RowResult<T>, byte[]> getFirstPage() throws Exception {
+    protected TokenBackedBasicResultsPage<RowResult<T>, byte[]> getFirstPage() {
         return getSinglePage(rangeRequest.getStartInclusive());
     }
 
     @Override
     protected TokenBackedBasicResultsPage<RowResult<T>, byte[]> getNextPage(
-            TokenBackedBasicResultsPage<RowResult<T>, byte[]> previous) throws Exception {
+            TokenBackedBasicResultsPage<RowResult<T>, byte[]> previous) {
         return getSinglePage(previous.getTokenForNextPage());
     }
 
-    private TokenBackedBasicResultsPage<RowResult<T>, byte[]> getSinglePage(byte[] startKey) throws Exception {
+    private TokenBackedBasicResultsPage<RowResult<T>, byte[]> getSinglePage(byte[] startKey) {
         List<KeySlice> rows = getRows(startKey);
         Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = getColumns(rows);
         TokenBackedBasicResultsPage<RowResult<T>, byte[]> page = getPage(columnsByRow);
@@ -87,7 +87,7 @@ public class CassandraRangePagingIterable<T>
         return page;
     }
 
-    private List<KeySlice> getRows(byte[] startKey) throws Exception {
+    private List<KeySlice> getRows(byte[] startKey) {
         KeyRange keyRange = getKeyRange(startKey, rangeRequest.getEndExclusive());
         return rowGetter.getRows("getRange", keyRange, slicePredicate);
     }

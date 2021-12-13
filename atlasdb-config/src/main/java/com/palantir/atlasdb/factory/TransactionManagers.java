@@ -80,6 +80,7 @@ import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.OldestTargetedSweepTrackedTimestamp;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
@@ -110,6 +111,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -417,6 +419,16 @@ public abstract class TransactionManagers {
                 },
                 closeables);
 
+        if (config().targetedSweep().enableSweepQueueWrites()) {
+            initializeCloseable(
+                    () -> OldestTargetedSweepTrackedTimestamp.createStarted(
+                            keyValueService,
+                            lockAndTimestampServices.timestamp(),
+                            PTExecutors.newSingleThreadScheduledExecutor(
+                                    new NamedThreadFactory("OldestTargetedSweepTrackedTimestamp", true))),
+                    closeables);
+        }
+
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
 
@@ -559,7 +571,7 @@ public abstract class TransactionManagers {
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
-        if (isUsingTimeLock(config, runtimeConfig.current())) {
+        if (isUsingTimeLock(config, runtimeConfig.current()) && shouldGiveFeedbackToServer(config)) {
             Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices =
                     getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent(), reloadingFactory());
             return Optional.of(initializeCloseable(
@@ -891,6 +903,12 @@ public abstract class TransactionManagers {
     static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
         return atlasDbConfig.timelock().isPresent()
                 || runtimeConfig.timelockRuntime().isPresent();
+    }
+
+    private boolean shouldGiveFeedbackToServer(AtlasDbConfig config) {
+        return config.timelock()
+                .map(TimeLockClientConfig::shouldGiveFeedbackToTimeLockServer)
+                .orElse(false);
     }
 
     /**

@@ -107,6 +107,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
             sync.acquireSharedInterruptibly(clientIndex);
         }
 
+        @SuppressWarnings("ThreadPriorityCheck") // not changing legacy code
         @Override
         public LockClient tryLock() {
             while (true) {
@@ -189,6 +190,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
             sync.acquireInterruptibly(clientIndex);
         }
 
+        @SuppressWarnings("ThreadPriorityCheck") // not changing legacy code
         @Override
         public LockClient tryLock() {
             while (true) {

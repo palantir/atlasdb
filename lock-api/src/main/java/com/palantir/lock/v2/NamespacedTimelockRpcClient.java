@@ -20,7 +20,7 @@ package com.palantir.lock.v2;
  * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a
  * parameter.
  */
-public class NamespacedTimelockRpcClient {
+public class NamespacedTimelockRpcClient implements NamespacedTimelockTimestampClient {
     private final TimelockRpcClient timelockRpcClient;
     private final String namespace;
 
@@ -29,10 +29,12 @@ public class NamespacedTimelockRpcClient {
         this.namespace = namespace;
     }
 
+    @Override
     public long getImmutableTimestamp() {
         return timelockRpcClient.getImmutableTimestamp(namespace);
     }
 
+    @Override
     public long currentTimeMillis() {
         return timelockRpcClient.currentTimeMillis(namespace);
     }

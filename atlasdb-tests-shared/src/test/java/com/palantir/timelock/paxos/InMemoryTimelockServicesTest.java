@@ -19,6 +19,7 @@ package com.palantir.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import org.awaitility.Awaitility;
@@ -36,12 +37,14 @@ public class InMemoryTimelockServicesTest {
 
     private TimestampService timestampService;
     private AsyncTimelockService timelockService;
+    private TimelockService delegatingTimelockService;
 
     @Before
     public void setup() {
         inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder);
         timestampService = inMemoryTimelockServices.getTimestampService();
         timelockService = inMemoryTimelockServices.getTimelockService();
+        delegatingTimelockService = inMemoryTimelockServices.getLegacyTimelockService();
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10L))
@@ -56,17 +59,30 @@ public class InMemoryTimelockServicesTest {
     }
 
     @Test
-    public void canGetTimestamp() {
-        long ts1 = timestampService.getFreshTimestamp();
-        long ts2 = timelockService.getFreshTimestamp();
-        assertThat(ts1).isLessThan(ts2);
+    public void timestampsAreConsistent() {
+        long timestamp1 = delegatingTimelockService.getFreshTimestamps(1).getLowerBound();
+        long timestamp2 = timestampService.getFreshTimestamp();
+        assertThat(timestamp1).isLessThan(timestamp2);
+
+        long timestamp3 = delegatingTimelockService.getFreshTimestamps(1).getLowerBound();
+        assertThat(timestamp2).isLessThan(timestamp3);
+
+        long timestamp4 = delegatingTimelockService
+                .startIdentifiedAtlasDbTransactionBatch(1)
+                .get(0)
+                .startTimestampAndPartition()
+                .timestamp();
+        assertThat(timestamp3).isLessThan(timestamp4);
+
+        long timestamp5 = delegatingTimelockService.getFreshTimestamp();
+        assertThat(timestamp4).isLessThan(timestamp5);
     }
 
     @Test
     public void canFastForwardTimestamp() {
-        long target = 1234567L;
-        timelockService.fastForwardTimestamp(target);
-        long ts1 = timestampService.getFreshTimestamp();
-        assertThat(ts1).isGreaterThan(target);
+        long fastForwardTimestamp = 1234567L;
+        timelockService.fastForwardTimestamp(fastForwardTimestamp);
+        long freshTimestamp = timestampService.getFreshTimestamp();
+        assertThat(freshTimestamp).isGreaterThan(fastForwardTimestamp);
     }
 }

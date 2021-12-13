@@ -32,7 +32,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.WriteBatchingTransactionService;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
-import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -117,7 +116,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     private void installTransactionsVersion() {
         keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                transactionSchemaManager, (ManagedTimestampService) timestampService, transactionsSchemaVersion);
+                transactionSchemaManager, timestampService, timestampManagementService, transactionsSchemaVersion);
     }
 
     @Test

@@ -36,16 +36,16 @@ public class TransactionSchemaVersionEnforcementTest {
     public void canEnforceSchemaVersions() {
         long oldTimestamp = managedTimestampService.getFreshTimestamp();
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                schemaManager, managedTimestampService, 2);
+                schemaManager, managedTimestampService, managedTimestampService, 2);
         assertThat(schemaManager.getTransactionsSchemaVersion(oldTimestamp)).isEqualTo(1);
         assertThat(schemaManager.getTransactionsSchemaVersion(managedTimestampService.getFreshTimestamp()))
                 .isEqualTo(2);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                schemaManager, managedTimestampService, 3);
+                schemaManager, managedTimestampService, managedTimestampService, 3);
         assertThat(schemaManager.getTransactionsSchemaVersion(managedTimestampService.getFreshTimestamp()))
                 .isEqualTo(3);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                schemaManager, managedTimestampService, 2);
+                schemaManager, managedTimestampService, managedTimestampService, 2);
         assertThat(schemaManager.getTransactionsSchemaVersion(managedTimestampService.getFreshTimestamp()))
                 .isEqualTo(2);
     }

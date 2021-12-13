@@ -20,7 +20,8 @@ import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 
 public final class TransactionSchemaVersionEnforcement {
     private static final SafeLogger log = SafeLoggerFactory.get(TransactionSchemaVersionEnforcement.class);
@@ -34,14 +35,15 @@ public final class TransactionSchemaVersionEnforcement {
 
     public static void ensureTransactionsGoingForwardHaveSchemaVersion(
             TransactionSchemaManager transactionSchemaManager,
-            ManagedTimestampService timestampManagementService,
+            TimestampService timestampService,
+            TimestampManagementService timestampManagementService,
             int targetSchemaVersion) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(targetSchemaVersion);
-            advanceTimestamp(timestampManagementService);
+            advanceTimestamp(timestampService, timestampManagementService);
 
-            int currentSchemaVersion = transactionSchemaManager.getTransactionsSchemaVersion(
-                    timestampManagementService.getFreshTimestamp());
+            int currentSchemaVersion =
+                    transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp());
             if (currentSchemaVersion == targetSchemaVersion) {
                 log.info(
                         "Enforced schema version to the target.",
@@ -54,7 +56,8 @@ public final class TransactionSchemaVersionEnforcement {
                 SafeArg.of("numAttempts", MAX_ATTEMPTS));
     }
 
-    private static void advanceTimestamp(ManagedTimestampService timestampManagementService) {
-        timestampManagementService.fastForwardTimestamp(timestampManagementService.getFreshTimestamp() + ONE_BILLION);
+    private static void advanceTimestamp(
+            TimestampService timestampService, TimestampManagementService timestampManagementService) {
+        timestampManagementService.fastForwardTimestamp(timestampService.getFreshTimestamp() + ONE_BILLION);
     }
 }

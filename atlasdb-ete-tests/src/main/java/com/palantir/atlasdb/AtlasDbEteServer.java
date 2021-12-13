@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
@@ -27,9 +26,13 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.lock.SimpleLockResource;
 import com.palantir.atlasdb.sweep.CellsSweeper;
@@ -43,10 +46,10 @@ import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -91,10 +94,10 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         TaggedMetricRegistry taggedMetrics = SharedTaggedMetricRegistries.getSingleton();
         TransactionManager txManager = tryToCreateTransactionManager(config, environment, taggedMetrics);
-        Supplier<SweepTaskRunner> sweepTaskRunner =
-                Suppliers.memoize(() -> getSweepTaskRunner(txManager, environment.metrics(), taggedMetrics));
+        Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(txManager));
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
+        ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
         environment
                 .jersey()
                 .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
@@ -104,6 +107,35 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
+    }
+
+    private void ensureTransactionSchemaVersionInstalled(
+            AtlasDbConfig config, Optional<AtlasDbRuntimeConfig> runtimeConfig, TransactionManager transactionManager) {
+        if (runtimeConfig.isEmpty()
+                || runtimeConfig
+                        .get()
+                        .internalSchema()
+                        .targetTransactionsSchemaVersion()
+                        .isEmpty()) {
+            return;
+        }
+        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                transactionManager.getKeyValueService(),
+                transactionManager.getTimestampService(),
+                MetricsManagers.createForTests(),
+                config.initializeAsync());
+        TransactionSchemaManager manager = new TransactionSchemaManager(coordinationService);
+
+        int targetSchemaVersion = runtimeConfig
+                .get()
+                .internalSchema()
+                .targetTransactionsSchemaVersion()
+                .get();
+        TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
+                manager,
+                transactionManager.getTimestampService(),
+                transactionManager.getTimestampManagementService(),
+                targetSchemaVersion);
     }
 
     private TransactionManager tryToCreateTransactionManager(
@@ -118,15 +150,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
-    private SweepTaskRunner getSweepTaskRunner(
-            TransactionManager transactionManager,
-            MetricRegistry metricRegistry,
-            TaggedMetricRegistry taggedMetricRegistry) {
+    private SweepTaskRunner getSweepTaskRunner(TransactionManager transactionManager) {
         KeyValueService kvs = transactionManager.getKeyValueService();
         LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
         TransactionService txnService =
                 TransactionServices.createRaw(kvs, transactionManager.getTimestampService(), false);
-        SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(); // maybe createDefault
         CleanupFollower follower = CleanupFollower.create(ETE_SCHEMAS);
         CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower));
         return new SweepTaskRunner(kvs, ts, ts, txnService, cellsSweeper);
