@@ -88,6 +88,18 @@ public class CassandraRepairHelper {
                 TransactionsTableInteraction.getTransactionTableInteractions(
                         coordinationMap, DefaultRetryPolicy.INSTANCE);
 
+        Map<String, Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> tokenRangesForRepair =
+                getRangesForRepairByTable(namespace, transactionsTableInteractions);
+
+        // 5. repair ranges
+        KeyedStream.stream(tokenRangesForRepair).forEach((table, ranges) -> {
+            log.info("Repairing ranges for table", SafeArg.of("table", table));
+            repairTable.accept(ranges);
+        });
+    }
+
+    private Map<String, Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> getRangesForRepairByTable(
+            Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
         // 3. get partition tokens
         Map<String, Set<Token>> partitionKeysByTable =
                 getPartitionKeysByTable(namespace, transactionsTableInteractions);
@@ -118,12 +130,7 @@ public class CassandraRepairHelper {
                     .map(this::makeLightweight)
                     .collectToMap();
         }
-
-        // 5. repair ranges
-        KeyedStream.stream(tokenRangesForRepair).forEach((table, ranges) -> {
-            log.info("Repairing ranges for table", SafeArg.of("table", table));
-            repairTable.accept(ranges);
-        });
+        return tokenRangesForRepair;
     }
 
     private Map<String, Set<Token>> getPartitionKeysByTable(
@@ -180,7 +187,6 @@ public class CassandraRepairHelper {
         return KeyedStream.stream(ranges).map(this::makeLightweight).collectToMap();
     }
 
-    // TODO(gs): move code so this doesn't need to be public
     private Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
         return tokenRanges.stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
     }
