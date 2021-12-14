@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
+import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
+
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Token;
@@ -24,6 +26,7 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -48,7 +51,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CassandraRepairHelper {
@@ -183,8 +185,8 @@ public class CassandraRepairHelper {
                 KeyedStream.stream(ranges).map(this::makeLightweight).collectToMap();
     }
 
-    private Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
-        return tokenRanges.stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
+    private RangeSet<LightweightOppToken> makeLightweight(Set<TokenRange> tokenRanges) {
+        return tokenRanges.stream().flatMap(this::makeLightweight).collect(toImmutableRangeSet());
     }
 
     private Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {

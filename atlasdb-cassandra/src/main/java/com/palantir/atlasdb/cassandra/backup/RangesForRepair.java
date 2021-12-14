@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.Set;
 
 // Marker interface
-public interface RangesForRepair extends Map<InetSocketAddress, Set<Range<LightweightOppToken>>> {}
+@SuppressWarnings("UnstableApiUsage")
+public interface RangesForRepair extends Map<InetSocketAddress, RangeSet<LightweightOppToken>> {}
