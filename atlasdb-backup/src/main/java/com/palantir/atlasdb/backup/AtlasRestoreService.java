@@ -25,6 +25,7 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
@@ -80,23 +81,27 @@ public class AtlasRestoreService {
         return namespacesToRepair;
     }
 
-    // TODO(gs): move this into CassandraRepairHelper
     private void repairTransactionsTables(Namespace namespace, Consumer<RangesForRepair> repairTable) {
-        // 1. get schema metadata
-        Optional<InternalSchemaMetadataState> schemaMetadataState = backupPersister.getSchemaMetadata(namespace);
-        CompletedBackup completedBackup =
-                backupPersister.getCompletedBackup(namespace).orElseThrow();
+        Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(namespace);
+        cassandraRepairHelper.repairTransactionsTables(namespace, coordinationMap, repairTable);
+    }
 
-        // 2. get txn tables interactions
+    private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(Namespace namespace) {
+        Optional<InternalSchemaMetadataState> schemaMetadataState = backupPersister.getSchemaMetadata(namespace);
+        CompletedBackup completedBackup = backupPersister
+                .getCompletedBackup(namespace)
+                // TODO(gs): could just have a Map<Namespace, CompletedBackup above
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "Completed backup not found. This should never happen, since we already checked this in a previous filter",
+                        SafeArg.of("namespace", namespace)));
+
         long fastForwardTs = completedBackup.getBackupEndTimestamp();
 
-        // Do we need the immutable timestamp here?
+        // Should this be the immutableTs from the completed backup?
         long immutableTs = completedBackup.getBackupStartTimestamp();
 
-        Map<FullyBoundedTimestampRange, Integer> coordinationMap =
-                CoordinationServiceUtilities.getCoordinationMapOnRestore(
-                        schemaMetadataState, fastForwardTs, immutableTs);
-        cassandraRepairHelper.repairTransactionsTables(namespace, coordinationMap, repairTable);
+        return CoordinationServiceUtilities.getCoordinationMapOnRestore(
+                schemaMetadataState, fastForwardTs, immutableTs);
     }
 
     private boolean backupExists(Namespace namespace) {

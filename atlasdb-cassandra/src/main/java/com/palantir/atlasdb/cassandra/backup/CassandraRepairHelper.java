@@ -92,7 +92,6 @@ public class CassandraRepairHelper {
         Map<String, RangesForRepair> tokenRangesForRepair =
                 getRangesForRepairByTable(namespace, transactionsTableInteractions);
 
-        // 5. repair ranges
         KeyedStream.stream(tokenRangesForRepair).forEach((table, ranges) -> {
             log.info("Repairing ranges for table", SafeArg.of("table", table));
             repairTable.accept(ranges);
@@ -101,10 +100,39 @@ public class CassandraRepairHelper {
 
     private Map<String, RangesForRepair> getRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
-        // 3. get partition tokens
-        Map<String, Set<Token>> partitionKeysByTable =
-                getPartitionKeysByTable(namespace, transactionsTableInteractions);
+        try (Session session = newSession(namespace)) {
+            String keyspaceName = session.getLoggedKeyspace();
+            Metadata metadata = session.getCluster().getMetadata();
+            Map<String, Set<Token>> partitionKeysByTable =
+                    getPartitionKeys(transactionsTableInteractions, session, keyspaceName, metadata);
 
+            maybeLogTokenRanges(transactionsTableInteractions, partitionKeysByTable);
+
+            Set<InetSocketAddress> hosts = new HashSet<>(); // TODO(gs): move to somewhere where we have the hosts!!
+            return KeyedStream.stream(partitionKeysByTable)
+                    .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
+                    .map(this::makeLightweight)
+                    .collectToMap();
+        }
+    }
+
+    private Map<String, Set<Token>> getPartitionKeys(
+            List<TransactionsTableInteraction> transactionsTableInteractions,
+            Session session,
+            String keyspaceName,
+            Metadata metadata) {
+        return KeyedStream.of(transactionsTableInteractions.stream())
+                .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
+                .map(interaction -> interaction.getPartitionTokens(
+                        ClusterMetadataUtils.getTableMetadata(
+                                metadata, keyspaceName, interaction.getTransactionsTableName()),
+                        session))
+                .collectToMap();
+    }
+
+    private void maybeLogTokenRanges(
+            List<TransactionsTableInteraction> transactionsTableInteractions,
+            Map<String, Set<Token>> partitionKeysByTable) {
         if (log.isDebugEnabled()) {
             Map<String, FullyBoundedTimestampRange> loggableTableRanges = KeyedStream.of(transactionsTableInteractions)
                     .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
@@ -116,34 +144,6 @@ public class CassandraRepairHelper {
                     "Identified token ranges requiring repair in the following transactions tables",
                     SafeArg.of("transactionsTablesWithRanges", loggableTableRanges),
                     SafeArg.of("numPartitionKeysByTable", numPartitionKeysByTable));
-        }
-
-        // 4. get repair ranges
-        // TODO(gs): don't recreate a session here, we already got this information before
-        try (Session session = newSession(namespace)) {
-            String keyspaceName = session.getLoggedKeyspace();
-            Metadata metadata = session.getCluster().getMetadata();
-
-            Set<InetSocketAddress> hosts = new HashSet<>(); // TODO(gs): move to somewhere where we have the hosts!!
-            return KeyedStream.stream(partitionKeysByTable)
-                    .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
-                    .map(this::makeLightweight)
-                    .collectToMap();
-        }
-    }
-
-    private Map<String, Set<Token>> getPartitionKeysByTable(
-            Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
-        try (Session session = newSession(namespace)) {
-            String keyspaceName = session.getLoggedKeyspace();
-            Metadata metadata = session.getCluster().getMetadata();
-            return KeyedStream.of(transactionsTableInteractions.stream())
-                    .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
-                    .map(interaction -> interaction.getPartitionTokens(
-                            ClusterMetadataUtils.getTableMetadata(
-                                    metadata, keyspaceName, interaction.getTransactionsTableName()),
-                            session))
-                    .collectToMap();
         }
     }
 
