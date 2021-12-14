@@ -1466,6 +1466,20 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         });
     }
 
+    @Test
+    public void testChecksIfTablesAreSerializable() {
+        createManager().runTaskThrowOnConflict(tx -> {
+            SerializableTransaction serializable = (SerializableTransaction) tx;
+            assertThat(serializable.isSerializableTable(TEST_TABLE_SERIALIZABLE))
+                    .isTrue();
+            assertThat(serializable.isSerializableTable(TEST_TABLE)).isFalse();
+            assertThat(serializable.isSerializableTable(
+                            TableReference.createFromFullyQualifiedName("i.amrandom" + UUID.randomUUID())))
+                    .isFalse();
+            return null;
+        });
+    }
+
     @Override
     protected void put(Transaction txn, String rowName, String columnName, String value) {
         put(txn, TEST_TABLE_SERIALIZABLE, rowName, columnName, value);
