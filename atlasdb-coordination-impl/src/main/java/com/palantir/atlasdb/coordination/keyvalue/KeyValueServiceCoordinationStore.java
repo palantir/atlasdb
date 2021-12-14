@@ -266,7 +266,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             throw new SafeIllegalStateException(
                     "The coordination store failed a putUnlessExists. This is unexpected"
                             + " as it implies timestamps may have been reused, or a writer to the store behaved badly."
-                            + " The offending sequence number was {}. "
+                            + " The offending sequence number is logged. "
                             + " Please contact support - DO NOT ATTEMPT TO FIX THIS YOURSELF.",
                     e,
                     SafeArg.of("sequenceNumber", sequenceNumber));
@@ -374,7 +374,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         Optional<SequenceAndBound> actualValue = getCoordinationValue();
         if (!actualValue.isPresent()) {
             throw new SafeIllegalStateException(
-                    "Failed to check and set coordination value from {} to {}, but "
+                    "Failed to check and set coordination value from oldValue to newValue, but "
                             + "there is no value present in the coordination table",
                     SafeArg.of("oldValue", oldValue),
                     SafeArg.of("newValue", newValue));

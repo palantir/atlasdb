@@ -98,10 +98,8 @@ allprojects {
         // temporarily relax constraints until we can fix all violations
         options.errorprone.disable 'CloseableProvides',
                 'DangerousCompletableFutureUsage',
-                'DnsLookup',
                 'EqualsGetClass',
                 'FutureReturnValueIgnored',
-                'GetClassOnEnum',
                 'InlineFormatString',
                 'MixedMutabilityReturnType',
                 'ModifyCollectionInEnhancedForLoop',
@@ -111,7 +109,6 @@ allprojects {
                 'PublicConstructorForAbstractClass',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
-                'SafeLoggingExceptionMessageFormat',
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',

@@ -37,11 +37,11 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static CassandraClient client = mock(CassandraClient.class);
 
     private static final ImmutableSet<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
-            new InetSocketAddress("1", 1),
-            new InetSocketAddress("2", 1),
-            new InetSocketAddress("3", 1),
-            new InetSocketAddress("4", 1),
-            new InetSocketAddress("5", 1));
+            InetSocketAddress.createUnresolved("1", 1),
+            InetSocketAddress.createUnresolved("2", 1),
+            InetSocketAddress.createUnresolved("3", 1),
+            InetSocketAddress.createUnresolved("4", 1),
+            InetSocketAddress.createUnresolved("5", 1));
     private static final String TABLE = "table";
     private static final String VERSION_1 = "v1";
     private static final String VERSION_2 = "v2";
