@@ -164,8 +164,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         runStateMutatingTaskOnNodes(
                 cell,
                 getQuorumNodes(),
-                node -> node.put(
-                        cell, ImmutableBytesAndTimestamp.of(value, KvsConsensusForgettingStore.PUT_TIMESTAMP)));
+                node -> node.put(cell, ImmutableBytesAndTimestamp.of(value, Long.MAX_VALUE - 10)));
     }
 
     @Override
