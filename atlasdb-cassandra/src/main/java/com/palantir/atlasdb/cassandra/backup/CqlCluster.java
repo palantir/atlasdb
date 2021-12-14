@@ -31,14 +31,18 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
+import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -71,10 +75,6 @@ public final class CqlCluster {
                 .orElseThrow(() -> new SafeIllegalStateException("Attempting to get token ranges with thrift config!"));
     }
 
-    public Session newSession() {
-        return cluster.connect(config.getKeyspaceOrThrow());
-    }
-
     public Map<InetSocketAddress, Set<TokenRange>> getTokenRanges(String tableName) {
         try (Session session = cluster.connect()) {
             Metadata metadata = session.getCluster().getMetadata();
@@ -99,6 +99,54 @@ public final class CqlCluster {
 
             return tokenRangesByNode;
         }
+    }
+
+    public KeyedStream<String, Map<InetSocketAddress, Set<TokenRange>>> getTransactionsTableRangesForRepair(
+            List<TransactionsTableInteraction> transactionsTableInteractions) {
+        try (Session session = cluster.connect()) {
+            String keyspaceName = session.getLoggedKeyspace();
+            Metadata metadata = session.getCluster().getMetadata();
+            Map<String, Set<Token>> partitionKeysByTable =
+                    getPartitionKeys(transactionsTableInteractions, session, keyspaceName, metadata);
+
+            maybeLogTokenRanges(transactionsTableInteractions, partitionKeysByTable);
+
+            Set<InetSocketAddress> hosts = getHosts(config);
+            return KeyedStream.stream(partitionKeysByTable)
+                    .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges));
+        }
+    }
+
+    private void maybeLogTokenRanges(
+            List<TransactionsTableInteraction> transactionsTableInteractions,
+            Map<String, Set<Token>> partitionKeysByTable) {
+        if (log.isDebugEnabled()) {
+            Map<String, FullyBoundedTimestampRange> loggableTableRanges = KeyedStream.of(transactionsTableInteractions)
+                    .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
+                    .map(TransactionsTableInteraction::getTimestampRange)
+                    .collectToMap();
+            Map<String, Integer> numPartitionKeysByTable =
+                    KeyedStream.stream(partitionKeysByTable).map(Set::size).collectToMap();
+            log.debug(
+                    "Identified token ranges requiring repair in the following transactions tables",
+                    SafeArg.of("transactionsTablesWithRanges", loggableTableRanges),
+                    SafeArg.of("numPartitionKeysByTable", numPartitionKeysByTable));
+        }
+    }
+
+    // TODO(gs): reuse code from below
+    private Map<String, Set<Token>> getPartitionKeys(
+            List<TransactionsTableInteraction> transactionsTableInteractions,
+            Session session,
+            String keyspaceName,
+            Metadata metadata) {
+        return KeyedStream.of(transactionsTableInteractions.stream())
+                .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
+                .map(interaction -> interaction.getPartitionTokens(
+                        ClusterMetadataUtils.getTableMetadata(
+                                metadata, keyspaceName, interaction.getTransactionsTableName()),
+                        session))
+                .collectToMap();
     }
 
     private static Set<Token> getPartitionTokens(Session session, TableMetadata tableMetadata) {

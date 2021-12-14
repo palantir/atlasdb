@@ -18,9 +18,6 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.utils.Bytes;
@@ -48,7 +45,6 @@ import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -114,56 +110,11 @@ public class CassandraRepairHelper {
 
     private Map<String, RangesForRepair> getRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
-        try (Session session = newSession(namespace)) {
-            String keyspaceName = session.getLoggedKeyspace();
-            Metadata metadata = session.getCluster().getMetadata();
-            Map<String, Set<Token>> partitionKeysByTable =
-                    getPartitionKeys(transactionsTableInteractions, session, keyspaceName, metadata);
-
-            maybeLogTokenRanges(transactionsTableInteractions, partitionKeysByTable);
-
-            Set<InetSocketAddress> hosts = new HashSet<>(); // TODO(gs): move to somewhere where we have the hosts!!
-            return KeyedStream.stream(partitionKeysByTable)
-                    .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
-                    .map(this::makeLightweight)
-                    .collectToMap();
-        }
-    }
-
-    private Map<String, Set<Token>> getPartitionKeys(
-            List<TransactionsTableInteraction> transactionsTableInteractions,
-            Session session,
-            String keyspaceName,
-            Metadata metadata) {
-        return KeyedStream.of(transactionsTableInteractions.stream())
-                .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
-                .map(interaction -> interaction.getPartitionTokens(
-                        ClusterMetadataUtils.getTableMetadata(
-                                metadata, keyspaceName, interaction.getTransactionsTableName()),
-                        session))
+        return cqlClusters
+                .get(namespace)
+                .getTransactionsTableRangesForRepair(transactionsTableInteractions)
+                .map(this::makeLightweight)
                 .collectToMap();
-    }
-
-    private void maybeLogTokenRanges(
-            List<TransactionsTableInteraction> transactionsTableInteractions,
-            Map<String, Set<Token>> partitionKeysByTable) {
-        if (log.isDebugEnabled()) {
-            Map<String, FullyBoundedTimestampRange> loggableTableRanges = KeyedStream.of(transactionsTableInteractions)
-                    .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
-                    .map(TransactionsTableInteraction::getTimestampRange)
-                    .collectToMap();
-            Map<String, Integer> numPartitionKeysByTable =
-                    KeyedStream.stream(partitionKeysByTable).map(Set::size).collectToMap();
-            log.debug(
-                    "Identified token ranges requiring repair in the following transactions tables",
-                    SafeArg.of("transactionsTablesWithRanges", loggableTableRanges),
-                    SafeArg.of("numPartitionKeysByTable", numPartitionKeysByTable));
-        }
-    }
-
-    // TODO(gs): think about design here - this is hacky
-    private Session newSession(Namespace namespace) {
-        return cqlClusters.get(namespace).newSession();
     }
 
     // VisibleForTesting
@@ -187,7 +138,6 @@ public class CassandraRepairHelper {
         return com.palantir.atlasdb.keyvalue.api.Namespace.create(namespace.get());
     }
 
-    // TODO(gs): ugh. this gives us a stream in a stream in a stream
     private RangesForRepair makeLightweight(Map<InetSocketAddress, Set<TokenRange>> ranges) {
         return new RangesForRepair(
                 KeyedStream.stream(ranges).map(this::makeLightweight).collectToMap());
