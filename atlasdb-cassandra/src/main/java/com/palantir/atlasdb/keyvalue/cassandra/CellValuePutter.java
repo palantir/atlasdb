@@ -81,6 +81,13 @@ public class CellValuePutter {
         putInternal(kvsMethodName, tableRef, values, Optional.of(SET_TIMESTAMP));
     }
 
+    /**
+     * @param values the values to put. The timestamp of each value is the AtlasDB start timestamp, which is a part of
+     *               the column name in Cassandra.
+     * @param overrideTimestamp the Cassandra timestamp to write the value at. A higher Cassandra timestamp determines
+     *                          which write wins in case of a discrepancy on multiple nodes. If empty, defaults to the
+     *                          start timestamp from above.
+     */
     private void putInternal(
             final String kvsMethodName,
             final TableReference tableRef,

@@ -36,7 +36,7 @@ public class KvsConsensusForgettingStoreTest {
     ConsensusForgettingStore store = new KvsConsensusForgettingStore(kvs, TABLE);
 
     @Test
-    public void putOverwritesPuE() throws ExecutionException, InterruptedException {
+    public void putOverwritesPutUnlessExists() throws ExecutionException, InterruptedException {
         store.putUnlessExists(CELL, SAD);
         store.put(CELL, HAPPY);
         assertThat(store.get(CELL).get().get()).containsExactly(HAPPY);

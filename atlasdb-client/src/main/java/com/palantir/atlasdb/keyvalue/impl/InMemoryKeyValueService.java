@@ -429,7 +429,9 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             long timestamp = entry.getValue().getTimestamp();
 
             Key key = getKey(table, entry.getKey(), timestamp);
-            if (overwriteBehaviour != OverwriteBehaviour.OVERWRITE) {
+            if (overwriteBehaviour == OverwriteBehaviour.OVERWRITE) {
+                table.entries.put(key, copyOf(contents));
+            } else {
                 byte[] oldContents = putIfAbsent(table, key, contents);
                 if (shouldThrow(overwriteBehaviour, contents, oldContents)) {
                     throw new KeyAlreadyExistsException(
@@ -438,17 +440,18 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                             knownSuccessfullyCommittedKeys);
                 }
                 knownSuccessfullyCommittedKeys.add(entry.getKey());
-            } else {
-                table.entries.put(key, copyOf(contents));
             }
         }
     }
 
     private boolean shouldThrow(OverwriteBehaviour overwriteBehaviour, byte[] contents, byte[] oldContents) {
-        return oldContents != null
-                && (overwriteBehaviour == OverwriteBehaviour.DO_NOT_OVERWRITE
-                        || (overwriteBehaviour == OverwriteBehaviour.OVERWRITE_SAME_VALUE
-                                && !Arrays.equals(oldContents, contents)));
+        if (oldContents == null) {
+            return false;
+        }
+        if (overwriteBehaviour == OverwriteBehaviour.OVERWRITE_SAME_VALUE) {
+            return !Arrays.equals(oldContents, contents);
+        }
+        return true;
     }
 
     private enum OverwriteBehaviour {
