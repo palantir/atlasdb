@@ -33,6 +33,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
+import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -102,18 +103,17 @@ public class CassandraRepairEteTest {
 
     @Test
     public void shouldGetRangesForBothReplicas() {
-        Map<InetSocketAddress, RangeSet<LightweightOppToken>> ranges =
-                cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
-        assertThat(ranges).hasSize(2);
+        RangesForRepair ranges = cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
+        assertThat(ranges.asMap()).hasSize(2);
     }
 
     @Test
     public void tokenRangesToRepairShouldBeSubsetsOfTokenMap() {
-        Map<InetSocketAddress, RangeSet<LightweightOppToken>> fullTokenMap = getFullTokenMap();
-        Map<InetSocketAddress, RangeSet<LightweightOppToken>> rangesToRepair =
+        RangesForRepair fullTokenMap = getFullTokenMap();
+        RangesForRepair rangesToRepair =
                 cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
 
-        KeyedStream.stream(rangesToRepair)
+        KeyedStream.stream(rangesToRepair.asMap())
                 .forEach((address, cqlRangesForHost) ->
                         assertRangesToRepairAreSubsetsOfRangesFromTokenMap(fullTokenMap, address, cqlRangesForHost));
     }
@@ -222,9 +222,7 @@ public class CassandraRepairEteTest {
     // such that if the thrift range is [5..9] but we don't have data after 7, then the CQL range will be [5..7]
     @SuppressWarnings({"DnsLookup", "ReverseDnsLookup", "UnstableApiUsage"})
     private void assertRangesToRepairAreSubsetsOfRangesFromTokenMap(
-            Map<InetSocketAddress, RangeSet<LightweightOppToken>> fullTokenMap,
-            InetSocketAddress address,
-            RangeSet<LightweightOppToken> cqlRangesForHost) {
+            RangesForRepair fullTokenMap, InetSocketAddress address, RangeSet<LightweightOppToken> cqlRangesForHost) {
         String hostName = address.getHostName();
         InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
         assertThat(fullTokenMap.get(thriftAddr)).isNotNull();
@@ -246,7 +244,7 @@ public class CassandraRepairEteTest {
         return range.hasLowerBound() ? Optional.of(range.lowerEndpoint()) : Optional.empty();
     }
 
-    private Map<InetSocketAddress, RangeSet<LightweightOppToken>> getFullTokenMap() {
+    private RangesForRepair getFullTokenMap() {
         CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
                 config,
@@ -256,8 +254,7 @@ public class CassandraRepairEteTest {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private Map<InetSocketAddress, RangeSet<LightweightOppToken>> invert(
-            RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
+    private RangesForRepair invert(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> invertedMap = new HashMap<>();
         tokenMap.asMapOfRanges()
                 .forEach((range, addresses) -> addresses.forEach(address -> {
@@ -267,7 +264,7 @@ public class CassandraRepairEteTest {
                     invertedMap.put(address, existingRanges);
                 }));
 
-        return invertedMap;
+        return new RangesForRepair(invertedMap);
     }
 
     private Token minToken() {

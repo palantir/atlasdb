@@ -181,8 +181,8 @@ public class CassandraRepairHelper {
 
     // TODO(gs): ugh. this gives us a stream in a stream in a stream
     private RangesForRepair makeLightweight(Map<InetSocketAddress, Set<TokenRange>> ranges) {
-        return (RangesForRepair)
-                KeyedStream.stream(ranges).map(this::makeLightweight).collectToMap();
+        return new RangesForRepair(
+                KeyedStream.stream(ranges).map(this::makeLightweight).collectToMap());
     }
 
     private RangeSet<LightweightOppToken> makeLightweight(Set<TokenRange> tokenRanges) {

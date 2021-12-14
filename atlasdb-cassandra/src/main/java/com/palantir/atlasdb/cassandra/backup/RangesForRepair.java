@@ -21,6 +21,19 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
-// Marker interface
 @SuppressWarnings("UnstableApiUsage")
-public interface RangesForRepair extends Map<InetSocketAddress, RangeSet<LightweightOppToken>> {}
+public class RangesForRepair {
+    private final Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenMap;
+
+    public RangesForRepair(Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenMap) {
+        this.tokenMap = tokenMap;
+    }
+
+    public Map<InetSocketAddress, RangeSet<LightweightOppToken>> asMap() {
+        return tokenMap;
+    }
+
+    public RangeSet<LightweightOppToken> get(InetSocketAddress address) {
+        return tokenMap.get(address);
+    }
+}
