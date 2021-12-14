@@ -228,9 +228,25 @@ public class CassandraRepairEteTest {
         assertThat(fullTokenMap.get(thriftAddr)).isNotNull();
         Set<Range<LightweightOppToken>> thriftRanges =
                 fullTokenMap.get(thriftAddr).asRanges();
+
+        // Logging
+        thriftRanges.forEach(
+                range -> System.out.println("Range from full token ring: " + getLower(range) + "->" + getUpper(range)));
+        cqlRangesForHost
+                .asRanges()
+                .forEach(range -> System.out.println("Range to repair: " + getLower(range) + "->" + getUpper(range)));
+
         cqlRangesForHost.asRanges().forEach(range -> assertThat(
                         thriftRanges.stream().anyMatch(containsEntirely(range)))
                 .isTrue());
+    }
+
+    private String getLower(Range<LightweightOppToken> range) {
+        return range.hasLowerBound() ? range.lowerEndpoint().toString() : "(no lower bound)";
+    }
+
+    private String getUpper(Range<LightweightOppToken> range) {
+        return range.hasUpperBound() ? range.upperEndpoint().toString() : "(no upper bound)";
     }
 
     private Predicate<Range<LightweightOppToken>> containsEntirely(Range<LightweightOppToken> range) {
