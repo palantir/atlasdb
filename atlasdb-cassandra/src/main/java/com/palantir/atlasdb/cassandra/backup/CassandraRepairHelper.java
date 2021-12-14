@@ -67,8 +67,7 @@ public class CassandraRepairHelper {
         this.keyValueServiceFactory = keyValueServiceFactory;
     }
 
-    public void repairInternalTables(
-            Namespace namespace, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
+    public void repairInternalTables(Namespace namespace, Consumer<RangesForRepair> repairTable) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
         CqlCluster cqlCluster = getCqlCluster(namespace);
         kvs.getAllTableNames().stream()
@@ -83,12 +82,12 @@ public class CassandraRepairHelper {
     public void repairTransactionsTables(
             Namespace namespace,
             Map<FullyBoundedTimestampRange, Integer> coordinationMap,
-            Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
+            Consumer<RangesForRepair> repairTable) {
         List<TransactionsTableInteraction> transactionsTableInteractions =
                 TransactionsTableInteraction.getTransactionTableInteractions(
                         coordinationMap, DefaultRetryPolicy.INSTANCE);
 
-        Map<String, Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> tokenRangesForRepair =
+        Map<String, RangesForRepair> tokenRangesForRepair =
                 getRangesForRepairByTable(namespace, transactionsTableInteractions);
 
         // 5. repair ranges
@@ -98,7 +97,7 @@ public class CassandraRepairHelper {
         });
     }
 
-    private Map<String, Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> getRangesForRepairByTable(
+    private Map<String, RangesForRepair> getRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
         // 3. get partition tokens
         Map<String, Set<Token>> partitionKeysByTable =
@@ -119,18 +118,16 @@ public class CassandraRepairHelper {
 
         // 4. get repair ranges
         // TODO(gs): don't recreate a session here, we already got this information before
-        Map<String, Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> tokenRangesForRepair;
         try (Session session = newSession(namespace)) {
             String keyspaceName = session.getLoggedKeyspace();
             Metadata metadata = session.getCluster().getMetadata();
 
             Set<InetSocketAddress> hosts = new HashSet<>(); // TODO(gs): move to somewhere where we have the hosts!!
-            tokenRangesForRepair = KeyedStream.stream(partitionKeysByTable)
+            return KeyedStream.stream(partitionKeysByTable)
                     .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
                     .map(this::makeLightweight)
                     .collectToMap();
         }
-        return tokenRangesForRepair;
     }
 
     private Map<String, Set<Token>> getPartitionKeysByTable(
@@ -160,10 +157,9 @@ public class CassandraRepairHelper {
     }
 
     // VisibleForTesting
-    public Map<InetSocketAddress, Set<Range<LightweightOppToken>>> getRangesToRepair(
-            CqlCluster cqlCluster, Namespace namespace, String tableName) {
+    public RangesForRepair getRangesToRepair(CqlCluster cqlCluster, Namespace namespace, String tableName) {
         Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getTokenRangesToRepair(cqlCluster, namespace, tableName);
-        return KeyedStream.stream(tokenRanges).map(this::makeLightweight).collectToMap();
+        return makeLightweight(tokenRanges);
     }
 
     private Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(
@@ -182,9 +178,9 @@ public class CassandraRepairHelper {
     }
 
     // TODO(gs): ugh. this gives us a stream in a stream in a stream
-    private Map<InetSocketAddress, Set<Range<LightweightOppToken>>> makeLightweight(
-            Map<InetSocketAddress, Set<TokenRange>> ranges) {
-        return KeyedStream.stream(ranges).map(this::makeLightweight).collectToMap();
+    private RangesForRepair makeLightweight(Map<InetSocketAddress, Set<TokenRange>> ranges) {
+        return (RangesForRepair)
+                KeyedStream.stream(ranges).map(this::makeLightweight).collectToMap();
     }
 
     private Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {

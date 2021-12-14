@@ -17,19 +17,17 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
+import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -69,8 +67,7 @@ public class AtlasRestoreService {
      *
      * @return the set of namespaces for which we issued a repair command via the provided Consumer.
      */
-    public Set<Namespace> repairInternalTables(
-            Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
+    public Set<Namespace> repairInternalTables(Set<Namespace> namespaces, Consumer<RangesForRepair> repairTable) {
         Set<Namespace> namespacesToRepair =
                 namespaces.stream().filter(this::backupExists).collect(Collectors.toSet());
 
@@ -84,8 +81,7 @@ public class AtlasRestoreService {
     }
 
     // TODO(gs): move this into CassandraRepairHelper
-    private void repairTransactionsTables(
-            Namespace namespace, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
+    private void repairTransactionsTables(Namespace namespace, Consumer<RangesForRepair> repairTable) {
         // 1. get schema metadata
         Optional<InternalSchemaMetadataState> schemaMetadataState = backupPersister.getSchemaMetadata(namespace);
         CompletedBackup completedBackup =

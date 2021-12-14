@@ -20,14 +20,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
-import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +56,7 @@ public class AtlasRestoreServiceTest {
 
     @Test
     public void repairsOnlyWhenBackupPresent() {
-        Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> doNothingConsumer = _unused -> {};
+        Consumer<RangesForRepair> doNothingConsumer = _unused -> {};
         atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
