@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableSet;
@@ -67,6 +68,12 @@ public class CassandraRepairHelper {
                 .forEach(repairTable);
     }
 
+    // TODO(gs): think about design here - this is hacky
+    public Session newSession(Namespace namespace) {
+        return getCqlCluster(namespace).newSession();
+    }
+
+    // TODO(gs) memoise/cache
     private CqlCluster getCqlCluster(Namespace namespace) {
         CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
         return CqlCluster.create(config);
@@ -94,7 +101,8 @@ public class CassandraRepairHelper {
         return com.palantir.atlasdb.keyvalue.api.Namespace.create(namespace.get());
     }
 
-    private Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
+    // TODO(gs): move code so this doesn't need to be public
+    public Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
         return tokenRanges.stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
     }
 

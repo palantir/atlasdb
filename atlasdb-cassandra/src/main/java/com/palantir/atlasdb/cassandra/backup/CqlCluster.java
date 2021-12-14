@@ -71,6 +71,10 @@ public final class CqlCluster {
                 .orElseThrow(() -> new SafeIllegalStateException("Attempting to get token ranges with thrift config!"));
     }
 
+    public Session newSession() {
+        return cluster.connect(config.getKeyspaceOrThrow());
+    }
+
     public Map<InetSocketAddress, Set<TokenRange>> getTokenRanges(String tableName) {
         try (Session session = cluster.connect()) {
             Metadata metadata = session.getCluster().getMetadata();
