@@ -20,12 +20,12 @@ import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.backup.transaction.FullyBoundedTimestampRange;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.Map;
 import java.util.Optional;
 

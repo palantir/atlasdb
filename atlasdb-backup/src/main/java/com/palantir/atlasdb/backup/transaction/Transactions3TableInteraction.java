@@ -33,6 +33,7 @@ import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;

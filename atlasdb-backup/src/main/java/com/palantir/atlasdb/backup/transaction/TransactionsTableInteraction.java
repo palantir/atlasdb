@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
