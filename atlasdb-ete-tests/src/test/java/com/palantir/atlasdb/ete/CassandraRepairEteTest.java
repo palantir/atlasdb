@@ -276,6 +276,8 @@ public class CassandraRepairEteTest {
                 .forEach((range, addresses) -> addresses.forEach(address -> {
                     RangeSet<LightweightOppToken> existingRanges =
                             invertedMap.getOrDefault(address, TreeRangeSet.create());
+                    System.out.println("Adding range " + getLower(range) + "->" + getUpper(range) + " for host "
+                            + address.getHostName());
                     existingRanges.add(range);
                     invertedMap.put(address, existingRanges);
                 }));
