@@ -16,26 +16,21 @@
 
 package com.palantir.atlasdb.cassandra.backup.transaction;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.Token;
 import com.datastax.driver.core.policies.RetryPolicy;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Encapsulates certain operations on transaction tables for a given range of timestamps that are needed for restores
@@ -64,14 +59,6 @@ public interface TransactionsTableInteraction {
 
     default SafeIllegalArgumentException illegalEntry(TransactionTableEntry entry) {
         throw new SafeIllegalArgumentException("Illegal entry type", SafeArg.of("entry", entry));
-    }
-
-    default Set<Token> getPartitionTokens(TableMetadata transactionsTable, Session session) {
-        return createSelectStatements(transactionsTable)
-                .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
-                .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))
-                .map(row -> row.getToken(CassandraConstants.ROW))
-                .collect(Collectors.toSet());
     }
 
     static List<TransactionsTableInteraction> getTransactionTableInteractions(

@@ -133,7 +133,6 @@ public final class CqlCluster {
         }
     }
 
-    // TODO(gs): reuse code from below
     private Map<String, Set<Token>> getPartitionKeys(
             List<TransactionsTableInteraction> transactionsTableInteractions,
             Session session,
@@ -141,15 +140,19 @@ public final class CqlCluster {
             Metadata metadata) {
         return KeyedStream.of(transactionsTableInteractions.stream())
                 .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
-                .map(interaction -> interaction.getPartitionTokens(
+                .map(interaction -> getPartitionTokens(
+                        session,
                         ClusterMetadataUtils.getTableMetadata(
-                                metadata, keyspaceName, interaction.getTransactionsTableName()),
-                        session))
+                                metadata, keyspaceName, interaction.getTransactionsTableName())))
                 .collectToMap();
     }
 
     private static Set<Token> getPartitionTokens(Session session, TableMetadata tableMetadata) {
-        return createSelectStatements(tableMetadata)
+        return executeAtConsistencyAll(session, createSelectStatements(tableMetadata));
+    }
+
+    private static Set<Token> executeAtConsistencyAll(Session session, Stream<Statement> selectStatements) {
+        return selectStatements
                 .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
                 .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))
                 .map(row -> row.getToken(CassandraConstants.ROW))
