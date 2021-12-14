@@ -20,14 +20,12 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
@@ -41,12 +39,13 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public final class CqlCluster {
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCluster.class);
@@ -150,11 +149,15 @@ public final class CqlCluster {
     }
 
     private static Set<Token> getPartitionTokens(Session session, TableMetadata tableMetadata) {
-        Statement fullTableScan = createSelectStatement(tableMetadata);
-        Iterator<Row> rows = session.execute(fullTableScan).iterator();
-        return Streams.stream(rows)
+        return createSelectStatements(tableMetadata)
+                .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
+                .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))
                 .map(row -> row.getToken(CassandraConstants.ROW))
                 .collect(Collectors.toSet());
+    }
+
+    private static Stream<Statement> createSelectStatements(TableMetadata table) {
+        return Stream.of(createSelectStatement(table));
     }
 
     private static Statement createSelectStatement(TableMetadata table) {

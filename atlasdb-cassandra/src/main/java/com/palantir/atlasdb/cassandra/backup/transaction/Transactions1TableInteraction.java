@@ -27,14 +27,13 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
-import java.util.List;
+import java.util.stream.Stream;
 
 public class Transactions1TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
@@ -118,7 +117,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
+    public Stream<Statement> createSelectStatements(TableMetadata transactionsTable) {
         Statement select = QueryBuilder.select()
                 .all()
                 .from(transactionsTable)
@@ -132,7 +131,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
                 .setFetchSize(SELECT_TRANSACTIONS_FETCH_SIZE)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS);
 
-        return ImmutableList.of(select);
+        return Stream.of(select);
     }
 
     static ByteBuffer encodeStartTimestamp(long timestamp) {

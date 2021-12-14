@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
@@ -45,7 +46,7 @@ public interface TransactionsTableInteraction {
     // reduce this from default because we run CleanTransactionsTableTask across N keyspaces at the same time
     int SELECT_TRANSACTIONS_FETCH_SIZE = 1_000;
 
-    List<Statement> createSelectStatements(TableMetadata transactionsTable);
+    Stream<Statement> createSelectStatements(TableMetadata transactionsTable);
 
     PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, Session session);
 
@@ -66,7 +67,7 @@ public interface TransactionsTableInteraction {
     }
 
     default Set<Token> getPartitionTokens(TableMetadata transactionsTable, Session session) {
-        return createSelectStatements(transactionsTable).stream()
+        return createSelectStatements(transactionsTable)
                 .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
                 .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))
                 .map(row -> row.getToken(CassandraConstants.ROW))
