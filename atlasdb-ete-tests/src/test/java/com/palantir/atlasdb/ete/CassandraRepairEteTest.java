@@ -277,7 +277,7 @@ public class CassandraRepairEteTest {
                     RangeSet<LightweightOppToken> existingRanges =
                             invertedMap.getOrDefault(address, TreeRangeSet.create());
                     System.out.println("Adding range " + getLower(range) + "->" + getUpper(range) + " for host "
-                            + address.getHostName());
+                            + address.getHostString());
                     existingRanges.add(range);
                     invertedMap.put(address, existingRanges);
                 }));
