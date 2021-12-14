@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.transaction;
+package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import org.derive4j.Data;

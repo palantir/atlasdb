@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.transaction;
+package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.PARTITIONING_QUANTUM;
 import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.ROWS_PER_QUANTUM;
@@ -31,9 +31,7 @@ import com.google.common.collect.Range;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
-import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
@@ -43,12 +41,12 @@ import org.apache.commons.codec.binary.Hex;
 import org.junit.Before;
 import org.junit.Test;
 
-public class Transactions3TableInteractionTest {
+public class Transactions2TableInteractionTest {
     private static final FullyBoundedTimestampRange RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE, mockPolicy);
+    private final TransactionsTableInteraction interaction = new Transactions2TableInteraction(RANGE, mockPolicy);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 
     @Before
@@ -60,19 +58,9 @@ public class Transactions3TableInteractionTest {
     @Test
     public void extractCommittedTimestampTest() {
         TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
-        TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
-            assertThat(startTs).isEqualTo(150L);
-            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.committed(200L));
-        });
-    }
-
-    @Test
-    public void extractStagingCommitTimestampTest() {
-        TransactionTableEntry entry =
-                interaction.extractTimestamps(createRow(150L, PutUnlessExistsValue.staging(200L)));
-        TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
-            assertThat(startTs).isEqualTo(150L);
-            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.staging(200L));
+        TransactionTableEntryAssertions.assertLegacy(entry, (startTimestamp, commitTimestamp) -> {
+            assertThat(startTimestamp).isEqualTo(150L);
+            assertThat(commitTimestamp).isEqualTo(200L);
         });
     }
 
@@ -84,18 +72,10 @@ public class Transactions3TableInteractionTest {
     }
 
     @Test
-    public void extractStagingAbortedTimestampTest() {
-        TransactionTableEntry entry = interaction.extractTimestamps(
-                createRow(150L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
-        TransactionTableEntryAssertions.assertAborted(
-                entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
-    }
-
-    @Test
     public void getAllRowsInPartition() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
-        Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+        Transactions2TableInteraction txnInteraction =
+                new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
         List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -106,8 +86,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void getsRowsInAllSpannedPartitions() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, PARTITIONING_QUANTUM + 1000000);
-        Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+        Transactions2TableInteraction txnInteraction =
+                new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
         List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
         List<String> correctSelects = createSelectStatement(0, 2 * ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -118,8 +98,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void doesntGetNextPartitionIfOpenBounded() {
         Range<Long> rangeWithinOnePartition = Range.closedOpen(100L, 25000000L);
-        Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+        Transactions2TableInteraction txnInteraction =
+                new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
         List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, 15L);
         assertThat(selects)
@@ -140,17 +120,13 @@ public class Transactions3TableInteractionTest {
     }
 
     private static Row createRow(long start, long commit) {
-        return createRow(start, PutUnlessExistsValue.committed(commit));
-    }
-
-    private static Row createRow(long start, PutUnlessExistsValue<Long> commit) {
         Row row = mock(Row.class);
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(start);
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
                 .thenReturn(
-                        ByteBuffer.wrap(TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(start, commit)));
+                        ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(start, commit)));
         return row;
     }
 
@@ -160,7 +136,7 @@ public class Transactions3TableInteractionTest {
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_COMMITTED_VALUE));
+                .thenReturn(ByteBuffer.wrap(TicketsEncodingStrategy.ABORTED_TRANSACTION_VALUE));
         return row;
     }
 
