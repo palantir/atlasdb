@@ -24,6 +24,8 @@ import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.utils.Bytes;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -45,6 +47,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -61,17 +64,28 @@ public class CassandraRepairHelper {
 
     private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
     private final Function<Namespace, KeyValueService> keyValueServiceFactory;
+    private final LoadingCache<Namespace, CqlCluster> cqlClusters;
 
     public CassandraRepairHelper(
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
         this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
         this.keyValueServiceFactory = keyValueServiceFactory;
+
+        this.cqlClusters = Caffeine.newBuilder()
+                .maximumSize(100)
+                .expireAfterAccess(Duration.ofMinutes(10L))
+                .build(this::getCqlClusterUncached);
+    }
+
+    private CqlCluster getCqlClusterUncached(Namespace namespace) {
+        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
+        return CqlCluster.create(config);
     }
 
     public void repairInternalTables(Namespace namespace, Consumer<RangesForRepair> repairTable) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
-        CqlCluster cqlCluster = getCqlCluster(namespace);
+        CqlCluster cqlCluster = cqlClusters.get(namespace);
         kvs.getAllTableNames().stream()
                 .filter(TABLES_TO_REPAIR::contains)
                 .map(TableReference::getTableName)
@@ -149,13 +163,7 @@ public class CassandraRepairHelper {
 
     // TODO(gs): think about design here - this is hacky
     private Session newSession(Namespace namespace) {
-        return getCqlCluster(namespace).newSession();
-    }
-
-    // TODO(gs) memoise/cache
-    private CqlCluster getCqlCluster(Namespace namespace) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        return CqlCluster.create(config);
+        return cqlClusters.get(namespace).newSession();
     }
 
     // VisibleForTesting
