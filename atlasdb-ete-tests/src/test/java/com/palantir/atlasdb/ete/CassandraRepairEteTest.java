@@ -129,11 +129,10 @@ public class CassandraRepairEteTest {
     }
 
     @Test
-    public void testRepairAllTxnTables() {
+    public void testRepairBothTxnTables() {
         List<String> tablesRepaired = new ArrayList<>();
         BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
 
-        // TODO(gs): txns3?
         Map<FullyBoundedTimestampRange, Integer> ranges = ImmutableMap.of(
                 FullyBoundedTimestampRange.of(Range.closed(1L, 5L)), 1,
                 FullyBoundedTimestampRange.of(Range.closed(6L, 10L)), 2);

@@ -103,7 +103,7 @@ public final class CqlCluster {
     public KeyedStream<String, Map<InetSocketAddress, Set<TokenRange>>> getTransactionsTableRangesForRepair(
             List<TransactionsTableInteraction> transactionsTableInteractions) {
         try (Session session = cluster.connect()) {
-            String keyspaceName = session.getLoggedKeyspace();
+            String keyspaceName = config.getKeyspaceOrThrow();
             Metadata metadata = session.getCluster().getMetadata();
             Map<String, Set<Token>> partitionKeysByTable =
                     getPartitionKeys(transactionsTableInteractions, session, keyspaceName, metadata);
