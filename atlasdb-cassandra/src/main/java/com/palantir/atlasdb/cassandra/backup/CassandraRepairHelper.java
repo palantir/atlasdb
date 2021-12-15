@@ -114,11 +114,14 @@ public class CassandraRepairHelper {
 
     private Map<String, RangesForRepair> getRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
-        return cqlClusters
-                .get(namespace)
-                .getTransactionsTableRangesForRepair(transactionsTableInteractions)
+        return KeyedStream.stream(getRawRangesForRepairByTable(namespace, transactionsTableInteractions))
                 .map(this::makeLightweight)
                 .collectToMap();
+    }
+
+    private Map<String, Map<InetSocketAddress, Set<TokenRange>>> getRawRangesForRepairByTable(
+            Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
+        return cqlClusters.get(namespace).getTransactionsTableRangesForRepair(transactionsTableInteractions);
     }
 
     // VisibleForTesting

@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Encapsulates certain operations on transaction tables for a given range of timestamps that are needed for restores
@@ -41,7 +40,7 @@ public interface TransactionsTableInteraction {
     // reduce this from default because we run CleanTransactionsTableTask across N keyspaces at the same time
     int SELECT_TRANSACTIONS_FETCH_SIZE = 1_000;
 
-    Stream<Statement> createSelectStatements(TableMetadata transactionsTable);
+    List<Statement> createSelectStatements(TableMetadata transactionsTable);
 
     PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, Session session);
 

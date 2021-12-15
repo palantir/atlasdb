@@ -26,6 +26,7 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -47,7 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public final class CqlCluster {
@@ -103,7 +103,7 @@ public final class CqlCluster {
         }
     }
 
-    public KeyedStream<String, Map<InetSocketAddress, Set<TokenRange>>> getTransactionsTableRangesForRepair(
+    public Map<String, Map<InetSocketAddress, Set<TokenRange>>> getTransactionsTableRangesForRepair(
             List<TransactionsTableInteraction> transactionsTableInteractions) {
         try (Session session = cluster.connect()) {
             String keyspaceName = config.getKeyspaceOrThrow();
@@ -115,7 +115,8 @@ public final class CqlCluster {
 
             Set<InetSocketAddress> hosts = getHosts(config);
             return KeyedStream.stream(partitionKeysByTable)
-                    .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges));
+                    .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
+                    .collectToMap();
         }
     }
 
@@ -148,7 +149,7 @@ public final class CqlCluster {
             Session session, String keyspaceName, Metadata metadata, TransactionsTableInteraction interaction) {
         TableMetadata transactionsTableMetadata =
                 ClusterMetadataUtils.getTableMetadata(metadata, keyspaceName, interaction.getTransactionsTableName());
-        Stream<Statement> selectStatements = interaction.createSelectStatements(transactionsTableMetadata);
+        List<Statement> selectStatements = interaction.createSelectStatements(transactionsTableMetadata);
         return executeAtConsistencyAll(session, selectStatements);
     }
 
@@ -173,16 +174,16 @@ public final class CqlCluster {
         return executeAtConsistencyAll(session, createSelectStatements(tableMetadata));
     }
 
-    private static Set<Token> executeAtConsistencyAll(Session session, Stream<Statement> selectStatements) {
-        return selectStatements
+    private static Set<Token> executeAtConsistencyAll(Session session, List<Statement> selectStatements) {
+        return selectStatements.stream()
                 .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
                 .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))
                 .map(row -> row.getToken(CassandraConstants.ROW))
                 .collect(Collectors.toSet());
     }
 
-    private static Stream<Statement> createSelectStatements(TableMetadata table) {
-        return Stream.of(createSelectStatement(table));
+    private static List<Statement> createSelectStatements(TableMetadata table) {
+        return ImmutableList.of(createSelectStatement(table));
     }
 
     private static Statement createSelectStatement(TableMetadata table) {

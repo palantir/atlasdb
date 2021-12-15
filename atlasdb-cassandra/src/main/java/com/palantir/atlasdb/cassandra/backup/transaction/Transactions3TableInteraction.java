@@ -35,9 +35,9 @@ import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Transactions3TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
@@ -130,18 +130,20 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public Stream<Statement> createSelectStatements(TableMetadata transactionsTable) {
+    public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
         Set<ByteBuffer> encodedRowKeys = TwoPhaseEncodingStrategy.INSTANCE
                 .encodeRangeOfStartTimestampsAsRows(
                         timestampRange.inclusiveLowerBound(), timestampRange.inclusiveUpperBound())
                 .map(ByteBuffer::wrap)
                 .collect(Collectors.toSet());
-        return encodedRowKeys.stream().map(rowKey -> QueryBuilder.select()
-                .all()
-                .from(transactionsTable)
-                .where(QueryBuilder.eq(CassandraConstants.ROW, rowKey))
-                .setConsistencyLevel(ConsistencyLevel.QUORUM)
-                .setFetchSize(SELECT_TRANSACTIONS_FETCH_SIZE)
-                .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS));
+        return encodedRowKeys.stream()
+                .map(rowKey -> QueryBuilder.select()
+                        .all()
+                        .from(transactionsTable)
+                        .where(QueryBuilder.eq(CassandraConstants.ROW, rowKey))
+                        .setConsistencyLevel(ConsistencyLevel.QUORUM)
+                        .setFetchSize(SELECT_TRANSACTIONS_FETCH_SIZE)
+                        .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS))
+                .collect(Collectors.toList());
     }
 }
