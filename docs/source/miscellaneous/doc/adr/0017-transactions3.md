@@ -105,7 +105,8 @@ public enum PutUnlessExistsState {
 }
 ```
 
-To perform a write (putUnlessExists) of a value `V`, we use the following protocol.
+To perform a write (putUnlessExists) of a value `V`, we use the following protocol (noting that these are KVS-level 
+operations).
 
 1. PUE((V, STAGING))
 2. PUT((V, COMMITTED))
@@ -129,7 +130,31 @@ The argument for read consistency is a bit subtler.
 
 #### Transactions3 Service
 
+We can use a put-unless-exists table to provide an implementation of the transactions3 service. The functionality
+required for a transaction service essentially matches that of a `PutUnlessExistsTable<Long, Long>`.
+
+We aren't actively aware of any improvements to the tickets encoding strategy used in `_transactions2` for cells,
+so we can just use that strategy when figuring out where to put the individual values.
+
 #### The PUT problem
+
+One challenge we face when working with Cassandra is that we need to choose suitable timestamps for our writes, and
+while Cassandra seems to be willing to tolerate some inconsistency because of clock drift, this is not allowed in
+AtlasDB. 
+
+For a lightweight transaction, Cassandra will apply writes at the server-side timestamp of the coordinator, though this
+is combined with a bit of conditional logic that ensures that a write that takes place in terms of Paxos after another
+one will have a writetime that is greater. Assuming that Paxos was consistent, this is fine. However, our write protocol
+performs a hard PUT in its second step, and we need to choose a timestamp for this.
+
+We settled on choosing a large constant (but not maximal!) timestamp for the hard PUT. This should exceed all reasonable
+timestamps we'd encounter in practice, but still allow for deletion if a user needs to perform a clean transactions
+range workflow as part of backup and restore.
+
+Plausible alternatives here could have included exposing a new endpoint on Cassandra's thrift API that copies the
+"get a timestamp later than what's there" logic and allows users to hit it directly (but this would require a new 
+endpoint and thus a new dependency on our Cassandra fork, making rollout messy), or having the second step of the write
+protocol be CAS((V, STAGING), (V, COMMITTED)) - but that requires another round of Paxos on writes.
 
 ### Implementation
 
