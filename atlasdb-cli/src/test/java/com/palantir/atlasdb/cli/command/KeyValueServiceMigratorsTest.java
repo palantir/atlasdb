@@ -362,7 +362,7 @@ public class KeyValueServiceMigratorsTest {
                 timestampService,
                 LockServiceImpl.create(
                         LockServerOptions.builder().isStandaloneServer(false).build()),
-                timeLock.get().getLockWatchManager(),
+                timeLock.getLockWatchManager(),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 ConflictDetectionManagers.createWithoutWarmingCache(kvs),

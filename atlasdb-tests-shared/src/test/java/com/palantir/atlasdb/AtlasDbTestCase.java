@@ -48,7 +48,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
 import java.util.Set;
@@ -56,7 +56,6 @@ import java.util.concurrent.ExecutorService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 
 public class AtlasDbTestCase {
     protected LockClient lockClient;
@@ -64,7 +63,6 @@ public class AtlasDbTestCase {
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected TrackingKeyValueService keyValueService;
-    protected InMemoryTimelockServices timelockServices;
     protected TimelockService timelockService;
     protected TimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
@@ -77,7 +75,7 @@ public class AtlasDbTestCase {
     protected int sweepQueueShards = 128;
 
     @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
     @Before
     public void setUp() throws Exception {
@@ -85,9 +83,8 @@ public class AtlasDbTestCase {
         lockClient = LockClient.of("fake lock client");
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
-        timelockServices = InMemoryTimelockServices.create(tempFolder);
-        timelockService = timelockServices.getLegacyTimelockService();
-        timestampService = timelockServices.getTimestampService();
+        timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
+        timestampService = inMemoryTimeLockRule.getTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
         TransactionTables.createTables(keyValueService);
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
@@ -115,7 +112,7 @@ public class AtlasDbTestCase {
         return new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                timelockServices,
+                inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -145,8 +142,6 @@ public class AtlasDbTestCase {
         timestampService = null;
         txManager.close();
         txManager = null;
-        timelockServices.close();
-        timelockServices = null;
     }
 
     protected void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
@@ -157,10 +152,10 @@ public class AtlasDbTestCase {
         txManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                timelockServices.getTimestampManagementService(),
-                timelockServices.getLegacyTimelockService(),
+                inMemoryTimeLockRule.getTimestampManagementService(),
+                inMemoryTimeLockRule.getLegacyTimelockService(),
                 lockService,
-                timelockServices.getLockWatchManager(),
+                inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
                 mode);
     }

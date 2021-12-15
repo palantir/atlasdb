@@ -85,7 +85,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private LockLeaseService lockLeaseService;
     private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
 
-    public InMemoryTimelockServices(TemporaryFolder tempFolder) {
+    InMemoryTimelockServices(TemporaryFolder tempFolder) {
         this.tempFolder = tempFolder;
         this.client = "client";
     }
@@ -176,13 +176,8 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         timeLockAgent.shutdown();
     }
 
-    public static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
-        return create(tempFolder, "client");
-    }
-
-    public static InMemoryTimelockServices create(TemporaryFolder tempFolder, String client) {
+    static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
         InMemoryTimelockServices services = new InMemoryTimelockServices(tempFolder);
-        services.setClient(client);
 
         try {
             services.before();

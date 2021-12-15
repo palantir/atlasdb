@@ -29,7 +29,7 @@ import com.palantir.example.profile.protos.generated.ProfilePersistence.UserProf
 import com.palantir.example.profile.schema.ProfileSchema;
 import com.palantir.example.profile.schema.generated.ProfileTableFactory;
 import com.palantir.example.profile.schema.generated.UserPhotosStreamValueTable;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -41,7 +41,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class ProfileStoreTest {
     private static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
@@ -49,22 +48,20 @@ public class ProfileStoreTest {
             UserProfile.newBuilder().setBirthEpochDay(0).setName("first last").build();
 
     @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
     private TransactionManager txnMgr;
-    private InMemoryTimelockServices services;
 
     @Before
     public void before() {
-        services = InMemoryTimelockServices.create(tempFolder);
         txnMgr = TransactionManagers.createInMemory(
-                ProfileSchema.INSTANCE.getLatestSchema(), new InMemoryLockAndTimestampServiceFactory(services));
+                ProfileSchema.INSTANCE.getLatestSchema(),
+                new InMemoryLockAndTimestampServiceFactory(inMemoryTimeLockRule.get()));
     }
 
     @After
     public void after() {
         txnMgr.close();
-        services.close();
     }
 
     @Test
