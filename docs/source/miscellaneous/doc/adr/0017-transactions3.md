@@ -66,16 +66,66 @@ algorithm. We're thus treating dealing with these cases as outside the scope of 
 
 A good solution to this problem should demonstrate the following characteristics:
 
-- The transactions table should have repeatable reads: after a non-null value (a commit timestamp, or ABORTED) has been 
-  read from the table for a given timestamp, all future reads should return the same value.
-- In the average case, reading a cell in the transactions table should require 1 RPC from AtlasDB to the coordinating
-  Cassandra node, and just 1 RPC between each pair of Cassandra nodes in the relevant replication group.
-- Writing a cell in the transactions table should require as few RPCs as possible, bearing in mind the other 
-  constraints.
+- *Repeatable reads*: After a non-null value (a commit timestamp, or ABORTED) has been read from the table for a given 
+  timestamp, all future reads should return the same value. This is our primary issue with the current system.
+- *Eventual read efficiency*: Eventually, reading a cell in the transactions table should require just 1 RPC from
+  AtlasDB to the coordinating Cassandra node, and within Cassandra just 1 RPC between each pair of Cassandra nodes in
+  the relevant replication group.
+- *Write efficiency*: Writing a cell in the transactions table should require as few RPCs as possible, bearing in mind 
+  the other constraints. Optimising for this property is less important than the other two.
 
 ### Theory
 
 #### PUE Tables
+We want to define a *put-unless-exists table*, which supports only two operations: putUnlessExists and get. While this
+interface may look superfluous in that the `KeyValueService` interface already has very similar endpoints, it must
+support repeatable reads.
+
+```java
+public interface PutUnlessExistsTable<K, V> {
+    void putUnlessExistsMultiple(Map<K, V> keyValues) throws KeyAlreadyExistsException;
+
+    ListenableFuture<Map<K, V>> get(Iterable<K> keys);
+}
+```
+
+As a primitive, we define a *put-unless-exists value* as a pair of a value and a state enumeration. This state indicates
+whether the value is *pending* or *committed*.
+
+```java
+public interface PutUnlessExistsValue<V> {
+    V value();
+
+    PutUnlessExistsState state();
+}
+
+public enum PutUnlessExistsState {
+    STAGING,
+    COMMITTED;
+}
+```
+
+To perform a write (putUnlessExists) of a value `V`, we use the following protocol.
+
+1. PUE((V, STAGING))
+2. PUT((V, COMMITTED))
+
+To perform a read, we use the following protocol.
+
+1. Read the current value from the database.
+2. If it is (V, COMMITTED), return V.
+3. If it is not present, return null.
+4. If it is (V, STAGING),
+   1. perform a CAS((V, STAGING), (V, COMMITTED)),
+   2. then return V.
+
+Notice that this protocol meets the criteria outlined above. We have eventual read efficiency, as in the steady state
+most values are going to be COMMITTED, and the read protocol for a COMMITTED value just involves a single read at QUORUM
+consistency. 
+
+The argument for read consistency is a bit subtler.
+
+<Insert details of Grgur's proof work here>
 
 #### Transactions3 Service
 
@@ -87,6 +137,18 @@ A good solution to this problem should demonstrate the following characteristics
 
 #### PutUnlessExistsTable
 
+#### Internal backup services
+
 ## Alternatives Considered
+
+- One possible solution could be to perform reads at SERIAL consistency, and override the default system keyspace TTL in 
+  Cassandra to be longer. However, we would still need to pick a reasonable bound after which the Paxos logs and other
+  contents of the system keyspace could be kept for. Furthermore, reads at SERIAL consistency will not achieve eventual
+  read efficiency; these require Cassandra nodes to perform a round of Paxos internally, adding two *more* RPCs between
+  the coordinator (which acts as a Paxos proposer) and the other nodes.
+- Another possible approach involves a state machine where a user is allowed to propose their own value as part of the
+  read protocol (as opposed to being required to commit the staging value that was written). The author thinks this
+  could probably work, but it is more difficult to reason about (e.g. one has to be more concerned about the behaviour
+  of concurrent proposals, and whether a dueling proposers-style situation is possible).
 
 ## Consequences
