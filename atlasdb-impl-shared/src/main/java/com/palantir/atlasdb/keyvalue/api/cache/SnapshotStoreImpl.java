@@ -46,15 +46,15 @@ final class SnapshotStoreImpl implements SnapshotStore {
     private final Multimap<Sequence, StartTimestamp> liveSequences;
     private final Map<StartTimestamp, Sequence> timestampMap;
     private final RateLimiter retentionRateLimiter = RateLimiter.create(1.0);
-    private final int minimumSize;
+    private final int minimumUnusedSnapshots;
     private final int maximumSize;
 
     @VisibleForTesting
-    SnapshotStoreImpl(int minimumSize, int maximumSize, CacheMetrics cacheMetrics) {
+    SnapshotStoreImpl(int minimumUnusedSnapshots, int maximumSize, CacheMetrics cacheMetrics) {
         this.snapshotMap = new TreeMap<>();
         this.timestampMap = new HashMap<>();
         this.liveSequences = MultimapBuilder.treeKeys().hashSetValues().build();
-        this.minimumSize = minimumSize;
+        this.minimumUnusedSnapshots = minimumUnusedSnapshots;
         this.maximumSize = maximumSize;
         cacheMetrics.setSnapshotsHeldInMemory(snapshotMap::size);
         cacheMetrics.setSequenceDifference(() -> {
@@ -115,8 +115,8 @@ final class SnapshotStoreImpl implements SnapshotStore {
     void retentionSnapshots() {
         Set<Sequence> currentLiveSequences = liveSequences.keySet();
         int nonEssentialSnapshotCount = snapshotMap.size() - currentLiveSequences.size();
-        if (nonEssentialSnapshotCount > minimumSize) {
-            int numToRetention = nonEssentialSnapshotCount - minimumSize;
+        if (nonEssentialSnapshotCount > minimumUnusedSnapshots) {
+            int numToRetention = nonEssentialSnapshotCount - minimumUnusedSnapshots;
 
             List<Sequence> sequencesToRemove = snapshotMap.keySet().stream()
                     .filter(sequence -> !currentLiveSequences.contains(sequence))

@@ -146,6 +146,36 @@ public final class SnapshotStoreImplTest {
     }
 
     @Test
+    public void removeTimestampKeepsOldTimestampsButNotThoseInBetween() {
+        snapshotStore = new SnapshotStoreImpl(1, 20_000, CACHE_METRICS);
+        snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_2, ImmutableSet.of(TIMESTAMP_2), SNAPSHOT_2);
+        snapshotStore.storeSnapshot(SEQUENCE_3, ImmutableSet.of(TIMESTAMP_3), SNAPSHOT_3);
+        snapshotStore.storeSnapshot(SEQUENCE_4, ImmutableSet.of(TIMESTAMP_4), SNAPSHOT_4);
+
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_2, TIMESTAMP_2);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_3, TIMESTAMP_3);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_4, TIMESTAMP_4);
+
+        removeSnapshotAndAssert(TIMESTAMP_3, SEQUENCE_3)
+                .as("snapshot is the latest non-essential and thus kept")
+                .hasValue(SNAPSHOT_3);
+
+        removeSnapshotAndAssert(TIMESTAMP_2, SEQUENCE_2)
+                .as("snapshot is not the latest and thus removed")
+                .isEmpty();
+
+        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_1))
+                .as("old snapshot is kept around as it has a live timestamp")
+                .hasValue(SNAPSHOT_1);
+
+        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_4))
+                .as("new snapshot is kept around as it has a live timestamp")
+                .hasValue(SNAPSHOT_4);
+    }
+
+    @Test
     public void retentionIsNotRunOnEveryRemoval() {
         snapshotStore = new SnapshotStoreImpl(0, 20_000, CACHE_METRICS);
         long numEntries = 100L;
