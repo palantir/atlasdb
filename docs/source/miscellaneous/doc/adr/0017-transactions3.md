@@ -227,7 +227,17 @@ that achieve better efficiency by adding one bit rather than one byte; also, sin
 value in the relative simplicity of this approach, as well as its defense against users attempting to read data using
 an incorrect encoding strategy.
 
-#### Internal backup services
+#### Deployment and testing
+
+Much of the work on transaction schema versions done during `_transactions2` was general, and can easily be repurposed.
+One can simply set the `targetTransactionsSchemaVersion` in their configuration to `3`, and we will (after going 
+through the required schema lease process) use `_transactions3`.
+
+We have set up our existing transaction tests to become parameterised, and have run them with both `_transactions` 
+(legacy) and `_transactions3`. Curiously, at the time `_transactions2` was written these were *not* wired up. We have
+also implemented a simulated test version of the consensus forgetting store that can forget values with configurable
+probability, and have used this to fuzz test the put-unless-exists table to give us stronger evidence that the protocol
+is safe, and that it is implemented correctly.
 
 ## Alternatives Considered
 
