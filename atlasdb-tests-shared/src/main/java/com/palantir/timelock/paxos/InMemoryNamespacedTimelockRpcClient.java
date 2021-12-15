@@ -17,13 +17,13 @@
 package com.palantir.timelock.paxos;
 
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.lock.v2.NamespacedTimelockTimestampClient;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 
-// In-memory alternative to NamespacedTimelockRpcClient
-public class DelegatingNamespacedTimelockTimestampClient implements NamespacedTimelockTimestampClient {
+// In-memory alternative to DefaultNamespacedTimelockRpcClient - doesn't actually make RPCs
+public class InMemoryNamespacedTimelockRpcClient implements NamespacedTimelockRpcClient {
     private final AsyncTimelockService delegate;
 
-    public DelegatingNamespacedTimelockTimestampClient(AsyncTimelockService delegate) {
+    public InMemoryNamespacedTimelockRpcClient(AsyncTimelockService delegate) {
         this.delegate = delegate;
     }
 

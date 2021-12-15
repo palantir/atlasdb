@@ -39,7 +39,7 @@ import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TransactionStarter;
-import com.palantir.lock.v2.NamespacedTimelockTimestampClient;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
@@ -239,11 +239,11 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         CommitTimestampGetter commitTimestampGetter =
                 requestBatchersFactory.createBatchingCommitTimestampGetter(lockLeaseService);
 
-        NamespacedTimelockTimestampClient namespacedTimelockTimestampClient =
-                new DelegatingNamespacedTimelockTimestampClient(getTimelockService());
+        NamespacedTimelockRpcClient namespacedTimelockRpcClient =
+                new InMemoryNamespacedTimelockRpcClient(getTimelockService());
 
         return new RemoteTimelockServiceAdapter(
-                namespacedTimelockTimestampClient,
+                namespacedTimelockRpcClient,
                 namespacedConjureTimelockService,
                 lockLeaseService,
                 transactionStarter,

@@ -24,7 +24,7 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.NamespacedTimelockTimestampClient;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -41,15 +41,14 @@ import java.util.Set;
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(RemoteTimelockServiceAdapter.class);
 
-    private final NamespacedTimelockTimestampClient rpcClient;
+    private final NamespacedTimelockRpcClient rpcClient;
     private final NamespacedConjureTimelockService conjureTimelockService;
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
     private final CommitTimestampGetter commitTimestampGetter;
 
-    // TODO(gs): factory method createInMemory?
     public RemoteTimelockServiceAdapter(
-            NamespacedTimelockTimestampClient rpcClient,
+            NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LockLeaseService lockLeaseService,
             TransactionStarter transactionStarter,
@@ -62,7 +61,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     private RemoteTimelockServiceAdapter(
-            NamespacedTimelockTimestampClient rpcClient,
+            NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LeaderTimeGetter leaderTimeGetter,
             RequestBatchersFactory batcherFactory) {
@@ -75,7 +74,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     public static RemoteTimelockServiceAdapter create(
             Namespace namespace,
-            NamespacedTimelockTimestampClient rpcClient,
+            NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchCache lockWatchCache) {
         return create(
@@ -86,7 +85,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     public static RemoteTimelockServiceAdapter create(
-            NamespacedTimelockTimestampClient rpcClient,
+            NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LeaderTimeGetter leaderTimeGetter,
             RequestBatchersFactory batcherFactory) {
