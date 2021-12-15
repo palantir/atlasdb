@@ -12,7 +12,4 @@ dependencies {
 
     testImplementation 'org.mockito:mockito-core'
     testCompile group: 'commons-codec', name: 'commons-codec', version: '1.15'
-
-    annotationProcessor group: 'org.immutables', name: 'value'
-    compileOnly 'org.immutables:value::annotations'
 }

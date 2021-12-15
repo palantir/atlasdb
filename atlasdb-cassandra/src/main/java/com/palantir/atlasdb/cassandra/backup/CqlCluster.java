@@ -106,7 +106,7 @@ public final class CqlCluster {
             String keyspaceName = config.getKeyspaceOrThrow();
             Metadata metadata = session.getCluster().getMetadata();
             Map<String, Set<Token>> partitionKeysByTable =
-                    getPartitionKeys(transactionsTableInteractions, session, keyspaceName, metadata);
+                    getPartitionTokensByTable(transactionsTableInteractions, session, keyspaceName, metadata);
 
             maybeLogTokenRanges(transactionsTableInteractions, partitionKeysByTable);
 
@@ -114,6 +114,26 @@ public final class CqlCluster {
             return KeyedStream.stream(partitionKeysByTable)
                     .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges));
         }
+    }
+
+    private Map<String, Set<Token>> getPartitionTokensByTable(
+            List<TransactionsTableInteraction> transactionsTableInteractions,
+            Session session,
+            String keyspaceName,
+            Metadata metadata) {
+        return KeyedStream.of(transactionsTableInteractions.stream())
+                .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
+                .map(interaction ->
+                        getPartitionTokensForTransactionsTable(session, keyspaceName, metadata, interaction))
+                .collectToMap();
+    }
+
+    private Set<Token> getPartitionTokensForTransactionsTable(
+            Session session, String keyspaceName, Metadata metadata, TransactionsTableInteraction interaction) {
+        TableMetadata transactionsTableMetadata =
+                ClusterMetadataUtils.getTableMetadata(metadata, keyspaceName, interaction.getTransactionsTableName());
+        Stream<Statement> selectStatements = interaction.createSelectStatements(transactionsTableMetadata);
+        return executeAtConsistencyAll(session, selectStatements);
     }
 
     private void maybeLogTokenRanges(
@@ -131,20 +151,6 @@ public final class CqlCluster {
                     SafeArg.of("transactionsTablesWithRanges", loggableTableRanges),
                     SafeArg.of("numPartitionKeysByTable", numPartitionKeysByTable));
         }
-    }
-
-    private Map<String, Set<Token>> getPartitionKeys(
-            List<TransactionsTableInteraction> transactionsTableInteractions,
-            Session session,
-            String keyspaceName,
-            Metadata metadata) {
-        return KeyedStream.of(transactionsTableInteractions.stream())
-                .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
-                .map(interaction -> getPartitionTokens(
-                        session,
-                        ClusterMetadataUtils.getTableMetadata(
-                                metadata, keyspaceName, interaction.getTransactionsTableName())))
-                .collectToMap();
     }
 
     private static Set<Token> getPartitionTokens(Session session, TableMetadata tableMetadata) {
