@@ -168,7 +168,7 @@ public class AtlasBackupResourceTest {
     private static CompletedBackup completedBackup(InProgressBackupToken backupToken) {
         return CompletedBackup.builder()
                 .namespace(backupToken.getNamespace())
-                .backupStartTimestamp(backupToken.getBackupStartTimestamp())
+                .backupStartTimestamp(backupToken.getImmutableTimestamp())
                 .backupEndTimestamp(3L)
                 .build();
     }

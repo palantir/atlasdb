@@ -132,7 +132,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         long fastForwardTimestamp = timelock(namespace).getFreshTimestamp();
         return CompletedBackup.builder()
                 .namespace(namespace)
-                .backupStartTimestamp(backupToken.getBackupStartTimestamp())
+                .backupStartTimestamp(backupToken.getImmutableTimestamp())
                 .backupEndTimestamp(fastForwardTimestamp)
                 .build();
     }

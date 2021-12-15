@@ -89,8 +89,6 @@ public class AtlasRestoreService {
         Optional<InternalSchemaMetadataState> schemaMetadataState = backupPersister.getSchemaMetadata(namespace);
 
         long fastForwardTs = completedBackup.getBackupEndTimestamp();
-
-        // Should this be the immutableTs from the completed backup?
         long immutableTs = completedBackup.getBackupStartTimestamp();
 
         return CoordinationServiceUtilities.getCoordinationMapOnRestore(
