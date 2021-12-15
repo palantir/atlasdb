@@ -158,9 +158,9 @@ public final class SnapshotStoreImplTest {
         assertSnapshotsEqualForTimestamp(SNAPSHOT_3, TIMESTAMP_3);
         assertSnapshotsEqualForTimestamp(SNAPSHOT_4, TIMESTAMP_4);
 
-        removeSnapshotAndAssert(TIMESTAMP_3, SEQUENCE_3)
+        removeSnapshotAndAssert(TIMESTAMP_4, SEQUENCE_4)
                 .as("snapshot is the latest non-essential and thus kept")
-                .hasValue(SNAPSHOT_3);
+                .hasValue(SNAPSHOT_4);
 
         removeSnapshotAndAssert(TIMESTAMP_2, SEQUENCE_2)
                 .as("snapshot is not the latest and thus removed")
@@ -171,7 +171,7 @@ public final class SnapshotStoreImplTest {
                 .hasValue(SNAPSHOT_1);
 
         assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_4))
-                .as("new snapshot is kept around as it has a live timestamp")
+                .as("new snapshot is kept around as is the latest")
                 .hasValue(SNAPSHOT_4);
     }
 
