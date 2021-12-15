@@ -28,6 +28,7 @@ import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
@@ -157,10 +158,10 @@ public final class CqlCluster {
             List<TransactionsTableInteraction> transactionsTableInteractions,
             Map<String, Set<Token>> partitionKeysByTable) {
         if (log.isDebugEnabled()) {
-            Map<String, FullyBoundedTimestampRange> loggableTableRanges = KeyedStream.of(transactionsTableInteractions)
-                    .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
-                    .map(TransactionsTableInteraction::getTimestampRange)
-                    .collectToMap();
+            Multimap<String, TransactionsTableInteraction> indexedInteractions = Multimaps.index(
+                    transactionsTableInteractions, TransactionsTableInteraction::getTransactionsTableName);
+            Multimap<String, FullyBoundedTimestampRange> loggableTableRanges =
+                    Multimaps.transformValues(indexedInteractions, TransactionsTableInteraction::getTimestampRange);
             Map<String, Integer> numPartitionKeysByTable =
                     KeyedStream.stream(partitionKeysByTable).map(Set::size).collectToMap();
             log.debug(
