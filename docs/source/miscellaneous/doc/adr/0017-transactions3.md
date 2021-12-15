@@ -158,9 +158,57 @@ protocol be CAS((V, STAGING), (V, COMMITTED)) - but that requires another round 
 
 ### Implementation
 
+We define the `PutUnlessExistsTable<K, V>` interface described above and switch our transaction services to use it
+rather than a key-value service directly. This is useful because it allows us to avoid
+having to change transaction service logic very much; deployments using key-value-services which don't actually have
+this problem (e.g., Oracle and Postgres) simply instantiate a much simpler implementation that passes through the
+relevant calls to the key-value service. As part of doing this, we needed to rework the `checkAndSetCompatibility`
+classification of key-value services to separately track failure details and consistency guarantees.
+
+The remainder of this section largely focuses on implications for deployments running Cassandra.
+
 #### Consensus forgetting stores
 
-#### PutUnlessExistsTable
+We introduce a new abstraction, a `ConsensusForgettingStore`. This is a table that is intended to capture the behaviour
+of Cassandra that we have identified: reads are not repeatable, but there still remain some consistency guarantees which
+we will define.
+
+The main operations on a `ConsensusForgettingStore` are those required to support the protocol outlined above:
+
+```java
+public interface ConsensusForgettingStore {
+    /**
+     * An atomic put unless exists operation. If this method throws an exception, there are no consistency guarantees:
+     *   1. A subsequent PUE may succeed or fail non-deterministically
+     *   2. A subsequent get may return Optional.of(value), Optional.empty(), or even Optional.of(other_value) if
+     *   another PUE has failed in the past non-deterministically
+     */
+    void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException;
+
+    /**
+     * An atomic operation that verifies the value for a cell. If successful, until a
+     * {@link ConsensusForgettingStore#put(Cell, byte[])} is called subsequent gets are guaranteed to return
+     * Optional.of(value), and subsequent PUE is guaranteed to throw a KeyAlreadyExistsException.
+     */
+    void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
+
+    ListenableFuture<Optional<byte[]>> get(Cell cell);
+
+    /**
+     * A put operation that offers no consistency guarantees when an exception is thrown. Multiple puts into the same
+     * cell with different values may result in non-repeatable reads.
+     */
+    void put(Cell cell, byte[] value);
+}
+```
+Note that there are multi-cell versions in the actual implementation that we have omitted in the interest of 
+conciseness.
+
+The implementation of *these* methods generally involve passing values through to the KVS, perhaps with a small amount
+of wiring. Nonetheless, this interface is useful as it allows us to simulate legitimate failures in this layer
+as part of our testing,
+
+#### ResilientCommitTimestampPutUnlessExistsTable
 
 #### Internal backup services
 
