@@ -5,8 +5,7 @@ Date: 03/12/2021
 
 ## Status
 
-Technical decision has been accepted.
-This architectural decision record is still a work in progress.
+Accepted
 
 ## Context
 
