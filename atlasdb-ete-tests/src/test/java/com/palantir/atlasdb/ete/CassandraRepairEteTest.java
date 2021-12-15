@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import javax.xml.bind.DatatypeConverter;
@@ -143,6 +144,28 @@ public class CassandraRepairEteTest {
                 .containsExactlyInAnyOrder(
                         TransactionConstants.TRANSACTION_TABLE.getTableName(),
                         TransactionConstants.TRANSACTIONS2_TABLE.getTableName());
+    }
+
+    @Test
+    public void testRepairsEachTableOnceOnly() {
+        List<String> tablesRepaired = new ArrayList<>();
+        AtomicInteger numRepairs = new AtomicInteger(0);
+        BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> {
+            numRepairs.incrementAndGet();
+            tablesRepaired.add(table);
+        };
+
+        Map<FullyBoundedTimestampRange, Integer> ranges = ImmutableMap.of(
+                FullyBoundedTimestampRange.of(Range.closed(1L, 5L)), 1,
+                FullyBoundedTimestampRange.of(Range.closed(6L, 10L)), 2,
+                FullyBoundedTimestampRange.of(Range.closed(11L, 15L)), 1,
+                FullyBoundedTimestampRange.of(Range.closed(16L, 20L)), 2);
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        assertThat(tablesRepaired)
+                .containsExactlyInAnyOrder(
+                        TransactionConstants.TRANSACTION_TABLE.getTableName(),
+                        TransactionConstants.TRANSACTIONS2_TABLE.getTableName());
+        assertThat(numRepairs).hasValue(2);
     }
 
     @Test
