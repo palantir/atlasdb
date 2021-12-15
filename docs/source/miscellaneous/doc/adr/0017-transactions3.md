@@ -132,7 +132,7 @@ The argument for read consistency is a bit subtler.
 We can use a put-unless-exists table to provide an implementation of the transactions3 service. The functionality
 required for a transaction service essentially matches that of a `PutUnlessExistsTable<Long, Long>`.
 
-We aren't actively aware of any improvements to the tickets encoding strategy used in `_transactions2` for cells,
+We aren't actively aware of any improvements to the tickets encoding strategy used in _transactions2 for cells,
 so we can just use that strategy when figuring out where to put the individual values.
 
 #### The PUT problem
@@ -216,7 +216,9 @@ We also here need to make decisions about how we are going to store our (table-l
 service. This is implemented as `TwoPhaseEncodingStrategy`. As discussed earlier, we re-use the logic from 
 `TicketsEncodingStrategy` for encoding a start timestamp (a key) into a cell. This ensures that we still profit from
 performance optimisations that were written specifically for _transactions2 (e.g. shared modulus generation on
-TimeLock, protections against overall hotspotting).
+TimeLock, protections against overall hotspotting). We opted to reuse the `_transactions2` table to avoid
+unnecessary overhead on Cassandra; the reasoning we used to justify some of the specific table parameters being tuned
+in specific ways remains valid for _transactions3.
 
 For the values, we also re-use the `TicketsEncodingStrategy`'s delta-encoded `VAR_LONG`. We simply append one byte to
 the end of the value: `{0}` for a `STAGING` value and `{1}` for a `COMMITTED` value. The primary concerns we should have
@@ -228,12 +230,12 @@ an incorrect encoding strategy.
 
 #### Deployment and testing
 
-Much of the work on transaction schema versions done during `_transactions2` was general, and can easily be repurposed.
+Much of the work on transaction schema versions done during _transactions2 was general, and can easily be repurposed.
 One can simply set the `targetTransactionsSchemaVersion` in their configuration to `3`, and we will (after going 
-through the required schema lease process) use `_transactions3`.
+through the required schema lease process) use _transactions3.
 
-We have set up our existing transaction tests to become parameterised, and have run them with both `_transactions` 
-(legacy) and `_transactions3`. Curiously, at the time `_transactions2` was written these were *not* wired up. We have
+We have set up our existing transaction tests to become parameterised, and have run them with both legacy and V3
+transaction schemas. Curiously, at the time _transactions2 was written these were *not* wired up. We have
 also implemented a simulated test version of the consensus forgetting store that can forget values with configurable
 probability, and have used this to fuzz test the put-unless-exists table to give us stronger evidence that the protocol
 is safe, and that it is implemented correctly.
@@ -253,7 +255,7 @@ is safe, and that it is implemented correctly.
 ## Consequences
 As transactions3 is rolled out globally to Cassandra deployments, they will no longer be exposed to this correctness
 bug. We hope (though don't have strong evidence owing to small sample sizes and extreme difficulty in root causing) 
-that this will reduce the incidence of AtlasDB corruption tickets.
+that this will reduce the incidence of AtlasDB corruption tickets in general.
 
 Backup and restore workflows, or any use cases that manually manipulate one of the transaction tables will need to be
 aware that new serialized forms exist. In particular, the transactions2 table should not be read in isolation without
