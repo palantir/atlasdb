@@ -296,24 +296,9 @@ public class CassandraRepairEteTest {
         assertThat(fullTokenMap.get(thriftAddr)).isNotNull();
         Set<Range<LightweightOppToken>> thriftRanges = fullTokenMap.get(thriftAddr);
 
-        // Logging
-        thriftRanges.forEach(
-                range -> System.out.println("Range from full token ring: " + getLower(range) + "->" + getUpper(range)));
-        cqlRangesForHost
-                .asRanges()
-                .forEach(range -> System.out.println("Range to repair: " + getLower(range) + "->" + getUpper(range)));
-
         cqlRangesForHost.asRanges().forEach(range -> assertThat(
                         thriftRanges.stream().anyMatch(containsEntirely(range)))
                 .isTrue());
-    }
-
-    private String getLower(Range<LightweightOppToken> range) {
-        return range.hasLowerBound() ? range.lowerEndpoint().toString() : "(no lower bound)";
-    }
-
-    private String getUpper(Range<LightweightOppToken> range) {
-        return range.hasUpperBound() ? range.upperEndpoint().toString() : "(no upper bound)";
     }
 
     private Predicate<Range<LightweightOppToken>> containsEntirely(Range<LightweightOppToken> range) {
@@ -327,6 +312,7 @@ public class CassandraRepairEteTest {
         return range.hasLowerBound() ? Optional.of(range.lowerEndpoint()) : Optional.empty();
     }
 
+    // This needs to be Set<Range>, not a RangeSet, because we don't want to merge the token ranges for these tests.
     private Map<InetSocketAddress, Set<Range<LightweightOppToken>>> getFullTokenMap() {
         CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
@@ -343,8 +329,6 @@ public class CassandraRepairEteTest {
         tokenMap.asMapOfRanges()
                 .forEach((range, addresses) -> addresses.forEach(address -> {
                     Set<Range<LightweightOppToken>> existingRanges = invertedMap.getOrDefault(address, new HashSet<>());
-                    System.out.println("Adding range " + getLower(range) + "->" + getUpper(range) + " for host "
-                            + address.getHostString());
                     existingRanges.add(range);
                     invertedMap.put(address, existingRanges);
                 }));
