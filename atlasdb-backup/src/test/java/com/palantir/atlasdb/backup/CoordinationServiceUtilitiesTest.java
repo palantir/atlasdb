@@ -31,7 +31,13 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
 
-public class CoordinationServiceUtilitiesTest {
+public final class CoordinationServiceUtilitiesTest {
+    // During restores, we need to clean transactions tables in between two timestamps.
+    // It's possible that, in between _those_ timestamps, AtlasDB changed which transactions
+    // table to use. This is recorded in InternalSchemaMetadata.
+    //
+    // In this test, we simulate a switch from transactions1 to transactions2 at timestamp 10
+    // We should return the [5-10] range for transactions1, and the (10-15] range for transactions2.
     @Test
     public void correctlyBoundsTimestampsForRestore() {
         long lowerBoundForRestore = 5L;

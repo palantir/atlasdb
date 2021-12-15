@@ -106,7 +106,7 @@ public class CassandraRepairHelper {
         Map<String, RangesForRepair> tokenRangesForRepair =
                 getRangesForRepairByTable(namespace, transactionsTableInteractions);
 
-        KeyedStream.stream(tokenRangesForRepair).forEach((table, ranges) -> {
+        tokenRangesForRepair.forEach((table, ranges) -> {
             log.info("Repairing ranges for table", SafeArg.of("table", table));
             repairTable.accept(table, ranges);
         });

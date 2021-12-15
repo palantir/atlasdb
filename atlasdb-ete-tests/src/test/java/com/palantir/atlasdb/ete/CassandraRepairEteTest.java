@@ -68,7 +68,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class CassandraRepairEteTest {
+public final class CassandraRepairEteTest {
     private static final byte[] FIRST_COLUMN = PtBytes.toBytes("col1");
     private static final Cell NONEMPTY_CELL = Cell.create(PtBytes.toBytes("nonempty"), FIRST_COLUMN);
     private static final byte[] CONTENTS = PtBytes.toBytes("default_value");

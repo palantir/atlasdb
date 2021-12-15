@@ -98,8 +98,7 @@ public class AtlasRestoreService {
     private Map<Namespace, CompletedBackup> getCompletedBackups(Set<Namespace> namespaces) {
         return KeyedStream.of(namespaces)
                 .map(backupPersister::getCompletedBackup)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .flatMap(Optional::stream)
                 .collectToMap();
     }
 }

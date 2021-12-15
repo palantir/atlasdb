@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -55,7 +57,9 @@ public final class ClusterMetadataUtils {
                 .filter(tableMetadata -> tableMetadata.getName().equals(table))
                 .collect(MoreCollectors.toOptional());
         return maybeTable.orElseThrow(() -> new SafeIllegalArgumentException(
-                "Can't find table", SafeArg.of("keyspace", keyspace), SafeArg.of("table", table)));
+                "Can't find table",
+                SafeArg.of("keyspace", keyspace),
+                LoggingArgs.tableRef("table", TableReference.fromString(table))));
     }
 
     /**
