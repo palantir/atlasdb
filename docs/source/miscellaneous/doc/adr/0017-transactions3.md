@@ -78,7 +78,7 @@ A good solution to this problem should demonstrate the following characteristics
 
 #### PUE Tables
 We want to define a *put-unless-exists table*, which supports only two operations: putUnlessExists and get. While this
-interface may look superfluous in that the `KeyValueService` interface already has very similar endpoints, it must
+interface may look superfluous in that the `KeyValueService` interface already has very similar endpoints, it *must*
 support repeatable reads.
 
 ```java
@@ -206,11 +206,26 @@ conciseness.
 
 The implementation of *these* methods generally involve passing values through to the KVS, perhaps with a small amount
 of wiring. Nonetheless, this interface is useful as it allows us to simulate legitimate failures in this layer
-as part of our testing,
+as part of our testing.
 
 #### ResilientCommitTimestampPutUnlessExistsTable
 
+We implement the `PutUnlessExistsTable<K, V>` interface, using a `ConsensusForgettingStore<K, V>` and applying our
+protocol discussed in the Theory section.
 
+We also here need to make decisions about how we are going to store our (table-level) keys and values in the key-value
+service. This is implemented as `TwoPhaseEncodingStrategy`. As discussed earlier, we re-use the logic from 
+`TicketsEncodingStrategy` for encoding a start timestamp (a key) into a cell. This ensures that we still profit from
+performance optimisations that were written specifically for _transactions2 (e.g. shared modulus generation on
+TimeLock, protections against overall hotspotting).
+
+For the values, we also re-use the `TicketsEncodingStrategy`'s delta-encoded `VAR_LONG`. We simply append one byte to
+the end of the value: `{0}` for a `STAGING` value and `{1}` for a `COMMITTED` value. The primary concerns we should have
+here would be space and readability. While this is not optimal for space (consider that there are likely to be methods
+that achieve better efficiency by adding one bit rather than one byte; also, since the majority of values should be 
+`COMMITTED`, we could simply have the zero byte for `STAGING` and not have one for `COMMITTED`), there is probably some
+value in the relative simplicity of this approach, as well as its defense against users attempting to read data using
+an incorrect encoding strategy.
 
 #### Internal backup services
 
@@ -228,8 +243,8 @@ as part of our testing,
 
 ## Consequences
 As transactions3 is rolled out globally to Cassandra deployments, they will no longer be exposed to this correctness
-bug. We hope (though don't have strong evidence per se) that this will reduce the incidence of AtlasDB corruption
-tickets.
+bug. We hope (though don't have strong evidence owing to small sample sizes and extreme difficulty in root causing) 
+that this will reduce the incidence of AtlasDB corruption tickets.
 
 Backup and restore workflows, or any use cases that manually manipulate one of the transaction tables will need to be
 aware that new serialized forms exist. In particular, the transactions2 table should not be read in isolation without
