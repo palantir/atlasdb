@@ -46,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
@@ -87,6 +88,7 @@ public class CassandraRepairEteTest {
     public void setUp() {
         config = ThreeNodeCassandraCluster.getKvsConfig(2);
         kvs = CassandraKeyValueServiceImpl.createForTesting(config);
+        TransactionTables.createTables(kvs);
 
         kvs.createTable(TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
