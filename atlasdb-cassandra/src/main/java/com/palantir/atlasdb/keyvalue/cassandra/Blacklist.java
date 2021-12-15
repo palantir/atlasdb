@@ -26,8 +26,10 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -54,17 +56,20 @@ public class Blacklist {
 
     void checkAndUpdate(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
         // Check blacklist and re-integrate or continue to wait as necessary
-        for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklist.entrySet()) {
+        Iterator<Entry<InetSocketAddress, Long>> blacklistIterator =
+                blacklist.entrySet().iterator();
+        while (blacklistIterator.hasNext()) {
+            Map.Entry<InetSocketAddress, Long> blacklistedEntry = blacklistIterator.next();
             if (coolOffPeriodExpired(blacklistedEntry)) {
                 InetSocketAddress host = blacklistedEntry.getKey();
                 if (!pools.containsKey(host)) {
                     // Probably the pool changed underneath us
-                    blacklist.remove(host);
+                    blacklistIterator.remove();
                     log.info(
                             "Removing host {} from the blacklist as it wasn't found in the pool.",
                             SafeArg.of("host", CassandraLogHelper.host(host)));
                 } else if (isHostHealthy(pools.get(host))) {
-                    blacklist.remove(host);
+                    blacklistIterator.remove();
                     log.info(
                             "Added host {} back into the pool after a waiting period and successful health check.",
                             SafeArg.of("host", CassandraLogHelper.host(host)));

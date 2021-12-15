@@ -102,7 +102,6 @@ allprojects {
                 'FutureReturnValueIgnored',
                 'InlineFormatString',
                 'MixedMutabilityReturnType',
-                'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
                 'PreconditionsConstantMessage',
                 'PreconditionsInvalidPlaceholder',
