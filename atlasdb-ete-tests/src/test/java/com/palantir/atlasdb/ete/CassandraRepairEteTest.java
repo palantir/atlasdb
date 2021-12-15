@@ -66,10 +66,11 @@ public class CassandraRepairEteTest {
     private static final byte[] FIRST_COLUMN = PtBytes.toBytes("col1");
     private static final Cell NONEMPTY_CELL = Cell.create(PtBytes.toBytes("nonempty"), FIRST_COLUMN);
     private static final byte[] CONTENTS = PtBytes.toBytes("default_value");
-    private static final String NAMESPACE = "ns";
+    private static final String NAMESPACE_NAME = "ns";
+    private static final Namespace NAMESPACE = Namespace.of(NAMESPACE_NAME);
     private static final String TABLE_1 = "table1";
     private static final TableReference TABLE_REF =
-            TableReference.create(com.palantir.atlasdb.keyvalue.api.Namespace.create(NAMESPACE), TABLE_1);
+            TableReference.create(com.palantir.atlasdb.keyvalue.api.Namespace.create(NAMESPACE_NAME), TABLE_1);
 
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
@@ -103,15 +104,14 @@ public class CassandraRepairEteTest {
 
     @Test
     public void shouldGetRangesForBothReplicas() {
-        RangesForRepair ranges = cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
+        RangesForRepair ranges = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
         assertThat(ranges.asMap()).hasSize(2);
     }
 
     @Test
     public void tokenRangesToRepairShouldBeSubsetsOfTokenMap() {
         Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap = getFullTokenMap();
-        RangesForRepair rangesToRepair =
-                cassandraRepairHelper.getRangesToRepair(cqlCluster, Namespace.of(NAMESPACE), TABLE_1);
+        RangesForRepair rangesToRepair = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
 
         KeyedStream.stream(rangesToRepair.asMap())
                 .forEach((address, cqlRangesForHost) ->

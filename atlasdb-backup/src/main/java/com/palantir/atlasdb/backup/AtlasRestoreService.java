@@ -29,7 +29,7 @@ import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public class AtlasRestoreService {
@@ -62,7 +62,8 @@ public class AtlasRestoreService {
      *
      * @return the set of namespaces for which we issued a repair command via the provided Consumer.
      */
-    public Set<Namespace> repairInternalTables(Set<Namespace> namespaces, Consumer<RangesForRepair> repairTable) {
+    public Set<Namespace> repairInternalTables(
+            Set<Namespace> namespaces, BiConsumer<String, RangesForRepair> repairTable) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRepair = completedBackups.keySet();
 
@@ -78,7 +79,7 @@ public class AtlasRestoreService {
     }
 
     private void repairTransactionsTables(
-            Namespace namespace, CompletedBackup completedBackup, Consumer<RangesForRepair> repairTable) {
+            Namespace namespace, CompletedBackup completedBackup, BiConsumer<String, RangesForRepair> repairTable) {
         Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(namespace, completedBackup);
         cassandraRepairHelper.repairTransactionsTables(namespace, coordinationMap, repairTable);
     }

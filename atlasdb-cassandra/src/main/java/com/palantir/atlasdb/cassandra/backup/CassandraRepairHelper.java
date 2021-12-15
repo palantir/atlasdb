@@ -48,7 +48,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -79,22 +79,26 @@ public class CassandraRepairHelper {
         return CqlCluster.create(config);
     }
 
-    public void repairInternalTables(Namespace namespace, Consumer<RangesForRepair> repairTable) {
+    public void repairInternalTables(Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
         CqlCluster cqlCluster = cqlClusters.get(namespace);
-        kvs.getAllTableNames().stream()
-                .filter(TABLES_TO_REPAIR::contains)
-                .map(TableReference::getTableName)
+        KeyedStream.of(getTableNamesToRepair(kvs))
                 .map(tableName -> getRangesToRepair(cqlCluster, namespace, tableName))
                 // TODO(gs): this will do repairs serially, instead of batched. Is this fine? Port batching from
                 //   internal product?
                 .forEach(repairTable);
     }
 
+    private Stream<String> getTableNamesToRepair(KeyValueService kvs) {
+        return kvs.getAllTableNames().stream()
+                .filter(TABLES_TO_REPAIR::contains)
+                .map(TableReference::getTableName);
+    }
+
     public void repairTransactionsTables(
             Namespace namespace,
             Map<FullyBoundedTimestampRange, Integer> coordinationMap,
-            Consumer<RangesForRepair> repairTable) {
+            BiConsumer<String, RangesForRepair> repairTable) {
         List<TransactionsTableInteraction> transactionsTableInteractions =
                 TransactionsTableInteraction.getTransactionTableInteractions(
                         coordinationMap, DefaultRetryPolicy.INSTANCE);
@@ -104,7 +108,7 @@ public class CassandraRepairHelper {
 
         KeyedStream.stream(tokenRangesForRepair).forEach((table, ranges) -> {
             log.info("Repairing ranges for table", SafeArg.of("table", table));
-            repairTable.accept(ranges);
+            repairTable.accept(table, ranges);
         });
     }
 

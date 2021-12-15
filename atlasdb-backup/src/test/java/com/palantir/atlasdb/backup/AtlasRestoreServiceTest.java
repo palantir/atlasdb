@@ -26,7 +26,7 @@ import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,7 +58,7 @@ public class AtlasRestoreServiceTest {
 
     @Test
     public void repairsOnlyWhenBackupPresent() {
-        Consumer<RangesForRepair> doNothingConsumer = _unused -> {};
+        BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
         atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
