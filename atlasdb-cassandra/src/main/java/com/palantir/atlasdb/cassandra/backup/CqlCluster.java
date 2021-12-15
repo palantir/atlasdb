@@ -26,6 +26,8 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
@@ -39,6 +41,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -121,11 +124,24 @@ public final class CqlCluster {
             Session session,
             String keyspaceName,
             Metadata metadata) {
-        return KeyedStream.of(transactionsTableInteractions.stream())
-                .mapKeys(TransactionsTableInteraction::getTransactionsTableName)
+        ImmutableListMultimap<String, TransactionsTableInteraction> interactionsByTable =
+                Multimaps.index(transactionsTableInteractions, TransactionsTableInteraction::getTransactionsTableName);
+        return KeyedStream.stream(interactionsByTable.asMap())
+                .map(interactions -> getAllPartitionTokens(session, keyspaceName, metadata, interactions))
+                .collectToMap();
+    }
+
+    // The interactions are assumed to be from the same table.
+    private Set<Token> getAllPartitionTokens(
+            Session session,
+            String keyspaceName,
+            Metadata metadata,
+            Collection<TransactionsTableInteraction> interactions) {
+        return interactions.stream()
                 .map(interaction ->
                         getPartitionTokensForTransactionsTable(session, keyspaceName, metadata, interaction))
-                .collectToMap();
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
     }
 
     private Set<Token> getPartitionTokensForTransactionsTable(
