@@ -45,10 +45,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFact
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +59,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import javax.xml.bind.DatatypeConverter;
 import org.junit.After;
@@ -100,6 +104,44 @@ public class CassandraRepairEteTest {
     @After
     public void tearDown() {
         kvs.dropTable(TABLE_REF);
+    }
+
+    @Test
+    public void testRepairOnlyTxn1() {
+        List<String> tablesRepaired = new ArrayList<>();
+        BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
+
+        Map<FullyBoundedTimestampRange, Integer> ranges =
+                ImmutableMap.of(FullyBoundedTimestampRange.of(Range.closed(1L, 10_000_000L)), 1);
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        assertThat(tablesRepaired).containsExactly(TransactionConstants.TRANSACTION_TABLE.getTableName());
+    }
+
+    @Test
+    public void testRepairOnlyTxn2() {
+        List<String> tablesRepaired = new ArrayList<>();
+        BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
+
+        Map<FullyBoundedTimestampRange, Integer> ranges =
+                ImmutableMap.of(FullyBoundedTimestampRange.of(Range.closed(1L, 10_000_000L)), 2);
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        assertThat(tablesRepaired).containsExactly(TransactionConstants.TRANSACTIONS2_TABLE.getTableName());
+    }
+
+    @Test
+    public void testRepairAllTxnTables() {
+        List<String> tablesRepaired = new ArrayList<>();
+        BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
+
+        // TODO(gs): txns3?
+        Map<FullyBoundedTimestampRange, Integer> ranges = ImmutableMap.of(
+                FullyBoundedTimestampRange.of(Range.closed(1L, 5L)), 1,
+                FullyBoundedTimestampRange.of(Range.closed(6L, 10L)), 2);
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        assertThat(tablesRepaired)
+                .containsExactlyInAnyOrder(
+                        TransactionConstants.TRANSACTION_TABLE.getTableName(),
+                        TransactionConstants.TRANSACTIONS2_TABLE.getTableName());
     }
 
     @Test
