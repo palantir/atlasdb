@@ -210,6 +210,8 @@ as part of our testing,
 
 #### ResilientCommitTimestampPutUnlessExistsTable
 
+
+
 #### Internal backup services
 
 ## Alternatives Considered
@@ -225,3 +227,16 @@ as part of our testing,
   of concurrent proposals, and whether a dueling proposers-style situation is possible).
 
 ## Consequences
+As transactions3 is rolled out globally to Cassandra deployments, they will no longer be exposed to this correctness
+bug. We hope (though don't have strong evidence per se) that this will reduce the incidence of AtlasDB corruption
+tickets.
+
+Backup and restore workflows, or any use cases that manually manipulate one of the transaction tables will need to be
+aware that new serialized forms exist. In particular, the transactions2 table should not be read in isolation without
+caution - while values are unambiguous in indicating whether they are written with transactions2 or transactions3,
+a user needs to be aware that a STAGING value is not safe to use as though it is final.
+
+It is possible, even likely, that the performance of transactions3 is worse than that of transactions2 (we do strictly
+more work, and values that need to be passed to and from the database are strictly larger). However, we don't expect
+this to add more than a constant amount of overhead, and this should be very small in the steady state. This isn't a
+very fair comparison, in any case, as the transactions2 approach is not correct.
