@@ -34,7 +34,8 @@ from recommonmark.parser import CommonMarkParser
 sys.path.append(os.path.abspath('.'))
 extensions = [
     'sphinx.ext.doctest',
-    'code-block-with-version-replacement'
+    'code-block-with-version-replacement',
+    'myst-parser'
 ]
 
 # Included 
