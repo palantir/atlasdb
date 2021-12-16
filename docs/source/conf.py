@@ -35,7 +35,7 @@ sys.path.append(os.path.abspath('.'))
 extensions = [
     'sphinx.ext.doctest',
     'code-block-with-version-replacement',
-    'myst-parser'
+    'myst_parser'
 ]
 
 # Included 
