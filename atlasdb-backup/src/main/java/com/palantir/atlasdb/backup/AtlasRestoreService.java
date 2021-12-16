@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
@@ -102,6 +103,13 @@ public class AtlasRestoreService {
                 .map(backupPersister::getCompletedBackup)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
+
+        if (completedBackups.isEmpty()) {
+            log.info(
+                    "Attempted to complete restore, but no completed backups were found",
+                    SafeArg.of("namespaces", namespaces));
+            return ImmutableSet.of();
+        }
 
         CompleteRestoreResponse response =
                 atlasRestoreClientBlocking.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
