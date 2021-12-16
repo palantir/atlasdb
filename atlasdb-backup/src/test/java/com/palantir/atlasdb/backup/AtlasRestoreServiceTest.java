@@ -21,10 +21,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.tokens.auth.AuthHeader;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +43,12 @@ public class AtlasRestoreServiceTest {
     private static final Namespace NO_BACKUP = Namespace.of("no-backup");
 
     @Mock
+    private AuthHeader authHeader;
+
+    @Mock
+    private AtlasRestoreClientBlocking atlasRestoreClient;
+
+    @Mock
     private CassandraRepairHelper cassandraRepairHelper;
 
     private AtlasRestoreService atlasRestoreService;
@@ -48,7 +56,8 @@ public class AtlasRestoreServiceTest {
     @Before
     public void setup() {
         BackupPersister backupPersister = new InMemoryBackupPersister();
-        atlasRestoreService = new AtlasRestoreService(backupPersister, cassandraRepairHelper);
+        atlasRestoreService =
+                new AtlasRestoreService(authHeader, atlasRestoreClient, backupPersister, cassandraRepairHelper);
 
         CompletedBackup completedBackup = CompletedBackup.builder()
                 .namespace(WITH_BACKUP)
