@@ -44,9 +44,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampService;
@@ -58,10 +56,12 @@ import org.junit.Before;
 import org.junit.Rule;
 
 public class AtlasDbTestCase {
-    protected LockClient lockClient;
-    protected LockService lockService;
+    private static final String CLIENT = "fake lock client";
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
+
+    protected LockClient lockClient;
+    protected LockService lockService;
     protected TrackingKeyValueService keyValueService;
     protected TimelockService timelockService;
     protected TimestampService timestampService;
@@ -75,14 +75,12 @@ public class AtlasDbTestCase {
     protected int sweepQueueShards = 128;
 
     @Rule
-    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule(CLIENT);
 
     @Before
     public void setUp() throws Exception {
-        // TODO(gs): link LockService, LockClient and IMTS
-        lockClient = LockClient.of("fake lock client");
-        lockService = LockServiceImpl.create(
-                LockServerOptions.builder().isStandaloneServer(false).build());
+        lockClient = LockClient.of(CLIENT);
+        lockService = inMemoryTimeLockRule.getLockService();
         timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
         timestampService = inMemoryTimeLockRule.getTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());

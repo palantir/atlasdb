@@ -53,8 +53,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Map;
@@ -360,8 +358,7 @@ public class KeyValueServiceMigratorsTest {
                 kvs,
                 timeLock.getLegacyTimelockService(),
                 timestampService,
-                LockServiceImpl.create(
-                        LockServerOptions.builder().isStandaloneServer(false).build()),
+                timeLock.getLockService(),
                 timeLock.getLockWatchManager(),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
