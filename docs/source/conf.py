@@ -37,6 +37,7 @@ extensions = [
     'code-block-with-version-replacement',
     'myst_parser'
 ]
+suppress_warnings = ["myst.header"]
 
 # Included 
 source_parsers = {
