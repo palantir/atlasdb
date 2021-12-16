@@ -1440,6 +1440,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                     keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_TWO), myTs + 1);
                     transactionService.putUnlessExists(myTs + 1, myTs + 2);
 
+                    // Avoid clashes between myTs+1 and commitTimestamp-1
+                    timestampManagementService.fastForwardTimestamp(myTs + 3);
+
                     // This primes the timestamp service to give us a known commit timestamp.
                     long commitTimestamp = timestampService.getFreshTimestamp() + 1;
                     timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
