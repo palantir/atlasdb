@@ -41,6 +41,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
@@ -50,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public final class CqlCluster {
+public final class CqlCluster implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCluster.class);
 
     private static final int LONG_READ_TIMEOUT_MS = (int) TimeUnit.MINUTES.toMillis(2);
@@ -69,6 +71,11 @@ public final class CqlCluster {
     public static CqlCluster create(CassandraKeyValueServiceConfig config) {
         Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         return new CqlCluster(cluster, config);
+    }
+
+    @Override
+    public void close() throws IOException {
+        cluster.close();
     }
 
     private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
