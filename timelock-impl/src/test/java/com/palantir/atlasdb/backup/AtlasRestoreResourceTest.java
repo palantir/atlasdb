@@ -18,7 +18,6 @@ package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
@@ -32,7 +31,6 @@ import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.URL;
 import java.util.List;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -57,11 +55,6 @@ public class AtlasRestoreResourceTest {
 
     private final AtlasRestoreResource atlasRestoreResource =
             new AtlasRestoreResource(TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
-
-    @Before
-    public void before() {
-        when(mockTimelock.getFreshTimestamp()).thenReturn(1337L);
-    }
 
     @Test
     public void completesRestoreSuccessfully() {
