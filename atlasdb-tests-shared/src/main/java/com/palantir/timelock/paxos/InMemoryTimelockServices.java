@@ -39,7 +39,7 @@ import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TransactionStarter;
-import com.palantir.lock.v2.NamespacedTimelockTimestampClient;
+import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
@@ -85,7 +85,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private LockLeaseService lockLeaseService;
     private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
 
-    public InMemoryTimelockServices(TemporaryFolder tempFolder) {
+    InMemoryTimelockServices(TemporaryFolder tempFolder) {
         this.tempFolder = tempFolder;
         this.client = "client";
     }
@@ -176,23 +176,6 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         timeLockAgent.shutdown();
     }
 
-    public static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
-        return create(tempFolder, "client");
-    }
-
-    public static InMemoryTimelockServices create(TemporaryFolder tempFolder, String client) {
-        InMemoryTimelockServices services = new InMemoryTimelockServices(tempFolder);
-        services.setClient(client);
-
-        try {
-            services.before();
-        } catch (IOException e) {
-            throw new SafeRuntimeException("Failed to create InMemoryTimelockServices", e);
-        }
-
-        return services;
-    }
-
     private static File tryCreateSubFolder(TemporaryFolder tempFolder) {
         try {
             return tempFolder.newFolder();
@@ -244,11 +227,11 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         CommitTimestampGetter commitTimestampGetter =
                 requestBatchersFactory.createBatchingCommitTimestampGetter(lockLeaseService);
 
-        NamespacedTimelockTimestampClient namespacedTimelockTimestampClient =
-                new DelegatingNamespacedTimelockTimestampClient(getTimelockService());
+        NamespacedTimelockRpcClient namespacedTimelockRpcClient =
+                new InMemoryNamespacedTimelockRpcClient(getTimelockService());
 
         return new RemoteTimelockServiceAdapter(
-                namespacedTimelockTimestampClient,
+                namespacedTimelockRpcClient,
                 namespacedConjureTimelockService,
                 lockLeaseService,
                 transactionStarter,
