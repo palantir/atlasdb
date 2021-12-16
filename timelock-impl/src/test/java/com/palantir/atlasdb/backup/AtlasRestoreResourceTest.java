@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,7 +32,6 @@ import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.URL;
 import java.util.List;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +47,6 @@ public class AtlasRestoreResourceTest {
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("header");
     private static final Namespace NAMESPACE = Namespace.of("test");
-    private static final Namespace OTHER_NAMESPACE = Namespace.of("other");
     private static final long FAST_FORWARD_TIMESTAMP = 9000L;
 
     @Mock
@@ -69,7 +65,7 @@ public class AtlasRestoreResourceTest {
 
     @Test
     public void completesRestoreSuccessfully() {
-        CompletedBackup completedBackup = completedBackup(NAMESPACE);
+        CompletedBackup completedBackup = completedBackup();
         CompleteRestoreResponse response = AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(
                 AUTH_HEADER, CompleteRestoreRequest.of(ImmutableSet.of(completedBackup))));
 
@@ -77,24 +73,9 @@ public class AtlasRestoreResourceTest {
         verify(mockTimelock).fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
     }
 
-    @Test
-    public void completeRestoreFiltersOutUnsuccessfulNamespaces() {
-        when(otherTimelock.getFreshTimestamp()).thenReturn(FAST_FORWARD_TIMESTAMP + 1);
-
-        Set<CompletedBackup> completedBackups =
-                ImmutableSet.of(completedBackup(NAMESPACE), completedBackup(OTHER_NAMESPACE));
-
-        CompleteRestoreResponse response = AtlasFutures.getUnchecked(
-                atlasRestoreResource.completeRestore(AUTH_HEADER, CompleteRestoreRequest.of(completedBackups)));
-
-        assertThat(response.getSuccessfulNamespaces()).containsExactly(NAMESPACE);
-        verify(mockTimelock).fastForwardTimestamp(FAST_FORWARD_TIMESTAMP);
-        verify(otherTimelock, never()).fastForwardTimestamp(anyLong());
-    }
-
-    private static CompletedBackup completedBackup(Namespace namespace) {
+    private static CompletedBackup completedBackup() {
         return CompletedBackup.builder()
-                .namespace(namespace)
+                .namespace(NAMESPACE)
                 .backupStartTimestamp(1337L)
                 .backupEndTimestamp(FAST_FORWARD_TIMESTAMP)
                 .build();
