@@ -231,7 +231,7 @@ public class StreamStoreRenderer {
                 {
                     line(
                             "super(txManager, ",
-                            streamCompression.getClass().getSimpleName() + "." + streamCompression,
+                            streamCompression.getDeclaringClass().getSimpleName() + "." + streamCompression,
                             ", persistenceConfiguration);");
                     line("this.tables = tables;");
                 }
@@ -932,7 +932,6 @@ public class StreamStoreRenderer {
                 line("import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;");
                 line("import com.palantir.atlasdb.table.description.ValueType;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
-                line("import com.palantir.common.streams.KeyedStream;");
                 line("import com.palantir.logsafe.SafeArg;");
 
                 if (streamIdType == ValueType.SHA256HASH) {
@@ -991,9 +990,9 @@ public class StreamStoreRenderer {
                     line("        = indexTable.getRowsColumnRangeIterator(indexRows,");
                     line("                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,"
                             + " PtBytes.EMPTY_BYTE_ARRAY, 1));");
-                    line("return KeyedStream.stream(referenceIteratorByStream)");
-                    line("        .filter(valueIterator -> !valueIterator.hasNext())");
-                    line("        .keys() // (authorized)"); // required for large internal product
+                    line("return referenceIteratorByStream.entrySet().stream()");
+                    line("        .filter(entry -> !entry.getValue().hasNext())");
+                    line("        .map(Map.Entry::getKey)");
                     line("        .map(", StreamIndexRow, "::getId)");
                     line("        .map(", StreamMetadataRow, "::of)");
                     line("        .collect(Collectors.toSet());");

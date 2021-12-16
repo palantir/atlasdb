@@ -86,7 +86,7 @@ public final class BatchingVisitables {
     }
 
     /**
-     * @return Visitable containing elements from the start of the visitable
+     * Returns a visitable containing elements from the start of the visitable
      * for which the predicate holds true. Once boundingPredicate returns false for an
      * element of visitable, no more elements will be included in the returned visitable.
      */
@@ -113,7 +113,7 @@ public final class BatchingVisitables {
     }
 
     /**
-     * @return the first element or null if the visitable is empty
+     * Returns the first element or null if the visitable is empty
      */
     @Nullable
     public static <T> T getFirst(BatchingVisitable<T> visitable) {

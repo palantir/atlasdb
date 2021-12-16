@@ -155,8 +155,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
 
     /**
      * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
-     * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} is
-     * {@link com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility#SUPPORTED_DETAIL_ON_FAILURE}.
+     * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} supports detail on failure.
      */
     @Override
     public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
@@ -176,7 +175,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private Optional<CoordinationStoreState<T>> readLatestState() {
         while (true) {
             Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-            if (!coordinationValue.isPresent()) {
+            if (coordinationValue.isEmpty()) {
                 return Optional.empty();
             }
             SequenceAndBound presentCoordinationValue = coordinationValue.get();
@@ -267,7 +266,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             throw new SafeIllegalStateException(
                     "The coordination store failed a putUnlessExists. This is unexpected"
                             + " as it implies timestamps may have been reused, or a writer to the store behaved badly."
-                            + " The offending sequence number was {}. "
+                            + " The offending sequence number is logged. "
                             + " Please contact support - DO NOT ATTEMPT TO FIX THIS YOURSELF.",
                     e,
                     SafeArg.of("sequenceNumber", sequenceNumber));
@@ -375,7 +374,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         Optional<SequenceAndBound> actualValue = getCoordinationValue();
         if (!actualValue.isPresent()) {
             throw new SafeIllegalStateException(
-                    "Failed to check and set coordination value from {} to {}, but "
+                    "Failed to check and set coordination value from oldValue to newValue, but "
                             + "there is no value present in the coordination table",
                     SafeArg.of("oldValue", oldValue),
                     SafeArg.of("newValue", newValue));

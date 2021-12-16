@@ -31,7 +31,8 @@ import org.junit.Test;
 public class CassandraAtlasDbFactoryTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
-    private static final ImmutableSet<InetSocketAddress> SERVERS = ImmutableSet.of(new InetSocketAddress("foo", 42));
+    private static final ImmutableSet<InetSocketAddress> SERVERS =
+            ImmutableSet.of(InetSocketAddress.createUnresolved("foo", 42));
     private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
             .username("username")
             .password("password")

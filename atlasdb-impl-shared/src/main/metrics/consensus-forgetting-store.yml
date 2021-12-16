@@ -1,0 +1,16 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.pue'
+
+namespaces:
+  consensusForgettingStore:
+    docs: Metrics for tracking operations on the consensus forgetting store.
+    metrics:
+      concurrentCheckAndTouches:
+        type: gauge # Looks like a counter, but we generally aren't interested in rates.
+        docs: The number of concurrent checkAndTouch operations that needed to be performed.
+      checkAndTouch:
+        type: timer
+        docs: The time required for a checkAndTouch operation.
+      batchedCheckAndTouchSize:
+        type: histogram
+        docs: The number of cells involved in a batched call to checkAndTouch.

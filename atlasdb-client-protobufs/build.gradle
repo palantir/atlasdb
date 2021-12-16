@@ -9,7 +9,7 @@ protobuf {
 }
 
 dependencies {
-  compile group: "com.google.protobuf", name: "protobuf-java"
+  api group: "com.google.protobuf", name: "protobuf-java"
 }
 
 project.tasks.idea.dependsOn('generateProto')

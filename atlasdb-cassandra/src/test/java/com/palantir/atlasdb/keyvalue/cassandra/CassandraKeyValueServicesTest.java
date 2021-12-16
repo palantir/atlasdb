@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -44,11 +43,5 @@ public class CassandraKeyValueServicesTest {
                                 CELL, Value.create(PtBytes.EMPTY_BYTE_ARRAY, 1000), 2000)
                         .getTimestamp())
                 .isEqualTo(2000);
-    }
-
-    @Test
-    public void createColumnForDeleteThrowsIfCreatingWithNonEmptyValue() {
-        assertThatThrownBy(() -> CassandraKeyValueServices.createColumnForDelete(CELL, Value.create(DATA, 1000), 2000))
-                .isInstanceOf(IllegalStateException.class);
     }
 }

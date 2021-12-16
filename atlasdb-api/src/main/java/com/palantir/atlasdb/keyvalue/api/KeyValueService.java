@@ -252,20 +252,34 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
+     * Puts a value into the key-value store explicitly overwriting existing entries written by
+     * {@link #putUnlessExists(TableReference, Map)} and {@link #checkAndSet(CheckAndSetRequest)}. Once this method
+     * has been called for a cell, calling it again for the same cell and different value, or attempting a CAS on the
+     * cell is undefined.
+     * <p>
+     * WARNING
+     * Use this method if and only if you wish to set a value in an atomic table. Otherwise, use
+     *{@link #put(TableReference, Map, long)}.
+     * <p>
+     * @param tableRef the name of the table to put values into.
+     * @param values map containing the key-value entries to put.
+     */
+    void setOnce(TableReference tableRef, Map<Cell, byte[]> values);
+
+    /**
      * Check whether CAS is supported. This check can go away when JDBC KVS is deleted.
      *
      * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)
      */
     @DoDelegate
     default boolean supportsCheckAndSet() {
-        return getCheckAndSetCompatibility() != CheckAndSetCompatibility.NOT_SUPPORTED;
+        return getCheckAndSetCompatibility().supportsCheckAndSetOperations();
     }
 
     /**
      * Get the {@link CheckAndSetCompatibility} that this {@link KeyValueService} exhibits.
      *
-     * This method should be consistent with {@link KeyValueService#supportsCheckAndSet()} - this method should
-     * return {@link CheckAndSetCompatibility#NOT_SUPPORTED} if and only if that method returns false.
+     * This method must be consistent with {@link KeyValueService#supportsCheckAndSet()}.
      *
      * @return check and set compatibility
      */
@@ -621,9 +635,9 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     ////////////////////////////////////////////////////////////
 
     /**
-     * @return true iff the KeyValueService has been initialized and is ready to use
-     *         Note that this check ignores the cluster's availability - use {@link #getClusterAvailabilityStatus()} if
-     *         you wish to verify that we can talk to the backing store.
+     * Returns true iff the KeyValueService has been initialized and is ready to use. Note that this check ignores the
+     * cluster's availability - use {@link #getClusterAvailabilityStatus()} if you wish to verify that we can talk to
+     * the backing store.
      */
     @DoDelegate
     default boolean isInitialized() {

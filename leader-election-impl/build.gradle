@@ -10,15 +10,15 @@ dependencies {
   compile project(":atlasdb-autobatch")
   compile project(":atlasdb-commons")
 
-  compile group: "com.github.ben-manes.caffeine", name: "caffeine"
-  compile group: "com.google.protobuf", name: "protobuf-java"
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-  compile group: 'com.palantir.sls.versions', name: 'sls-versions'
-  compile group: 'com.zaxxer', name: 'HikariCP'
-  compile group: "commons-io", name: "commons-io"
-  compile group: "org.jdbi", name: 'jdbi3-core'
-  compile group: "org.jdbi", name: 'jdbi3-sqlobject'
-  compile group: 'org.xerial', name: 'sqlite-jdbc'
+  implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
+  implementation group: "com.google.protobuf", name: "protobuf-java"
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
+  implementation group: 'com.zaxxer', name: 'HikariCP'
+  implementation group: "commons-io", name: "commons-io"
+  implementation group: "org.jdbi", name: 'jdbi3-core'
+  implementation group: "org.jdbi", name: 'jdbi3-sqlobject'
+  implementation group: 'org.xerial', name: 'sqlite-jdbc'
 
   implementation group: 'com.palantir.common', name: 'streams'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
@@ -44,14 +44,14 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
 
-  testCompile(group: 'org.jmock', name: 'jmock') {
+  testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.awaitility', name: 'awaitility'
-  testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation group: 'org.awaitility', name: 'awaitility'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'com.palantir.tracing', name: 'tracing-test-utils'
 }
 
 configurations {

@@ -45,7 +45,6 @@ public class SweeperModule {
                 txm::getUnreadableTimestamp,
                 txm::getImmutableTimestamp,
                 transactionService,
-                sweepStrategyManager,
                 new CellsSweeper(txm, kvs, ImmutableList.of(follower)));
     }
 }

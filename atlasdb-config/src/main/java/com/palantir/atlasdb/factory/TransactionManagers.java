@@ -80,6 +80,7 @@ import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.OldestTargetedSweepTrackedTimestamp;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
@@ -110,6 +111,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -139,7 +141,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -418,6 +419,16 @@ public abstract class TransactionManagers {
                 },
                 closeables);
 
+        if (config().targetedSweep().enableSweepQueueWrites()) {
+            initializeCloseable(
+                    () -> OldestTargetedSweepTrackedTimestamp.createStarted(
+                            keyValueService,
+                            lockAndTimestampServices.timestamp(),
+                            PTExecutors.newSingleThreadScheduledExecutor(
+                                    new NamedThreadFactory("OldestTargetedSweepTrackedTimestamp", true))),
+                    closeables);
+        }
+
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
 
@@ -519,7 +530,6 @@ public abstract class TransactionManagers {
                         registrar(),
                         keyValueService,
                         transactionService,
-                        sweepStrategyManager,
                         follower,
                         transactionManager,
                         runBackgroundSweepProcess()),
@@ -561,7 +571,7 @@ public abstract class TransactionManagers {
             @Output List<AutoCloseable> closeables,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig) {
-        if (isUsingTimeLock(config, runtimeConfig.current())) {
+        if (isUsingTimeLock(config, runtimeConfig.current()) && shouldGiveFeedbackToServer(config)) {
             Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices =
                     getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent(), reloadingFactory());
             return Optional.of(initializeCloseable(
@@ -675,7 +685,8 @@ public abstract class TransactionManagers {
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
                         TransactionService.class,
-                        TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
+                        TransactionServices.createTransactionService(
+                                keyValueService, transactionSchemaManager, metricsManager.getTaggedRegistry())),
                 closeables);
         Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
@@ -690,7 +701,8 @@ public abstract class TransactionManagers {
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TransactionSchemaManager transactionSchemaManager) {
-        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
+        CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
+        if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
             return Optional.of(
                     initializeTransactionSchemaInstaller(closeables, runtimeConfigSupplier, transactionSchemaManager));
         }
@@ -785,7 +797,6 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             KeyValueService kvs,
             TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
             TransactionManager transactionManager,
             boolean runInBackground) {
@@ -798,10 +809,8 @@ public abstract class TransactionManagers {
                 transactionManager::getUnreadableTimestamp,
                 transactionManager::getImmutableTimestamp,
                 transactionService,
-                sweepStrategyManager,
                 cellsSweeper,
-                sweepMetrics,
-                () -> ThreadLocalRandom.current().nextInt(100) == 0);
+                sweepMetrics);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(
                 metricsManager,
@@ -894,6 +903,12 @@ public abstract class TransactionManagers {
     static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
         return atlasDbConfig.timelock().isPresent()
                 || runtimeConfig.timelockRuntime().isPresent();
+    }
+
+    private boolean shouldGiveFeedbackToServer(AtlasDbConfig config) {
+        return config.timelock()
+                .map(TimeLockClientConfig::shouldGiveFeedbackToTimeLockServer)
+                .orElse(false);
     }
 
     /**

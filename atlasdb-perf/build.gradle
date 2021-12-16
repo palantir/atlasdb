@@ -21,11 +21,11 @@ dependencies {
     compile project(':atlasdb-dbkvs')
     compile project(':atlasdb-cassandra')
 
-    compile group: 'io.airlift', name: 'airline', version: '0.7'
-    compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
-    compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-    compile group: 'ch.qos.logback', name: 'logback-classic'
-    compile group: 'org.awaitility', name: 'awaitility'
+    implementation group: 'io.airlift', name: 'airline', version: '0.7'
+    implementation group: 'org.reflections', name: 'reflections', version: '0.9.10'
+    implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
+    implementation group: 'ch.qos.logback', name: 'logback-classic'
+    implementation group: 'org.awaitility', name: 'awaitility'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -54,10 +54,10 @@ dependencies {
     testImplementation 'com.google.guava:guava'
     testImplementation 'org.apache.commons:commons-math3'
 
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
 
-    compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
+    implementation group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13'

@@ -32,12 +32,12 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.logsafe.Preconditions;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -300,7 +300,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
                 ImmutableList.Builder<StartIdentifiedAtlasDbTransactionResponse> builder = ImmutableList.builder();
                 for (int transactionIndex = 0; transactionIndex < numRequired; transactionIndex++) {
-                    builder.add(Objects.requireNonNull(transientResponseList.poll()));
+                    builder.add(Preconditions.checkNotNull(transientResponseList.poll()));
                 }
                 pendingFutures.poll().startTransactionsFuture().set(builder.build());
             }

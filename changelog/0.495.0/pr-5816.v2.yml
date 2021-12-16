@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Reads from the coordination table are now using consistency quorum
+    again instead of serial which was causing perf issues.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5816

@@ -17,6 +17,8 @@
 package com.palantir.common.compression;
 
 import com.google.common.io.Closeables;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeIoException;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +43,7 @@ public enum StreamCompression {
             case NONE:
                 return stream;
         }
-        throw new AssertionError("Unreachable code");
+        throw new SafeIllegalStateException("Unreachable code");
     }
 
     public InputStream decompress(InputStream stream) {
@@ -52,7 +54,7 @@ public enum StreamCompression {
             case LZ4:
                 return decompressWithHeader(stream);
         }
-        throw new AssertionError("Unreachable code");
+        throw new SafeIllegalStateException("Unreachable code");
     }
 
     private static boolean startsWith(InputStream stream, byte[] data) throws IOException {
@@ -96,7 +98,7 @@ public enum StreamCompression {
 
         @Override
         public int read() throws IOException {
-            throw new IOException("Could not construct decompressed stream", thrown);
+            throw new SafeIoException("Could not construct decompressed stream", thrown);
         }
     }
 }

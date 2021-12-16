@@ -78,13 +78,13 @@ public class DbKvsRule implements TestRule {
     private DbKeyValueServiceConfig getKvsConfig() {
         DockerPort port = docker.containers().container("postgres").port(POSTGRES_PORT);
 
-        InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
+        InetSocketAddress postgresAddress = InetSocketAddress.createUnresolved(port.getIp(), port.getExternalPort());
 
         ConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")
                 .dbLogin("palantir")
                 .dbPassword(ImmutableMaskedValue.of("palantir"))
-                .host(postgresAddress.getHostName())
+                .host(postgresAddress.getHostString())
                 .port(postgresAddress.getPort())
                 .build();
 

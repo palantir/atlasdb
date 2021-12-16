@@ -46,7 +46,7 @@ public abstract class SingleBackendCommand extends AbstractCommand {
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
+    public AtlasDbServices connect(AtlasDbServicesFactory factory) throws IOException {
         return factory.connect(ServicesConfigModule.create(getAtlasDbConfig(), getAtlasDbRuntimeConfig()));
     }
 

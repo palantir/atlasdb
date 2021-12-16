@@ -9,21 +9,21 @@ dependencies {
     compile project(':lock-impl')
     compile project(':timestamp-client')
 
-    compile group: 'jakarta.validation', name: 'jakarta.validation-api'
-    compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
-    compile group: 'com.palantir.refreshable', name: 'refreshable'
-    compile group: 'com.palantir.remoting2', name: 'error-handling' // needed for backwards compatibility
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-    compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
+    implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
+    implementation group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
+    implementation group: 'com.palantir.refreshable', name: 'refreshable'
+    implementation group: 'com.palantir.remoting2', name: 'error-handling' // needed for backwards compatibility
+    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+    implementation (group: 'com.palantir.tritium', name: 'tritium-lib') {
         exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
         exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
     }
-    compile group: 'org.hdrhistogram', name: 'HdrHistogram'
+    implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
 
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
-    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
-    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -79,15 +79,15 @@ dependencies {
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
-    testCompile(group: 'org.jmock', name: 'jmock') {
+    testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
+    testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile group: 'org.mockito', name: 'mockito-core'
-    testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.awaitility', name: 'awaitility'
-    testCompile group: 'com.github.stefanbirkner', name: 'system-rules'
+    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone'
+    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation group: 'org.awaitility', name: 'awaitility'
+    testImplementation group: 'com.github.stefanbirkner', name: 'system-rules'
     // Needed for Jersey Response-based tests
-    testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
+    testImplementation group: 'org.glassfish.jersey.core', name: 'jersey-common'
 }

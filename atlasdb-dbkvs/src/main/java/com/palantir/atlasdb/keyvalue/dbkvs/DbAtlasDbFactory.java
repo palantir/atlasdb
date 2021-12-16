@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -27,6 +26,8 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
@@ -67,8 +68,9 @@ public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
             boolean initializeAsync) {
         Preconditions.checkArgument(
                 config instanceof DbKeyValueServiceConfig,
-                "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
-                config.getClass());
+                "[Unexpected configuration] | DbAtlasDbFactory expects a configuration of type "
+                        + "DbKeyValueServiceConfiguration.",
+                SafeArg.of("configurationClass", config.getClass()));
         return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config, runtimeConfig, initializeAsync);
     }
 
@@ -82,8 +84,8 @@ public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
                 "Cannot specify the DB TimeLock timestamp table as a timestamp table override!");
         Preconditions.checkArgument(
                 rawKvs instanceof ConnectionManagerAwareDbKvs,
-                "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s",
-                rawKvs.getClass());
+                "[Unexpected type] | DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs.",
+                SafeArg.of("kvsClass", rawKvs.getClass()));
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
         return PersistentTimestampServiceImpl.create(

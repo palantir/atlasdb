@@ -43,7 +43,7 @@ public class SynchronousLockClientTest {
     @Test
     public void lockRequestIsNonBlocking() throws InterruptedException {
         when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer(invocation -> {
-            LockRequest request = (LockRequest) invocation.getArguments()[1];
+            LockRequest request = invocation.getArgument(1);
             assertThat(request.getBlockingMode()).isEqualTo(BlockingMode.DO_NOT_BLOCK);
             return null;
         });
@@ -53,7 +53,7 @@ public class SynchronousLockClientTest {
     @Test
     public void lockRequestIsWrite() throws InterruptedException {
         when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer(invocation -> {
-            LockRequest request = (LockRequest) invocation.getArguments()[1];
+            LockRequest request = invocation.getArgument(1);
             assertThat(request.getLocks().stream()
                             .filter(lock -> lock.getLockMode().equals(LockMode.WRITE))
                             .findAny())

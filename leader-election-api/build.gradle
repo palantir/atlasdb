@@ -4,9 +4,9 @@ libsDirName = file('build/artifacts')
 dependencies {
   compile project(":atlasdb-commons")
   compile project(":leader-election-api-protobufs")
-  compile group: 'org.apache.commons', name: 'commons-lang3'
-  compile group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+  implementation group: 'org.apache.commons', name: 'commons-lang3'
+  implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
 
   implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
   implementation 'com.fasterxml.jackson.core:jackson-databind'

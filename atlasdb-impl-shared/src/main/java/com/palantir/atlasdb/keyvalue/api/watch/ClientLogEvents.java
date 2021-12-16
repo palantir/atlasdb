@@ -57,11 +57,6 @@ interface ClientLogEvents {
 
     boolean clearCache();
 
-    @Value.Derived
-    default Optional<Long> latestVersion() {
-        return events().versionRange().map(Range::upperEndpoint);
-    }
-
     default TransactionsLockWatchUpdate toTransactionsLockWatchUpdate(
             TimestampMapping timestampMapping, Optional<LockWatchVersion> lastKnownVersion) {
         /*

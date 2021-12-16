@@ -31,7 +31,6 @@ import com.palantir.lock.v2.TimelockService;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -100,7 +99,7 @@ public class AsyncTimeLockUnlockerTest {
                         concurrentlyInvoked.set(true);
                     }
                     timelockInUse.set(true);
-                    unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
+                    unlockedTokens.addAll(invocation.getArgument(0));
                     timelockInUse.set(false);
                     return null;
                 })
@@ -126,7 +125,7 @@ public class AsyncTimeLockUnlockerTest {
     @SuppressWarnings("unchecked") // Mock invocation known to be correct
     private void setupTokenCollectingTimeLock() {
         doAnswer(invocation -> {
-                    unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
+                    unlockedTokens.addAll(invocation.getArgument(0));
                     return null;
                 })
                 .when(timelockService)

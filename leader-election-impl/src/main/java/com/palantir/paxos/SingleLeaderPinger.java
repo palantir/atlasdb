@@ -16,6 +16,7 @@
 
 package com.palantir.paxos;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.RateLimiter;
@@ -44,9 +45,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
+import javax.sql.DataSource;
 
-public class SingleLeaderPinger implements LeaderPinger {
+public final class SingleLeaderPinger implements LeaderPinger {
     private static final SafeLogger log = SafeLoggerFactory.get(SingleLeaderPinger.class);
 
     private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache =
@@ -57,21 +60,61 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final boolean cancelRemainingCalls;
     private final Optional<OrderableSlsVersion> timeLockVersion;
     private final RateLimiter pingV2RateLimiter = RateLimiter.create(1.0 / (5 * 60));
-    private final RateLimiter greeningNodeShouldBecomeLeaderRateLimiter = RateLimiter.create(1.0 / (10 * 60));
+    private final GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser;
 
     private Map<LeaderPingerContext<PingableLeader>, Boolean> pingV2StatusOnRemotes = new HashMap<>();
 
-    public SingleLeaderPinger(
+    @VisibleForTesting
+    SingleLeaderPinger(
             Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             UUID localUuid,
             boolean cancelRemainingCalls,
-            Optional<OrderableSlsVersion> timeLockVersion) {
+            Optional<OrderableSlsVersion> timeLockVersion,
+            GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser) {
         this.leaderPingExecutors = otherPingableExecutors;
         this.leaderPingResponseWait = leaderPingResponseWait;
         this.localUuid = localUuid;
         this.cancelRemainingCalls = cancelRemainingCalls;
         this.timeLockVersion = timeLockVersion;
+        this.greenNodeLeadershipPrioritiser = greenNodeLeadershipPrioritiser;
+    }
+
+    // VisibleForTesting
+    public static SingleLeaderPinger createForTests(
+            Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
+            Duration leaderPingResponseWait,
+            UUID localUuid,
+            boolean cancelRemainingCalls,
+            Optional<OrderableSlsVersion> timeLockVersion) {
+        GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser = new RateLimitedGreenNodeLeadershipPrioritiser();
+        return new SingleLeaderPinger(
+                otherPingableExecutors,
+                leaderPingResponseWait,
+                localUuid,
+                cancelRemainingCalls,
+                timeLockVersion,
+                greenNodeLeadershipPrioritiser);
+    }
+
+    public static SingleLeaderPinger create(
+            Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> otherPingableExecutors,
+            DataSource sqliteDataSource,
+            Duration leaderPingResponseWait,
+            Supplier<Duration> greenNodeLeadershipBackoff,
+            UUID localUuid,
+            boolean cancelRemainingCalls,
+            Optional<OrderableSlsVersion> timeLockVersion) {
+        GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser =
+                PersistedRateLimitingLeadershipPrioritiser.create(
+                        timeLockVersion, greenNodeLeadershipBackoff, sqliteDataSource);
+        return new SingleLeaderPinger(
+                otherPingableExecutors,
+                leaderPingResponseWait,
+                localUuid,
+                cancelRemainingCalls,
+                timeLockVersion,
+                greenNodeLeadershipPrioritiser);
     }
 
     public static SingleLeaderPinger createLegacy(
@@ -79,6 +122,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             Duration leaderPingResponseWait,
             UUID localUuid,
             boolean cancelRemainingCalls) {
+        GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser = new RateLimitedGreenNodeLeadershipPrioritiser();
         return new SingleLeaderPinger(
                 KeyedStream.stream(otherPingableExecutors)
                         .map(CheckedRejectionExecutorService::new)
@@ -86,7 +130,8 @@ public class SingleLeaderPinger implements LeaderPinger {
                 leaderPingResponseWait,
                 localUuid,
                 cancelRemainingCalls,
-                Optional.empty());
+                Optional.empty(),
+                greenNodeLeadershipPrioritiser);
     }
 
     @Override
@@ -137,7 +182,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture =
                     multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             return getLeaderPingResult(
-                    uuid, pingFuture, timeLockVersion, greeningNodeShouldBecomeLeaderRateLimiter::tryAcquire);
+                    uuid, pingFuture, timeLockVersion, greenNodeLeadershipPrioritiser::shouldGreeningNodeBecomeLeader);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(e);
@@ -160,7 +205,7 @@ public class SingleLeaderPinger implements LeaderPinger {
             if (!pingResult.isLeader()) {
                 return LeaderPingResults.pingReturnedFalse();
             }
-            return (!shouldGreeningNodeBecomeLeader.getAsBoolean() || isAtLeastOurVersion(pingResult, timeLockVersion))
+            return (isAtLeastOurVersion(pingResult, timeLockVersion) || !shouldGreeningNodeBecomeLeader.getAsBoolean())
                     ? LeaderPingResults.pingReturnedTrue(
                             uuid, Futures.getDone(pingFuture).getKey().hostAndPort())
                     : LeaderPingResults.pingReturnedTrueWithOlderVersion(

@@ -73,7 +73,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 public final class LockWatchValueIntegrationTest {
-    private static final String TEST_PACKAGE = "package";
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_3 = "canis est in via".getBytes(StandardCharsets.UTF_8);

@@ -542,6 +542,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     }
 
     @Override
+    public void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
         if (checkAndSetRequest.oldValue().isPresent()) {
             executeCheckAndSet(checkAndSetRequest);

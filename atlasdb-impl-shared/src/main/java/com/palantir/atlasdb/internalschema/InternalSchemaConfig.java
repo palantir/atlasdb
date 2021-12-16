@@ -46,7 +46,7 @@ public abstract class InternalSchemaConfig {
         targetTransactionsSchemaVersion()
                 .ifPresent(version -> Preconditions.checkState(
                         TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS.contains(version),
-                        "{} is not a recognised transactions schema version. Supported versions are {}",
+                        "Unrecognised transactions schema version.",
                         SafeArg.of("configuredVersion", version),
                         SafeArg.of("supportedVersions", TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS)));
     }

@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.health.MetricsBasedTimelockHealthCheck;
 import com.palantir.atlasdb.health.TimelockHealthCheck;
@@ -30,6 +29,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
@@ -97,8 +97,8 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 numThreads, AbstractTransactionManager.this.getClass().getSimpleName() + "-get-ranges");
 
         return new AbstractExecutorService() {
+            private final RateLimitedLogger warningLogger = new RateLimitedLogger(log, 1);
             private final AtomicInteger queueSizeEstimate = new AtomicInteger();
-            private final RateLimiter warningRateLimiter = RateLimiter.create(1);
 
             @Override
             public void shutdown() {
@@ -136,13 +136,13 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
             private void sanityCheckAndIncrementQueueSize() {
                 int currentSize = queueSizeEstimate.getAndIncrement();
-                if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD && warningRateLimiter.tryAcquire()) {
-                    log.warn(
+                if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD) {
+                    warningLogger.log(logger -> logger.warn(
                             "You have {} pending getRanges tasks. Please sanity check both your level "
                                     + "of concurrency and size of batched range requests. If necessary you can "
                                     + "increase the value of concurrentGetRangesThreadPoolSize to allow for a larger "
                                     + "thread pool.",
-                            SafeArg.of("currentSize", currentSize));
+                            SafeArg.of("currentSize", currentSize)));
                 }
             }
         };
