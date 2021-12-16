@@ -16,10 +16,6 @@
 
 package com.palantir.lock.v2;
 
-/**
- * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a
- * parameter.
- */
 public class DefaultNamespacedTimelockRpcClient implements NamespacedTimelockRpcClient {
     private final TimelockRpcClient timelockRpcClient;
     private final String namespace;
