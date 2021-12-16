@@ -116,16 +116,17 @@ To perform a read, we use the following protocol.
 2. If it is (V, COMMITTED), return V.
 3. If it is not present, return null.
 4. If it is (V, STAGING),
-   1. perform a CAS((V, STAGING), (V, COMMITTED)),
-   2. then return V.
+   1. perform a CAS((V, STAGING), (V, STAGING)),
+   2. perform a PUT((V, COMMITTED)),
+   3. then return V.
 
 Notice that this protocol meets the criteria outlined above. We have eventual read efficiency, as in the steady state
 most values are going to be COMMITTED, and the read protocol for a COMMITTED value just involves a single read at QUORUM
 consistency. 
 
-The argument for read consistency is a bit subtler.
-
-<Insert details of Grgur's proof work here>
+The argument for read consistency is a bit subtler, and can be found in an appendix to this ADR. Intuitively, the
+protocol only puts committed values after the writer or reader know that a quorum of nodes have their value written with
+STAGING, never changes a value when moving it from STAGING to COMMITTED, and only reads committed values.
 
 #### Transactions3 Service
 
@@ -266,3 +267,36 @@ It is possible, even likely, that the performance of transactions3 is worse than
 more work, and values that need to be passed to and from the database are strictly larger). However, we don't expect
 this to add more than a constant amount of overhead, and this should be very small in the steady state. This isn't a
 very fair comparison, in any case, as the transactions2 approach is not correct.
+
+## Appendices
+
+### Proof of Read Consistency
+We first prove a lemma, Lemma 1: the first time the quorum of nodes with the latest writes contains a combination of
+(V, STAGING) and (V, COMMITTED), it is no longer possible to write anything other than (V, STAGING) and (V, COMMITTED).
+
+It is clear that, once the condition is satisfied, a PUE or CAS for value other than V cannot succeed since every read
+will include V as the most recent write. It remains to show that the two puts in the protocols can only be
+PUT(V, COMMITTED).
+
+1. Assume the write protocol can PUT(W, COMMITTED) such that W != V. Then, there must have been a successful
+   PUE(W, STAGING) before it. Since that operation would satisfy the condition of the lemma, implying W=V, the PUE must
+   have occurred after the quorum of nodes with the latest writes already contained V. This is a contradiction since any
+   PUE would have then failed.
+2. Assume the read protocol can CAS((W, STAGING), (W, STAGING)), for W != V. Then, there must have been a (W, STAGING)
+   written after the condition of the lemma was satisfied. Choose the earliest such write, i.e. one that was not
+   replicated from a read. As in 1) this could not have been the result of a PUE, but it also could not have been the
+   result of a CAS because this is the earliest such write and the read part of a CAS would read V as the latest value
+   in any quorum of nodes.
+3. Assume the read protocol can PUT(W, COMMITTED), for W != V. Then, similarly to 1), a successful
+   CAS((W, STAGING), (W, STAGING)) must have occurred beforehand, but after the condition of the lemma was satisfied.
+   This now follows the proof of 2).
+
+We then prove a second lemma, Lemma 2: after a (V, COMMITTED) is written, it is no longer possible to write anything 
+other than (V, STAGING) and (V, COMMITTED).
+
+If (V, COMMITTED) was written by a PUT in the write protocol, it must have followed a successful PUE(V, STAGING) after 
+which a quorum of nodes had (V, STAGING), satisfying Lemma 1. If it was written by a PUT in the read protocol, it must 
+have followed a successful CAS((V, STAGING), (V, STAGING)), again satisfying Lemma 1.
+
+Using these results: as soon as a (V, COMMITTED) is written, (W, COMMITTED) for W != V will never be written. Since the
+protocols only return committed values, from that point onwards only V is returned - ergo, repeatable reads.
