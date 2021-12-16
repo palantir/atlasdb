@@ -171,7 +171,7 @@ public final class CassandraRepairEteTest {
     @Test
     public void shouldGetRangesForBothReplicas() {
         RangesForRepair ranges = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
-        assertThat(ranges.asMap()).hasSize(2);
+        assertThat(ranges.tokenMap()).hasSize(2);
     }
 
     @Test
@@ -179,7 +179,7 @@ public final class CassandraRepairEteTest {
         Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap = getFullTokenMap();
         RangesForRepair rangesToRepair = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
 
-        KeyedStream.stream(rangesToRepair.asMap())
+        KeyedStream.stream(rangesToRepair.tokenMap())
                 .forEach((address, cqlRangesForHost) ->
                         assertRangesToRepairAreSubsetsOfRangesFromTokenMap(fullTokenMap, address, cqlRangesForHost));
     }

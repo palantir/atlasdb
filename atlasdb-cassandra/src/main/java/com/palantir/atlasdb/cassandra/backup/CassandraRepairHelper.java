@@ -146,7 +146,7 @@ public class CassandraRepairHelper {
     }
 
     private static RangesForRepair makeLightweight(Map<InetSocketAddress, Set<TokenRange>> ranges) {
-        return new RangesForRepair(KeyedStream.stream(ranges)
+        return RangesForRepair.of(KeyedStream.stream(ranges)
                 .map(CassandraRepairHelper::makeLightweight)
                 .collectToMap());
     }

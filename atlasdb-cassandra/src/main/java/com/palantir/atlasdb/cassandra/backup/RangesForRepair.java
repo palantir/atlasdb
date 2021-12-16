@@ -20,20 +20,18 @@ import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.net.InetSocketAddress;
 import java.util.Map;
+import org.immutables.value.Value;
 
+@Value.Immutable
 @SuppressWarnings("UnstableApiUsage")
-public class RangesForRepair {
-    private final Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenMap;
-
-    public RangesForRepair(Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenMap) {
-        this.tokenMap = tokenMap;
-    }
-
-    public Map<InetSocketAddress, RangeSet<LightweightOppToken>> asMap() {
-        return tokenMap;
-    }
+public abstract class RangesForRepair {
+    public abstract Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenMap();
 
     public RangeSet<LightweightOppToken> get(InetSocketAddress address) {
-        return tokenMap.get(address);
+        return tokenMap().get(address);
+    }
+
+    public static RangesForRepair of(Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenMap) {
+        return ImmutableRangesForRepair.builder().tokenMap(tokenMap).build();
     }
 }

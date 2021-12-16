@@ -27,7 +27,6 @@ import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -126,15 +125,15 @@ public final class CqlCluster {
             Session session,
             String keyspaceName,
             Metadata metadata) {
-        ImmutableListMultimap<String, TransactionsTableInteraction> interactionsByTable =
+        Multimap<String, TransactionsTableInteraction> interactionsByTable =
                 Multimaps.index(transactionsTableInteractions, TransactionsTableInteraction::getTransactionsTableName);
         return KeyedStream.stream(interactionsByTable.asMap())
-                .map(interactions -> getAllPartitionTokens(session, keyspaceName, metadata, interactions))
+                .map(interactionsForTable -> getPartitionsTokenForSingleTransactionsTable(
+                        session, keyspaceName, metadata, interactionsForTable))
                 .collectToMap();
     }
 
-    // The interactions are assumed to be from the same table.
-    private Set<Token> getAllPartitionTokens(
+    private Set<Token> getPartitionsTokenForSingleTransactionsTable(
             Session session,
             String keyspaceName,
             Metadata metadata,
