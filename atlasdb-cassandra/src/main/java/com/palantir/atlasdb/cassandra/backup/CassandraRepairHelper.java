@@ -89,7 +89,7 @@ public class CassandraRepairHelper {
                 .forEach(repairTable);
     }
 
-    private Stream<String> getTableNamesToRepair(KeyValueService kvs) {
+    private static Stream<String> getTableNamesToRepair(KeyValueService kvs) {
         return kvs.getAllTableNames().stream()
                 .filter(TABLES_TO_REPAIR::contains)
                 .map(TableReference::getTableName);
@@ -115,7 +115,7 @@ public class CassandraRepairHelper {
     private Map<String, RangesForRepair> getRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
         return KeyedStream.stream(getRawRangesForRepairByTable(namespace, transactionsTableInteractions))
-                .map(this::makeLightweight)
+                .map(CassandraRepairHelper::makeLightweight)
                 .collectToMap();
     }
 
@@ -125,36 +125,39 @@ public class CassandraRepairHelper {
     }
 
     // VisibleForTesting
-    public RangesForRepair getRangesToRepair(CqlCluster cqlCluster, Namespace namespace, String tableName) {
+    public static RangesForRepair getRangesToRepair(CqlCluster cqlCluster, Namespace namespace, String tableName) {
         Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getTokenRangesToRepair(cqlCluster, namespace, tableName);
         return makeLightweight(tokenRanges);
     }
 
-    private Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(
+    private static Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(
             CqlCluster cqlCluster, Namespace namespace, String tableName) {
         String cassandraTableName = getCassandraTableName(namespace, tableName);
         return cqlCluster.getTokenRanges(cassandraTableName);
     }
 
-    private String getCassandraTableName(Namespace namespace, String tableName) {
+    private static String getCassandraTableName(Namespace namespace, String tableName) {
         TableReference tableRef = TableReference.create(toKvNamespace(namespace), tableName);
         return AbstractKeyValueService.internalTableName(tableRef);
     }
 
-    private com.palantir.atlasdb.keyvalue.api.Namespace toKvNamespace(Namespace namespace) {
+    private static com.palantir.atlasdb.keyvalue.api.Namespace toKvNamespace(Namespace namespace) {
         return com.palantir.atlasdb.keyvalue.api.Namespace.create(namespace.get());
     }
 
-    private RangesForRepair makeLightweight(Map<InetSocketAddress, Set<TokenRange>> ranges) {
-        return new RangesForRepair(
-                KeyedStream.stream(ranges).map(this::makeLightweight).collectToMap());
+    private static RangesForRepair makeLightweight(Map<InetSocketAddress, Set<TokenRange>> ranges) {
+        return new RangesForRepair(KeyedStream.stream(ranges)
+                .map(CassandraRepairHelper::makeLightweight)
+                .collectToMap());
     }
 
-    private RangeSet<LightweightOppToken> makeLightweight(Set<TokenRange> tokenRanges) {
-        return tokenRanges.stream().flatMap(this::makeLightweight).collect(toImmutableRangeSet());
+    private static RangeSet<LightweightOppToken> makeLightweight(Set<TokenRange> tokenRanges) {
+        return tokenRanges.stream()
+                .flatMap(CassandraRepairHelper::makeLightweight)
+                .collect(toImmutableRangeSet());
     }
 
-    private Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
+    private static Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
         LightweightOppToken startToken = LightweightOppToken.serialize(tokenRange.getStart());
         LightweightOppToken endToken = LightweightOppToken.serialize(tokenRange.getEnd());
 
@@ -169,7 +172,7 @@ public class CassandraRepairHelper {
         }
     }
 
-    private LightweightOppToken unboundedToken() {
+    private static LightweightOppToken unboundedToken() {
         ByteBuffer minValue = ByteBuffer.allocate(0);
         return new LightweightOppToken(
                 BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
