@@ -1715,10 +1715,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // should still be able to get all but last element of the elements for the first batch;
         // next batch is preemptively fetched when last element of curr batch is retrieved
-        List<Cell> retrievedEntries = IntStream.range(1, batchHint)
+        List<Cell> retrievedEntries = IntStream.range(1, batchHint - 1)
                 .mapToObj(_unused -> sortedColumns.next().getKey())
                 .collect(Collectors.toList());
-        assertThat(retrievedEntries).hasSameElementsAs(cells.subList(1, batchHint));
+        assertThat(retrievedEntries).hasSameElementsAs(cells.subList(1, batchHint - 1));
 
         // should throw while fetching the next batch
         assertThatThrownBy(sortedColumns::next).isInstanceOf(TransactionLockTimeoutException.class);
@@ -1772,7 +1772,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         verifyPrefetchValidations(rows, cells, 100, 10, 1000);
         verifyPrefetchValidations(rows, cells, 100, 3, 299);
-        verifyPrefetchValidations(rows, cells, 100, 3, 300);
+        verifyPrefetchValidations(rows, cells, 100, 4, 300);
         verifyPrefetchValidations(rows, cells, 100, 4, 301);
     }
 
