@@ -336,7 +336,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         return new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                timelockServices,
+                inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -417,7 +417,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 new SnapshotTransaction(
                         metricsManager,
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
-                        timelockServices.getLegacyTimelockService(),
+                        inMemoryTimeLockRule.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
                         NoOpCleaner.INSTANCE,
@@ -461,7 +461,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final TestTransactionManager unstableTransactionManager = new TestTransactionManagerImpl(
                 metricsManager,
                 unstableKvs,
-                timelockServices,
+                inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -947,7 +947,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TestTransactionManager deleteTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                timelockServices,
+                inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -1207,7 +1207,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitThrowsIfRolledBackAtCommitTime_expiredLocks() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
-        TimelockService timelockService = spy(timelockServices.getLegacyTimelockService());
+        TimelockService timelockService = spy(inMemoryTimeLockRule.getLegacyTimelockService());
 
         // expire the locks when the pre-commit check happens - this is guaranteed to be after we've written the data
         PreCommitCondition condition =
@@ -1237,7 +1237,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitThrowsIfRolledBackAtCommitTime_alreadyAborted() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
-        TimelockService timelockService = timelockServices.getLegacyTimelockService();
+        TimelockService timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
         ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
@@ -2026,10 +2026,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private ConjureStartTransactionsResponse startTransactionWithWatches() {
         ConjureStartTransactionsResponse conjureResponse =
-                timelockServices.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
+                inMemoryTimeLockRule.get().getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
         Set<Long> startTimestamps =
                 conjureResponse.getTimestamps().stream().boxed().collect(Collectors.toSet());
-        timelockServices
+        inMemoryTimeLockRule
                 .getLockWatchManager()
                 .getCache()
                 .processStartTransactionsUpdate(startTimestamps, conjureResponse.getLockWatchUpdate());
@@ -2128,7 +2128,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 metricsManager,
                 keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                 timelockService,
-                timelockServices.getLockWatchManager(),
+                inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 startTs,

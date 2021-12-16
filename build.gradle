@@ -104,7 +104,6 @@ allprojects {
                 'MixedMutabilityReturnType',
                 'NarrowingCompoundAssignment',
                 'PreconditionsConstantMessage',
-                'PreconditionsInvalidPlaceholder',
                 'PublicConstructorForAbstractClass',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
