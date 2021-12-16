@@ -33,6 +33,9 @@ import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +44,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
+    private static final SafeLogger log = SafeLoggerFactory.get(AtlasRestoreResource.class);
+
     private final Function<String, AsyncTimelockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
@@ -81,7 +86,22 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private ListenableFuture<Optional<Namespace>> completeRestoreAsync(CompletedBackup completedBackup) {
         Namespace namespace = completedBackup.getNamespace();
-        timelock(namespace).fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
+        AsyncTimelockService timelock = timelock(namespace);
+
+        // Validate that we'll actually be going forwards
+        long freshTimestamp = timelock.getFreshTimestamp();
+        long fastForwardTimestamp = completedBackup.getBackupEndTimestamp();
+        if (freshTimestamp > fastForwardTimestamp) {
+            log.error(
+                    "Attempted to fast forward timestamp, but our timestamp bound is already greater than the fast"
+                            + " forward timestamp",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("freshTimestamp", freshTimestamp),
+                    SafeArg.of("fastForwardTimestamp", fastForwardTimestamp));
+            return Futures.immediateFuture(Optional.empty());
+        }
+
+        timelock.fastForwardTimestamp(fastForwardTimestamp);
         return Futures.immediateFuture(Optional.of(namespace));
     }
 
