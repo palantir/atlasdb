@@ -176,18 +176,6 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         timeLockAgent.shutdown();
     }
 
-    static InMemoryTimelockServices create(TemporaryFolder tempFolder) {
-        InMemoryTimelockServices services = new InMemoryTimelockServices(tempFolder);
-
-        try {
-            services.before();
-        } catch (IOException e) {
-            throw new SafeRuntimeException("Failed to create InMemoryTimelockServices", e);
-        }
-
-        return services;
-    }
-
     private static File tryCreateSubFolder(TemporaryFolder tempFolder) {
         try {
             return tempFolder.newFolder();
