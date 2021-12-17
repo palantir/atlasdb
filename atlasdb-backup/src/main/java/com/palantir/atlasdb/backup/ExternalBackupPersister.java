@@ -61,20 +61,23 @@ public class ExternalBackupPersister implements BackupPersister {
     @Override
     public void storeCompletedBackup(CompletedBackup completedBackup) {
         Namespace namespace = completedBackup.getNamespace();
+        writeToFile(namespace, getImmutableTimestampFile(namespace), completedBackup.getImmutableTimestamp());
         writeToFile(namespace, getBackupTimestampFile(namespace), completedBackup.getBackupStartTimestamp());
         writeToFile(namespace, getFastForwardTimestampFile(namespace), completedBackup.getBackupEndTimestamp());
     }
 
     @Override
     public Optional<CompletedBackup> getCompletedBackup(Namespace namespace) {
+        Optional<Long> immutableTimestamp = loadFromFile(namespace, getImmutableTimestampFile(namespace), Long.class);
         Optional<Long> startTimestamp = loadFromFile(namespace, getBackupTimestampFile(namespace), Long.class);
         Optional<Long> endTimestamp = loadFromFile(namespace, getFastForwardTimestampFile(namespace), Long.class);
-        if (startTimestamp.isEmpty() || endTimestamp.isEmpty()) {
+        if (immutableTimestamp.isEmpty() || startTimestamp.isEmpty() || endTimestamp.isEmpty()) {
             return Optional.empty();
         }
 
         return Optional.of(CompletedBackup.builder()
                 .namespace(namespace)
+                .immutableTimestamp(immutableTimestamp.get())
                 .backupStartTimestamp(startTimestamp.get())
                 .backupEndTimestamp(endTimestamp.get())
                 .build());

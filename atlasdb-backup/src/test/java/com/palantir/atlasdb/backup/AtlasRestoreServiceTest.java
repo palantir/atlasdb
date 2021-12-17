@@ -17,26 +17,25 @@
 package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
-import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.tokens.auth.AuthHeader;
-import java.net.InetSocketAddress;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,18 +74,20 @@ public class AtlasRestoreServiceTest {
     private void storeCompletedBackup(Namespace namespace) {
         CompletedBackup completedBackup = CompletedBackup.builder()
                 .namespace(namespace)
-                .backupStartTimestamp(1L)
-                .backupEndTimestamp(2L)
+                .immutableTimestamp(1L)
+                .backupStartTimestamp(2L)
+                .backupEndTimestamp(3L)
                 .build();
         backupPersister.storeCompletedBackup(completedBackup);
     }
 
     @Test
     public void repairsOnlyWhenBackupPresent() {
-        Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> doNothingConsumer = _unused -> {};
+        BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
         atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
+        verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyMap(), eq(doNothingConsumer));
         verifyNoMoreInteractions(cassandraRepairHelper);
     }
 

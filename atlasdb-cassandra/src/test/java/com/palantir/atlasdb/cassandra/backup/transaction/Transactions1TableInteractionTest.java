@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.transaction;
+package com.palantir.atlasdb.cassandra.backup.transaction;
 
-import static com.palantir.atlasdb.backup.transaction.Transactions1TableInteraction.COLUMN_NAME_BB;
+import static com.palantir.atlasdb.cassandra.backup.transaction.Transactions1TableInteraction.COLUMN_NAME_BB;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.Test;

@@ -17,13 +17,18 @@
 package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Host;
+import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -34,6 +39,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -43,6 +49,17 @@ import java.util.stream.Stream;
 public final class ClusterMetadataUtils {
     private ClusterMetadataUtils() {
         // util class
+    }
+
+    public static TableMetadata getTableMetadata(Metadata metadata, String keyspace, String table) {
+        KeyspaceMetadata keyspaceMetadata = metadata.getKeyspace(keyspace);
+        Optional<TableMetadata> maybeTable = keyspaceMetadata.getTables().stream()
+                .filter(tableMetadata -> tableMetadata.getName().equals(table))
+                .collect(MoreCollectors.toOptional());
+        return maybeTable.orElseThrow(() -> new SafeIllegalArgumentException(
+                "Can't find table",
+                SafeArg.of("keyspace", keyspace),
+                LoggingArgs.tableRef("table", TableReference.fromString(table))));
     }
 
     /**

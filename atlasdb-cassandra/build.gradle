@@ -94,6 +94,8 @@ dependencies {
   compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
+  annotationProcessor 'org.derive4j:derive4j'
+  compileOnly 'org.derive4j:derive4j-annotation'
 }
 
 shadowJar {

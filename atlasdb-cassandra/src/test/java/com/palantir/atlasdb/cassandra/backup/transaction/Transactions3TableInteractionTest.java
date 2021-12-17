@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.transaction;
+package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.PARTITIONING_QUANTUM;
 import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.ROWS_PER_QUANTUM;
@@ -35,6 +35,7 @@ import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;

@@ -69,6 +69,7 @@ public class AtlasRestoreResourceTest {
     private static CompletedBackup completedBackup() {
         return CompletedBackup.builder()
                 .namespace(NAMESPACE)
+                .immutableTimestamp(1000L)
                 .backupStartTimestamp(1337L)
                 .backupEndTimestamp(FAST_FORWARD_TIMESTAMP)
                 .build();

@@ -131,6 +131,7 @@ types:
         package: com.palantir.atlasdb.backup.api
         fields:
           namespace: Namespace
+          immutableTimestamp: Long
           backupStartTimestamp: Long
           backupEndTimestamp: Long
       PrepareBackupRequest:

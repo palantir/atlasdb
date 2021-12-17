@@ -16,14 +16,22 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
+import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
+
 import com.datastax.driver.core.TokenRange;
+import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.utils.Bytes;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
@@ -31,74 +39,137 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CassandraRepairHelper {
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraRepairHelper.class);
+
     private static final Set<TableReference> TABLES_TO_REPAIR =
             Sets.union(ImmutableSet.of(AtlasDbConstants.COORDINATION_TABLE), TargetedSweepTables.REPAIR_ON_RESTORE);
 
     private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
     private final Function<Namespace, KeyValueService> keyValueServiceFactory;
+    private final LoadingCache<Namespace, CqlCluster> cqlClusters;
 
     public CassandraRepairHelper(
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
         this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
         this.keyValueServiceFactory = keyValueServiceFactory;
+
+        this.cqlClusters = Caffeine.newBuilder()
+                .maximumSize(100)
+                .expireAfterAccess(Duration.ofMinutes(20L))
+                .removalListener(CassandraRepairHelper::onRemoval)
+                .build(this::getCqlClusterUncached);
     }
 
-    public void repairInternalTables(
-            Namespace namespace, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
+    private static void onRemoval(Namespace namespace, CqlCluster cqlCluster, RemovalCause _removalCause) {
+        try {
+            log.info("Closing cql cluster", SafeArg.of("namespace", namespace));
+            cqlCluster.close();
+        } catch (IOException ex) {
+            log.warn("Failed to close CqlCluster", ex);
+        }
+    }
+
+    private CqlCluster getCqlClusterUncached(Namespace namespace) {
+        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
+        return CqlCluster.create(config);
+    }
+
+    public void repairInternalTables(Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {
         KeyValueService kvs = keyValueServiceFactory.apply(namespace);
-        CqlCluster cqlCluster = getCqlCluster(namespace);
-        kvs.getAllTableNames().stream()
-                .filter(TABLES_TO_REPAIR::contains)
-                .map(TableReference::getTableName)
+        CqlCluster cqlCluster = cqlClusters.get(namespace);
+        KeyedStream.of(getTableNamesToRepair(kvs))
                 .map(tableName -> getRangesToRepair(cqlCluster, namespace, tableName))
                 // TODO(gs): this will do repairs serially, instead of batched. Is this fine? Port batching from
                 //   internal product?
                 .forEach(repairTable);
     }
 
-    private CqlCluster getCqlCluster(Namespace namespace) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        return CqlCluster.create(config);
+    private static Stream<String> getTableNamesToRepair(KeyValueService kvs) {
+        return kvs.getAllTableNames().stream()
+                .filter(TABLES_TO_REPAIR::contains)
+                .map(TableReference::getTableName);
+    }
+
+    public void repairTransactionsTables(
+            Namespace namespace,
+            Map<FullyBoundedTimestampRange, Integer> coordinationMap,
+            BiConsumer<String, RangesForRepair> repairTable) {
+        List<TransactionsTableInteraction> transactionsTableInteractions =
+                TransactionsTableInteraction.getTransactionTableInteractions(
+                        coordinationMap, DefaultRetryPolicy.INSTANCE);
+
+        Map<String, RangesForRepair> tokenRangesForRepair =
+                getRangesForRepairByTable(namespace, transactionsTableInteractions);
+
+        tokenRangesForRepair.forEach((table, ranges) -> {
+            log.info("Repairing ranges for table", SafeArg.of("table", table));
+            repairTable.accept(table, ranges);
+        });
+    }
+
+    private Map<String, RangesForRepair> getRangesForRepairByTable(
+            Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
+        return KeyedStream.stream(getRawRangesForRepairByTable(namespace, transactionsTableInteractions))
+                .map(CassandraRepairHelper::makeLightweight)
+                .collectToMap();
+    }
+
+    private Map<String, Map<InetSocketAddress, Set<TokenRange>>> getRawRangesForRepairByTable(
+            Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
+        return cqlClusters.get(namespace).getTransactionsTableRangesForRepair(transactionsTableInteractions);
     }
 
     // VisibleForTesting
-    public Map<InetSocketAddress, Set<Range<LightweightOppToken>>> getRangesToRepair(
-            CqlCluster cqlCluster, Namespace namespace, String tableName) {
+    public static RangesForRepair getRangesToRepair(CqlCluster cqlCluster, Namespace namespace, String tableName) {
         Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getTokenRangesToRepair(cqlCluster, namespace, tableName);
-        return KeyedStream.stream(tokenRanges).map(this::makeLightweight).collectToMap();
+        return makeLightweight(tokenRanges);
     }
 
-    private Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(
+    private static Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(
             CqlCluster cqlCluster, Namespace namespace, String tableName) {
         String cassandraTableName = getCassandraTableName(namespace, tableName);
         return cqlCluster.getTokenRanges(cassandraTableName);
     }
 
-    private String getCassandraTableName(Namespace namespace, String tableName) {
+    private static String getCassandraTableName(Namespace namespace, String tableName) {
         TableReference tableRef = TableReference.create(toKvNamespace(namespace), tableName);
         return AbstractKeyValueService.internalTableName(tableRef);
     }
 
-    private com.palantir.atlasdb.keyvalue.api.Namespace toKvNamespace(Namespace namespace) {
+    private static com.palantir.atlasdb.keyvalue.api.Namespace toKvNamespace(Namespace namespace) {
         return com.palantir.atlasdb.keyvalue.api.Namespace.create(namespace.get());
     }
 
-    private Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
-        return tokenRanges.stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
+    private static RangesForRepair makeLightweight(Map<InetSocketAddress, Set<TokenRange>> ranges) {
+        return RangesForRepair.of(KeyedStream.stream(ranges)
+                .map(CassandraRepairHelper::makeLightweight)
+                .collectToMap());
     }
 
-    private Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
+    private static RangeSet<LightweightOppToken> makeLightweight(Set<TokenRange> tokenRanges) {
+        return tokenRanges.stream()
+                .flatMap(CassandraRepairHelper::makeLightweight)
+                .collect(toImmutableRangeSet());
+    }
+
+    private static Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
         LightweightOppToken startToken = LightweightOppToken.serialize(tokenRange.getStart());
         LightweightOppToken endToken = LightweightOppToken.serialize(tokenRange.getEnd());
 
@@ -113,7 +184,7 @@ public class CassandraRepairHelper {
         }
     }
 
-    private LightweightOppToken unboundedToken() {
+    private static LightweightOppToken unboundedToken() {
         ByteBuffer minValue = ByteBuffer.allocate(0);
         return new LightweightOppToken(
                 BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));

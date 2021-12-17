@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.transaction;
+package com.palantir.timestamp;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;

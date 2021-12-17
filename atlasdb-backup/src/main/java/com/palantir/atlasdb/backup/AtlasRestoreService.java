@@ -18,28 +18,29 @@ package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
+import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -91,11 +92,36 @@ public class AtlasRestoreService {
      * @return the set of namespaces for which we issued a repair command via the provided Consumer.
      */
     public Set<Namespace> repairInternalTables(
-            Set<Namespace> namespaces, Consumer<Map<InetSocketAddress, Set<Range<LightweightOppToken>>>> repairTable) {
-        Set<Namespace> namespacesToRepair =
-                namespaces.stream().filter(this::backupExists).collect(Collectors.toSet());
+            Set<Namespace> namespaces, BiConsumer<String, RangesForRepair> repairTable) {
+        Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
+        Set<Namespace> namespacesToRepair = completedBackups.keySet();
+
+        // ConsistentCasTablesTask
         namespacesToRepair.forEach(namespace -> cassandraRepairHelper.repairInternalTables(namespace, repairTable));
+
+        // RepairTransactionsTablesTask
+        KeyedStream.stream(completedBackups)
+                .forEach((namespace, completedBackup) ->
+                        repairTransactionsTables(namespace, completedBackup, repairTable));
+
         return namespacesToRepair;
+    }
+
+    private void repairTransactionsTables(
+            Namespace namespace, CompletedBackup completedBackup, BiConsumer<String, RangesForRepair> repairTable) {
+        Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(namespace, completedBackup);
+        cassandraRepairHelper.repairTransactionsTables(namespace, coordinationMap, repairTable);
+    }
+
+    private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(
+            Namespace namespace, CompletedBackup completedBackup) {
+        Optional<InternalSchemaMetadataState> schemaMetadataState = backupPersister.getSchemaMetadata(namespace);
+
+        long fastForwardTs = completedBackup.getBackupEndTimestamp();
+        long immutableTs = completedBackup.getBackupStartTimestamp();
+
+        return CoordinationServiceUtilities.getCoordinationMapOnRestore(
+                schemaMetadataState, fastForwardTs, immutableTs);
     }
 
     public Set<Namespace> completeRestore(Set<Namespace> namespaces) {
@@ -116,14 +142,10 @@ public class AtlasRestoreService {
         return response.getSuccessfulNamespaces();
     }
 
-    private boolean backupExists(Namespace namespace) {
-        Optional<CompletedBackup> maybeCompletedBackup = backupPersister.getCompletedBackup(namespace);
-
-        if (maybeCompletedBackup.isEmpty()) {
-            log.error("Could not restore namespace, as no backup is stored", SafeArg.of("namespace", namespace));
-            return false;
-        }
-
-        return true;
+    private Map<Namespace, CompletedBackup> getCompletedBackups(Set<Namespace> namespaces) {
+        return KeyedStream.of(namespaces)
+                .map(backupPersister::getCompletedBackup)
+                .flatMap(Optional::stream)
+                .collectToMap();
     }
 }
