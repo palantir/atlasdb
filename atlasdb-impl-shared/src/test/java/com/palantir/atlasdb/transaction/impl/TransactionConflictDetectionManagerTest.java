@@ -121,7 +121,7 @@ public final class TransactionConflictDetectionManagerTest {
 
     private void testDisableReadWriteConflict(ConflictHandler initial, ConflictHandler overriden) throws Exception {
         whenDisableReadWriteConflict(initial);
-        assertThat(conflictDetectionManager.get(TABLE_REFERENCE)).isEqualTo(overriden);
+        assertThat(conflictDetectionManager.get(TABLE_REFERENCE)).contains(overriden);
     }
 
     private void testDisableReadWriteConflictThrowsUnsupported(ConflictHandler initial) {
