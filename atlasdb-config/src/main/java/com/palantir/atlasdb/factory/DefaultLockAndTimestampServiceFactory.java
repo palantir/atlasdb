@@ -72,8 +72,8 @@ import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.TimestampCorroboratingTimelockService;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.DefaultNamespacedTimelockRpcClient;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
-import com.palantir.lock.v2.NamespacedTimelockTimestampClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -324,8 +324,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                         components.localLockTracker()))
                 .orElse(conjureTimelockService);
 
-        NamespacedTimelockTimestampClient namespacedTimelockTimestampClient =
-                new NamespacedTimelockRpcClient(timelockClient, timelockNamespace);
+        NamespacedTimelockRpcClient namespacedTimelockRpcClient =
+                new DefaultNamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         LeaderElectionReportingTimelockService leaderElectionReportingTimelockService =
                 LeaderElectionReportingTimelockService.create(withDiagnosticsConjureTimelockService, timelockNamespace);
 
@@ -352,7 +352,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         LockWatchManagerInternal lockWatchManager = timeLockHelperServices.lockWatchManager();
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
-                namespacedTimelockTimestampClient,
+                namespacedTimelockRpcClient,
                 namespacedConjureTimelockService,
                 getLeaderTimeGetter(
                         timelockNamespace,

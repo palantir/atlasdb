@@ -23,17 +23,13 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class InMemoryTimelockServicesTest {
     @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
-
-    private InMemoryTimelockServices inMemoryTimelockServices;
+    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
     private TimestampService timestampService;
     private AsyncTimelockService timelockService;
@@ -41,21 +37,15 @@ public class InMemoryTimelockServicesTest {
 
     @Before
     public void setup() {
-        inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder);
-        timestampService = inMemoryTimelockServices.getTimestampService();
-        timelockService = inMemoryTimelockServices.getTimelockService();
-        delegatingTimelockService = inMemoryTimelockServices.getLegacyTimelockService();
+        timestampService = inMemoryTimeLockRule.getTimestampService();
+        timelockService = inMemoryTimeLockRule.getTimelockService();
+        delegatingTimelockService = inMemoryTimeLockRule.getLegacyTimelockService();
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10L))
                 .pollInterval(Duration.ofSeconds(1L))
                 .ignoreExceptions()
                 .until(() -> timestampService.getFreshTimestamp() > 0);
-    }
-
-    @After
-    public void tearDown() {
-        inMemoryTimelockServices.close();
     }
 
     @Test
