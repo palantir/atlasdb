@@ -17,6 +17,10 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
+import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
+import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
@@ -25,30 +29,55 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
+import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
+import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class AtlasRestoreService {
+    private static final SafeLogger log = SafeLoggerFactory.get(AtlasRestoreService.class);
+
+    private final AuthHeader authHeader;
+    private final AtlasRestoreClientBlocking atlasRestoreClientBlocking;
     private final BackupPersister backupPersister;
     private final CassandraRepairHelper cassandraRepairHelper;
 
     @VisibleForTesting
-    AtlasRestoreService(BackupPersister backupPersister, CassandraRepairHelper cassandraRepairHelper) {
+    AtlasRestoreService(
+            AuthHeader authHeader,
+            AtlasRestoreClientBlocking atlasRestoreClientBlocking,
+            BackupPersister backupPersister,
+            CassandraRepairHelper cassandraRepairHelper) {
+        this.authHeader = authHeader;
+        this.atlasRestoreClientBlocking = atlasRestoreClientBlocking;
         this.backupPersister = backupPersister;
         this.cassandraRepairHelper = cassandraRepairHelper;
     }
 
     public static AtlasRestoreService create(
+            AuthHeader authHeader,
+            Refreshable<ServicesConfigBlock> servicesConfigBlock,
+            String serviceName,
             BackupPersister backupPersister,
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
+        AtlasRestoreClientBlocking atlasRestoreClientBlocking =
+                reloadingFactory.get(AtlasRestoreClientBlocking.class, serviceName);
+
         CassandraRepairHelper cassandraRepairHelper =
                 new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
-        return new AtlasRestoreService(backupPersister, cassandraRepairHelper);
+        return new AtlasRestoreService(authHeader, atlasRestoreClientBlocking, backupPersister, cassandraRepairHelper);
     }
 
     /**
@@ -93,6 +122,24 @@ public class AtlasRestoreService {
 
         return CoordinationServiceUtilities.getCoordinationMapOnRestore(
                 schemaMetadataState, fastForwardTs, immutableTs);
+    }
+
+    public Set<Namespace> completeRestore(Set<Namespace> namespaces) {
+        Set<CompletedBackup> completedBackups = namespaces.stream()
+                .map(backupPersister::getCompletedBackup)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+
+        if (completedBackups.isEmpty()) {
+            log.info(
+                    "Attempted to complete restore, but no completed backups were found",
+                    SafeArg.of("namespaces", namespaces));
+            return ImmutableSet.of();
+        }
+
+        CompleteRestoreResponse response =
+                atlasRestoreClientBlocking.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
+        return response.getSuccessfulNamespaces();
     }
 
     private Map<Namespace, CompletedBackup> getCompletedBackups(Set<Namespace> namespaces) {

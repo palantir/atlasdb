@@ -150,6 +150,14 @@ types:
         package: com.palantir.atlasdb.backup.api
         fields:
           successfulBackups: set<CompletedBackup>
+      CompleteRestoreRequest:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          completedBackups: set<CompletedBackup>
+      CompleteRestoreResponse:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          successfulNamespaces: set<Namespace>
 
 services:
   AtlasBackupClient:
@@ -168,6 +176,17 @@ services:
         args:
           request: CompleteBackupRequest
         returns: CompleteBackupResponse
+  AtlasRestoreClient:
+    name: Internal restore service
+    default-auth: header
+    package: com.palantir.atlasdb.backup.api
+    base-path: /restore
+    endpoints:
+      completeRestore:
+        http: POST /complete
+        args:
+          request: CompleteRestoreRequest
+        returns: CompleteRestoreResponse
   ConjureTimelockService:
     name: Timelock service
     default-auth: header
