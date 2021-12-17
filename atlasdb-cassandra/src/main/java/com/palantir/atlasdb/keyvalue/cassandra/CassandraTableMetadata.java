@@ -57,7 +57,7 @@ public class CassandraTableMetadata {
 
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, Value> tableToMetadataContents;
-        Map<TableReference, byte[]> result = new HashMap<>();
+        ImmutableMap.Builder<TableReference, byte[]> resultBuilder = ImmutableMap.builder();
 
         Set<TableReference> allTableRefs =
                 cassandraTables.getTableReferencesWithoutFiltering().collect(Collectors.toSet());
@@ -89,12 +89,12 @@ public class CassandraTableMetadata {
             }
             TableReference lowercaseTableRef = TableReference.createLowerCased(tableRef);
             if (tableToMetadataContents.containsKey(lowercaseTableRef)) {
-                result.put(
+                resultBuilder.put(
                         tableRef, tableToMetadataContents.get(lowercaseTableRef).getContents());
             }
         }
 
-        return result;
+        return resultBuilder.build();
     }
 
     void deleteAllMetadataRowsForTable(TableReference tableRef) {

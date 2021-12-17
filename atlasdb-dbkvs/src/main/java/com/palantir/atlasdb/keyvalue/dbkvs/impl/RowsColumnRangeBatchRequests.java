@@ -57,7 +57,7 @@ public final class RowsColumnRangeBatchRequests {
         }
         partitions.add(getLastRequestInPartition(batch, Iterables.getLast(partitionedRows)));
 
-        return partitions;
+        return ImmutableList.copyOf(partitions);
     }
 
     /**

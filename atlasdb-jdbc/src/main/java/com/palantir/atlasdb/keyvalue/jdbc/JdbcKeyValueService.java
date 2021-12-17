@@ -278,10 +278,10 @@ public final class JdbcKeyValueService implements KeyValueService {
             return ImmutableMap.of();
         }
 
-        Map<Cell, Value> toReturn = new HashMap<>();
+        ImmutableMap.Builder<Cell, Value> toReturn = ImmutableMap.builder();
         for (List<Map.Entry<Cell, Long>> partition :
                 Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
-            toReturn.putAll(run(ctx -> {
+            toReturn.putAll((Map<Cell, Value>) run(ctx -> {
                 Select<? extends Record> query =
                         getLatestTimestampQueryManyTimestamps(ctx, tableRef, toRows(partition));
                 Result<? extends Record> records = fetchValues(ctx, tableRef, query);
@@ -294,7 +294,7 @@ public final class JdbcKeyValueService implements KeyValueService {
                 return results;
             }));
         }
-        return toReturn;
+        return toReturn.build();
     }
 
     @Override
@@ -303,10 +303,10 @@ public final class JdbcKeyValueService implements KeyValueService {
             return ImmutableMap.of();
         }
 
-        Map<Cell, Long> toReturn = new HashMap<>();
+        ImmutableMap.Builder<Cell, Long> toReturn = ImmutableMap.builder();
         for (List<Map.Entry<Cell, Long>> partition :
                 Iterables.partition(timestampByCell.entrySet(), batchSizeForReads)) {
-            toReturn.putAll(run(ctx -> {
+            toReturn.putAll((Map<Cell, Long>) run(ctx -> {
                 Select<? extends Record> query =
                         getLatestTimestampQueryManyTimestamps(ctx, tableRef, toRows(partition));
                 Result<? extends Record> records = query.fetch();
@@ -319,7 +319,7 @@ public final class JdbcKeyValueService implements KeyValueService {
                 return results;
             }));
         }
-        return toReturn;
+        return toReturn.build();
     }
 
     @Override
