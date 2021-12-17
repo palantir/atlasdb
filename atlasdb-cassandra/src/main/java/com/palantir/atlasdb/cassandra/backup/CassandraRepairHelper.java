@@ -23,6 +23,7 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.utils.Bytes;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -42,6 +43,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -71,7 +73,17 @@ public class CassandraRepairHelper {
         this.cqlClusters = Caffeine.newBuilder()
                 .maximumSize(100)
                 .expireAfterAccess(Duration.ofMinutes(10L))
+                .removalListener(CassandraRepairHelper::onRemoval)
                 .build(this::getCqlClusterUncached);
+    }
+
+    private static void onRemoval(Namespace namespace, CqlCluster cqlCluster, RemovalCause _removalCause) {
+        try {
+            log.info("Closing cql cluster", SafeArg.of("namespace", namespace));
+            cqlCluster.close();
+        } catch (IOException ex) {
+            log.warn("Failed to close CqlCluster", ex);
+        }
     }
 
     private CqlCluster getCqlClusterUncached(Namespace namespace) {
