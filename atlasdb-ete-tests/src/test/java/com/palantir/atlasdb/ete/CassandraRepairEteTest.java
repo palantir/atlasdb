@@ -132,6 +132,19 @@ public final class CassandraRepairEteTest {
     }
 
     @Test
+    public void testRepairTxn3() {
+        List<String> tablesRepaired = new ArrayList<>();
+        BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
+
+        Map<FullyBoundedTimestampRange, Integer> ranges =
+                ImmutableMap.of(FullyBoundedTimestampRange.of(Range.closed(1L, 10_000_000L)), 3);
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+
+        // Transactions3 is backed by Transactions2 under the hood, so this is the table that will be repaired.
+        assertThat(tablesRepaired).containsExactly(TransactionConstants.TRANSACTIONS2_TABLE.getTableName());
+    }
+
+    @Test
     public void testRepairBothTxnTables() {
         List<String> tablesRepaired = new ArrayList<>();
         BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
