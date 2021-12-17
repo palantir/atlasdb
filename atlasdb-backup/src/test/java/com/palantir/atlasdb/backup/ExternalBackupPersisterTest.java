@@ -89,8 +89,9 @@ public class ExternalBackupPersisterTest {
     public void putAndGetCompletedBackup() {
         CompletedBackup completedBackup = CompletedBackup.builder()
                 .namespace(NAMESPACE)
-                .backupStartTimestamp(1L)
-                .backupEndTimestamp(2L)
+                .immutableTimestamp(1L)
+                .backupStartTimestamp(2L)
+                .backupEndTimestamp(3L)
                 .build();
         externalBackupPersister.storeCompletedBackup(completedBackup);
 

@@ -86,35 +86,6 @@ types:
         union:
           successful: SuccessfulLockResponse
           unsuccessful: UnsuccessfulLockResponse
-      InProgressBackupToken:
-        package: com.palantir.atlasdb.backup.api
-        fields:
-          namespace: Namespace
-          lockToken: LockToken
-          immutableTimestamp: Long
-          backupStartTimestamp: Long
-      CompletedBackup:
-        package: com.palantir.atlasdb.backup.api
-        fields:
-          namespace: Namespace
-          backupStartTimestamp: Long
-          backupEndTimestamp: Long
-      PrepareBackupRequest:
-        package: com.palantir.atlasdb.backup.api
-        fields:
-          namespaces: set<Namespace>
-      PrepareBackupResponse:
-        package: com.palantir.atlasdb.backup.api
-        fields:
-          successful: set<InProgressBackupToken>
-      CompleteBackupRequest:
-        package: com.palantir.atlasdb.backup.api
-        fields:
-          backupTokens: set<InProgressBackupToken>
-      CompleteBackupResponse:
-        package: com.palantir.atlasdb.backup.api
-        fields:
-          successfulBackups: set<CompletedBackup>
       ConjureWaitForLocksResponse:
         fields:
           wasSuccessful: boolean
@@ -148,6 +119,37 @@ types:
       LeaderTimes:
         fields:
           leaderTimes: map<Namespace, LeaderTime>
+      # backup and restore
+      InProgressBackupToken:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          namespace: Namespace
+          lockToken: LockToken
+          immutableTimestamp: Long
+          backupStartTimestamp: Long
+      CompletedBackup:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          namespace: Namespace
+          immutableTimestamp: Long
+          backupStartTimestamp: Long
+          backupEndTimestamp: Long
+      PrepareBackupRequest:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          namespaces: set<Namespace>
+      PrepareBackupResponse:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          successful: set<InProgressBackupToken>
+      CompleteBackupRequest:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          backupTokens: set<InProgressBackupToken>
+      CompleteBackupResponse:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          successfulBackups: set<CompletedBackup>
 
 services:
   AtlasBackupClient:

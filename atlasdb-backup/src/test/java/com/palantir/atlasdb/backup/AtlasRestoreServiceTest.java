@@ -50,8 +50,9 @@ public class AtlasRestoreServiceTest {
 
         CompletedBackup completedBackup = CompletedBackup.builder()
                 .namespace(WITH_BACKUP)
-                .backupStartTimestamp(1L)
-                .backupEndTimestamp(2L)
+                .immutableTimestamp(1L)
+                .backupStartTimestamp(2L)
+                .backupEndTimestamp(3L)
                 .build();
         backupPersister.storeCompletedBackup(completedBackup);
     }
