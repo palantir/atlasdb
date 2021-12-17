@@ -34,10 +34,8 @@ from recommonmark.parser import CommonMarkParser
 sys.path.append(os.path.abspath('.'))
 extensions = [
     'sphinx.ext.doctest',
-    'code-block-with-version-replacement',
-    'myst_parser'
+    'code-block-with-version-replacement'
 ]
-suppress_warnings = ["myst.header"]
 
 # Included 
 source_parsers = {
@@ -116,7 +114,9 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = []
+exclude_patterns = [
+    'miscellaneous/doc/adr/*.md'
+]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
