@@ -315,6 +315,7 @@ public class BasicSQLUtils {
         return result;
     }
 
+    @SuppressWarnings("ReadReturnValueIgnored") // This is dodgy in this context but should be OK because it is a BAIS
     public static void toStringSqlArgs(final StringBuilder sb, Object[] args) {
         if (args instanceof Object[][]) {
             // then we're doing a batch query
