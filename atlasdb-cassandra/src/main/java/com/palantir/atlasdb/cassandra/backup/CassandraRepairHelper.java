@@ -72,7 +72,7 @@ public class CassandraRepairHelper {
 
         this.cqlClusters = Caffeine.newBuilder()
                 .maximumSize(100)
-                .expireAfterAccess(Duration.ofMinutes(10L))
+                .expireAfterAccess(Duration.ofMinutes(20L))
                 .removalListener(CassandraRepairHelper::onRemoval)
                 .build(this::getCqlClusterUncached);
     }
