@@ -19,6 +19,7 @@ import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import java.time.Duration;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 /**
  * Converts {@link BlockingTimeoutException}s into appropriate status responses, depending on the user's
@@ -26,13 +27,12 @@ import javax.ws.rs.core.Response;
  * of exceptional circumstances, it would still be the leader), and they may do so immediately (as an individual lock
  * being locked does not imply that the server is struggling).
  *
- * This is a 503 without a Retry-After header and with a message body corresponding to {@link BlockingTimeoutException}
- * in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
+ * This is a 503 response in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  */
 public class BlockingTimeoutExceptionMapper extends ProtocolAwareExceptionMapper<BlockingTimeoutException> {
     @Override
     Response handleLegacyOrUnknownVersion(BlockingTimeoutException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+        return Response.status(Status.SERVICE_UNAVAILABLE).build();
     }
 
     @Override

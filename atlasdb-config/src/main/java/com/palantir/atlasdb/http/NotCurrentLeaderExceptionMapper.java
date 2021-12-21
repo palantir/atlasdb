@@ -19,6 +19,7 @@ import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import java.util.Optional;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 /**
  * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's
@@ -40,7 +41,7 @@ public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMappe
 
     @Override
     Response handleLegacyOrUnknownVersion(NotCurrentLeaderException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+        return Response.status(Status.SERVICE_UNAVAILABLE).build();
     }
 
     @Override

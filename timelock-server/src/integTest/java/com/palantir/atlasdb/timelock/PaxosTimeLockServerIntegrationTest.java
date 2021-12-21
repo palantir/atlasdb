@@ -16,12 +16,14 @@
 package com.palantir.atlasdb.timelock;
 
 import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
+import static com.palantir.conjure.java.api.testing.Assertions.assertThatRemoteExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -220,9 +222,8 @@ public class PaxosTimeLockServerIntegrationTest {
     public void lockServiceShouldDisallowGettingMinLockedInVersionId() {
         LockService lockService = namespace1.legacyLockService();
 
-        // Catching any exception since this currently is an error deserialization exception
-        // until we stop requiring http-remoting2 errors
-        assertThatThrownBy(() -> lockService.getMinLockedInVersionId(CLIENT_1)).isInstanceOf(Exception.class);
+        assertThatRemoteExceptionThrownBy(() -> lockService.getMinLockedInVersionId(CLIENT_1))
+                .isGeneratedFromErrorType(ErrorType.INVALID_ARGUMENT);
     }
 
     private static void getFortyTwoFreshTimestamps(TimelockService timelockService) {
