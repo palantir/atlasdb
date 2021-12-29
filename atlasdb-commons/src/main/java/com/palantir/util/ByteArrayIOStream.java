@@ -161,6 +161,7 @@ public class ByteArrayIOStream extends OutputStream {
         }
 
         @Override
+        @SuppressWarnings("NarrowingCompoundAssignment") // Legacy, unclear if safe to change behaviour
         public long skip(long n) {
             int bytesRemaining = size - pos;
             if (bytesRemaining < n) {

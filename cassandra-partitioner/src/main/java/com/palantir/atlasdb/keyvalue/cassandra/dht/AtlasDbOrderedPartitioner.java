@@ -85,6 +85,7 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     }
 
     @Override
+    @SuppressWarnings("NarrowingCompoundAssignment") // Safe legacy code
     public AtlasBytesToken getRandomToken() {
         byte[] buffer = new byte[16];
         r.nextBytes(buffer);

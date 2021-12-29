@@ -94,18 +94,16 @@ allprojects {
     }
 
     tasks.withType(JavaCompile) {
-//        options.compilerArgs += ['-Werror']
+        options.compilerArgs += ['-Werror']
         // temporarily relax constraints until we can fix all violations
         options.errorprone.disable 'CloseableProvides',
                 'DangerousCompletableFutureUsage',
                 'EqualsGetClass',
                 'FutureReturnValueIgnored',
                 'InlineFormatString',
-                'NarrowingCompoundAssignment',
                 'PreconditionsConstantMessage',
                 'ReturnValueIgnored',
                 'Slf4jLogsafeArgs',
-                'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
                 'TooManyArguments'
     }

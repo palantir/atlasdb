@@ -63,6 +63,7 @@ public abstract class TargetedSweepMetadata implements Persistable {
                     .build();
 
     @Override
+    @SuppressWarnings("NarrowingCompoundAssignment") // These are safe because shard() is less than MAX_SHARDS.
     public byte[] persistToBytes() {
         byte[] result = new byte[] {0, 0, 0, 0};
         result[0] |= (shard() & BYTE_MASK) >> 2;

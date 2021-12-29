@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -130,7 +131,7 @@ public class PerformanceResults {
         int current = 0;
 
         for (double d : values.keys()) {
-            current += values.count(d);
+            current += Ints.saturatedCast(values.count(d));
             while (1.0 * DOWNSAMPLE_MAXIMUM_SIZE * current / totalCount >= (list.size() + 1)) {
                 list.add(d);
             }
