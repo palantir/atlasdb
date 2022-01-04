@@ -115,6 +115,13 @@ public class CassandraRepairHelper {
                 TransactionsTableInteraction.getTransactionTableInteractions(
                         coordinationMap, DefaultRetryPolicy.INSTANCE);
 
+        repairTransactionsTables(namespace, transactionsTableInteractions, repairTable);
+    }
+
+    public void repairTransactionsTables(
+            Namespace namespace,
+            List<TransactionsTableInteraction> transactionsTableInteractions,
+            BiConsumer<String, RangesForRepair> repairTable) {
         Map<String, RangesForRepair> tokenRangesForRepair =
                 getRangesForRepairByTable(namespace, transactionsTableInteractions);
 
