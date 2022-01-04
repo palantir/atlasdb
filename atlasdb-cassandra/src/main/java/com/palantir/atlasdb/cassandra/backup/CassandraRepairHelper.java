@@ -16,19 +16,13 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
-
-import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.utils.Bytes;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
-import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -45,7 +39,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -131,18 +124,19 @@ public class CassandraRepairHelper {
                 .collectToMap();
     }
 
-    private Map<String, Map<InetSocketAddress, Set<TokenRange>>> getRawRangesForRepairByTable(
+    private Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> getRawRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
         return cqlClusters.get(namespace).getTransactionsTableRangesForRepair(transactionsTableInteractions);
     }
 
     // VisibleForTesting
     public static RangesForRepair getRangesToRepair(CqlCluster cqlCluster, Namespace namespace, String tableName) {
-        Map<InetSocketAddress, Set<TokenRange>> tokenRanges = getTokenRangesToRepair(cqlCluster, namespace, tableName);
+        Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRanges =
+                getTokenRangesToRepair(cqlCluster, namespace, tableName);
         return makeLightweight(tokenRanges);
     }
 
-    private static Map<InetSocketAddress, Set<TokenRange>> getTokenRangesToRepair(
+    private static Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRangesToRepair(
             CqlCluster cqlCluster, Namespace namespace, String tableName) {
         String cassandraTableName = getCassandraTableName(namespace, tableName);
         return cqlCluster.getTokenRanges(cassandraTableName);
@@ -157,36 +151,7 @@ public class CassandraRepairHelper {
         return com.palantir.atlasdb.keyvalue.api.Namespace.create(namespace.get());
     }
 
-    private static RangesForRepair makeLightweight(Map<InetSocketAddress, Set<TokenRange>> ranges) {
-        return RangesForRepair.of(KeyedStream.stream(ranges)
-                .map(CassandraRepairHelper::makeLightweight)
-                .collectToMap());
-    }
-
-    private static RangeSet<LightweightOppToken> makeLightweight(Set<TokenRange> tokenRanges) {
-        return tokenRanges.stream()
-                .flatMap(CassandraRepairHelper::makeLightweight)
-                .collect(toImmutableRangeSet());
-    }
-
-    private static Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
-        LightweightOppToken startToken = LightweightOppToken.serialize(tokenRange.getStart());
-        LightweightOppToken endToken = LightweightOppToken.serialize(tokenRange.getEnd());
-
-        if (startToken.compareTo(endToken) <= 0) {
-            return Stream.of(Range.closed(startToken, endToken));
-        } else {
-            // Handle wrap-around
-            LightweightOppToken unbounded = unboundedToken();
-            Range<LightweightOppToken> greaterThan = Range.closed(startToken, unbounded);
-            Range<LightweightOppToken> atMost = Range.closed(unbounded, endToken);
-            return Stream.of(greaterThan, atMost);
-        }
-    }
-
-    private static LightweightOppToken unboundedToken() {
-        ByteBuffer minValue = ByteBuffer.allocate(0);
-        return new LightweightOppToken(
-                BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
+    private static RangesForRepair makeLightweight(Map<InetSocketAddress, RangeSet<LightweightOppToken>> ranges) {
+        return RangesForRepair.of(KeyedStream.stream(ranges).collectToMap());
     }
 }

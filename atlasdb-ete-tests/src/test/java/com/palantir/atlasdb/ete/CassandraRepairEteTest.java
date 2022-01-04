@@ -19,9 +19,6 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.Token;
-import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -32,6 +29,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
+import com.palantir.atlasdb.cassandra.backup.CqlMetadata;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -82,8 +80,8 @@ public final class CassandraRepairEteTest {
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
     private CqlCluster cqlCluster;
-    private Metadata metadata;
-    private TreeMap<Token, TokenRange> tokenRangesByEnd;
+    private CqlMetadata metadata;
+    private TreeMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd;
 
     @Before
     public void setUp() {
@@ -97,10 +95,10 @@ public final class CassandraRepairEteTest {
         cassandraRepairHelper = new CassandraRepairHelper(_unused -> config, _unused -> kvs);
         Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         cqlCluster = new CqlCluster(cluster, config);
-        metadata = cluster.getMetadata();
+        metadata = new CqlMetadata(cluster.getMetadata());
 
-        tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges())
-                .mapKeys(TokenRange::getEnd)
+        tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges().asRanges())
+                .mapKeys(Range::upperEndpoint)
                 .collectTo(TreeMap::new);
     }
 
@@ -199,100 +197,102 @@ public final class CassandraRepairEteTest {
 
     @Test
     public void testMinimalSetOfTokenRanges() {
-        Token partitionKeyToken = getToken("9000");
+        LightweightOppToken partitionKeyToken = getToken("9000");
+        LightweightOppToken lastTokenBeforePartitionKey = tokenRangesByEnd.lowerKey(partitionKeyToken);
 
-        Token lastTokenBeforePartitionKey = tokenRangesByEnd.lowerKey(partitionKeyToken);
-
-        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
-        assertThat(tokenRanges).hasSize(1);
-        TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(lastTokenBeforePartitionKey);
-        assertThat(onlyRange.getEnd()).isEqualTo(partitionKeyToken);
+        RangeSet<LightweightOppToken> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
+        assertThat(tokenRanges.asRanges()).hasSize(1);
+        Range<LightweightOppToken> onlyRange = tokenRanges.asRanges().iterator().next();
+        assertThat(onlyRange.lowerEndpoint()).isEqualTo(lastTokenBeforePartitionKey);
+        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken);
     }
 
     @Test
     public void testSmallTokenRangeBeforeFirstVnode() {
-        Token partitionKeyToken = getToken("0010");
+        LightweightOppToken partitionKeyToken = getToken("0010");
 
-        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
+        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                        ImmutableSet.of(partitionKeyToken), tokenRangesByEnd)
+                .asRanges();
         assertThat(tokenRanges).hasSize(1);
-        TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(tokenRangesByEnd.lowerKey(getToken("ff")));
-        assertThat(onlyRange.getEnd()).isEqualTo(partitionKeyToken);
+        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
+        assertThat(onlyRange.lowerEndpoint()).isEqualTo(tokenRangesByEnd.lowerKey(getToken("ff")));
+        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken);
     }
 
     @Test
     public void testSmallTokenRangeOnVnode() {
-        Token firstEndToken = tokenRangesByEnd.firstKey();
-        Token secondEndToken = tokenRangesByEnd.higherKey(firstEndToken);
-        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                metadata, ImmutableSet.of(secondEndToken), tokenRangesByEnd);
+        LightweightOppToken firstEndToken = tokenRangesByEnd.firstKey();
+        LightweightOppToken secondEndToken = tokenRangesByEnd.higherKey(firstEndToken);
+        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                        ImmutableSet.of(secondEndToken), tokenRangesByEnd)
+                .asRanges();
         assertThat(tokenRanges).hasSize(1);
-        TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(firstEndToken);
-        assertThat(onlyRange.getEnd()).isEqualTo(secondEndToken);
+        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
+        assertThat(onlyRange.lowerEndpoint()).isEqualTo(firstEndToken);
+        assertThat(onlyRange.upperEndpoint()).isEqualTo(secondEndToken);
     }
 
     @Test
     public void testSmallTokenRangeDedupe() {
-        Token partitionKeyToken1 = getToken("9000");
-        Token partitionKeyToken2 = getToken("9001");
-        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                metadata, ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByEnd);
+        LightweightOppToken partitionKeyToken1 = getToken("9000");
+        LightweightOppToken partitionKeyToken2 = getToken("9001");
+        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                        ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByEnd)
+                .asRanges();
         assertThat(tokenRanges).hasSize(1);
-        TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(tokenRangesByEnd.lowerKey(partitionKeyToken1));
-        assertThat(onlyRange.getEnd()).isEqualTo(partitionKeyToken2);
+        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
+        assertThat(onlyRange.lowerEndpoint()).isEqualTo(tokenRangesByEnd.lowerKey(partitionKeyToken1));
+        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken2);
     }
 
     @Test
     public void testRemoveNestedRanges() {
-        Token duplicatedStartKey = getToken("0001");
-        Token nestedEndKey = getToken("000101");
-        Token outerEndKey = getToken("000102");
-        TokenRange nested = metadata.newTokenRange(duplicatedStartKey, nestedEndKey);
-        TokenRange outer = metadata.newTokenRange(duplicatedStartKey, outerEndKey);
+        LightweightOppToken duplicatedStartKey = getToken("0001");
+        LightweightOppToken nestedEndKey = getToken("000101");
+        LightweightOppToken outerEndKey = getToken("000102");
+        Range<LightweightOppToken> nested = Range.closed(duplicatedStartKey, nestedEndKey);
+        Range<LightweightOppToken> outer = Range.closed(duplicatedStartKey, outerEndKey);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
     }
 
     @Test
     public void testMinTokenRangeIsLatestEnding() {
-        Token duplicatedStartKey = getToken("0001");
-        Token normalEndKey = getToken("000101");
-        TokenRange nested = metadata.newTokenRange(duplicatedStartKey, normalEndKey);
-        TokenRange outer = metadata.newTokenRange(duplicatedStartKey, minToken());
+        LightweightOppToken duplicatedStartKey = getToken("0001");
+        LightweightOppToken normalEndKey = getToken("000101");
+        Range<LightweightOppToken> nested = Range.closed(duplicatedStartKey, normalEndKey);
+        Range<LightweightOppToken> outer = Range.closed(duplicatedStartKey, minToken());
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
     }
 
     @Test
     public void testMinTokenIsStart() {
-        Token nestedEndKey = getToken("0001");
-        Token outerEndKey = getToken("0002");
-        TokenRange nested = metadata.newTokenRange(minToken(), nestedEndKey);
-        TokenRange outer = metadata.newTokenRange(minToken(), outerEndKey);
+        LightweightOppToken nestedEndKey = getToken("0001");
+        LightweightOppToken outerEndKey = getToken("0002");
+        Range<LightweightOppToken> nested = Range.closed(minToken(), nestedEndKey);
+        Range<LightweightOppToken> outer = Range.closed(minToken(), outerEndKey);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
     }
 
     @Test
     public void testRemoveNestedWraparoundRanges() {
-        Token duplicatedStartKey = getToken("ff");
-        Token innerWrapAround = getToken("0001");
-        Token outerWrapAround = getToken("0002");
-        TokenRange innerWrapAroundRange = metadata.newTokenRange(duplicatedStartKey, innerWrapAround);
-        TokenRange outerWrapAroundRange = metadata.newTokenRange(duplicatedStartKey, outerWrapAround);
+        LightweightOppToken duplicatedStartKey = getToken("ff");
+        LightweightOppToken innerWrapAround = getToken("0001");
+        LightweightOppToken outerWrapAround = getToken("0002");
+        Range<LightweightOppToken> innerWrapAroundRange = Range.closed(duplicatedStartKey, innerWrapAround);
+        Range<LightweightOppToken> outerWrapAroundRange = Range.closed(duplicatedStartKey, outerWrapAround);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(innerWrapAroundRange, outerWrapAroundRange))
                 .isEqualTo(outerWrapAroundRange);
     }
 
     @Test
     public void testRemoveNestedWraparoundAndNonWrapRanges() {
-        Token duplicatedStartKey = getToken("ff");
-        Token nonWrapAround = getToken("ff01");
-        Token wrapAround = getToken("0001");
-        TokenRange nonWrapAroundRange = metadata.newTokenRange(duplicatedStartKey, nonWrapAround);
-        TokenRange wrapAroundRange = metadata.newTokenRange(duplicatedStartKey, wrapAround);
+        LightweightOppToken duplicatedStartKey = getToken("ff");
+        LightweightOppToken nonWrapAround = getToken("ff01");
+        LightweightOppToken wrapAround = getToken("0001");
+        Range<LightweightOppToken> nonWrapAroundRange = Range.closed(duplicatedStartKey, nonWrapAround);
+        Range<LightweightOppToken> wrapAroundRange = Range.closed(duplicatedStartKey, wrapAround);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nonWrapAroundRange, wrapAroundRange))
                 .isEqualTo(wrapAroundRange);
     }
@@ -349,11 +349,11 @@ public final class CassandraRepairEteTest {
         return invertedMap;
     }
 
-    private Token minToken() {
+    private LightweightOppToken minToken() {
         return getToken("");
     }
 
-    private Token getToken(String hexBinary) {
+    private LightweightOppToken getToken(String hexBinary) {
         return metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
     }
 }

@@ -41,6 +41,10 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
         return new LightweightOppToken(bytes);
     }
 
+    public ByteBuffer deserialize() {
+        return ByteBuffer.wrap(bytes);
+    }
+
     @Override
     public int compareTo(LightweightOppToken other) {
         return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);

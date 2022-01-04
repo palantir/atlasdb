@@ -48,6 +48,10 @@ public class CqlMetadata {
         return makeLightweight(tokenRanges);
     }
 
+    public LightweightOppToken newToken(ByteBuffer byteBuffer) {
+        return LightweightOppToken.serialize(metadata.newToken(byteBuffer));
+    }
+
     private static RangeSet<LightweightOppToken> makeLightweight(Set<TokenRange> tokenRanges) {
         return tokenRanges.stream().flatMap(CqlMetadata::makeLightweight).collect(toImmutableRangeSet());
     }
