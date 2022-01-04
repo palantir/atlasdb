@@ -118,44 +118,44 @@
 This block should be specified under the AtlasDB runtime block.</p>
 <p>Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">yourapp</span><span class="w"></span>
 
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="nt">servers</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">cassandra:9160</span>
-    <span class="nt">poolSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">20</span>
-    <span class="nt">maxConnectionBurstSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100</span> <span class="c1"># defaults to 5x poolSize if not set</span>
-    <span class="nt">credentials</span><span class="p">:</span>
-      <span class="nt">username</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-      <span class="nt">password</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="nt">sslConfiguration</span><span class="p">:</span>
-      <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
-    <span class="nt">replicationFactor</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-    <span class="nt">mutationBatchCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10000</span>
-    <span class="nt">mutationBatchSizeBytes</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10000000</span>
-    <span class="nt">fetchBatchCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
-    <span class="nt">autoRefreshNodes</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra:9160</span><span class="w"></span>
+<span class="w">    </span><span class="nt">poolSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span><span class="w"></span>
+<span class="w">    </span><span class="nt">maxConnectionBurstSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w"> </span><span class="c1"># defaults to 5x poolSize if not set</span><span class="w"></span>
+<span class="w">    </span><span class="nt">credentials</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
+<span class="w">    </span><span class="nt">replicationFactor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<span class="w">    </span><span class="nt">mutationBatchCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">mutationBatchSizeBytes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">fetchBatchCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">autoRefreshNodes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"></span>
 
-  <span class="nt">leader</span><span class="p">:</span>
-    <span class="c1"># This should be at least half the number of nodes in your cluster</span>
-    <span class="nt">quorumSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
-    <span class="nt">learnerLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="nt">acceptorLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span>
-    <span class="nt">localServer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://&lt;yourhost&gt;:3828</span>
-    <span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span>
-    <span class="nt">lockCreator</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-    <span class="c1"># This should be the same for every node</span>
-    <span class="nt">leaders</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
+<span class="w">  </span><span class="nt">leader</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be at least half the number of nodes in your cluster</span><span class="w"></span>
+<span class="w">    </span><span class="nt">quorumSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
+<span class="w">    </span><span class="nt">learnerLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="nt">acceptorLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">localServer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://&lt;yourhost&gt;:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">lockCreator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node</span><span class="w"></span>
+<span class="w">    </span><span class="nt">leaders</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"> </span><span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span><span class="w"></span>
 
-<span class="nt">atlasdb-runtime</span><span class="p">:</span>
-  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-  <span class="nt">sweepReadThreads</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">16</span>
+<span class="nt">atlasdb-runtime</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">  </span><span class="nt">sweepReadThreads</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span><span class="w"></span>
 </pre></div>
 </div>
 <p id="cass-config-ssl">For more details on the leader block, see <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>

@@ -201,7 +201,7 @@ As fast-forward is idempotent (it sets the timestamp to be the maximum of its cu
 <li><p>If using Postgres or Oracle, it suffices to rename the relevant column in the timestamp table (use <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span></code>).
 For example, for Postgres:</p>
 <blockquote>
-<div><div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span> <span class="k">TABLE</span> <span class="k">timestamp</span> <span class="k">RENAME</span> <span class="n">last_allocated</span> <span class="k">TO</span> <span class="n">LEGACY_last_allocated</span><span class="p">;</span>
+<div><div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="k">RENAME</span><span class="w"> </span><span class="n">last_allocated</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">LEGACY_last_allocated</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
 </div></blockquote>

@@ -115,19 +115,19 @@ Ensure you disable tracing after your performance profiling is completed.</p>
 <p>Consult the documentation for your service for where the Cassandra runtime
 config is located. Assuming the Atlas runtime config is located at
 <code class="docutils literal notranslate"><span class="pre">conf.runtime.atlas</span></code>, you can control tracing with the following config:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">conf</span><span class="p">:</span>
-  <span class="nt">runtime</span><span class="p">:</span>
-    <span class="nt">atlas</span><span class="p">:</span>
-      <span class="nt">keyValueService</span><span class="p">:</span>
-        <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-        <span class="nt">tracing</span><span class="p">:</span>
-          <span class="nt">enabled</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-          <span class="nt">trace-probability</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1.0</span>
-          <span class="nt">min-duration-to-log</span><span class="p">:</span> <span class="s">&quot;0ms&quot;</span>
-          <span class="nt">tables-to-trace</span><span class="p">:</span>
-            <span class="p p-Indicator">-</span> <span class="s">&quot;_transactions2&quot;</span>
-            <span class="p p-Indicator">-</span> <span class="s">&quot;namespaceOne.table_7&quot;</span>
-            <span class="p p-Indicator">-</span> <span class="s">&quot;namespaceTwo.table_3&quot;</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">conf</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">runtime</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">atlas</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">        </span><span class="nt">tracing</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">          </span><span class="nt">trace-probability</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span><span class="w"></span>
+<span class="w">          </span><span class="nt">min-duration-to-log</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0ms&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">tables-to-trace</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;_transactions2&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespaceOne.table_7&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespaceTwo.table_3&quot;</span><span class="w"></span>
 </pre></div>
 </div>
 <p>Tracing config paramters:</p>

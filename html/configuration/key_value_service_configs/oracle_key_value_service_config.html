@@ -108,7 +108,7 @@ runtime dependency. In gradle this looks like:</p>
 </pre></div>
 </div>
 <p>e.g.</p>
-<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.502.0&#39;</span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.503.0&#39;</span>
 <span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:dbkvs-oracle-driver:0.3.0&#39;</span>
 </pre></div>
 </div>
@@ -116,36 +116,36 @@ runtime dependency. In gradle this looks like:</p>
 <section id="configuring-a-running-application-to-use-oracle">
 <h2>Configuring a Running Application to Use Oracle<a class="headerlink" href="#configuring-a-running-application-to-use-oracle" title="Permalink to this headline"></a></h2>
 <p>A minimal AtlasDB configuration for running against Oracle will look like the below.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relational</span>
-    <span class="nt">ddl</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle</span>
-      <span class="nt">overflowMigrationState</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">FINISHED</span>
-      <span class="nt">jdbcHandler</span><span class="p">:</span>
-        <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle</span>
-    <span class="nt">connection</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle</span>
-      <span class="nt">host</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle</span>
-      <span class="nt">port</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1521</span>
-      <span class="nt">sid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
-      <span class="nt">dbLogin</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
-      <span class="nt">dbPassword</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">palpal</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">relational</span><span class="w"></span>
+<span class="w">    </span><span class="nt">ddl</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oracle</span><span class="w"></span>
+<span class="w">      </span><span class="nt">overflowMigrationState</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FINISHED</span><span class="w"></span>
+<span class="w">      </span><span class="nt">jdbcHandler</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oracle</span><span class="w"></span>
+<span class="w">    </span><span class="nt">connection</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oracle</span><span class="w"></span>
+<span class="w">      </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oracle</span><span class="w"></span>
+<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1521</span><span class="w"></span>
+<span class="w">      </span><span class="nt">sid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir</span><span class="w"></span>
+<span class="w">      </span><span class="nt">dbLogin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir</span><span class="w"></span>
+<span class="w">      </span><span class="nt">dbPassword</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palpal</span><span class="w"></span>
 
-  <span class="nt">leader</span><span class="p">:</span>
-    <span class="c1"># This should be at least half the number of nodes in your cluster</span>
-    <span class="nt">quorumSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
-    <span class="nt">learnerLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="nt">acceptorLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span>
-    <span class="nt">localServer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://&lt;yourhost&gt;:3828</span>
-    <span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span>
-    <span class="nt">lockCreator</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-    <span class="c1"># This should be the same for every node</span>
-    <span class="nt">leaders</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
+<span class="w">  </span><span class="nt">leader</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be at least half the number of nodes in your cluster</span><span class="w"></span>
+<span class="w">    </span><span class="nt">quorumSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
+<span class="w">    </span><span class="nt">learnerLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="nt">acceptorLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">localServer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://&lt;yourhost&gt;:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">lockCreator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node</span><span class="w"></span>
+<span class="w">    </span><span class="nt">leaders</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"> </span><span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span><span class="w"></span>
 </pre></div>
 </div>
 <p>For more details on the leader block, see <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
@@ -208,13 +208,13 @@ defaults to 1000.</p></td>
 <h3>Connection parameters<a class="headerlink" href="#connection-parameters" title="Permalink to this headline"></a></h3>
 <p>If you would like to customize the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="c1"># as above - skipped for brevity</span>
-    <span class="nt">connection</span><span class="p">:</span>
-      <span class="c1"># as above - skipped for brevity</span>
-      <span class="nt">connectionParameters</span><span class="p">:</span> <span class="c1"># JDBC connection parameters</span>
-        <span class="nt">defaultRowFetchSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100</span> <span class="c1"># Default: unlimited. Adjusts the number of rows fetched in each database request.</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># as above - skipped for brevity</span><span class="w"></span>
+<span class="w">    </span><span class="nt">connection</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># as above - skipped for brevity</span><span class="w"></span>
+<span class="w">      </span><span class="nt">connectionParameters</span><span class="p">:</span><span class="w"> </span><span class="c1"># JDBC connection parameters</span><span class="w"></span>
+<span class="w">        </span><span class="nt">defaultRowFetchSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w"> </span><span class="c1"># Default: unlimited. Adjusts the number of rows fetched in each database request.</span><span class="w"></span>
 </pre></div>
 </div>
 <p>These are the required parameters:</p>

@@ -265,26 +265,26 @@ adding a <code class="docutils literal notranslate"><span class="pre">timelock</
 <p>In versions of AtlasDB before 0.74.0, you will need to specify an empty <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block as a child of the
 <code class="docutils literal notranslate"><span class="pre">atlasdb</span></code> block. This block looks like the following: <code class="docutils literal notranslate"><span class="pre">timelock:</span> <span class="pre">{}</span></code>.</p>
 </div>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">yourapp</span><span class="w"></span>
 
-<span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="nt">servers</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">cassandra:9160</span>
-    <span class="nt">poolSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">20</span>
-    <span class="nt">credentials</span><span class="p">:</span>
-      <span class="nt">username</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-      <span class="nt">password</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="nt">sslConfiguration</span><span class="p">:</span>
-      <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
-    <span class="nt">replicationFactor</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-    <span class="nt">mutationBatchCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10000</span>
-    <span class="nt">mutationBatchSizeBytes</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10000000</span>
-    <span class="nt">fetchBatchCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
-    <span class="nt">autoRefreshNodes</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra:9160</span><span class="w"></span>
+<span class="w">    </span><span class="nt">poolSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span><span class="w"></span>
+<span class="w">    </span><span class="nt">credentials</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
+<span class="w">    </span><span class="nt">replicationFactor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<span class="w">    </span><span class="nt">mutationBatchCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">mutationBatchSizeBytes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">fetchBatchCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">autoRefreshNodes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"></span>
 
-  <span class="nt">initializeAsync</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">initializeAsync</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
 </pre></div>
 </div>
 <p>The example above uses the <code class="docutils literal notranslate"><span class="pre">namespace</span></code> parameter; the <code class="docutils literal notranslate"><span class="pre">client</span></code> we will use when connecting to TimeLock will be <code class="docutils literal notranslate"><span class="pre">yourapp</span></code>.
@@ -297,16 +297,16 @@ We don’t know the URLs of the TimeLock servers nor how we will talk to them, b
 <p>In versions of AtlasDB before 0.74.0, if the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block was absent in the install configuration, then this
 block would be ignored, and AtlasDB would start up using embedded timestamp and lock services.</p>
 </div>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">timelockRuntime</span><span class="p">:</span>
-  <span class="nt">serversList</span><span class="p">:</span>
-    <span class="nt">servers</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;https://foo1:12345&quot;</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;https://foo2:8421&quot;</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;https://foo3:9421&quot;</span>
-    <span class="nt">sslConfiguration</span><span class="p">:</span>
-      <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/trustStore.jks</span>
-      <span class="nt">keyStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/keyStore.jks</span>
-      <span class="nt">keyStorePassword</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0987654321</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">timelockRuntime</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">serversList</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;https://foo1:12345&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;https://foo2:8421&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;https://foo3:9421&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/trustStore.jks</span><span class="w"></span>
+<span class="w">      </span><span class="nt">keyStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/keyStore.jks</span><span class="w"></span>
+<span class="w">      </span><span class="nt">keyStorePassword</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0987654321</span><span class="w"></span>
 </pre></div>
 </div>
 <p>AtlasDB will at runtime determine that the <code class="docutils literal notranslate"><span class="pre">client</span></code> to be used is <code class="docutils literal notranslate"><span class="pre">yourapp</span></code> and the servers are as indicated above,

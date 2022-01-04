@@ -168,15 +168,15 @@ the server’s <code class="docutils literal notranslate"><span class="pre">heal
 Detailed documentation is <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">here</span></a>.
 You must remove any <code class="docutils literal notranslate"><span class="pre">leader</span></code>, <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, or <code class="docutils literal notranslate"><span class="pre">lock</span></code> blocks; the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block to add looks like this:</p></li>
 </ol>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-   <span class="nt">timelock</span><span class="p">:</span>
-     <span class="nt">serversList</span><span class="p">:</span>
-       <span class="nt">servers</span><span class="p">:</span>
-         <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
-         <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-2.com:8080</span>
-         <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-3.com:8080</span>
-       <span class="nt">sslConfiguration</span><span class="p">:</span>
-         <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">   </span><span class="nt">timelock</span><span class="p">:</span><span class="w"></span>
+<span class="w">     </span><span class="nt">serversList</span><span class="p">:</span><span class="w"></span>
+<span class="w">       </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
+<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span><span class="w"></span>
+<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-2.com:8080</span><span class="w"></span>
+<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-3.com:8080</span><span class="w"></span>
+<span class="w">       </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">         </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
 </pre></div>
 </div>
 <ol class="arabic simple" start="10">

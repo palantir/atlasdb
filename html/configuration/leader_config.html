@@ -185,27 +185,27 @@ The use of <cite>cluster</cite> and <cite>nodes</cite> are in reference to Atlas
 <h3><a class="toc-backref" href="#id1">Multiple AtlasDB Clients</a><a class="headerlink" href="#multiple-atlasdb-clients" title="Permalink to this headline"></a></h3>
 <p>A leader configuration block is required if you are using multiple AtlasDB clients.
 Failure to specify a leader configuration could lead to data corruption.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="c1"># omitted for brevity</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># omitted for brevity</span><span class="w"></span>
 
-  <span class="nt">leader</span><span class="p">:</span>
-    <span class="c1"># This should be at least half the number of nodes in your cluster</span>
-    <span class="nt">quorumSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
-    <span class="nt">learnerLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="nt">acceptorLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span>
-    <span class="nt">localServer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-    <span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span>
-    <span class="nt">lockCreator</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-    <span class="c1"># This should be the same for every node</span>
-    <span class="nt">leaders</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
-    <span class="nt">sslConfiguration</span><span class="p">:</span>
-      <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
+<span class="w">  </span><span class="nt">leader</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be at least half the number of nodes in your cluster</span><span class="w"></span>
+<span class="w">    </span><span class="nt">quorumSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
+<span class="w">    </span><span class="nt">learnerLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="nt">acceptorLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">localServer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">lockCreator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node</span><span class="w"></span>
+<span class="w">    </span><span class="nt">leaders</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"> </span><span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
@@ -213,23 +213,23 @@ Failure to specify a leader configuration could lead to data corruption.</p>
 <span id="leader-config-single-client-with-leader"></span><h3><a class="toc-backref" href="#id2">Single AtlasDB Client or Offline CLI with Leader Block</a><a class="headerlink" href="#single-atlasdb-client-or-offline-cli-with-leader-block" title="Permalink to this headline"></a></h3>
 <p>Similar to the above configuration, but with only a single leader specified in <code class="docutils literal notranslate"><span class="pre">leaders</span></code>.
 To run an <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span class="std std-ref">offline CLI</span></a>, you also need to specify a leader block.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="c1"># omitted for brevity</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># omitted for brevity</span><span class="w"></span>
 
-  <span class="nt">leader</span><span class="p">:</span>
-    <span class="c1"># This should be at least half the number of nodes in your cluster</span>
-    <span class="nt">quorumSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-    <span class="nt">learnerLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="nt">acceptorLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span>
-    <span class="nt">localServer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-    <span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span>
-    <span class="nt">lockCreator</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-    <span class="c1"># This should be the same for every node</span>
-    <span class="nt">leaders</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
+<span class="w">  </span><span class="nt">leader</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be at least half the number of nodes in your cluster</span><span class="w"></span>
+<span class="w">    </span><span class="nt">quorumSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<span class="w">    </span><span class="nt">learnerLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="nt">acceptorLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">localServer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">lockCreator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node</span><span class="w"></span>
+<span class="w">    </span><span class="nt">leaders</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"> </span><span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
@@ -237,12 +237,12 @@ To run an <a class="reference internal" href="../cluster_management/clis.html#of
 <h3><a class="toc-backref" href="#id3">Single AtlasDB Client without Leader Block (DEPRECATED)</a><a class="headerlink" href="#single-atlasdb-client-without-leader-block-deprecated" title="Permalink to this headline"></a></h3>
 <p>If you only have one AtlasDB client, then you may run with no leader block, although this option is deprecated, and will be removed in a future release.
 An example configuration is below.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="c1"># omitted for brevity</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># omitted for brevity</span><span class="w"></span>
 
-  <span class="c1"># no leader block</span>
+<span class="w">  </span><span class="c1"># no leader block</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
@@ -251,28 +251,28 @@ An example configuration is below.</p>
 <p>When you are running a client that can’t be a leader, for instance an online CLI, it is necessary to specify a remote lock and timestamp service running on your AtlasDB clients.
 If you are running multiple AtlasDB clients, ensure your CLI is pointing at the correct hosts and ports for the service you wish to interact with.
 If you are running an <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span class="std std-ref">offline CLI</span></a> then you must specify a leader block as noted above in the <a class="reference internal" href="#leader-config-single-client-with-leader"><span class="std std-ref">Single AtlasDB Client with Leader Block</span></a> section.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="c1"># omitted for brevity</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># omitted for brevity</span><span class="w"></span>
 
-  <span class="c1"># no leader block</span>
+<span class="w">  </span><span class="c1"># no leader block</span><span class="w"></span>
 
-  <span class="nt">lock</span><span class="p">:</span>
-    <span class="nt">servers</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;http://host1:3828/api&quot;</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;http://host2:3828/api&quot;</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;http://host3:3828/api&quot;</span>
-    <span class="nt">sslConfiguration</span><span class="p">:</span>
-      <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
+<span class="w">  </span><span class="nt">lock</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;http://host1:3828/api&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;http://host2:3828/api&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;http://host3:3828/api&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
 
-  <span class="nt">timestamp</span><span class="p">:</span>
-    <span class="nt">servers</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;http://host1:3828/api&quot;</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;http://host2:3828/api&quot;</span>
-      <span class="p p-Indicator">-</span> <span class="s">&quot;http://host3:3828/api&quot;</span>
-    <span class="nt">sslConfiguration</span><span class="p">:</span>
-      <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
+<span class="w">  </span><span class="nt">timestamp</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;http://host1:3828/api&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;http://host2:3828/api&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;http://host3:3828/api&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
 </pre></div>
 </div>
 </section>

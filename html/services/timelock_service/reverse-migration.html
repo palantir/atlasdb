@@ -201,17 +201,17 @@ cqlsh:client&gt; SELECT * FROM &quot;_timestamp&quot; ;
 </li>
 <li><p>If you are using DBKVS and have followed the steps outlined in <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual TimeLock Migration</span></a>,
 you will first want to rename the column back to its original name.</p>
-<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span> <span class="k">TABLE</span> <span class="k">timestamp</span> <span class="k">RENAME</span> <span class="n">LEGACY_last_allocated</span> <span class="k">TO</span> <span class="n">last_allocated</span><span class="p">;</span>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="k">RENAME</span><span class="w"> </span><span class="n">LEGACY_last_allocated</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">last_allocated</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
 <p>After that, you will want to set the value stored in that table in the database to be <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
-<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="n">a_db</span><span class="o">=#</span> <span class="k">UPDATE</span> <span class="n">_timestamp</span> <span class="k">SET</span> <span class="n">last_allocated</span> <span class="o">=</span> <span class="mi">314159265</span><span class="p">;</span>
-<span class="k">UPDATE</span> <span class="mi">1</span>
-<span class="n">a_db</span><span class="o">=#</span> <span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">_timestamp</span><span class="p">;</span>
- <span class="n">last_allocated</span>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="n">a_db</span><span class="o">=#</span><span class="w"> </span><span class="k">UPDATE</span><span class="w"> </span><span class="n">_timestamp</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">last_allocated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">314159265</span><span class="p">;</span><span class="w"></span>
+<span class="k">UPDATE</span><span class="w"> </span><span class="mi">1</span><span class="w"></span>
+<span class="n">a_db</span><span class="o">=#</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">_timestamp</span><span class="p">;</span><span class="w"></span>
+<span class="w"> </span><span class="n">last_allocated</span><span class="w"></span>
 <span class="c1">----------------</span>
-      <span class="mi">314159265</span>
-<span class="p">(</span><span class="mi">1</span> <span class="k">row</span><span class="p">)</span>
+<span class="w">      </span><span class="mi">314159265</span><span class="w"></span>
+<span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">row</span><span class="p">)</span><span class="w"></span>
 </pre></div>
 </div>
 </li>

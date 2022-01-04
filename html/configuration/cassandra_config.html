@@ -103,11 +103,11 @@ you must also bump up the <code class="docutils literal notranslate"><span class
 every single row being written on its own thread until the batch sync.
 This means you effectively need 1K threads to get any write throughput.</p>
 <p>Again, you should edit <code class="docutils literal notranslate"><span class="pre">conf/cassandra.yaml</span></code>:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">partitioner</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ByteOrderedPartitioner</span>
-<span class="nt">commitlog_sync</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">batch</span>
-<span class="nt">commitlog_sync_batch_window_in_ms</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">.1</span>  <span class="c1"># .1 is only appropriate for SSDs.  Use 5 for HDDs.</span>
-<span class="c1"># If you use HDDs, make sure the commit log has its own disk because it will thrash it.</span>
-<span class="nt">concurrent_writes</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1024</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">partitioner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ByteOrderedPartitioner</span><span class="w"></span>
+<span class="nt">commitlog_sync</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">batch</span><span class="w"></span>
+<span class="nt">commitlog_sync_batch_window_in_ms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.1</span><span class="w">  </span><span class="c1"># .1 is only appropriate for SSDs.  Use 5 for HDDs.</span><span class="w"></span>
+<span class="c1"># If you use HDDs, make sure the commit log has its own disk because it will thrash it.</span><span class="w"></span>
+<span class="nt">concurrent_writes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1024</span><span class="w"></span>
 </pre></div>
 </div>
 </section>

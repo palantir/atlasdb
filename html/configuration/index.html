@@ -129,50 +129,50 @@ For a full list of the configurations available at this block, see
 </section>
 <section id="example-configuration">
 <h2>Example Configuration<a class="headerlink" href="#example-configuration" title="Permalink to this headline"></a></h2>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">yourapp</span><span class="w"></span>
 
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="nt">servers</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">cassandra-1:9160</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">cassandra-2:9160</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">cassandra-3:9160</span>
-    <span class="nt">poolSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">30</span>
-    <span class="nt">credentials</span><span class="p">:</span>
-      <span class="nt">username</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-      <span class="nt">password</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="nt">sslConfiguration</span><span class="p">:</span>
-      <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
-    <span class="nt">replicationFactor</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
-    <span class="nt">mutationBatchCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10000</span>
-    <span class="nt">mutationBatchSizeBytes</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10000000</span>
-    <span class="nt">fetchBatchCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
-    <span class="nt">autoRefreshNodes</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra-1:9160</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra-2:9160</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra-3:9160</span><span class="w"></span>
+<span class="w">    </span><span class="nt">poolSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span><span class="w"></span>
+<span class="w">    </span><span class="nt">credentials</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
+<span class="w">    </span><span class="nt">replicationFactor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w"></span>
+<span class="w">    </span><span class="nt">mutationBatchCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">mutationBatchSizeBytes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">fetchBatchCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span><span class="w"></span>
+<span class="w">    </span><span class="nt">autoRefreshNodes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"></span>
 
-  <span class="nt">leader</span><span class="p">:</span>
-    <span class="c1"># This should be at least half the number of nodes in your cluster</span>
-    <span class="nt">quorumSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
-    <span class="nt">learnerLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="nt">acceptorLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="nt">localServer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-    <span class="nt">lockCreator</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-    <span class="c1"># This should be the same for every node</span>
-    <span class="nt">leaders</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
-    <span class="nt">sslConfiguration</span><span class="p">:</span>
-      <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
+<span class="w">  </span><span class="nt">leader</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be at least half the number of nodes in your cluster</span><span class="w"></span>
+<span class="w">    </span><span class="nt">quorumSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
+<span class="w">    </span><span class="nt">learnerLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="nt">acceptorLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">    </span><span class="nt">localServer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">    </span><span class="nt">lockCreator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># This should be the same for every node</span><span class="w"></span>
+<span class="w">    </span><span class="nt">leaders</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"> </span><span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
 
-<span class="nt">atlasdb-runtime</span><span class="p">:</span>
-  <span class="nt">timestampClient</span><span class="p">:</span>
-    <span class="nt">enableTimestampBatching</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
-    <span class="nt">sweepReadThreads</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">16</span>
-  <span class="nt">internalSchema</span><span class="p">:</span>
-    <span class="nt">targetTransactionsSchemaVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="nt">atlasdb-runtime</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">timestampClient</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">enableTimestampBatching</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cassandra</span><span class="w"></span>
+<span class="w">    </span><span class="nt">sweepReadThreads</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span><span class="w"></span>
+<span class="w">  </span><span class="nt">internalSchema</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">targetTransactionsSchemaVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
 </pre></div>
 </div>
 </section>

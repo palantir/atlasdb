@@ -117,33 +117,33 @@
 <p>If you have multiple products using the same Postgres instance, they <em>must</em> use different databases.</p>
 </div>
 <p>A minimal AtlasDB configuration for running against postgres will look like :</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relational</span>
-    <span class="nt">ddl</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">postgres</span>
-    <span class="nt">connection</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">postgres</span>
-      <span class="nt">host</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dbhost</span>
-      <span class="nt">port</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5432</span>
-      <span class="nt">dbName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-unique-db-name</span> <span class="c1"># must be unique per product</span>
-      <span class="nt">dbLogin</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
-      <span class="nt">dbPassword</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">relational</span><span class="w"></span>
+<span class="w">    </span><span class="nt">ddl</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres</span><span class="w"></span>
+<span class="w">    </span><span class="nt">connection</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres</span><span class="w"></span>
+<span class="w">      </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbhost</span><span class="w"></span>
+<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5432</span><span class="w"></span>
+<span class="w">      </span><span class="nt">dbName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-unique-db-name</span><span class="w"> </span><span class="c1"># must be unique per product</span><span class="w"></span>
+<span class="w">      </span><span class="nt">dbLogin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir</span><span class="w"></span>
+<span class="w">      </span><span class="nt">dbPassword</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir</span><span class="w"></span>
 
-  <span class="nt">leader</span><span class="p">:</span>
-      <span class="c1"># This should be at least half the number of nodes in your cluster</span>
-      <span class="nt">quorumSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
-      <span class="nt">learnerLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-      <span class="nt">acceptorLogDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-      <span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span>
-      <span class="nt">localServer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://&lt;yourhost&gt;:3828</span>
-      <span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span>
-      <span class="nt">lockCreator</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
-      <span class="c1"># This should be the same for every node</span>
-      <span class="nt">leaders</span><span class="p">:</span>
-        <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
-        <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
-        <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
+<span class="w">  </span><span class="nt">leader</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># This should be at least half the number of nodes in your cluster</span><span class="w"></span>
+<span class="w">      </span><span class="nt">quorumSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
+<span class="w">      </span><span class="nt">learnerLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">      </span><span class="nt">acceptorLogDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">      </span><span class="nt">localServer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://&lt;yourhost&gt;:3828</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span><span class="w"></span>
+<span class="w">      </span><span class="nt">lockCreator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># This should be the same for every node</span><span class="w"></span>
+<span class="w">      </span><span class="nt">leaders</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span><span class="w"> </span><span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span><span class="w"></span>
 </pre></div>
 </div>
 <p>For more details on the leader block, see <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
@@ -198,13 +198,13 @@
 </tbody>
 </table>
 <p>For example, to double the size of the connection pool, apply the following configuration:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="c1"># as above - skipped for brevity</span>
-    <span class="nt">connection</span><span class="p">:</span>
-      <span class="c1"># as above - skipped for brevity</span>
-      <span class="nt">minConnections</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">16</span>
-      <span class="nt">maxConnections</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># as above - skipped for brevity</span><span class="w"></span>
+<span class="w">    </span><span class="nt">connection</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># as above - skipped for brevity</span><span class="w"></span>
+<span class="w">      </span><span class="nt">minConnections</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span><span class="w"></span>
+<span class="w">      </span><span class="nt">maxConnections</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
@@ -212,14 +212,14 @@
 <h3>JDBC Connection parameters<a class="headerlink" href="#jdbc-connection-parameters" title="Permalink to this headline"></a></h3>
 <p>If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">keyValueService</span><span class="p">:</span>
-    <span class="c1"># as above - skipped for brevity</span>
-    <span class="nt">connection</span><span class="p">:</span>
-      <span class="c1"># as above - skipped for brevity</span>
-      <span class="nt">connectionParameters</span><span class="p">:</span> <span class="c1"># optional JDBC connection parameters</span>
-        <span class="nt">defaultRowFetchSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100</span> <span class="c1"># Default: unlimited. Adjusts the number of rows fetched in each database request.</span>
-        <span class="nt">ssl</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span> <span class="c1"># specify if using postgres with ssl enabled</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># as above - skipped for brevity</span><span class="w"></span>
+<span class="w">    </span><span class="nt">connection</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># as above - skipped for brevity</span><span class="w"></span>
+<span class="w">      </span><span class="nt">connectionParameters</span><span class="p">:</span><span class="w"> </span><span class="c1"># optional JDBC connection parameters</span><span class="w"></span>
+<span class="w">        </span><span class="nt">defaultRowFetchSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w"> </span><span class="c1"># Default: unlimited. Adjusts the number of rows fetched in each database request.</span><span class="w"></span>
+<span class="w">        </span><span class="nt">ssl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"> </span><span class="c1"># specify if using postgres with ssl enabled</span><span class="w"></span>
 </pre></div>
 </div>
 </section>

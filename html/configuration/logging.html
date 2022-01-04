@@ -109,16 +109,16 @@ For more information, see <a class="reference internal" href="enabling_cassandra
 (read: when you have consistent reproduction) as it is particularly verbose.
 Due to the volume, it is recommended that you send logging related to the timestamp service to a separate appender.</p>
 <p>To do this, add the following to your logging configuration:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">logging</span><span class="p">:</span>
-  <span class="nt">loggers</span><span class="p">:</span>
-    <span class="nt">com.palantir.timestamp</span><span class="p">:</span>
-      <span class="nt">level</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">TRACE</span>
-      <span class="nt">additive</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
-      <span class="nt">appenders</span><span class="p">:</span>
-        <span class="p p-Indicator">-</span> <span class="nt">archivedFileCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5</span>
-          <span class="nt">archivedLogFilenamePattern</span><span class="p">:</span> <span class="s">&#39;{{service_home}}/var/log/timestamps-%d.log.gz&#39;</span>
-          <span class="nt">currentLogFilename</span><span class="p">:</span> <span class="s">&#39;{{service_home}}/var/log/timestamps.log&#39;</span>
-          <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">file</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">logging</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">loggers</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">com.palantir.timestamp</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TRACE</span><span class="w"></span>
+<span class="w">      </span><span class="nt">additive</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"></span>
+<span class="w">      </span><span class="nt">appenders</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">archivedFileCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w"></span>
+<span class="w">          </span><span class="nt">archivedLogFilenamePattern</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{{service_home}}/var/log/timestamps-%d.log.gz&#39;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">currentLogFilename</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{{service_home}}/var/log/timestamps.log&#39;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file</span><span class="w"></span>
 </pre></div>
 </div>
 </section>

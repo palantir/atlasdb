@@ -166,13 +166,13 @@ In both cases, these configuration options are specified within a <code class="d
 </table>
 <p>For example, to configure targeted sweep with three conservative threads, one thorough
 thread (which is the default) and 8 shards, one should add the following blocks to their configuration:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
-  <span class="nt">targetedSweep</span><span class="p">:</span>
-    <span class="nt">conservativeThreads</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">targetedSweep</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">conservativeThreads</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w"></span>
 
-<span class="nt">atlasdb-runtime</span><span class="p">:</span>
-  <span class="nt">targetedSweep</span><span class="p">:</span>
-    <span class="nt">shards</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8</span>
+<span class="nt">atlasdb-runtime</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">targetedSweep</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">shards</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span><span class="w"></span>
 </pre></div>
 </div>
 <p>Also note that threads perform targeted sweep serially within the context of a shard, so configuring more threads
