@@ -22,6 +22,8 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
+import com.datastax.driver.core.policies.DefaultRetryPolicy;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -33,6 +35,10 @@ import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
+import com.palantir.atlasdb.cassandra.backup.transaction.Transactions1TableInteraction;
+import com.palantir.atlasdb.cassandra.backup.transaction.Transactions2TableInteraction;
+import com.palantir.atlasdb.cassandra.backup.transaction.Transactions3TableInteraction;
+import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -77,6 +83,7 @@ public final class CassandraRepairEteTest {
     private static final String TABLE_1 = "table1";
     private static final TableReference TABLE_REF =
             TableReference.create(com.palantir.atlasdb.keyvalue.api.Namespace.create(NAMESPACE_NAME), TABLE_1);
+    private static final DefaultRetryPolicy POLICY = DefaultRetryPolicy.INSTANCE;
 
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
@@ -114,9 +121,9 @@ public final class CassandraRepairEteTest {
         List<String> tablesRepaired = new ArrayList<>();
         BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
 
-        Map<FullyBoundedTimestampRange, Integer> ranges =
-                ImmutableMap.of(FullyBoundedTimestampRange.of(Range.closed(1L, 10_000_000L)), 1);
-        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        List<TransactionsTableInteraction> interactions =
+                ImmutableList.of(new Transactions1TableInteraction(range(1L, 10_000_000L), POLICY));
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, interactions, repairer);
         assertThat(tablesRepaired).containsExactly(TransactionConstants.TRANSACTION_TABLE.getTableName());
     }
 
@@ -125,9 +132,9 @@ public final class CassandraRepairEteTest {
         List<String> tablesRepaired = new ArrayList<>();
         BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
 
-        Map<FullyBoundedTimestampRange, Integer> ranges =
-                ImmutableMap.of(FullyBoundedTimestampRange.of(Range.closed(1L, 10_000_000L)), 2);
-        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        List<TransactionsTableInteraction> interactions =
+                ImmutableList.of(new Transactions2TableInteraction(range(1L, 10_000_000L), POLICY));
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, interactions, repairer);
         assertThat(tablesRepaired).containsExactly(TransactionConstants.TRANSACTIONS2_TABLE.getTableName());
     }
 
@@ -136,9 +143,9 @@ public final class CassandraRepairEteTest {
         List<String> tablesRepaired = new ArrayList<>();
         BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
 
-        Map<FullyBoundedTimestampRange, Integer> ranges =
-                ImmutableMap.of(FullyBoundedTimestampRange.of(Range.closed(1L, 10_000_000L)), 3);
-        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        List<TransactionsTableInteraction> interactions =
+                ImmutableList.of(new Transactions3TableInteraction(range(1L, 10_000_000L), POLICY));
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, interactions, repairer);
 
         // Transactions3 is backed by Transactions2 under the hood, so this is the table that will be repaired.
         assertThat(tablesRepaired).containsExactly(TransactionConstants.TRANSACTIONS2_TABLE.getTableName());
@@ -149,10 +156,11 @@ public final class CassandraRepairEteTest {
         List<String> tablesRepaired = new ArrayList<>();
         BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
 
-        Map<FullyBoundedTimestampRange, Integer> ranges = ImmutableMap.of(
-                FullyBoundedTimestampRange.of(Range.closed(1L, 5L)), 1,
-                FullyBoundedTimestampRange.of(Range.closed(6L, 10L)), 2);
-        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        List<TransactionsTableInteraction> interactions = ImmutableList.of(
+                new Transactions1TableInteraction(range(1L, 5L), POLICY),
+                new Transactions2TableInteraction(range(6L, 10L), POLICY));
+
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, interactions, repairer);
         assertThat(tablesRepaired)
                 .containsExactlyInAnyOrder(
                         TransactionConstants.TRANSACTION_TABLE.getTableName(),
@@ -168,12 +176,13 @@ public final class CassandraRepairEteTest {
             tablesRepaired.add(table);
         };
 
-        Map<FullyBoundedTimestampRange, Integer> ranges = ImmutableMap.of(
-                FullyBoundedTimestampRange.of(Range.closed(1L, 5L)), 1,
-                FullyBoundedTimestampRange.of(Range.closed(6L, 10L)), 2,
-                FullyBoundedTimestampRange.of(Range.closed(11L, 15L)), 1,
-                FullyBoundedTimestampRange.of(Range.closed(16L, 20L)), 2);
-        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, ranges, repairer);
+        List<TransactionsTableInteraction> interactions = ImmutableList.of(
+                new Transactions1TableInteraction(range(1L, 5L), POLICY),
+                new Transactions2TableInteraction(range(6L, 10L), POLICY),
+                new Transactions1TableInteraction(range(11L, 15L), POLICY),
+                new Transactions2TableInteraction(range(16L, 20L), POLICY));
+
+        cassandraRepairHelper.repairTransactionsTables(NAMESPACE, interactions, repairer);
         assertThat(tablesRepaired)
                 .containsExactlyInAnyOrder(
                         TransactionConstants.TRANSACTION_TABLE.getTableName(),
@@ -183,14 +192,14 @@ public final class CassandraRepairEteTest {
 
     @Test
     public void shouldGetRangesForBothReplicas() {
-        RangesForRepair ranges = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
+        RangesForRepair ranges = CassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
         assertThat(ranges.tokenMap()).hasSize(2);
     }
 
     @Test
     public void tokenRangesToRepairShouldBeSubsetsOfTokenMap() {
         Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap = getFullTokenMap();
-        RangesForRepair rangesToRepair = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
+        RangesForRepair rangesToRepair = CassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
 
         KeyedStream.stream(rangesToRepair.tokenMap())
                 .forEach((address, cqlRangesForHost) ->
@@ -347,6 +356,10 @@ public final class CassandraRepairEteTest {
                 }));
 
         return invertedMap;
+    }
+
+    private static FullyBoundedTimestampRange range(long lower, long upper) {
+        return FullyBoundedTimestampRange.of(Range.closed(lower, upper));
     }
 
     private Token minToken() {
