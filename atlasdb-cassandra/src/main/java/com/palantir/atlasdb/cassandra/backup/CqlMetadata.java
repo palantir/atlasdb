@@ -23,10 +23,8 @@ import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
-import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -64,17 +62,10 @@ public class CqlMetadata {
             return Stream.of(Range.closed(startToken, endToken));
         } else {
             // Handle wrap-around
-            LightweightOppToken unbounded = unboundedToken();
-            Range<LightweightOppToken> greaterThan = Range.closed(startToken, unbounded);
-            Range<LightweightOppToken> atMost = Range.closed(unbounded, endToken);
+            Range<LightweightOppToken> greaterThan = Range.atLeast(startToken);
+            Range<LightweightOppToken> atMost = Range.atMost(endToken);
             return Stream.of(greaterThan, atMost);
         }
-    }
-
-    private static LightweightOppToken unboundedToken() {
-        ByteBuffer minValue = ByteBuffer.allocate(0);
-        return new LightweightOppToken(
-                BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
     }
 
     public Set<Host> getReplicas(String keyspace, Range<LightweightOppToken> range) {
