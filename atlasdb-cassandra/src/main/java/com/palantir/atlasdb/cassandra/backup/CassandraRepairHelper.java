@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
@@ -36,7 +35,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -98,17 +96,6 @@ public class CassandraRepairHelper {
         return kvs.getAllTableNames().stream()
                 .filter(TABLES_TO_REPAIR::contains)
                 .map(TableReference::getTableName);
-    }
-
-    public void repairTransactionsTables(
-            Namespace namespace,
-            Map<FullyBoundedTimestampRange, Integer> coordinationMap,
-            BiConsumer<String, RangesForRepair> repairTable) {
-        List<TransactionsTableInteraction> transactionsTableInteractions =
-                TransactionsTableInteraction.getTransactionTableInteractions(
-                        coordinationMap, DefaultRetryPolicy.INSTANCE);
-
-        repairTransactionsTables(namespace, transactionsTableInteractions, repairTable);
     }
 
     public void repairTransactionsTables(
