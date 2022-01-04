@@ -132,7 +132,7 @@ public class CassandraReloadableKvsConfigTest {
                         () -> new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("'servers' must have at least one defined host")
-                .hasExactlyArgs();
+                .hasNoArgs();
     }
 
     @Test

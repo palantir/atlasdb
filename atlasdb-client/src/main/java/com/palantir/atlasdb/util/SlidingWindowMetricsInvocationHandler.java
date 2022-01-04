@@ -27,9 +27,9 @@ import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
 import com.palantir.tritium.event.InvocationContext;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -65,7 +65,7 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
         long nanos = System.nanoTime() - context.getStartTimeNanos();
         Method method = context.getMethod();
         Timer timer = timers.computeIfAbsent(method, this::getTimer);
-        timer.update(nanos, TimeUnit.NANOSECONDS);
+        timer.update(Duration.ofNanos(nanos));
     }
 
     @Override
