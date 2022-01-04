@@ -157,7 +157,7 @@ public final class CqlCluster implements Closeable {
                 PreparedStatement preparedCheckStatement =
                         txnInteraction.prepareCheckStatement(transactionsTable, session);
                 Stream<TransactionTableEntry> keysToAbort =
-                        getTransactionsToAbort(session, txnInteraction, transactionsTable, timestamp);
+                        getTransactionsToAbort(session, keyspaceName, txnInteraction, transactionsTable, timestamp);
                 executeTransactionAborts(
                         session,
                         keyspaceName,
@@ -169,8 +169,9 @@ public final class CqlCluster implements Closeable {
         }
     }
 
-    private Stream<TransactionTableEntry> getTransactionsToAbort(
+    private static Stream<TransactionTableEntry> getTransactionsToAbort(
             Session session,
+            String keyspaceName,
             TransactionsTableInteraction txnInteraction,
             TableMetadata transactionsTable,
             long timestamp) {
@@ -182,12 +183,15 @@ public final class CqlCluster implements Closeable {
 
         return KeyedStream.of(rowResults)
                 .map(txnInteraction::extractTimestamps)
-                .filter(entry -> isInRange(txnInteraction, entry, timestamp))
+                .filter(entry -> isInRange(keyspaceName, txnInteraction, entry, timestamp))
                 .values();
     }
 
-    private boolean isInRange(
-            TransactionsTableInteraction txnInteraction, TransactionTableEntry entry, long timestamp) {
+    private static boolean isInRange(
+            String keyspaceName,
+            TransactionsTableInteraction txnInteraction,
+            TransactionTableEntry entry,
+            long timestamp) {
         Optional<Long> maybeCommitTimestamp = getCommitTimestamp(entry);
         if (maybeCommitTimestamp.isEmpty()) {
             return false;
@@ -204,13 +208,13 @@ public final class CqlCluster implements Closeable {
                 "Found transaction to abort",
                 SafeArg.of("startTimestamp", startTimestamp),
                 SafeArg.of("commitTimestamp", commitTimestamp),
-                SafeArg.of("keyspace", config.getKeyspaceOrThrow()),
+                SafeArg.of("keyspace", keyspaceName),
                 SafeArg.of("table", txnInteraction.getTransactionsTableName()));
 
         return true;
     }
 
-    private void executeTransactionAborts(
+    private static void executeTransactionAborts(
             Session session,
             String keyspace,
             TransactionsTableInteraction txnInteraction,
@@ -224,7 +228,7 @@ public final class CqlCluster implements Closeable {
         });
     }
 
-    private void executeWithRetry(
+    private static void executeWithRetry(
             String keyspace,
             Session session,
             TransactionsTableInteraction txnInteraction,
@@ -289,21 +293,21 @@ public final class CqlCluster implements Closeable {
         throw new SafeIllegalStateException("Unable to verify abort statements even with retry");
     }
 
-    private boolean isAborted(TransactionTableEntry transactionTableEntry) {
+    private static boolean isAborted(TransactionTableEntry transactionTableEntry) {
         return TransactionTableEntries.caseOf(transactionTableEntry)
                 .explicitlyAborted(_startTs -> true)
                 .otherwise(() -> false);
     }
 
-    private Optional<Long> getCommitTimestamp(TransactionTableEntry entry) {
+    private static Optional<Long> getCommitTimestamp(TransactionTableEntry entry) {
         return TransactionTableEntries.getCommitTimestamp(entry).or(() -> getCommitValue(entry));
     }
 
-    private Optional<Long> getCommitValue(TransactionTableEntry entry) {
+    private static Optional<Long> getCommitValue(TransactionTableEntry entry) {
         return TransactionTableEntries.getCommitValue(entry).map(PutUnlessExistsValue::value);
     }
 
-    private Map<String, Set<Token>> getPartitionTokensByTable(
+    private static Map<String, Set<Token>> getPartitionTokensByTable(
             List<TransactionsTableInteraction> transactionsTableInteractions,
             Session session,
             String keyspaceName,
@@ -316,7 +320,7 @@ public final class CqlCluster implements Closeable {
                 .collectToMap();
     }
 
-    private Set<Token> getPartitionsTokenForSingleTransactionsTable(
+    private static Set<Token> getPartitionsTokenForSingleTransactionsTable(
             Session session,
             String keyspaceName,
             Metadata metadata,
@@ -328,7 +332,7 @@ public final class CqlCluster implements Closeable {
                 .collect(Collectors.toSet());
     }
 
-    private Set<Token> getPartitionTokensForTransactionsTable(
+    private static Set<Token> getPartitionTokensForTransactionsTable(
             Session session, String keyspaceName, Metadata metadata, TransactionsTableInteraction interaction) {
         TableMetadata transactionsTableMetadata =
                 ClusterMetadataUtils.getTableMetadata(metadata, keyspaceName, interaction.getTransactionsTableName());
@@ -336,7 +340,7 @@ public final class CqlCluster implements Closeable {
         return executeAtConsistencyAll(session, selectStatements);
     }
 
-    private void maybeLogTokenRanges(
+    private static void maybeLogTokenRanges(
             List<TransactionsTableInteraction> transactionsTableInteractions,
             Map<String, Set<Token>> partitionKeysByTable) {
         if (log.isDebugEnabled()) {
