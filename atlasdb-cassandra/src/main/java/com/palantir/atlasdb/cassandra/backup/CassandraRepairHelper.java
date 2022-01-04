@@ -19,7 +19,6 @@ package com.palantir.atlasdb.cassandra.backup;
 import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 
 import com.datastax.driver.core.TokenRange;
-import com.datastax.driver.core.utils.Bytes;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
@@ -27,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
-import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -43,7 +41,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -179,16 +176,9 @@ public class CassandraRepairHelper {
             return Stream.of(Range.closed(startToken, endToken));
         } else {
             // Handle wrap-around
-            LightweightOppToken unbounded = unboundedToken();
-            Range<LightweightOppToken> greaterThan = Range.closed(startToken, unbounded);
-            Range<LightweightOppToken> atMost = Range.closed(unbounded, endToken);
+            Range<LightweightOppToken> greaterThan = Range.atLeast(startToken);
+            Range<LightweightOppToken> atMost = Range.atMost(endToken);
             return Stream.of(greaterThan, atMost);
         }
-    }
-
-    private static LightweightOppToken unboundedToken() {
-        ByteBuffer minValue = ByteBuffer.allocate(0);
-        return new LightweightOppToken(
-                BaseEncoding.base16().decode(Bytes.toHexString(minValue).toUpperCase()));
     }
 }
