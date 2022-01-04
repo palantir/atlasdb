@@ -59,7 +59,7 @@ public class TransactionsTableRepairRangeFetcher {
 
         Set<InetSocketAddress> hosts = getHosts(config);
         return KeyedStream.stream(partitionKeysByTable)
-                .map(ranges -> CqlClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
+                .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
                 .collectToMap();
     }
 
@@ -85,8 +85,8 @@ public class TransactionsTableRepairRangeFetcher {
 
     private Set<LightweightOppToken> getPartitionTokensForTransactionsTable(
             String keyspaceName, CqlMetadata metadata, TransactionsTableInteraction interaction) {
-        TableMetadata transactionsTableMetadata = CqlClusterMetadataUtils.getTableMetadata(
-                metadata, keyspaceName, interaction.getTransactionsTableName());
+        TableMetadata transactionsTableMetadata =
+                ClusterMetadataUtils.getTableMetadata(metadata, keyspaceName, interaction.getTransactionsTableName());
         List<Statement> selectStatements = interaction.createSelectStatements(transactionsTableMetadata);
         return cqlSession.executeAtConsistencyAll(selectStatements);
     }

@@ -83,7 +83,7 @@ public final class CqlCluster implements Closeable {
             TableMetadata tableMetadata = keyspace.getTable(tableName);
             Set<LightweightOppToken> partitionTokens = getPartitionTokens(session, tableMetadata);
             Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode =
-                    CqlClusterMetadataUtils.getTokenMapping(getHosts(config), metadata, keyspaceName, partitionTokens);
+                    ClusterMetadataUtils.getTokenMapping(getHosts(config), metadata, keyspaceName, partitionTokens);
 
             if (!partitionTokens.isEmpty() && log.isDebugEnabled()) {
                 int numTokenRanges = tokenRangesByNode.values().stream()

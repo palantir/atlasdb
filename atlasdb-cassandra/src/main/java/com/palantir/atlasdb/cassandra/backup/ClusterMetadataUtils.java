@@ -146,9 +146,7 @@ public final class ClusterMetadataUtils {
         for (LightweightOppToken token : partitionKeyTokens) {
             Range<LightweightOppToken> minimalTokenRange = findTokenRange(token, tokenRangesByEnd);
             tokenRangesByStartToken.merge(
-                    minimalTokenRange.lowerEndpoint(),
-                    minimalTokenRange,
-                    CqlClusterMetadataUtils::findLatestEndingRange);
+                    minimalTokenRange.lowerEndpoint(), minimalTokenRange, ClusterMetadataUtils::findLatestEndingRange);
         }
         return tokenRangesByStartToken.values().stream().collect(toImmutableRangeSet());
     }
