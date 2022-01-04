@@ -117,6 +117,8 @@ public class AtlasRestoreService {
                 TransactionsTableInteraction.getTransactionTableInteractions(
                         coordinationMap, DefaultRetryPolicy.INSTANCE);
         cassandraRepairHelper.repairTransactionsTables(namespace, transactionsTableInteractions, repairTable);
+        cassandraRepairHelper.cleanTransactionsTables(
+                namespace, completedBackup.getBackupStartTimestamp(), transactionsTableInteractions);
     }
 
     private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(

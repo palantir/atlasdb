@@ -118,6 +118,14 @@ public class CassandraRepairHelper {
         });
     }
 
+    public void cleanTransactionsTables(
+            Namespace namespace,
+            long startTimestamp,
+            List<TransactionsTableInteraction> transactionsTableInteractions) {
+        CqlCluster cqlCluster = cqlClusters.get(namespace);
+        cqlCluster.abortTransactions(startTimestamp, transactionsTableInteractions);
+    }
+
     private Map<String, RangesForRepair> getRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
         return KeyedStream.stream(getRawRangesForRepairByTable(namespace, transactionsTableInteractions))
