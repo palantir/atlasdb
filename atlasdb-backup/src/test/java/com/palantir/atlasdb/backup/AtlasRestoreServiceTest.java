@@ -48,6 +48,7 @@ public class AtlasRestoreServiceTest {
     private static final Namespace WITH_BACKUP = Namespace.of("with-backup");
     private static final Namespace NO_BACKUP = Namespace.of("no-backup");
     private static final Namespace FAILING_NAMESPACE = Namespace.of("failing");
+    private static final long BACKUP_START_TIMESTAMP = 2L;
 
     @Mock
     private AuthHeader authHeader;
@@ -75,7 +76,7 @@ public class AtlasRestoreServiceTest {
         CompletedBackup completedBackup = CompletedBackup.builder()
                 .namespace(namespace)
                 .immutableTimestamp(1L)
-                .backupStartTimestamp(2L)
+                .backupStartTimestamp(BACKUP_START_TIMESTAMP)
                 .backupEndTimestamp(3L)
                 .build();
         backupPersister.storeCompletedBackup(completedBackup);
@@ -88,6 +89,7 @@ public class AtlasRestoreServiceTest {
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
         verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyList(), eq(doNothingConsumer));
+        verify(cassandraRepairHelper).cleanTransactionsTables(eq(WITH_BACKUP), eq(BACKUP_START_TIMESTAMP), anyList());
         verifyNoMoreInteractions(cassandraRepairHelper);
     }
 
