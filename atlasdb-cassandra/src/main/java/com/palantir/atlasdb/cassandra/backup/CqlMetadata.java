@@ -70,11 +70,16 @@ public class CqlMetadata {
         return metadata.getReplicas(quotedKeyspace(keyspace), toTokenRange(range));
     }
 
-    // TODO(gs): unbounded?
-    private TokenRange toTokenRange(Range<LightweightOppToken> range) {
-        Token lower = metadata.newToken(range.lowerEndpoint().deserialize());
-        Token upper = metadata.newToken(range.upperEndpoint().deserialize());
+    TokenRange toTokenRange(Range<LightweightOppToken> range) {
+        Token lower =
+                range.hasLowerBound() ? metadata.newToken(range.lowerEndpoint().deserialize()) : minToken();
+        Token upper =
+                range.hasUpperBound() ? metadata.newToken(range.upperEndpoint().deserialize()) : minToken();
         return metadata.newTokenRange(lower, upper);
+    }
+
+    private Token minToken() {
+        return metadata.newToken(ByteBuffer.allocate(0));
     }
 
     private static String quotedKeyspace(String keyspaceName) {

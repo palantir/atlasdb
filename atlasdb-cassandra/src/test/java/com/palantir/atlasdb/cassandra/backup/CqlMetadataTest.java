@@ -61,7 +61,7 @@ public class CqlMetadataTest {
     }
 
     @Test
-    public void tokenRange() {
+    public void testGetTokenRanges() {
         Set<Range<LightweightOppToken>> tokenRanges = cqlMetadata.getTokenRanges();
         assertThat(tokenRanges)
                 .containsExactlyInAnyOrder(
