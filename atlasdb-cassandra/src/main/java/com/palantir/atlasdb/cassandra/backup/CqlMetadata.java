@@ -23,16 +23,12 @@ import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CqlMetadata {
-    private static final SafeLogger log = SafeLoggerFactory.get(CqlMetadata.class);
-
     private final Metadata metadata;
 
     public CqlMetadata(Metadata metadata) {
@@ -45,15 +41,7 @@ public class CqlMetadata {
 
     // This needs to be a Set<Range>, because we don't want to merge the token ranges.
     public Set<Range<LightweightOppToken>> getTokenRanges() {
-        Set<TokenRange> tokenRanges = metadata.getTokenRanges();
-        logRanges(tokenRanges);
-        return makeLightweight(tokenRanges);
-    }
-
-    @SuppressWarnings("CompileTimeConstant")
-    private void logRanges(Set<TokenRange> tokenRanges) {
-        tokenRanges.forEach(
-                tokenRange -> log.info("Token range: " + tokenRange.getStart() + " to " + tokenRange.getEnd()));
+        return makeLightweight(metadata.getTokenRanges());
     }
 
     public LightweightOppToken newToken(ByteBuffer byteBuffer) {

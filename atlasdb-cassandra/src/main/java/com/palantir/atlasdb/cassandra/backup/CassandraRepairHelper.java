@@ -120,7 +120,7 @@ public class CassandraRepairHelper {
     private Map<String, RangesForRepair> getRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
         return KeyedStream.stream(getRawRangesForRepairByTable(namespace, transactionsTableInteractions))
-                .map(CassandraRepairHelper::makeLightweight)
+                .map(RangesForRepair::of)
                 .collectToMap();
     }
 
@@ -133,7 +133,7 @@ public class CassandraRepairHelper {
     public static RangesForRepair getRangesToRepair(CqlCluster cqlCluster, Namespace namespace, String tableName) {
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRanges =
                 getTokenRangesToRepair(cqlCluster, namespace, tableName);
-        return makeLightweight(tokenRanges);
+        return RangesForRepair.of(tokenRanges);
     }
 
     private static Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRangesToRepair(
@@ -149,9 +149,5 @@ public class CassandraRepairHelper {
 
     private static com.palantir.atlasdb.keyvalue.api.Namespace toKvNamespace(Namespace namespace) {
         return com.palantir.atlasdb.keyvalue.api.Namespace.create(namespace.get());
-    }
-
-    private static RangesForRepair makeLightweight(Map<InetSocketAddress, RangeSet<LightweightOppToken>> ranges) {
-        return RangesForRepair.of(KeyedStream.stream(ranges).collectToMap());
     }
 }

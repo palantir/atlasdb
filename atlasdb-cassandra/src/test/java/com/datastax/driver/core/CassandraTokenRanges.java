@@ -19,11 +19,13 @@ package com.datastax.driver.core;
 import java.nio.ByteBuffer;
 import javax.xml.bind.DatatypeConverter;
 
+// Utility class - it's in com.datastax.driver.core package in order to allow us to create Tokens and TokenRanges
+// on the fly for unit testing purposes.
 public final class CassandraTokenRanges {
     private static final Token.Factory FACTORY = Token.OPPToken.FACTORY;
 
     private CassandraTokenRanges() {
-        // factory class
+        // utility class
     }
 
     public static TokenRange create(String startHexBinary, String endHexBinary) {
