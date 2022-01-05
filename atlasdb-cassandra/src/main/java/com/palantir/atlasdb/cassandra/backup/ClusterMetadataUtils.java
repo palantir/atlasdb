@@ -21,6 +21,7 @@ import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.TableMetadata;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.MoreCollectors;
@@ -140,8 +141,8 @@ public final class ClusterMetadataUtils {
                 .collectToMap();
     }
 
-    // VisibleForTesting
-    public static RangeSet<LightweightOppToken> getMinimalSetOfRangesForTokens(
+    @VisibleForTesting
+    static RangeSet<LightweightOppToken> getMinimalSetOfRangesForTokens(
             Set<LightweightOppToken> partitionKeyTokens,
             SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd) {
         Map<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStartToken = new HashMap<>();

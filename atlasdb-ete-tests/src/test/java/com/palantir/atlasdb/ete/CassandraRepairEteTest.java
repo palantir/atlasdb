@@ -20,14 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.driver.core.Cluster;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
-import com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
 import com.palantir.atlasdb.cassandra.backup.CqlMetadata;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
@@ -193,51 +191,6 @@ public final class CassandraRepairEteTest {
         KeyedStream.stream(rangesToRepair.tokenMap())
                 .forEach((address, cqlRangesForHost) ->
                         assertRangesToRepairAreSubsetsOfRangesFromTokenMap(fullTokenMap, address, cqlRangesForHost));
-    }
-
-    @Test
-    public void testMinimalSetOfTokenRanges() {
-        LightweightOppToken partitionKeyToken = getToken("9000");
-        LightweightOppToken lastTokenBeforePartitionKey = tokenRangesByEnd.lowerKey(partitionKeyToken);
-
-        RangeSet<LightweightOppToken> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
-        assertThat(tokenRanges.asRanges()).hasSize(1);
-        Range<LightweightOppToken> onlyRange = tokenRanges.asRanges().iterator().next();
-        assertThat(onlyRange.lowerEndpoint()).isEqualTo(lastTokenBeforePartitionKey);
-        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken);
-    }
-
-    @Test
-    public void testSmallTokenRangeDedupe() {
-        LightweightOppToken partitionKeyToken1 = getToken("9000");
-        LightweightOppToken partitionKeyToken2 = getToken("9001");
-        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                        ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByEnd)
-                .asRanges();
-        assertThat(tokenRanges).hasSize(1);
-        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.lowerEndpoint()).isEqualTo(tokenRangesByEnd.lowerKey(partitionKeyToken1));
-        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken2);
-    }
-
-    @Test
-    public void testRemoveNestedRanges() {
-        LightweightOppToken duplicatedStartKey = getToken("0001");
-        LightweightOppToken nestedEndKey = getToken("000101");
-        LightweightOppToken outerEndKey = getToken("000102");
-        Range<LightweightOppToken> nested = Range.closed(duplicatedStartKey, nestedEndKey);
-        Range<LightweightOppToken> outer = Range.closed(duplicatedStartKey, outerEndKey);
-        assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
-    }
-
-    @Test
-    public void testMinTokenIsStart() {
-        LightweightOppToken nestedEndKey = getToken("0001");
-        LightweightOppToken outerEndKey = getToken("0002");
-        Range<LightweightOppToken> nested = Range.closed(minToken(), nestedEndKey);
-        Range<LightweightOppToken> outer = Range.closed(minToken(), outerEndKey);
-        assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
     }
 
     // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,

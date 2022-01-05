@@ -24,6 +24,7 @@ import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Set;
@@ -36,7 +37,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ClusterMetadataUtilsTest {
-    // TODO(gs): copied from CqlMetadataTest
     private static final String TOKEN_1 = "1df388e2a10c81a4339ab9304497385b";
     private static final String TOKEN_2 = "974ef05bdfaf14b88cbe12bce50e5023";
     private static final String TOKEN_3 = "d9ce4afeafac5781fb101e8bef4703f8";
@@ -48,12 +48,11 @@ public class ClusterMetadataUtilsTest {
     private Metadata metadata;
 
     private TreeMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd;
-    private CqlMetadata cqlMetadata;
 
     @Before
     public void setUp() {
         when(metadata.getTokenRanges()).thenReturn(ImmutableSet.of(FIRST_RANGE, SECOND_RANGE, WRAPAROUND_RANGE));
-        cqlMetadata = new CqlMetadata(metadata);
+        CqlMetadata cqlMetadata = new CqlMetadata(metadata);
 
         tokenRangesByEnd = KeyedStream.of(cqlMetadata.getTokenRanges())
                 .mapKeys(LightweightOppToken::getUpper)
@@ -61,12 +60,47 @@ public class ClusterMetadataUtilsTest {
     }
 
     @Test
-    public void testMinTokenRangeIsLatestEnding() {
+    public void testMinimalSetOfTokenRanges() {
+        LightweightOppToken partitionKeyToken = getToken("9000");
+        LightweightOppToken lastTokenBeforePartitionKey = tokenRangesByEnd.lowerKey(partitionKeyToken);
+
+        RangeSet<LightweightOppToken> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
+        assertThat(tokenRanges.asRanges()).hasSize(1);
+        Range<LightweightOppToken> onlyRange = tokenRanges.asRanges().iterator().next();
+        assertThat(onlyRange.lowerEndpoint()).isEqualTo(lastTokenBeforePartitionKey);
+        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken);
+    }
+
+    @Test
+    public void testMinTokenIsStart() {
+        LightweightOppToken nestedEndKey = getToken("0001");
+        LightweightOppToken outerEndKey = getToken("0002");
+        Range<LightweightOppToken> nested = Range.atMost(nestedEndKey);
+        Range<LightweightOppToken> outer = Range.atMost(outerEndKey);
+        assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
+    }
+
+    @Test
+    public void testUnboundedRangeIsLatestEnding() {
         LightweightOppToken duplicatedStartKey = getToken("0001");
         LightweightOppToken normalEndKey = getToken("000101");
         Range<LightweightOppToken> nested = Range.closed(duplicatedStartKey, normalEndKey);
         Range<LightweightOppToken> outer = Range.atLeast(duplicatedStartKey);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
+    }
+
+    @Test
+    public void testSmallTokenRangeDedupe() {
+        LightweightOppToken partitionKeyToken1 = getToken("9000");
+        LightweightOppToken partitionKeyToken2 = getToken("9001");
+        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                        ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByEnd)
+                .asRanges();
+        assertThat(tokenRanges).hasSize(1);
+        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
+        assertThat(onlyRange.lowerEndpoint()).isEqualTo(tokenRangesByEnd.lowerKey(partitionKeyToken1));
+        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken2);
     }
 
     @Test
@@ -95,6 +129,16 @@ public class ClusterMetadataUtilsTest {
         Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.lowerEndpoint()).isEqualTo(firstEndToken);
         assertThat(onlyRange.upperEndpoint()).isEqualTo(secondEndToken);
+    }
+
+    @Test
+    public void testRemoveNestedRanges() {
+        LightweightOppToken duplicatedStartKey = getToken("0001");
+        LightweightOppToken nestedEndKey = getToken("000101");
+        LightweightOppToken outerEndKey = getToken("000102");
+        Range<LightweightOppToken> nested = Range.closed(duplicatedStartKey, nestedEndKey);
+        Range<LightweightOppToken> outer = Range.closed(duplicatedStartKey, outerEndKey);
+        assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
     }
 
     @Test
