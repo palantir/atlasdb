@@ -35,4 +35,10 @@ public final class CassandraTokenRanges {
     private static Token getToken(String hexBinary) {
         return FACTORY.hash(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
     }
+
+    public static Token maxToken() {
+        // Not a typo; the minimum token is a special value that no key ever hashes to.
+        // It's used both as lower and upper bound.
+        return FACTORY.minToken();
+    }
 }
