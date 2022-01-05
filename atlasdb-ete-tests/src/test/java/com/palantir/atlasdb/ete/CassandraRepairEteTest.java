@@ -209,32 +209,6 @@ public final class CassandraRepairEteTest {
     }
 
     @Test
-    public void testSmallTokenRangeBeforeFirstVnode() {
-        LightweightOppToken partitionKeyToken = getToken("0010");
-
-        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                        ImmutableSet.of(partitionKeyToken), tokenRangesByEnd)
-                .asRanges();
-        assertThat(tokenRanges).hasSize(1);
-        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.hasLowerBound()).isFalse();
-        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken);
-    }
-
-    @Test
-    public void testSmallTokenRangeOnVnode() {
-        LightweightOppToken firstEndToken = tokenRangesByEnd.higherKey(tokenRangesByEnd.firstKey());
-        LightweightOppToken secondEndToken = tokenRangesByEnd.higherKey(firstEndToken);
-        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                        ImmutableSet.of(secondEndToken), tokenRangesByEnd)
-                .asRanges();
-        assertThat(tokenRanges).hasSize(1);
-        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.lowerEndpoint()).isEqualTo(firstEndToken);
-        assertThat(onlyRange.upperEndpoint()).isEqualTo(secondEndToken);
-    }
-
-    @Test
     public void testSmallTokenRangeDedupe() {
         LightweightOppToken partitionKeyToken1 = getToken("9000");
         LightweightOppToken partitionKeyToken2 = getToken("9001");
@@ -264,17 +238,6 @@ public final class CassandraRepairEteTest {
         Range<LightweightOppToken> nested = Range.closed(minToken(), nestedEndKey);
         Range<LightweightOppToken> outer = Range.closed(minToken(), outerEndKey);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
-    }
-
-    @Test
-    public void testRemoveNestedWraparoundAndNonWrapRanges() {
-        LightweightOppToken duplicatedStartKey = getToken("ff");
-        LightweightOppToken nonWrapAround = getToken("ff01");
-        LightweightOppToken wrapAround = getToken("0001");
-        Range<LightweightOppToken> nonWrapAroundRange = Range.closed(duplicatedStartKey, nonWrapAround);
-        Range<LightweightOppToken> wrapAroundRange = Range.atLeast(duplicatedStartKey);
-        assertThat(ClusterMetadataUtils.findLatestEndingRange(nonWrapAroundRange, wrapAroundRange))
-                .isEqualTo(wrapAroundRange);
     }
 
     // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
