@@ -188,14 +188,14 @@ public final class CassandraRepairEteTest {
 
     @Test
     public void shouldGetRangesForBothReplicas() {
-        RangesForRepair ranges = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
+        RangesForRepair ranges = CassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
         assertThat(ranges.tokenMap()).hasSize(2);
     }
 
     @Test
     public void tokenRangesToRepairShouldBeSubsetsOfTokenMap() {
         Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap = getFullTokenMap();
-        RangesForRepair rangesToRepair = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
+        RangesForRepair rangesToRepair = CassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
 
         KeyedStream.stream(rangesToRepair.tokenMap())
                 .forEach((address, cqlRangesForHost) ->
@@ -230,7 +230,7 @@ public final class CassandraRepairEteTest {
 
     @Test
     public void testSmallTokenRangeOnVnode() {
-        LightweightOppToken firstEndToken = tokenRangesByEnd.firstKey();
+        LightweightOppToken firstEndToken = tokenRangesByEnd.higherKey(tokenRangesByEnd.firstKey());
         LightweightOppToken secondEndToken = tokenRangesByEnd.higherKey(firstEndToken);
         Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
                         ImmutableSet.of(secondEndToken), tokenRangesByEnd)

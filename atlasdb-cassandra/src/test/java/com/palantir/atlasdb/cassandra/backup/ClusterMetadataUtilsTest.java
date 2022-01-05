@@ -83,6 +83,21 @@ public class ClusterMetadataUtilsTest {
     }
 
     @Test
+    public void testSmallTokenRangeOnVnode() {
+        // Construction of tokenRangesByEnd gives us +inf as the "first" key, so we actually want the second range here
+        // TODO(gs): add extra testing to ensure this is fine
+        LightweightOppToken firstEndToken = tokenRangesByEnd.higherKey(tokenRangesByEnd.firstKey());
+        LightweightOppToken secondEndToken = tokenRangesByEnd.higherKey(firstEndToken);
+        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                        ImmutableSet.of(secondEndToken), tokenRangesByEnd)
+                .asRanges();
+        assertThat(tokenRanges).hasSize(1);
+        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
+        assertThat(onlyRange.lowerEndpoint()).isEqualTo(firstEndToken);
+        assertThat(onlyRange.upperEndpoint()).isEqualTo(secondEndToken);
+    }
+
+    @Test
     public void testRemoveNestedWraparoundAndNonWrapRanges() {
         LightweightOppToken duplicatedStartKey = getToken("ff");
         LightweightOppToken nonWrapAround = getToken("ff01");
