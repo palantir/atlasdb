@@ -32,7 +32,7 @@ public final class CassandraTokenRanges {
         return new TokenRange(startToken, endToken, FACTORY);
     }
 
-    private static Token getToken(String hexBinary) {
+    public static Token getToken(String hexBinary) {
         return FACTORY.hash(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
     }
 

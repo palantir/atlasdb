@@ -166,7 +166,13 @@ public final class ClusterMetadataUtils {
         if (tokenRangesByEnd.containsKey(token)) {
             return tokenRangesByEnd.get(token);
         } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
-            return Range.closed(tokenRangesByEnd.headMap(token).lastKey(), token);
+            // handle wraparound
+            LightweightOppToken lowerBound = tokenRangesByEnd.headMap(token).lastKey();
+            if (lowerBound.toString().isEmpty()) {
+                return Range.atMost(token);
+            } else {
+                return Range.closed(lowerBound, token);
+            }
         } else {
             // Confirm that the first entry in the sorted map is unbounded on one side
             Range<LightweightOppToken> firstTokenRange = tokenRangesByEnd.get(tokenRangesByEnd.firstKey());
