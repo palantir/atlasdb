@@ -245,10 +245,6 @@ public final class CassandraRepairEteTest {
         return invertedMap;
     }
 
-    private LightweightOppToken minToken() {
-        return getToken("");
-    }
-
     private LightweightOppToken getToken(String hexBinary) {
         return metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
     }
