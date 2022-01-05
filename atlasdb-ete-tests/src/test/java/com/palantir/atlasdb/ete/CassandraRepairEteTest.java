@@ -97,7 +97,7 @@ public final class CassandraRepairEteTest {
         cqlCluster = new CqlCluster(cluster, config);
         metadata = new CqlMetadata(cluster.getMetadata());
 
-        tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges().asRanges())
+        tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges())
                 .mapKeys(Range::upperEndpoint)
                 .collectTo(TreeMap::new);
     }

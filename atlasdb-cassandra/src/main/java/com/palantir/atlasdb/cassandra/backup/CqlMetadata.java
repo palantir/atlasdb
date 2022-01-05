@@ -16,20 +16,18 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
-
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CqlMetadata {
@@ -45,7 +43,8 @@ public class CqlMetadata {
         return metadata.getKeyspace(keyspace);
     }
 
-    public RangeSet<LightweightOppToken> getTokenRanges() {
+    // This needs to be a Set<Range>, because we don't want to merge the token ranges.
+    public Set<Range<LightweightOppToken>> getTokenRanges() {
         Set<TokenRange> tokenRanges = metadata.getTokenRanges();
         logRanges(tokenRanges);
         return makeLightweight(tokenRanges);
@@ -61,8 +60,8 @@ public class CqlMetadata {
         return LightweightOppToken.serialize(metadata.newToken(byteBuffer));
     }
 
-    private static RangeSet<LightweightOppToken> makeLightweight(Set<TokenRange> tokenRanges) {
-        return tokenRanges.stream().flatMap(CqlMetadata::makeLightweight).collect(toImmutableRangeSet());
+    private static Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
+        return tokenRanges.stream().flatMap(CqlMetadata::makeLightweight).collect(Collectors.toSet());
     }
 
     private static Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
@@ -70,11 +69,11 @@ public class CqlMetadata {
         LightweightOppToken endToken = LightweightOppToken.serialize(tokenRange.getEnd());
 
         if (startToken.compareTo(endToken) <= 0) {
-            return Stream.of(Range.closed(startToken, endToken));
+            return Stream.of(Range.closedOpen(startToken, endToken));
         } else {
             // Handle wrap-around
-            Range<LightweightOppToken> greaterThan = Range.atMost(startToken);
-            Range<LightweightOppToken> lessThan = Range.atLeast(endToken);
+            Range<LightweightOppToken> greaterThan = Range.atLeast(startToken);
+            Range<LightweightOppToken> lessThan = Range.lessThan(endToken);
             return Stream.of(greaterThan, lessThan);
         }
     }

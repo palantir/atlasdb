@@ -115,11 +115,9 @@ public final class ClusterMetadataUtils {
 
     private static Map<Host, RangeSet<LightweightOppToken>> getTokenMappingForPartitionKeys(
             CqlMetadata metadata, String keyspace, Set<LightweightOppToken> partitionKeyTokens) {
-        RangeSet<LightweightOppToken> tokenRanges = metadata.getTokenRanges();
-        SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd = KeyedStream.of(
-                        tokenRanges.asRanges())
-                .mapKeys(Range::upperEndpoint)
-                .collectTo(TreeMap::new);
+        Set<Range<LightweightOppToken>> tokenRanges = metadata.getTokenRanges();
+        SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd =
+                KeyedStream.of(tokenRanges).mapKeys(Range::upperEndpoint).collectTo(TreeMap::new);
         RangeSet<LightweightOppToken> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByEnd);
         Multimap<Host, Range<LightweightOppToken>> tokenMapping = ArrayListMultimap.create();
         ranges.asRanges().forEach(range -> {
