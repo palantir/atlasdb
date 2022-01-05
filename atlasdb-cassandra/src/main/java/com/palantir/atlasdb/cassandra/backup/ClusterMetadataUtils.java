@@ -140,10 +140,6 @@ public final class ClusterMetadataUtils {
                 .collectToMap();
     }
 
-    private static LightweightOppToken getUpper(Range<LightweightOppToken> range) {
-        return range.hasUpperBound() ? range.upperEndpoint() : new LightweightOppToken(new byte[0]);
-    }
-
     // VisibleForTesting
     public static RangeSet<LightweightOppToken> getMinimalSetOfRangesForTokens(
             Set<LightweightOppToken> partitionKeyTokens,
@@ -152,9 +148,17 @@ public final class ClusterMetadataUtils {
         for (LightweightOppToken token : partitionKeyTokens) {
             Range<LightweightOppToken> minimalTokenRange = findTokenRange(token, tokenRangesByEnd);
             tokenRangesByStartToken.merge(
-                    minimalTokenRange.lowerEndpoint(), minimalTokenRange, ClusterMetadataUtils::findLatestEndingRange);
+                    getLower(minimalTokenRange), minimalTokenRange, ClusterMetadataUtils::findLatestEndingRange);
         }
         return tokenRangesByStartToken.values().stream().collect(toImmutableRangeSet());
+    }
+
+    private static LightweightOppToken getLower(Range<LightweightOppToken> range) {
+        return range.hasLowerBound() ? range.lowerEndpoint() : new LightweightOppToken(new byte[0]);
+    }
+
+    private static LightweightOppToken getUpper(Range<LightweightOppToken> range) {
+        return range.hasUpperBound() ? range.upperEndpoint() : new LightweightOppToken(new byte[0]);
     }
 
     private static Range<LightweightOppToken> findTokenRange(
@@ -172,7 +176,7 @@ public final class ClusterMetadataUtils {
                     "Failed to identify wraparound token range",
                     SafeArg.of("firstTokenRange", firstTokenRange),
                     SafeArg.of("token", token));
-            return Range.closed(firstTokenRange.lowerEndpoint(), token);
+            return Range.closed(getLower(firstTokenRange), token);
         }
     }
 
@@ -184,7 +188,7 @@ public final class ClusterMetadataUtils {
     public static Range<LightweightOppToken> findLatestEndingRange(
             Range<LightweightOppToken> range1, Range<LightweightOppToken> range2) {
         Preconditions.checkArgument(
-                range1.lowerEndpoint().equals(range2.lowerEndpoint()),
+                getLower(range1).equals(getLower(range2)),
                 "Expects token ranges to have the same start token",
                 SafeArg.of("range1", range1),
                 SafeArg.of("range2", range2));
