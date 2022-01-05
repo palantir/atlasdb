@@ -26,11 +26,15 @@ import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.stream.Stream;
 
 public class CqlMetadata {
+    private static final SafeLogger log = SafeLoggerFactory.get(CqlMetadata.class);
+
     private final Metadata metadata;
 
     public CqlMetadata(Metadata metadata) {
@@ -43,7 +47,14 @@ public class CqlMetadata {
 
     public RangeSet<LightweightOppToken> getTokenRanges() {
         Set<TokenRange> tokenRanges = metadata.getTokenRanges();
+        logRanges(tokenRanges);
         return makeLightweight(tokenRanges);
+    }
+
+    @SuppressWarnings("CompileTimeConstant")
+    private void logRanges(Set<TokenRange> tokenRanges) {
+        tokenRanges.forEach(
+                tokenRange -> log.info("Token range: " + tokenRange.getStart() + " to " + tokenRange.getEnd()));
     }
 
     public LightweightOppToken newToken(ByteBuffer byteBuffer) {
@@ -62,8 +73,8 @@ public class CqlMetadata {
             return Stream.of(Range.closed(startToken, endToken));
         } else {
             // Handle wrap-around
-            Range<LightweightOppToken> greaterThan = Range.greaterThan(startToken);
-            Range<LightweightOppToken> lessThan = Range.lessThan(endToken);
+            Range<LightweightOppToken> greaterThan = Range.atMost(startToken);
+            Range<LightweightOppToken> lessThan = Range.atLeast(endToken);
             return Stream.of(greaterThan, lessThan);
         }
     }
