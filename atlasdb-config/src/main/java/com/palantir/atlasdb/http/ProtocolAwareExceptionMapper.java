@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.http;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.QosException;
@@ -24,6 +25,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nonnull;
@@ -37,6 +39,8 @@ import org.glassfish.jersey.spi.ExceptionMappers;
 
 abstract class ProtocolAwareExceptionMapper<E extends Exception> implements ExceptionMapper<E> {
     private static final SafeLogger log = SafeLoggerFactory.get(ProtocolAwareExceptionMapper.class);
+    private static final RateLimiter LEGACY_OR_UNKNOWN_RATE_LIMITER =
+            RateLimiter.create(1. / Duration.ofMinutes(10).toSeconds());
 
     @Context
     private HttpHeaders httpHeaders;
@@ -49,6 +53,7 @@ abstract class ProtocolAwareExceptionMapper<E extends Exception> implements Exce
         AtlasDbHttpProtocolVersion version = getHttpProtocolVersion();
         switch (version) {
             case LEGACY_OR_UNKNOWN:
+                logLegacyProtocolUsageIfPossible();
                 return handleLegacyOrUnknownVersion(exception);
             case CONJURE_JAVA_RUNTIME:
                 QosException qosException = handleConjureJavaRuntime(exception);
@@ -67,10 +72,21 @@ abstract class ProtocolAwareExceptionMapper<E extends Exception> implements Exce
         }
     }
 
+    private void logLegacyProtocolUsageIfPossible() {
+        if (LEGACY_OR_UNKNOWN_RATE_LIMITER.tryAcquire()) {
+            log.info(
+                    "Usage of the LEGACY_OR_UNKNOWN HTTP protocol version for AtlasDB was detected.",
+                    SafeArg.of("userAgent", parseUserAgentFromHeaders()));
+        }
+    }
+
     private AtlasDbHttpProtocolVersion getHttpProtocolVersion() {
-        return AtlasDbHttpProtocolVersion.inferFromString(
-                Optional.ofNullable(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT))
-                        .flatMap(ProtocolAwareExceptionMapper::parseProtocolVersionFromUserAgentHeader));
+        return AtlasDbHttpProtocolVersion.inferFromString(parseUserAgentFromHeaders()
+                .flatMap(ProtocolAwareExceptionMapper::parseProtocolVersionFromUserAgentHeader));
+    }
+
+    private Optional<List<String>> parseUserAgentFromHeaders() {
+        return Optional.ofNullable(httpHeaders.getRequestHeader(HttpHeaders.USER_AGENT));
     }
 
     @VisibleForTesting
