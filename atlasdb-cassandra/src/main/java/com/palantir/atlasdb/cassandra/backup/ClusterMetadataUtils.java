@@ -44,6 +44,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class ClusterMetadataUtils {
     private ClusterMetadataUtils() {
@@ -116,8 +119,9 @@ public final class ClusterMetadataUtils {
     private static Map<Host, RangeSet<LightweightOppToken>> getTokenMappingForPartitionKeys(
             CqlMetadata metadata, String keyspace, Set<LightweightOppToken> partitionKeyTokens) {
         Set<Range<LightweightOppToken>> tokenRanges = metadata.getTokenRanges();
-        SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd =
-                KeyedStream.of(tokenRanges).mapKeys(Range::upperEndpoint).collectTo(TreeMap::new);
+        SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd = KeyedStream.of(tokenRanges)
+                .mapKeys(ClusterMetadataUtils::getUpper)
+                .collectTo(TreeMap::new);
         RangeSet<LightweightOppToken> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByEnd);
         Multimap<Host, Range<LightweightOppToken>> tokenMapping = ArrayListMultimap.create();
         ranges.asRanges().forEach(range -> {
@@ -134,6 +138,10 @@ public final class ClusterMetadataUtils {
                 .map(Collection::stream)
                 .map(stream -> (RangeSet<LightweightOppToken>) stream.collect(toImmutableRangeSet()))
                 .collectToMap();
+    }
+
+    private static LightweightOppToken getUpper(Range<LightweightOppToken> range) {
+        return range.hasUpperBound() ? range.upperEndpoint() : new LightweightOppToken(new byte[0]);
     }
 
     // VisibleForTesting
@@ -156,12 +164,11 @@ public final class ClusterMetadataUtils {
         } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
             return Range.closed(tokenRangesByEnd.headMap(token).lastKey(), token);
         } else {
-            // Confirm that the first entry in the sorted map is the wraparound range
+            // Confirm that the first entry in the sorted map is unbounded on one side
             Range<LightweightOppToken> firstTokenRange = tokenRangesByEnd.get(tokenRangesByEnd.firstKey());
             Preconditions.checkState(
-                    // TODO(gs): port wraparound
-                    true,
-                    //                    firstTokenRange.isWrappedAround(),
+                    // TODO(gs): should only need one of these
+                    !firstTokenRange.hasUpperBound() || !firstTokenRange.hasLowerBound(),
                     "Failed to identify wraparound token range",
                     SafeArg.of("firstTokenRange", firstTokenRange),
                     SafeArg.of("token", token));
@@ -182,15 +189,13 @@ public final class ClusterMetadataUtils {
                 SafeArg.of("range1", range1),
                 SafeArg.of("range2", range2));
 
-        // TODO(gs): wraparound
-        //        Set<TokenRange> wrapAroundTokenRanges =
-        //                Stream.of(range1, range2).filter(TokenRange::isWrappedAround).collect(Collectors.toSet());
-        //
-        //        // If any token ranges are wraparound ranges, the non-wraparound ranges cannot possibly be the longest
-        // range
-        //        if (wrapAroundTokenRanges.size() == 1) {
-        //            return wrapAroundTokenRanges.iterator().next();
-        //        }
+        Set<Range<LightweightOppToken>> wrapAroundTokenRanges = Stream.of(range1, range2)
+                .filter(Predicate.not(Range::hasUpperBound))
+                .collect(Collectors.toSet());
+        // If any token ranges are wraparound ranges, the non-wraparound ranges cannot possibly be the longest range
+        if (wrapAroundTokenRanges.size() == 1) {
+            return wrapAroundTokenRanges.iterator().next();
+        }
 
         if (range1.contains(range2.upperEndpoint())) {
             return range1;
