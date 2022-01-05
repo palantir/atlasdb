@@ -83,15 +83,10 @@ public class CqlMetadataTest {
     public void canGetTokenRangesByEnd() {
         Set<Range<LightweightOppToken>> tokenRanges = cqlMetadata.getTokenRanges();
 
-        TreeMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd =
-                KeyedStream.of(tokenRanges).mapKeys(CqlMetadataTest::getUpper).collectTo(TreeMap::new);
+        TreeMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd = KeyedStream.of(tokenRanges)
+                .mapKeys(LightweightOppToken::getUpper)
+                .collectTo(TreeMap::new);
 
         assertThat(tokenRangesByEnd).hasSize(4);
-    }
-
-    private static LightweightOppToken getUpper(Range<LightweightOppToken> range) {
-        return range.hasUpperBound()
-                ? range.upperEndpoint()
-                : LightweightOppToken.serialize(CassandraTokenRanges.maxToken());
     }
 }

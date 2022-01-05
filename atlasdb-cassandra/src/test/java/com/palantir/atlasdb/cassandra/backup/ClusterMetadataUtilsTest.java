@@ -56,7 +56,7 @@ public class ClusterMetadataUtilsTest {
         cqlMetadata = new CqlMetadata(metadata);
 
         tokenRangesByEnd = KeyedStream.of(cqlMetadata.getTokenRanges())
-                .mapKeys(ClusterMetadataUtilsTest::getUpper)
+                .mapKeys(LightweightOppToken::getUpper)
                 .collectTo(TreeMap::new);
     }
 
@@ -105,13 +105,6 @@ public class ClusterMetadataUtilsTest {
         Range<LightweightOppToken> wrapAroundRange = Range.atLeast(duplicatedStartKey);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nonWrapAroundRange, wrapAroundRange))
                 .isEqualTo(wrapAroundRange);
-    }
-
-    // TODO(gs): duplicated in a few places now
-    private static LightweightOppToken getUpper(Range<LightweightOppToken> range) {
-        return range.hasUpperBound()
-                ? range.upperEndpoint()
-                : LightweightOppToken.serialize(CassandraTokenRanges.maxToken());
     }
 
     private LightweightOppToken getToken(String hexBinary) {

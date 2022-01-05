@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.datastax.driver.core.Token;
+import com.google.common.collect.Range;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -39,6 +40,14 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
         byte[] bytes = new byte[serializedToken.remaining()];
         serializedToken.get(bytes);
         return new LightweightOppToken(bytes);
+    }
+
+    public static LightweightOppToken getLower(Range<LightweightOppToken> range) {
+        return range.hasLowerBound() ? range.lowerEndpoint() : new LightweightOppToken(new byte[0]);
+    }
+
+    public static LightweightOppToken getUpper(Range<LightweightOppToken> range) {
+        return range.hasUpperBound() ? range.upperEndpoint() : new LightweightOppToken(new byte[0]);
     }
 
     public ByteBuffer deserialize() {

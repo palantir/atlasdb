@@ -18,7 +18,6 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.driver.core.CassandraTokenRanges;
 import com.datastax.driver.core.Cluster;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -99,14 +98,8 @@ public final class CassandraRepairEteTest {
         metadata = new CqlMetadata(cluster.getMetadata());
 
         tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges())
-                .mapKeys(CassandraRepairEteTest::getUpper)
+                .mapKeys(LightweightOppToken::getUpper)
                 .collectTo(TreeMap::new);
-    }
-
-    private static LightweightOppToken getUpper(Range<LightweightOppToken> range) {
-        return range.hasUpperBound()
-                ? range.upperEndpoint()
-                : LightweightOppToken.serialize(CassandraTokenRanges.maxToken());
     }
 
     @After
