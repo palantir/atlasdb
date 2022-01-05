@@ -27,7 +27,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
-import com.palantir.atlasdb.cassandra.backup.CqlMetadata;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -54,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
@@ -76,8 +74,6 @@ public final class CassandraRepairEteTest {
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
     private CqlCluster cqlCluster;
-    private CqlMetadata metadata;
-    private TreeMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd;
 
     @Before
     public void setUp() {
@@ -91,11 +87,6 @@ public final class CassandraRepairEteTest {
         cassandraRepairHelper = new CassandraRepairHelper(_unused -> config, _unused -> kvs);
         Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         cqlCluster = new CqlCluster(cluster, config);
-        metadata = new CqlMetadata(cluster.getMetadata());
-
-        tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges())
-                .mapKeys(LightweightOppToken::getUpper)
-                .collectTo(TreeMap::new);
     }
 
     @After
