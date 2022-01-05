@@ -47,7 +47,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,7 +58,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
-import javax.xml.bind.DatatypeConverter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -243,9 +241,5 @@ public final class CassandraRepairEteTest {
                 }));
 
         return invertedMap;
-    }
-
-    private LightweightOppToken getToken(String hexBinary) {
-        return metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
     }
 }
