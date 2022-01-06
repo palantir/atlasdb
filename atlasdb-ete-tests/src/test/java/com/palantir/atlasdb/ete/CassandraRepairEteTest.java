@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.ete;
 
+import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.driver.core.Cluster;
@@ -27,6 +28,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
+import com.palantir.atlasdb.cassandra.backup.CqlMetadata;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -73,6 +75,7 @@ public final class CassandraRepairEteTest {
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
+    private Cluster cluster;
     private CqlCluster cqlCluster;
 
     @Before
@@ -85,13 +88,23 @@ public final class CassandraRepairEteTest {
         kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
 
         cassandraRepairHelper = new CassandraRepairHelper(_unused -> config, _unused -> kvs);
-        Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
+        cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         cqlCluster = new CqlCluster(cluster, config);
     }
 
     @After
     public void tearDown() {
         kvs.dropTable(TABLE_REF);
+    }
+
+    @Test
+    public void testTokenRangeCoversFullRing() {
+        CqlMetadata cqlMetadata = new CqlMetadata(cluster.getMetadata());
+        Set<Range<LightweightOppToken>> tokenRanges = cqlMetadata.getTokenRanges();
+
+        // Turning this into a RangeSet should give the complete range (-inf, +inf)
+        RangeSet<LightweightOppToken> fullTokenRing = tokenRanges.stream().collect(toImmutableRangeSet());
+        assertThat(fullTokenRing.asRanges()).containsExactly(Range.all());
     }
 
     @Test
