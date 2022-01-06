@@ -163,7 +163,7 @@ public final class ClusterMetadataUtils {
         } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
             // handle wraparound
             LightweightOppToken lowerBound = tokenRangesByEnd.headMap(token).lastKey();
-            if (lowerBound.toString().isEmpty()) {
+            if (lowerBound.isEmpty()) {
                 return Range.atMost(token);
             } else {
                 return Range.openClosed(lowerBound, token);
