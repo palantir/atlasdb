@@ -21,8 +21,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.util.Optional;
@@ -31,8 +29,6 @@ import java.util.function.Supplier;
 
 public class DefaultCqlClientFactory implements CqlClientFactory {
     public static final CqlClientFactory DEFAULT = new DefaultCqlClientFactory();
-
-    private static final SafeLogger log = SafeLoggerFactory.get(DefaultCqlClientFactory.class);
 
     private final Supplier<Cluster.Builder> cqlClusterBuilderFactory;
 

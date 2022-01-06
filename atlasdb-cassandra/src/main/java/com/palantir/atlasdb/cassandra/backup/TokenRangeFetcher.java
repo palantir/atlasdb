@@ -28,7 +28,6 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
@@ -58,8 +57,8 @@ final class TokenRangeFetcher {
         KeyspaceMetadata keyspace = metadata.getKeyspaceMetadata(keyspaceName);
         TableMetadata tableMetadata = keyspace.getTable(tableName);
         Set<LightweightOppToken> partitionTokens = getPartitionTokens(cqlSession, tableMetadata);
-        Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode =
-                ClusterMetadataUtils.getTokenMapping(getHosts(config), metadata, keyspaceName, partitionTokens);
+        Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode = ClusterMetadataUtils.getTokenMapping(
+                CassandraServersConfigs.getCqlHosts(config), metadata, keyspaceName, partitionTokens);
 
         if (!partitionTokens.isEmpty() && log.isDebugEnabled()) {
             int numTokenRanges = tokenRangesByNode.values().stream()
@@ -93,12 +92,5 @@ final class TokenRangeFetcher {
                 .setConsistencyLevel(ConsistencyLevel.ALL)
                 .setFetchSize(SELECT_FETCH_SIZE)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS);
-    }
-
-    // TODO(gs): move to CassandraServersConfigs
-    private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
-        return CassandraServersConfigs.getCqlCapableConfigIfValid(config)
-                .map(CassandraServersConfigs.CqlCapableConfig::cqlHosts)
-                .orElseThrow(() -> new SafeIllegalStateException("Attempting to get token ranges with thrift config!"));
     }
 }

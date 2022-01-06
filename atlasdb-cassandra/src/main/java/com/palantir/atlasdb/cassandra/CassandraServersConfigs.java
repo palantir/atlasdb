@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
@@ -154,6 +155,12 @@ public final class CassandraServersConfigs {
         public <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
         }
+    }
+
+    public static Set<InetSocketAddress> getCqlHosts(CassandraKeyValueServiceConfig config) {
+        return CassandraServersConfigs.getCqlCapableConfigIfValid(config)
+                .map(CassandraServersConfigs.CqlCapableConfig::cqlHosts)
+                .orElseThrow(() -> new SafeIllegalStateException("Attempting to get CQL hosts with thrift config!"));
     }
 
     public static Optional<CqlCapableConfig> getCqlCapableConfigIfValid(CassandraKeyValueServiceConfig config) {

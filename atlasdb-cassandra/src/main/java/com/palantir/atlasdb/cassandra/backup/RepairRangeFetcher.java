@@ -27,7 +27,6 @@ import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableIntera
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
@@ -59,7 +58,7 @@ final class RepairRangeFetcher {
 
         maybeLogTokenRanges(transactionsTableInteractions, partitionKeysByTable);
 
-        Set<InetSocketAddress> hosts = getHosts(config);
+        Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(config);
         return KeyedStream.stream(partitionKeysByTable)
                 .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
                 .collectToMap();
@@ -109,12 +108,5 @@ final class RepairRangeFetcher {
                     SafeArg.of("transactionsTablesWithRanges", loggableTableRanges),
                     SafeArg.of("numPartitionKeysByTable", numPartitionKeysByTable));
         }
-    }
-
-    // TODO(gs): move to CassandraServersConfigs
-    private static Set<InetSocketAddress> getHosts(CassandraKeyValueServiceConfig config) {
-        return CassandraServersConfigs.getCqlCapableConfigIfValid(config)
-                .map(CassandraServersConfigs.CqlCapableConfig::cqlHosts)
-                .orElseThrow(() -> new SafeIllegalStateException("Attempting to get token ranges with thrift config!"));
     }
 }
