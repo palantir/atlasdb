@@ -52,11 +52,17 @@ public class CqlMetadata {
         return LightweightOppToken.serialize(metadata.newToken(byteBuffer));
     }
 
-    private static Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
-        return tokenRanges.stream().flatMap(CqlMetadata::makeLightweight).collect(Collectors.toSet());
+    private Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
+        return tokenRanges.stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
     }
 
-    private static Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
+    @VisibleForTesting
+    Stream<Range<LightweightOppToken>> makeLightweight(TokenRange tokenRange) {
+        if (tokenRange.getStart().equals(minToken()) && tokenRange.getEnd().equals(minToken())) {
+            // Special case - if the start and end are both minToken, then the range covers the whole ring.
+            return Stream.of(Range.all());
+        }
+
         LightweightOppToken startToken = LightweightOppToken.serialize(tokenRange.getStart());
         LightweightOppToken endToken = LightweightOppToken.serialize(tokenRange.getEnd());
 

@@ -102,6 +102,16 @@ public class CqlMetadataTest {
     }
 
     @Test
+    public void testMinTokenGivesFullRange() {
+        Token minToken = CassandraTokenRanges.minToken();
+        TokenRange tokenRange = CassandraTokenRanges.create(minToken, minToken);
+
+        Range<LightweightOppToken> fullRange =
+                Iterables.getOnlyElement(cqlMetadata.makeLightweight(tokenRange).collect(Collectors.toList()));
+        assertThat(fullRange).isEqualTo(Range.all());
+    }
+
+    @Test
     public void testSameTokenGivesEmptyRange() {
         TokenRange tokenRange = CassandraTokenRanges.create(FIRST_TOKEN, FIRST_TOKEN);
 
@@ -125,7 +135,7 @@ public class CqlMetadataTest {
     public void testReverseConversionNoLowerBound() {
         Range<LightweightOppToken> lowerUnbounded = Range.atMost(LightweightOppToken.serialize(FIRST_TOKEN));
         TokenRange lowerTokenRange = cqlMetadata.toTokenRange(lowerUnbounded);
-        assertThat(lowerTokenRange.getStart()).isEqualTo(CassandraTokenRanges.maxToken());
+        assertThat(lowerTokenRange.getStart()).isEqualTo(CassandraTokenRanges.minToken());
         assertThat(lowerTokenRange.getEnd()).isEqualTo(FIRST_TOKEN);
     }
 
@@ -134,7 +144,7 @@ public class CqlMetadataTest {
         Range<LightweightOppToken> upperUnbounded = Range.greaterThan(LightweightOppToken.serialize(FIRST_TOKEN));
         TokenRange lowerTokenRange = cqlMetadata.toTokenRange(upperUnbounded);
         assertThat(lowerTokenRange.getStart()).isEqualTo(FIRST_TOKEN);
-        assertThat(lowerTokenRange.getEnd()).isEqualTo(CassandraTokenRanges.maxToken());
+        assertThat(lowerTokenRange.getEnd()).isEqualTo(CassandraTokenRanges.minToken());
     }
 
     @Test

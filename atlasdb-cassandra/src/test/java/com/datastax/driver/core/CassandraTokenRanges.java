@@ -46,8 +46,8 @@ public final class CassandraTokenRanges {
         return FACTORY.hash(byteBuffer);
     }
 
-    public static Token maxToken() {
-        // Not a typo; the minimum token is a special value that no key ever hashes to.
+    public static Token minToken() {
+        // The minimum token is a special value that no key ever hashes to.
         // It's used both as lower and upper bound.
         return FACTORY.minToken();
     }
