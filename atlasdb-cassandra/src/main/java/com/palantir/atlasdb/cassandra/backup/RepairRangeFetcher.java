@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class RepairRangeFetcher {
+final class RepairRangeFetcher {
     private static final SafeLogger log = SafeLoggerFactory.get(RepairRangeFetcher.class);
 
     private final CqlSession cqlSession;
