@@ -64,9 +64,6 @@ public class CqlMetadata {
             return Stream.of(Range.openClosed(startToken, endToken));
         } else {
             // Handle wrap-around
-            Range<LightweightOppToken> greaterThan = Range.atLeast(startToken);
-            Range<LightweightOppToken> lessThan = Range.lessThan(endToken);
-            return Stream.of(greaterThan, lessThan);
             Range<LightweightOppToken> greaterThan = Range.greaterThan(startToken);
             Range<LightweightOppToken> lessThanOrEqual = Range.atMost(endToken);
             return Stream.of(greaterThan, lessThanOrEqual);
