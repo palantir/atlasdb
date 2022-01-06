@@ -120,10 +120,10 @@ public final class ClusterMetadataUtils {
     private static Map<Host, RangeSet<LightweightOppToken>> getTokenMappingForPartitionKeys(
             CqlMetadata metadata, String keyspace, Set<LightweightOppToken> partitionKeyTokens) {
         Set<Range<LightweightOppToken>> tokenRanges = metadata.getTokenRanges();
-        SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd = KeyedStream.of(tokenRanges)
-                .mapKeys(LightweightOppToken::getUpperInclusive)
+        SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart = KeyedStream.of(tokenRanges)
+                .mapKeys(LightweightOppToken::getLowerExclusive)
                 .collectTo(TreeMap::new);
-        RangeSet<LightweightOppToken> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByEnd);
+        RangeSet<LightweightOppToken> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByStart);
         Multimap<Host, Range<LightweightOppToken>> tokenMapping = ArrayListMultimap.create();
         ranges.asRanges().forEach(range -> {
             List<Host> hosts = ImmutableList.copyOf(metadata.getReplicas(keyspace, range));
@@ -144,10 +144,10 @@ public final class ClusterMetadataUtils {
     @VisibleForTesting
     static RangeSet<LightweightOppToken> getMinimalSetOfRangesForTokens(
             Set<LightweightOppToken> partitionKeyTokens,
-            SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd) {
+            SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart) {
         Map<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStartToken = new HashMap<>();
         for (LightweightOppToken token : partitionKeyTokens) {
-            Range<LightweightOppToken> minimalTokenRange = findTokenRange(token, tokenRangesByEnd);
+            Range<LightweightOppToken> minimalTokenRange = findTokenRange(token, tokenRangesByStart);
             tokenRangesByStartToken.merge(
                     LightweightOppToken.getLowerExclusive(minimalTokenRange),
                     minimalTokenRange,
@@ -157,24 +157,21 @@ public final class ClusterMetadataUtils {
     }
 
     private static Range<LightweightOppToken> findTokenRange(
-            LightweightOppToken token, SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd) {
-        if (tokenRangesByEnd.containsKey(token)) {
-            return tokenRangesByEnd.get(token);
-        } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
-            // handle wraparound
-            LightweightOppToken lowerBound = tokenRangesByEnd.headMap(token).lastKey();
-            if (lowerBound.isEmpty()) {
-                return Range.atMost(token);
-            } else {
-                return Range.openClosed(lowerBound, token);
-            }
-        } else {
-            // Shouldn't happen, as tokenRangesByEnd should include the whole token ring, including some range
+            LightweightOppToken token, SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart) {
+        if (tokenRangesByStart.headMap(token).isEmpty()) {
+            // Shouldn't happen, as tokenRangesByStart should include the whole token ring, including some range
             // starting with minus infinity.
             throw new SafeIllegalStateException(
                     "Unable to find token range for token, as a full token ring was not supplied",
                     SafeArg.of("token", token),
-                    SafeArg.of("tokenRangesByEnd", tokenRangesByEnd));
+                    SafeArg.of("tokenRangesByStart", tokenRangesByStart));
+        }
+
+        LightweightOppToken lowerBound = tokenRangesByStart.headMap(token).lastKey();
+        if (lowerBound.isEmpty()) {
+            return Range.atMost(token);
+        } else {
+            return Range.openClosed(lowerBound, token);
         }
     }
 
