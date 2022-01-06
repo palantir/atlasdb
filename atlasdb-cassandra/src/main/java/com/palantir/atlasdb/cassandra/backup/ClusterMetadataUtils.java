@@ -169,14 +169,12 @@ public final class ClusterMetadataUtils {
                 return Range.openClosed(lowerBound, token);
             }
         } else {
-            // Confirm that the first entry in the sorted map is unbounded on one side
-            Range<LightweightOppToken> firstTokenRange = tokenRangesByEnd.get(tokenRangesByEnd.firstKey());
-            Preconditions.checkState(
-                    !firstTokenRange.hasUpperBound() || !firstTokenRange.hasLowerBound(),
-                    "Failed to identify wraparound token range",
-                    SafeArg.of("firstTokenRange", firstTokenRange),
-                    SafeArg.of("token", token));
-            return Range.openClosed(LightweightOppToken.getLowerExclusive(firstTokenRange), token);
+            // Shouldn't happen, as tokenRangesByEnd should include the whole token ring, including some range
+            // starting with minus infinity.
+            throw new SafeIllegalStateException(
+                    "Unable to find token range for token, as a full token ring was not supplied",
+                    SafeArg.of("token", token),
+                    SafeArg.of("tokenRangesByEnd", tokenRangesByEnd));
         }
     }
 
