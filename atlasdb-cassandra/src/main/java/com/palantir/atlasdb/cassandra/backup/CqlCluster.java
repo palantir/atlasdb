@@ -85,7 +85,7 @@ public final class CqlCluster implements Closeable {
         try (CqlSession session = new CqlSession(cluster.connect())) {
             CqlMetadata metadata = session.getMetadata();
             String keyspaceName = config.getKeyspaceOrThrow();
-            KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
+            KeyspaceMetadata keyspace = metadata.getKeyspaceMetadata(keyspaceName);
             TableMetadata tableMetadata = keyspace.getTable(tableName);
             Set<LightweightOppToken> partitionTokens = getPartitionTokens(session, tableMetadata);
             Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode =
@@ -158,8 +158,9 @@ public final class CqlCluster implements Closeable {
             TransactionsTableInteraction interaction) {
         TableMetadata transactionsTableMetadata =
                 ClusterMetadataUtils.getTableMetadata(metadata, keyspaceName, interaction.getTransactionsTableName());
-        List<Statement> selectStatements = interaction.createSelectStatements(transactionsTableMetadata);
-        return cqlSession.executeAtConsistencyAll(selectStatements);
+        List<Statement> selectStatements =
+                interaction.createSelectStatementsForScanningFullTimestampRange(transactionsTableMetadata);
+        return cqlSession.retrieveRowKeysAtConsistencyAll(selectStatements);
     }
 
     private static void maybeLogTokenRanges(
@@ -180,7 +181,7 @@ public final class CqlCluster implements Closeable {
     }
 
     private static Set<LightweightOppToken> getPartitionTokens(CqlSession session, TableMetadata tableMetadata) {
-        return session.executeAtConsistencyAll(createSelectStatements(tableMetadata));
+        return session.retrieveRowKeysAtConsistencyAll(createSelectStatements(tableMetadata));
     }
 
     private static List<Statement> createSelectStatements(TableMetadata table) {

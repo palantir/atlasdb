@@ -43,7 +43,7 @@ public class CqlSession implements Closeable {
         return new CqlMetadata(session.getCluster().getMetadata());
     }
 
-    public Set<LightweightOppToken> executeAtConsistencyAll(List<Statement> selectStatements) {
+    public Set<LightweightOppToken> retrieveRowKeysAtConsistencyAll(List<Statement> selectStatements) {
         return selectStatements.stream()
                 .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
                 .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))

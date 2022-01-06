@@ -39,7 +39,7 @@ public class CqlMetadata {
         this.metadata = metadata;
     }
 
-    public KeyspaceMetadata getKeyspace(String keyspace) {
+    public KeyspaceMetadata getKeyspaceMetadata(String keyspace) {
         return metadata.getKeyspace(keyspace);
     }
 

@@ -130,7 +130,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
+    public List<Statement> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable) {
         Set<ByteBuffer> encodedRowKeys = TwoPhaseEncodingStrategy.INSTANCE
                 .encodeRangeOfStartTimestampsAsRows(
                         timestampRange.inclusiveLowerBound(), timestampRange.inclusiveUpperBound())

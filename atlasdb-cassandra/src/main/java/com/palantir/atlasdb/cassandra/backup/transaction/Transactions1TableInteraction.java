@@ -118,7 +118,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
+    public List<Statement> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable) {
         Statement select = QueryBuilder.select()
                 .all()
                 .from(transactionsTable)
