@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.CassandraTokenRanges;
@@ -25,13 +26,16 @@ import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,14 +87,14 @@ public class CqlMetadataTest {
         Set<Range<LightweightOppToken>> tokenRanges = cqlMetadata.getTokenRanges();
         assertThat(tokenRanges)
                 .containsExactlyInAnyOrder(
-                        Range.closedOpen(
+                        Range.openClosed(
                                 LightweightOppToken.serialize(FIRST_TOKEN),
                                 LightweightOppToken.serialize(SECOND_TOKEN)),
-                        Range.closedOpen(
+                        Range.openClosed(
                                 LightweightOppToken.serialize(SECOND_TOKEN),
                                 LightweightOppToken.serialize(THIRD_TOKEN)),
-                        Range.atLeast(LightweightOppToken.serialize(THIRD_TOKEN)),
-                        Range.lessThan(LightweightOppToken.serialize(FIRST_TOKEN)));
+                        Range.greaterThan(LightweightOppToken.serialize(THIRD_TOKEN)),
+                        Range.atMost(LightweightOppToken.serialize(FIRST_TOKEN)));
 
         // Turning this into a RangeSet should give the complete range (-inf, +inf)
         RangeSet<LightweightOppToken> fullTokenRing = tokenRanges.stream().collect(toImmutableRangeSet());
@@ -98,11 +102,20 @@ public class CqlMetadataTest {
     }
 
     @Test
+    public void testSameTokenGivesEmptyRange() {
+        TokenRange tokenRange = CassandraTokenRanges.create(FIRST_TOKEN, FIRST_TOKEN);
+
+        Range<LightweightOppToken> emptyRange =
+                Iterables.getOnlyElement(cqlMetadata.makeLightweight(tokenRange).collect(Collectors.toList()));
+        assertThat(emptyRange.isEmpty()).isTrue();
+    }
+
+    @Test
     public void canGetTokenRangesByEnd() {
         Set<Range<LightweightOppToken>> tokenRanges = cqlMetadata.getTokenRanges();
 
         TreeMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd = KeyedStream.of(tokenRanges)
-                .mapKeys(LightweightOppToken::getUpper)
+                .mapKeys(LightweightOppToken::getUpperInclusive)
                 .collectTo(TreeMap::new);
 
         assertThat(tokenRangesByEnd).hasSize(4);
@@ -118,9 +131,20 @@ public class CqlMetadataTest {
 
     @Test
     public void testReverseConversionNoUpperBound() {
-        Range<LightweightOppToken> upperUnbounded = Range.atLeast(LightweightOppToken.serialize(FIRST_TOKEN));
+        Range<LightweightOppToken> upperUnbounded = Range.greaterThan(LightweightOppToken.serialize(FIRST_TOKEN));
         TokenRange lowerTokenRange = cqlMetadata.toTokenRange(upperUnbounded);
         assertThat(lowerTokenRange.getStart()).isEqualTo(FIRST_TOKEN);
         assertThat(lowerTokenRange.getEnd()).isEqualTo(CassandraTokenRanges.maxToken());
+    }
+
+    @Test
+    public void testReverseConversionRejectsWrongBounds() {
+        LightweightOppToken lowerBound = LightweightOppToken.serialize(FIRST_TOKEN);
+        LightweightOppToken upperBound = LightweightOppToken.serialize(SECOND_TOKEN);
+
+        Range<LightweightOppToken> closedOpen = Range.closedOpen(lowerBound, upperBound);
+        assertThatThrownBy(() -> cqlMetadata.toTokenRange(closedOpen))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Token range lower bound should be open");
     }
 }

@@ -58,12 +58,15 @@ public class CqlMetadata {
         LightweightOppToken endToken = LightweightOppToken.serialize(tokenRange.getEnd());
 
         if (startToken.compareTo(endToken) <= 0) {
-            return Stream.of(Range.closedOpen(startToken, endToken));
+            return Stream.of(Range.openClosed(startToken, endToken));
         } else {
             // Handle wrap-around
             Range<LightweightOppToken> greaterThan = Range.atLeast(startToken);
             Range<LightweightOppToken> lessThan = Range.lessThan(endToken);
             return Stream.of(greaterThan, lessThan);
+            Range<LightweightOppToken> greaterThan = Range.greaterThan(startToken);
+            Range<LightweightOppToken> lessThanOrEqual = Range.atMost(endToken);
+            return Stream.of(greaterThan, lessThanOrEqual);
         }
     }
 
@@ -73,6 +76,15 @@ public class CqlMetadata {
 
     @VisibleForTesting
     TokenRange toTokenRange(Range<LightweightOppToken> range) {
+        Preconditions.checkArgument(
+                !range.hasLowerBound() || range.lowerBoundType().equals(BoundType.OPEN),
+                "Token range lower bound should be open",
+                SafeArg.of("range", range));
+        Preconditions.checkArgument(
+                !range.hasUpperBound() || range.upperBoundType().equals(BoundType.CLOSED),
+                "Token range upper bound should be closed",
+                SafeArg.of("range", range));
+
         Token lower =
                 range.hasLowerBound() ? metadata.newToken(range.lowerEndpoint().deserialize()) : minToken();
         Token upper =

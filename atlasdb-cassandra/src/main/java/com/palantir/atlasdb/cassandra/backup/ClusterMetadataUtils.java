@@ -121,7 +121,7 @@ public final class ClusterMetadataUtils {
             CqlMetadata metadata, String keyspace, Set<LightweightOppToken> partitionKeyTokens) {
         Set<Range<LightweightOppToken>> tokenRanges = metadata.getTokenRanges();
         SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd = KeyedStream.of(tokenRanges)
-                .mapKeys(LightweightOppToken::getUpper)
+                .mapKeys(LightweightOppToken::getUpperInclusive)
                 .collectTo(TreeMap::new);
         RangeSet<LightweightOppToken> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByEnd);
         Multimap<Host, Range<LightweightOppToken>> tokenMapping = ArrayListMultimap.create();
@@ -149,7 +149,7 @@ public final class ClusterMetadataUtils {
         for (LightweightOppToken token : partitionKeyTokens) {
             Range<LightweightOppToken> minimalTokenRange = findTokenRange(token, tokenRangesByEnd);
             tokenRangesByStartToken.merge(
-                    LightweightOppToken.getLower(minimalTokenRange),
+                    LightweightOppToken.getLowerExclusive(minimalTokenRange),
                     minimalTokenRange,
                     ClusterMetadataUtils::findLatestEndingRange);
         }
@@ -166,7 +166,7 @@ public final class ClusterMetadataUtils {
             if (lowerBound.toString().isEmpty()) {
                 return Range.atMost(token);
             } else {
-                return Range.closed(lowerBound, token);
+                return Range.openClosed(lowerBound, token);
             }
         } else {
             // Confirm that the first entry in the sorted map is unbounded on one side
@@ -176,7 +176,7 @@ public final class ClusterMetadataUtils {
                     "Failed to identify wraparound token range",
                     SafeArg.of("firstTokenRange", firstTokenRange),
                     SafeArg.of("token", token));
-            return Range.closed(LightweightOppToken.getLower(firstTokenRange), token);
+            return Range.openClosed(LightweightOppToken.getLowerExclusive(firstTokenRange), token);
         }
     }
 
@@ -188,7 +188,7 @@ public final class ClusterMetadataUtils {
     public static Range<LightweightOppToken> findLatestEndingRange(
             Range<LightweightOppToken> range1, Range<LightweightOppToken> range2) {
         Preconditions.checkArgument(
-                LightweightOppToken.getLower(range1).equals(LightweightOppToken.getLower(range2)),
+                LightweightOppToken.getLowerExclusive(range1).equals(LightweightOppToken.getLowerExclusive(range2)),
                 "Expects token ranges to have the same start token",
                 SafeArg.of("range1", range1),
                 SafeArg.of("range2", range2));

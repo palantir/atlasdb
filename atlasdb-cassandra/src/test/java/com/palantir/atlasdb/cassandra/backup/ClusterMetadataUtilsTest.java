@@ -57,7 +57,7 @@ public class ClusterMetadataUtilsTest {
         CqlMetadata cqlMetadata = new CqlMetadata(metadata);
 
         tokenRangesByEnd = KeyedStream.of(cqlMetadata.getTokenRanges())
-                .mapKeys(LightweightOppToken::getUpper)
+                .mapKeys(LightweightOppToken::getUpperInclusive)
                 .collectTo(TreeMap::new);
     }
 
@@ -87,8 +87,8 @@ public class ClusterMetadataUtilsTest {
     public void testUnboundedRangeIsLatestEnding() {
         LightweightOppToken duplicatedStartKey = getToken("0001");
         LightweightOppToken normalEndKey = getToken("000101");
-        Range<LightweightOppToken> nested = Range.closed(duplicatedStartKey, normalEndKey);
-        Range<LightweightOppToken> outer = Range.atLeast(duplicatedStartKey);
+        Range<LightweightOppToken> nested = Range.openClosed(duplicatedStartKey, normalEndKey);
+        Range<LightweightOppToken> outer = Range.greaterThan(duplicatedStartKey);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
     }
 
@@ -149,8 +149,8 @@ public class ClusterMetadataUtilsTest {
         LightweightOppToken duplicatedStartKey = getToken("0001");
         LightweightOppToken nestedEndKey = getToken("000101");
         LightweightOppToken outerEndKey = getToken("000102");
-        Range<LightweightOppToken> nested = Range.closed(duplicatedStartKey, nestedEndKey);
-        Range<LightweightOppToken> outer = Range.closed(duplicatedStartKey, outerEndKey);
+        Range<LightweightOppToken> nested = Range.openClosed(duplicatedStartKey, nestedEndKey);
+        Range<LightweightOppToken> outer = Range.openClosed(duplicatedStartKey, outerEndKey);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
     }
 
@@ -158,8 +158,8 @@ public class ClusterMetadataUtilsTest {
     public void testRemoveNestedWraparoundAndNonWrapRanges() {
         LightweightOppToken duplicatedStartKey = getToken("ff");
         LightweightOppToken nonWrapAround = getToken("ff01");
-        Range<LightweightOppToken> nonWrapAroundRange = Range.closed(duplicatedStartKey, nonWrapAround);
-        Range<LightweightOppToken> wrapAroundRange = Range.atLeast(duplicatedStartKey);
+        Range<LightweightOppToken> nonWrapAroundRange = Range.openClosed(duplicatedStartKey, nonWrapAround);
+        Range<LightweightOppToken> wrapAroundRange = Range.greaterThan(duplicatedStartKey);
         assertThat(ClusterMetadataUtils.findLatestEndingRange(nonWrapAroundRange, wrapAroundRange))
                 .isEqualTo(wrapAroundRange);
     }
