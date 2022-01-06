@@ -29,12 +29,15 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.common.streams.KeyedStream;
+import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.TreeMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -57,7 +60,22 @@ public class CqlMetadataTest {
     @Before
     public void setUp() {
         when(metadata.getTokenRanges()).thenReturn(ImmutableSet.of(FIRST_RANGE, SECOND_RANGE, WRAPAROUND_RANGE));
+
+        ArgumentCaptor<ByteBuffer> componentCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
+        when(metadata.newToken(componentCaptor.capture()))
+                .thenAnswer(invocation -> CassandraTokenRanges.getToken(invocation.getArgument(0, ByteBuffer.class)));
+
+        ArgumentCaptor<Token> startTokenCaptor = ArgumentCaptor.forClass(Token.class);
+        ArgumentCaptor<Token> endTokenCaptor = ArgumentCaptor.forClass(Token.class);
+        when(metadata.newTokenRange(startTokenCaptor.capture(), endTokenCaptor.capture()))
+                .thenAnswer(this::createFromArgs);
+
         cqlMetadata = new CqlMetadata(metadata);
+    }
+
+    private TokenRange createFromArgs(InvocationOnMock invocation) {
+        return CassandraTokenRanges.create(
+                invocation.getArgument(0, Token.class), invocation.getArgument(1, Token.class));
     }
 
     @Test
@@ -88,5 +106,21 @@ public class CqlMetadataTest {
                 .collectTo(TreeMap::new);
 
         assertThat(tokenRangesByEnd).hasSize(4);
+    }
+
+    @Test
+    public void testReverseConversionNoLowerBound() {
+        Range<LightweightOppToken> lowerUnbounded = Range.atMost(LightweightOppToken.serialize(FIRST_TOKEN));
+        TokenRange lowerTokenRange = cqlMetadata.toTokenRange(lowerUnbounded);
+        assertThat(lowerTokenRange.getStart()).isEqualTo(CassandraTokenRanges.maxToken());
+        assertThat(lowerTokenRange.getEnd()).isEqualTo(FIRST_TOKEN);
+    }
+
+    @Test
+    public void testReverseConversionNoUpperBound() {
+        Range<LightweightOppToken> upperUnbounded = Range.atLeast(LightweightOppToken.serialize(FIRST_TOKEN));
+        TokenRange lowerTokenRange = cqlMetadata.toTokenRange(upperUnbounded);
+        assertThat(lowerTokenRange.getStart()).isEqualTo(FIRST_TOKEN);
+        assertThat(lowerTokenRange.getEnd()).isEqualTo(CassandraTokenRanges.maxToken());
     }
 }

@@ -34,8 +34,16 @@ public final class CassandraTokenRanges {
         return new TokenRange(startToken, endToken, FACTORY);
     }
 
+    public static TokenRange create(Token start, Token end) {
+        return new TokenRange(start, end, FACTORY);
+    }
+
     public static Token getToken(String hexBinary) {
         return FACTORY.hash(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
+    }
+
+    public static Token getToken(ByteBuffer byteBuffer) {
+        return FACTORY.hash(byteBuffer);
     }
 
     public static Token maxToken() {

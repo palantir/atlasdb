@@ -21,6 +21,7 @@ import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.nio.ByteBuffer;
@@ -70,6 +71,7 @@ public class CqlMetadata {
         return metadata.getReplicas(quotedKeyspace(keyspace), toTokenRange(range));
     }
 
+    @VisibleForTesting
     TokenRange toTokenRange(Range<LightweightOppToken> range) {
         Token lower =
                 range.hasLowerBound() ? metadata.newToken(range.lowerEndpoint().deserialize()) : minToken();
