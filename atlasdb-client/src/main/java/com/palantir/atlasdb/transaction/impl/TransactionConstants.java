@@ -50,6 +50,8 @@ public final class TransactionConstants {
             DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
             TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
             TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+    public static final ImmutableSet<Integer> SUPPORTED_TRANSACTION_SCHEMA_VERSIONS_FOR_CAS_INCONSISTENT_KVSES =
+            ImmutableSet.of(TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
 
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);

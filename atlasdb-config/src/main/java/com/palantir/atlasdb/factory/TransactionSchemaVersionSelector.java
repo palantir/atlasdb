@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory;
 
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -27,13 +28,17 @@ import java.util.function.Supplier;
 public class TransactionSchemaVersionSelector implements Supplier<Optional<Integer>> {
     private static final SafeLogger log = SafeLoggerFactory.get(TransactionSchemaVersionSelector.class);
     private static final Optional<Integer> MIN_ACCEPTABLE_VERSION_FOR_INCONSISTENT_CAS_KVSES =
-            Optional.of(TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+            TransactionConstants.SUPPORTED_TRANSACTION_SCHEMA_VERSIONS_FOR_CAS_INCONSISTENT_KVSES.stream()
+                    .min(Integer::compareTo);
 
     private final CheckAndSetCompatibility compatibility;
     private final Supplier<Optional<Integer>> userProvidedExplicitSupplier;
 
     public TransactionSchemaVersionSelector(
             CheckAndSetCompatibility compatibility, Supplier<Optional<Integer>> userProvidedExplicitSupplier) {
+        Preconditions.checkState(
+                compatibility.supportsCheckAndSetOperations(),
+                "Should not determine transaction schema versions on a KVS not supporting check and set");
         this.compatibility = compatibility;
         this.userProvidedExplicitSupplier = userProvidedExplicitSupplier;
     }
@@ -57,8 +62,8 @@ public class TransactionSchemaVersionSelector implements Supplier<Optional<Integ
             return MIN_ACCEPTABLE_VERSION_FOR_INCONSISTENT_CAS_KVSES;
         }
         int userSpecifiedVersion = userValue.get();
-        if (userSpecifiedVersion == TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION
-                || userSpecifiedVersion == TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION) {
+        if (!TransactionConstants.SUPPORTED_TRANSACTION_SCHEMA_VERSIONS_FOR_CAS_INCONSISTENT_KVSES.contains(
+                userSpecifiedVersion)) {
             log.warn(
                     "User is using a KVS that may be inconsistent on failure, and has explicitly specified a"
                             + " transaction schema version not known to handle such inconsistencies."
