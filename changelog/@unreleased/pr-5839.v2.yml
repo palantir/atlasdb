@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Users on key-value-services that may not exhibit CAS consistency will
+    now automatically have a version that _does_ exhibit said consistency installed.
+    Please contact the AtlasDB team if you believe this to be an issue.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5839
