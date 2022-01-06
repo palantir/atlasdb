@@ -29,9 +29,7 @@ public final class CassandraTokenRanges {
     }
 
     public static TokenRange create(String startHexBinary, String endHexBinary) {
-        Token startToken = getToken(startHexBinary);
-        Token endToken = getToken(endHexBinary);
-        return new TokenRange(startToken, endToken, FACTORY);
+        return create(getToken(startHexBinary), getToken(endHexBinary));
     }
 
     public static TokenRange create(Token start, Token end) {
