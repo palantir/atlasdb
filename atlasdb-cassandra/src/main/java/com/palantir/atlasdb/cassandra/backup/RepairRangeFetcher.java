@@ -41,53 +41,52 @@ final class RepairRangeFetcher {
     private static final SafeLogger log = SafeLoggerFactory.get(RepairRangeFetcher.class);
 
     private final CqlSession cqlSession;
+    private final CqlMetadata cqlMetadata;
     private final CassandraKeyValueServiceConfig config;
 
     public RepairRangeFetcher(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
         this.cqlSession = cqlSession;
+        this.cqlMetadata = cqlSession.getMetadata();
         this.config = config;
     }
 
     public Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> getTransactionTableRangesForRepair(
             List<TransactionsTableInteraction> transactionsTableInteractions) {
         String keyspaceName = config.getKeyspaceOrThrow();
-        CqlMetadata metadata = cqlSession.getMetadata();
 
         Map<String, Set<LightweightOppToken>> partitionKeysByTable =
-                getPartitionTokensByTable(transactionsTableInteractions, keyspaceName, metadata);
+                getPartitionTokensByTable(transactionsTableInteractions, keyspaceName);
 
         maybeLogTokenRanges(transactionsTableInteractions, partitionKeysByTable);
 
         Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(config);
         return KeyedStream.stream(partitionKeysByTable)
-                .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, metadata, keyspaceName, ranges))
+                .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, cqlMetadata, keyspaceName, ranges))
                 .collectToMap();
     }
 
     private Map<String, Set<LightweightOppToken>> getPartitionTokensByTable(
-            List<TransactionsTableInteraction> transactionsTableInteractions,
-            String keyspaceName,
-            CqlMetadata metadata) {
+            List<TransactionsTableInteraction> transactionsTableInteractions, String keyspaceName) {
         Multimap<String, TransactionsTableInteraction> interactionsByTable =
                 Multimaps.index(transactionsTableInteractions, TransactionsTableInteraction::getTransactionsTableName);
         return KeyedStream.stream(interactionsByTable.asMap())
                 .map(interactionsForTable ->
-                        getPartitionsTokenForSingleTransactionsTable(keyspaceName, metadata, interactionsForTable))
+                        getPartitionsTokenForSingleTransactionsTable(keyspaceName, interactionsForTable))
                 .collectToMap();
     }
 
     private Set<LightweightOppToken> getPartitionsTokenForSingleTransactionsTable(
-            String keyspaceName, CqlMetadata metadata, Collection<TransactionsTableInteraction> interactions) {
+            String keyspaceName, Collection<TransactionsTableInteraction> interactions) {
         return interactions.stream()
-                .map(interaction -> getPartitionTokensForTransactionsTable(keyspaceName, metadata, interaction))
+                .map(interaction -> getPartitionTokensForTransactionsTable(keyspaceName, interaction))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
     }
 
     private Set<LightweightOppToken> getPartitionTokensForTransactionsTable(
-            String keyspaceName, CqlMetadata metadata, TransactionsTableInteraction interaction) {
-        TableMetadata transactionsTableMetadata =
-                ClusterMetadataUtils.getTableMetadata(metadata, keyspaceName, interaction.getTransactionsTableName());
+            String keyspaceName, TransactionsTableInteraction interaction) {
+        TableMetadata transactionsTableMetadata = ClusterMetadataUtils.getTableMetadata(
+                cqlMetadata, keyspaceName, interaction.getTransactionsTableName());
         List<Statement> selectStatements =
                 interaction.createSelectStatementsForScanningFullTimestampRange(transactionsTableMetadata);
         return cqlSession.retrieveRowKeysAtConsistencyAll(selectStatements);

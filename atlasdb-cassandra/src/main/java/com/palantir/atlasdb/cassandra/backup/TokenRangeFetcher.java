@@ -44,21 +44,22 @@ final class TokenRangeFetcher {
     private static final int SELECT_FETCH_SIZE = 1_000;
 
     private final CqlSession cqlSession;
+    private final CqlMetadata cqlMetadata;
     private final CassandraKeyValueServiceConfig config;
 
     public TokenRangeFetcher(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
-        this.cqlSession = cqlSession;
         this.config = config;
+        this.cqlSession = cqlSession;
+        this.cqlMetadata = cqlSession.getMetadata();
     }
 
     public Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRange(String tableName) {
         String keyspaceName = config.getKeyspaceOrThrow();
-        CqlMetadata metadata = cqlSession.getMetadata();
-        KeyspaceMetadata keyspace = metadata.getKeyspaceMetadata(keyspaceName);
+        KeyspaceMetadata keyspace = cqlMetadata.getKeyspaceMetadata(keyspaceName);
         TableMetadata tableMetadata = keyspace.getTable(tableName);
-        Set<LightweightOppToken> partitionTokens = getPartitionTokens(cqlSession, tableMetadata);
+        Set<LightweightOppToken> partitionTokens = getPartitionTokens(tableMetadata);
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode = ClusterMetadataUtils.getTokenMapping(
-                CassandraServersConfigs.getCqlHosts(config), metadata, keyspaceName, partitionTokens);
+                CassandraServersConfigs.getCqlHosts(config), cqlMetadata, keyspaceName, partitionTokens);
 
         if (!partitionTokens.isEmpty() && log.isDebugEnabled()) {
             int numTokenRanges = tokenRangesByNode.values().stream()
@@ -76,8 +77,8 @@ final class TokenRangeFetcher {
         return tokenRangesByNode;
     }
 
-    private static Set<LightweightOppToken> getPartitionTokens(CqlSession session, TableMetadata tableMetadata) {
-        return session.retrieveRowKeysAtConsistencyAll(createSelectStatements(tableMetadata));
+    private Set<LightweightOppToken> getPartitionTokens(TableMetadata tableMetadata) {
+        return cqlSession.retrieveRowKeysAtConsistencyAll(createSelectStatements(tableMetadata));
     }
 
     private static List<Statement> createSelectStatements(TableMetadata table) {
