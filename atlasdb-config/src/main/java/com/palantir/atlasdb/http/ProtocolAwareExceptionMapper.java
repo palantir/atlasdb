@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.http;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.QosException;
@@ -25,6 +24,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -39,8 +39,8 @@ import org.glassfish.jersey.spi.ExceptionMappers;
 
 abstract class ProtocolAwareExceptionMapper<E extends Exception> implements ExceptionMapper<E> {
     private static final SafeLogger log = SafeLoggerFactory.get(ProtocolAwareExceptionMapper.class);
-    private static final RateLimiter LEGACY_OR_UNKNOWN_RATE_LIMITER =
-            RateLimiter.create(1. / Duration.ofMinutes(10).toSeconds());
+    private static final RateLimitedLogger LEGACY_OR_UNKNOWN_VERSION_LOGGER =
+            new RateLimitedLogger(log, 1. / Duration.ofMinutes(10).toSeconds());
 
     @Context
     private HttpHeaders httpHeaders;
@@ -73,11 +73,9 @@ abstract class ProtocolAwareExceptionMapper<E extends Exception> implements Exce
     }
 
     private void logLegacyProtocolUsageIfPossible() {
-        if (LEGACY_OR_UNKNOWN_RATE_LIMITER.tryAcquire()) {
-            log.info(
-                    "Usage of the LEGACY_OR_UNKNOWN HTTP protocol version for AtlasDB was detected.",
-                    SafeArg.of("userAgent", parseUserAgentFromHeaders()));
-        }
+        LEGACY_OR_UNKNOWN_VERSION_LOGGER.log(logger -> logger.info(
+                "Usage of the LEGACY_OR_UNKNOWN HTTP protocol version for AtlasDB was detected.",
+                SafeArg.of("userAgent", parseUserAgentFromHeaders())));
     }
 
     private AtlasDbHttpProtocolVersion getHttpProtocolVersion() {
