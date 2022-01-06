@@ -34,7 +34,7 @@ public final class TransactionSchemaInstaller implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(TransactionSchemaInstaller.class);
 
     @VisibleForTesting
-    static final Duration POLLING_INTERVAL = Duration.ofDays(10);
+    static final Duration POLLING_INTERVAL = Duration.ofDays(3);
 
     private final TransactionSchemaManager manager;
     private final Supplier<Optional<Integer>> versionToInstall;
