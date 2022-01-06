@@ -172,7 +172,6 @@ public final class ClusterMetadataUtils {
             // Confirm that the first entry in the sorted map is unbounded on one side
             Range<LightweightOppToken> firstTokenRange = tokenRangesByEnd.get(tokenRangesByEnd.firstKey());
             Preconditions.checkState(
-                    // TODO(gs): should only need one of these
                     !firstTokenRange.hasUpperBound() || !firstTokenRange.hasLowerBound(),
                     "Failed to identify wraparound token range",
                     SafeArg.of("firstTokenRange", firstTokenRange),

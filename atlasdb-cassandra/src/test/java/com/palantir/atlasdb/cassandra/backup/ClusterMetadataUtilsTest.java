@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.CassandraTokenRanges;
 import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -43,6 +44,7 @@ public class ClusterMetadataUtilsTest {
     private static final TokenRange FIRST_RANGE = CassandraTokenRanges.create(TOKEN_1, TOKEN_2);
     private static final TokenRange SECOND_RANGE = CassandraTokenRanges.create(TOKEN_2, TOKEN_3);
     private static final TokenRange WRAPAROUND_RANGE = CassandraTokenRanges.create(TOKEN_3, TOKEN_1);
+    private static final Token THIRD_TOKEN = WRAPAROUND_RANGE.getStart();
 
     @Mock
     private Metadata metadata;
@@ -119,7 +121,6 @@ public class ClusterMetadataUtilsTest {
     @Test
     public void testSmallTokenRangeOnVnode() {
         // Construction of tokenRangesByEnd gives us +inf as the "first" key, so we actually want the second range here
-        // TODO(gs): add extra testing to ensure this is fine
         LightweightOppToken firstEndToken = tokenRangesByEnd.higherKey(tokenRangesByEnd.firstKey());
         LightweightOppToken secondEndToken = tokenRangesByEnd.higherKey(firstEndToken);
         Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
@@ -129,6 +130,18 @@ public class ClusterMetadataUtilsTest {
         Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.lowerEndpoint()).isEqualTo(firstEndToken);
         assertThat(onlyRange.upperEndpoint()).isEqualTo(secondEndToken);
+    }
+
+    @Test
+    public void testSmallTokenRangeAfterLastVnode() {
+        LightweightOppToken token = getToken("fefe");
+        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+                        ImmutableSet.of(token), tokenRangesByEnd)
+                .asRanges();
+        assertThat(tokenRanges).hasSize(1);
+        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
+        assertThat(onlyRange.lowerEndpoint()).isEqualTo(LightweightOppToken.serialize(THIRD_TOKEN));
+        assertThat(onlyRange.upperEndpoint()).isEqualTo(token);
     }
 
     @Test
