@@ -21,7 +21,8 @@ Target Transactions Schema Version
 .. warning::
 
    Schema versions 1 and 2 are vulnerable to a Cassandra consistency issue. Cassandra users should use
-   schema version 3. Users of other key-value-services are not affected by this issue.
+   schema version 3. Users of other key-value-services are not affected by this issue. If you are configured to use
+   Cassandra and are on schema version 1 or 2, we will automatically install schema version 3.
 
 AtlasDB needs to persist information about the start and commit timestamps of transactions that have committed.
 This may be done in various ways, and is configurable. We currently support three strategies:
