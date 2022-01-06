@@ -32,9 +32,10 @@ This may be done in various ways, and is configurable. We currently support thre
   `TicketsEncodingStrategy <https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TicketsEncodingStrategy.java>`__,
   storing them in the ``_transactions2`` table.
 - version 3, which variable-length encodes the start and commit timestamps following the
-  `TicketsEncodingStrategy <https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TicketsEncodingStrategy.java>`__,
-  storing them in the ``_transactions2`` table, but **also** uses a two-phase commit protocol to avoid consistency
-  issues.
+  `TwoPhaseEncodingStrategy <https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TwoPhaseEncodingStrategy.java>`__,
+  storing them in the ``_transactions2`` table. This encoding strategy is for start timestamps consistent with the
+  TicketsEncodingStrategy, meaning that it is permissible to use the same table, but the encoding of commit timestamps
+  uses a two-phase commit protocol to avoid consistency issues.
 
 If specified, this AtlasDB client will attempt to install the provided transaction schema version. This parameter is
 optional; if it is not specified, this AtlasDB client will not install any new transaction schema versions, and will
