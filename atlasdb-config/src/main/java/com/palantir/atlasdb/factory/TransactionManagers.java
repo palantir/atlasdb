@@ -703,7 +703,8 @@ public abstract class TransactionManagers {
             TransactionSchemaManager transactionSchemaManager) {
         CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
         if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
-            TransactionSchemaVersionSelector versionSelector = new TransactionSchemaVersionSelector(compatibility,
+            TransactionSchemaVersionSelector versionSelector = new TransactionSchemaVersionSelector(
+                    compatibility,
                     () -> runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion());
             return Optional.of(
                     initializeTransactionSchemaInstaller(closeables, versionSelector, transactionSchemaManager));
@@ -726,10 +727,7 @@ public abstract class TransactionManagers {
             TransactionSchemaVersionSelector versionSelector,
             TransactionSchemaManager transactionSchemaManager) {
         return initializeCloseable(
-                () -> TransactionSchemaInstaller.createStarted(
-                        transactionSchemaManager,
-                        versionSelector),
-                closeables);
+                () -> TransactionSchemaInstaller.createStarted(transactionSchemaManager, versionSelector), closeables);
     }
 
     private CoordinationService<InternalSchemaMetadata> getSchemaMetadataCoordinationService(

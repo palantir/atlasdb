@@ -33,8 +33,7 @@ public class TransactionSchemaVersionSelector implements Supplier<Optional<Integ
     private final Supplier<Optional<Integer>> userProvidedExplicitSupplier;
 
     public TransactionSchemaVersionSelector(
-            CheckAndSetCompatibility compatibility,
-            Supplier<Optional<Integer>> userProvidedExplicitSupplier) {
+            CheckAndSetCompatibility compatibility, Supplier<Optional<Integer>> userProvidedExplicitSupplier) {
         this.compatibility = compatibility;
         this.userProvidedExplicitSupplier = userProvidedExplicitSupplier;
     }
@@ -42,7 +41,7 @@ public class TransactionSchemaVersionSelector implements Supplier<Optional<Integ
     @Override
     public Optional<Integer> get() {
         Optional<Integer> userValue = userProvidedExplicitSupplier.get();
-        
+
         if (!compatibility.consistentOnFailure()) {
             return recommendVersionForInconsistentCasKeyValueServices(userValue);
         }
@@ -51,15 +50,17 @@ public class TransactionSchemaVersionSelector implements Supplier<Optional<Integ
 
     private Optional<Integer> recommendVersionForInconsistentCasKeyValueServices(Optional<Integer> userValue) {
         if (userValue.isEmpty()) {
-            log.info("User is using a KVS that may be inconsistent on failure, and has not specified a transaction"
-                    + " schema version. Recommending a minimum version, to avoid said inconsistency.",
+            log.info(
+                    "User is using a KVS that may be inconsistent on failure, and has not specified a transaction"
+                            + " schema version. Recommending a minimum version, to avoid said inconsistency.",
                     SafeArg.of("recommendedVersion", MIN_ACCEPTABLE_VERSION_FOR_INCONSISTENT_CAS_KVSES));
             return MIN_ACCEPTABLE_VERSION_FOR_INCONSISTENT_CAS_KVSES;
         }
         int userSpecifiedVersion = userValue.get();
-        if (userSpecifiedVersion == TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION ||
-                userSpecifiedVersion == TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION) {
-            log.warn("User is using a KVS that may be inconsistent on failure, and has explicitly specified a"
+        if (userSpecifiedVersion == TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION
+                || userSpecifiedVersion == TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION) {
+            log.warn(
+                    "User is using a KVS that may be inconsistent on failure, and has explicitly specified a"
                             + " transaction schema version not known to handle such inconsistencies."
                             + " Recommending a minimum version, to avoid said inconsistency.",
                     SafeArg.of("userSpecifiedVersion", userSpecifiedVersion),
