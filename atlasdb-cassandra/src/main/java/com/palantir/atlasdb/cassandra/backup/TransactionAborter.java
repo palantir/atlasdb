@@ -46,7 +46,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-class TransactionAborter {
+final class TransactionAborter {
     private static final SafeLogger log = SafeLoggerFactory.get(TransactionAborter.class);
 
     private static final int RETRY_COUNT = 3;
@@ -68,25 +68,30 @@ class TransactionAborter {
     public void abortTransactions(long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
         CqlMetadata clusterMetadata = cqlSession.getMetadata();
         String keyspaceName = config.getKeyspaceOrThrow();
-        transactionsTableInteractions.forEach(txnInteraction -> {
-            log.info(
-                    "Aborting transactions after backup timestamp",
-                    SafeArg.of("backupTimestamp", timestamp),
-                    SafeArg.of("keyspace", keyspaceName),
-                    SafeArg.of("table", txnInteraction.getTransactionsTableName()));
+        transactionsTableInteractions.forEach(
+                txnInteraction -> abortTransactions(clusterMetadata, keyspaceName, timestamp, txnInteraction));
+    }
 
-            TableMetadata transactionsTable = ClusterMetadataUtils.getTableMetadata(
-                    clusterMetadata, keyspaceName, txnInteraction.getTransactionsTableName());
+    private void abortTransactions(
+            CqlMetadata clusterMetadata,
+            String keyspaceName,
+            long timestamp,
+            TransactionsTableInteraction txnInteraction) {
+        log.info(
+                "Aborting transactions after backup timestamp",
+                SafeArg.of("backupTimestamp", timestamp),
+                SafeArg.of("keyspace", keyspaceName),
+                SafeArg.of("table", txnInteraction.getTransactionsTableName()));
 
-            PreparedStatement preparedAbortStatement =
-                    txnInteraction.prepareAbortStatement(transactionsTable, cqlSession);
-            PreparedStatement preparedCheckStatement =
-                    txnInteraction.prepareCheckStatement(transactionsTable, cqlSession);
-            Stream<TransactionTableEntry> keysToAbort =
-                    getTransactionsToAbort(keyspaceName, txnInteraction, transactionsTable, timestamp);
-            executeTransactionAborts(
-                    keyspaceName, txnInteraction, preparedAbortStatement, preparedCheckStatement, keysToAbort);
-        });
+        TableMetadata transactionsTable = ClusterMetadataUtils.getTableMetadata(
+                clusterMetadata, keyspaceName, txnInteraction.getTransactionsTableName());
+
+        PreparedStatement preparedAbortStatement = txnInteraction.prepareAbortStatement(transactionsTable, cqlSession);
+        PreparedStatement preparedCheckStatement = txnInteraction.prepareCheckStatement(transactionsTable, cqlSession);
+        Stream<TransactionTableEntry> keysToAbort =
+                getTransactionsToAbort(keyspaceName, txnInteraction, transactionsTable, timestamp);
+        executeTransactionAborts(
+                keyspaceName, txnInteraction, preparedAbortStatement, preparedCheckStatement, keysToAbort);
     }
 
     @VisibleForTesting
@@ -95,12 +100,10 @@ class TransactionAborter {
             TransactionsTableInteraction txnInteraction,
             TableMetadata transactionsTable,
             long timestamp) {
-        List<Statement> selectStatement =
-                txnInteraction.createSelectStatementsForScanningFullTimestampRange(transactionsTable);
-
-        Stream<Row> rowResults = selectStatement.stream()
-                .map(select -> cqlSession.execute(select).iterator())
-                .flatMap(Streams::stream);
+        Stream<Row> rowResults =
+                txnInteraction.createSelectStatementsForScanningFullTimestampRange(transactionsTable).stream()
+                        .map(select -> cqlSession.execute(select).iterator())
+                        .flatMap(Streams::stream);
 
         return KeyedStream.of(rowResults)
                 .map(txnInteraction::extractTimestamps)
@@ -131,7 +134,6 @@ class TransactionAborter {
                 SafeArg.of("commitTimestamp", commitTimestamp),
                 SafeArg.of("keyspace", keyspaceName),
                 SafeArg.of("table", txnInteraction.getTransactionsTableName()));
-
         return true;
     }
 
@@ -209,12 +211,12 @@ class TransactionAborter {
             return true;
         }
 
-        ResultSet checkResultSet = cqlSession.execute(checkStatement);
         log.debug(
                 "Executing check statement",
                 SafeArg.of("startTs", startTs),
                 SafeArg.of("commitTs", commitTs),
                 SafeArg.of("keyspace", keyspace));
+        ResultSet checkResultSet = cqlSession.execute(checkStatement);
         Row result = Iterators.getOnlyElement(checkResultSet.all().iterator());
 
         TransactionTableEntry transactionTableEntry = txnInteraction.extractTimestamps(result);
