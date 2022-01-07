@@ -34,7 +34,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -72,7 +71,6 @@ public class TransactionAborterTest {
     @Before
     public void before() {
         transactionInteraction = mock(TransactionsTableInteraction.class);
-        when(transactionInteraction.getTimestampRange()).thenReturn(TIMESTAMP_RANGE);
         when(transactionInteraction.getTransactionsTableName()).thenReturn(TXN_TABLE_NAME);
     }
 
@@ -104,13 +102,6 @@ public class TransactionAborterTest {
         TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
 
         TableMetadata tableMetadata = mock(TableMetadata.class);
-        when(tableMetadata.getName()).thenReturn(TXN_TABLE_NAME);
-
-        KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
-        when(keyspaceMetadata.getName()).thenReturn(KEYSPACE);
-        when(keyspaceMetadata.getTables()).thenReturn(ImmutableSet.of(tableMetadata));
-        when(tableMetadata.getKeyspace()).thenReturn(keyspaceMetadata);
-
         return cleanTask.getTransactionsToAbort(KEYSPACE, txnInteraction, tableMetadata, BACKUP_TIMESTAMP);
     }
 
@@ -199,7 +190,6 @@ public class TransactionAborterTest {
     @Test
     public void executeWithRetryChecksIfAbortWasNotAppliedAndRetriesIfNoMatch() {
         TransactionsTableInteraction txnInteraction = mock(TransactionsTableInteraction.class);
-        when(txnInteraction.getTimestampRange()).thenReturn(TIMESTAMP_RANGE);
         TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
 
         PreparedStatement preparedAbortStatement = mock(PreparedStatement.class);
@@ -234,7 +224,6 @@ public class TransactionAborterTest {
     @Test
     public void executeWithRetryChecksIfAbortWasNotAppliedAndDoesNotRetryIfEqualsAbortTimestamp() {
         TransactionsTableInteraction txnInteraction = mock(TransactionsTableInteraction.class);
-        when(txnInteraction.getTimestampRange()).thenReturn(TIMESTAMP_RANGE);
         TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
 
         PreparedStatement preparedAbortStatement = mock(PreparedStatement.class);
@@ -255,9 +244,12 @@ public class TransactionAborterTest {
         Row row = mock(Row.class);
         ResultSet checkResponse = createSelectResponse(ImmutableList.of(row));
 
+        TransactionTableEntry entry = TransactionTableEntries.explicitlyAborted(100L);
         when(cqlSession.execute(checkStatement)).thenReturn(checkResponse);
+        when(txnInteraction.extractTimestamps(row)).thenReturn(entry);
 
-        Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
+        TransactionTableEntry notYetAborted = TransactionTableEntries.committedLegacy(100L, 101L);
+        Stream<TransactionTableEntry> entries = Stream.of(notYetAborted);
         cleanTask.executeTransactionAborts(
                 KEYSPACE, txnInteraction, preparedAbortStatement, preparedCheckStatement, entries);
 
@@ -268,7 +260,6 @@ public class TransactionAborterTest {
     @Test
     public void executeWithRetryChecksEventuallyFails() {
         TransactionsTableInteraction txnInteraction = mock(TransactionsTableInteraction.class);
-        when(txnInteraction.getTimestampRange()).thenReturn(TIMESTAMP_RANGE);
         TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
 
         PreparedStatement preparedAbortStatement = mock(PreparedStatement.class);
@@ -318,18 +309,27 @@ public class TransactionAborterTest {
     }
 
     private TransactionAborter createCleaner(TransactionsTableInteraction txnInteraction) {
-        TransactionAborter transactionAborter = new TransactionAborter(cqlSession, config);
+        when(config.getKeyspaceOrThrow()).thenReturn(KEYSPACE);
+
+        TableMetadata tableMetadata = mock(TableMetadata.class);
+        when(tableMetadata.getName()).thenReturn(TXN_TABLE_NAME);
+        KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
+        when(keyspaceMetadata.getTables()).thenReturn(ImmutableList.of(tableMetadata));
+        CqlMetadata cqlMetadata = mock(CqlMetadata.class);
+        when(cqlMetadata.getKeyspaceMetadata(KEYSPACE)).thenReturn(keyspaceMetadata);
+        when(cqlSession.getMetadata()).thenReturn(cqlMetadata);
 
         // TODO(gs): mockery to before?
-        doReturn(ImmutableList.of(mock(Statement.class)))
+        Statement mockStatement = mock(Statement.class);
+        doReturn(ImmutableList.of(mockStatement))
                 .when(txnInteraction)
                 .createSelectStatementsForScanningFullTimestampRange(any());
+        ResultSet selectResponse = createSelectResponse(ImmutableList.of());
+        when(cqlSession.execute(mockStatement)).thenReturn(selectResponse);
 
-        PreparedStatement mockedPreparedStatement = mock(PreparedStatement.class);
-        when(mockedPreparedStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
-        when(mockedPreparedStatement.getConsistencyLevel()).thenReturn(ConsistencyLevel.ALL);
         doReturn(mock(PreparedStatement.class)).when(txnInteraction).prepareAbortStatement(any(), any());
         doReturn(mock(PreparedStatement.class)).when(txnInteraction).prepareCheckStatement(any(), any());
-        return transactionAborter;
+
+        return new TransactionAborter(cqlSession, config);
     }
 }
