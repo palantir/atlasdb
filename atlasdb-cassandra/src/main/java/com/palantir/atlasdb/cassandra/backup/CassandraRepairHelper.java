@@ -115,8 +115,7 @@ public class CassandraRepairHelper {
             Namespace namespace,
             long startTimestamp,
             List<TransactionsTableInteraction> transactionsTableInteractions) {
-        CqlCluster cqlCluster = cqlClusters.get(namespace);
-        cqlCluster.abortTransactions(startTimestamp, transactionsTableInteractions);
+        cqlClusters.get(namespace).abortTransactions(startTimestamp, transactionsTableInteractions);
     }
 
     private Map<String, RangesForRepair> getRangesForRepairByTable(
