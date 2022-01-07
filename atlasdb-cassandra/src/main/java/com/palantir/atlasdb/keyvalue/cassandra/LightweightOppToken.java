@@ -16,9 +16,13 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.datastax.driver.core.Token;
+import com.google.common.collect.BoundType;
+import com.google.common.collect.Range;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -39,6 +43,32 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
         byte[] bytes = new byte[serializedToken.remaining()];
         serializedToken.get(bytes);
         return new LightweightOppToken(bytes);
+    }
+
+    public static LightweightOppToken getLowerExclusive(Range<LightweightOppToken> range) {
+        Preconditions.checkArgument(
+                !range.hasLowerBound() || range.lowerBoundType().equals(BoundType.OPEN),
+                "Token range lower bound should be open",
+                SafeArg.of("range", range));
+
+        return range.hasLowerBound() ? range.lowerEndpoint() : new LightweightOppToken(new byte[0]);
+    }
+
+    public static LightweightOppToken getUpperInclusive(Range<LightweightOppToken> range) {
+        Preconditions.checkArgument(
+                !range.hasUpperBound() || range.upperBoundType().equals(BoundType.CLOSED),
+                "Token range upper bound should be closed",
+                SafeArg.of("range", range));
+
+        return range.hasUpperBound() ? range.upperEndpoint() : new LightweightOppToken(new byte[0]);
+    }
+
+    public ByteBuffer deserialize() {
+        return ByteBuffer.wrap(bytes);
+    }
+
+    public boolean isEmpty() {
+        return bytes.length == 0;
     }
 
     @Override

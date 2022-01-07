@@ -83,6 +83,7 @@ dependencies {
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.apache.thrift:libthrift'
   testImplementation 'com.palantir.tracing:tracing-api'
+  testImplementation 'jakarta.xml.bind:jakarta.xml.bind-api'
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')
   testImplementation project(':commons-executors')

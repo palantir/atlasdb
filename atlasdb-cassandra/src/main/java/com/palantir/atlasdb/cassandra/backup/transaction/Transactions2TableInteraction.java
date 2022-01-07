@@ -125,7 +125,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public List<Statement> createSelectStatements(TableMetadata transactionsTable) {
+    public List<Statement> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable) {
         Set<ByteBuffer> encodedRowKeys = TicketsEncodingStrategy.INSTANCE
                 .getRowSetCoveringTimestampRange(
                         timestampRange.inclusiveLowerBound(), timestampRange.inclusiveUpperBound())

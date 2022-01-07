@@ -16,18 +16,20 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
+import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
+
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.Token;
-import com.datastax.driver.core.TokenRange;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -43,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,8 +54,8 @@ public final class ClusterMetadataUtils {
         // util class
     }
 
-    public static TableMetadata getTableMetadata(Metadata metadata, String keyspace, String table) {
-        KeyspaceMetadata keyspaceMetadata = metadata.getKeyspace(keyspace);
+    public static TableMetadata getTableMetadata(CqlMetadata metadata, String keyspace, String table) {
+        KeyspaceMetadata keyspaceMetadata = metadata.getKeyspaceMetadata(keyspace);
         Optional<TableMetadata> maybeTable = keyspaceMetadata.getTables().stream()
                 .filter(tableMetadata -> tableMetadata.getName().equals(table))
                 .collect(MoreCollectors.toOptional());
@@ -86,18 +89,19 @@ public final class ClusterMetadataUtils {
      * list is present in one of the token ranges on one host
      */
     @SuppressWarnings("ReverseDnsLookup")
-    public static Map<InetSocketAddress, Set<TokenRange>> getTokenMapping(
-            Collection<InetSocketAddress> nodeSet, Metadata metadata, String keyspace, Set<Token> partitionKeyTokens) {
+    public static Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenMapping(
+            Collection<InetSocketAddress> nodeSet,
+            CqlMetadata metadata,
+            String keyspace,
+            Set<LightweightOppToken> partitionKeyTokens) {
 
         Map<String, InetSocketAddress> nodeMetadataHostMap =
                 KeyedStream.of(nodeSet).mapKeys(InetSocketAddress::getHostName).collectToMap();
-        Map<Host, List<TokenRange>> hostToTokenRangeMap =
+        Map<Host, RangeSet<LightweightOppToken>> hostToTokenRangeMap =
                 getTokenMappingForPartitionKeys(metadata, keyspace, partitionKeyTokens);
 
         return KeyedStream.stream(hostToTokenRangeMap)
                 .mapKeys(host -> lookUpAddress(nodeMetadataHostMap, host))
-                .map(List::stream)
-                .map(stream -> stream.collect(Collectors.toSet()))
                 .collectToMap();
     }
 
@@ -113,15 +117,16 @@ public final class ClusterMetadataUtils {
         return nodeMetadataHostMap.get(hostname);
     }
 
-    private static Map<Host, List<TokenRange>> getTokenMappingForPartitionKeys(
-            Metadata metadata, String keyspace, Set<Token> partitionKeyTokens) {
-        Set<TokenRange> tokenRanges = metadata.getTokenRanges();
-        SortedMap<Token, TokenRange> tokenRangesByEnd =
-                KeyedStream.of(tokenRanges).mapKeys(TokenRange::getEnd).collectTo(TreeMap::new);
-        Set<TokenRange> ranges = getMinimalSetOfRangesForTokens(metadata, partitionKeyTokens, tokenRangesByEnd);
-        Multimap<Host, TokenRange> tokenMapping = ArrayListMultimap.create();
-        ranges.forEach(range -> {
-            List<Host> hosts = ImmutableList.copyOf(metadata.getReplicas(quotedKeyspace(keyspace), range));
+    private static Map<Host, RangeSet<LightweightOppToken>> getTokenMappingForPartitionKeys(
+            CqlMetadata metadata, String keyspace, Set<LightweightOppToken> partitionKeyTokens) {
+        Set<Range<LightweightOppToken>> tokenRanges = metadata.getTokenRanges();
+        SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart = KeyedStream.of(tokenRanges)
+                .mapKeys(LightweightOppToken::getLowerExclusive)
+                .collectTo(TreeMap::new);
+        RangeSet<LightweightOppToken> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByStart);
+        Multimap<Host, Range<LightweightOppToken>> tokenMapping = ArrayListMultimap.create();
+        ranges.asRanges().forEach(range -> {
+            List<Host> hosts = ImmutableList.copyOf(metadata.getReplicas(keyspace, range));
             if (hosts.isEmpty()) {
                 throw new SafeIllegalStateException(
                         "Failed to find any replicas of token range for repair",
@@ -132,37 +137,41 @@ public final class ClusterMetadataUtils {
         });
         return KeyedStream.stream(tokenMapping.asMap())
                 .map(Collection::stream)
-                .map(stream -> stream.collect(Collectors.toList()))
+                .map(stream -> (RangeSet<LightweightOppToken>) stream.collect(toImmutableRangeSet()))
                 .collectToMap();
     }
 
-    // VisibleForTesting
-    public static Set<TokenRange> getMinimalSetOfRangesForTokens(
-            Metadata metadata, Set<Token> partitionKeyTokens, SortedMap<Token, TokenRange> tokenRangesByEnd) {
-        Map<Token, TokenRange> tokenRangesByStartToken = new HashMap<>();
-        for (Token token : partitionKeyTokens) {
-            TokenRange minimalTokenRange = findTokenRange(metadata, token, tokenRangesByEnd);
+    @VisibleForTesting
+    static RangeSet<LightweightOppToken> getMinimalSetOfRangesForTokens(
+            Set<LightweightOppToken> partitionKeyTokens,
+            SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart) {
+        Map<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStartToken = new HashMap<>();
+        for (LightweightOppToken token : partitionKeyTokens) {
+            Range<LightweightOppToken> minimalTokenRange = findTokenRange(token, tokenRangesByStart);
             tokenRangesByStartToken.merge(
-                    minimalTokenRange.getStart(), minimalTokenRange, ClusterMetadataUtils::findLatestEndingRange);
+                    LightweightOppToken.getLowerExclusive(minimalTokenRange),
+                    minimalTokenRange,
+                    ClusterMetadataUtils::findLatestEndingRange);
         }
-        return ImmutableSet.copyOf(tokenRangesByStartToken.values());
+        return tokenRangesByStartToken.values().stream().collect(toImmutableRangeSet());
     }
 
-    private static TokenRange findTokenRange(
-            Metadata metadata, Token token, SortedMap<Token, TokenRange> tokenRangesByEnd) {
-        if (tokenRangesByEnd.containsKey(token)) {
-            return tokenRangesByEnd.get(token);
-        } else if (!tokenRangesByEnd.headMap(token).isEmpty()) {
-            return metadata.newTokenRange(tokenRangesByEnd.headMap(token).lastKey(), token);
+    private static Range<LightweightOppToken> findTokenRange(
+            LightweightOppToken token, SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart) {
+        if (tokenRangesByStart.headMap(token).isEmpty()) {
+            // Shouldn't happen, as tokenRangesByStart should include the whole token ring, including some range
+            // starting with minus infinity.
+            throw new SafeIllegalStateException(
+                    "Unable to find token range for token, as a full token ring was not supplied",
+                    SafeArg.of("token", token),
+                    SafeArg.of("tokenRangesByStart", tokenRangesByStart));
+        }
+
+        LightweightOppToken lowerBound = tokenRangesByStart.headMap(token).lastKey();
+        if (lowerBound.isEmpty()) {
+            return Range.atMost(token);
         } else {
-            // Confirm that the first entry in the sorted map is the wraparound range
-            TokenRange firstTokenRange = tokenRangesByEnd.get(tokenRangesByEnd.firstKey());
-            Preconditions.checkState(
-                    firstTokenRange.isWrappedAround(),
-                    "Failed to identify wraparound token range",
-                    SafeArg.of("firstTokenRange", firstTokenRange),
-                    SafeArg.of("token", token));
-            return metadata.newTokenRange(firstTokenRange.getStart(), token);
+            return Range.openClosed(lowerBound, token);
         }
     }
 
@@ -171,24 +180,25 @@ public final class ClusterMetadataUtils {
     }
 
     // VisibleForTesting
-    public static TokenRange findLatestEndingRange(TokenRange range1, TokenRange range2) {
+    public static Range<LightweightOppToken> findLatestEndingRange(
+            Range<LightweightOppToken> range1, Range<LightweightOppToken> range2) {
         Preconditions.checkArgument(
-                range1.getStart().equals(range2.getStart()),
+                LightweightOppToken.getLowerExclusive(range1).equals(LightweightOppToken.getLowerExclusive(range2)),
                 "Expects token ranges to have the same start token",
                 SafeArg.of("range1", range1),
                 SafeArg.of("range2", range2));
 
-        Set<TokenRange> wrapAroundTokenRanges =
-                Stream.of(range1, range2).filter(TokenRange::isWrappedAround).collect(Collectors.toSet());
-
+        Set<Range<LightweightOppToken>> wrapAroundTokenRanges = Stream.of(range1, range2)
+                .filter(Predicate.not(Range::hasUpperBound))
+                .collect(Collectors.toSet());
         // If any token ranges are wraparound ranges, the non-wraparound ranges cannot possibly be the longest range
         if (wrapAroundTokenRanges.size() == 1) {
             return wrapAroundTokenRanges.iterator().next();
         }
 
-        if (range1.contains(range2.getEnd())) {
+        if (range1.contains(range2.upperEndpoint())) {
             return range1;
-        } else if (range2.contains(range1.getEnd())) {
+        } else if (range2.contains(range1.upperEndpoint())) {
             return range2;
         } else {
             throw new SafeIllegalArgumentException(

@@ -40,7 +40,7 @@ public interface TransactionsTableInteraction {
     // reduce this from default because we run CleanTransactionsTableTask across N keyspaces at the same time
     int SELECT_TRANSACTIONS_FETCH_SIZE = 1_000;
 
-    List<Statement> createSelectStatements(TableMetadata transactionsTable);
+    List<Statement> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable);
 
     PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, Session session);
 

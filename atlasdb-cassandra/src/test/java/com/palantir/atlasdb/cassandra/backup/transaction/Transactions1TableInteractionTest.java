@@ -89,7 +89,8 @@ public class Transactions1TableInteractionTest {
         Transactions1TableInteraction txnInteraction =
                 new Transactions1TableInteraction(FullyBoundedTimestampRange.of(Range.closedOpen(1L, 50L)), mockPolicy);
 
-        Statement statement = Iterables.getOnlyElement(txnInteraction.createSelectStatements(tableMetadata));
+        Statement statement = Iterables.getOnlyElement(
+                txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata));
 
         // We encode it first to get a fixed length of the string--0x1 vs 0x01, for example
         assertThat(statement.toString().trim())

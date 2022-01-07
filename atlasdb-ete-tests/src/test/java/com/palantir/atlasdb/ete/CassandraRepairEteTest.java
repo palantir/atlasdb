@@ -16,22 +16,19 @@
 
 package com.palantir.atlasdb.ete;
 
+import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.Token;
-import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
-import com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
+import com.palantir.atlasdb.cassandra.backup.CqlMetadata;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -51,7 +48,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,11 +55,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
-import javax.xml.bind.DatatypeConverter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,9 +75,8 @@ public final class CassandraRepairEteTest {
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
+    private Cluster cluster;
     private CqlCluster cqlCluster;
-    private Metadata metadata;
-    private TreeMap<Token, TokenRange> tokenRangesByEnd;
 
     @Before
     public void setUp() {
@@ -95,18 +88,23 @@ public final class CassandraRepairEteTest {
         kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
 
         cassandraRepairHelper = new CassandraRepairHelper(_unused -> config, _unused -> kvs);
-        Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
+        cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         cqlCluster = new CqlCluster(cluster, config);
-        metadata = cluster.getMetadata();
-
-        tokenRangesByEnd = KeyedStream.of(metadata.getTokenRanges())
-                .mapKeys(TokenRange::getEnd)
-                .collectTo(TreeMap::new);
     }
 
     @After
     public void tearDown() {
         kvs.dropTable(TABLE_REF);
+    }
+
+    @Test
+    public void testTokenRangeCoversFullRing() {
+        CqlMetadata cqlMetadata = new CqlMetadata(cluster.getMetadata());
+        Set<Range<LightweightOppToken>> tokenRanges = cqlMetadata.getTokenRanges();
+
+        // Turning this into a RangeSet should give the complete range (-inf, +inf)
+        RangeSet<LightweightOppToken> fullTokenRing = tokenRanges.stream().collect(toImmutableRangeSet());
+        assertThat(fullTokenRing.asRanges()).containsExactly(Range.all());
     }
 
     @Test
@@ -183,118 +181,18 @@ public final class CassandraRepairEteTest {
 
     @Test
     public void shouldGetRangesForBothReplicas() {
-        RangesForRepair ranges = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
+        RangesForRepair ranges = CassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
         assertThat(ranges.tokenMap()).hasSize(2);
     }
 
     @Test
     public void tokenRangesToRepairShouldBeSubsetsOfTokenMap() {
         Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap = getFullTokenMap();
-        RangesForRepair rangesToRepair = cassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
+        RangesForRepair rangesToRepair = CassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
 
         KeyedStream.stream(rangesToRepair.tokenMap())
                 .forEach((address, cqlRangesForHost) ->
                         assertRangesToRepairAreSubsetsOfRangesFromTokenMap(fullTokenMap, address, cqlRangesForHost));
-    }
-
-    @Test
-    public void testMinimalSetOfTokenRanges() {
-        Token partitionKeyToken = getToken("9000");
-
-        Token lastTokenBeforePartitionKey = tokenRangesByEnd.lowerKey(partitionKeyToken);
-
-        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
-        assertThat(tokenRanges).hasSize(1);
-        TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(lastTokenBeforePartitionKey);
-        assertThat(onlyRange.getEnd()).isEqualTo(partitionKeyToken);
-    }
-
-    @Test
-    public void testSmallTokenRangeBeforeFirstVnode() {
-        Token partitionKeyToken = getToken("0010");
-
-        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                metadata, ImmutableSet.of(partitionKeyToken), tokenRangesByEnd);
-        assertThat(tokenRanges).hasSize(1);
-        TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(tokenRangesByEnd.lowerKey(getToken("ff")));
-        assertThat(onlyRange.getEnd()).isEqualTo(partitionKeyToken);
-    }
-
-    @Test
-    public void testSmallTokenRangeOnVnode() {
-        Token firstEndToken = tokenRangesByEnd.firstKey();
-        Token secondEndToken = tokenRangesByEnd.higherKey(firstEndToken);
-        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                metadata, ImmutableSet.of(secondEndToken), tokenRangesByEnd);
-        assertThat(tokenRanges).hasSize(1);
-        TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(firstEndToken);
-        assertThat(onlyRange.getEnd()).isEqualTo(secondEndToken);
-    }
-
-    @Test
-    public void testSmallTokenRangeDedupe() {
-        Token partitionKeyToken1 = getToken("9000");
-        Token partitionKeyToken2 = getToken("9001");
-        Set<TokenRange> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                metadata, ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByEnd);
-        assertThat(tokenRanges).hasSize(1);
-        TokenRange onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.getStart()).isEqualTo(tokenRangesByEnd.lowerKey(partitionKeyToken1));
-        assertThat(onlyRange.getEnd()).isEqualTo(partitionKeyToken2);
-    }
-
-    @Test
-    public void testRemoveNestedRanges() {
-        Token duplicatedStartKey = getToken("0001");
-        Token nestedEndKey = getToken("000101");
-        Token outerEndKey = getToken("000102");
-        TokenRange nested = metadata.newTokenRange(duplicatedStartKey, nestedEndKey);
-        TokenRange outer = metadata.newTokenRange(duplicatedStartKey, outerEndKey);
-        assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
-    }
-
-    @Test
-    public void testMinTokenRangeIsLatestEnding() {
-        Token duplicatedStartKey = getToken("0001");
-        Token normalEndKey = getToken("000101");
-        TokenRange nested = metadata.newTokenRange(duplicatedStartKey, normalEndKey);
-        TokenRange outer = metadata.newTokenRange(duplicatedStartKey, minToken());
-        assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
-    }
-
-    @Test
-    public void testMinTokenIsStart() {
-        Token nestedEndKey = getToken("0001");
-        Token outerEndKey = getToken("0002");
-        TokenRange nested = metadata.newTokenRange(minToken(), nestedEndKey);
-        TokenRange outer = metadata.newTokenRange(minToken(), outerEndKey);
-        assertThat(ClusterMetadataUtils.findLatestEndingRange(nested, outer)).isEqualTo(outer);
-    }
-
-    @Test
-    public void testRemoveNestedWraparoundRanges() {
-        Token duplicatedStartKey = getToken("ff");
-        Token innerWrapAround = getToken("0001");
-        Token outerWrapAround = getToken("0002");
-        TokenRange innerWrapAroundRange = metadata.newTokenRange(duplicatedStartKey, innerWrapAround);
-        TokenRange outerWrapAroundRange = metadata.newTokenRange(duplicatedStartKey, outerWrapAround);
-        assertThat(ClusterMetadataUtils.findLatestEndingRange(innerWrapAroundRange, outerWrapAroundRange))
-                .isEqualTo(outerWrapAroundRange);
-    }
-
-    @Test
-    public void testRemoveNestedWraparoundAndNonWrapRanges() {
-        Token duplicatedStartKey = getToken("ff");
-        Token nonWrapAround = getToken("ff01");
-        Token wrapAround = getToken("0001");
-        TokenRange nonWrapAroundRange = metadata.newTokenRange(duplicatedStartKey, nonWrapAround);
-        TokenRange wrapAroundRange = metadata.newTokenRange(duplicatedStartKey, wrapAround);
-        assertThat(ClusterMetadataUtils.findLatestEndingRange(nonWrapAroundRange, wrapAroundRange))
-                .isEqualTo(wrapAroundRange);
     }
 
     // The ranges in CQL should be a subset of the Thrift ranges, except that the CQL ranges are also snipped,
@@ -347,13 +245,5 @@ public final class CassandraRepairEteTest {
                 }));
 
         return invertedMap;
-    }
-
-    private Token minToken() {
-        return getToken("");
-    }
-
-    private Token getToken(String hexBinary) {
-        return metadata.newToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
     }
 }

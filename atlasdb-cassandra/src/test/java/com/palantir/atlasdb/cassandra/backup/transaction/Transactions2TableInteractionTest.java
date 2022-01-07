@@ -76,7 +76,7 @@ public class Transactions2TableInteractionTest {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
         Transactions2TableInteraction txnInteraction =
                 new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
-        List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
+        List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, ROWS_PER_QUANTUM - 1);
         assertThat(selects)
                 .extracting(statement -> statement.toString().trim().toLowerCase())
@@ -88,7 +88,7 @@ public class Transactions2TableInteractionTest {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, PARTITIONING_QUANTUM + 1000000);
         Transactions2TableInteraction txnInteraction =
                 new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
-        List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
+        List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0, 2 * ROWS_PER_QUANTUM - 1);
         assertThat(selects)
                 .extracting(statement -> statement.toString().trim().toLowerCase())
@@ -100,7 +100,7 @@ public class Transactions2TableInteractionTest {
         Range<Long> rangeWithinOnePartition = Range.closedOpen(100L, 25000000L);
         Transactions2TableInteraction txnInteraction =
                 new Transactions2TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
-        List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
+        List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, 15L);
         assertThat(selects)
                 .extracting(statement -> statement.toString().trim().toLowerCase())

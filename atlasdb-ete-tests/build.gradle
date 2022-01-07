@@ -57,6 +57,7 @@ dependencies {
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-cassandra')
+    testImplementation project(':atlasdb-cassandra').sourceSets.test.output
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-remoting-api')
     testImplementation project(':atlasdb-tests-shared')
