@@ -31,7 +31,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -78,14 +77,10 @@ final class TokenRangeFetcher {
     }
 
     private Set<LightweightOppToken> getPartitionTokens(TableMetadata tableMetadata) {
-        return cqlSession.retrieveRowKeysAtConsistencyAll(createSelectStatements(tableMetadata));
+        return cqlSession.retrieveRowKeysAtConsistencyAll(ImmutableList.of(selectDistinctRowKeys(tableMetadata)));
     }
 
-    private static List<Statement> createSelectStatements(TableMetadata table) {
-        return ImmutableList.of(createSelectStatement(table));
-    }
-
-    private static Statement createSelectStatement(TableMetadata table) {
+    private static Statement selectDistinctRowKeys(TableMetadata table) {
         return QueryBuilder.select(CassandraConstants.ROW)
                 // only returns the column that we need instead of all of them, otherwise we get a timeout
                 .distinct()
