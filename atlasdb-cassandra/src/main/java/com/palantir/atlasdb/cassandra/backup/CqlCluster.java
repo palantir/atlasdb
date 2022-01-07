@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -64,7 +63,7 @@ public final class CqlCluster implements Closeable {
     }
 
     public void abortTransactions(long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
-        try (Session session = cluster.connect()) {
+        try (CqlSession session = new CqlSession(cluster.connect())) {
             new TransactionAborter(session, config).abortTransactions(timestamp, transactionsTableInteractions);
         }
     }

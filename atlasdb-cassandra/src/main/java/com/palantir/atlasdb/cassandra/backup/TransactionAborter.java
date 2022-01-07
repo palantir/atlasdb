@@ -20,7 +20,6 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.Iterators;
@@ -45,13 +44,11 @@ class TransactionAborter {
 
     private static final int RETRY_COUNT = 3;
 
-    private final Session session;
     private final CqlSession cqlSession;
     private final CassandraKeyValueServiceConfig config;
 
-    public TransactionAborter(Session session, CassandraKeyValueServiceConfig config) {
-        this.session = session;
-        this.cqlSession = new CqlSession(session);
+    public TransactionAborter(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
+        this.cqlSession = cqlSession;
         this.config = config;
     }
 
