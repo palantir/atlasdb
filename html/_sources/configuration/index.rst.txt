@@ -94,4 +94,4 @@ Example Configuration
         type: cassandra
         sweepReadThreads: 16
       internalSchema:
-        targetTransactionsSchemaVersion: 2
+        targetTransactionsSchemaVersion: 3
