@@ -40,6 +40,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntries;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
+import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -127,12 +128,11 @@ public class TransactionAborterTest {
         verify(cqlSession, times(1)).execute(any(Statement.class));
     }
 
-    // TODO(gs): use commitedTwoPhase too
     @Test
     public void willNotAbortTimestampsLowerThanInputTimestamp() {
         ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
                 TransactionTableEntries.committedLegacy(10L, 20L),
-                TransactionTableEntries.committedLegacy(20L, 30L),
+                TransactionTableEntries.committedTwoPhase(20L, PutUnlessExistsValue.committed(30L)),
                 TransactionTableEntries.committedLegacy(30L, BACKUP_TIMESTAMP - 1));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
@@ -145,7 +145,8 @@ public class TransactionAborterTest {
     public void willNotAbortTimestampsOutsideRange() {
         ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 12),
-                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 13),
+                TransactionTableEntries.committedTwoPhase(
+                        BACKUP_TIMESTAMP + 10, PutUnlessExistsValue.committed(BACKUP_TIMESTAMP + 13)),
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 14));
         setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(BACKUP_TIMESTAMP + 15, 1000L)));
 
@@ -167,35 +168,41 @@ public class TransactionAborterTest {
 
     @Test
     public void willAbortTimestampInRange() {
-        ImmutableList<TransactionTableEntry> rows =
-                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2));
+        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
+                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2),
+                TransactionTableEntries.committedTwoPhase(
+                        BACKUP_TIMESTAMP + 3, PutUnlessExistsValue.committed(BACKUP_TIMESTAMP + 4)));
         setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(25L, 1000L)));
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
                 KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
-        assertThat(transactionsToAbort.count()).isOne();
+        assertThat(transactionsToAbort.count()).isEqualTo(2L);
     }
 
     @Test
     public void willAbortTimestampsHigherThanInputTimestamp() {
-        ImmutableList<TransactionTableEntry> rows =
-                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2));
+        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
+                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2),
+                TransactionTableEntries.committedTwoPhase(
+                        BACKUP_TIMESTAMP + 3, PutUnlessExistsValue.committed(BACKUP_TIMESTAMP + 4)));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
                 KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
-        assertThat(transactionsToAbort.count()).isOne();
+        assertThat(transactionsToAbort.count()).isEqualTo(2L);
     }
 
     @Test
     public void willAbortTimestampsThatStartBeforeButEndAfterInputTimestamp() {
-        ImmutableList<TransactionTableEntry> rows =
-                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP - 1, BACKUP_TIMESTAMP + 1));
+        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
+                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP - 2, BACKUP_TIMESTAMP + 1),
+                TransactionTableEntries.committedTwoPhase(
+                        BACKUP_TIMESTAMP - 1, PutUnlessExistsValue.committed(BACKUP_TIMESTAMP + 2)));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
                 KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
-        assertThat(transactionsToAbort.count()).isOne();
+        assertThat(transactionsToAbort.count()).isEqualTo(2L);
     }
 
     @Test
