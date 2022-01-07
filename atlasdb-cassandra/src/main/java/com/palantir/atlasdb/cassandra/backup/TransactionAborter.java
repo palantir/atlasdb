@@ -26,6 +26,7 @@ import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -88,7 +89,8 @@ class TransactionAborter {
         });
     }
 
-    private Stream<TransactionTableEntry> getTransactionsToAbort(
+    @VisibleForTesting
+    Stream<TransactionTableEntry> getTransactionsToAbort(
             String keyspaceName,
             TransactionsTableInteraction txnInteraction,
             TableMetadata transactionsTable,
@@ -133,7 +135,8 @@ class TransactionAborter {
         return true;
     }
 
-    private void executeTransactionAborts(
+    @VisibleForTesting
+    void executeTransactionAborts(
             String keyspace,
             TransactionsTableInteraction txnInteraction,
             PreparedStatement preparedAbortStatement,
