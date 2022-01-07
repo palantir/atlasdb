@@ -22,6 +22,10 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -37,6 +41,8 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 class TransactionAborter {
@@ -46,10 +52,16 @@ class TransactionAborter {
 
     private final CqlSession cqlSession;
     private final CassandraKeyValueServiceConfig config;
+    private final Retryer<Boolean> abortRetryer;
 
     public TransactionAborter(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
         this.cqlSession = cqlSession;
         this.config = config;
+
+        this.abortRetryer = new Retryer<>(
+                StopStrategies.stopAfterAttempt(RETRY_COUNT),
+                WaitStrategies.fixedWait(1L, TimeUnit.SECONDS),
+                attempt -> !attempt.hasResult() || !attempt.getResult());
     }
 
     public void abortTransactions(long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
@@ -154,20 +166,27 @@ class TransactionAborter {
                 SafeArg.of("consistencyLevel", checkStatement.getSerialConsistencyLevel()),
                 SafeArg.of("expectedConsistencyLevel", ConsistencyLevel.SERIAL));
 
-        // TODO(gs): use proper retry logic
-        boolean success = false;
-        for (int retryCount = 0; !success && retryCount < RETRY_COUNT; retryCount++) {
-            success = tryAbortTransactions(
-                    keyspace, txnInteraction, abortStatement, checkStatement, startTs, commitTs, retryCount);
-        }
+        try {
+            abortRetryer.call(() ->
+                    tryAbortTransactions(keyspace, txnInteraction, abortStatement, checkStatement, startTs, commitTs));
+        } catch (ExecutionException e) {
+            throw new SafeIllegalStateException(
+                    "Failed to execute transaction abort",
+                    e,
+                    SafeArg.of("startTs", startTs),
+                    SafeArg.of("commitTs", commitTs),
+                    SafeArg.of("retryCount", RETRY_COUNT),
+                    SafeArg.of("keyspace", keyspace));
 
-        log.error(
-                "Unable to abort transactions even with retry",
-                SafeArg.of("startTs", startTs),
-                SafeArg.of("commitTs", commitTs),
-                SafeArg.of("retryCount", RETRY_COUNT),
-                SafeArg.of("keyspace", keyspace));
-        throw new SafeIllegalStateException("Unable to verify abort statements even with retry");
+        } catch (RetryException e) {
+            throw new SafeIllegalStateException(
+                    "Unable to abort transactions even with retry",
+                    e,
+                    SafeArg.of("startTs", startTs),
+                    SafeArg.of("commitTs", commitTs),
+                    SafeArg.of("retryCount", RETRY_COUNT),
+                    SafeArg.of("keyspace", keyspace));
+        }
     }
 
     private boolean tryAbortTransactions(
@@ -176,13 +195,11 @@ class TransactionAborter {
             Statement abortStatement,
             Statement checkStatement,
             long startTs,
-            long commitTs,
-            int retryCount) {
+            long commitTs) {
         log.info(
                 "Aborting transaction",
                 SafeArg.of("startTs", startTs),
                 SafeArg.of("commitTs", commitTs),
-                SafeArg.of("retryCount", retryCount),
                 SafeArg.of("keyspace", keyspace));
         ResultSet abortResultSet = cqlSession.execute(abortStatement);
         if (abortResultSet.wasApplied()) {
@@ -194,7 +211,6 @@ class TransactionAborter {
                 "Executing check statement",
                 SafeArg.of("startTs", startTs),
                 SafeArg.of("commitTs", commitTs),
-                SafeArg.of("retryCount", retryCount),
                 SafeArg.of("keyspace", keyspace));
         Row result = Iterators.getOnlyElement(checkResultSet.all().iterator());
 
@@ -207,7 +223,6 @@ class TransactionAborter {
                 "Retrying abort statement",
                 SafeArg.of("startTs", startTs),
                 SafeArg.of("commitTs", commitTs),
-                SafeArg.of("retryCount", retryCount + 1),
                 SafeArg.of("keyspace", keyspace));
         return false;
     }
