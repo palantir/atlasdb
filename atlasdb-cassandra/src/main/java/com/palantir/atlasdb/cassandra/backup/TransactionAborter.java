@@ -155,38 +155,10 @@ class TransactionAborter {
                 SafeArg.of("expectedConsistencyLevel", ConsistencyLevel.SERIAL));
 
         // TODO(gs): use proper retry logic
-        for (int retryCount = 0; retryCount < RETRY_COUNT; retryCount++) {
-            log.info(
-                    "Aborting transaction",
-                    SafeArg.of("startTs", startTs),
-                    SafeArg.of("commitTs", commitTs),
-                    SafeArg.of("retryCount", retryCount),
-                    SafeArg.of("keyspace", keyspace));
-            ResultSet abortResultSet = cqlSession.execute(abortStatement);
-            if (abortResultSet.wasApplied()) {
-                return;
-            }
-
-            ResultSet checkResultSet = cqlSession.execute(checkStatement);
-            log.debug(
-                    "Executing check statement",
-                    SafeArg.of("startTs", startTs),
-                    SafeArg.of("commitTs", commitTs),
-                    SafeArg.of("retryCount", retryCount),
-                    SafeArg.of("keyspace", keyspace));
-            Row result = Iterators.getOnlyElement(checkResultSet.all().iterator());
-
-            TransactionTableEntry transactionTableEntry = txnInteraction.extractTimestamps(result);
-            if (isAborted(transactionTableEntry)) {
-                return;
-            }
-
-            log.warn(
-                    "Retrying abort statement",
-                    SafeArg.of("startTs", startTs),
-                    SafeArg.of("commitTs", commitTs),
-                    SafeArg.of("retryCount", retryCount + 1),
-                    SafeArg.of("keyspace", keyspace));
+        boolean success = false;
+        for (int retryCount = 0; !success && retryCount < RETRY_COUNT; retryCount++) {
+            success = tryAbortTransactions(
+                    keyspace, txnInteraction, abortStatement, checkStatement, startTs, commitTs, retryCount);
         }
 
         log.error(
@@ -196,6 +168,48 @@ class TransactionAborter {
                 SafeArg.of("retryCount", RETRY_COUNT),
                 SafeArg.of("keyspace", keyspace));
         throw new SafeIllegalStateException("Unable to verify abort statements even with retry");
+    }
+
+    private boolean tryAbortTransactions(
+            String keyspace,
+            TransactionsTableInteraction txnInteraction,
+            Statement abortStatement,
+            Statement checkStatement,
+            long startTs,
+            long commitTs,
+            int retryCount) {
+        log.info(
+                "Aborting transaction",
+                SafeArg.of("startTs", startTs),
+                SafeArg.of("commitTs", commitTs),
+                SafeArg.of("retryCount", retryCount),
+                SafeArg.of("keyspace", keyspace));
+        ResultSet abortResultSet = cqlSession.execute(abortStatement);
+        if (abortResultSet.wasApplied()) {
+            return true;
+        }
+
+        ResultSet checkResultSet = cqlSession.execute(checkStatement);
+        log.debug(
+                "Executing check statement",
+                SafeArg.of("startTs", startTs),
+                SafeArg.of("commitTs", commitTs),
+                SafeArg.of("retryCount", retryCount),
+                SafeArg.of("keyspace", keyspace));
+        Row result = Iterators.getOnlyElement(checkResultSet.all().iterator());
+
+        TransactionTableEntry transactionTableEntry = txnInteraction.extractTimestamps(result);
+        if (isAborted(transactionTableEntry)) {
+            return true;
+        }
+
+        log.warn(
+                "Retrying abort statement",
+                SafeArg.of("startTs", startTs),
+                SafeArg.of("commitTs", commitTs),
+                SafeArg.of("retryCount", retryCount + 1),
+                SafeArg.of("keyspace", keyspace));
+        return false;
     }
 
     private static boolean isAborted(TransactionTableEntry transactionTableEntry) {
