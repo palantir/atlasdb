@@ -69,240 +69,37 @@ public class TransactionAborterTest {
     @Mock
     private TransactionsTableInteraction transactionInteraction;
 
+    @Mock
+    private PreparedStatement preparedAbortStatement;
+
+    @Mock
+    private Statement abortStatement;
+
+    @Mock
+    private PreparedStatement preparedCheckStatement;
+
+    @Mock
+    private Statement checkStatement;
+
+    @Mock
+    private TableMetadata tableMetadata;
+
+    private TransactionAborter transactionAborter;
+
     @Before
     public void before() {
         when(transactionInteraction.getTransactionsTableName()).thenReturn(TXN_TABLE_NAME);
-    }
 
-    @Test
-    public void willNotRunAbortWhenNothingToAbort() {
-        TransactionAborter cleanTask = createCleaner();
-
-        cleanTask.abortTransactions(BACKUP_TIMESTAMP, List.of(transactionInteraction));
-
-        verify(cqlSession, times(1)).execute(any(Statement.class));
-    }
-
-    private Stream<TransactionTableEntry> setupAbortTimestampTest(
-            ImmutableList<TransactionTableEntry> entries, FullyBoundedTimestampRange range) {
-        when(transactionInteraction.getTimestampRange()).thenReturn(range);
-        List<Row> rows = entries.stream()
-                .map(entry -> {
-                    Row row = mock(Row.class);
-                    when(transactionInteraction.extractTimestamps(row)).thenReturn(entry);
-                    return row;
-                })
-                .collect(Collectors.toList());
-        ResultSet selectResponse = createSelectResponse(rows);
-        when(transactionInteraction.createSelectStatementsForScanningFullTimestampRange(any()))
-                .thenReturn(ImmutableList.of(mock(Statement.class)));
-        when(cqlSession.execute(any(Statement.class))).thenReturn(selectResponse);
-
-        TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
-
-        TableMetadata tableMetadata = mock(TableMetadata.class);
-        return cleanTask.getTransactionsToAbort(KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
-    }
-
-    // TODO(gs): use commitedTwoPhase too
-    @Test
-    public void willNotAbortTimestampsLowerThanInputTimestamp() {
-        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
-                TransactionTableEntries.committedLegacy(10L, 20L),
-                TransactionTableEntries.committedLegacy(20L, 30L),
-                TransactionTableEntries.committedLegacy(30L, BACKUP_TIMESTAMP - 1));
-        Stream<TransactionTableEntry> transactionsToAbort = setupAbortTimestampTest(rows, TIMESTAMP_RANGE);
-        assertThat(transactionsToAbort.count()).isZero();
-    }
-
-    @Test
-    public void willNotAbortTimestampsOutsideRange() {
-        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
-                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 12),
-                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 13),
-                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 14));
-        Stream<TransactionTableEntry> transactionsToAbort = setupAbortTimestampTest(
-                rows, FullyBoundedTimestampRange.of(Range.closed(BACKUP_TIMESTAMP + 15, 1000L)));
-        assertThat(transactionsToAbort.count()).isZero();
-    }
-
-    @Test
-    public void willNotAbortTimestampsAlreadyAborted() {
-        ImmutableList<TransactionTableEntry> rows =
-                ImmutableList.of(TransactionTableEntries.explicitlyAborted(BACKUP_TIMESTAMP + 1));
-        Stream<TransactionTableEntry> transactionsToAbort = setupAbortTimestampTest(rows, TIMESTAMP_RANGE);
-        assertThat(transactionsToAbort.count()).isZero();
-    }
-
-    @Test
-    public void willAbortTimestampInRange() {
-        ImmutableList<TransactionTableEntry> rows =
-                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2));
-        Stream<TransactionTableEntry> transactionsToAbort =
-                setupAbortTimestampTest(rows, FullyBoundedTimestampRange.of(Range.closed(25L, 1000L)));
-        assertThat(transactionsToAbort.count()).isOne();
-    }
-
-    @Test
-    public void willAbortTimestampsHigherThanInputTimestamp() {
-        ImmutableList<TransactionTableEntry> rows =
-                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2));
-        Stream<TransactionTableEntry> transactionsToAbort = setupAbortTimestampTest(rows, TIMESTAMP_RANGE);
-        assertThat(transactionsToAbort.count()).isOne();
-    }
-
-    @Test
-    public void willAbortTimestampsThatStartBeforeButEndAfterInputTimestamp() {
-        ImmutableList<TransactionTableEntry> rows =
-                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP - 1, BACKUP_TIMESTAMP + 1));
-        Stream<TransactionTableEntry> transactionsToAbort = setupAbortTimestampTest(rows, TIMESTAMP_RANGE);
-        assertThat(transactionsToAbort.count()).isOne();
-    }
-
-    @Test
-    public void executeWithRetryTriesSingleTimeIfAbortSucceeds() {
-        TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
-
-        PreparedStatement preparedAbortStatement = mock(PreparedStatement.class);
-        Statement abortStatement = mock(Statement.class);
         when(abortStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
         when(transactionInteraction.bindAbortStatement(eq(preparedAbortStatement), any()))
                 .thenReturn(abortStatement);
 
-        PreparedStatement preparedCheckStatement = mock(PreparedStatement.class);
-        Statement checkStatement = mock(Statement.class);
         when(checkStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
         when(transactionInteraction.bindCheckStatement(eq(preparedCheckStatement), any()))
                 .thenReturn(checkStatement);
 
-        ResultSet abortResponse = createAbortResponse(true);
-        when(cqlSession.execute(abortStatement)).thenReturn(abortResponse);
-
-        Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
-        cleanTask.executeTransactionAborts(
-                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
-
-        verify(cqlSession).execute(abortStatement);
-    }
-
-    @Test
-    public void executeWithRetryChecksIfAbortWasNotAppliedAndRetriesIfNoMatch() {
-        TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
-
-        PreparedStatement preparedAbortStatement = mock(PreparedStatement.class);
-        Statement abortStatement = mock(Statement.class);
-        when(abortStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
-        when(transactionInteraction.bindAbortStatement(eq(preparedAbortStatement), any()))
-                .thenReturn(abortStatement);
-
-        PreparedStatement preparedCheckStatement = mock(PreparedStatement.class);
-        Statement checkStatement = mock(Statement.class);
-        when(checkStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
-        when(transactionInteraction.bindCheckStatement(eq(preparedCheckStatement), any()))
-                .thenReturn(checkStatement);
-
-        ResultSet abortResponse1 = createAbortResponse(false);
-        ResultSet abortResponse2 = createAbortResponse(true);
-
-        when(cqlSession.execute(abortStatement)).thenReturn(abortResponse1).thenReturn(abortResponse2);
-
-        Row row = mock(Row.class);
-        ResultSet checkResponse = createSelectResponse(ImmutableList.of(row));
-        when(cqlSession.execute(checkStatement)).thenReturn(checkResponse);
-
-        Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
-        cleanTask.executeTransactionAborts(
-                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
-
-        verify(cqlSession, times(2)).execute(abortStatement);
-        verify(cqlSession).execute(checkStatement);
-    }
-
-    @Test
-    public void executeWithRetryChecksIfAbortWasNotAppliedAndDoesNotRetryIfEqualsAbortTimestamp() {
-        TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
-
-        PreparedStatement preparedAbortStatement = mock(PreparedStatement.class);
-        Statement abortStatement = mock(Statement.class);
-        when(abortStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
-        when(transactionInteraction.bindAbortStatement(eq(preparedAbortStatement), any()))
-                .thenReturn(abortStatement);
-
-        PreparedStatement preparedCheckStatement = mock(PreparedStatement.class);
-        Statement checkStatement = mock(Statement.class);
-        when(checkStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
-        when(transactionInteraction.bindCheckStatement(eq(preparedCheckStatement), any()))
-                .thenReturn(checkStatement);
-
-        ResultSet abortResponse = createAbortResponse(false);
-        when(cqlSession.execute(abortStatement)).thenReturn(abortResponse);
-
-        Row row = mock(Row.class);
-        ResultSet checkResponse = createSelectResponse(ImmutableList.of(row));
-
-        TransactionTableEntry entry = TransactionTableEntries.explicitlyAborted(100L);
-        when(cqlSession.execute(checkStatement)).thenReturn(checkResponse);
-        when(transactionInteraction.extractTimestamps(row)).thenReturn(entry);
-
-        TransactionTableEntry notYetAborted = TransactionTableEntries.committedLegacy(100L, 101L);
-        Stream<TransactionTableEntry> entries = Stream.of(notYetAborted);
-        cleanTask.executeTransactionAborts(
-                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
-
-        verify(cqlSession, times(1)).execute(abortStatement);
-        verify(cqlSession, times(1)).execute(checkStatement);
-    }
-
-    @Test
-    public void executeWithRetryChecksEventuallyFails() {
-        TransactionAborter cleanTask = new TransactionAborter(cqlSession, config);
-
-        PreparedStatement preparedAbortStatement = mock(PreparedStatement.class);
-        PreparedStatement preparedCheckStatement = mock(PreparedStatement.class);
-
-        Statement abortStatement = mock(Statement.class);
-        when(abortStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
-        Statement checkStatement = mock(Statement.class);
-        when(checkStatement.getSerialConsistencyLevel()).thenReturn(ConsistencyLevel.SERIAL);
-        when(transactionInteraction.bindAbortStatement(eq(preparedAbortStatement), any()))
-                .thenReturn(abortStatement);
-        when(transactionInteraction.bindCheckStatement(eq(preparedCheckStatement), any()))
-                .thenReturn(checkStatement);
-
-        ResultSet abortResponse = createAbortResponse(false);
-        when(cqlSession.execute(abortStatement)).thenReturn(abortResponse);
-
-        Row row = mock(Row.class);
-        ResultSet checkResponse = createSelectResponse(ImmutableList.of(row));
-        when(cqlSession.execute(checkStatement)).thenReturn(checkResponse);
-
-        Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
-
-        assertThatThrownBy(() -> cleanTask.executeTransactionAborts(
-                        KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries))
-                .isInstanceOf(IllegalStateException.class);
-
-        verify(cqlSession, times(3)).execute(abortStatement);
-        verify(cqlSession, times(3)).execute(checkStatement);
-    }
-
-    private static ResultSet createAbortResponse(boolean wasApplied) {
-        ResultSet response = mock(ResultSet.class);
-        when(response.wasApplied()).thenReturn(wasApplied);
-        return response;
-    }
-
-    private static ResultSet createSelectResponse(List<Row> transactions) {
-        ResultSet response = mock(ResultSet.class);
-        when(response.iterator()).thenReturn(transactions.iterator());
-        when(response.all()).thenReturn(transactions);
-        return response;
-    }
-
-    private TransactionAborter createCleaner() {
         when(config.getKeyspaceOrThrow()).thenReturn(KEYSPACE);
 
-        TableMetadata tableMetadata = mock(TableMetadata.class);
         when(tableMetadata.getName()).thenReturn(TXN_TABLE_NAME);
         KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
         when(keyspaceMetadata.getTables()).thenReturn(ImmutableList.of(tableMetadata));
@@ -320,6 +117,184 @@ public class TransactionAborterTest {
         doReturn(mock(PreparedStatement.class)).when(transactionInteraction).prepareAbortStatement(any(), any());
         doReturn(mock(PreparedStatement.class)).when(transactionInteraction).prepareCheckStatement(any(), any());
 
-        return new TransactionAborter(cqlSession, config);
+        transactionAborter = new TransactionAborter(cqlSession, config);
+    }
+
+    @Test
+    public void willNotRunAbortWhenNothingToAbort() {
+        transactionAborter.abortTransactions(BACKUP_TIMESTAMP, List.of(transactionInteraction));
+
+        verify(cqlSession, times(1)).execute(any(Statement.class));
+    }
+
+    // TODO(gs): use commitedTwoPhase too
+    @Test
+    public void willNotAbortTimestampsLowerThanInputTimestamp() {
+        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
+                TransactionTableEntries.committedLegacy(10L, 20L),
+                TransactionTableEntries.committedLegacy(20L, 30L),
+                TransactionTableEntries.committedLegacy(30L, BACKUP_TIMESTAMP - 1));
+        setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
+
+        Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+        assertThat(transactionsToAbort.count()).isZero();
+    }
+
+    @Test
+    public void willNotAbortTimestampsOutsideRange() {
+        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
+                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 12),
+                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 13),
+                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 14));
+        setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(BACKUP_TIMESTAMP + 15, 1000L)));
+
+        Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+        assertThat(transactionsToAbort.count()).isZero();
+    }
+
+    @Test
+    public void willNotAbortTimestampsAlreadyAborted() {
+        ImmutableList<TransactionTableEntry> rows =
+                ImmutableList.of(TransactionTableEntries.explicitlyAborted(BACKUP_TIMESTAMP + 1));
+        setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
+
+        Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+        assertThat(transactionsToAbort.count()).isZero();
+    }
+
+    @Test
+    public void willAbortTimestampInRange() {
+        ImmutableList<TransactionTableEntry> rows =
+                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2));
+        setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(25L, 1000L)));
+
+        Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+        assertThat(transactionsToAbort.count()).isOne();
+    }
+
+    @Test
+    public void willAbortTimestampsHigherThanInputTimestamp() {
+        ImmutableList<TransactionTableEntry> rows =
+                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2));
+        setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
+
+        Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+        assertThat(transactionsToAbort.count()).isOne();
+    }
+
+    @Test
+    public void willAbortTimestampsThatStartBeforeButEndAfterInputTimestamp() {
+        ImmutableList<TransactionTableEntry> rows =
+                ImmutableList.of(TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP - 1, BACKUP_TIMESTAMP + 1));
+        setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
+
+        Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+        assertThat(transactionsToAbort.count()).isOne();
+    }
+
+    @Test
+    public void executeWithRetryTriesSingleTimeIfAbortSucceeds() {
+        ResultSet abortResponse = createAbortResponse(true);
+        when(cqlSession.execute(abortStatement)).thenReturn(abortResponse);
+
+        Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
+        transactionAborter.executeTransactionAborts(
+                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
+
+        verify(cqlSession).execute(abortStatement);
+    }
+
+    @Test
+    public void executeWithRetryChecksIfAbortWasNotAppliedAndRetriesIfNoMatch() {
+        ResultSet abortResponse1 = createAbortResponse(false);
+        ResultSet abortResponse2 = createAbortResponse(true);
+
+        when(cqlSession.execute(abortStatement)).thenReturn(abortResponse1).thenReturn(abortResponse2);
+
+        Row row = mock(Row.class);
+        ResultSet checkResponse = createSelectResponse(ImmutableList.of(row));
+        when(cqlSession.execute(checkStatement)).thenReturn(checkResponse);
+
+        Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
+        transactionAborter.executeTransactionAborts(
+                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
+
+        verify(cqlSession, times(2)).execute(abortStatement);
+        verify(cqlSession).execute(checkStatement);
+    }
+
+    @Test
+    public void executeWithRetryChecksIfAbortWasNotAppliedAndDoesNotRetryIfEqualsAbortTimestamp() {
+        ResultSet abortResponse = createAbortResponse(false);
+        when(cqlSession.execute(abortStatement)).thenReturn(abortResponse);
+
+        Row row = mock(Row.class);
+        ResultSet checkResponse = createSelectResponse(ImmutableList.of(row));
+
+        TransactionTableEntry entry = TransactionTableEntries.explicitlyAborted(100L);
+        when(cqlSession.execute(checkStatement)).thenReturn(checkResponse);
+        when(transactionInteraction.extractTimestamps(row)).thenReturn(entry);
+
+        TransactionTableEntry notYetAborted = TransactionTableEntries.committedLegacy(100L, 101L);
+        Stream<TransactionTableEntry> entries = Stream.of(notYetAborted);
+        transactionAborter.executeTransactionAborts(
+                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
+
+        verify(cqlSession, times(1)).execute(abortStatement);
+        verify(cqlSession, times(1)).execute(checkStatement);
+    }
+
+    @Test
+    public void executeWithRetryChecksEventuallyFails() {
+        ResultSet abortResponse = createAbortResponse(false);
+        when(cqlSession.execute(abortStatement)).thenReturn(abortResponse);
+
+        Row row = mock(Row.class);
+        ResultSet checkResponse = createSelectResponse(ImmutableList.of(row));
+        when(cqlSession.execute(checkStatement)).thenReturn(checkResponse);
+
+        Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
+
+        assertThatThrownBy(() -> transactionAborter.executeTransactionAborts(
+                        KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(cqlSession, times(3)).execute(abortStatement);
+        verify(cqlSession, times(3)).execute(checkStatement);
+    }
+
+    private void setupAbortTimestampTask(
+            ImmutableList<TransactionTableEntry> entries, FullyBoundedTimestampRange range) {
+        when(transactionInteraction.getTimestampRange()).thenReturn(range);
+        List<Row> rows = entries.stream()
+                .map(entry -> {
+                    Row row = mock(Row.class);
+                    when(transactionInteraction.extractTimestamps(row)).thenReturn(entry);
+                    return row;
+                })
+                .collect(Collectors.toList());
+        ResultSet selectResponse = createSelectResponse(rows);
+        when(transactionInteraction.createSelectStatementsForScanningFullTimestampRange(any()))
+                .thenReturn(ImmutableList.of(mock(Statement.class)));
+        when(cqlSession.execute(any(Statement.class))).thenReturn(selectResponse);
+    }
+
+    private static ResultSet createAbortResponse(boolean wasApplied) {
+        ResultSet response = mock(ResultSet.class);
+        when(response.wasApplied()).thenReturn(wasApplied);
+        return response;
+    }
+
+    private static ResultSet createSelectResponse(List<Row> transactions) {
+        ResultSet response = mock(ResultSet.class);
+        when(response.iterator()).thenReturn(transactions.iterator());
+        when(response.all()).thenReturn(transactions);
+        return response;
     }
 }
