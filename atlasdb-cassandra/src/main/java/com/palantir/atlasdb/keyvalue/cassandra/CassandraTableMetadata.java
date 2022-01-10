@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -65,7 +64,7 @@ public class CassandraTableMetadata {
         // we don't even have a metadata table yet. Return empty map.
         if (!allTableRefs.contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
             log.trace("getMetadata called with no _metadata table present");
-            return ImmutableMap.of();
+            return new HashMap<>();
         }
 
         try (ClosableIterator<RowResult<Value>> range = rangeLoader.getRange(

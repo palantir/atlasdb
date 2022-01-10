@@ -101,7 +101,6 @@ allprojects {
                 'EqualsGetClass',
                 'FutureReturnValueIgnored',
                 'InlineFormatString',
-                'MixedMutabilityReturnType',
                 'NarrowingCompoundAssignment',
                 'PreconditionsConstantMessage',
                 'PublicConstructorForAbstractClass',
