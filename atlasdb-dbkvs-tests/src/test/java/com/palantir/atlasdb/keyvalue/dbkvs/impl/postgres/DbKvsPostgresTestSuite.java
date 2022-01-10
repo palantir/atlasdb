@@ -80,7 +80,7 @@ public final class DbKvsPostgresTestSuite {
 
     public static PostgresConnectionConfig getConnectionConfig() {
         DockerPort port = docker.containers().container("postgres-dbkvs").port(POSTGRES_PORT_NUMBER);
-        InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
+        InetSocketAddress postgresAddress = InetSocketAddress.createUnresolved(port.getIp(), port.getExternalPort());
         return ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")
                 .dbLogin("palantir")

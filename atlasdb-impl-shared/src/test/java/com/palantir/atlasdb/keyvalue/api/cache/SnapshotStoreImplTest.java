@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,6 +28,9 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.util.MetricsManagers;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.OptionalAssert;
 import org.junit.Before;
@@ -98,12 +102,13 @@ public final class SnapshotStoreImplTest {
         assertSnapshotsEqualForTimestamp(SNAPSHOT_2, TIMESTAMP_4);
         assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).isEmpty();
 
+        forceRunSnapshotRetention();
         assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_1)).isEmpty();
     }
 
     @Test
     public void removeTimestampOnlyRetentionsDownToMinimumSize() {
-        snapshotStore = new SnapshotStoreImpl(2, 20_000, CACHE_METRICS);
+        snapshotStore = new SnapshotStoreImpl(1, 20_000, CACHE_METRICS);
         snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_1);
         snapshotStore.storeSnapshot(SEQUENCE_2, ImmutableSet.of(TIMESTAMP_2), SNAPSHOT_2);
         snapshotStore.storeSnapshot(SEQUENCE_3, ImmutableSet.of(TIMESTAMP_3), SNAPSHOT_3);
@@ -114,20 +119,101 @@ public final class SnapshotStoreImplTest {
         assertSnapshotsEqualForTimestamp(SNAPSHOT_3, TIMESTAMP_3);
         assertSnapshotsEqualForTimestamp(SNAPSHOT_4, TIMESTAMP_4);
 
-        removeSnapshotAndAssert(TIMESTAMP_1, SEQUENCE_1).isEmpty();
-        removeSnapshotAndAssert(TIMESTAMP_2, SEQUENCE_2).isEmpty();
-        removeSnapshotAndAssert(TIMESTAMP_3, SEQUENCE_3).hasValue(SNAPSHOT_3);
-        removeSnapshotAndAssert(TIMESTAMP_4, SEQUENCE_4).hasValue(SNAPSHOT_4);
+        removeSnapshotAndAssert(TIMESTAMP_2, SEQUENCE_2)
+                .as("snapshot is the latest non-essential and thus kept")
+                .hasValue(SNAPSHOT_2);
+
+        removeSnapshotAndAssert(TIMESTAMP_1, SEQUENCE_1)
+                .as("snapshot is not the latest and thus removed")
+                .isEmpty();
+
+        removeSnapshotAndAssert(TIMESTAMP_4, SEQUENCE_4)
+                .as("snapshot is the latest non-essential and thus kept")
+                .hasValue(SNAPSHOT_4);
+
+        removeSnapshotAndAssert(TIMESTAMP_3, SEQUENCE_3)
+                .as("snapshot is not the latest and thus removed")
+                .isEmpty();
 
         snapshotStore.storeSnapshot(SEQUENCE_5, ImmutableSet.of(TIMESTAMP_5), SNAPSHOT_5);
-        removeSnapshotAndAssert(TIMESTAMP_5, SEQUENCE_5).hasValue(SNAPSHOT_5);
-        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_3)).isEmpty();
+        removeSnapshotAndAssert(TIMESTAMP_5, SEQUENCE_5)
+                .as("snapshot is the latest non-essential and thus kept")
+                .hasValue(SNAPSHOT_5);
+
+        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_4))
+                .as("snapshot is no longer latest and thus removed")
+                .isEmpty();
+    }
+
+    @Test
+    public void removeTimestampKeepsOldTimestampsButNotThoseInBetween() {
+        snapshotStore = new SnapshotStoreImpl(1, 20_000, CACHE_METRICS);
+        snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_2, ImmutableSet.of(TIMESTAMP_2), SNAPSHOT_2);
+        snapshotStore.storeSnapshot(SEQUENCE_3, ImmutableSet.of(TIMESTAMP_3), SNAPSHOT_3);
+        snapshotStore.storeSnapshot(SEQUENCE_4, ImmutableSet.of(TIMESTAMP_4), SNAPSHOT_4);
+
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_2, TIMESTAMP_2);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_3, TIMESTAMP_3);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_4, TIMESTAMP_4);
+
+        removeSnapshotAndAssert(TIMESTAMP_4, SEQUENCE_4)
+                .as("snapshot is the latest non-essential and thus kept")
+                .hasValue(SNAPSHOT_4);
+
+        removeSnapshotAndAssert(TIMESTAMP_2, SEQUENCE_2)
+                .as("snapshot is not the latest and thus removed")
+                .isEmpty();
+
+        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_1))
+                .as("old snapshot is kept around as it has a live timestamp")
+                .hasValue(SNAPSHOT_1);
+
+        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_4))
+                .as("new snapshot is kept around as is the latest")
+                .hasValue(SNAPSHOT_4);
+    }
+
+    @Test
+    public void retentionIsNotRunOnEveryRemoval() {
+        snapshotStore = new SnapshotStoreImpl(0, 20_000, CACHE_METRICS);
+        long numEntries = 100L;
+        List<Sequence> sequences =
+                LongStream.range(0, numEntries).mapToObj(Sequence::of).collect(Collectors.toList());
+        List<StartTimestamp> timestamps =
+                LongStream.range(0, numEntries).mapToObj(StartTimestamp::of).collect(Collectors.toList());
+
+        Streams.forEachPair(
+                sequences.stream(),
+                timestamps.stream(),
+                (sequence, timestamp) -> snapshotStore.storeSnapshot(sequence, ImmutableSet.of(timestamp), SNAPSHOT_1));
+
+        timestamps.forEach(timestamp -> assertSnapshotsEqualForTimestamp(SNAPSHOT_1, timestamp));
+        timestamps.forEach(timestamp -> snapshotStore.removeTimestamp(timestamp));
+        timestamps.forEach(
+                timestamp -> assertThat(snapshotStore.getSnapshot(timestamp)).isEmpty());
+        assertThat(anySnapshotPresentForSequences(sequences)).isTrue();
+        forceRunSnapshotRetention();
+        assertThat(anySnapshotPresentForSequences(sequences)).isFalse();
+    }
+
+    private boolean anySnapshotPresentForSequences(List<Sequence> sequences) {
+        return sequences.stream()
+                .anyMatch(sequence ->
+                        snapshotStore.getSnapshotForSequence(sequence).isPresent());
     }
 
     private OptionalAssert<ValueCacheSnapshot> removeSnapshotAndAssert(StartTimestamp timestamp, Sequence sequence) {
         snapshotStore.removeTimestamp(timestamp);
+        forceRunSnapshotRetention();
         assertThat(snapshotStore.getSnapshot(timestamp)).isEmpty();
         return assertThat(snapshotStore.getSnapshotForSequence(sequence));
+    }
+
+    private void forceRunSnapshotRetention() {
+        // retention is now rate-limited, so we must bypass if we want to guarantee the removal of a snapshot
+        ((SnapshotStoreImpl) snapshotStore).retentionSnapshots();
     }
 
     private void assertSnapshotsEqualForTimestamp(ValueCacheSnapshot expectedValue, StartTimestamp... timestamps) {

@@ -21,6 +21,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Arrays;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 /**
  * The ticketing algorithm distributes timestamps among rows and dynamic columns to avoid hot-spotting.
@@ -44,7 +46,7 @@ import java.util.Arrays;
 public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
     INSTANCE;
 
-    private static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
+    public static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
 
     // DO NOT change the following without a transactions table migration!
     public static final long PARTITIONING_QUANTUM = 25_000_000;
@@ -84,8 +86,23 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
     }
 
     private static byte[] encodeRowName(long startTimestamp) {
-        long row = (startTimestamp / PARTITIONING_QUANTUM) * ROWS_PER_QUANTUM
+        return rowToBytes(startTimestampToRow(startTimestamp));
+    }
+
+    public Stream<byte[]> getRowSetCoveringTimestampRange(long fromInclusive, long toInclusive) {
+        long startRow =
+                startTimestampToRow(fromInclusive - ((fromInclusive % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM));
+        long endRow = startTimestampToRow(
+                toInclusive + ROWS_PER_QUANTUM - ((toInclusive % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM) - 1);
+        return LongStream.rangeClosed(startRow, endRow).mapToObj(TicketsEncodingStrategy::rowToBytes);
+    }
+
+    private static long startTimestampToRow(long startTimestamp) {
+        return (startTimestamp / PARTITIONING_QUANTUM) * ROWS_PER_QUANTUM
                 + (startTimestamp % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM;
+    }
+
+    private static byte[] rowToBytes(long row) {
         return PtBytes.toBytes(Long.reverse(row));
     }
 

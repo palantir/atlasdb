@@ -91,14 +91,9 @@ public class AtlasBackupServiceTest {
         when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(namespaces)))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS, otherInProgress)));
 
-        CompletedBackup completedBackup = CompletedBackup.builder()
-                .namespace(NAMESPACE)
-                .backupStartTimestamp(2L)
-                .backupEndTimestamp(3L)
-                .build();
         when(atlasBackupClient.completeBackup(
                         authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS, otherInProgress))))
-                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
+                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup())));
 
         atlasBackupService.prepareBackup(namespaces);
 
@@ -111,11 +106,7 @@ public class AtlasBackupServiceTest {
         when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
 
-        CompletedBackup completedBackup = CompletedBackup.builder()
-                .namespace(NAMESPACE)
-                .backupStartTimestamp(2L)
-                .backupEndTimestamp(3L)
-                .build();
+        CompletedBackup completedBackup = completedBackup();
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS))))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
 
@@ -124,6 +115,15 @@ public class AtlasBackupServiceTest {
 
         verify(coordinationServiceRecorder).storeFastForwardState(completedBackup);
         assertThat(backupPersister.getCompletedBackup(NAMESPACE)).contains(completedBackup);
+    }
+
+    private static CompletedBackup completedBackup() {
+        return CompletedBackup.builder()
+                .namespace(NAMESPACE)
+                .immutableTimestamp(1L)
+                .backupStartTimestamp(2L)
+                .backupEndTimestamp(3L)
+                .build();
     }
 
     private static InProgressBackupToken inProgressBackupToken(Namespace namespace) {

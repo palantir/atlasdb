@@ -362,6 +362,13 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
+        maybeLog(
+                () -> delegate.setOnce(tableRef, values),
+                logCellsAndSize("setOnce", tableRef, values.keySet().size(), byteSize(values)));
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate.getCheckAndSetCompatibility();
     }

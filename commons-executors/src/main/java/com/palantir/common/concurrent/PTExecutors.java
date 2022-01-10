@@ -773,6 +773,7 @@ public final class PTExecutors {
         return new NamedThreadFactory(computeBaseThreadName(classToIgnore), isDaemon);
     }
 
+    @SuppressWarnings("ThreadPriorityCheck") // Used internally
     public static ThreadFactory newThreadFactory(final String prefix, final int priority, final boolean isDaemon) {
         ThreadFactory threadFactory = new ThreadFactory() {
             private final AtomicInteger nextThreadId = new AtomicInteger();

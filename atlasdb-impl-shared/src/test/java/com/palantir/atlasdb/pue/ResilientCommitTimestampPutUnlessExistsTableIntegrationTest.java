@@ -25,6 +25,7 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.concurrent.PTExecutors;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -84,7 +85,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
             try {
                 writeExecutionLatch.await();
                 Uninterruptibles.sleepUninterruptibly(
-                        ThreadLocalRandom.current().nextInt(10), TimeUnit.MILLISECONDS);
+                        Duration.ofMillis(ThreadLocalRandom.current().nextInt(10)));
                 pueTable.putUnlessExists(startTimestamp, startTimestamp + writerIndex);
             } catch (RuntimeException e) {
                 // Expected - some failures will happen as part of our test.

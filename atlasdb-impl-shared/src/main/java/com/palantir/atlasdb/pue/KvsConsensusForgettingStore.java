@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.pue;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
@@ -37,15 +36,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
-    /**
-     * This value has been chosen so that, in case of internal KVS inconsistency, the value stored with
-     * {@link KvsConsensusForgettingStore#put(Cell, byte[])} is always considered as the latest value. It is the
-     * responsibility of the user of this class to verify that this is true for the particular KVS implementation,
-     * which it is and must remain so for the Cassandra KVS.
-     */
-    @VisibleForTesting
-    static final long PUT_TIMESTAMP = Long.MAX_VALUE - 10;
-
     private final KeyValueService kvs;
     private final TableReference tableRef;
 
@@ -97,6 +87,6 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
 
     @Override
     public void put(Map<Cell, byte[]> values) {
-        kvs.put(tableRef, values, PUT_TIMESTAMP);
+        kvs.setOnce(tableRef, values);
     }
 }

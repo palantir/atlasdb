@@ -34,6 +34,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
@@ -82,7 +83,7 @@ public class InstrumentedConsensusForgettingStoreTest {
         assertThat(metrics.checkAndTouch().getCount()).isEqualTo(2);
 
         doAnswer(invocation -> {
-                    Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100));
                     return null;
                 })
                 .when(delegate)
