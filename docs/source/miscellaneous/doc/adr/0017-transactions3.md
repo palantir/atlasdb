@@ -89,7 +89,7 @@ public interface PutUnlessExistsTable<K, V> {
 ```
 
 As a primitive, we define a *put-unless-exists value* as a pair of a value and a state enumeration. This state indicates
-whether the value is *pending* or *committed*.
+whether the value is *staging* or *committed*.
 
 ```java
 public interface PutUnlessExistsValue<V> {
@@ -268,7 +268,7 @@ more work, and values that need to be passed to and from the database are strict
 this to add more than a constant amount of overhead, and this should be very small in the steady state. This isn't a
 very fair comparison, in any case, as the transactions2 approach is not correct.
 
-## Appendices
+## Appendix
 
 ### Proof of Read Consistency
 We first prove a lemma, Lemma 1: the first time the quorum of nodes with the latest writes contains a combination of
