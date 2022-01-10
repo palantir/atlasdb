@@ -17,7 +17,6 @@ package com.palantir.common.base;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -25,6 +24,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.common.annotation.Inclusive;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -86,7 +87,7 @@ public final class BatchingVisitables {
     }
 
     /**
-     * @return Visitable containing elements from the start of the visitable
+     * Returns a visitable containing elements from the start of the visitable
      * for which the predicate holds true. Once boundingPredicate returns false for an
      * element of visitable, no more elements will be included in the returned visitable.
      */
@@ -113,7 +114,7 @@ public final class BatchingVisitables {
     }
 
     /**
-     * @return the first element or null if the visitable is empty
+     * Returns the first element or null if the visitable is empty
      */
     @Nullable
     public static <T> T getFirst(BatchingVisitable<T> visitable) {
@@ -246,7 +247,7 @@ public final class BatchingVisitables {
     }
 
     public static <T> BatchingVisitableView<T> filter(BatchingVisitable<T> visitable, final Predicate<? super T> pred) {
-        com.palantir.logsafe.Preconditions.checkNotNull(pred);
+        Preconditions.checkNotNull(pred);
         return transformBatch(visitable, input -> ImmutableList.copyOf(Iterables.filter(input, pred)));
     }
 
@@ -257,8 +258,8 @@ public final class BatchingVisitables {
 
     public static <F, T> BatchingVisitableView<T> transformBatch(
             final BatchingVisitable<F> visitable, final Function<? super List<F>, ? extends List<T>> f) {
-        com.palantir.logsafe.Preconditions.checkNotNull(visitable);
-        com.palantir.logsafe.Preconditions.checkNotNull(f);
+        Preconditions.checkNotNull(visitable);
+        Preconditions.checkNotNull(f);
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint, final ConsistentVisitor<T, K> v)
@@ -269,8 +270,8 @@ public final class BatchingVisitables {
     }
 
     public static <T> BatchingVisitableView<T> limit(final BatchingVisitable<T> visitable, final long limit) {
-        com.palantir.logsafe.Preconditions.checkNotNull(visitable);
-        com.palantir.logsafe.Preconditions.checkArgument(limit >= 0);
+        Preconditions.checkNotNull(visitable);
+        Preconditions.checkArgument(limit >= 0);
         if (limit == 0) {
             return emptyBatchingVisitable();
         }
@@ -306,8 +307,8 @@ public final class BatchingVisitables {
     }
 
     public static <T> BatchingVisitableView<T> skip(final BatchingVisitable<T> visitable, final long toSkip) {
-        com.palantir.logsafe.Preconditions.checkNotNull(visitable);
-        com.palantir.logsafe.Preconditions.checkArgument(toSkip >= 0);
+        Preconditions.checkNotNull(visitable);
+        Preconditions.checkArgument(toSkip >= 0);
         if (toSkip == 0) {
             return BatchingVisitableView.of(visitable);
         }
@@ -356,8 +357,8 @@ public final class BatchingVisitables {
 
     public static <T> BatchingVisitableView<T> uniqueOn(
             final BatchingVisitable<T> visitable, final Function<T, ?> function) {
-        com.palantir.logsafe.Preconditions.checkNotNull(visitable);
-        com.palantir.logsafe.Preconditions.checkNotNull(function);
+        Preconditions.checkNotNull(visitable);
+        Preconditions.checkNotNull(function);
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint, final ConsistentVisitor<T, K> v)
@@ -405,7 +406,8 @@ public final class BatchingVisitables {
 
     public static <T, TOKEN> TokenBackedBasicResultsPage<T, TOKEN> getFirstPage(
             BatchingVisitable<T> v, int numToVisitArg, Function<T, TOKEN> tokenExtractor) {
-        Preconditions.checkArgument(numToVisitArg >= 0, "numToVisit cannot be negative.  Value was: %d", numToVisitArg);
+        Preconditions.checkArgument(
+                numToVisitArg >= 0, "numToVisit cannot be negative.", SafeArg.of("numToVisit", numToVisitArg));
 
         if (numToVisitArg == Integer.MAX_VALUE) {
             // prevent issue with overflow
@@ -415,7 +417,7 @@ public final class BatchingVisitables {
         final int numToVisit = numToVisitArg + 1;
         ImmutableList<T> list = BatchingVisitableView.of(v).limit(numToVisit).immutableCopy();
 
-        com.palantir.logsafe.Preconditions.checkState(list.size() <= numToVisit);
+        Preconditions.checkState(list.size() <= numToVisit);
         if (list.size() >= numToVisit) {
             TOKEN token = tokenExtractor.apply(list.get(list.size() - 1));
             list = list.subList(0, numToVisit - 1);
@@ -437,7 +439,7 @@ public final class BatchingVisitables {
      * a lot of potential round trips by hinting a page size of 100.
      */
     public static <T> BatchingVisitableView<T> hintPageSize(final BatchingVisitable<T> bv, final int pageSize) {
-        com.palantir.logsafe.Preconditions.checkArgument(pageSize > 0);
+        Preconditions.checkArgument(pageSize > 0);
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint, ConsistentVisitor<T, K> v)
@@ -474,7 +476,7 @@ public final class BatchingVisitables {
     }
 
     public static <T> BatchingVisitableView<T> concat(final Iterable<? extends BatchingVisitable<? extends T>> inputs) {
-        com.palantir.logsafe.Preconditions.checkNotNull(inputs);
+        Preconditions.checkNotNull(inputs);
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint, ConsistentVisitor<T, K> v)
@@ -495,7 +497,7 @@ public final class BatchingVisitables {
 
     public static <T> BatchingVisitableView<T> flatten(
             final int outerBatchHint, final BatchingVisitable<? extends BatchingVisitable<? extends T>> inputs) {
-        com.palantir.logsafe.Preconditions.checkNotNull(inputs);
+        Preconditions.checkNotNull(inputs);
         return BatchingVisitableView.of(new AbstractBatchingVisitable<T>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(

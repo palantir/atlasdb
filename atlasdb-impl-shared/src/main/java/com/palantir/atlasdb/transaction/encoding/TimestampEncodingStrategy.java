@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-
 /**
  * Strategy for encoding start timestamps as cells, possibly for persistence.
  *
@@ -28,12 +26,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
  * - for any timestamp ts', decodeValueAsCommitTimestamp(ts', encodeCommitTimestampAsValue(ts', ts)) == ts
  *
  */
-public interface TimestampEncodingStrategy {
-    Cell encodeStartTimestampAsCell(long startTimestamp);
+public interface TimestampEncodingStrategy<V> extends CellEncodingStrategy {
+    byte[] encodeCommitTimestampAsValue(long startTimestamp, V commitTimestamp);
 
-    long decodeCellAsStartTimestamp(Cell cell);
-
-    byte[] encodeCommitTimestampAsValue(long startTimestamp, long commitTimestamp);
-
-    long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value);
+    V decodeValueAsCommitTimestamp(long startTimestamp, byte[] value);
 }

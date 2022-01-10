@@ -141,7 +141,7 @@ public class SweepableCellFilterParametrizedTest {
         AFTER(SWEEP_TS + 1),
         ABORTED(TransactionConstants.FAILED_COMMIT_TS);
 
-        private long commitTs;
+        private final long commitTs;
 
         Committed(long commitTs) {
             this.commitTs = commitTs;

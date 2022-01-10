@@ -22,6 +22,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.function.Function;
 
+@SuppressWarnings("ImmutableEnumChecker")
 public enum Sweeper {
     CONSERVATIVE(
             provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()), false, true),

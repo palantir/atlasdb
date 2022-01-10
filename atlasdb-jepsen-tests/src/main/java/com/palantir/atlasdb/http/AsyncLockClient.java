@@ -23,6 +23,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
+import com.palantir.lock.v2.DefaultNamespacedTimelockRpcClient;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -46,7 +47,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {
         AtlasDbDialogueServiceProvider provider = TimelockUtils.createServiceProvider(metricsManager, hosts);
         return new AsyncLockClient(
-                new NamespacedTimelockRpcClient(provider.getTimelockRpcClient(), NAMESPACE),
+                new DefaultNamespacedTimelockRpcClient(provider.getTimelockRpcClient(), NAMESPACE),
                 new NamespacedConjureTimelockServiceImpl(provider.getConjureTimelockService(), NAMESPACE));
     }
 

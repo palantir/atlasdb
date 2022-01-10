@@ -91,6 +91,7 @@ public class AtlasDbConfigTest {
     }
 
     @Test
+    @SuppressWarnings("ImmutablesBuilderMissingInitialization") // This test tests this behaviour
     public void kvsConfigIsRequired() {
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder().build()).isInstanceOf(IllegalStateException.class);
     }

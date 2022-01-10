@@ -4,9 +4,9 @@ dependencies {
   compile project(":lock-api")
   compile project(":atlasdb-commons")
 
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-  compile group: 'joda-time', name: 'joda-time'
-  compile group: 'org.yaml', name: 'snakeyaml'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'joda-time', name: 'joda-time'
+  implementation group: 'org.yaml', name: 'snakeyaml'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'

@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: We now keep the information of last request that set the lower timestamp
+    bound for logging.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5758

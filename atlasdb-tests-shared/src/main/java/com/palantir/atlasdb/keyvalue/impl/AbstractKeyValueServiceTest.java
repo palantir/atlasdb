@@ -38,7 +38,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -1544,8 +1543,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void putUnlessExistsDecodesCellsCorrectlyIfSupported() {
-        assumeTrue(
-                keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE);
+        assumeDetailOnFailureSupported();
 
         keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
 
@@ -1996,5 +1994,10 @@ public abstract class AbstractKeyValueServiceTest {
         return LongStream.rangeClosed(1L, numberOfTimestamps)
                 .mapToObj(timestamp -> Value.create(data, timestamp))
                 .collect(Collectors.toList());
+    }
+
+    private void assumeDetailOnFailureSupported() {
+        assumeTrue(checkAndSetSupported());
+        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsDetailOnFailure());
     }
 }

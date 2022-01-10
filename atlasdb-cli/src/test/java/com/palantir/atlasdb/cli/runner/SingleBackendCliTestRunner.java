@@ -21,7 +21,7 @@ import java.net.URISyntaxException;
 
 public interface SingleBackendCliTestRunner extends AutoCloseable {
 
-    <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws Exception;
+    AtlasDbServices connect(AtlasDbServicesFactory factory) throws Exception;
 
     void parse(String... args);
 

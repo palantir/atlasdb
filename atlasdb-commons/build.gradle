@@ -4,12 +4,12 @@ dependencies {
     compile project(":commons-executors")
     compile project(":commons-annotations")
 
-    compile (group: 'io.dropwizard.metrics', name: 'metrics-core') {
+    implementation (group: 'io.dropwizard.metrics', name: 'metrics-core') {
         exclude (module: 'slf4j-api')
     }
-    compile group: 'net.jpountz.lz4', name: 'lz4'
-    compile group: 'com.palantir.common', name: 'streams'
-    compile group: 'com.palantir.safe-logging', name: 'preconditions'
+    implementation group: 'net.jpountz.lz4', name: 'lz4'
+    implementation group: 'com.palantir.common', name: 'streams'
+    implementation group: 'com.palantir.safe-logging', name: 'preconditions'
     api 'com.palantir.safe-logging:logger', {
         because 'API dependency due to AssertUtils.assertAndLog(SafeLogger...'
     }

@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-class LockLeaseService implements AutoCloseable {
+public class LockLeaseService implements AutoCloseable {
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
     private final LeaderTimeGetter leaderTimeGetter;
@@ -56,7 +56,7 @@ class LockLeaseService implements AutoCloseable {
         this.lockService = BlockEnforcingLockService.create(delegate);
     }
 
-    static LockLeaseService create(
+    public static LockLeaseService create(
             NamespacedConjureTimelockService conjureTimelock, LeaderTimeGetter leaderTimeGetter) {
         return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter);
     }
@@ -85,7 +85,8 @@ class LockLeaseService implements AutoCloseable {
                 LockImmutableTimestampResponse.of(immutableTs, leasedLockToken), response.timestamps(), lease);
     }
 
-    ConjureStartTransactionsResponse startTransactionsWithWatches(
+    // Visible for testing
+    public ConjureStartTransactionsResponse startTransactionsWithWatches(
             Optional<LockWatchVersion> maybeVersion, int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
@@ -96,7 +97,7 @@ class LockLeaseService implements AutoCloseable {
         return assignLeasedLockTokenToImmutableTimestampLock(delegate.startTransactions(request));
     }
 
-    public static ConjureStartTransactionsResponse assignLeasedLockTokenToImmutableTimestampLock(
+    static ConjureStartTransactionsResponse assignLeasedLockTokenToImmutableTimestampLock(
             ConjureStartTransactionsResponse response) {
         Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(

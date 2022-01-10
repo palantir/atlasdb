@@ -271,7 +271,7 @@ public class PaxosStateLogMigratorTest {
         when(mockLog.getLeastLogEntry()).thenReturn(lowerBound);
         when(mockLog.getGreatestLogEntry()).thenReturn(upperBound);
         when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
-            long sequence = (long) invocation.getArguments()[0];
+            long sequence = invocation.getArgument(0);
             if (sequence > upperBound || sequence < lowerBound) {
                 return null;
             }

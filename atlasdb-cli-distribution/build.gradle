@@ -5,15 +5,15 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
-  runtime project(':atlasdb-cli')
+  runtimeOnly project(':atlasdb-cli')
 
   // Supported KVSs
-  runtime project(':atlasdb-cassandra')
-  runtime project(':atlasdb-dbkvs')
+  runtimeOnly project(':atlasdb-cassandra')
+  runtimeOnly project(':atlasdb-dbkvs')
 
   // Unsupported KVSs (included for migration purposes)
-  runtime project(':atlasdb-hikari')
-  runtime project(':atlasdb-jdbc')
+  runtimeOnly project(':atlasdb-hikari')
+  runtimeOnly project(':atlasdb-jdbc')
 }
 
 distribution {

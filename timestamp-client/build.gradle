@@ -6,8 +6,8 @@ dependencies {
   compile project(":atlasdb-autobatch")
   compile project(":atlasdb-commons")
 
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
 
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'

@@ -7,7 +7,7 @@ dependencies {
   compile(project(":atlasdb-commons"))
   compile(project(":atlasdb-client"))
 
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
 
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
@@ -19,6 +19,8 @@ dependencies {
 
   annotationProcessor 'com.google.auto.service:auto-service'
   compileOnly 'com.google.auto.service:auto-service'
+  annotationProcessor 'org.immutables:value'
+  compileOnly 'org.immutables:value:annotations'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
 

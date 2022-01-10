@@ -17,10 +17,6 @@ package com.palantir.util;
 
 import javax.management.MXBean;
 
-/**
- *
- *
- */
 @MXBean
 public interface CacheStatsMBean {
 

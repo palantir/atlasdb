@@ -130,7 +130,7 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void throwForMissingOverflowTable() {
         throw new SafeIllegalArgumentException(
-                "Unsupported table change from raw to overflow for table {}, likely due to a schema change. "
+                "Unsupported table change from raw to overflow, likely due to a schema change. "
                         + "Changing the table type requires manual intervention. Please roll back the change or "
                         + "contact support for help with the change.",
                 LoggingArgs.tableRef(tableRef));

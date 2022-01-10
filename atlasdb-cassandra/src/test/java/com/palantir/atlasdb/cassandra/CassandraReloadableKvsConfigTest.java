@@ -30,12 +30,12 @@ import org.junit.Test;
 public class CassandraReloadableKvsConfigTest {
 
     private static final CassandraServersConfig SERVERS_1 = ImmutableDefaultConfig.builder()
-            .addThriftHosts(new InetSocketAddress("host1", 5000))
-            .addThriftHosts(new InetSocketAddress("host2", 5000))
+            .addThriftHosts(InetSocketAddress.createUnresolved("host1", 5000))
+            .addThriftHosts(InetSocketAddress.createUnresolved("host2", 5000))
             .build();
     private static final CassandraServersConfig SERVERS_2 = ImmutableDefaultConfig.builder()
-            .addThriftHosts(new InetSocketAddress("host3", 5000))
-            .addThriftHosts(new InetSocketAddress("host4", 5000))
+            .addThriftHosts(InetSocketAddress.createUnresolved("host3", 5000))
+            .addThriftHosts(InetSocketAddress.createUnresolved("host4", 5000))
             .build();
 
     private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
@@ -132,7 +132,7 @@ public class CassandraReloadableKvsConfigTest {
                         () -> new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("'servers' must have at least one defined host")
-                .hasExactlyArgs();
+                .hasNoArgs();
     }
 
     @Test

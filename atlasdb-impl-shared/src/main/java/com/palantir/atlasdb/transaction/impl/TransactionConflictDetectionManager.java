@@ -24,7 +24,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.Nullable;
 
 public final class TransactionConflictDetectionManager {
 
@@ -67,8 +66,7 @@ public final class TransactionConflictDetectionManager {
         }
     }
 
-    @Nullable
-    public ConflictHandler get(TableReference tableReference) {
-        return conflictHandlers.computeIfAbsent(tableReference, delegate::get).orElse(null);
+    public Optional<ConflictHandler> get(TableReference tableReference) {
+        return conflictHandlers.computeIfAbsent(tableReference, delegate::get);
     }
 }

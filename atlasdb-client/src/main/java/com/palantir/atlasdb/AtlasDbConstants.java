@@ -122,6 +122,30 @@ public final class AtlasDbConstants {
             PERSISTED_LOCKS_TABLE,
             COORDINATION_TABLE);
 
+    /**
+     * Some key-value services may support atomic put unless exists and check and touch operations, but fail to
+     * guarantee repeatable reads in the general case. They may offer (potentially more costly) options for reading
+     * cells that do support repeatable reads.
+     *
+     * Where applicable, tables in this set should ideally not be read frequently. Implementers are encouraged to
+     * provide alternative solutions in cases where the tables are read frequently and/or read performance is
+     * critical. See ResilientCommitTimestampPutUnlessExistsTable for an example of how to work around such
+     * limitations for the {@link TransactionConstants#TRANSACTIONS2_TABLE}.
+     */
+    public static final ImmutableSet<TableReference> SERIAL_CONSISTENCY_ATOMIC_TABLES =
+            ImmutableSet.of(COORDINATION_TABLE);
+
+    /**
+     * These tables are atomic tables, but are not intended to be read in a high-cost mode. The intention of this set
+     * is to ensure that decisions are made the set of {@link #ATOMIC_TABLES}.
+     */
+    public static final ImmutableSet<TableReference> NON_SERIAL_CONSISTENCY_ATOMIC_TABLES = ImmutableSet.of(
+            TransactionConstants.TRANSACTION_TABLE, // Bankruptcy
+            TransactionConstants.TRANSACTIONS2_TABLE, // Bankruptcy for Transactions2, handled for Transactions3
+            NAMESPACE_TABLE, // Used for KvTableMappingService, only by Oracle
+            PERSISTED_LOCKS_TABLE // Maintained for legacy purposes
+            );
+
     public static final ImmutableSet<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED =
             ImmutableSet.of(TableReference.createWithEmptyNamespace("resync_object"));
 

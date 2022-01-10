@@ -85,7 +85,7 @@ public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueService
         keyValueService.createTable(TABLE_1, RAW_TABLE_METADATA);
         assertThatThrownBy(() -> keyValueService.createTable(TABLE_1, OVERFLOW_TABLE_METADATA))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageStartingWith("Unsupported table change from raw to overflow for table");
+                .hasMessageStartingWith("Unsupported table change from raw to overflow");
     }
 
     @Test

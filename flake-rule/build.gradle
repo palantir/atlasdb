@@ -1,9 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile group: 'junit', name: 'junit'
-  compile group: 'org.slf4j', name: 'slf4j-api'
-  compile group: 'com.google.guava', name: 'guava'
+  implementation group: 'junit', name: 'junit'
+  implementation group: 'org.slf4j', name: 'slf4j-api'
+  implementation group: 'com.google.guava', name: 'guava'
 
   testImplementation group: 'ch.qos.logback', name: 'logback-classic'
   testImplementation group: 'org.assertj', name: 'assertj-core'

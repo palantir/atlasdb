@@ -160,7 +160,7 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     private static void markPreemptivelyAsFailure(
             EncodingTransactionService delegate, BatchElement<TimestampPair, Void> batchElem) {
-        Cell cell = delegate.getEncodingStrategy()
+        Cell cell = delegate.getCellEncodingStrategy()
                 .encodeStartTimestampAsCell(batchElem.argument().startTimestamp());
         KeyAlreadyExistsException exception = new KeyAlreadyExistsException(
                 "Failed because other client-side element succeeded", ImmutableList.of(cell));
@@ -299,7 +299,7 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     private static Set<Long> decodeCellsToTimestamps(EncodingTransactionService delegate, Collection<Cell> cells) {
         return cells.stream()
-                .map(key -> delegate.getEncodingStrategy().decodeCellAsStartTimestamp(key))
+                .map(key -> delegate.getCellEncodingStrategy().decodeCellAsStartTimestamp(key))
                 .collect(Collectors.toSet());
     }
 
