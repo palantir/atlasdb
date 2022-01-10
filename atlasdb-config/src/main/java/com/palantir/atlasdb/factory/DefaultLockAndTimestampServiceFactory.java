@@ -191,6 +191,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .build();
     }
 
+    @SuppressWarnings("TooManyArguments") // Legacy
     static LockAndTimestampServices createRawInstrumentedServices(
             MetricsManager metricsManager,
             AtlasDbConfig config,
