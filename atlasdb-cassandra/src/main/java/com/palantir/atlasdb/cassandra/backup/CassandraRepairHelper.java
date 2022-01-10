@@ -35,6 +35,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -87,8 +88,6 @@ public class CassandraRepairHelper {
         CqlCluster cqlCluster = cqlClusters.get(namespace);
         KeyedStream.of(getTableNamesToRepair(kvs))
                 .map(tableName -> getRangesToRepair(cqlCluster, namespace, tableName))
-                // TODO(gs): this will do repairs serially, instead of batched. Is this fine? Port batching from
-                //   internal product?
                 .forEach(repairTable);
     }
 
