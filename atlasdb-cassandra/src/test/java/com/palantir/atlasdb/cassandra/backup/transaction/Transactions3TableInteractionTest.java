@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.transaction;
+package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.PARTITIONING_QUANTUM;
 import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.ROWS_PER_QUANTUM;
@@ -35,6 +35,7 @@ import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,7 +96,7 @@ public class Transactions3TableInteractionTest {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
         Transactions3TableInteraction txnInteraction =
                 new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
-        List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
+        List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, ROWS_PER_QUANTUM - 1);
         assertThat(selects)
                 .extracting(statement -> statement.toString().trim().toLowerCase())
@@ -107,7 +108,7 @@ public class Transactions3TableInteractionTest {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, PARTITIONING_QUANTUM + 1000000);
         Transactions3TableInteraction txnInteraction =
                 new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
-        List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
+        List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0, 2 * ROWS_PER_QUANTUM - 1);
         assertThat(selects)
                 .extracting(statement -> statement.toString().trim().toLowerCase())
@@ -119,7 +120,7 @@ public class Transactions3TableInteractionTest {
         Range<Long> rangeWithinOnePartition = Range.closedOpen(100L, 25000000L);
         Transactions3TableInteraction txnInteraction =
                 new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
-        List<Statement> selects = txnInteraction.createSelectStatements(tableMetadata);
+        List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, 15L);
         assertThat(selects)
                 .extracting(statement -> statement.toString().trim().toLowerCase())

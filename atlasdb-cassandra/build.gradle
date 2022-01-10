@@ -83,6 +83,7 @@ dependencies {
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.apache.thrift:libthrift'
   testImplementation 'com.palantir.tracing:tracing-api'
+  testImplementation 'jakarta.xml.bind:jakarta.xml.bind-api'
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')
   testImplementation project(':commons-executors')
@@ -94,6 +95,8 @@ dependencies {
   compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
+  annotationProcessor 'org.derive4j:derive4j'
+  compileOnly 'org.derive4j:derive4j-annotation'
 }
 
 shadowJar {

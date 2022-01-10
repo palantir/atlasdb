@@ -14,20 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.backup.transaction;
+package com.palantir.lock.client;
 
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
-import org.derive4j.Data;
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 
-@Data
-public abstract class TransactionTableEntry {
-    public interface Cases<R> {
-        R explicitlyAborted(long startTimestamp);
-
-        R committedLegacy(long startTimestamp, long commitTimestamp);
-
-        R committedTwoPhase(long startTimestamp, PutUnlessExistsValue<Long> commitValue);
-    }
-
-    public abstract <R> R match(Cases<R> cases);
+public interface LockWatchStarter {
+    void startWatching(LockWatchRequest request);
 }

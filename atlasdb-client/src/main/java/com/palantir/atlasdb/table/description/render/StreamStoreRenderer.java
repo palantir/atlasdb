@@ -231,7 +231,7 @@ public class StreamStoreRenderer {
                 {
                     line(
                             "super(txManager, ",
-                            streamCompression.getClass().getSimpleName() + "." + streamCompression,
+                            streamCompression.getDeclaringClass().getSimpleName() + "." + streamCompression,
                             ", persistenceConfiguration);");
                     line("this.tables = tables;");
                 }

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,20 +20,8 @@ package com.palantir.lock.v2;
  * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a
  * parameter.
  */
-public class NamespacedTimelockRpcClient {
-    private final TimelockRpcClient timelockRpcClient;
-    private final String namespace;
+public interface NamespacedTimelockRpcClient {
+    long getImmutableTimestamp();
 
-    public NamespacedTimelockRpcClient(TimelockRpcClient timelockRpcClient, String namespace) {
-        this.timelockRpcClient = timelockRpcClient;
-        this.namespace = namespace;
-    }
-
-    public long getImmutableTimestamp() {
-        return timelockRpcClient.getImmutableTimestamp(namespace);
-    }
-
-    public long currentTimeMillis() {
-        return timelockRpcClient.currentTimeMillis(namespace);
-    }
+    long currentTimeMillis();
 }

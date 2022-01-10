@@ -131,6 +131,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -1929,10 +1930,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
-        return com.google.common.base.Preconditions.checkNotNull(
-                conflictDetectionManager.get(tableRef),
-                "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
-                tableRef);
+        return conflictDetectionManager
+                .get(tableRef)
+                .orElseThrow(() -> new SafeNullPointerException(
+                        "Not a valid table for this transaction. Make sure this table name exists or has a valid "
+                                + "namespace.",
+                        LoggingArgs.tableRef(tableRef)));
     }
 
     private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken, Set<LockToken> expiredLocks) {

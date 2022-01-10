@@ -1548,9 +1548,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static boolean matchingIgnoreCase(@Nullable TableReference t1, TableReference t2) {
         if (t1 != null) {
-            return t1.getQualifiedName()
-                    .toLowerCase()
-                    .equals(t2.getQualifiedName().toLowerCase());
+            return t1.getQualifiedName().equalsIgnoreCase(t2.getQualifiedName());
         } else {
             return t2 == null;
         }
@@ -1875,6 +1873,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             });
         } catch (KeyAlreadyExistsException e) {
             throw e;
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    @Override
+    public void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
+        try {
+            cellValuePutter.set(
+                    "setOnce",
+                    tableRef,
+                    KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS));
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }

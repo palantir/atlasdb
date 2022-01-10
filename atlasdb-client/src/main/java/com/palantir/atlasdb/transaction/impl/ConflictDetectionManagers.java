@@ -69,7 +69,7 @@ public final class ConflictDetectionManagers {
             @Override
             public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
                 byte[] metadata = kvs.getMetadataForTable(tableReference);
-                if (metadata == null) {
+                if (metadata.length == 0) {
                     log.error(
                             "Tried to make a transaction over a table that has no metadata: {}.",
                             LoggingArgs.tableRef("tableReference", tableReference));

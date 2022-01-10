@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
@@ -53,7 +52,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
@@ -61,7 +60,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -122,15 +120,13 @@ public abstract class TransactionTestSetup {
 
     protected TimestampCache timestampCache;
 
-    protected InMemoryTimelockServices inMemoryTimelockServices;
+    @Rule
+    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
     protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
         this.tmManager = tmManager;
     }
-
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
     public void setUp() {
@@ -172,11 +168,10 @@ public abstract class TransactionTestSetup {
         keyValueService.truncateTable(TEST_TABLE);
         keyValueService.truncateTable(TEST_TABLE_SERIALIZABLE);
 
-        inMemoryTimelockServices = InMemoryTimelockServices.create(tempFolder);
-        timestampService = inMemoryTimelockServices.getTimestampService();
-        timestampManagementService = inMemoryTimelockServices.getTimestampManagementService();
-        timelockService = inMemoryTimelockServices.getLegacyTimelockService();
-        lockWatchManager = NoOpLockWatchManager.create();
+        timestampService = inMemoryTimeLockRule.getTimestampService();
+        timestampManagementService = inMemoryTimeLockRule.getTimestampManagementService();
+        timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
+        lockWatchManager = inMemoryTimeLockRule.getLockWatchManager();
 
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
@@ -184,12 +179,7 @@ public abstract class TransactionTestSetup {
         transactionService = createTransactionService(keyValueService, transactionSchemaManager);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        txMgr = getManager();
-    }
-
-    @After
-    public void tearDown() {
-        inMemoryTimelockServices.close();
+        txMgr = createAndRegisterManager();
     }
 
     protected KeyValueService getKeyValueService() {
@@ -210,7 +200,7 @@ public abstract class TransactionTestSetup {
         return new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                inMemoryTimelockServices,
+                inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -259,11 +249,7 @@ public abstract class TransactionTestSetup {
         return valueBytes != null ? PtBytes.toString(valueBytes) : null;
     }
 
-    String getCell(Transaction txn, String rowName, String columnName) {
-        return getCell(txn, TEST_TABLE, rowName, columnName);
-    }
-
-    private String getCell(Transaction txn, TableReference tableRef, String rowName, String columnName) {
+    public String getCell(Transaction txn, TableReference tableRef, String rowName, String columnName) {
         Cell cell = createCell(rowName, columnName);
         Map<Cell, byte[]> map = txn.get(tableRef, ImmutableSet.of(cell));
         byte[] valueBytes = map.get(cell);

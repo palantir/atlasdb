@@ -31,10 +31,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
-import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -47,24 +44,17 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
-import com.palantir.atlasdb.transaction.TransactionConfig;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
-import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -84,7 +74,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -104,8 +93,6 @@ import org.junit.Test;
 
 @SuppressWarnings({"checkstyle:all", "DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
-    private static final TransactionConfig TRANSACTION_CONFIG =
-            ImmutableTransactionConfig.builder().build();
     private static final BatchColumnRangeSelection ALL_COLUMNS =
             BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 3);
 
@@ -126,33 +113,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
 
     protected Transaction startTransaction() {
-        long startTimestamp = timestampService.getFreshTimestamp();
-        return new SnapshotTransaction(
-                metricsManager,
-                keyValueService,
-                inMemoryTimelockServices.getLegacyTimelockService(),
-                NoOpLockWatchManager.create(),
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                () -> startTimestamp,
-                ConflictDetectionManagers.create(keyValueService),
-                SweepStrategyManagers.createDefault(keyValueService),
-                startTimestamp,
-                Optional.empty(),
-                PreCommitConditions.NO_OP,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                null,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false,
-                timestampCache,
-                GET_RANGES_EXECUTOR,
-                DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
-                true,
-                () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager));
+        return Iterables.getOnlyElement(txMgr.startTransactions(List.of(PreCommitConditions.NO_OP)));
     }
 
     @Test
@@ -694,7 +655,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testRangesTransaction() {
         Transaction t = startTransaction();
-        put(t, "row1", "col1", "v1");
+        put(t, TEST_TABLE, "row1", "col1", "v1");
         t.commit();
 
         RangeRequest allRange = RangeRequest.builder().batchHint(3).build();
@@ -706,7 +667,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testRangesTransactionColumnSelection() {
         Transaction t = startTransaction();
-        put(t, "row1", "col1", "v1");
+        put(t, TEST_TABLE, "row1", "col1", "v1");
         t.commit();
 
         RangeRequest range1 = RangeRequest.builder().batchHint(3).build();
@@ -799,7 +760,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
-            put(t, "row1", "col" + i, "v" + i);
+            put(t, TEST_TABLE, "row1", "col" + i, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
         }
         t.commit();
@@ -854,7 +815,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
-            put(t, "row1", "col" + i, "v" + i);
+            put(t, TEST_TABLE, "row1", "col" + i, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
         }
         t.commit();
@@ -939,7 +900,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
-            put(t, "row1", "col" + i, "v" + i);
+            put(t, TEST_TABLE, "row1", "col" + i, "v" + i);
             if (i % 2 == 0) {
                 writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
             }
@@ -950,7 +911,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         for (int i = 0; i < totalPuts; i++) {
             if (i % 2 == 1) {
-                put(t, "row1", "col" + i, "t_v" + i);
+                put(t, TEST_TABLE, "row1", "col" + i, "t_v" + i);
                 writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("t_v" + i));
             }
         }
@@ -979,7 +940,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
-            put(t, "row1", "col" + i, "v" + i);
+            put(t, TEST_TABLE, "row1", "col" + i, "v" + i);
             if (i % 2 == 0) {
                 writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
             }
@@ -1169,9 +1130,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testReadMyWrites() {
         Transaction t = startTransaction();
-        put(t, "row1", "col1", "v1");
-        put(t, "row1", "col2", "v2");
-        put(t, "row2", "col1", "v3");
+        put(t, TEST_TABLE, "row1", "col1", "v1");
+        put(t, TEST_TABLE, "row1", "col2", "v2");
+        put(t, TEST_TABLE, "row2", "col1", "v3");
         assertThat(get(t, "row1", "col1")).isEqualTo("v1");
         assertThat(get(t, "row1", "col2")).isEqualTo("v2");
         assertThat(get(t, "row2", "col1")).isEqualTo("v3");
@@ -1186,10 +1147,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testReadMyWritesRange() {
         Transaction t = startTransaction();
-        put(t, "row1", "col1", "v1");
-        put(t, "row1", "col2", "v2");
-        put(t, "row2", "col1", "v3");
-        put(t, "row4", "col1", "v4");
+        put(t, TEST_TABLE, "row1", "col1", "v1");
+        put(t, TEST_TABLE, "row1", "col2", "v2");
+        put(t, TEST_TABLE, "row2", "col1", "v3");
+        put(t, TEST_TABLE, "row4", "col1", "v4");
         t.commit();
 
         t = startTransaction();
@@ -1198,12 +1159,12 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertThat(get(t, "row2", "col1")).isEqualTo("v3");
         BatchingVisitable<RowResult<byte[]>> visitable =
                 t.getRange(TEST_TABLE, RangeRequest.builder().build());
-        put(t, "row0", "col1", "v5");
-        put(t, "row1", "col1", "v5");
-        put(t, "row1", "col3", "v6");
-        put(t, "row3", "col1", "v7");
+        put(t, TEST_TABLE, "row0", "col1", "v5");
+        put(t, TEST_TABLE, "row1", "col1", "v5");
+        put(t, TEST_TABLE, "row1", "col3", "v6");
+        put(t, TEST_TABLE, "row3", "col1", "v7");
         delete(t, "row2", "col1");
-        put(t, "row2", "col2", "v8");
+        put(t, TEST_TABLE, "row2", "col2", "v8");
 
         final Map<Cell, byte[]> vals = new HashMap<>();
         visitable.batchAccept(100, AbortingVisitors.batching((RowVisitor) item -> {
@@ -1222,11 +1183,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testReadMyWritesAfterGetRange() throws InterruptedException, ExecutionException {
         Transaction t = startTransaction();
-        put(t, "row0", "col1", "v0"); // this will come first in the range
-        put(t, "row1", "col1", "v1");
-        put(t, "row1", "col2", "v2");
-        put(t, "row2", "col1", "v3");
-        put(t, "row4", "col1", "v4");
+        put(t, TEST_TABLE, "row0", "col1", "v0"); // this will come first in the range
+        put(t, TEST_TABLE, "row1", "col1", "v1");
+        put(t, TEST_TABLE, "row1", "col2", "v2");
+        put(t, TEST_TABLE, "row2", "col1", "v3");
+        put(t, TEST_TABLE, "row4", "col1", "v4");
         t.commit();
 
         t = startTransaction();
@@ -1236,10 +1197,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         // we need a bunch of buffer writes so that we don't exhaust the local iterator right away
         // because of peeking iterators looking ahead
-        put(t, "a0", "col2", "v0");
-        put(t, "b1", "col3", "v0");
-        put(t, "c2", "col3", "v0");
-        put(t, "d3", "col3", "v0");
+        put(t, TEST_TABLE, "a0", "col2", "v0");
+        put(t, TEST_TABLE, "b1", "col3", "v0");
+        put(t, TEST_TABLE, "c2", "col3", "v0");
+        put(t, TEST_TABLE, "d3", "col3", "v0");
 
         final CountDownLatch latch = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
@@ -1281,11 +1242,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         latch.await();
 
         // These puts will be seen by the range scan happening on the other thread
-        put(t, "row1", "col1", "v5"); // this put is checked to exist
-        put(t, "row1", "col3", "v6"); // it is checked there are 3 cells for this
-        put(t, "row3", "col1", "v7");
+        put(t, TEST_TABLE, "row1", "col1", "v5"); // this put is checked to exist
+        put(t, TEST_TABLE, "row1", "col3", "v6"); // it is checked there are 3 cells for this
+        put(t, TEST_TABLE, "row3", "col1", "v7");
         delete(t, "row2", "col1"); // this delete is checked
-        put(t, "row2", "col2", "v8");
+        put(t, TEST_TABLE, "row2", "col2", "v8");
         latch2.countDown();
         futureTask.get();
     }
@@ -1293,9 +1254,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testReadMyWritesManager() {
         createAndRegisterManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
-            put(t, "row1", "col1", "v1");
-            put(t, "row1", "col2", "v2");
-            put(t, "row2", "col1", "v3");
+            put(t, TEST_TABLE, "row1", "col1", "v1");
+            put(t, TEST_TABLE, "row1", "col2", "v2");
+            put(t, TEST_TABLE, "row2", "col1", "v3");
             assertThat(get(t, "row1", "col1")).isEqualTo("v1");
             assertThat(get(t, "row1", "col2")).isEqualTo("v2");
             assertThat(get(t, "row2", "col1")).isEqualTo("v3");
@@ -1322,7 +1283,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testDelete() {
         createAndRegisterManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
-            put(t, "row1", "col1", "v1");
+            put(t, TEST_TABLE, "row1", "col1", "v1");
             assertThat(get(t, "row1", "col1")).isEqualTo("v1");
             delete(t, "row1", "col1");
             assertThat(get(t, "row1", "col1")).isEqualTo(null);
@@ -1374,14 +1335,14 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testNoNonRepeatableReads() {
         Transaction t0 = startTransaction();
-        put(t0, "row1", "col1", "v1");
+        put(t0, TEST_TABLE, "row1", "col1", "v1");
         t0.commit();
 
         Transaction t1 = startTransaction();
         assertThat(get(t1, "row1", "col1")).isEqualTo("v1");
 
         Transaction t2 = startTransaction();
-        put(t2, "row1", "col1", "v2");
+        put(t2, TEST_TABLE, "row1", "col1", "v2");
         t2.commit();
 
         // Repeated read: should see original value.
