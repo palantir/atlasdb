@@ -34,8 +34,9 @@ following happens on Cassandra (this is implemented in `StorageProxy#cas`):
     3. The Paxos round is then committed on that node (as part of response handlers of (b)), plus other nodes.
     4. We then block until we get read consistency many nodes (QUORUM or EACH_QUORUM for us).
 
-It is possible that we may fail in 2(ii) or 2(iii). However, some nodes may have performed the mutation recommended 
-from a successful Paxos round and not others, with the user receiving a failure response (or no response at all).
+It is possible that we may fail in the second or third sub-step of step 2. However, some nodes may have performed the 
+mutation recommended from a successful Paxos round and not others, with the user receiving a failure response (or no 
+response at all).
 
 This seems fine as long as we ensure that any relevant Paxos rounds for values we read have resolved; in practice this 
 is accomplished with the SERIAL consistency level. However, reading at SERIAL is costly. Furthermore, there is another
@@ -57,7 +58,7 @@ in Atlas as meaning the transaction was aborted).
 Cassandra determines which nodes participate in the Paxos based on the replication group of the relevant key. This, 
 however, may change at runtime (e.g., if there are changes in cluster topology), which can naturally lead to disjoint 
 quorums. Cassandra is not currently resistant to this case, and this would require substantial changes to the Paxos 
-algorithm. We're thus treating dealing with these cases as outside the scope of this workstream.
+algorithm. We're thus treating dealing with these cases as outside the scope of this proposal.
 
 ## Decision
 
