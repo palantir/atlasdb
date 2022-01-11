@@ -24,6 +24,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.ConsistencyLevel;
@@ -71,6 +72,9 @@ public class TransactionAborterTest {
     private TransactionsTableInteraction transactionInteraction;
 
     @Mock
+    private Statement selectStatement;
+
+    @Mock
     private PreparedStatement preparedAbortStatement;
 
     @Mock
@@ -108,12 +112,11 @@ public class TransactionAborterTest {
         when(cqlMetadata.getKeyspaceMetadata(KEYSPACE)).thenReturn(keyspaceMetadata);
         when(cqlSession.getMetadata()).thenReturn(cqlMetadata);
 
-        Statement mockStatement = mock(Statement.class);
-        doReturn(ImmutableList.of(mockStatement))
+        doReturn(ImmutableList.of(selectStatement))
                 .when(transactionInteraction)
                 .createSelectStatementsForScanningFullTimestampRange(any());
         ResultSet selectResponse = createSelectResponse(ImmutableList.of());
-        when(cqlSession.execute(mockStatement)).thenReturn(selectResponse);
+        when(cqlSession.execute(selectStatement)).thenReturn(selectResponse);
 
         doReturn(mock(PreparedStatement.class)).when(transactionInteraction).prepareAbortStatement(any(), any());
         doReturn(mock(PreparedStatement.class)).when(transactionInteraction).prepareCheckStatement(any(), any());
@@ -125,11 +128,13 @@ public class TransactionAborterTest {
     public void willNotRunAbortWhenNothingToAbort() {
         transactionAborter.abortTransactions(BACKUP_TIMESTAMP, List.of(transactionInteraction));
 
-        verify(cqlSession, times(1)).execute(any(Statement.class));
+        verify(cqlSession, times(1)).execute(selectStatement);
+        verify(cqlSession, times(1)).getMetadata();
+        verifyNoMoreInteractions(cqlSession);
     }
 
     @Test
-    public void willNotAbortTimestampsLowerThanInputTimestamp() {
+    public void willNotAbortTimestampsLowerThanBackupTimestamp() {
         ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
                 TransactionTableEntries.committedLegacy(10L, 20L),
                 TransactionTableEntries.committedTwoPhase(20L, PutUnlessExistsValue.committed(30L)),
@@ -146,9 +151,9 @@ public class TransactionAborterTest {
         ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 12),
                 TransactionTableEntries.committedTwoPhase(
-                        BACKUP_TIMESTAMP + 10, PutUnlessExistsValue.committed(BACKUP_TIMESTAMP + 13)),
-                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 14));
-        setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(BACKUP_TIMESTAMP + 15, 1000L)));
+                        BACKUP_TIMESTAMP + 12, PutUnlessExistsValue.committed(BACKUP_TIMESTAMP + 13)),
+                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 14, BACKUP_TIMESTAMP + 15));
+        setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(BACKUP_TIMESTAMP + 16, 1000L)));
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
                 KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
@@ -180,7 +185,7 @@ public class TransactionAborterTest {
     }
 
     @Test
-    public void willAbortTimestampsHigherThanInputTimestamp() {
+    public void willAbortTimestampsHigherThanBackupTimestamp() {
         ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2),
                 TransactionTableEntries.committedTwoPhase(
@@ -193,7 +198,7 @@ public class TransactionAborterTest {
     }
 
     @Test
-    public void willAbortTimestampsThatStartBeforeButEndAfterInputTimestamp() {
+    public void willAbortTimestampsThatStartBeforeButEndAfterBackupTimestamp() {
         ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP - 2, BACKUP_TIMESTAMP + 1),
                 TransactionTableEntries.committedTwoPhase(
@@ -203,6 +208,34 @@ public class TransactionAborterTest {
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
                 KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isEqualTo(2L);
+    }
+
+    @Test
+    public void willAbortTimestampsThatStartAfterBackupTimestampAndEndOutsideRange() {
+        long endOfRange = TIMESTAMP_RANGE.inclusiveUpperBound();
+        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
+                TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, endOfRange + 1),
+                TransactionTableEntries.committedTwoPhase(
+                        BACKUP_TIMESTAMP + 2, PutUnlessExistsValue.committed(endOfRange + 2)));
+        setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
+
+        Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+        assertThat(transactionsToAbort.count()).isEqualTo(2L);
+    }
+
+    @Test
+    public void willNotAbortTimestampsThatStartAfterRange() {
+        long endOfRange = TIMESTAMP_RANGE.inclusiveUpperBound();
+        ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
+                TransactionTableEntries.committedLegacy(endOfRange + 1, endOfRange + 2),
+                TransactionTableEntries.committedTwoPhase(
+                        endOfRange + 3, PutUnlessExistsValue.committed(endOfRange + 4)));
+        setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
+
+        Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+        assertThat(transactionsToAbort.count()).isEqualTo(0L);
     }
 
     @Test

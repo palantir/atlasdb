@@ -112,7 +112,8 @@ public class AtlasRestoreService {
 
     private void repairTransactionsTables(
             Namespace namespace, CompletedBackup completedBackup, BiConsumer<String, RangesForRepair> repairTable) {
-        Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(namespace, completedBackup);
+        Map<FullyBoundedTimestampRange, Integer> coordinationMap =
+                getTransactionsTablesForRestore(namespace, completedBackup);
         List<TransactionsTableInteraction> transactionsTableInteractions =
                 TransactionsTableInteraction.getTransactionTableInteractions(
                         coordinationMap, DefaultRetryPolicy.INSTANCE);
@@ -121,7 +122,7 @@ public class AtlasRestoreService {
                 namespace, completedBackup.getBackupStartTimestamp(), transactionsTableInteractions);
     }
 
-    private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(
+    private Map<FullyBoundedTimestampRange, Integer> getTransactionsTablesForRestore(
             Namespace namespace, CompletedBackup completedBackup) {
         Optional<InternalSchemaMetadataState> schemaMetadataState = backupPersister.getSchemaMetadata(namespace);
 

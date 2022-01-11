@@ -17,11 +17,13 @@
 package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.List;
 import java.util.Map;
@@ -54,16 +56,6 @@ public class TransactionsTableInteractionTest {
 
         assertThat(onlyInteraction).isExactlyInstanceOf(Transactions3TableInteraction.class);
         assertThat(onlyInteraction.getTimestampRange()).isEqualTo(FULL_RANGE);
-    }
-
-    private TransactionsTableInteraction getSingleInteraction(int version) {
-        Map<FullyBoundedTimestampRange, Integer> ranges = ImmutableMap.of(FULL_RANGE, version);
-
-        List<TransactionsTableInteraction> transactionTableInteractions =
-                TransactionsTableInteraction.getTransactionTableInteractions(ranges, POLICY);
-
-        assertThat(transactionTableInteractions).hasSize(1);
-        return Iterables.getOnlyElement(transactionTableInteractions);
     }
 
     @Test
@@ -102,6 +94,16 @@ public class TransactionsTableInteractionTest {
                         Transactions2TableInteraction.class,
                         Transactions1TableInteraction.class,
                         Transactions2TableInteraction.class);
+    }
+
+    private TransactionsTableInteraction getSingleInteraction(int version) {
+        Map<FullyBoundedTimestampRange, Integer> ranges = ImmutableMap.of(FULL_RANGE, version);
+
+        List<TransactionsTableInteraction> transactionTableInteractions =
+                TransactionsTableInteraction.getTransactionTableInteractions(ranges, POLICY);
+
+        assertThat(transactionTableInteractions).hasSize(1);
+        return Iterables.getOnlyElement(transactionTableInteractions);
     }
 
     private static FullyBoundedTimestampRange range(long lower, long upper) {
