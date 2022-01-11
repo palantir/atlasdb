@@ -68,7 +68,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
-                .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP))
+                .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP + 1))
                 .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
         // if you change this from CAS then you must update RetryPolicy
         return session.prepare(abortStatement.toString());
