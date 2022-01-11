@@ -2,10 +2,13 @@
 # Run ./gradlew checkClassUniqueness --write-locks to update this file
 
 ## runtimeClasspath
-[commons-logging:commons-logging, org.slf4j:jcl-over-slf4j]
-  - org.apache.commons.logging.Log
-  - org.apache.commons.logging.LogConfigurationException
-  - org.apache.commons.logging.LogFactory
-  - org.apache.commons.logging.impl.NoOpLog
-  - org.apache.commons.logging.impl.SimpleLog
-  - org.apache.commons.logging.impl.SimpleLog$1
+[com.google.code.findbugs:annotations, com.google.code.findbugs:findbugs-annotations]
+  - edu.umd.cs.findbugs.annotations.Confidence
+  - edu.umd.cs.findbugs.annotations.Priority
+  - edu.umd.cs.findbugs.annotations.When
+[com.google.code.findbugs:annotations, com.google.code.findbugs:jsr305]
+  - javax.annotation.MatchesPattern$Checker
+  - javax.annotation.Nonnegative$Checker
+  - javax.annotation.Nonnull$Checker
+  - javax.annotation.RegEx$Checker
+  - javax.annotation.meta.When
