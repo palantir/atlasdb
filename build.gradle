@@ -102,7 +102,6 @@ allprojects {
                 'FutureReturnValueIgnored',
                 'MixedMutabilityReturnType',
                 'NarrowingCompoundAssignment',
-                'PreconditionsConstantMessage',
                 'PublicConstructorForAbstractClass',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
