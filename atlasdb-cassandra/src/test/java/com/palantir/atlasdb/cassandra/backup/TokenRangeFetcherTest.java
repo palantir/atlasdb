@@ -22,13 +22,17 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,7 +58,10 @@ public class TokenRangeFetcherTest {
 
     @Before
     public void setUp() {
-        BackupTestUtils.mockMetadata(cqlMetadata, TABLE_NAME);
+        KeyspaceMetadata keyspaceMetadata = BackupTestUtils.mockKeyspaceMetadata(cqlMetadata);
+        List<TableMetadata> tableMetadatas = BackupTestUtils.mockTableMetadatas(keyspaceMetadata, TABLE_NAME);
+        when(keyspaceMetadata.getTable(TABLE_NAME)).thenReturn(Iterables.getOnlyElement(tableMetadatas));
+
         BackupTestUtils.mockConfig(config);
         BackupTestUtils.mockTokenRanges(cqlSession, cqlMetadata);
 

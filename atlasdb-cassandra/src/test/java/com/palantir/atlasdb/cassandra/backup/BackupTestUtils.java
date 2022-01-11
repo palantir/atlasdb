@@ -77,15 +77,18 @@ final class BackupTestUtils {
         when(config.getKeyspaceOrThrow()).thenReturn(KEYSPACE_NAME);
     }
 
-    static void mockMetadata(CqlMetadata cqlMetadata, String... tableNames) {
-        KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
-        when(keyspaceMetadata.getName()).thenReturn(KEYSPACE_NAME);
+    static List<TableMetadata> mockTableMetadatas(KeyspaceMetadata keyspaceMetadata, String... tableNames) {
         List<TableMetadata> tableMetadatas = Arrays.stream(tableNames)
                 .map(tableName -> mockTableMetadata(keyspaceMetadata, tableName))
                 .collect(Collectors.toList());
-        when(keyspaceMetadata.getTables()).thenReturn(tableMetadatas);
+        return tableMetadatas;
+    }
 
+    static KeyspaceMetadata mockKeyspaceMetadata(CqlMetadata cqlMetadata) {
+        KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
+        when(keyspaceMetadata.getName()).thenReturn(KEYSPACE_NAME);
         when(cqlMetadata.getKeyspaceMetadata(KEYSPACE_NAME)).thenReturn(keyspaceMetadata);
+        return keyspaceMetadata;
     }
 
     private static TableMetadata mockTableMetadata(KeyspaceMetadata keyspaceMetadata, String tableName) {

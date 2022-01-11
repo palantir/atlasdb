@@ -22,6 +22,8 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -62,7 +64,11 @@ public class RepairRangeFetcherTest {
 
     @Before
     public void setUp() {
-        BackupTestUtils.mockMetadata(cqlMetadata, BackupTestUtils.TXN_1, BackupTestUtils.TXN_2);
+        KeyspaceMetadata keyspaceMetadata = BackupTestUtils.mockKeyspaceMetadata(cqlMetadata);
+        List<TableMetadata> tableMetadatas =
+                BackupTestUtils.mockTableMetadatas(keyspaceMetadata, BackupTestUtils.TXN_1, BackupTestUtils.TXN_2);
+        when(keyspaceMetadata.getTables()).thenReturn(tableMetadatas);
+
         BackupTestUtils.mockTokenRanges(cqlSession, cqlMetadata);
         BackupTestUtils.mockConfig(config);
 
