@@ -100,7 +100,6 @@ allprojects {
                 'DangerousCompletableFutureUsage',
                 'EqualsGetClass',
                 'FutureReturnValueIgnored',
-                'InlineFormatString',
                 'MixedMutabilityReturnType',
                 'NarrowingCompoundAssignment',
                 'PreconditionsConstantMessage',
