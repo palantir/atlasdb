@@ -100,17 +100,14 @@ allprojects {
                 'DangerousCompletableFutureUsage',
                 'EqualsGetClass',
                 'FutureReturnValueIgnored',
-                'InlineFormatString',
                 'MixedMutabilityReturnType',
                 'NarrowingCompoundAssignment',
-                'PreconditionsConstantMessage',
                 'PublicConstructorForAbstractClass',
                 'ReadReturnValueIgnored',
                 'ReturnValueIgnored',
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
-                'StrictUnusedVariable',
-                'TooManyArguments'
+                'StrictUnusedVariable'
     }
 }
 
