@@ -20,11 +20,6 @@ jar {
     }
 }
 
-task testJarForPublishing(type: Jar) {
-    from project.sourceSets.test.output
-    classifier 'tests'
-}
-
 libsDirName = file('build/artifacts')
 
 dependencies {

@@ -112,6 +112,10 @@ allprojects {
 
 subprojects {
     task allDeps(type: DependencyReportTask) {}
+
+    if (!project.getPath().startsWith(":examples") && !project.plugins.hasPlugin('com.palantir.external-publish-dist')) {
+        apply from: "$rootDir/gradle/publish-jars.gradle"
+    }
 }
 
 afterEvaluate {

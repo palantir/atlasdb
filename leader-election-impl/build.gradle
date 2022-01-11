@@ -60,6 +60,23 @@ configurations {
     }
 }
 
+
+task testJarForPublishing(type: Jar) {
+    from project.sourceSets.test.output
+    classifier 'tests'
+}
+
 artifacts {
     testArtifacts testJarForPublishing
+}
+
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact(testJarForPublishing) {
+                classifier 'tests'
+            }
+        }
+    }
 }
