@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
@@ -36,7 +35,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -102,12 +100,8 @@ public class CassandraRepairHelper {
 
     public void repairTransactionsTables(
             Namespace namespace,
-            Map<FullyBoundedTimestampRange, Integer> coordinationMap,
+            List<TransactionsTableInteraction> transactionsTableInteractions,
             BiConsumer<String, RangesForRepair> repairTable) {
-        List<TransactionsTableInteraction> transactionsTableInteractions =
-                TransactionsTableInteraction.getTransactionTableInteractions(
-                        coordinationMap, DefaultRetryPolicy.INSTANCE);
-
         Map<String, RangesForRepair> tokenRangesForRepair =
                 getRangesForRepairByTable(namespace, transactionsTableInteractions);
 
@@ -115,6 +109,13 @@ public class CassandraRepairHelper {
             log.info("Repairing ranges for table", SafeArg.of("table", table));
             repairTable.accept(table, ranges);
         });
+    }
+
+    public void cleanTransactionsTables(
+            Namespace namespace,
+            long startTimestamp,
+            List<TransactionsTableInteraction> transactionsTableInteractions) {
+        cqlClusters.get(namespace).abortTransactions(startTimestamp, transactionsTableInteractions);
     }
 
     private Map<String, RangesForRepair> getRangesForRepairByTable(
