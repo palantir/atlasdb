@@ -52,11 +52,16 @@ public final class GzipCompressingInputStream {
     }
 
     public static InputStream compress(InputStream uncompressed) {
+        return compress(uncompressed, StreamCompression.DEFAULT_BLOCK_SIZE);
+    }
+
+    public static InputStream compress(InputStream uncompressed, int bufferSize) {
         InputStream header = createHeaderStream();
         CountingInputStream counting = new CountingInputStream(uncompressed);
         CRC32 crc = new CRC32();
         CheckedInputStream checked = new CheckedInputStream(counting, crc);
-        InputStream content = new DeflaterInputStream(checked, new Deflater(Deflater.DEFAULT_COMPRESSION, true));
+        InputStream content =
+                new DeflaterInputStream(checked, new Deflater(Deflater.DEFAULT_COMPRESSION, true), bufferSize);
         List<Supplier<InputStream>> allStreams =
                 ImmutableList.of(() -> header, () -> content, () -> trailerStream(counting.getCount(), crc));
         return new SequenceInputStream(Collections.enumeration(Lists.transform(allStreams, Supplier::get)));

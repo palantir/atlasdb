@@ -37,7 +37,6 @@ public class StreamCompressionTests {
     private static final byte SINGLE_VALUE = 42;
     private static final int BLOCK_SIZE = 1 << 16; // 64 KB
 
-    private ByteArrayInputStream uncompressedStream;
     private InputStream compressingStream;
     private InputStream decompressingStream;
 
@@ -47,7 +46,7 @@ public class StreamCompressionTests {
         this.compression = compression;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "{index} {0} compression")
     public static Object[] parameters() {
         return StreamCompression.values();
     }
@@ -125,9 +124,9 @@ public class StreamCompressionTests {
         fillWithIncompressibleData(uncompressedData);
         initializeStreams(uncompressedData);
 
-        for (int i = 0; i < uncompressedData.length; ++i) {
+        for (byte uncompressedDatum : uncompressedData) {
             int value = decompressingStream.read();
-            assertThat(value).isEqualTo(uncompressedData[i] & 0xFF);
+            assertThat(value).isEqualTo(uncompressedDatum & 0xFF);
         }
         assertStreamIsEmpty(decompressingStream);
     }
@@ -159,16 +158,16 @@ public class StreamCompressionTests {
     }
 
     private void initializeStreams(byte[] uncompressedData) {
-        uncompressedStream = new ByteArrayInputStream(uncompressedData);
+        ByteArrayInputStream uncompressedStream = new ByteArrayInputStream(uncompressedData);
         compressingStream = compression.compress(uncompressedStream);
         decompressingStream = compression.decompress(compressingStream);
     }
 
-    private void fillWithCompressibleData(byte[] data) {
+    private static void fillWithCompressibleData(byte[] data) {
         Arrays.fill(data, SINGLE_VALUE);
     }
 
-    private void fillWithIncompressibleData(byte[] data) {
+    private static void fillWithIncompressibleData(byte[] data) {
         new Random(0).nextBytes(data);
     }
 
@@ -179,7 +178,7 @@ public class StreamCompressionTests {
         assertStreamIsEmpty(decompressingStream);
     }
 
-    private void assertStreamIsEmpty(InputStream stream) throws IOException {
+    private static void assertStreamIsEmpty(InputStream stream) throws IOException {
         assertThat(stream.read()).isEqualTo(-1);
     }
 }

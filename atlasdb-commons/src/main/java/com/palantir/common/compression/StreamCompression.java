@@ -33,11 +33,12 @@ public enum StreamCompression {
 
     private static final byte[] gzipMagic = GzipCompressingInputStream.getMagicPrefix();
     private static final byte[] lz4Magic = "LZ4Block".getBytes(StandardCharsets.UTF_8);
+    static final int DEFAULT_BLOCK_SIZE = 1 << 16; // 64 KiB
 
     public InputStream compress(InputStream stream) {
         switch (this) {
             case GZIP:
-                return GzipCompressingInputStream.compress(stream);
+                return GzipCompressingInputStream.compress(stream, DEFAULT_BLOCK_SIZE);
             case LZ4:
                 return new LZ4CompressingInputStream(stream);
             case NONE:
@@ -60,8 +61,8 @@ public enum StreamCompression {
     private static boolean startsWith(InputStream stream, byte[] data) throws IOException {
         stream.mark(data.length);
         try {
-            for (int i = 0; i < data.length; i++) {
-                if (stream.read() != Byte.toUnsignedInt(data[i])) {
+            for (byte datum : data) {
+                if (stream.read() != Byte.toUnsignedInt(datum)) {
                     return false;
                 }
             }
@@ -73,7 +74,7 @@ public enum StreamCompression {
 
     private static InputStream decompressWithHeader(InputStream unbuffered) {
         try {
-            BufferedInputStream stream = new BufferedInputStream(unbuffered);
+            BufferedInputStream stream = new BufferedInputStream(unbuffered, DEFAULT_BLOCK_SIZE);
             if (startsWith(stream, gzipMagic)) {
                 return new GZIPInputStream(stream);
             } else if (startsWith(stream, lz4Magic)) {
