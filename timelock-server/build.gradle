@@ -41,7 +41,6 @@ check.dependsOn stressTest
 
 dependencies {
     api project(":timelock-agent")
-    implementation project(":dropwizard-metrics-hack")
 
     implementation group: 'io.dropwizard', name: 'dropwizard-core'
     implementation group: 'io.dropwizard', name: 'dropwizard-http2'
