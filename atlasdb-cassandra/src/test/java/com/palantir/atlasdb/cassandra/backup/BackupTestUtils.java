@@ -28,7 +28,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
@@ -50,9 +49,6 @@ final class BackupTestUtils {
     static final Range<LightweightOppToken> RANGE_1_TO_2 = Range.openClosed(TOKEN_1, TOKEN_2);
     static final Range<LightweightOppToken> RANGE_2_TO_3 = Range.openClosed(TOKEN_2, TOKEN_3);
     static final Range<LightweightOppToken> RANGE_GREATER_THAN_3 = Range.greaterThan(TOKEN_3);
-
-    static final String TXN_1 = TransactionConstants.TRANSACTION_TABLE.getTableName();
-    static final String TXN_2 = TransactionConstants.TRANSACTIONS2_TABLE.getTableName();
 
     private BackupTestUtils() {
         // utility

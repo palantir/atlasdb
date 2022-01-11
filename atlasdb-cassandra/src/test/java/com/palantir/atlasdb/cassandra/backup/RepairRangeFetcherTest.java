@@ -35,6 +35,7 @@ import com.palantir.atlasdb.cassandra.backup.transaction.Transactions2TableInter
 import com.palantir.atlasdb.cassandra.backup.transaction.Transactions3TableInteraction;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -50,6 +51,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class RepairRangeFetcherTest {
     static final LightweightOppToken OTHER_TOKEN = BackupTestUtils.lightweightOppToken("7777");
     static final DefaultRetryPolicy POLICY = DefaultRetryPolicy.INSTANCE;
+    static final String TXN_1 = TransactionConstants.TRANSACTION_TABLE.getTableName();
+    static final String TXN_2 = TransactionConstants.TRANSACTIONS2_TABLE.getTableName();
 
     @Mock
     private CqlSession cqlSession;
@@ -65,8 +68,7 @@ public class RepairRangeFetcherTest {
     @Before
     public void setUp() {
         KeyspaceMetadata keyspaceMetadata = BackupTestUtils.mockKeyspaceMetadata(cqlMetadata);
-        List<TableMetadata> tableMetadatas =
-                BackupTestUtils.mockTableMetadatas(keyspaceMetadata, BackupTestUtils.TXN_1, BackupTestUtils.TXN_2);
+        List<TableMetadata> tableMetadatas = BackupTestUtils.mockTableMetadatas(keyspaceMetadata, TXN_1, TXN_2);
         when(keyspaceMetadata.getTables()).thenReturn(tableMetadatas);
 
         BackupTestUtils.mockTokenRanges(cqlSession, cqlMetadata);
@@ -87,7 +89,7 @@ public class RepairRangeFetcherTest {
 
         Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
-        assertThat(rangesForRepair.keySet()).containsExactly(BackupTestUtils.TXN_1);
+        assertThat(rangesForRepair.keySet()).containsExactly(TXN_1);
     }
 
     @Test
@@ -96,7 +98,7 @@ public class RepairRangeFetcherTest {
                 ImmutableList.of(new Transactions2TableInteraction(range(1L, 10_000_000L), POLICY));
         Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
-        assertThat(rangesForRepair.keySet()).containsExactly(BackupTestUtils.TXN_2);
+        assertThat(rangesForRepair.keySet()).containsExactly(TXN_2);
     }
 
     @Test
@@ -107,7 +109,7 @@ public class RepairRangeFetcherTest {
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
 
         // Transactions3 is backed by Transactions2 under the hood, so this is the table that will be repaired.
-        assertThat(rangesForRepair.keySet()).containsExactly(BackupTestUtils.TXN_2);
+        assertThat(rangesForRepair.keySet()).containsExactly(TXN_2);
     }
 
     @Test
@@ -118,7 +120,7 @@ public class RepairRangeFetcherTest {
 
         Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
-        assertThat(rangesForRepair.keySet()).containsExactlyInAnyOrder(BackupTestUtils.TXN_1, BackupTestUtils.TXN_2);
+        assertThat(rangesForRepair.keySet()).containsExactlyInAnyOrder(TXN_1, TXN_2);
     }
 
     @Test
@@ -131,7 +133,7 @@ public class RepairRangeFetcherTest {
 
         Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
-        assertThat(rangesForRepair.keySet()).containsExactlyInAnyOrder(BackupTestUtils.TXN_1, BackupTestUtils.TXN_2);
+        assertThat(rangesForRepair.keySet()).containsExactlyInAnyOrder(TXN_1, TXN_2);
     }
 
     @Test
@@ -141,10 +143,7 @@ public class RepairRangeFetcherTest {
         Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
 
-        assertThat(rangesForRepair
-                        .get(BackupTestUtils.TXN_2)
-                        .get(BackupTestUtils.HOST_1)
-                        .asRanges())
+        assertThat(rangesForRepair.get(TXN_2).get(BackupTestUtils.HOST_1).asRanges())
                 .containsExactlyInAnyOrder(
                         Range.atMost(BackupTestUtils.TOKEN_1),
                         Range.openClosed(BackupTestUtils.TOKEN_2, OTHER_TOKEN),
@@ -158,7 +157,7 @@ public class RepairRangeFetcherTest {
         Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
 
-        assertThat(rangesForRepair.get(BackupTestUtils.TXN_2).keySet())
+        assertThat(rangesForRepair.get(TXN_2).keySet())
                 .containsExactlyInAnyOrder(BackupTestUtils.HOST_1, BackupTestUtils.HOST_2, BackupTestUtils.HOST_3);
     }
 
@@ -171,7 +170,7 @@ public class RepairRangeFetcherTest {
         Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
 
-        assertThat(rangesForRepair.get(BackupTestUtils.TXN_2).keySet())
+        assertThat(rangesForRepair.get(TXN_2).keySet())
                 .containsExactlyInAnyOrder(BackupTestUtils.HOST_1, BackupTestUtils.HOST_2);
     }
 
