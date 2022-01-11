@@ -37,7 +37,7 @@ dependencies {
   explicitShadow group: 'com.google.code.findbugs', name: 'findbugs-annotations'
   explicitShadow group: 'com.google.code.findbugs', name: 'jsr305'
 
-  explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
+  explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling'
 
   testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
   testImplementation project(":atlasdb-config")
@@ -45,7 +45,7 @@ dependencies {
   testImplementation group: 'org.mockito', name: 'mockito-core'
   testImplementation group: 'org.assertj', name: 'assertj-core'
   testImplementation group: 'org.awaitility', name: 'awaitility'
-  testImplementation group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
+  testImplementation group: 'uk.org.lidalia', name: 'slf4j-test'
   testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
   }

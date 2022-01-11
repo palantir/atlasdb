@@ -11,5 +11,5 @@ dependencies {
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
 
     testImplementation 'org.mockito:mockito-core'
-    testCompile group: 'commons-codec', name: 'commons-codec', version: '1.15'
+    testImplementation 'commons-codec:commons-codec'
 }

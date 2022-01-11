@@ -7,22 +7,14 @@ applicationName = 'atlasdb-perf'
 
 schemas = ['com.palantir.atlasdb.performance.schema.StreamTestSchema']
 
-configurations.all {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        if (details.requested.group == 'com.google.code.findbugs' && details.requested.name == 'annotations') {
-            details.useTarget group: 'com.google.code.findbugs', name: 'findbugs-annotations', version: '3.0.1'
-        }
-    }
-}
-
 dependencies {
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-dagger')
     implementation project(':atlasdb-dbkvs')
     implementation project(':atlasdb-cassandra')
 
-    implementation group: 'io.airlift', name: 'airline', version: '0.7'
-    implementation group: 'org.reflections', name: 'reflections', version: '0.9.10'
+    implementation group: 'io.airlift', name: 'airline'
+    implementation group: 'org.reflections', name: 'reflections'
     implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
     implementation group: 'ch.qos.logback', name: 'logback-classic'
     implementation group: 'org.awaitility', name: 'awaitility'
@@ -39,6 +31,7 @@ dependencies {
     implementation 'commons-io:commons-io'
     implementation 'jakarta.inject:jakarta.inject-api'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'org.assertj:assertj-core'
     implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-client-protobufs')
@@ -57,12 +50,11 @@ dependencies {
     testImplementation group: 'org.assertj', name: 'assertj-core'
     testImplementation group: 'org.mockito', name: 'mockito-core'
 
-    implementation group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
+    implementation group: 'org.openjdk.jmh', name: 'jmh-core'
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
-    annotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13'
-    compileOnly 'org.openjdk.jmh:jmh-generator-annprocess:1.13'
-    implementation 'org.assertj:assertj-core'
+    annotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess'
+    compileOnly 'org.openjdk.jmh:jmh-generator-annprocess'
 }
 
 distZip {
