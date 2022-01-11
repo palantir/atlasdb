@@ -20,13 +20,13 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
+import com.palantir.atlasdb.cassandra.backup.CqlSession;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CellValuePutter;
@@ -59,7 +59,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, Session session) {
+    public PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, CqlSession session) {
         // we are declaring bankruptcy if this fails anyway
         ByteBuffer abortCommitTsBb = ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_COMMITTED_VALUE);
 
@@ -68,19 +68,20 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
+                .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP + 1))
                 .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
         // if you change this from CAS then you must update RetryPolicy
-        return session.prepare(abortStatement.toString());
+        return session.prepare(abortStatement);
     }
 
     @Override
-    public PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, Session session) {
+    public PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, CqlSession session) {
         Statement checkStatement = QueryBuilder.select()
                 .from(transactionsTable)
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP));
-        return session.prepare(checkStatement.toString());
+        return session.prepare(checkStatement);
     }
 
     @Override
@@ -123,7 +124,6 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
-                .setDefaultTimestamp(CellValuePutter.SET_TIMESTAMP + 1)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients
                 .setRetryPolicy(abortRetryPolicy);

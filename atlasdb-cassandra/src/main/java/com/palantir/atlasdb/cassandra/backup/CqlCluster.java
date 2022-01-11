@@ -61,4 +61,10 @@ public final class CqlCluster implements Closeable {
                     .getTransactionTableRangesForRepair(transactionsTableInteractions);
         }
     }
+
+    public void abortTransactions(long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
+        try (CqlSession session = new CqlSession(cluster.connect())) {
+            new TransactionAborter(session, config).abortTransactions(timestamp, transactionsTableInteractions);
+        }
+    }
 }

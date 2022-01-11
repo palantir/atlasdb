@@ -18,12 +18,12 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 
-import com.datastax.driver.core.Host;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.TableMetadata;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
@@ -97,7 +97,7 @@ public final class ClusterMetadataUtils {
 
         Map<String, InetSocketAddress> nodeMetadataHostMap =
                 KeyedStream.of(nodeSet).mapKeys(InetSocketAddress::getHostName).collectToMap();
-        Map<Host, RangeSet<LightweightOppToken>> hostToTokenRangeMap =
+        Map<InetSocketAddress, RangeSet<LightweightOppToken>> hostToTokenRangeMap =
                 getTokenMappingForPartitionKeys(metadata, keyspace, partitionKeyTokens);
 
         return KeyedStream.stream(hostToTokenRangeMap)
@@ -106,27 +106,28 @@ public final class ClusterMetadataUtils {
     }
 
     @SuppressWarnings("ReverseDnsLookup")
-    private static InetSocketAddress lookUpAddress(Map<String, InetSocketAddress> nodeMetadataHostMap, Host host) {
-        String hostname = host.getEndPoint().resolve().getHostName();
+    private static InetSocketAddress lookUpAddress(
+            Map<String, InetSocketAddress> nodeMetadataHostMap, InetSocketAddress host) {
+        String hostname = host.getHostName();
         Preconditions.checkArgument(
                 nodeMetadataHostMap.containsKey(hostname),
                 "Did not find corresponding Node to run repair",
                 SafeArg.of("hostname", hostname),
                 SafeArg.of("availableHosts", nodeMetadataHostMap.keySet()),
-                SafeArg.of("host", host.getEndPoint().resolve()));
+                SafeArg.of("host", host));
         return nodeMetadataHostMap.get(hostname);
     }
 
-    private static Map<Host, RangeSet<LightweightOppToken>> getTokenMappingForPartitionKeys(
+    private static Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenMappingForPartitionKeys(
             CqlMetadata metadata, String keyspace, Set<LightweightOppToken> partitionKeyTokens) {
         Set<Range<LightweightOppToken>> tokenRanges = metadata.getTokenRanges();
         SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart = KeyedStream.of(tokenRanges)
                 .mapKeys(LightweightOppToken::getLowerExclusive)
                 .collectTo(TreeMap::new);
-        RangeSet<LightweightOppToken> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByStart);
-        Multimap<Host, Range<LightweightOppToken>> tokenMapping = ArrayListMultimap.create();
-        ranges.asRanges().forEach(range -> {
-            List<Host> hosts = ImmutableList.copyOf(metadata.getReplicas(keyspace, range));
+        Set<Range<LightweightOppToken>> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByStart);
+        Multimap<InetSocketAddress, Range<LightweightOppToken>> tokenMapping = ArrayListMultimap.create();
+        ranges.forEach(range -> {
+            List<InetSocketAddress> hosts = ImmutableList.copyOf(metadata.getReplicas(keyspace, range));
             if (hosts.isEmpty()) {
                 throw new SafeIllegalStateException(
                         "Failed to find any replicas of token range for repair",
@@ -142,7 +143,8 @@ public final class ClusterMetadataUtils {
     }
 
     @VisibleForTesting
-    static RangeSet<LightweightOppToken> getMinimalSetOfRangesForTokens(
+    // Needs to be Set<Range<>> as we don't want to merge ranges yet
+    static Set<Range<LightweightOppToken>> getMinimalSetOfRangesForTokens(
             Set<LightweightOppToken> partitionKeyTokens,
             SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart) {
         Map<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStartToken = new HashMap<>();
@@ -152,8 +154,19 @@ public final class ClusterMetadataUtils {
                     LightweightOppToken.getLowerExclusive(minimalTokenRange),
                     minimalTokenRange,
                     ClusterMetadataUtils::findLatestEndingRange);
+
+            if (!minimalTokenRange.hasLowerBound()) {
+                // handle wraparound
+                Optional<Range<LightweightOppToken>> wraparoundRange = tokenRangesByStart.values().stream()
+                        .filter(Predicate.not(Range::hasUpperBound))
+                        .findFirst();
+                wraparoundRange.ifPresent(range -> tokenRangesByStartToken.merge(
+                        LightweightOppToken.getLowerExclusive(range),
+                        range,
+                        ClusterMetadataUtils::findLatestEndingRange));
+            }
         }
-        return tokenRangesByStartToken.values().stream().collect(toImmutableRangeSet());
+        return ImmutableSet.copyOf(tokenRangesByStartToken.values());
     }
 
     private static Range<LightweightOppToken> findTokenRange(

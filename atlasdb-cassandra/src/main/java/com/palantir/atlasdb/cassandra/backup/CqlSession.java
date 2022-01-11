@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
@@ -50,5 +52,13 @@ public class CqlSession implements Closeable {
                 .map(row -> row.getToken(CassandraConstants.ROW))
                 .map(LightweightOppToken::serialize)
                 .collect(Collectors.toSet());
+    }
+
+    public PreparedStatement prepare(Statement statement) {
+        return session.prepare(statement.toString());
+    }
+
+    public ResultSet execute(Statement statement) {
+        return session.execute(statement);
     }
 }

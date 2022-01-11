@@ -16,7 +16,8 @@
 package com.palantir.atlasdb.timelock.logging;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import io.dropwizard.logging.FileAppenderFactory;
 import io.dropwizard.logging.async.AsyncAppenderFactory;
 import io.dropwizard.logging.filter.LevelFilterFactory;
@@ -43,9 +44,10 @@ public class NonBlockingFileAppenderFactory<E extends ch.qos.logback.core.spi.De
 
         Preconditions.checkState(
                 appender instanceof ch.qos.logback.core.AsyncAppenderBase,
-                "The Dropwizard logging factory returned an unexpected appender of type " + appender.getClass()
-                        + ". NonBlockingFileAppenderFactory requires an async appender to set the neverBlock "
-                        + "property.");
+                "The Dropwizard logging factory returned an unexpected appender type. "
+                        + "NonBlockingFileAppenderFactory requires an async appender to set the neverBlock "
+                        + "property.",
+                SafeArg.of("appenderClass", appender.getClass()));
         ((ch.qos.logback.core.AsyncAppenderBase<?>) appender).setNeverBlock(true);
 
         return appender;

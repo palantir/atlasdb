@@ -18,10 +18,10 @@ package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.RetryPolicy;
+import com.palantir.atlasdb.cassandra.backup.CqlSession;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -42,9 +42,9 @@ public interface TransactionsTableInteraction {
 
     List<Statement> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable);
 
-    PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, Session session);
+    PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, CqlSession session);
 
-    PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, Session session);
+    PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, CqlSession session);
 
     Statement bindCheckStatement(PreparedStatement preparedCheckStatement, TransactionTableEntry entry);
 

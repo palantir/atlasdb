@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.Host;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Token;
@@ -27,6 +26,7 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -76,8 +76,10 @@ public class CqlMetadata {
         }
     }
 
-    public Set<Host> getReplicas(String keyspace, Range<LightweightOppToken> range) {
-        return metadata.getReplicas(quotedKeyspace(keyspace), toTokenRange(range));
+    public Set<InetSocketAddress> getReplicas(String keyspace, Range<LightweightOppToken> range) {
+        return metadata.getReplicas(quotedKeyspace(keyspace), toTokenRange(range)).stream()
+                .map(host -> host.getEndPoint().resolve())
+                .collect(Collectors.toSet());
     }
 
     @VisibleForTesting

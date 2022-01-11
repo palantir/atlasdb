@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+@SuppressWarnings("InlineFormatString") // complex query string, makes more sense to keep extracted as a constant
 public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
     /**
