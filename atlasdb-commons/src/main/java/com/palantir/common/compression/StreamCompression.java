@@ -38,7 +38,7 @@ public enum StreamCompression {
     public InputStream compress(InputStream stream) {
         switch (this) {
             case GZIP:
-                return GzipCompressingInputStream.compress(stream, DEFAULT_BLOCK_SIZE);
+                return GzipCompressingInputStream.compress(stream);
             case LZ4:
                 return new LZ4CompressingInputStream(stream);
             case NONE:

@@ -18,6 +18,7 @@ package com.palantir.common.compression;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.io.CountingInputStream;
+import com.google.common.primitives.Shorts;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
@@ -51,17 +52,31 @@ public final class GzipCompressingInputStream {
         return Arrays.copyOf(GZIP_HEADER, 2);
     }
 
+    /**
+     * Wraps a stream with GZIP compression using default compression level and reasonable default buffer size.
+     *
+     * @param uncompressed uncompressed stream to wrap
+     * @return GZIP compressed stream
+     */
     public static InputStream compress(InputStream uncompressed) {
-        return compress(uncompressed, StreamCompression.DEFAULT_BLOCK_SIZE);
+        return compress(
+                uncompressed, Shorts.checkedCast(Deflater.DEFAULT_COMPRESSION), StreamCompression.DEFAULT_BLOCK_SIZE);
     }
 
-    public static InputStream compress(InputStream uncompressed, int bufferSize) {
+    /**
+     * Wraps a stream with GZIP compression.
+     *
+     * @param uncompressed uncompressed stream to wrap
+     * @param compressionLevel compression level (1 to 9), see {@link Deflater}
+     * @param bufferSize deflation buffer size
+     * @return GZIP compressed stream
+     */
+    public static InputStream compress(InputStream uncompressed, short compressionLevel, int bufferSize) {
         InputStream header = createHeaderStream();
         CountingInputStream counting = new CountingInputStream(uncompressed);
         CRC32 crc = new CRC32();
         CheckedInputStream checked = new CheckedInputStream(counting, crc);
-        InputStream content =
-                new DeflaterInputStream(checked, new Deflater(Deflater.DEFAULT_COMPRESSION, true), bufferSize);
+        InputStream content = new DeflaterInputStream(checked, new Deflater(compressionLevel, true), bufferSize);
         List<Supplier<InputStream>> allStreams =
                 ImmutableList.of(() -> header, () -> content, () -> trailerStream(counting.getCount(), crc));
         return new SequenceInputStream(Collections.enumeration(Lists.transform(allStreams, Supplier::get)));
