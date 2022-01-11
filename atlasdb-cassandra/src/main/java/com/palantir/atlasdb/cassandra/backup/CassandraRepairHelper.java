@@ -87,8 +87,6 @@ public class CassandraRepairHelper {
         CqlCluster cqlCluster = cqlClusters.get(namespace);
         KeyedStream.of(getTableNamesToRepair(kvs))
                 .map(tableName -> getRangesToRepair(cqlCluster, namespace, tableName))
-                // TODO(gs): this will do repairs serially, instead of batched. Is this fine? Port batching from
-                //   internal product?
                 .forEach(repairTable);
     }
 
