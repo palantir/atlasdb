@@ -68,6 +68,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
+                .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP + 1))
                 .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
         // if you change this from CAS then you must update RetryPolicy
         return session.prepare(abortStatement.toString());
@@ -123,7 +124,6 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
-                .setDefaultTimestamp(CellValuePutter.SET_TIMESTAMP + 1)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
                 .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients
                 .setRetryPolicy(abortRetryPolicy);
