@@ -108,8 +108,7 @@ allprojects {
                 'ReturnValueIgnored',
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
-                'StrictUnusedVariable',
-                'TooManyArguments'
+                'StrictUnusedVariable'
     }
 }
 
