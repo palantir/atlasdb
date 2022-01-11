@@ -20,7 +20,7 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="1. Record architecture decisions" href="0001-record-architecture-decisions.html" />
+    <link rel="next" title="KeyValueService Status" href="../../kvs-status-check.html" />
     <link rel="prev" title="Contributing to AtlasDB" href="../../contributing.html" /> 
 </head>
 
@@ -53,25 +53,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Miscellaneous</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../../asynchronous-initialization.html">Asynchronous Initialization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../contributing.html">Contributing to AtlasDB</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Architecture Decision Records</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="0001-record-architecture-decisions.html">1. Record architecture decisions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.html">2. Prevent tables from being created simultaneously in cassandra via a locks table</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0003-tagging-for-releases-and-long-term-support.html">3. Tagging for releases and long-term support</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0004-create-schema-lock-table-via-a-one-off-cli-command.html">4. Create schema lock table via a one off CLI command</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0005-stop-allowing-embedded-lock-and-timestamp-services-in-production.html">5. stop allowing embedded lock and timestamp services in production</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0006-create-schema-lock-table-using-configuration.html">6. Create schema lock table using configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0007-use-cql-for-column-paging-for-sweep.html">7. Use CQL for column paging for sweep</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0008-add-heartbeat-for-schema-lock-holders.html">8. Adding Heartbeat for Schema Lock Holders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0009-load-and-read-streams-in-same-transaction.html">9. Load and Read Streams in the Same Transaction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0010-use-partial-row-complete-cell-batching-in-gettimestampsbycell.html">10. Use partial row complete cell batching in getTimestampsByCell</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0011-retry-long-running-locks-via-blockingtimeoutexception.html">11. Retry long-running locks via BlockingTimeoutException</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0012-batch-timestamp-requests-on-the-client-side.html">12. Batch timestamp requests on the client side</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0013-write-cassandra-tombstones-and-sentinels-with-a-fresh-cassandra-timestamp.html">13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0014-targeted-sweep.html">14. Targeted Sweep</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0015-batch-asynchronous-post-transaction-unlock-calls.html">15. Batch asynchronous post-transaction unlock calls</a></li>
-<li class="toctree-l3"><a class="reference internal" href="0016-use-tickets-encoding-for-transactions.html">16. Use the tickets encoding for the transactions table (_transactions2)</a></li>
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Architecture Decision Records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../kvs-status-check.html">KeyValueService Status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../dropwizard-metrics.html">AtlasDB Metrics</a></li>
 </ul>
@@ -110,26 +92,8 @@
 <p>Please see the first record for more information on the value provided by these records.</p>
 <p>To edit the records and create new ones we recommend using <a class="reference external" href="https://github.com/npryce/adr-tools">adr-tools</a>
 while in the <code class="docutils literal notranslate"><span class="pre">docs/source/miscellaneous/</span></code> portion of the source code.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="0001-record-architecture-decisions.html">1. Record architecture decisions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.html">2. Prevent tables from being created simultaneously in cassandra via a locks table</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0003-tagging-for-releases-and-long-term-support.html">3. Tagging for releases and long-term support</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0004-create-schema-lock-table-via-a-one-off-cli-command.html">4. Create schema lock table via a one off CLI command</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0005-stop-allowing-embedded-lock-and-timestamp-services-in-production.html">5. stop allowing embedded lock and timestamp services in production</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0006-create-schema-lock-table-using-configuration.html">6. Create schema lock table using configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0007-use-cql-for-column-paging-for-sweep.html">7. Use CQL for column paging for sweep</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0008-add-heartbeat-for-schema-lock-holders.html">8. Adding Heartbeat for Schema Lock Holders</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0009-load-and-read-streams-in-same-transaction.html">9. Load and Read Streams in the Same Transaction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0010-use-partial-row-complete-cell-batching-in-gettimestampsbycell.html">10. Use partial row complete cell batching in getTimestampsByCell</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0011-retry-long-running-locks-via-blockingtimeoutexception.html">11. Retry long-running locks via BlockingTimeoutException</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0012-batch-timestamp-requests-on-the-client-side.html">12. Batch timestamp requests on the client side</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0013-write-cassandra-tombstones-and-sentinels-with-a-fresh-cassandra-timestamp.html">13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0014-targeted-sweep.html">14. Targeted Sweep</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0015-batch-asynchronous-post-transaction-unlock-calls.html">15. Batch asynchronous post-transaction unlock calls</a></li>
-<li class="toctree-l1"><a class="reference internal" href="0016-use-tickets-encoding-for-transactions.html">16. Use the tickets encoding for the transactions table (_transactions2)</a></li>
-</ul>
-</div>
+<p>Please view the ADRs on <a class="reference external" href="https://github.com/palantir/atlasdb/tree/develop/docs/source/miscellaneous/doc/adr">GitHub</a>
+(they are written in Markdown as opposed to RST).</p>
 </section>
 
 
@@ -137,7 +101,7 @@ while in the <code class="docutils literal notranslate"><span class="pre">docs/s
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../../contributing.html" class="btn btn-neutral float-left" title="Contributing to AtlasDB" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="0001-record-architecture-decisions.html" class="btn btn-neutral float-right" title="1. Record architecture decisions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../../kvs-status-check.html" class="btn btn-neutral float-right" title="KeyValueService Status" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
