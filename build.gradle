@@ -100,7 +100,6 @@ allprojects {
                 'DangerousCompletableFutureUsage',
                 'EqualsGetClass',
                 'FutureReturnValueIgnored',
-                'MixedMutabilityReturnType',
                 'NarrowingCompoundAssignment',
                 'PublicConstructorForAbstractClass',
                 'ReadReturnValueIgnored',
