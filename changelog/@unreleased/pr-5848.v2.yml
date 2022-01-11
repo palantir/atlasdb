@@ -1,0 +1,27 @@
+type: improvement
+improvement:
+  description: |-
+    Configurable GzipCompressingInputStream compression buffer size
+
+    **Goals (and why)**:
+    `GzipCompressingInputStream` did not allow configuring compression buffer size, leading to suboptimal compression with default `DeflaterInputStream` buffer size of 512 bytes.
+
+    **Implementation Description (bullets)**:
+    Allow configuring the GZIP compression buffer size. Increase default compression buffer size to 64 KiB.
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+    StreamCompressionTests
+
+    **Concerns (what feedback would you like?)**: Is 64 KiB too large default? My sense is no, and that's the current default for LZ4 block size.
+
+    **Where should we start reviewing?**: GzipCompressingInputStream
+
+    **Priority (whenever / two weeks / yesterday)**: this week
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/5848
