@@ -35,7 +35,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
