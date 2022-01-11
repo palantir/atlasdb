@@ -124,6 +124,7 @@ public class Scrubber {
         }
     };
 
+    @SuppressWarnings("TooManyArguments") // Legacy
     public static Scrubber create(
             KeyValueService keyValueService,
             ScrubberStore scrubberStore,
@@ -155,6 +156,7 @@ public class Scrubber {
         return scrubber;
     }
 
+    @SuppressWarnings("TooManyArguments") // Legacy
     private Scrubber(
             KeyValueService keyValueService,
             ScrubberStore scrubberStore,

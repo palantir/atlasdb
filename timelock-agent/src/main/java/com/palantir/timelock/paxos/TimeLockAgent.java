@@ -130,6 +130,7 @@ public class TimeLockAgent {
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
 
+    @SuppressWarnings("TooManyArguments") // Legacy
     public static TimeLockAgent create(
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,

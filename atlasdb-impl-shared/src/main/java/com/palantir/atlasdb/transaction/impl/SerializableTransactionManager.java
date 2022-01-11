@@ -55,6 +55,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+@SuppressWarnings("TooManyArguments") // Legacy
 public class SerializableTransactionManager extends SnapshotTransactionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(SerializableTransactionManager.class);
 

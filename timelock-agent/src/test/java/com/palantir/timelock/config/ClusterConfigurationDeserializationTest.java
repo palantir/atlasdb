@@ -39,7 +39,6 @@ public class ClusterConfigurationDeserializationTest {
     private static final File CLUSTER_CONFIG_DEFAULT_TYPE_INFO = getClusterConfigFile("default-type-info");
     private static final File CLUSTER_CONFIG_INVALID_TYPE_INFO = getClusterConfigFile("invalid-type-info");
     private static final File CLUSTER_CONFIG_MALFORMED = getClusterConfigFile("malformed");
-    private static final File CLUSTER_CONFIG_KUBERNETES = getClusterConfigFile("kubernetes");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
                     .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
                     .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
@@ -47,7 +46,7 @@ public class ClusterConfigurationDeserializationTest {
 
     @BeforeClass
     public static void setUp() {
-        OBJECT_MAPPER.registerSubtypes(DefaultClusterConfiguration.class, KubernetesClusterConfiguration.class);
+        OBJECT_MAPPER.registerSubtypes(DefaultClusterConfiguration.class);
     }
 
     @Test
@@ -62,31 +61,21 @@ public class ClusterConfigurationDeserializationTest {
 
     @Test
     @Ignore // TODO (jkong): Reenable if/when we find a good solution
-    public void throwsWhenDeserializingClusterConfigurationWithInvalidTypeInformation() throws IOException {
+    public void throwsWhenDeserializingClusterConfigurationWithInvalidTypeInformation() {
         assertThatThrownBy(() -> assertDefaultClusterConfigurationCorrect(
                         deserializeClusterConfiguration(CLUSTER_CONFIG_INVALID_TYPE_INFO)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    public void throwsOnMalformedClusterConfiguration() throws IOException {
+    public void throwsOnMalformedClusterConfiguration() {
         assertThatThrownBy(() -> deserializeClusterConfiguration(CLUSTER_CONFIG_MALFORMED))
                 .isInstanceOf(UnrecognizedPropertyException.class)
                 .hasMessageContaining("my-node-set");
     }
 
-    @Test
-    public void doesNotDeserializeKubernetesClusterConfigurationAsDefaultClusterConfiguration() throws IOException {
-        // This is somewhat limited by the design of KubernetesHostnames, but should at least confirm that we're
-        // attempting to deserialize a k8s configuration as one, and not as a default configuration
-        assertThatThrownBy(() -> deserializeClusterConfiguration(CLUSTER_CONFIG_KUBERNETES))
-                .hasMessageContaining("k8s stateful set");
-    }
-
     private void assertDefaultClusterConfigurationCorrect(ClusterConfiguration cluster) {
-        assertThat(cluster)
-                .isInstanceOf(DefaultClusterConfiguration.class)
-                .isNotInstanceOf(KubernetesClusterConfiguration.class);
+        assertThat(cluster).isInstanceOf(DefaultClusterConfiguration.class);
         assertThat(cluster.clusterMembers()).hasSameElementsAs(SERVERS);
         assertThat(cluster.localServer()).isEqualTo(LOCAL_SERVER);
     }
