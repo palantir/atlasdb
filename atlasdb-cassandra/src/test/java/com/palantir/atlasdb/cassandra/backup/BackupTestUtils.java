@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.xml.bind.DatatypeConverter;
 
+@SuppressWarnings("DnsLookup")
 final class BackupTestUtils {
     static final InetSocketAddress HOST_1 = new InetSocketAddress("cassandra-1", 9042);
     static final InetSocketAddress HOST_2 = new InetSocketAddress("cassandra-2", 9042);

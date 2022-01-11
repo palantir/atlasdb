@@ -41,7 +41,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-@SuppressWarnings({"DnsLookup", "UnstableApiUsage"})
+@SuppressWarnings("UnstableApiUsage")
 public class TokenRangeFetcherTest {
     private static final String TABLE_NAME = "table";
 
