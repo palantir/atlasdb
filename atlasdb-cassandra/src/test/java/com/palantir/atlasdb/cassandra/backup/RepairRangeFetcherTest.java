@@ -41,7 +41,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -63,9 +62,10 @@ public class RepairRangeFetcherTest {
     private static final String TXN_1 = TransactionConstants.TRANSACTION_TABLE.getTableName();
     private static final String TXN_2 = TransactionConstants.TRANSACTIONS2_TABLE.getTableName();
 
-    private static final LightweightOppToken TOKEN_1 = new LightweightOppToken("1111".getBytes(StandardCharsets.UTF_8));
-    private static final LightweightOppToken TOKEN_2 = new LightweightOppToken("2222".getBytes(StandardCharsets.UTF_8));
-    private static final LightweightOppToken TOKEN_3 = new LightweightOppToken("3333".getBytes(StandardCharsets.UTF_8));
+    private static final LightweightOppToken TOKEN_1 = BackupTestUtils.lightweightOppToken("1111");
+    private static final LightweightOppToken TOKEN_2 = BackupTestUtils.lightweightOppToken("5555");
+    private static final LightweightOppToken TOKEN_3 = BackupTestUtils.lightweightOppToken("9999");
+    private static final LightweightOppToken OTHER_TOKEN = BackupTestUtils.lightweightOppToken("7777");
 
     private static final Range<LightweightOppToken> RANGE_AT_MOST_1 = Range.atMost(TOKEN_1);
     private static final Range<LightweightOppToken> RANGE_1_TO_2 = Range.openClosed(TOKEN_1, TOKEN_2);
@@ -99,8 +99,7 @@ public class RepairRangeFetcherTest {
         when(keyspaceMetadata.getTables()).thenReturn(ImmutableList.of(txn1Metadata, txn2Metadata));
         when(cqlMetadata.getKeyspaceMetadata(KEYSPACE_NAME)).thenReturn(keyspaceMetadata);
 
-        when(cqlSession.retrieveRowKeysAtConsistencyAll(anyList()))
-                .thenReturn(ImmutableSet.of(token("1111"), token("5555")));
+        when(cqlSession.retrieveRowKeysAtConsistencyAll(anyList())).thenReturn(ImmutableSet.of(TOKEN_1, OTHER_TOKEN));
 
         when(cqlMetadata.getTokenRanges())
                 .thenReturn(ImmutableSet.of(RANGE_AT_MOST_1, RANGE_1_TO_2, RANGE_2_TO_3, RANGE_GREATER_THAN_3));
@@ -117,7 +116,6 @@ public class RepairRangeFetcherTest {
         repairRangeFetcher = new RepairRangeFetcher(cqlSession, config);
     }
 
-    // TODO(gs): add tests that show we get the right token ranges
     @Test
     public void testRepairOnlyTxn1() {
         List<TransactionsTableInteraction> interactions =
@@ -173,6 +171,18 @@ public class RepairRangeFetcherTest {
     }
 
     @Test
+    public void testRepairGivesCorrectTokenRanges() {
+        List<TransactionsTableInteraction> interactions =
+                ImmutableList.of(new Transactions2TableInteraction(range(1L, 10_000_000L), POLICY));
+        Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
+                repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
+
+        assertThat(rangesForRepair.get(TXN_2).get(HOST_1).asRanges())
+                .containsExactlyInAnyOrder(
+                        Range.atMost(TOKEN_1), Range.openClosed(TOKEN_2, OTHER_TOKEN), Range.greaterThan(TOKEN_3));
+    }
+
+    @Test
     public void testRepairGivesAllReplicas() {
         List<TransactionsTableInteraction> interactions =
                 ImmutableList.of(new Transactions2TableInteraction(range(1L, 10_000_000L), POLICY));
@@ -195,10 +205,5 @@ public class RepairRangeFetcherTest {
 
     private static FullyBoundedTimestampRange range(long lower, long upper) {
         return FullyBoundedTimestampRange.of(Range.closed(lower, upper));
-    }
-
-    // TODO(gs): refine/unify test token generation?
-    private static LightweightOppToken token(String hexString) {
-        return new LightweightOppToken(hexString.getBytes(StandardCharsets.UTF_8));
     }
 }

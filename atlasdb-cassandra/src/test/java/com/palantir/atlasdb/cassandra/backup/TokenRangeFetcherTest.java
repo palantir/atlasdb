@@ -35,7 +35,6 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,9 +52,9 @@ public class TokenRangeFetcherTest {
     private static final String KEYSPACE_NAME = "keyspace";
     private static final String TABLE_NAME = "table";
 
-    private static final LightweightOppToken TOKEN_1 = new LightweightOppToken("1111".getBytes(StandardCharsets.UTF_8));
-    private static final LightweightOppToken TOKEN_2 = new LightweightOppToken("2222".getBytes(StandardCharsets.UTF_8));
-    private static final LightweightOppToken TOKEN_3 = new LightweightOppToken("3333".getBytes(StandardCharsets.UTF_8));
+    private static final LightweightOppToken TOKEN_1 = BackupTestUtils.lightweightOppToken("1111");
+    private static final LightweightOppToken TOKEN_2 = BackupTestUtils.lightweightOppToken("2222");
+    private static final LightweightOppToken TOKEN_3 = BackupTestUtils.lightweightOppToken("3333");
 
     private static final Range<LightweightOppToken> RANGE_AT_MOST_1 = Range.atMost(TOKEN_1);
     private static final Range<LightweightOppToken> RANGE_1_TO_2 = Range.openClosed(TOKEN_1, TOKEN_2);
