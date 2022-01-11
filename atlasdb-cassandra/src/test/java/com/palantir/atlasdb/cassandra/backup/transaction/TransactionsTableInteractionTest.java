@@ -96,6 +96,15 @@ public class TransactionsTableInteractionTest {
                         Transactions2TableInteraction.class);
     }
 
+    @Test
+    public void testUnsupportedSchemaVersion() {
+        Map<FullyBoundedTimestampRange, Integer> outOfRange = ImmutableMap.of(FULL_RANGE, 9001);
+
+        assertThatThrownBy(() -> TransactionsTableInteraction.getTransactionTableInteractions(outOfRange, POLICY))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Found unsupported transactions schema version");
+    }
+
     private TransactionsTableInteraction getSingleInteraction(int version) {
         Map<FullyBoundedTimestampRange, Integer> ranges = ImmutableMap.of(FULL_RANGE, version);
 
