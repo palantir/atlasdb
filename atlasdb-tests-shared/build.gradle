@@ -32,7 +32,9 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-lib'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'junit:junit'
+  implementation (group: 'junit', name: 'junit') {
+    exclude group: 'org.hamcrest', module: 'hamcrest-core'
+  }
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.assertj:assertj-core'
   implementation 'org.assertj:assertj-guava'
@@ -70,6 +72,7 @@ dependencies {
   testImplementation project(':timestamp-api')
   testImplementation project(path: ':atlasdb-client', configuration: 'testArtifacts')
   testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'com.google.code.findbugs', module: 'annotations'
     exclude group: 'org.hamcrest'
   }
 

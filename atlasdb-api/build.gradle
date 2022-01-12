@@ -30,7 +30,6 @@ dependencies {
   testImplementation 'com.palantir.common:streams'
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'io.dropwizard.metrics:metrics-core'
-  testImplementation 'junit:junit'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
   testImplementation project(':lock-api-objects')

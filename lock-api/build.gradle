@@ -44,7 +44,6 @@ dependencies {
     testImplementation 'com.palantir.common:streams'
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'io.dropwizard.metrics:metrics-core'
-    testImplementation 'junit:junit'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.mockito:mockito-core'
@@ -52,7 +51,8 @@ dependencies {
     testImplementation project(':lock-conjure-api:lock-conjure-api-objects')
     testImplementation project(':timelock-api:timelock-api-objects')
     testImplementation(group: 'org.jmock', name: 'jmock') {
-      exclude group: 'org.hamcrest'
+        exclude group: 'com.google.code.findbugs', module: 'annotations'
+        exclude group: 'org.hamcrest'
     }
 
     annotationProcessor 'org.immutables:value'

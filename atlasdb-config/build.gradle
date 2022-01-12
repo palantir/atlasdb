@@ -65,6 +65,7 @@ dependencies {
     testImplementation 'org.glassfish.jersey.core:jersey-common'
     testImplementation project(path: ':atlasdb-client', configuration: 'testArtifacts')
     testImplementation(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'com.google.code.findbugs', module: 'annotations'
       exclude group: 'org.hamcrest'
     }
 

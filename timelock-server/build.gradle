@@ -109,6 +109,7 @@ dependencies {
         exclude(module:'jcl-over-slf4j')
     }
     testImplementation(group: 'org.jmock', name: 'jmock') {
+        exclude group: 'com.google.code.findbugs', module: 'annotations'
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }

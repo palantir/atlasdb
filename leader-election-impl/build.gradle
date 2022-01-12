@@ -40,6 +40,7 @@ dependencies {
   testImplementation project(':commons-executors')
   testImplementation project(':leader-election-api-protobufs')
   testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'com.google.code.findbugs', module: 'annotations'
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }

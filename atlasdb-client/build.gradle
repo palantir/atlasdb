@@ -101,7 +101,6 @@ dependencies {
   testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation 'com.palantir.tritium:tritium-api'
   testImplementation 'io.dropwizard.metrics:metrics-core'
-  testImplementation 'junit:junit'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.awaitility:awaitility'
@@ -111,6 +110,7 @@ dependencies {
   testImplementation project(':lock-api-objects')
   testImplementation project(':timestamp-api')
   testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'com.google.code.findbugs', module: 'annotations'
     exclude group: 'org.hamcrest'
   }
 
@@ -119,7 +119,6 @@ dependencies {
   integrationInputImplementation project(':atlasdb-commons')
   integrationInputImplementation 'com.fasterxml.jackson.core:jackson-annotations'
   integrationInputImplementation 'com.fasterxml.jackson.core:jackson-databind'
-  integrationInputImplementation 'com.google.code.findbugs:annotations'
   integrationInputImplementation 'com.google.errorprone:error_prone_annotations'
   integrationInputImplementation 'com.google.guava:guava'
   integrationInputImplementation 'com.google.protobuf:protobuf-java'

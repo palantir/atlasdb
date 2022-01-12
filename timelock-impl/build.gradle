@@ -69,7 +69,6 @@ dependencies {
     testImplementation 'io.dropwizard.metrics:metrics-core'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
-    testImplementation 'org.jmock:jmock'
     testImplementation 'org.mockito:mockito-core'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-autobatch')
@@ -84,6 +83,10 @@ dependencies {
     testImplementation project(':timelock-api:timelock-api-objects')
     testImplementation project(':timestamp-api')
     testImplementation project(path: ':leader-election-impl', configuration: 'testArtifacts')
+    testImplementation(group: 'org.jmock', name: 'jmock') {
+        exclude group: 'com.google.code.findbugs', module: 'annotations'
+        exclude group: 'org.hamcrest'
+    }
 
     annotationProcessor 'org.derive4j:derive4j'
     annotationProcessor 'org.immutables:value'

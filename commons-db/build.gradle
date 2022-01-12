@@ -25,9 +25,7 @@ dependencies {
   implementation project(':commons-executors-api')
 
   testImplementation 'com.google.guava:guava'
-  testImplementation 'junit:junit'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
-  testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':atlasdb-commons')
 }

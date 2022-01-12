@@ -28,7 +28,6 @@ dependencies {
   testImplementation 'com.palantir.conjure.java.runtime:client-config'
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.safe-logging:safe-logging'
-  testImplementation 'junit:junit'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
 

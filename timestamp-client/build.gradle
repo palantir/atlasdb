@@ -14,7 +14,6 @@ dependencies {
   testImplementation 'com.google.errorprone:error_prone_annotations'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.tracing:tracing'
-  testImplementation 'junit:junit'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
 

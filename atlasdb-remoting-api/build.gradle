@@ -16,7 +16,6 @@ dependencies {
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
 
-  testImplementation 'junit:junit'
   testImplementation 'org.assertj:assertj-core'
 
   annotationProcessor 'org.immutables:value'

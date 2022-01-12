@@ -58,7 +58,6 @@ dependencies {
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
   testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
-  testImplementation 'com.google.code.findbugs:annotations'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.google.protobuf:protobuf-java'
   testImplementation 'com.palantir.conjure.java.api:errors'
@@ -91,6 +90,7 @@ dependencies {
   testImplementation project(':lock-api-objects')
   testImplementation project(':timelock-api:timelock-api-objects')
   testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'com.google.code.findbugs', module: 'annotations'
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }

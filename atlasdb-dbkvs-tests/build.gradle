@@ -1,4 +1,3 @@
-
 apply from: '../gradle/shared.gradle'
 
 dependencies {
@@ -9,8 +8,10 @@ dependencies {
   api project(':atlasdb-tests-shared')
 
   implementation 'com.google.guava:guava'
-  implementation 'junit:junit'
   implementation 'org.assertj:assertj-core'
+  implementation (group: 'junit', name: 'junit') {
+    exclude group: 'org.hamcrest', module: 'hamcrest-core'
+  }
 
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.conjure.java.api:service-config'
@@ -20,7 +21,6 @@ dependencies {
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.safe-logging:safe-logging'
   testImplementation 'joda-time:joda-time'
-  testImplementation 'junit:junit'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.awaitility:awaitility'
   testImplementation 'org.mockito:mockito-core'

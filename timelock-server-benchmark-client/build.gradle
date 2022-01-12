@@ -36,10 +36,12 @@ dependencies {
     implementation 'io.dropwizard:dropwizard-core'
     implementation 'io.dropwizard:dropwizard-jersey'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
-    implementation 'junit:junit'
     implementation 'org.apache.commons:commons-lang3'
     implementation 'org.assertj:assertj-core'
     implementation 'org.slf4j:slf4j-api'
+    implementation (group: 'junit', name: 'junit') {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
 }
 
 distribution {

@@ -22,11 +22,11 @@ dependencies {
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
-    testImplementation 'junit:junit'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.mockito:mockito-core'
     testImplementation(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'com.google.code.findbugs', module: 'annotations'
       exclude group: 'org.hamcrest'
     }
 

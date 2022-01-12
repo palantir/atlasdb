@@ -14,12 +14,12 @@ dependencies {
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'org.slf4j:slf4j-api'
 
-  testImplementation 'junit:junit'
   testImplementation 'org.awaitility:awaitility'
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':lock-api-objects')
   testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'com.google.code.findbugs', module: 'annotations'
     exclude group: 'org.hamcrest'
   }
 

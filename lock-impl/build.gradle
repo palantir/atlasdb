@@ -32,6 +32,7 @@ dependencies {
   testImplementation project(':lock-api-objects')
   testImplementation project(':timestamp-api')
   testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'com.google.code.findbugs', module: 'annotations'
     exclude group: 'org.hamcrest'
   }
 

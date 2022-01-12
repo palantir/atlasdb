@@ -26,9 +26,11 @@ dependencies {
     testImplementation 'org.gmock:gmock'
     testImplementation project(':atlasdb-client')
     testImplementation(group: 'org.jmock', name: 'jmock-legacy') {
+        exclude group: 'com.google.code.findbugs', module: 'annotations'
         exclude group: 'org.hamcrest'
     }
     testImplementation(group: 'org.jmock', name: 'jmock') {
-      exclude group: 'org.hamcrest'
+        exclude group: 'com.google.code.findbugs', module: 'annotations'
+        exclude group: 'org.hamcrest'
     }
 }

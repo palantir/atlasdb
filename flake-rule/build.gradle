@@ -3,7 +3,9 @@ apply from: '../gradle/shared.gradle'
 dependencies {
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:safe-logging'
-  implementation 'junit:junit'
+  implementation (group: 'junit', name: 'junit') {
+    exclude group: 'org.hamcrest', module: 'hamcrest-core'
+  }
 
   testImplementation 'ch.qos.logback:logback-classic'
   testImplementation 'org.assertj:assertj-core'

@@ -41,8 +41,10 @@ dependencies {
     implementation 'org.assertj:assertj-core'
     implementation 'org.awaitility:awaitility'
     implementation 'org.openjdk.jmh:jmh-core'
-    implementation 'org.reflections:reflections'
     implementation 'org.slf4j:slf4j-api'
+    implementation (group:'org.reflections', name: 'reflections') {
+        exclude group: 'com.google.code.findbugs', module: 'annotations'
+    }
 
     testImplementation 'com.google.guava:guava'
     testImplementation 'org.apache.commons:commons-math3'

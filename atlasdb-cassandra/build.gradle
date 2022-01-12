@@ -52,6 +52,7 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.apache.commons:commons-pool2'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-commons')
   implementation project(':commons-annotations')
@@ -94,6 +95,7 @@ dependencies {
   testImplementation project(':timestamp-impl')
   testImplementation project(path: ':atlasdb-client', configuration: 'testArtifacts')
   testImplementation(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'com.google.code.findbugs', module: 'annotations'
       exclude group: 'org.hamcrest'
   }
 
