@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Transactions3 table interaction now correctly aborts transactions.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5853
