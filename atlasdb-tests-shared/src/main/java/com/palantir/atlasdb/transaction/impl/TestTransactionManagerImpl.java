@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -23,7 +25,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -90,13 +92,14 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TimestampManagementService timestampManagementService,
             TimelockService legacyTimelockService,
             LockService lockService,
+            LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
             AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 legacyTimelockService,
-                NoOpLockWatchManager.create(),
+                lockWatchManager,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -136,7 +139,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 services.getLegacyTimelockService(),
-                NoOpLockWatchManager.create(),
+                services.getLockWatchManager(),
                 services.getTimestampManagementService(),
                 lockService,
                 transactionService,
@@ -175,36 +178,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     @Override
     public Transaction createNewTransaction() {
-        long startTimestamp = timelockService.getFreshTimestamp();
-        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        return transactionWrapper.apply(
-                new SnapshotTransaction(
-                        metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
-                        timelockService,
-                        lockWatchManager,
-                        transactionService,
-                        NoOpCleaner.INSTANCE,
-                        () -> startTimestamp,
-                        getConflictDetectionManager(),
-                        SweepStrategyManagers.createDefault(keyValueService),
-                        startTimestamp,
-                        Optional.empty(),
-                        PreCommitConditions.NO_OP,
-                        AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                        null,
-                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        false,
-                        timestampValidationReadCache,
-                        getRangesExecutor,
-                        defaultGetRangesConcurrency,
-                        sweepQueueWriter,
-                        deleteExecutor,
-                        validateLocksOnReads,
-                        () -> TRANSACTION_CONFIG,
-                        ConflictTracer.NO_OP,
-                        tableLevelMetricsController),
-                pathTypeTracker);
+        return Iterables.getOnlyElement(startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
     }
 
     @Override

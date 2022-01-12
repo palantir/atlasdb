@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Transaction schema versions are now only installed by a running service
+    once on startup, and thereafter once every three days to avoid excessive contention
+    during blue-green deployments. If you would like the new schema version to be
+    installed more quickly, please bounce one of the nodes of your service.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5840

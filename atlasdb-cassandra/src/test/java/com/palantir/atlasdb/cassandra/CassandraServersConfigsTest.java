@@ -35,8 +35,10 @@ public class CassandraServersConfigsTest {
     private static final int TEST_THRIFT_PORT = 44;
     private static final int TEST_CQL_PORT = 45;
 
-    private static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", TEST_THRIFT_PORT);
-    private static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", TEST_THRIFT_PORT);
+    private static final InetSocketAddress THRIFT_SERVER_1 =
+            InetSocketAddress.createUnresolved("foo", TEST_THRIFT_PORT);
+    private static final InetSocketAddress THRIFT_SERVER_2 =
+            InetSocketAddress.createUnresolved("bar", TEST_THRIFT_PORT);
 
     private static final CqlCapableConfig CQL_CAPABLE_CONFIG = cqlCapable("bar", "foo");
 
@@ -54,7 +56,9 @@ public class CassandraServersConfigsTest {
     }
 
     private static List<InetSocketAddress> constructHosts(int port, String[] hosts) {
-        return Stream.of(hosts).map(host -> new InetSocketAddress(host, port)).collect(Collectors.toList());
+        return Stream.of(hosts)
+                .map(host -> InetSocketAddress.createUnresolved(host, port))
+                .collect(Collectors.toList());
     }
 
     @Test

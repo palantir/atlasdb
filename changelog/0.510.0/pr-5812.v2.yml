@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Improve caching performance for long-running transactions, as well
+    as for high transaction throughput.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5812

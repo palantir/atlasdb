@@ -26,7 +26,7 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.SweepTestUtils;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.concurrent.ExecutorService;
@@ -34,31 +34,26 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class SweepPriorityStoreTest {
     private ExecutorService exec;
     private TransactionManager txManager;
     private SweepPriorityStore priorityStore;
 
-    private InMemoryTimelockServices timelock;
-
     @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
     @Before
     public void setup() {
         exec = PTExecutors.newCachedThreadPool();
         KeyValueService kvs = new InMemoryKeyValueService(false, exec);
-        timelock = InMemoryTimelockServices.create(tempFolder);
-        txManager = SweepTestUtils.setupTxManager(kvs, timelock);
+        txManager = SweepTestUtils.setupTxManager(kvs, inMemoryTimeLockRule.get());
         priorityStore = SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false);
     }
 
     @After
     public void shutdownExec() {
         exec.shutdown();
-        timelock.close();
     }
 
     @Test

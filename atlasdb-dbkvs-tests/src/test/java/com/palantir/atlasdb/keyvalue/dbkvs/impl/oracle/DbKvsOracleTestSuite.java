@@ -89,7 +89,7 @@ public final class DbKvsOracleTestSuite {
     public static DbKeyValueServiceConfig getKvsConfig() {
         DockerPort port = docker.containers().container("oracle").port(ORACLE_PORT_NUMBER);
 
-        InetSocketAddress oracleAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
+        InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved(port.getIp(), port.getExternalPort());
 
         ConnectionConfig connectionConfig = new OracleConnectionConfig.Builder()
                 .dbLogin("palantir")

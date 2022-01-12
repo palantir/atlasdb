@@ -64,8 +64,8 @@ public class CassandraContainer extends Container {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
-                        .addCqlHosts(new InetSocketAddress(name, CASSANDRA_CQL_PORT))
-                        .addThriftHosts(new InetSocketAddress(name, CASSANDRA_THRIFT_PORT))
+                        .addCqlHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_CQL_PORT))
+                        .addThriftHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_THRIFT_PORT))
                         .build())
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()

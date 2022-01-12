@@ -38,8 +38,8 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -338,8 +338,8 @@ public class TargetedSweepTest extends AtlasDbTestCase {
      */
     private void waitForImmutableTimestampToBeStrictlyGreaterThan(long timestampToBePassed) {
         Awaitility.await()
-                .atMost(5, TimeUnit.SECONDS)
-                .pollInterval(10, TimeUnit.MILLISECONDS)
+                .atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(10))
                 .until(() -> timestampToBePassed < serializableTxManager.getImmutableTimestamp());
     }
 }

@@ -23,7 +23,7 @@ import java.util.Set;
 import org.awaitility.Awaitility;
 
 public final class MultiCassandraUtils {
-    private static final int CASSANDRA_PORT = 9160;
+    public static final int CASSANDRA_THRIFT_PORT = 9160;
 
     private MultiCassandraUtils() {
         // utility
@@ -64,7 +64,7 @@ public final class MultiCassandraUtils {
                             "ete1",
                             String.format(
                                     "bash -c 'curl %s:%s; echo $?; exit 0;'",
-                                    container.getContainerName(), CASSANDRA_PORT));
+                                    container.getContainerName(), CASSANDRA_THRIFT_PORT));
                     return curlOutput.contains("52");
                 });
     }
