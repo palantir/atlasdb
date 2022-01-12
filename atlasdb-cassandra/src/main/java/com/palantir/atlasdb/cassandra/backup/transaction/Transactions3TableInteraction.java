@@ -69,7 +69,8 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
                 .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP + 1));
-        // if you change this to CAS then you must update RetryPolicy
+        // abortRetryPolicy must match the type of operation of the abort statement
+        // so if the statement is changed TO a CAS, callers will need to change their policy
         return session.prepare(abortStatement);
     }
 
