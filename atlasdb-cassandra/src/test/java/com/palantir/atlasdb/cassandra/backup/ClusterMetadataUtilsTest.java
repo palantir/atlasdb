@@ -25,7 +25,6 @@ import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Set;
@@ -67,10 +66,10 @@ public class ClusterMetadataUtilsTest {
         LightweightOppToken partitionKeyToken = getToken("9000");
         LightweightOppToken lastTokenBeforePartitionKey = tokenRangesByStart.lowerKey(partitionKeyToken);
 
-        RangeSet<LightweightOppToken> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
+        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
                 ImmutableSet.of(partitionKeyToken), tokenRangesByStart);
-        assertThat(tokenRanges.asRanges()).hasSize(1);
-        Range<LightweightOppToken> onlyRange = tokenRanges.asRanges().iterator().next();
+        assertThat(tokenRanges).hasSize(1);
+        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.lowerEndpoint()).isEqualTo(lastTokenBeforePartitionKey);
         assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken);
     }
@@ -98,8 +97,7 @@ public class ClusterMetadataUtilsTest {
         LightweightOppToken partitionKeyToken1 = getToken("9000");
         LightweightOppToken partitionKeyToken2 = getToken("9001");
         Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                        ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByStart)
-                .asRanges();
+                ImmutableSet.of(partitionKeyToken1, partitionKeyToken2), tokenRangesByStart);
         assertThat(tokenRanges).hasSize(1);
         Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.lowerEndpoint()).isEqualTo(tokenRangesByStart.lowerKey(partitionKeyToken1));
@@ -111,12 +109,11 @@ public class ClusterMetadataUtilsTest {
         LightweightOppToken partitionKeyToken = getToken("0010");
 
         Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                        ImmutableSet.of(partitionKeyToken), tokenRangesByStart)
-                .asRanges();
-        assertThat(tokenRanges).hasSize(1);
-        Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
-        assertThat(onlyRange.hasLowerBound()).isFalse();
-        assertThat(onlyRange.upperEndpoint()).isEqualTo(partitionKeyToken);
+                ImmutableSet.of(partitionKeyToken), tokenRangesByStart);
+        assertThat(tokenRanges).hasSize(2);
+        assertThat(tokenRanges)
+                .containsExactlyInAnyOrder(
+                        Range.atMost(partitionKeyToken), Range.greaterThan(LightweightOppToken.serialize(THIRD_TOKEN)));
     }
 
     @Test
@@ -124,8 +121,7 @@ public class ClusterMetadataUtilsTest {
         LightweightOppToken firstEndToken = tokenRangesByStart.higherKey(tokenRangesByStart.firstKey());
         LightweightOppToken secondEndToken = tokenRangesByStart.higherKey(firstEndToken);
         Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                        ImmutableSet.of(secondEndToken), tokenRangesByStart)
-                .asRanges();
+                ImmutableSet.of(secondEndToken), tokenRangesByStart);
         assertThat(tokenRanges).hasSize(1);
         Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.lowerEndpoint()).isEqualTo(firstEndToken);
@@ -135,9 +131,8 @@ public class ClusterMetadataUtilsTest {
     @Test
     public void testSmallTokenRangeInMiddle() {
         LightweightOppToken token = getToken("c0ffee");
-        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                        ImmutableSet.of(token), tokenRangesByStart)
-                .asRanges();
+        Set<Range<LightweightOppToken>> tokenRanges =
+                ClusterMetadataUtils.getMinimalSetOfRangesForTokens(ImmutableSet.of(token), tokenRangesByStart);
         assertThat(tokenRanges).hasSize(1);
         Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.lowerEndpoint()).isEqualTo(LightweightOppToken.serialize(SECOND_TOKEN));
@@ -147,9 +142,8 @@ public class ClusterMetadataUtilsTest {
     @Test
     public void testSmallTokenRangeAfterLastVnode() {
         LightweightOppToken token = getToken("fefe");
-        Set<Range<LightweightOppToken>> tokenRanges = ClusterMetadataUtils.getMinimalSetOfRangesForTokens(
-                        ImmutableSet.of(token), tokenRangesByStart)
-                .asRanges();
+        Set<Range<LightweightOppToken>> tokenRanges =
+                ClusterMetadataUtils.getMinimalSetOfRangesForTokens(ImmutableSet.of(token), tokenRangesByStart);
         assertThat(tokenRanges).hasSize(1);
         Range<LightweightOppToken> onlyRange = tokenRanges.iterator().next();
         assertThat(onlyRange.lowerEndpoint()).isEqualTo(LightweightOppToken.serialize(THIRD_TOKEN));

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
@@ -25,6 +26,7 @@ import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
+import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -37,6 +39,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -102,15 +105,20 @@ public class AtlasRestoreService {
         // RepairTransactionsTablesTask
         KeyedStream.stream(completedBackups)
                 .forEach((namespace, completedBackup) ->
-                        repairTransactionsTables(namespace, completedBackup, repairTable));
+                        restoreTransactionsTables(namespace, completedBackup, repairTable));
 
         return namespacesToRepair;
     }
 
-    private void repairTransactionsTables(
+    private void restoreTransactionsTables(
             Namespace namespace, CompletedBackup completedBackup, BiConsumer<String, RangesForRepair> repairTable) {
         Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(namespace, completedBackup);
-        cassandraRepairHelper.repairTransactionsTables(namespace, coordinationMap, repairTable);
+        List<TransactionsTableInteraction> transactionsTableInteractions =
+                TransactionsTableInteraction.getTransactionTableInteractions(
+                        coordinationMap, DefaultRetryPolicy.INSTANCE);
+        cassandraRepairHelper.repairTransactionsTables(namespace, transactionsTableInteractions, repairTable);
+        cassandraRepairHelper.cleanTransactionsTables(
+                namespace, completedBackup.getBackupStartTimestamp(), transactionsTableInteractions);
     }
 
     private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(

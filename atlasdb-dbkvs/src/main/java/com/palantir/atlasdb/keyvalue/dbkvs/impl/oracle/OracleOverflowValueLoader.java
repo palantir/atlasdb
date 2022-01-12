@@ -33,7 +33,7 @@ import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,7 +51,7 @@ public class OracleOverflowValueLoader implements OverflowValueLoader {
     public Map<Long, byte[]> loadOverflowValues(
             ConnectionSupplier conns, TableReference tableRef, Collection<Long> overflowIds) {
         if (overflowIds.isEmpty()) {
-            return Collections.emptyMap();
+            return new HashMap<>();
         } else {
             Map<Long, byte[]> ret = Maps.newHashMapWithExpectedSize(overflowIds.size());
             for (FullQuery query : getOverflowQueries(conns, tableRef, overflowIds)) {

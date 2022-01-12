@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -48,6 +48,7 @@ public class AtlasRestoreServiceTest {
     private static final Namespace WITH_BACKUP = Namespace.of("with-backup");
     private static final Namespace NO_BACKUP = Namespace.of("no-backup");
     private static final Namespace FAILING_NAMESPACE = Namespace.of("failing");
+    private static final long BACKUP_START_TIMESTAMP = 2L;
 
     @Mock
     private AuthHeader authHeader;
@@ -75,7 +76,7 @@ public class AtlasRestoreServiceTest {
         CompletedBackup completedBackup = CompletedBackup.builder()
                 .namespace(namespace)
                 .immutableTimestamp(1L)
-                .backupStartTimestamp(2L)
+                .backupStartTimestamp(BACKUP_START_TIMESTAMP)
                 .backupEndTimestamp(3L)
                 .build();
         backupPersister.storeCompletedBackup(completedBackup);
@@ -87,7 +88,8 @@ public class AtlasRestoreServiceTest {
         atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
-        verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyMap(), eq(doNothingConsumer));
+        verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyList(), eq(doNothingConsumer));
+        verify(cassandraRepairHelper).cleanTransactionsTables(eq(WITH_BACKUP), eq(BACKUP_START_TIMESTAMP), anyList());
         verifyNoMoreInteractions(cassandraRepairHelper);
     }
 

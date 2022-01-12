@@ -20,7 +20,6 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
@@ -28,6 +27,7 @@ import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.cassandra.backup.CqlSession;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
@@ -61,7 +61,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
-    public PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, Session session) {
+    public PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, CqlSession session) {
         Statement abortStatement = QueryBuilder.update(transactionsTable)
                 .with(QueryBuilder.set(CassandraConstants.VALUE, ByteBuffer.wrap(ABORT_COMMIT_TS_ENCODED)))
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
@@ -69,17 +69,17 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
                 .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
         // if you change this from CAS then you must update RetryPolicy
-        return session.prepare(abortStatement.toString());
+        return session.prepare(abortStatement);
     }
 
     @Override
-    public PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, Session session) {
+    public PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, CqlSession session) {
         Statement checkStatement = QueryBuilder.select()
                 .from(transactionsTable)
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, COLUMN_NAME_BB))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP));
-        return session.prepare(checkStatement.toString());
+        return session.prepare(checkStatement);
     }
 
     @Override
