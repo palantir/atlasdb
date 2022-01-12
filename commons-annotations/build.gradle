@@ -1,2 +1,1 @@
-apply from: "../gradle/shared.gradle"
-
+apply from: '../gradle/shared.gradle'

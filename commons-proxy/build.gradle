@@ -1,5 +1,4 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation group: 'org.slf4j', name: 'slf4j-api'
 }

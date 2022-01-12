@@ -1,54 +1,53 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation project(":atlasdb-config")
-  implementation project(":timelock-impl")
-  testImplementation project(":atlasdb-config")
-
-  testImplementation project(":commons-api")
-
-  implementation group: 'com.palantir.tracing', name: 'tracing'
-  implementation group: 'com.palantir.tritium', name: 'tritium-lib'
-
-  implementation group: 'junit', name: 'junit'
-  implementation group: 'org.assertj', name: 'assertj-core'
-  implementation group: 'org.mockito', name: 'mockito-core'
-  implementation group: "org.awaitility", name: "awaitility"
+  api project(':atlasdb-api')
+  api project(':atlasdb-client')
+  api project(':atlasdb-client-protobufs')
+  api project(':atlasdb-commons')
+  api project(':atlasdb-config')
+  api project(':atlasdb-coordination-impl')
+  api project(':atlasdb-impl-shared')
+  api project(':atlasdb-remoting-api')
+  api project(':commons-executors')
+  api project(':leader-election-impl')
+  api project(':lock-api')
+  api project(':lock-api-objects')
+  api project(':lock-impl')
+  api project(':timelock-agent')
+  api project(':timelock-api:timelock-api-jersey')
+  api project(':timelock-impl')
+  api project(':timestamp-api')
 
   implementation 'com.fasterxml.jackson.core:jackson-core'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.conjure.java.api:service-config'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+  implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.palantir.sls.versions:sls-versions'
+  implementation 'com.palantir.tracing:tracing'
+  implementation 'com.palantir.tritium:tritium-lib'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'junit:junit'
   implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.assertj:assertj-core'
   implementation 'org.assertj:assertj-guava'
+  implementation 'org.awaitility:awaitility'
+  implementation 'org.mockito:mockito-core'
   implementation 'org.rocksdb:rocksdbjni'
-
-  implementation project(':atlasdb-api')
-  implementation project(':atlasdb-client')
-  implementation project(':atlasdb-client-protobufs')
-  implementation project(':atlasdb-commons')
-  implementation project(':atlasdb-coordination-impl')
-  implementation project(':atlasdb-impl-shared')
-  implementation project(':atlasdb-remoting-api')
-  implementation project(':commons-executors')
-  implementation project(':lock-api')
-  implementation project(':lock-api-objects')
-  implementation project(':lock-impl')
-  implementation project(':leader-election-impl')
-  implementation project(':timelock-agent')
-  implementation project(':timestamp-api')
 
   testImplementation 'com.github.tomakehurst:wiremock-standalone'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.google.protobuf:protobuf-java'
   testImplementation 'com.palantir.common:streams'
+  testImplementation 'com.palantir.conjure.java.api:ssl-config'
+  testImplementation 'com.palantir.dialogue:dialogue-clients'
   testImplementation 'com.palantir.safe-logging:safe-logging'
+  testImplementation 'com.palantir.tokens:auth-tokens'
   testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation 'com.palantir.tritium:tritium-registry'
   testImplementation 'commons-io:commons-io'
@@ -59,21 +58,25 @@ dependencies {
   testImplementation project(':atlasdb-client')
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')
+  testImplementation project(':atlasdb-config')
   testImplementation project(':atlasdb-impl-shared')
+  testImplementation project(':commons-api')
   testImplementation project(':commons-executors')
+  testImplementation project(':leader-election-api')
   testImplementation project(':lock-api')
   testImplementation project(':lock-api-objects')
   testImplementation project(':lock-impl')
+  testImplementation project(':timelock-api:timelock-api-objects')
   testImplementation project(':timestamp-api')
-
-  compileOnly 'org.immutables:value::annotations'
-  testCompileOnly 'org.immutables:value::annotations'
-
-  testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
+  testImplementation project(path: ':atlasdb-client', configuration: 'testArtifacts')
   testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
   }
+
+  compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
 }
+
 schemas = [
     'com.palantir.atlasdb.schema.indexing.IndexTestSchema',
     'com.palantir.atlasdb.schema.stream.StreamTestSchema'

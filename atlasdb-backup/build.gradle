@@ -1,15 +1,25 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
+    implementation 'com.datastax.cassandra:cassandra-driver-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    implementation 'com.palantir.dialogue:dialogue-clients'
+    implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tokens:auth-tokens'
+    implementation project(':atlasdb-api')
     implementation project(':atlasdb-cassandra')
     implementation project(':atlasdb-client')
-    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-coordination-impl')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':timelock-api:timelock-api-dialogue')
     implementation project(':timelock-api:timelock-api-objects')
-
-    implementation 'com.palantir.common:streams'
-    implementation 'com.palantir.safe-logging:safe-logging'
-    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    implementation project(':timestamp-impl')
 
     testImplementation 'org.mockito:mockito-core'
-    testImplementation 'commons-codec:commons-codec'
+    testImplementation project(':lock-api-objects')
 }

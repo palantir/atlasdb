@@ -1,10 +1,12 @@
-
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation project(":atlasdb-client")
-
-  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  api project(':atlasdb-api')
+  api project(':atlasdb-client')
+  api project(':atlasdb-client-protobufs')
+  api project(':atlasdb-commons')
+  api project(':commons-annotations')
+  api project(':commons-executors')
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -12,18 +14,14 @@ dependencies {
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
-  implementation 'org.slf4j:slf4j-api'
-  implementation project(':atlasdb-api')
-  implementation project(':atlasdb-client-protobufs')
-  implementation project(':atlasdb-commons')
-  implementation project(':commons-annotations')
+  implementation 'com.palantir.safe-logging:safe-logging'
 
-  annotationProcessor project(":atlasdb-processors")
-  compileOnly project(":atlasdb-processors")
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
-
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
   testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
+
+  annotationProcessor 'org.immutables:value'
+  annotationProcessor project(':atlasdb-processors')
+  compileOnly 'org.immutables:value::annotations'
+  compileOnly project(':atlasdb-processors')
 }

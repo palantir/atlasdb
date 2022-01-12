@@ -1,6 +1,6 @@
 apply plugin: 'com.github.johnrengelman.shadow'
 
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 configurations {
   explicitShadow
@@ -9,47 +9,32 @@ configurations {
 }
 
 dependencies {
-  explicitShadow group: 'com.palantir.safe-logging', name: 'safe-logging'
-
-  explicitShadow project(":atlasdb-client")
-  explicitShadow project(":atlasdb-processors")
-  explicitShadow project(":atlasdb-api")
-  explicitShadow project(":commons-api")
+  // does shadowing statically analysed annotations really buy us anything?
+  explicitShadow 'com.google.code.findbugs:findbugs-annotations'
+  explicitShadow 'com.google.code.findbugs:jsr305'
+  explicitShadow 'com.google.guava:guava'
+  explicitShadow 'com.palantir.conjure.java.api:ssl-config'
+  explicitShadow 'com.palantir.conjure.java.runtime:keystores'
+  explicitShadow 'com.palantir.safe-logging:safe-logging'
+  explicitShadow 'com.palantir.tracing:tracing'
+  explicitShadow 'org.apache.commons:commons-pool2'
+  explicitShadow 'org.jboss.marshalling:jboss-marshalling'
+  explicitShadow project(':atlasdb-api')
+  explicitShadow project(':atlasdb-client')
+  explicitShadow project(':atlasdb-impl-shared')
+  explicitShadow project(':atlasdb-processors')
+  explicitShadow project(':commons-api')
   explicitShadow project(':timestamp-impl')
-  explicitShadow project(":atlasdb-impl-shared")
-
   explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+    exclude group: 'commons-logging'
     exclude group: 'org.apache.httpcomponents'
   }
 
   explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
-  explicitShadow group: 'com.google.guava', name: 'guava'
 
-  explicitShadow 'org.apache.commons:commons-pool2'
-
-  explicitShadow group: 'com.palantir.conjure.java.api', name: 'ssl-config'
-  explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
-  explicitShadow group: 'com.palantir.tracing', name: 'tracing'
-
-  // does shadowing statically analysed annotations really buy us anything?
-  explicitShadow group: 'com.google.code.findbugs', name: 'findbugs-annotations'
-  explicitShadow group: 'com.google.code.findbugs', name: 'jsr305'
-
-  explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling'
-
-  testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
-  testImplementation project(":atlasdb-config")
-  testImplementation group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.awaitility', name: 'awaitility'
-  testImplementation group: 'uk.org.lidalia', name: 'slf4j-test'
-  testImplementation(group: 'org.jmock', name: 'jmock') {
-      exclude group: 'org.hamcrest'
-  }
-
+  implementation 'com.datastax.cassandra:cassandra-driver-core'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
@@ -57,6 +42,7 @@ dependencies {
   implementation 'com.google.auto.service:auto-service-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.protobuf:protobuf-java'
+  implementation 'com.palantir.cassandra:cassandra-thrift'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.conjure.java.api:service-config'
   implementation 'com.palantir.refreshable:refreshable'
@@ -66,38 +52,60 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'org.apache.thrift:libthrift'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-commons')
   implementation project(':commons-annotations')
   implementation project(':commons-executors')
+  implementation project(':timelock-api:timelock-api-objects')
   implementation project(':timestamp-api')
+  implementation (group: 'com.palantir.cassandra', name: 'cassandra-thrift') {
+    exclude group: 'commons-logging'
+    exclude group: 'org.apache.httpcomponents'
+  }
+  implementation (group: 'org.apache.thrift', name: 'libthrift') {
+      exclude group: 'commons-logging'
+      exclude group: 'org.apache.httpcomponents'
+  }
 
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+  testImplementation 'com.google.guava:guava'
   testImplementation 'com.google.protobuf:protobuf-java'
   testImplementation 'com.palantir.common:streams'
   testImplementation 'com.palantir.conjure.java.api:service-config'
+  testImplementation 'com.palantir.conjure.java.api:ssl-config'
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'com.palantir.safe-logging:preconditions'
+  testImplementation 'com.palantir.safe-logging:preconditions-assertj'
+  testImplementation 'com.palantir.safe-logging:safe-logging'
   testImplementation 'com.palantir.tritium:tritium-registry'
+  testImplementation 'commons-codec:commons-codec'
   testImplementation 'io.dropwizard.metrics:metrics-core'
-  testImplementation 'org.apache.commons:commons-lang3'
-  testImplementation 'org.apache.thrift:libthrift'
-  testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation 'jakarta.xml.bind:jakarta.xml.bind-api'
+  testImplementation 'org.apache.commons:commons-lang3'
+  testImplementation 'org.apache.commons:commons-pool2'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
+  testImplementation project(':atlasdb-api')
+  testImplementation project(':atlasdb-client')
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')
-  testImplementation project(':commons-executors')
+  testImplementation project(':atlasdb-config')
+  testImplementation project(':atlasdb-impl-shared')
+  testImplementation project(':timestamp-impl')
+  testImplementation project(path: ':atlasdb-client', configuration: 'testArtifacts')
+  testImplementation(group: 'org.jmock', name: 'jmock') {
+      exclude group: 'org.hamcrest'
+  }
 
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
-  testCompileOnly 'org.immutables:value::annotations'
   annotationProcessor 'com.google.auto.service:auto-service'
-  compileOnly 'com.google.auto.service:auto-service'
-  annotationProcessor project(":atlasdb-processors")
-  compileOnly project(":atlasdb-processors")
   annotationProcessor 'org.derive4j:derive4j'
+  annotationProcessor 'org.immutables:value'
+  annotationProcessor project(':atlasdb-processors')
+  compileOnly 'com.google.auto.service:auto-service'
   compileOnly 'org.derive4j:derive4j-annotation'
+  compileOnly 'org.immutables:value::annotations'
+  compileOnly project(':atlasdb-processors')
+  testCompileOnly 'org.immutables:value::annotations'
 }
 
 shadowJar {

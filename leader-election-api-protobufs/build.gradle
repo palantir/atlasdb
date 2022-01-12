@@ -1,4 +1,4 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 apply plugin: 'com.google.protobuf'
 
@@ -9,7 +9,7 @@ protobuf {
 }
 
 dependencies {
-  implementation group: "com.google.protobuf", name: "protobuf-java"
+  implementation 'com.google.protobuf:protobuf-java'
 }
 
 project.tasks.idea.dependsOn('generateProto')

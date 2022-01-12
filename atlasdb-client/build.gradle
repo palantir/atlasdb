@@ -1,4 +1,4 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 schemas = [
     'com.palantir.atlasdb.schema.CompactSchema',
@@ -38,99 +38,95 @@ artifacts {
 }
 
 dependencies {
-  api project(":atlasdb-api")
-  api project(":atlasdb-commons")
-  api project(":atlasdb-client-protobufs")
-  api group: "com.google.code.findbugs", name: "jsr305"
+  api project(':atlasdb-api')
+  api project(':atlasdb-commons')
+  api project(':atlasdb-client-protobufs')
+  api 'com.google.code.findbugs:jsr305'
 
-  implementation group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
-  implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
-  implementation group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format"
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core'
-  implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
-  implementation group: 'com.palantir.tracing', name: 'tracing'
-  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-  implementation (group: 'com.palantir.tritium', name: 'tritium-caffeine') {
-    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
-    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
-  }
-  implementation (group: 'com.palantir.tritium', name: 'tritium-registry') {
-    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
-    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
-  }
-  implementation (group: 'com.palantir.tritium', name: 'tritium-metrics') {
-    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
-    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
-  }
-  implementation (group: 'com.palantir.tritium', name: 'tritium-lib') {
-    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
-    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
-  }
-
-  implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
-  implementation group: 'com.github.rholder', name: 'guava-retrying'
-  implementation group: 'com.palantir.common', name: 'streams'
-  implementation group: 'org.rocksdb', name: 'rocksdbjni'
-
-  implementation group: 'com.squareup', name:'javapoet'
-  implementation group: 'com.palantir.goethe', name: 'goethe'
-
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
-  testCompileOnly 'org.immutables:value::annotations'
-
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation(group: 'org.jmock', name: 'jmock') {
-    exclude group: 'org.hamcrest'
-  }
-  testImplementation group: 'ch.qos.logback', name: 'logback-classic'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.awaitility', name: 'awaitility'
-
-  integrationInputImplementation project(":atlasdb-client")
-
-  implementation 'com.fasterxml.jackson.core:jackson-annotations'
-  implementation 'com.google.errorprone:error_prone_annotations'
-  implementation 'com.google.guava:guava'
-  implementation 'com.palantir.conjure.java:conjure-lib'
-  implementation 'com.palantir.refreshable:refreshable'
-  implementation 'com.palantir.safe-logging:preconditions'
-  implementation 'com.palantir.tracing:tracing-api'
-  implementation 'com.palantir.tritium:tritium-api'
-  implementation 'com.palantir.tritium:tritium-core'
-  implementation 'com.palantir.tritium:tritium-slf4j'
-  implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'org.apache.commons:commons-lang3'
   implementation project(':atlasdb-autobatch')
   implementation project(':commons-annotations')
   implementation project(':commons-executors')
   implementation project(':lock-api-objects')
   implementation project(':timestamp-api')
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-core'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
+  implementation 'com.github.rholder:guava-retrying'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.google.protobuf:protobuf-java'
+  implementation 'com.googlecode.protobuf-java-format:protobuf-java-format'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.conjure.java:conjure-lib'
+  implementation 'com.palantir.goethe:goethe'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.palantir.tracing:tracing'
+  implementation 'com.palantir.tracing:tracing-api'
+  implementation 'com.palantir.tritium:tritium-api'
+  implementation 'com.palantir.tritium:tritium-core'
+  implementation 'com.palantir.tritium:tritium-slf4j'
+  implementation 'com.squareup:javapoet'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'jakarta.annotation:jakarta.annotation-api'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.hdrhistogram:HdrHistogram'
+  implementation 'org.rocksdb:rocksdbjni'
+  implementation 'org.slf4j:slf4j-api'
+  implementation 'org.xerial.snappy:snappy-java'
+  implementation (group: 'com.palantir.tritium', name: 'tritium-caffeine') {
+    exclude group: 'io.dropwizard.metrics', module: 'metrics-core'
+    exclude group: 'org.hdrhistogram', module: 'HdrHistogram'
+  }
+  implementation (group: 'com.palantir.tritium', name: 'tritium-registry') {
+    exclude group: 'io.dropwizard.metrics', module: 'metrics-core'
+    exclude group: 'org.hdrhistogram', module: 'HdrHistogram'
+  }
+  implementation (group: 'com.palantir.tritium', name: 'tritium-metrics') {
+    exclude group: 'io.dropwizard.metrics', module: 'metrics-core'
+    exclude group: 'org.hdrhistogram', module: 'HdrHistogram'
+  }
+  implementation (group: 'com.palantir.tritium', name: 'tritium-lib') {
+    exclude group: 'io.dropwizard.metrics', module: 'metrics-core'
+    exclude group: 'org.hdrhistogram', module: 'HdrHistogram'
+  }
 
+  testImplementation 'ch.qos.logback:logback-classic'
   testImplementation 'ch.qos.logback:logback-core'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation 'com.palantir.tritium:tritium-api'
   testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'junit:junit'
   testImplementation 'org.apache.commons:commons-lang3'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.awaitility:awaitility'
+  testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':commons-annotations')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timestamp-api')
+  testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'org.hamcrest'
+  }
 
+  integrationInputImplementation project(':atlasdb-api')
+  integrationInputImplementation project(':atlasdb-client')
+  integrationInputImplementation project(':atlasdb-commons')
   integrationInputImplementation 'com.fasterxml.jackson.core:jackson-annotations'
   integrationInputImplementation 'com.fasterxml.jackson.core:jackson-databind'
-  integrationInputImplementation 'com.google.code.findbugs:annotations'
   integrationInputImplementation 'com.google.code.findbugs:annotations'
   integrationInputImplementation 'com.google.errorprone:error_prone_annotations'
   integrationInputImplementation 'com.google.guava:guava'
   integrationInputImplementation 'com.google.protobuf:protobuf-java'
-  integrationInputImplementation project(':atlasdb-api')
-  integrationInputImplementation project(':atlasdb-commons')
 
-  integrationInputAnnotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
+  compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
+  integrationInputAnnotationProcessor 'org.immutables:value'
   integrationInputCompileOnly 'org.immutables:value::annotations'
 }

@@ -1,21 +1,25 @@
 
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation project(":atlasdb-api")
-  implementation project(":atlasdb-client")
-  implementation project(":atlasdb-dbkvs-hikari")
-  implementation project(":atlasdb-impl-shared")
-  implementation project(':timestamp-impl')
-  implementation project(':commons-db')
-  implementation project(':commons-api')
-  implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
+  api project(':atlasdb-api')
+  api project(':atlasdb-client')
+  api project(':atlasdb-commons')
+  api project(':atlasdb-dbkvs-hikari')
+  api project(':atlasdb-impl-shared')
+  api project(':commons-annotations')
+  api project(':commons-api')
+  api project(':commons-db')
+  api project(':commons-executors')
+  api project(':timestamp-api')
+  api project(':timestamp-impl')
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.auto.service:auto-service-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
+  implementation 'com.palantir.conjure.java.api:service-config'
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
@@ -25,25 +29,20 @@ dependencies {
   implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation 'org.postgresql:postgresql'
   implementation 'org.slf4j:slf4j-api'
-  implementation project(':atlasdb-commons')
-  implementation project(':commons-annotations')
-  implementation project(':commons-executors')
-  implementation project(':timestamp-api')
 
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:safe-logging'
   testImplementation 'com.zaxxer:HikariCP'
+  testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':atlasdb-commons')
-
   testImplementation project(':atlasdb-config')
-  testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation project(path: ':atlasdb-client', configuration: 'testArtifacts')
 
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
   annotationProcessor 'com.google.auto.service:auto-service'
+  annotationProcessor 'org.immutables:value'
+  annotationProcessor project(':atlasdb-processors')
   compileOnly 'com.google.auto.service:auto-service'
-  annotationProcessor project(":atlasdb-processors")
-  compileOnly project(":atlasdb-processors")
+  compileOnly 'org.immutables:value::annotations'
+  compileOnly project(':atlasdb-processors')
 }

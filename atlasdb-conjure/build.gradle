@@ -2,13 +2,8 @@ apply from: '../gradle/shared.gradle'
 
 dependencies {
   api project(':atlasdb-remoting-api')
-  implementation project(':atlasdb-commons')
+  api project(':atlasdb-commons')
 
-  implementation 'com.palantir.refreshable:refreshable'
-  implementation 'com.palantir.dialogue:dialogue-clients'
-  implementation 'com.palantir.dialogue:dialogue-serde'
-  implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
-  implementation 'com.palantir.tritium:tritium-lib'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
@@ -17,8 +12,11 @@ dependencies {
   implementation 'com.palantir.conjure.java.api:ssl-config'
   implementation 'com.palantir.conjure.java.runtime:client-config'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
+  implementation 'com.palantir.conjure.java.runtime:conjure-java-legacy-clients'
   implementation 'com.palantir.conjure.java.runtime:keystores'
+  implementation 'com.palantir.dialogue:dialogue-serde'
   implementation 'com.palantir.dialogue:dialogue-target'
+  implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
 
@@ -30,11 +28,10 @@ dependencies {
   testImplementation 'com.palantir.conjure.java.runtime:client-config'
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.safe-logging:safe-logging'
+  testImplementation 'junit:junit'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
 
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
-
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
 }

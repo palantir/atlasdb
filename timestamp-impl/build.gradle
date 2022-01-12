@@ -1,34 +1,33 @@
+apply from: '../gradle/shared.gradle'
 
-apply from: "../gradle/shared.gradle"
 dependencies {
-  api(project(":timestamp-api"))
-  api(project(":timestamp-client"))
-  api(project(":atlasdb-client"))
-  implementation(project(":atlasdb-commons"))
+  api(project(':timestamp-api'))
+  api(project(':timestamp-client'))
+  api(project(':atlasdb-client'))
+  api project(':lock-api-objects')
+  api project(':atlasdb-commons')
 
-  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
-  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'org.slf4j:slf4j-api'
-  implementation project(':lock-api-objects')
 
+  testImplementation 'junit:junit'
+  testImplementation 'org.awaitility:awaitility'
+  testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':lock-api-objects')
-
-  annotationProcessor 'com.google.auto.service:auto-service'
-  compileOnly 'com.google.auto.service:auto-service'
-  annotationProcessor 'org.immutables:value'
-  compileOnly 'org.immutables:value:annotations'
-  annotationProcessor project(":atlasdb-processors")
-  compileOnly project(":atlasdb-processors")
-
-  testImplementation group: 'junit', name: 'junit'
   testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
   }
-  testImplementation group: 'org.awaitility', name: 'awaitility'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+
+  annotationProcessor 'com.google.auto.service:auto-service'
+  annotationProcessor 'org.immutables:value'
+  annotationProcessor project(':atlasdb-processors')
+  compileOnly 'com.google.auto.service:auto-service'
+  compileOnly 'org.immutables:value:annotations'
+  compileOnly project(':atlasdb-processors')
 }
 

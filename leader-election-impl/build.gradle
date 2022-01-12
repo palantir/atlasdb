@@ -1,4 +1,4 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 apply plugin: 'com.palantir.metric-schema'
 
 license {
@@ -6,52 +6,49 @@ license {
 }
 
 dependencies {
-  implementation project(":leader-election-api")
-  implementation project(":atlasdb-autobatch")
-  implementation project(":atlasdb-commons")
+  api project(':atlasdb-autobatch')
+  api project(':atlasdb-commons')
+  api project(':leader-election-api')
 
-  implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
-  implementation group: "com.google.protobuf", name: "protobuf-java"
-  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-  implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
-  implementation group: 'com.zaxxer', name: 'HikariCP'
-  implementation group: "commons-io", name: "commons-io"
-  implementation group: "org.jdbi", name: 'jdbi3-core'
-  implementation group: "org.jdbi", name: 'jdbi3-sqlobject'
-  implementation group: 'org.xerial', name: 'sqlite-jdbc'
-
-  implementation group: 'com.palantir.common', name: 'streams'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.guava:guava'
+  implementation 'com.google.protobuf:protobuf-java'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.palantir.sls.versions:sls-versions'
   implementation 'com.palantir.tracing:tracing'
+  implementation 'com.zaxxer:HikariCP'
+  implementation 'commons-io:commons-io'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.jdbi:jdbi3-core'
+  implementation 'org.jdbi:jdbi3-sqlobject'
   implementation 'org.slf4j:slf4j-api'
+  implementation 'org.xerial:sqlite-jdbc'
   implementation project(':commons-annotations')
   implementation project(':commons-executors')
   implementation project(':leader-election-api-protobufs')
 
   testImplementation 'com.google.guava:guava'
+  testImplementation 'com.palantir.tracing:tracing-test-utils'
   testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.awaitility:awaitility'
+  testImplementation 'org.mockito:mockito-core'
   testImplementation project(':commons-executors')
   testImplementation project(':leader-election-api-protobufs')
-
-
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
-  testCompileOnly 'org.immutables:value::annotations'
-  annotationProcessor 'org.derive4j:derive4j'
-  compileOnly 'org.derive4j:derive4j-annotation'
-
   testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.awaitility', name: 'awaitility'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation group: 'com.palantir.tracing', name: 'tracing-test-utils'
+
+  annotationProcessor 'org.derive4j:derive4j'
+  annotationProcessor 'org.immutables:value'
+  compileOnly 'org.derive4j:derive4j-annotation'
+  compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
 }
 
 configurations {

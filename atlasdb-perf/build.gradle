@@ -8,17 +8,22 @@ applicationName = 'atlasdb-perf'
 schemas = ['com.palantir.atlasdb.performance.schema.StreamTestSchema']
 
 dependencies {
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-dagger')
-    implementation project(':atlasdb-dbkvs')
-    implementation project(':atlasdb-cassandra')
+    api project(':atlasdb-api')
+    api project(':atlasdb-cassandra')
+    api project(':atlasdb-client')
+    api project(':atlasdb-client-protobufs')
+    api project(':atlasdb-commons')
+    api project(':atlasdb-config')
+    api project(':atlasdb-dagger')
+    api project(':atlasdb-dbkvs')
+    api project(':atlasdb-dbkvs-hikari')
+    api project(':atlasdb-impl-shared')
+    api project(':commons-executors')
+    api project(':leader-election-api')
+    api project(':leader-election-impl')
+    api project(':timestamp-api')
 
-    implementation group: 'io.airlift', name: 'airline'
-    implementation group: 'org.reflections', name: 'reflections'
-    implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-    implementation group: 'ch.qos.logback', name: 'logback-classic'
-    implementation group: 'org.awaitility', name: 'awaitility'
-
+    implementation 'ch.qos.logback:logback-classic'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.errorprone:error_prone_annotations'
@@ -26,34 +31,27 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'commons-io:commons-io'
+    implementation 'io.airlift:airline'
     implementation 'jakarta.inject:jakarta.inject-api'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation 'org.assertj:assertj-core'
+    implementation 'org.awaitility:awaitility'
+    implementation 'org.openjdk.jmh:jmh-core'
+    implementation 'org.reflections:reflections'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-client-protobufs')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-config')
-    implementation project(':atlasdb-dbkvs-hikari')
-    implementation project(':atlasdb-impl-shared')
-    implementation project(':commons-executors')
-    implementation project(':leader-election-api')
-    implementation project(':leader-election-impl')
-    implementation project(':timestamp-api')
 
     testImplementation 'com.google.guava:guava'
     testImplementation 'org.apache.commons:commons-math3'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
 
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
-
-    implementation group: 'org.openjdk.jmh', name: 'jmh-core'
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess'
     compileOnly 'org.immutables:value::annotations'
-    annotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess'
     compileOnly 'org.openjdk.jmh:jmh-generator-annprocess'
 }
 

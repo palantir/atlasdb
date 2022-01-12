@@ -1,40 +1,32 @@
-
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 libsDirName = file('build/artifacts')
 dependencies {
-    implementation project(":atlasdb-commons")
-    implementation group: 'com.lmax', name: 'disruptor'
-    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-    implementation group: 'com.palantir.tritium', name: 'tritium-registry'
+    api project(':atlasdb-commons')
+    api project(':commons-executors')
 
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
+    implementation 'com.lmax:disruptor'
     implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.tracing:tracing'
+    implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
-    implementation 'org.slf4j:slf4j-api'
-    implementation project(':commons-executors')
 
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.tracing:tracing'
+    testImplementation 'com.palantir.tracing:tracing-test-utils'
     testImplementation 'io.dropwizard.metrics:metrics-core'
+    testImplementation 'junit:junit'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
 
-    annotationProcessor project(":atlasdb-processors")
-    compileOnly project(":atlasdb-processors")
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
+    annotationProcessor project(':atlasdb-processors')
     compileOnly 'org.immutables:value::annotations'
-
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly project(':atlasdb-processors')
+    testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
-
-    testImplementation group: 'junit', name: 'junit'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.awaitility', name: 'awaitility'
-    testImplementation(group: 'org.jmock', name: 'jmock') {
-      exclude group: 'org.hamcrest'
-    }
-    testImplementation group: 'org.mockito', name: 'mockito-core'
-    testImplementation group: 'com.palantir.tracing', name: 'tracing-test-utils'
 }

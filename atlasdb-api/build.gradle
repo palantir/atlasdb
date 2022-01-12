@@ -1,53 +1,45 @@
-
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  api project(":lock-api")
-  api project(":timestamp-api")
-  implementation project(":atlasdb-commons")
+  api project(':atlasdb-commons')
+  api project(':lock-api')
+  api project(':timestamp-api')
 
-  implementation group: 'org.apache.commons', name: 'commons-lang3'
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  implementation group: 'jakarta.annotation', name: 'jakarta.annotation-api'
-  implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
-  implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
-
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
-  implementation group: 'com.palantir.conjure.java.api', name: 'ssl-config'
-  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.google.protobuf:protobuf-java'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.conjure.java.api:ssl-config'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'jakarta.validation:jakarta.validation-api'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation project(':commons-annotations')
+  implementation project(':lock-api-objects')
   implementation (group: 'com.palantir.tritium', name: 'tritium-registry') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
 
-  implementation 'com.google.errorprone:error_prone_annotations'
-  implementation 'com.google.guava:guava'
-  implementation 'com.google.protobuf:protobuf-java'
-  implementation 'com.palantir.common:streams'
-  implementation 'com.palantir.refreshable:refreshable'
-  implementation 'com.palantir.safe-logging:preconditions'
-  implementation 'com.palantir.safe-logging:safe-logging'
-  implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'org.slf4j:slf4j-api'
-  implementation project(':commons-annotations')
-  implementation project(':lock-api-objects')
-
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.common:streams'
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'junit:junit'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
   testImplementation project(':lock-api-objects')
 
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
-  testCompileOnly 'org.immutables:value::annotations'
-  annotationProcessor project(":atlasdb-processors")
-  compileOnly project(":atlasdb-processors")
   annotationProcessor 'org.derive4j:derive4j'
+  annotationProcessor 'org.immutables:value'
+  annotationProcessor project(':atlasdb-processors')
   compileOnly 'org.derive4j:derive4j-annotation'
-
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+  compileOnly 'org.immutables:value::annotations'
+  compileOnly project(':atlasdb-processors')
+  testCompileOnly 'org.immutables:value::annotations'
 }

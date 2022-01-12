@@ -1,11 +1,8 @@
-apply plugin: "org.inferred.processors"
-
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  api project(":atlasdb-jdbc")
-
-  implementation(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
+  api 'com.zaxxer:HikariCP'
+  api project(':atlasdb-jdbc')
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -13,8 +10,8 @@ dependencies {
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
 
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
   annotationProcessor 'com.google.auto.service:auto-service'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'com.google.auto.service:auto-service'
+  compileOnly 'org.immutables:value::annotations'
 }

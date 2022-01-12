@@ -1,24 +1,24 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
 
-apply from: "../gradle/docker.gradle"
+apply from: '../gradle/docker.gradle'
 apply plugin: 'com.palantir.external-publish-dist'
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
-apply from: "../gradle/non-client-dist.gradle"
+apply from: '../gradle/shared.gradle'
+apply from: '../gradle/tests.gradle'
+apply from: '../gradle/non-client-dist.gradle'
 
 dependencies {
     runtimeOnly project(':timelock-server')
 }
 
 distribution {
-    serviceName "timelock-server"
+    serviceName 'timelock-server'
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-Xms512m", "-Xmx512m"
+    defaultJvmOpts '-Xms512m', '-Xmx512m'
 }
 
 task runTimeLock(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
-    main = "com.palantir.atlasdb.timelock.TimeLockServerLauncher"
-    args "server", "var/conf/timelock-http2.yml"
+    main = 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
+    args 'server', 'var/conf/timelock-http2.yml'
 }

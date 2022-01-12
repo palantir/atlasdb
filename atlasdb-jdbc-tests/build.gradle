@@ -1,15 +1,6 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation 'com.fasterxml.jackson.core:jackson-annotations'
-  implementation 'com.google.errorprone:error_prone_annotations'
-  implementation 'com.palantir.common:streams'
-  implementation 'com.palantir.conjure.java.api:service-config'
-  implementation 'com.palantir.conjure.java.api:ssl-config'
-  implementation 'com.palantir.dialogue:dialogue-clients'
-  implementation 'com.palantir.refreshable:refreshable'
-  implementation 'com.palantir.safe-logging:preconditions'
-  implementation 'com.palantir.safe-logging:safe-logging'
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-commons')
   implementation project(':atlasdb-impl-shared')
@@ -19,13 +10,21 @@ dependencies {
   implementation project(':lock-api-objects')
   implementation project(':timelock-api:timelock-api-objects')
   implementation project(':timestamp-api')
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.conjure.java.api:service-config'
+  implementation 'com.palantir.conjure.java.api:ssl-config'
+  implementation 'com.palantir.dialogue:dialogue-clients'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
 
-  testImplementation project(":atlasdb-jdbc")
-  testImplementation project(":atlasdb-tests-shared")
-  testImplementation project(":atlasdb-hikari")
+  testImplementation project(':atlasdb-jdbc')
+  testImplementation project(':atlasdb-tests-shared')
+  testImplementation project(':atlasdb-hikari')
   testImplementation project(':atlasdb-api')
   testImplementation project(':timestamp-api')
-
-  testImplementation "com.h2database:h2:1.4.190"
+  testImplementation 'com.h2database:h2:1.4.190'
 }
 

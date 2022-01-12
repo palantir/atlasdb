@@ -14,22 +14,34 @@ group = rootProject.group
 jar {
     manifest {
         attributes(
-                "Implementation-Title"   : project.name,
-                "Implementation-Version" : project.version,
-                "Implementation-Vendor"  : "Palantir Technologies, Inc.")
+                'Implementation-Title'   : project.name,
+                'Implementation-Version' : project.version,
+                'Implementation-Vendor'  : 'Palantir Technologies, Inc.')
     }
 }
 
 libsDirName = file('build/artifacts')
 
 dependencies {
-    implementation group: 'com.google.code.findbugs', name: 'jsr305'
-    implementation group: 'com.google.code.findbugs', name: 'findbugs-annotations'
-
+    implementation 'com.google.code.findbugs:findbugs-annotations'
+    implementation 'com.google.code.findbugs:jsr305'
     implementation 'com.palantir.safe-logging:logger'
 
-    testImplementation group: 'junit', name: 'junit'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation 'junit:junit'
+    testImplementation 'org.assertj:assertj-core'
+}
+
+checkImplicitDependencies {
+    ignore 'com.boundary', 'high-scale-lib' // mistakenly flagged from cassandra-all, not used directly
+}
+
+checkUnusedDependencies {
+    // not all modules may use these, but are always included above
+    ignore 'com.google.code.findbugs', 'findbugs-annotations'
+    ignore 'com.google.code.findbugs', 'jsr305'
+    ignore 'com.palantir.safe-logging', 'logger'
+    ignore 'junit', 'junit'
+    ignore 'org.assertj', 'assertj-core'
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
@@ -37,9 +49,9 @@ apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
 jar {
     manifest {
         attributes(
-                "Implementation-Title": project.name,
-                "Implementation-Version": project.version,
-                "Implementation-Vendor": "Palantir Technologies, Inc.")
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'Palantir Technologies, Inc.')
     }
 }
 
@@ -87,7 +99,7 @@ tasks.withType(Test) {
 }
 
 task allCompileDeps(type: DependencyReportTask) {
-    configurations = [project.configurations.getByName("api")]
+    configurations = [project.configurations.getByName('api')]
 }
 
 ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded.'

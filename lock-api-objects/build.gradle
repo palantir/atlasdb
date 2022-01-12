@@ -1,26 +1,26 @@
 apply plugin: 'com.palantir.sls-recommended-dependencies'
 
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 libsDirName = file('build/artifacts')
 dependencies {
-    api project(":timestamp-api")
-    api project(":timestamp-client")
-    implementation project(":atlasdb-commons")
-    implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-    implementation group: 'com.palantir.safe-logging', name: 'preconditions'
+    api project(':atlasdb-commons')
+    api project(':commons-annotations')
+    api project(':timestamp-api')
+    api project(':timestamp-client')
 
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
-    implementation project(':commons-annotations')
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
+    annotationProcessor project(':atlasdb-processors')
     compileOnly 'org.immutables:value::annotations'
-    annotationProcessor project(":atlasdb-processors")
-    compileOnly project(":atlasdb-processors")
+    compileOnly project(':atlasdb-processors')
 }
 
 recommendedProductDependencies {

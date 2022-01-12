@@ -1,4 +1,4 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 apply plugin: 'com.palantir.conjure'
 
@@ -11,12 +11,12 @@ conjure {
 }
 
 subprojects {
-    apply from: "../../gradle/shared.gradle"
+    apply from: '../../gradle/shared.gradle'
     apply plugin: 'com.palantir.sls-recommended-dependencies'
 
     dependencies {
-        implementation project(':lock-api-objects')
-        implementation 'com.palantir.conjure.java:conjure-lib'
+        api project(':lock-api-objects')
+        api 'com.palantir.conjure.java:conjure-lib'
 
         implementation 'com.google.guava:guava'
         implementation 'com.palantir.tokens:auth-tokens'

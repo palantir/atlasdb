@@ -1,39 +1,34 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 apply plugin: 'groovy'
 
 dependencies {
+    api project(':atlasdb-api')
+    api project(':atlasdb-client')
     api project(':atlasdb-service')
-    api group: 'commons-cli', name:'commons-cli'
-    implementation 'jline:jline:2.12'
-    implementation group: 'org.codehaus.groovy', name: 'groovy'
-    implementation group: 'org.codehaus.groovy', name: 'groovy-groovysh'
-    implementation group: 'org.codehaus.groovy', name: 'groovy-json'
+    api 'commons-cli:commons-cli'
 
-    implementation 'com.palantir.dialogue:dialogue-clients'
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-config')
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
-
-    api project(':atlasdb-api')
-    api project(':atlasdb-client')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-config')
-    implementation project(':atlasdb-impl-shared')
+    implementation 'org.codehaus.groovy:groovy'
+    implementation 'org.codehaus.groovy:groovy-groovysh'
+    implementation 'org.codehaus.groovy:groovy-json'
 
     testImplementation 'com.fasterxml.jackson.core:jackson-core'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.codehaus.groovy:groovy-test'
+    testImplementation 'org.gmock:gmock'
     testImplementation project(':atlasdb-client')
-
     testImplementation(group: 'org.jmock', name: 'jmock-legacy') {
         exclude group: 'org.hamcrest'
     }
     testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testImplementation 'org.gmock:gmock:0.8.3'
 }

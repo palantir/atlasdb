@@ -1,4 +1,4 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 apply plugin: 'com.palantir.conjure'
 
 conjure {
@@ -10,64 +10,58 @@ conjure {
 }
 
 dependencies {
-    implementation project(':atlasdb-api')
-    implementation project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
-    implementation project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
-    implementation project(':atlasdb-commons')
-
-    implementation group: 'com.google.guava', name: 'guava'
-    implementation group: 'com.github.rholder', name: 'guava-retrying'
-    implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
-    implementation group: 'one.util', name: 'streamex'
-    implementation group: 'com.zaxxer', name: 'HikariCP'
+    api project(':atlasdb-api')
+    api project(':atlasdb-commons')
+    api project(':commons-executors')
+    api project(':leader-election-api')
+    api project(':leader-election-impl')
+    api project(':timelock-corruption-detection:timelock-corruption-detection-jersey')
+    api project(':timelock-corruption-detection:timelock-corruption-detection-objects')
+    api project(':timelock-corruption-detection:timelock-corruption-detection-undertow')
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.github.rholder:guava-retrying'
     implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
-    implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.conjure.java:conjure-undertow-lib'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.zaxxer:HikariCP'
     implementation 'io.undertow:undertow-core'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'one.util:streamex'
     implementation 'org.jdbi:jdbi3-core'
     implementation 'org.jdbi:jdbi3-sqlobject'
     implementation 'org.slf4j:slf4j-api'
-    implementation 'com.google.guava:guava'
-
-    implementation project(':atlasdb-commons')
-    implementation project(':commons-executors')
-    implementation project(':leader-election-api')
-    implementation project(':leader-election-impl')
-    implementation project(':timelock-corruption-detection:timelock-corruption-detection-objects')
 
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.palantir.common:streams'
     testImplementation 'com.palantir.safe-logging:preconditions'
     testImplementation 'com.palantir.tokens:auth-tokens'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
     testImplementation project(':leader-election-api')
     testImplementation project(':leader-election-impl')
     testImplementation project(':timelock-corruption-detection:timelock-corruption-detection-objects')
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
 
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
-
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
 }
 
 subprojects {
-    apply from: "../../gradle/shared.gradle"
+    apply from: '../../gradle/shared.gradle'
     apply plugin: 'com.palantir.sls-recommended-dependencies'
 
     dependencies {
-        implementation project(":leader-election-impl")
-        implementation 'com.palantir.conjure.java:conjure-lib'
+        api project(':leader-election-impl')
+        api 'com.palantir.conjure.java:conjure-lib'
     }
     tasks.licenseMain.enabled = false
 }

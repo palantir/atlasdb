@@ -1,12 +1,11 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation project(":lock-api")
-  implementation project(":atlasdb-commons")
-
-  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-  implementation group: 'joda-time', name: 'joda-time'
-  implementation group: 'org.yaml', name: 'snakeyaml'
+  api project(':atlasdb-commons')
+  api project(':commons-executors')
+  api project(':lock-api')
+  api project(':lock-api-objects')
+  api project(':timestamp-api')
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -14,30 +13,29 @@ dependencies {
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'joda-time:joda-time'
   implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation 'org.slf4j:slf4j-api'
-  implementation project(':commons-executors')
-  implementation project(':lock-api-objects')
-  implementation project(':timestamp-api')
+  implementation 'org.yaml:snakeyaml'
 
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
   testImplementation 'uk.org.lidalia:lidalia-slf4j-ext'
+  testImplementation 'uk.org.lidalia:slf4j-test'
   testImplementation project(':commons-executors')
+  testImplementation project(':flake-rule')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timestamp-api')
-
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
-  testCompileOnly 'org.immutables:value::annotations'
-
-  testImplementation project(":flake-rule")
-  testImplementation group: 'uk.org.lidalia', name: 'slf4j-test'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
   testImplementation(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
   }
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+
+  annotationProcessor 'org.immutables:value'
+  compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
 }

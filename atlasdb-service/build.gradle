@@ -1,12 +1,15 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-    implementation project(':lock-impl')
-    implementation project(':leader-election-impl')
-    implementation project(':atlasdb-config')
-    implementation group: 'jakarta.inject', name: 'jakarta.inject-api'
-
-    testImplementation group: 'org.mockito', name: 'mockito-core'
+    api project(':atlasdb-api')
+    api project(':atlasdb-client')
+    api project(':atlasdb-client-protobufs')
+    api project(':atlasdb-commons')
+    api project(':atlasdb-config')
+    api project(':atlasdb-impl-shared')
+    api project(':commons-annotations')
+    api project(':leader-election-impl')
+    api project(':lock-impl')
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -15,19 +18,14 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'jakarta.inject:jakarta.inject-api'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-client-protobufs')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-impl-shared')
-    implementation project(':commons-annotations')
 
-    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
-    testImplementation 'com.google.guava:guava'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-client')
-
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testImplementation 'com.google.guava:guava'
     // Needed for Jersey Response-based tests
-    testImplementation group: 'org.glassfish.jersey.core', name: 'jersey-common'
+    testImplementation 'org.glassfish.jersey.core:jersey-common'
+    testImplementation 'org.mockito:mockito-core'
 }

@@ -1,15 +1,15 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 apply plugin: 'java-library'
 
 dependencies {
-    annotationProcessor group: 'com.google.auto.service', name: 'auto-service'
-    compileOnly group: 'com.google.auto.service', name: 'auto-service'
+    annotationProcessor 'com.google.auto.service:auto-service'
+    compileOnly 'com.google.auto.service:auto-service'
 
     // these three dependencies should be implementation, but that breaks IntelliJ currently
-    api group: 'com.google.guava', name: 'guava'
-    api group: 'com.squareup', name: 'javapoet'
-    api group: 'com.palantir.goethe', name: 'goethe'
+    api 'com.google.guava:guava'
+    api 'com.palantir.goethe:goethe'
+    api 'com.squareup:javapoet'
 
     implementation 'com.google.auto.service:auto-service-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'

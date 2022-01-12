@@ -1,48 +1,47 @@
 
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
+apply from: '../gradle/shared.gradle'
+apply from: '../gradle/tests.gradle'
 
 dependencies {
     testImplementation 'com.google.guava:guava'
+    testImplementation 'com.google.protobuf:protobuf-java'
     testImplementation 'com.palantir.common:streams'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
     testImplementation 'com.palantir.safe-logging:safe-logging'
     testImplementation 'org.apache.commons:commons-lang3'
-    testImplementation 'org.apache.thrift:libthrift'
     testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-cassandra')
+    testImplementation project(':atlasdb-cli')
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-client-protobufs')
     testImplementation project(':atlasdb-commons')
+    testImplementation project(':atlasdb-container-test-utils')
+    testImplementation project(':atlasdb-ete-test-utils')
     testImplementation project(':atlasdb-impl-shared')
-    testImplementation project(':timestamp-api')
-
-    testImplementation project(":atlasdb-cassandra")
-    testImplementation project(":atlasdb-cli")
-    testImplementation project(":atlasdb-tests-shared")
-    testImplementation project(":atlasdb-container-test-utils")
-    testImplementation project(":atlasdb-ete-test-utils")
-    testImplementation project(":timelock-impl")
-
-    testImplementation('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
-        exclude module: 'junit'
-
-      exclude group: 'org.apache.httpcomponents'
-  }
-  testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
-    exclude module: 'junit'
-
-    exclude group: 'org.apache.httpcomponents'
-  }
-
+    testImplementation project(':atlasdb-tests-shared')
     testImplementation project(':flake-rule')
-
-    testImplementation('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
-        exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+    testImplementation project(':timelock-impl')
+    testImplementation project(':timestamp-api')
+    testImplementation('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
+        exclude group: 'commons-logging'
+        exclude module: 'junit'
+        exclude group: 'org.apache.httpcomponents'
     }
-
-    testImplementation group: 'org.mockito', name: 'mockito-core'
-    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+        exclude group: 'commons-logging'
+        exclude module: 'junit'
+        exclude group: 'org.apache.httpcomponents'
+    }
+    testImplementation('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+        exclude group: 'com.codahale.metrics', module: 'metrics-core'
+    }
+    testImplementation (group: 'org.apache.thrift', name: 'libthrift') {
+        exclude group: 'commons-logging'
+        exclude group: 'org.apache.httpcomponents'
+    }
 }
 
 task longTest(type: Test) {
@@ -62,6 +61,6 @@ test {
 tasks.withType(Test) {
     testLogging {
         // set options for log level LIFECYCLE
-        events "passed", "skipped", "failed"
+        events 'passed', 'skipped', 'failed'
     }
 }

@@ -1,43 +1,48 @@
-
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
+    api 'com.palantir.dialogue:dialogue-clients'
     api project(':atlasdb-api')
-    api project(':timestamp-client')
     api project(':atlasdb-conjure')
-    implementation project(':atlasdb-impl-shared')
-    implementation project(':leader-election-impl')
-    implementation project(':lock-impl')
+    api project(':atlasdb-impl-shared')
+    api project(':atlasdb-remoting-api')
+    api project(':leader-election-api')
+    api project(':leader-election-impl')
+    api project(':lock-api')
+    api project(':lock-api-objects')
+    api project(':lock-conjure-api:lock-conjure-api-dialogue')
+    api project(':lock-impl')
+    api project(':timelock-api:timelock-api-dialogue')
+    api project(':timelock-api:timelock-api-jersey')
+    api project(':timelock-api:timelock-api-objects')
+    api project(':timestamp-api')
+    api project(':timestamp-client')
 
-    implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
-    implementation group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
-    implementation group: 'com.palantir.refreshable', name: 'refreshable'
-    implementation group: 'com.palantir.remoting2', name: 'error-handling' // needed for backwards compatibility
-    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-    implementation (group: 'com.palantir.tritium', name: 'tritium-lib') {
-        exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
-        exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
-    }
-    implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
-
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
-    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
-    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
-
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-coordination-impl')
+    implementation project(':commons-annotations')
+    implementation project(':commons-executors')
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.config.crypto:encrypted-config-value-module'
     implementation 'com.palantir.conjure.java.api:errors'
     implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.conjure.java.api:ssl-config'
     implementation 'com.palantir.conjure.java.runtime:client-config'
     implementation 'com.palantir.conjure.java.runtime:keystores'
     implementation 'com.palantir.dialogue:dialogue-target'
+    implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.remoting2:error-handling' // needed for backwards compatibility
     implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.tokens:auth-tokens'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
@@ -45,49 +50,34 @@ dependencies {
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation 'org.glassfish.jersey.core:jersey-common'
     implementation 'org.rocksdb:rocksdbjni'
-    implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-coordination-impl')
-    implementation project(':atlasdb-remoting-api')
-    implementation project(':commons-annotations')
-    implementation project(':commons-executors')
-    implementation project(':leader-election-api')
-    implementation project(':lock-api')
-    implementation project(':lock-api-objects')
-    implementation project(':lock-conjure-api:lock-conjure-api-dialogue')
-    implementation project(':timelock-api:timelock-api-dialogue')
-    implementation project(':timelock-api:timelock-api-jersey')
-    implementation project(':timelock-api:timelock-api-objects')
-    implementation project(':timestamp-api')
 
+    testImplementation 'com.github.stefanbirkner:system-rules'
+    testImplementation 'com.github.tomakehurst:wiremock-standalone'
     testImplementation 'com.google.auto.service:auto-service-annotations'
     testImplementation 'com.palantir.config.crypto:encrypted-config-value'
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'com.palantir.conjure.java:conjure-lib'
     testImplementation 'com.palantir.sls.versions:sls-versions'
-
-    api 'com.palantir.dialogue:dialogue-clients'
-
-    annotationProcessor group: 'org.immutables', name: 'value'
-    compileOnly 'org.immutables:value::annotations'
-    annotationProcessor 'com.google.auto.service:auto-service'
-    compileOnly 'com.google.auto.service:auto-service'
-
-    testAnnotationProcessor 'com.google.auto.service:auto-service'
-    testCompileOnly 'com.google.auto.service:auto-service'
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
-    testCompileOnly 'org.immutables:value::annotations'
-
-    testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.mockito:mockito-core'
+    // Needed for Jersey Response-based tests
+    testImplementation 'org.glassfish.jersey.core:jersey-common'
+    testImplementation project(path: ':atlasdb-client', configuration: 'testArtifacts')
     testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testImplementation group: 'org.mockito', name: 'mockito-core'
-    testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.awaitility', name: 'awaitility'
-    testImplementation group: 'com.github.stefanbirkner', name: 'system-rules'
-    // Needed for Jersey Response-based tests
-    testImplementation group: 'org.glassfish.jersey.core', name: 'jersey-common'
+
+    annotationProcessor 'com.google.auto.service:auto-service'
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'com.google.auto.service:auto-service'
+    compileOnly 'org.immutables:value::annotations'
+    testAnnotationProcessor 'com.google.auto.service:auto-service'
+    testAnnotationProcessor 'org.immutables:value'
+    testCompileOnly 'com.google.auto.service:auto-service'
+    testCompileOnly 'org.immutables:value::annotations'
+}
+
+checkImplicitDependencies {
+    ignore 'io.dropwizard', 'dropwizard-jackson'
 }

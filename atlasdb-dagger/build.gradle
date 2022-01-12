@@ -3,29 +3,29 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply from: '../gradle/shared.gradle'
 
 dependencies {
+  api project(':atlasdb-api')
+  api project(':atlasdb-client')
+  api project(':atlasdb-config')
+  api project(':atlasdb-coordination-impl')
+  api project(':atlasdb-impl-shared')
   api project(':atlasdb-service')
-  implementation group: 'com.google.dagger', name: 'dagger'
+  api project(':commons-executors')
+  api project(':lock-api')
+  api project(':lock-api-objects')
+  api project(':lock-impl')
+  api project(':timestamp-api')
 
+  implementation 'com.google.dagger:dagger'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'jakarta.inject:jakarta.inject-api'
-  implementation project(':atlasdb-api')
-  implementation project(':atlasdb-client')
-  implementation project(':atlasdb-config')
-  implementation project(':atlasdb-coordination-impl')
-  implementation project(':atlasdb-impl-shared')
-  implementation project(':commons-executors')
-  implementation project(':lock-api')
-  implementation project(':lock-api-objects')
-  implementation project(':lock-impl')
-  implementation project(':timestamp-api')
 
-  annotationProcessor group: 'com.google.dagger', name: 'dagger-compiler'
+  annotationProcessor 'com.google.dagger:dagger-compiler'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'com.google.dagger:dagger-compiler'
-  annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 
   shadow project(':atlasdb-service')

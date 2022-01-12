@@ -1,29 +1,25 @@
-
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
     testImplementation 'com.google.guava:guava'
-    testImplementation 'org.apache.thrift:libthrift'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
     testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-cassandra')
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-commons')
-
-    testImplementation project(":atlasdb-cassandra")
-    testImplementation project(":atlasdb-tests-shared")
-    testImplementation project(":atlasdb-container-test-utils")
-    testImplementation project(":atlasdb-ete-test-utils")
-    testImplementation project(":flake-rule")
-
-    testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
-       exclude module: 'junit'
-
-       exclude group: 'org.apache.httpcomponents'
+    testImplementation project(':atlasdb-container-test-utils')
+    testImplementation project(':atlasdb-tests-shared')
+    testImplementation (group: 'org.apache.thrift', name: 'libthrift') {
+        exclude group: 'commons-logging'
+        exclude group: 'org.apache.httpcomponents'
     }
-    testImplementation 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
-
-    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+        exclude group: 'commons-logging'
+        exclude module: 'junit'
+        exclude group: 'org.apache.httpcomponents'
+    }
 
     test {
         include '**/CassandraSchemaLockTest.class'

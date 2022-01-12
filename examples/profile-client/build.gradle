@@ -1,4 +1,4 @@
-apply from: "../../gradle/shared.gradle"
+apply from: '../../gradle/shared.gradle'
 
 schemas = [
     'com.palantir.example.profile.schema.ProfileSchema'
@@ -7,9 +7,12 @@ schemas = [
 group = 'com.palantir.atlasdb.examples'
 
 dependencies {
-  api project(":atlasdb-client")
-  implementation project(":examples:profile-client-protobufs")
+  api project(':atlasdb-client')
 
+  implementation project(':atlasdb-api')
+  implementation project(':atlasdb-client-protobufs')
+  implementation project(':atlasdb-commons')
+  implementation project(':examples:profile-client-protobufs')
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.guava:guava'
   implementation 'com.google.protobuf:protobuf-java'
@@ -18,20 +21,15 @@ dependencies {
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'jakarta.annotation:jakarta.annotation-api'
   implementation 'org.slf4j:slf4j-api'
-  implementation project(':atlasdb-api')
-  implementation project(':atlasdb-client-protobufs')
-  implementation project(':atlasdb-commons')
 
-
+  testImplementation project(':atlasdb-api')
+  testImplementation project(':atlasdb-commons')
+  testImplementation project(':atlasdb-config')
+  testImplementation project(':atlasdb-impl-shared')
+  testImplementation project(':atlasdb-remoting-api')
+  testImplementation project(':atlasdb-tests-shared')
+  testImplementation project(':timelock-impl')
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.tritium:tritium-registry'
   testImplementation 'io.dropwizard.metrics:metrics-core'
-  testImplementation project(':atlasdb-api')
-  testImplementation project(':atlasdb-commons')
-  testImplementation project(':atlasdb-impl-shared')
-  testImplementation project(':atlasdb-remoting-api')
-
-  testImplementation project(":atlasdb-config")
-  testImplementation project(":atlasdb-tests-shared")
-  testImplementation project(":timelock-impl")
 }

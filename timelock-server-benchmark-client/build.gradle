@@ -1,27 +1,31 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
 
 apply plugin: 'com.palantir.external-publish-dist'
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
-apply from: "../gradle/non-client-dist.gradle"
+apply from: '../gradle/shared.gradle'
+apply from: '../gradle/tests.gradle'
+apply from: '../gradle/non-client-dist.gradle'
 
 schemas = ['com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema']
 
 dependencies {
-    implementation project(":timelock-server")
-    implementation (project(":atlasdb-cassandra")) {
+    api project(':atlasdb-api')
+    api (project(':atlasdb-cassandra')) {
         exclude group:'com.codahale.metrics'
     }
-
-    implementation group: 'junit', name: 'junit'
-    implementation group: 'org.assertj', name: 'assertj-core'
-    implementation group: "com.google.protobuf", name: "protobuf-java"
+    api project(':atlasdb-client')
+    api project(':atlasdb-commons')
+    api project(':atlasdb-config')
+    api project(':atlasdb-remoting-api')
+    api project(':lock-api-objects')
+    api project(':timelock-server')
+    api project(':timestamp-api')
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
     implementation 'com.google.guava:guava'
+    implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
     implementation 'com.palantir.safe-logging:preconditions'
@@ -32,20 +36,15 @@ dependencies {
     implementation 'io.dropwizard:dropwizard-core'
     implementation 'io.dropwizard:dropwizard-jersey'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'junit:junit'
     implementation 'org.apache.commons:commons-lang3'
+    implementation 'org.assertj:assertj-core'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-config')
-    implementation project(':atlasdb-remoting-api')
-    implementation project(':lock-api-objects')
-    implementation project(':timestamp-api')
 }
 
 distribution {
-    serviceName "timelock-benchmark-client"
+    serviceName 'timelock-benchmark-client'
     mainClass 'com.palantir.atlasdb.timelock.benchmarks.TimelockBenchmarkClientLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-Xms4096m", "-Xmx4096m"
+    defaultJvmOpts '-Xms4096m', '-Xmx4096m'
 }

@@ -2,34 +2,29 @@
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
 dependencies {
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-cassandra')
-    implementation project(':atlasdb-tests-shared')
-    implementation project(":flake-rule")
-
-    implementation group: 'com.google.guava', name: 'guava'
-    implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-    implementation group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-core'
-    implementation group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-junit4'
-    implementation group: 'org.awaitility', name: 'awaitility'
-    implementation group: 'io.netty', name: 'netty-handler-proxy'
+    api project(':atlasdb-api')
+    api project(':atlasdb-cassandra')
+    api project(':atlasdb-client')
+    api project(':atlasdb-commons')
+    api project(':atlasdb-tests-shared')
+    api project(':flake-rule')
 
     implementation 'com.datastax.cassandra:cassandra-driver-core'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    implementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'commons-io:commons-io'
+    implementation 'io.netty:netty-handler-proxy'
     implementation 'io.netty:netty-transport'
     implementation 'junit:junit'
-    implementation 'org.apache.commons:commons-lang3'
-    implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-commons')
+    implementation 'org.awaitility:awaitility'
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    testImplementation 'com.github.stefanbirkner:system-rules'
+    testImplementation 'org.assertj:assertj-core'
+
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
-
-    testImplementation group: 'com.github.stefanbirkner', name: 'system-rules'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
 }

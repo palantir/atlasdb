@@ -1,42 +1,33 @@
-apply plugin: "org.inferred.processors"
-
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation project(":commons-api")
-  implementation project(":commons-proxy")
+  api project(':commons-api')
+  api project(':commons-proxy')
 
-  implementation group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils
-  implementation group: 'org.apache.commons', name: 'commons-lang3'
-  implementation group: 'commons-io', name: 'commons-io'
-  implementation group: 'com.palantir.tracing', name: 'tracing'
-
+  implementation 'com.google.guava:guava'
+  implementation 'com.h2database:h2'
+  implementation 'com.oracle.database.jdbc:ojdbc8'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'commons-io:commons-io'
+  implementation 'joda-time:joda-time'
+  implementation 'org.apache.commons:commons-lang3'
   // Danger, Will Robinson!
   //
   // This driver has historically low code quality and should be considered a high-risk update.
   // Severe performance regressions in 1202,3,4.
   // Severe correctness issues in 1204,5,6.
   // Update with care and caution.
-  implementation group: 'org.postgresql', name: 'postgresql', version: libVersions.postgresql
-  implementation 'com.oracle.database.jdbc:ojdbc8'
-
-  implementation group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP
-  implementation group: 'joda-time', name: 'joda-time'
-
-  implementation 'com.h2database:h2'
-  implementation 'com.google.guava:guava'
-  implementation 'com.palantir.safe-logging:preconditions'
-  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'org.postgresql:postgresql'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-commons')
   implementation project(':commons-executors')
   implementation project(':commons-executors-api')
 
   testImplementation 'com.google.guava:guava'
+  testImplementation 'junit:junit'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':atlasdb-commons')
-
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
 }

@@ -1,22 +1,30 @@
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
-apply from: "../gradle/non-client-dist.gradle"
+apply from: '../gradle/shared.gradle'
+apply from: '../gradle/tests.gradle'
+apply from: '../gradle/non-client-dist.gradle'
 
 apply plugin: 'com.palantir.sls-java-service-distribution'
 
 schemas = ['com.palantir.atlasdb.blob.BlobSchema']
 dependencies {
-    implementation project(':atlasdb-config')
-    implementation project(':atlasdb-coordination-impl')
-    implementation project(':atlasdb-ete-test-utils')
-    implementation project(':atlasdb-impl-shared')
-    implementation project(':atlasdb-hikari')
-    implementation project(':lock-impl')
-    implementation project(':leader-election-impl')
-
-    implementation group: 'org.awaitility', name: 'awaitility'
-    implementation group: 'com.palantir.tritium', name: 'tritium-lib'
-    implementation group: 'io.dropwizard', name: 'dropwizard-core'
+    api project(':atlasdb-api')
+    api project(':atlasdb-client')
+    api project(':atlasdb-client-protobufs')
+    api project(':atlasdb-commons')
+    api project(':atlasdb-config')
+    api project(':atlasdb-coordination-impl')
+    api project(':atlasdb-ete-test-utils')
+    api project(':atlasdb-hikari')
+    api project(':atlasdb-impl-shared')
+    api project(':atlasdb-tests-shared')
+    api project(':leader-election-impl')
+    api project(':lock-api')
+    api project(':lock-api-objects')
+    api project(':lock-impl')
+    api project(':timestamp-api')
+    api (group: 'org.apache.thrift', name: 'libthrift') {
+        exclude group: 'commons-logging'
+        exclude group: 'org.apache.httpcomponents'
+    }
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -29,65 +37,55 @@ dependencies {
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tritium:tritium-lib'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'io.dropwizard:dropwizard-configuration'
+    implementation 'io.dropwizard:dropwizard-core'
     implementation 'io.dropwizard:dropwizard-jersey'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'org.awaitility:awaitility'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-client-protobufs')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-impl-shared')
-    implementation project(':atlasdb-tests-shared')
-    implementation project(':lock-api')
-    implementation project(':lock-api-objects')
-    implementation project(':timestamp-api')
 
+    runtimeOnly project(':atlasdb-cassandra')
+    runtimeOnly project(':atlasdb-dbkvs')
+
+    testImplementation 'com.datastax.cassandra:cassandra-driver-core'
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.conjure.java.api:ssl-config'
     testImplementation 'com.palantir.conjure.java.runtime:keystores'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
     testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
     testImplementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
     testImplementation 'com.palantir.safe-logging:preconditions'
     testImplementation 'com.palantir.safe-logging:safe-logging'
     testImplementation 'commons-io:commons-io'
+    testImplementation 'io.dropwizard:dropwizard-testing'
     testImplementation 'joda-time:joda-time'
+    testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-cassandra')
     testImplementation project(':atlasdb-cassandra').sourceSets.test.output
     testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-container-test-utils')
+    testImplementation project(':atlasdb-ete-test-utils')
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-remoting-api')
     testImplementation project(':atlasdb-tests-shared')
-    testImplementation project(':lock-api-objects')
-    testImplementation project(':timestamp-api')
-
-    runtimeOnly project(':atlasdb-dbkvs')
-    runtimeOnly project(':atlasdb-cassandra')
-
-    implementation (group: 'org.apache.thrift', name: 'libthrift') {
-        exclude group: 'org.apache.httpcomponents'
-    }
-
-    annotationProcessor group: 'org.immutables', name: 'value'
-    compileOnly 'org.immutables:value::annotations'
-    annotationProcessor project(':atlasdb-processors')
-    compileOnly project(':atlasdb-processors')
-
-    testImplementation project(':atlasdb-container-test-utils')
-    testImplementation project(':atlasdb-ete-test-utils')
     testImplementation project(':flake-rule')
+    testImplementation project(':lock-api-objects')
+    testImplementation project(':timelock-api:timelock-api-objects')
+    testImplementation project(':timestamp-api')
+    testImplementation project(':timestamp-impl')
 
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
+    annotationProcessor project(':atlasdb-processors')
+    compileOnly 'org.immutables:value::annotations'
+    compileOnly project(':atlasdb-processors')
+    testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
-
-    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    testImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
 }
 
 
@@ -143,6 +141,3 @@ distribution {
     args 'server', 'var/conf/atlasdb-ete.yml'
     defaultJvmOpts '-Xmx768M'
 }
-
-sourceCompatibility = 11
-targetCompatibility = 11

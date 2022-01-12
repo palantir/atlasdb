@@ -1,4 +1,4 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 apply plugin: 'com.palantir.sls-recommended-dependencies'
 apply plugin: 'com.palantir.metric-schema'
@@ -9,58 +9,56 @@ license {
 
 libsDirName = file('build/artifacts')
 dependencies {
+    api project(':atlasdb-autobatch')
+    api project(':atlasdb-commons')
+    api project(':commons-annotations')
+    api project(':commons-executors')
+    api project(':lock-api-objects')
     api project(':lock-conjure-api:lock-conjure-api-dialogue')
     api project(':lock-conjure-api:lock-conjure-api-jersey')
+    api project(':lock-conjure-api:lock-conjure-api-objects')
     api project(':timelock-api:timelock-api-dialogue')
     api project(':timelock-api:timelock-api-jersey')
-    api project(":timestamp-api")
-    api project(":timestamp-client")
-    implementation project(":atlasdb-autobatch")
-    implementation project(":atlasdb-commons")
-    implementation project(':lock-api-objects')
-    implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-    implementation group: 'com.palantir.safe-logging', name: 'preconditions'
-    implementation group: 'com.palantir.refreshable', name: 'refreshable'
-    implementation group: 'one.util', name: 'streamex'
+    api project(':timelock-api:timelock-api-objects')
+    api project(':timestamp-api')
+    api project(':timestamp-client')
 
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
+    implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.tokens:auth-tokens'
     implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'one.util:streamex'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':commons-annotations')
-    implementation project(':commons-executors')
-    implementation project(':lock-conjure-api:lock-conjure-api-objects')
-    implementation project(':timelock-api:timelock-api-objects')
 
     testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
     testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
     testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.common:streams'
+    testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'io.dropwizard.metrics:metrics-core'
+    testImplementation 'junit:junit'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':lock-conjure-api:lock-conjure-api-objects')
     testImplementation project(':timelock-api:timelock-api-objects')
-
-    annotationProcessor project(":atlasdb-processors")
-    compileOnly project(":atlasdb-processors")
-    annotationProcessor group: 'org.immutables', name: 'value'
-    compileOnly 'org.immutables:value::annotations'
-
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
-    testCompileOnly 'org.immutables:value::annotations'
-
-    testImplementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
-    testImplementation group: 'junit', name: 'junit'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.awaitility', name: 'awaitility'
     testImplementation(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testImplementation group: 'org.mockito', name: 'mockito-core'
+
+    annotationProcessor 'org.immutables:value'
+    annotationProcessor project(':atlasdb-processors')
+    compileOnly 'org.immutables:value::annotations'
+    compileOnly project(':atlasdb-processors')
+    testAnnotationProcessor 'org.immutables:value'
+    testCompileOnly 'org.immutables:value::annotations'
 }

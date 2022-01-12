@@ -1,46 +1,45 @@
 
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation project(":atlasdb-dbkvs")
-  implementation project(":atlasdb-tests-shared")
+  api project(':atlasdb-api')
+  api project(':atlasdb-client')
+  api project(':atlasdb-commons')
+  api project(':atlasdb-dbkvs')
+  api project(':atlasdb-tests-shared')
 
   implementation 'com.google.guava:guava'
   implementation 'junit:junit'
   implementation 'org.assertj:assertj-core'
-  implementation project(':atlasdb-api')
-  implementation project(':atlasdb-client')
-  implementation project(':atlasdb-commons')
 
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.conjure.java.api:service-config'
   testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
+  testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.safe-logging:safe-logging'
   testImplementation 'joda-time:joda-time'
+  testImplementation 'junit:junit'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.awaitility:awaitility'
+  testImplementation 'org.mockito:mockito-core'
   testImplementation project(':atlasdb-api')
   testImplementation project(':atlasdb-client')
   testImplementation project(':atlasdb-config')
   testImplementation project(':atlasdb-dbkvs-hikari')
   testImplementation project(':commons-db')
   testImplementation project(':timestamp-api')
-
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-  testImplementation group: 'junit', name: 'junit'
 }
 
 task postgresTest(type: Test) {
-    maxHeapSize = "1024m"
+    maxHeapSize = '1024m'
     include '**/DbKvsPostgresTestSuite.class'
     maxParallelForks 2
 }
 
 task oracleTest(type: Test) {
-    maxHeapSize = "1024m"
+    maxHeapSize = '1024m'
     include '**/DbKvsOracleTestSuite.class'
     maxParallelForks 2
 }

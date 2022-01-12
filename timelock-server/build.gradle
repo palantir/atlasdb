@@ -1,7 +1,7 @@
 apply plugin: 'org.unbroken-dome.test-sets'
 
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
+apply from: '../gradle/shared.gradle'
+apply from: '../gradle/tests.gradle'
 
 testSets {
     libraries {
@@ -25,13 +25,13 @@ testSets {
 
 stressTest {
     filter {
-        includeTestsMatching "com.palantir.atlasdb.timelock.stress.*"
+        includeTestsMatching 'com.palantir.atlasdb.timelock.stress.*'
     }
 }
 
 suiteTest {
     filter {
-        includeTestsMatching "com.palantir.atlasdb.timelock.suite.*"
+        includeTestsMatching 'com.palantir.atlasdb.timelock.suite.*'
     }
 }
 
@@ -40,13 +40,7 @@ check.dependsOn suiteTest
 check.dependsOn stressTest
 
 dependencies {
-    api project(":timelock-agent")
-
-    implementation group: 'io.dropwizard', name: 'dropwizard-core'
-    implementation group: 'io.dropwizard', name: 'dropwizard-http2'
-    implementation group: 'io.dropwizard', name: 'dropwizard-request-logging'
-    implementation group: 'com.palantir.conjure.java.api', name: 'ssl-config'
-    implementation group: 'com.palantir.tritium', name: 'tritium-lib'
+    api project(':timelock-agent')
 
     implementation 'ch.qos.logback:logback-classic'
     implementation 'ch.qos.logback:logback-core'
@@ -57,77 +51,73 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.conjure.java.api:ssl-config'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
     implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.sls.versions:sls-versions'
     implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.tritium:tritium-lib'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'io.dropwizard:dropwizard-core'
+    implementation 'io.dropwizard:dropwizard-http2'
     implementation 'io.dropwizard:dropwizard-jackson'
     implementation 'io.dropwizard:dropwizard-jersey'
     implementation 'io.dropwizard:dropwizard-lifecycle'
     implementation 'io.dropwizard:dropwizard-logging'
+    implementation 'io.dropwizard:dropwizard-request-logging'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation 'org.eclipse.jetty:jetty-util'
     implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')
 
-    annotationProcessor group: 'org.immutables', name: 'value'
-    compileOnly 'org.immutables:value::annotations'
-    testCompileOnly 'org.immutables:value::annotations'
-
-    runtimeOnly project(":atlasdb-jdbc")
-    runtimeOnly project(":atlasdb-hikari")
-    runtimeOnly (project(":atlasdb-cassandra")) {
+    runtimeOnly project(':atlasdb-dbkvs')
+    runtimeOnly project(':atlasdb-hikari')
+    runtimeOnly project(':atlasdb-jdbc')
+    runtimeOnly (project(':atlasdb-cassandra')) {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')
     }
-    runtimeOnly project(":atlasdb-dbkvs")
-    // TODO:   runtimeOnly "org.postgresql:postgresql:${postgresJdbcDriverVersion}"
+    // TODO:   runtimeOnly 'org.postgresql:postgresql:${postgresJdbcDriverVersion}'
     // TODO:   add runtimeOnly depencency on the dbkvs-oracle-driver internally
 
-    testImplementation (project(":atlasdb-tests-shared")) {
+    testImplementation 'com.github.tomakehurst:wiremock-standalone'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.conjure.java.runtime:client-config'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    testImplementation 'io.dropwizard.metrics:metrics-core'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation project(':atlasdb-commons')
+    testImplementation project(':atlasdb-container-test-utils')
+    testImplementation project(':atlasdb-dbkvs')
+    testImplementation project(':atlasdb-impl-shared')
+    testImplementation project(':atlasdb-tests-shared')
+    testImplementation project(':flake-rule')
+    testImplementation project(':lock-api-objects')
+    testImplementation project(':timelock-impl')
+    testImplementation (project(':atlasdb-tests-shared')) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
-
-    testImplementation group: 'com.palantir.conjure.java.runtime', name: 'client-config'
-    testImplementation project(":atlasdb-container-test-utils")
-    testImplementation project(":atlasdb-tests-shared")
-    testImplementation project(":atlasdb-dbkvs")
-    testImplementation (project(":atlasdb-cassandra")) {
+    testImplementation (project(':atlasdb-cassandra')) {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')
     }
-    testImplementation project(":flake-rule")
-    testImplementation group: 'org.assertj', name: 'assertj-core'
     testImplementation(group: 'org.jmock', name: 'jmock') {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
-    testImplementation group: 'org.mockito', name: 'mockito-core'
-    testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone'
 
-    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-
-    testImplementation 'com.google.guava:guava'
-    testImplementation 'io.dropwizard.metrics:metrics-core'
-    testImplementation project(':atlasdb-commons')
-    testImplementation project(':atlasdb-impl-shared')
-    testImplementation project(':lock-api-objects')
-    testImplementation project(':timelock-impl')
-
-    testCommonAnnotationProcessor group: 'org.immutables', name: 'value'
-    testCommonCompileOnly 'org.immutables:value::annotations'
-
-    testCommonImplementation group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
-    testCommonImplementation group: 'com.ea.agentloader', name: 'ea-agent-loader'
-    testCommonImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
+    testCommonImplementation 'com.ea.agentloader:ea-agent-loader'
     testCommonImplementation 'com.fasterxml.jackson.core:jackson-core'
     testCommonImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testCommonImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
+    testCommonImplementation 'com.github.peterwippermann.junit4:parameterized-suite'
     testCommonImplementation 'com.google.errorprone:error_prone_annotations'
     testCommonImplementation 'com.google.guava:guava'
     testCommonImplementation 'com.palantir.common:streams'
@@ -140,7 +130,9 @@ dependencies {
     testCommonImplementation 'com.palantir.tritium:tritium-registry'
     testCommonImplementation 'io.dropwizard.metrics:metrics-core'
     testCommonImplementation 'io.dropwizard:dropwizard-jackson'
+    testCommonImplementation 'io.dropwizard:dropwizard-testing'
     testCommonImplementation 'org.awaitility:awaitility'
+    testCommonImplementation 'org.freemarker:freemarker'
     testCommonImplementation project(':atlasdb-api')
     testCommonImplementation project(':atlasdb-client')
     testCommonImplementation project(':atlasdb-commons')
@@ -158,21 +150,18 @@ dependencies {
     testCommonImplementation project(':timelock-api:timelock-api-objects')
     testCommonImplementation project(':timelock-impl')
     testCommonImplementation project(':timestamp-api')
-    testCommonImplementation (project(":atlasdb-tests-shared")) {
+    testCommonImplementation (project(':atlasdb-tests-shared')) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
-    testCommonImplementation group: 'org.freemarker', name: 'freemarker'
 
-    testCommonApi group: 'io.dropwizard', name: 'dropwizard-testing'
-    testCommonApi group: 'com.github.peterwippermann.junit4', name: 'parameterized-suite'
-
-    // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-    integTestImplementation project(":examples:profile-client")
+    testCommonApi 'com.github.peterwippermann.junit4:parameterized-suite'
+    testCommonApi 'io.dropwizard:dropwizard-testing'
 
     suiteTestImplementation 'com.google.guava:guava'
     suiteTestImplementation 'com.palantir.common:streams'
     suiteTestImplementation 'com.palantir.conjure.java.api:errors'
     suiteTestImplementation 'com.palantir.conjure.java.api:service-config'
+    suiteTestImplementation 'com.palantir.conjure.java:conjure-lib'
     suiteTestImplementation 'com.palantir.safe-logging:preconditions'
     suiteTestImplementation 'com.palantir.tokens:auth-tokens'
     suiteTestImplementation project(':atlasdb-conjure')
@@ -194,9 +183,12 @@ dependencies {
     integTestImplementation 'com.fasterxml.jackson.core:jackson-databind'
     integTestImplementation 'com.google.guava:guava'
     integTestImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    integTestImplementation 'com.palantir.conjure.java.runtime:keystores'
     integTestImplementation 'com.palantir.conjure.java:conjure-lib'
     integTestImplementation 'com.palantir.refreshable:refreshable'
     integTestImplementation 'com.palantir.tritium:tritium-registry'
+    // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+    integTestImplementation project(':examples:profile-client')
     integTestImplementation 'io.dropwizard.metrics:metrics-core'
     integTestImplementation 'org.awaitility:awaitility'
     integTestImplementation project(':atlasdb-api')
@@ -211,4 +203,10 @@ dependencies {
     integTestImplementation project(':timelock-api:timelock-api-objects')
     integTestImplementation project(':timelock-impl')
     integTestImplementation project(':timestamp-api')
+
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'org.immutables:value::annotations'
+    testCompileOnly 'org.immutables:value::annotations'
+    testCommonAnnotationProcessor 'org.immutables:value'
+    testCommonCompileOnly 'org.immutables:value::annotations'
 }

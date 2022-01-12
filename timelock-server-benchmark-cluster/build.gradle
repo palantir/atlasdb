@@ -1,12 +1,14 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
 
 apply plugin: 'com.palantir.external-publish-dist'
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
-apply from: "../gradle/non-client-dist.gradle"
+apply from: '../gradle/shared.gradle'
+apply from: '../gradle/tests.gradle'
+apply from: '../gradle/non-client-dist.gradle'
 
 dependencies {
-    implementation project(':timelock-server')
+    api project(':atlasdb-client')
+    api project(':timelock-agent')
+    api project(':timelock-server')
 
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
@@ -17,13 +19,11 @@ dependencies {
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard:dropwizard-core'
     implementation 'io.dropwizard:dropwizard-jersey'
-    implementation project(':atlasdb-client')
-    implementation project(':timelock-agent')
 }
 
 distribution {
-    serviceName "timelock-benchmark-server"
+    serviceName 'timelock-benchmark-server'
     mainClass 'com.palantir.atlasdb.timelock.benchmarks.server.TimelockBenchmarkServerLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-Xms512m", "-Xmx4096m"
+    defaultJvmOpts '-Xms512m', '-Xmx4096m'
 }

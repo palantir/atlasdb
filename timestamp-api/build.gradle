@@ -1,11 +1,13 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-    implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.google.code.findbugs:jsr305'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+
+    testImplementation 'org.assertj:assertj-core'
 
     compileOnly project(':atlasdb-processors')
     annotationProcessor project(':atlasdb-processors')
-    testImplementation group: 'org.assertj', name: 'assertj-core'
 }

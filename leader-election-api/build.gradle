@@ -1,23 +1,22 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 libsDirName = file('build/artifacts')
 dependencies {
-  implementation project(":atlasdb-commons")
-  implementation project(":leader-election-api-protobufs")
-  implementation group: 'org.apache.commons', name: 'commons-lang3'
-  implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+  api project(':atlasdb-commons')
+  api project(':leader-election-api-protobufs')
+  api project(':commons-annotations')
 
-  implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.google.protobuf:protobuf-java'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
-  implementation project(':commons-annotations')
+  implementation 'com.palantir.sls.versions:sls-versions'
+  implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+  implementation 'org.apache.commons:commons-lang3'
 
-
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
 }

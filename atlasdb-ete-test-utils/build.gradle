@@ -1,4 +1,4 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 schemas = [
         'com.palantir.atlasdb.todo.TodoSchema'
@@ -6,20 +6,17 @@ schemas = [
 
 dependencies {
     api project(':atlasdb-api')
-    implementation project(':atlasdb-client')
+    api project(':atlasdb-client')
+    api project(':atlasdb-client-protobufs')
+    api project(':atlasdb-commons')
 
-    implementation group: 'junit', name: 'junit'
-    implementation group: 'commons-io', name: 'commons-io'
-    implementation 'jakarta.annotation:jakarta.annotation-api'
-    implementation 'org.assertj:assertj-core'
     implementation 'com.google.guava:guava'
     implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'commons-io:commons-io'
+    implementation 'jakarta.annotation:jakarta.annotation-api'
+    implementation 'junit:junit'
+    implementation 'org.assertj:assertj-core'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-client-protobufs')
-    implementation project(':atlasdb-commons')
 }
-
-sourceCompatibility = 11
-targetCompatibility = 11

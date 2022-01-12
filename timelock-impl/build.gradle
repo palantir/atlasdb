@@ -1,23 +1,32 @@
 apply plugin: 'org.unbroken-dome.test-sets'
 
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
+apply from: '../gradle/shared.gradle'
+apply from: '../gradle/tests.gradle'
 
 dependencies {
-    implementation project(":timestamp-impl")
-    implementation project(":lock-conjure-api:lock-conjure-api-undertow")
-    implementation project(":lock-conjure-api:lock-conjure-api-jersey")
-    implementation project(":lock-impl")
-    implementation project(':timelock-api:timelock-api-undertow')
-    implementation project(':timelock-api:timelock-api-jersey')
-    implementation project(":leader-election-impl")
-    implementation (project(":atlasdb-config")) {
+    api project(':atlasdb-api')
+    api project(':atlasdb-autobatch')
+    api project(':atlasdb-client')
+    api project(':atlasdb-commons')
+    api (project(':atlasdb-config')) {
         exclude group:'io.dropwizard'
     }
-
-    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-    implementation group: 'org.mindrot', name: 'jbcrypt'
-    implementation group: 'com.zaxxer', name: 'HikariCP'
+    api project(':atlasdb-impl-shared')
+    api project(':commons-annotations')
+    api project(':commons-executors')
+    api project(':leader-election-api')
+    api project(':leader-election-impl')
+    api project(':lock-api')
+    api project(':lock-api-objects')
+    api project(':lock-conjure-api:lock-conjure-api-jersey')
+    api project(':lock-conjure-api:lock-conjure-api-objects')
+    api project(':lock-conjure-api:lock-conjure-api-undertow')
+    api project(':lock-impl')
+    api project(':timelock-api:timelock-api-jersey')
+    api project(':timelock-api:timelock-api-objects')
+    api project(':timelock-api:timelock-api-undertow')
+    api project(':timestamp-api')
+    api project(':timestamp-impl')
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -29,28 +38,18 @@ dependencies {
     implementation 'com.palantir.conjure.java:conjure-lib'
     implementation 'com.palantir.conjure.java:conjure-undertow-lib'
     implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.sls.versions:sls-versions'
     implementation 'com.palantir.tokens:auth-tokens'
     implementation 'com.palantir.tritium:tritium-registry'
+    implementation 'com.zaxxer:HikariCP'
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation 'org.apache.commons:commons-lang3'
     implementation 'org.jdbi:jdbi3-core'
     implementation 'org.jdbi:jdbi3-sqlobject'
+    implementation 'org.mindrot:jbcrypt'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-autobatch')
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-impl-shared')
-    implementation project(':commons-annotations')
-    implementation project(':commons-executors')
-    implementation project(':leader-election-api')
-    implementation project(':lock-api')
-    implementation project(':lock-api-objects')
-    implementation project(':lock-conjure-api:lock-conjure-api-objects')
-    implementation project(':timelock-api:timelock-api-objects')
-    implementation project(':timestamp-api')
 
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
@@ -61,13 +60,17 @@ dependencies {
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.common:streams'
     testImplementation 'com.palantir.conjure.java.api:errors'
+    testImplementation 'com.palantir.conjure.java.api:test-utils'
     testImplementation 'com.palantir.safe-logging:preconditions'
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation 'com.palantir.sls.versions:sls-versions'
     testImplementation 'com.palantir.tokens:auth-tokens'
     testImplementation 'com.palantir.tritium:tritium-registry'
     testImplementation 'io.dropwizard.metrics:metrics-core'
+    testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.jmock:jmock'
+    testImplementation 'org.mockito:mockito-core'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-autobatch')
     testImplementation project(':atlasdb-client')
@@ -80,21 +83,14 @@ dependencies {
     testImplementation project(':timelock-api:timelock-api-dialogue')
     testImplementation project(':timelock-api:timelock-api-objects')
     testImplementation project(':timestamp-api')
+    testImplementation project(path: ':leader-election-impl', configuration: 'testArtifacts')
 
-    annotationProcessor project(":atlasdb-processors")
-    compileOnly project(":atlasdb-processors")
-    annotationProcessor group: 'org.immutables', name: 'value'
-    compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.derive4j:derive4j'
+    annotationProcessor 'org.immutables:value'
+    annotationProcessor project(':atlasdb-processors')
     compileOnly 'org.derive4j:derive4j-annotation'
-
-    testImplementation project(path: ":leader-election-impl", configuration: "testArtifacts")
-
-    testImplementation group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
-    testImplementation group: 'com.palantir.conjure.java.api', name: 'test-utils'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
-
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
+    compileOnly project(':atlasdb-processors')
+    testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
 }

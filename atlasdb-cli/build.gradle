@@ -2,26 +2,25 @@ apply from: '../gradle/shared.gradle'
 
 
 dependencies {
-    api project(':atlasdb-cassandra')
-    api project(path: ':atlasdb-dagger', configuration: 'shadow')
     api project(':atlasdb-api')
+    api project(':atlasdb-cassandra')
     api project(':atlasdb-client')
+    api project(':atlasdb-commons')
     api project(':atlasdb-config')
+    api project(':atlasdb-impl-shared')
     api project(':timestamp-api')
+    api project(path: ':atlasdb-dagger', configuration: 'shadow')
 
     compileOnly 'com.google.dagger:dagger'
-    implementation 'io.airlift:airline'
-    implementation 'ch.qos.logback:logback-classic'
 
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'io.airlift:airline'
     implementation 'joda-time:joda-time'
     implementation 'org.apache.commons:commons-lang3'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-impl-shared')
 
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.safe-logging:preconditions'
@@ -29,6 +28,8 @@ dependencies {
     testImplementation 'commons-io:commons-io'
     testImplementation 'joda-time:joda-time'
     testImplementation 'org.apache.commons:commons-lang3'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-client')
@@ -40,14 +41,9 @@ dependencies {
     testImplementation project(':atlasdb-tests-shared').sourceSets.test.output
     testImplementation project(':lock-api')
     testImplementation project(':lock-api-objects')
-    testImplementation project(':lock-impl')
-    testImplementation project(':timelock-impl')
     testImplementation project(':timestamp-api')
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
     testCompileOnly 'org.immutables:value::annotations'
-
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
 }

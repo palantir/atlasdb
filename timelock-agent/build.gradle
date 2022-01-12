@@ -1,21 +1,42 @@
 apply plugin: 'org.unbroken-dome.test-sets'
 
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
+apply from: '../gradle/shared.gradle'
+apply from: '../gradle/tests.gradle'
 
 dependencies {
-    implementation project(":timelock-impl")
-    implementation project(":timelock-corruption-detection")
+    api project(':atlasdb-api')
+    api project(':atlasdb-client')
+    api project(':atlasdb-config')
+    api project(':atlasdb-conjure')
+    api project(':atlasdb-remoting-api')
+    api project(':leader-election-api')
+    api project(':lock-api')
+    api project(':lock-conjure-api:lock-conjure-api-undertow')
+    api project(':timelock-api:timelock-api-jersey')
+    api project(':timelock-api:timelock-api-objects')
+    api project(':timelock-api:timelock-api-undertow')
+    api project(':timelock-corruption-detection')
+    api project(':timelock-corruption-detection:timelock-corruption-detection-jersey')
+    api project(':timelock-corruption-detection:timelock-corruption-detection-undertow')
+    api project(':timelock-impl')
+    api project(':timestamp-api')
 
-    implementation group: 'com.google.guava', name: 'guava'
-    implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
-
+    implementation project(':atlasdb-autobatch')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':commons-annotations')
+    implementation project(':commons-executors')
+    implementation project(':leader-election-impl')
+    implementation project(':lock-impl')
+    implementation project(':timestamp-impl')
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.github.rholder:guava-retrying'
     implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.conjure.java.api:ssl-config'
     implementation 'com.palantir.conjure.java.runtime:client-config'
     implementation 'com.palantir.conjure.java.runtime:keystores'
@@ -35,43 +56,17 @@ dependencies {
     implementation 'org.jdbi:jdbi3-sqlobject'
     implementation 'org.slf4j:slf4j-api'
 
-    api project(':atlasdb-api')
-    api project(':atlasdb-client')
-    api project(':atlasdb-config')
-    api project(':atlasdb-conjure')
-    api project(':atlasdb-remoting-api')
-    api project(':leader-election-api')
-    api project(':lock-api')
-    api project(':lock-conjure-api:lock-conjure-api-undertow')
-    api project(':timelock-api:timelock-api-jersey')
-    api project(':timelock-api:timelock-api-objects')
-    api project(':timelock-api:timelock-api-undertow')
-    api project(':timestamp-api')
-
-    implementation project(':atlasdb-autobatch')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-impl-shared')
-    implementation project(':commons-annotations')
-    implementation project(':commons-executors')
-    implementation project(':leader-election-impl')
-    implementation project(':lock-impl')
-    implementation project(':timestamp-impl')
-    api project(':timelock-corruption-detection:timelock-corruption-detection-jersey')
-    api project(':timelock-corruption-detection:timelock-corruption-detection-undertow')
-
     testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
     testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
+    testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
-
-    annotationProcessor group: 'org.immutables', name: 'value'
-    compileOnly 'org.immutables:value::annotations'
-    testCompileOnly 'org.immutables:value::annotations'
-
-    testImplementation group: 'org.assertj', name: 'assertj-core'
     testImplementation (group: 'org.mockito', name: 'mockito-core') {
         // Mockito version doesn't agree with our JUnit version
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
 
-    testImplementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'org.immutables:value::annotations'
+    testCompileOnly 'org.immutables:value::annotations'
 }

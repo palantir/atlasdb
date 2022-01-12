@@ -1,8 +1,9 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
     implementation('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
         transitive = false
+        exclude group: 'commons-logging'
         exclude group: 'org.apache.httpcomponents'
     }
     implementation(group: 'org.apache.commons', name: 'commons-lang3', version: libVersions.commons_lang3)

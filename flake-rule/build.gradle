@@ -1,11 +1,11 @@
-apply from: "../gradle/shared.gradle"
+apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation group: 'junit', name: 'junit'
-  implementation group: 'org.slf4j', name: 'slf4j-api'
-  implementation group: 'com.google.guava', name: 'guava'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'junit:junit'
 
-  testImplementation group: 'ch.qos.logback', name: 'logback-classic'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation 'ch.qos.logback:logback-classic'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
 }

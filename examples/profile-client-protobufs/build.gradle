@@ -1,4 +1,4 @@
-apply from: "../../gradle/shared.gradle"
+apply from: '../../gradle/shared.gradle'
 
 group = 'com.palantir.atlasdb.examples'
 
@@ -11,7 +11,7 @@ protobuf {
 }
 
 dependencies {
-  implementation group: "com.google.protobuf", name: "protobuf-java"
+  implementation 'com.google.protobuf:protobuf-java'
 }
 
 project.tasks.idea.dependsOn('generateProto')

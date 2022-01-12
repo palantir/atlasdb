@@ -2,27 +2,26 @@
 apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation project(':commons-db')
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  implementation group: 'io.dropwizard.metrics', name: 'metrics-core'
+  api project(':atlasdb-commons')
+  api project(':commons-db')
 
-  implementation 'com.h2database:h2'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
+  implementation 'com.h2database:h2'
   implementation 'com.oracle.database.jdbc:ojdbc8'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.zaxxer:HikariCP'
   implementation 'commons-io:commons-io'
+  implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.postgresql:postgresql'
-  implementation 'org.slf4j:slf4j-api'
-  implementation project(':atlasdb-commons')
 
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'
 
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
 }
