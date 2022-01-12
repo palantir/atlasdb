@@ -70,7 +70,8 @@ public abstract class AbstractTestRunner implements SingleBackendCliTestRunner {
 
     @Override
     public String run(boolean failOnNonZeroExit, boolean singleLine) {
-        return StandardStreamUtilities.wrapSystemOut(
+        // collect warnings and errors from stderr, info and below from stdout
+        return StandardStreamUtilities.wrapSystemErrAndOut(
                 () -> {
                     int ret = cmd.execute(services);
                     if (ret != 0 && failOnNonZeroExit) {
@@ -81,7 +82,7 @@ public abstract class AbstractTestRunner implements SingleBackendCliTestRunner {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         if (services != null) {
             services.close();
         }

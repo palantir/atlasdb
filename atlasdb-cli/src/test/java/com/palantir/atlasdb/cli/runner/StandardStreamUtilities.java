@@ -28,19 +28,31 @@ public final class StandardStreamUtilities {
         void set(PrintStream ps);
     }
 
+    private static Runnable wrapWithStream(
+            Runnable runnable, PrintStream target, PrintStream original, StandardStreamSetter standardStreamSetter) {
+        return () -> {
+            standardStreamSetter.set(target);
+            try {
+                runnable.run();
+            } finally {
+                standardStreamSetter.set(original);
+            }
+        };
+    }
+
     private static String wrapGenericStream(
             Runnable runnable, PrintStream original, StandardStreamSetter standardStreamSetter, boolean singleLine) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        standardStreamSetter.set(new PrintStream(baos));
-        try {
-            runnable.run();
-        } finally {
-            standardStreamSetter.set(original);
-        }
+        InMemoryPrintStream printStream = InMemoryPrintStream.create();
+        wrapWithStream(runnable, printStream, original, standardStreamSetter).run();
+        return printStream.getResult(singleLine);
+    }
 
-        return singleLine
-                ? baos.toString(StandardCharsets.UTF_8).replace("\n", " ").replace("\r", " ")
-                : baos.toString(StandardCharsets.UTF_8);
+    public static String wrapSystemErrAndOut(Runnable runnable, boolean singleLine) {
+        InMemoryPrintStream printStream = InMemoryPrintStream.create();
+        Runnable stdOut = wrapWithStream(runnable, printStream, System.out, System::setOut);
+        Runnable stdErrAndOut = wrapWithStream(stdOut, printStream, System.err, System::setErr);
+        stdErrAndOut.run();
+        return printStream.getResult(singleLine);
     }
 
     public static String wrapSystemOut(Runnable runnable, boolean singleLine) {
@@ -57,5 +69,28 @@ public final class StandardStreamUtilities {
 
     public static String wrapSystemErr(Runnable runnable) {
         return wrapSystemErr(runnable, true);
+    }
+
+    @SuppressWarnings("FilterOutputStreamSlowMultibyteWrite") // false positive fixed in baseline 4.57.0
+    static final class InMemoryPrintStream extends PrintStream {
+        private final ByteArrayOutputStream byteOutput;
+
+        static InMemoryPrintStream create() {
+            return new InMemoryPrintStream(new ByteArrayOutputStream());
+        }
+
+        InMemoryPrintStream(ByteArrayOutputStream out) {
+            super(out, /* autoFlush= */ true);
+            this.byteOutput = out;
+        }
+
+        String getResult(boolean singleLine) {
+            return singleLine
+                    ? byteOutput
+                            .toString(StandardCharsets.UTF_8)
+                            .replace("\n", " ")
+                            .replace("\r", " ")
+                    : byteOutput.toString(StandardCharsets.UTF_8);
+        }
     }
 }

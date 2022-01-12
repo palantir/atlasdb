@@ -33,7 +33,6 @@ import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
-import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.common.time.Clock;
@@ -72,16 +71,11 @@ public class TestTimestampCommand {
     private static List<String> cliArgs;
 
     @BeforeClass
-    public static void oneTimeSetup() throws Exception {
+    public static void oneTimeSetup() {
         lock = StringLockDescriptor.of("lock");
-        moduleFactory = new AtlasDbServicesFactory() {
-            @Override
-            public TestAtlasDbServices connect(ServicesConfigModule servicesConfigModule) {
-                return DaggerTestAtlasDbServices.builder()
-                        .servicesConfigModule(servicesConfigModule)
-                        .build();
-            }
-        };
+        moduleFactory = servicesConfigModule -> DaggerTestAtlasDbServices.builder()
+                .servicesConfigModule(servicesConfigModule)
+                .build();
     }
 
     @Before
@@ -98,7 +92,7 @@ public class TestTimestampCommand {
         deleteDirectoryIfExists("readonly-dir");
     }
 
-    private void deleteDirectoryIfExists(String directory) throws IOException {
+    private static void deleteDirectoryIfExists(String directory) throws IOException {
         File dir = new File(directory);
         if (!dir.exists()) {
             return;
@@ -112,12 +106,12 @@ public class TestTimestampCommand {
     @Parameterized.Parameter(value = 0)
     public boolean isImmutable;
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "{index} isImmutable = {0}")
     public static Collection<Object[]> parameters() {
         return Arrays.asList(new Object[][] {{false}, {true}});
     }
 
-    private SingleBackendCliTestRunner makeRunner(String... args) {
+    private static SingleBackendCliTestRunner makeRunner(String... args) {
         return new InMemoryTestRunner(FetchTimestamp.class, args);
     }
 
@@ -235,7 +229,7 @@ public class TestTimestampCommand {
         });
     }
 
-    private void runAndVerifyCli(Verifier verifier) throws Exception {
+    private static void runAndVerifyCli(Verifier verifier) throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(cliArgs.toArray(new String[0]))) {
             TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             LockService lockService = services.getLockService();
@@ -251,11 +245,13 @@ public class TestTimestampCommand {
                     .withLockedInVersionId(immutableTs)
                     .doNotBlock()
                     .build();
+            assertThat(client.getClientId()).isNotNull();
             LockRefreshToken token = lockService.lock(client.getClientId(), request);
             long lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
 
             verifier.verify(runner, tss, immutableTs, prePunch, lastFreshTs, true);
 
+            assertThat(token).isNotNull();
             lockService.unlock(token);
             lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
 
@@ -265,7 +261,7 @@ public class TestTimestampCommand {
         }
     }
 
-    private void punch(TestAtlasDbServices services, TimestampService tss, Clock clock) {
+    private static void punch(TestAtlasDbServices services, TimestampService tss, Clock clock) {
         // this is a really hacky way of forcing a punch to test the datetime output
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(2));
         long punchTs = tss.getFreshTimestamps(1000).getUpperBound();
@@ -276,7 +272,7 @@ public class TestTimestampCommand {
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(2));
     }
 
-    private long getWallClockTimestamp(Scanner scanner) {
+    private static long getWallClockTimestamp(Scanner scanner) {
         String line = scanner.findInLine(".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
         List<String> parts = Splitter.on(' ').splitToList(line);
         return ISODateTimeFormat.dateTime()
@@ -284,27 +280,27 @@ public class TestTimestampCommand {
                 .getMillis();
     }
 
-    private long getTimestampFromStdout(Scanner scanner) {
-        String line = scanner.findInLine(".*timestamp\\sis\\:\\s(\\d+.*)");
+    private static long getTimestampFromStdout(Scanner scanner) {
+        String line = scanner.findInLine(".*timestamp\\sis:\\s(\\d+.*)");
         List<String> parts = Splitter.on(' ').splitToList(line);
         return Long.parseLong(parts.get(parts.size() - 1));
     }
 
-    private long getTimestampFromFile(String fileString) throws IOException {
+    private static long getTimestampFromFile(String fileString) throws IOException {
         File file = new File(fileString);
         assertThat(file).exists();
         List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
         return Long.parseLong(lines.get(0));
     }
 
-    private void verifyFreshTs(
+    private static void verifyFreshTs(
             long timestamp, long prePunch, long lastFreshTs, long newFreshTs, long wallClockTimestamp) {
         assertThat(wallClockTimestamp).isGreaterThan(prePunch);
         assertThat(timestamp).isGreaterThan(lastFreshTs);
         assertThat(timestamp).isLessThan(newFreshTs);
     }
 
-    private void verifyImmutableTs(
+    private static void verifyImmutableTs(
             long timestamp,
             long immutableTs,
             long prePunch,
@@ -317,7 +313,7 @@ public class TestTimestampCommand {
         assertThat(timestamp).isLessThan(newFreshTs);
     }
 
-    private void verifyDeprecation(String shouldBeDeprecationLine) {
+    private static void verifyDeprecation(String shouldBeDeprecationLine) {
         assertThat(shouldBeDeprecationLine).contains("This CLI has been deprecated.");
     }
 }

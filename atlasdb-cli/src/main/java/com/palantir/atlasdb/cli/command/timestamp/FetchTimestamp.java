@@ -82,7 +82,7 @@ public class FetchTimestamp extends AbstractTimestampCommand {
                     SafeArg.of("dateTime", stringTime));
         }
 
-        printer.info("Timestamp command completed succesfully.");
+        printer.info("Timestamp command completed successfully.");
         return 0;
     }
 }
