@@ -32,6 +32,7 @@ import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.Set;
@@ -54,6 +55,9 @@ public class AtlasRestoreServiceTest {
     private AuthHeader authHeader;
 
     @Mock
+    private TimeLockManagementServiceBlocking timeLockManagementService;
+
+    @Mock
     private AtlasRestoreClientBlocking atlasRestoreClient;
 
     @Mock
@@ -65,8 +69,8 @@ public class AtlasRestoreServiceTest {
     @Before
     public void setup() {
         backupPersister = new InMemoryBackupPersister();
-        atlasRestoreService =
-                new AtlasRestoreService(authHeader, atlasRestoreClient, backupPersister, cassandraRepairHelper);
+        atlasRestoreService = new AtlasRestoreService(
+                authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
 
         storeCompletedBackup(WITH_BACKUP);
         storeCompletedBackup(FAILING_NAMESPACE);
