@@ -44,16 +44,19 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
 
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
+    private final DisabledNamespacesStore disabledNamespacesStore;
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final ServiceLifecycleController serviceLifecycleController;
 
     private TimeLockManagementResource(
             Set<PersistentNamespaceLoader> namespaceLoaders,
             TimelockNamespaces timelockNamespaces,
+            DisabledNamespacesStore disabledNamespacesStore,
             RedirectRetryTargeter redirectRetryTargeter,
             ServiceLifecycleController serviceLifecycleController) {
         this.namespaceLoaders = namespaceLoaders;
         this.timelockNamespaces = timelockNamespaces;
+        this.disabledNamespacesStore = disabledNamespacesStore;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.serviceLifecycleController = serviceLifecycleController;
     }
@@ -61,11 +64,13 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     public static TimeLockManagementResource create(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
+            DisabledNamespacesStore disabledNamespacesStore,
             RedirectRetryTargeter redirectRetryTargeter,
             ServiceLifecycleController serviceLifecycleController) {
         return new TimeLockManagementResource(
                 createNamespaceLoaders(persistentNamespaceContext),
                 timelockNamespaces,
+                disabledNamespacesStore,
                 redirectRetryTargeter,
                 serviceLifecycleController);
     }
@@ -73,19 +78,29 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     public static UndertowService undertow(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
+            DisabledNamespacesStore disabledNamespacesStore,
             RedirectRetryTargeter redirectRetryTargeter,
             ServiceLifecycleController serviceLifecycleController) {
         return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(
-                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, serviceLifecycleController));
+                persistentNamespaceContext,
+                timelockNamespaces,
+                disabledNamespacesStore,
+                redirectRetryTargeter,
+                serviceLifecycleController));
     }
 
     public static TimeLockManagementService jersey(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
+            DisabledNamespacesStore disabledNamespacesStore,
             RedirectRetryTargeter redirectRetryTargeter,
             ServiceLifecycleController serviceLifecycleController) {
         return new JerseyAdapter(TimeLockManagementResource.create(
-                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, serviceLifecycleController));
+                persistentNamespaceContext,
+                timelockNamespaces,
+                disabledNamespacesStore,
+                redirectRetryTargeter,
+                serviceLifecycleController));
     }
 
     @Override
@@ -117,44 +132,26 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         });
     }
 
-    /*
-        @Override
-    public ListenableFuture<Void> disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
-        return handleExceptions(() -> disableInternal(namespaces));
-    }
-
-    private ListenableFuture<Void> disableInternal(Set<Namespace> namespaces) {
-        // todo(gmaretic): disable all remote nodes
-        // todo(gmaretic): disable locally
-        return Futures.immediateVoidFuture();
-    }
-
-    @Override
-    public ListenableFuture<Void> reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
-        return handleExceptions(() -> reenableInternal(namespaces));
-    }
-
-    public ListenableFuture<Void> reenableInternal(Set<Namespace> namespaces) {
-        // todo(gmaretic): reenable all remote nodes
-        // todo(gmaretic): reenable locally
-        return Futures.immediateVoidFuture();
-    }
-
-
-     */
-
     @Override
     public ListenableFuture<Void> disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
-        // TODO(gs/gpm): disable remote timelocks too
         return handleExceptions(() -> {
-            namespaces.stream().map(Namespace::get).forEach(timelockNamespaces::invalidateResourcesForClient);
+            Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
+
+            // TODO(gs): use Namespace type?
+            disabledNamespacesStore.disable(namespaceNames);
             return Futures.immediateFuture(null);
         });
     }
 
     @Override
     public ListenableFuture<Void> reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
-        return null;
+        return handleExceptions(() -> {
+            Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
+
+            // TODO(gs): use Namespace type?
+            disabledNamespacesStore.reEnable(namespaceNames);
+            return Futures.immediateFuture(null);
+        });
     }
 
     @Override

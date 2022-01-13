@@ -51,6 +51,7 @@ import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.LocalDisabledNamespacesStore;
+import com.palantir.atlasdb.timelock.management.PaxosDisabledNamespacesStore;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
 import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
@@ -403,21 +404,25 @@ public class TimeLockAgent {
     }
 
     private void registerManagementResource() {
-        // add paxos-backed enablement client
         ServiceLifecycleController serviceLifecycleController =
                 new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor());
+        // TODO(gs): shouldn't need a client here
+        PaxosDisabledNamespacesStore disabledNamespacesStore =
+                paxosResources.disabledNamespacesFactory().create(Client.of("dummyClient"));
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
                     TimeLockManagementResource.undertow(
                             timestampStorage.persistentNamespaceContext(),
                             namespaces,
+                            disabledNamespacesStore,
                             redirectRetryTargeter(),
                             serviceLifecycleController));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
                     timestampStorage.persistentNamespaceContext(),
                     namespaces,
+                    disabledNamespacesStore,
                     redirectRetryTargeter(),
                     serviceLifecycleController));
         }
