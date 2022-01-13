@@ -149,8 +149,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         return handleExceptions(() -> {
             namespaces.stream().map(Namespace::get).forEach(timelockNamespaces::invalidateResourcesForClient);
             return Futures.immediateFuture(null);
-        })
-        return null;
+        });
     }
 
     @Override
