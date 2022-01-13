@@ -44,8 +44,23 @@ public class LocalDisabledNamespacesStore implements DisabledNamespacesStore {
     }
 
     @Override
+    public void disable(Set<String> namespaces) {
+        namespaces.forEach(this::disable);
+    }
+
+    @Override
     public void disable(String namespace) {
         execute(dao -> dao.set(namespace));
+    }
+
+    @Override
+    public void reEnable(Set<String> namespaces) {
+        namespaces.forEach(this::reEnable);
+    }
+
+    @Override
+    public void reEnable(String namespace) {
+        execute(dao -> dao.delete(namespace));
     }
 
     public boolean isDisabled(String namespace) {
@@ -58,11 +73,6 @@ public class LocalDisabledNamespacesStore implements DisabledNamespacesStore {
 
     public Set<String> disabledNamespaces() {
         return execute(Queries::getAllStates);
-    }
-
-    @Override
-    public void reEnable(String namespace) {
-        execute(dao -> dao.delete(namespace));
     }
 
     private <T> T execute(Function<Queries, T> call) {

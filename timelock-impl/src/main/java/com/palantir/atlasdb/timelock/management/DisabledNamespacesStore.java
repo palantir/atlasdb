@@ -16,8 +16,14 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import java.util.Set;
+
 public interface DisabledNamespacesStore {
+    void disable(Set<String> namespaces);
+
     void disable(String namespace);
+
+    void reEnable(Set<String> namespaces);
 
     void reEnable(String namespace);
 }
