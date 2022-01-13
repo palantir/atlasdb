@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
@@ -70,8 +71,8 @@ public class DiskNamespaceLoaderTest {
         PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContexts.timestampBoundPaxos(
                 rootFolderPath, SqliteConnections.getDefaultConfiguredPooledDataSource(rootFolderPath));
 
-        TimelockNamespaces namespaces =
-                new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
+        TimelockNamespaces namespaces = new TimelockNamespaces(
+                metricsManager, serviceFactory, maxNumberOfClientsSupplier, mock(LocalDisabledNamespacesStore.class));
 
         timeLockManagementResource = TimeLockManagementResource.create(
                 persistentNamespaceContext,
