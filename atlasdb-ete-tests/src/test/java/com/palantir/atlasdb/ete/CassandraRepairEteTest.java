@@ -142,7 +142,7 @@ public final class CassandraRepairEteTest {
         BiConsumer<String, RangesForRepair> repairer = (table, _unused) -> tablesRepaired.add(table);
 
         List<TransactionsTableInteraction> interactions =
-                ImmutableList.of(new Transactions3TableInteraction(range(1L, 10_000_000L), POLICY));
+                ImmutableList.of(new Transactions3TableInteraction(range(1L, 10_000_000L)));
         cassandraRepairHelper.repairTransactionsTables(NAMESPACE, interactions, repairer);
 
         // Transactions3 is backed by Transactions2 under the hood, so this is the table that will be repaired.
