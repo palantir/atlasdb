@@ -110,6 +110,7 @@ public class TableClassRendererV2 {
 
     public String render() {
         JavaFile javaFile = JavaFile.builder(packageName, this.buildTypeSpec())
+                .skipJavaLangImports(true)
                 .indent("    ")
                 .build();
 

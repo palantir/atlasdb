@@ -109,6 +109,7 @@ public final class TableFactoryRenderer {
         getMethods().forEach(tableFactory::addMethod);
 
         JavaFile javaFile = JavaFile.builder(packageName, tableFactory.build())
+                .skipJavaLangImports(true)
                 .indent("    ")
                 .build();
 

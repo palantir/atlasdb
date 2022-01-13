@@ -70,7 +70,7 @@ public final class Renderers {
         return lower_case(string).toUpperCase();
     }
 
-    static String getClassTableName(String rawTableName, TableDefinition table) {
+    public static String getClassTableName(String rawTableName, TableDefinition table) {
         if (table.getGenericTableName() != null) {
             return table.getGenericTableName();
         } else if (table.getJavaTableName() != null) {
@@ -80,11 +80,11 @@ public final class Renderers {
         }
     }
 
-    static String getIndexTableName(IndexMetadata index) {
-        if (index.getJavaIndexName() == null) {
-            return Renderers.CamelCase(index.getIndexName());
-        } else {
+    public static String getIndexTableName(IndexMetadata index) {
+        if (index.getJavaIndexName() != null) {
             return index.getJavaIndexName();
+        } else {
+            return Renderers.CamelCase(index.getIndexName());
         }
     }
 
