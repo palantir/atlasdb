@@ -1,3 +1,6 @@
+types:
+  conjure-imports:
+    api: timelock-api.yml
 services:
   TimeLockManagementService:
     name: TimeLock Management Service
@@ -35,14 +38,14 @@ services:
       disableTimelock:
         http: POST /disable
         args:
-          namespaces: set<Namespace>
+          namespaces: set<api.Namespace>
         docs: |
           Disables the TimeLock server in a persistant way for the specified namespaces. This includes invalidating
           all currently held locks, all lock watch state, as well as refusing to serve new requests.
       reenableTimelock:
         http: POST /reenable
         args:
-          namespaces: set<Namespace>
+          namespaces: set<api.Namespace>
         docs: |
           Allows the TimeLock server to once again serve requests for these namespaces.
 
