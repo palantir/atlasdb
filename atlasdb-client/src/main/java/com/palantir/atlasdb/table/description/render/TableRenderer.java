@@ -1515,7 +1515,7 @@ public class TableRenderer {
             {
                 line("Set<Cell> rawCells = ColumnValues.toCells(cells);");
                 line("Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);");
-                line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
+                line("Multimap<", Row, ", ", ColumnValue, "> rowMap = ArrayListMultimap.create();");
                 line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {");
                 {
                     line("if (e.getValue().length > 0) {");
@@ -1585,7 +1585,7 @@ public class TableRenderer {
                     ColumnValue,
                     "> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {");
             {
-                line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
+                line("Multimap<", Row, ", ", ColumnValue, "> rowMap = ArrayListMultimap.create();");
                 line("for (RowResult<byte[]> result : rowResults) {");
                 {
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());");
