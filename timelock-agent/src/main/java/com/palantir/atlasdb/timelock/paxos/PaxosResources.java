@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.management.PaxosDisabledNamespacesStore;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.EnumMap;
@@ -29,6 +30,8 @@ import org.immutables.value.Value;
 public abstract class PaxosResources {
 
     public abstract NetworkClientFactories.Factory<ManagedTimestampService> timestampServiceFactory();
+
+    public abstract NetworkClientFactories.Factory<PaxosDisabledNamespacesStore> disabledNamespacesFactory();
 
     abstract LocalPaxosComponents timestampPaxosComponents();
 

@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.timelock.management.LocalDisabledNamespacesStore;
+import com.palantir.atlasdb.timelock.management.PaxosDisabledNamespacesStore;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -234,10 +236,19 @@ public final class PaxosResourcesFactory {
             return PersistentTimestampServiceImpl.create(boundStore);
         };
 
+        LocalDisabledNamespacesStore localDisabledNamespacesStore =
+                LocalDisabledNamespacesStore.create(install.sqliteDataSource());
+        NetworkClientFactories.Factory<PaxosDisabledNamespacesStore> disabledNamespacesFactory =
+                client -> new PaxosDisabledNamespacesStore(
+                        proposerFactory.create(client),
+                        paxosRuntime.get().maximumWaitBeforeProposalMs(),
+                        localDisabledNamespacesStore);
+
         return ImmutablePaxosResources.builder()
                 .addAdhocResources(new TimestampPaxosResource(paxosComponents))
                 .timestampPaxosComponents(paxosComponents)
-                .timestampServiceFactory(timestampFactory);
+                .timestampServiceFactory(timestampFactory)
+                .disabledNamespacesFactory(disabledNamespacesFactory);
     }
 
     @VisibleForTesting
