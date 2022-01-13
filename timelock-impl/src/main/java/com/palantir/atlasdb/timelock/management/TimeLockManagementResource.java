@@ -24,6 +24,7 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
@@ -116,6 +117,47 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         });
     }
 
+    /*
+        @Override
+    public ListenableFuture<Void> disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+        return handleExceptions(() -> disableInternal(namespaces));
+    }
+
+    private ListenableFuture<Void> disableInternal(Set<Namespace> namespaces) {
+        // todo(gmaretic): disable all remote nodes
+        // todo(gmaretic): disable locally
+        return Futures.immediateVoidFuture();
+    }
+
+    @Override
+    public ListenableFuture<Void> reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+        return handleExceptions(() -> reenableInternal(namespaces));
+    }
+
+    public ListenableFuture<Void> reenableInternal(Set<Namespace> namespaces) {
+        // todo(gmaretic): reenable all remote nodes
+        // todo(gmaretic): reenable locally
+        return Futures.immediateVoidFuture();
+    }
+
+
+     */
+
+    @Override
+    public ListenableFuture<Void> disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+        // TODO(gs/gpm): disable remote timelocks too
+        return handleExceptions(() -> {
+            namespaces.stream().map(Namespace::get).forEach(timelockNamespaces::invalidateResourcesForClient);
+            return Futures.immediateFuture(null);
+        })
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Void> reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+        return null;
+    }
+
     @Override
     public ListenableFuture<UUID> getServerLifecycleId(AuthHeader authHeader) {
         return Futures.immediateFuture(serviceLifecycleController.getServerId());
@@ -166,6 +208,16 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public void invalidateResources(AuthHeader authHeader, Set<String> namespaces) {
             unwrap(resource.invalidateResources(authHeader, namespaces));
+        }
+
+        @Override
+        public void disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+            unwrap(resource.disableTimelock(authHeader, namespaces));
+        }
+
+        @Override
+        public void reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+            unwrap(resource.reenableTimelock(authHeader, namespaces));
         }
 
         @Override
