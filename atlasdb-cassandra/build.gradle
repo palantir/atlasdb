@@ -53,10 +53,10 @@ dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
+  implementation 'com.github.rholder:guava-retrying'
   implementation 'com.google.auto.service:auto-service-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.protobuf:protobuf-java'
-  implementation 'com.palantir.cassandra:cassandra-all'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.conjure.java.api:service-config'
   implementation 'com.palantir.refreshable:refreshable'
@@ -75,7 +75,6 @@ dependencies {
 
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.protobuf:protobuf-java'
-  testImplementation 'com.palantir.cassandra:cassandra-all'
   testImplementation 'com.palantir.common:streams'
   testImplementation 'com.palantir.conjure.java.api:service-config'
   testImplementation 'com.palantir.refreshable:refreshable'
@@ -85,6 +84,7 @@ dependencies {
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.apache.thrift:libthrift'
   testImplementation 'com.palantir.tracing:tracing-api'
+  testImplementation 'jakarta.xml.bind:jakarta.xml.bind-api'
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')
   testImplementation project(':commons-executors')
@@ -96,11 +96,15 @@ dependencies {
   compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
+  annotationProcessor 'org.derive4j:derive4j'
+  compileOnly 'org.derive4j:derive4j-annotation'
 }
 
 shadowJar {
   mergeServiceFiles()
   classifier ''
+
+  relocate('org.hibernate', 'shadowed')
 
   dependencies {
       include(dependency { false })

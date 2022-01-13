@@ -34,7 +34,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -257,7 +256,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         if (files == null) {
             return ImmutableList.of();
         }
-        return new ArrayList<>(Collections2.filter(Arrays.asList(files), PaxosStateLogImpl::checkNameIsALong));
+        return ImmutableList.copyOf(Collections2.filter(Arrays.asList(files), PaxosStateLogImpl::checkNameIsALong));
     }
 
     /**

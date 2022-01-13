@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
-final class TransactionStarter implements AutoCloseable {
+public final class TransactionStarter implements AutoCloseable {
     private final LockLeaseService lockLeaseService;
     private final IdentifiedAtlasDbTransactionStarter batchingTransactionStarter;
 
@@ -41,7 +41,8 @@ final class TransactionStarter implements AutoCloseable {
         this.batchingTransactionStarter = batchingTransactionStarter;
     }
 
-    static TransactionStarter create(LockLeaseService lockLeaseService, RequestBatchersFactory requestBatchersFactory) {
+    public static TransactionStarter create(
+            LockLeaseService lockLeaseService, RequestBatchersFactory requestBatchersFactory) {
         return new TransactionStarter(
                 lockLeaseService, requestBatchersFactory.createBatchingTransactionStarter(lockLeaseService));
     }

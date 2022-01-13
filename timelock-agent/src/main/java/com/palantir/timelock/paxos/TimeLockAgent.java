@@ -21,6 +21,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
+import com.palantir.atlasdb.backup.AtlasRestoreResource;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -130,6 +131,7 @@ public class TimeLockAgent {
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
 
+    @SuppressWarnings("TooManyArguments") // Legacy
     public static TimeLockAgent create(
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
@@ -355,6 +357,9 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasBackupResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
+                    AtlasRestoreResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -363,6 +368,7 @@ public class TimeLockAgent {
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasBackupResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(AtlasRestoreResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
         }
     }
 
@@ -557,7 +563,8 @@ public class TimeLockAgent {
         registrar.accept(new TooManyRequestsExceptionMapper());
     }
 
-    private RedirectRetryTargeter redirectRetryTargeter() {
+    @VisibleForTesting // for InMemoryTimelockServices
+    RedirectRetryTargeter redirectRetryTargeter() {
         URL localServer = PaxosRemotingUtils.convertAddressToUrl(cluster, cluster.localServer());
         List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(cluster, cluster.clusterMembers());
         return RedirectRetryTargeter.create(localServer, clusterUrls);

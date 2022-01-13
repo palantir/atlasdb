@@ -150,6 +150,10 @@ public class PerformanceResultsTest {
                 1,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
                 null);
     }
 }

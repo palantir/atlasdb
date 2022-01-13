@@ -1,4 +1,7 @@
 **Goals (and why)**:
+<!-- User-facing outcomes this PR delivers go below -->
+==COMMIT_MSG==
+==COMMIT_MSG==
 
 **Implementation Description (bullets)**:
 

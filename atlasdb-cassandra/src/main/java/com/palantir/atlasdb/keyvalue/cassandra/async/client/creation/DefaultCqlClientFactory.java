@@ -17,43 +17,27 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions;
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.RemoteEndpointAwareJdkSSLOptions;
-import com.datastax.driver.core.SocketOptions;
-import com.datastax.driver.core.ThreadingOptions;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.LatencyAwarePolicy;
-import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.policies.TokenAwarePolicy;
-import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
-import com.palantir.conjure.java.config.ssl.SslSocketFactories;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-import javax.net.ssl.SSLContext;
 
 public class DefaultCqlClientFactory implements CqlClientFactory {
     public static final CqlClientFactory DEFAULT = new DefaultCqlClientFactory();
-
-    private static final SafeLogger log = SafeLoggerFactory.get(DefaultCqlClientFactory.class);
 
     private final Supplier<Cluster.Builder> cqlClusterBuilderFactory;
 
     public DefaultCqlClientFactory(Supplier<Cluster.Builder> cqlClusterBuilderFactory) {
         this.cqlClusterBuilderFactory = cqlClusterBuilderFactory;
+    }
+
+    public static DefaultCqlClientFactory create(Supplier<Cluster.Builder> cqlClusterBuilderFactory) {
+        return new DefaultCqlClientFactory(cqlClusterBuilderFactory);
     }
 
     public DefaultCqlClientFactory() {
@@ -63,98 +47,10 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
     @Override
     public Optional<CqlClient> constructClient(
             TaggedMetricRegistry taggedMetricRegistry, CassandraKeyValueServiceConfig config, boolean initializeAsync) {
-        return config.servers().accept(new CassandraServersConfigs.Visitor<Optional<CqlClient>>() {
-            @Override
-            public Optional<CqlClient> visit(CassandraServersConfigs.DefaultConfig defaultConfig) {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<CqlClient> visit(CassandraServersConfigs.CqlCapableConfig cqlCapableConfig) {
-                if (!cqlCapableConfig.validateHosts()) {
-                    log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same, using "
-                            + "async API will be falling back to synchronous implementations.");
-                    return Optional.empty();
-                }
-
-                Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
-
-                Cluster.Builder clusterBuilder = cqlClusterBuilderFactory
-                        .get()
-                        .addContactPointsWithPorts(servers)
-                        .withCredentials(
-                                config.credentials().username(),
-                                config.credentials().password())
-                        .withCompression(ProtocolOptions.Compression.LZ4)
-                        .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
-                        .withoutJMXReporting()
-                        .withProtocolVersion(ProtocolVersion.V3)
-                        .withThreadingOptions(new ThreadingOptions());
-
-                clusterBuilder = withSslOptions(clusterBuilder, config);
-                clusterBuilder = withPoolingOptions(clusterBuilder, config);
-                clusterBuilder = withQueryOptions(clusterBuilder, config);
-                clusterBuilder = withLoadBalancingPolicy(clusterBuilder, config, servers);
-                clusterBuilder = withSocketOptions(clusterBuilder, config);
-
-                return Optional.of(CqlClientImpl.create(
-                        taggedMetricRegistry, clusterBuilder.build(), cqlCapableConfig.tuning(), initializeAsync));
-            }
+        return CassandraServersConfigs.getCqlCapableConfigIfValid(config).map(cqlCapableConfig -> {
+            Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
+            Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory).constructCluster(servers, config);
+            return CqlClientImpl.create(taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync);
         });
-    }
-
-    private Cluster.Builder withSocketOptions(Cluster.Builder clusterBuilder, CassandraKeyValueServiceConfig config) {
-        return clusterBuilder.withSocketOptions(
-                new SocketOptions().setReadTimeoutMillis(config.socketQueryTimeoutMillis()));
-    }
-
-    private static Cluster.Builder withSslOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
-        if (!config.usingSsl()) {
-            return builder;
-        }
-        if (config.sslConfiguration().isPresent()) {
-            SSLContext sslContext = SslSocketFactories.createSslContext(
-                    config.sslConfiguration().get());
-            return builder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder()
-                    .withSSLContext(sslContext)
-                    .build());
-        }
-        return builder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder().build());
-    }
-
-    private static Cluster.Builder withPoolingOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
-        return builder.withPoolingOptions(new PoolingOptions()
-                .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
-                .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
-                .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis()));
-    }
-
-    private static Cluster.Builder withQueryOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
-        return builder.withQueryOptions(new QueryOptions().setFetchSize(config.fetchBatchCount()));
-    }
-
-    private static Cluster.Builder withLoadBalancingPolicy(
-            Cluster.Builder builder, CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
-        // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
-        // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
-        //
-        // The DCAware RR policy prevents auto-discovery of remote datacenter contact points in a multi-DC setup,
-        // which we are using to orchestrate migrations across datacenters.  We don't expect the policy to be helpful
-        // for latency improvements.
-        //
-        // Since the local DC isn't specified, it will get set based on the contact points we provide.
-        LoadBalancingPolicy policy = LatencyAwarePolicy.builder(
-                        DCAwareRoundRobinPolicy.builder().build())
-                .build();
-
-        // If user wants, do not automatically add in new nodes to pool (useful during DC migrations / rebuilds)
-        if (!config.autoRefreshNodes()) {
-            policy = new WhiteListPolicy(policy, servers);
-        }
-
-        // also try and select coordinators who own the data we're talking about to avoid an extra hop,
-        // but also shuffle which replica we talk to for a load balancing that comes at the expense
-        // of less effective caching, default to TokenAwarePolicy.ReplicaOrdering.RANDOM childPolicy
-        return builder.withLoadBalancingPolicy(new TokenAwarePolicy(policy));
     }
 }

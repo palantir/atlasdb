@@ -18,7 +18,6 @@ package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -120,7 +119,7 @@ public class LeaderElectionReportingTimelockServiceTest {
         timelockService.startTransactions(startTransactionsRequest);
         timelockService.startTransactions(startTransactionsRequest);
         verify(mockedRegistry, atLeast(1)).timer(any());
-        verify(mockedTimer, times(2)).update(anyLong(), any());
+        verify(mockedTimer, times(2)).update(any());
     }
 
     @Test
@@ -130,7 +129,7 @@ public class LeaderElectionReportingTimelockServiceTest {
         timelockService.getCommitTimestamps(commitTimestampsRequest);
         timelockService.startTransactions(startTransactionsRequest);
         verify(mockedRegistry).timer(any());
-        verify(mockedTimer).update(anyLong(), any());
+        verify(mockedTimer).update(any());
     }
 
     @Test
@@ -378,7 +377,7 @@ public class LeaderElectionReportingTimelockServiceTest {
         timelockService.getStatisticsAndSetRegistryTo(newMockedRegistry);
 
         verify(mockedRegistry, atLeastOnce()).timer(any());
-        verify(mockedTimer).update(anyLong(), any());
+        verify(mockedTimer).update(any());
         verify(mockedTimer).getSnapshot();
         verify(mockedSnapshot).size();
 
@@ -386,7 +385,7 @@ public class LeaderElectionReportingTimelockServiceTest {
         timelockService.startTransactions(startTransactionsRequest);
 
         verify(newMockedRegistry, atLeastOnce()).timer(any());
-        verify(newMockedTimer).update(anyLong(), any());
+        verify(newMockedTimer).update(any());
         verifyNoMoreInteractions(mockedRegistry);
         verifyNoMoreInteractions(mockedTimer);
     }

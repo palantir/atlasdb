@@ -24,12 +24,18 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public final class CassandraServersConfigs {
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraServersConfigs.class);
+
     private CassandraServersConfigs() {}
 
     private static final String PORT_NUMBER_ERROR = "%s port number should be a positive number";
@@ -149,5 +155,30 @@ public final class CassandraServersConfigs {
         public <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
         }
+    }
+
+    public static Set<InetSocketAddress> getCqlHosts(CassandraKeyValueServiceConfig config) {
+        return CassandraServersConfigs.getCqlCapableConfigIfValid(config)
+                .map(CassandraServersConfigs.CqlCapableConfig::cqlHosts)
+                .orElseThrow(() -> new SafeIllegalStateException("Attempting to get CQL hosts with thrift config!"));
+    }
+
+    public static Optional<CqlCapableConfig> getCqlCapableConfigIfValid(CassandraKeyValueServiceConfig config) {
+        return config.servers().accept(new Visitor<>() {
+            @Override
+            public Optional<CqlCapableConfig> visit(DefaultConfig defaultConfig) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<CqlCapableConfig> visit(CqlCapableConfig cqlCapableConfig) {
+                if (!cqlCapableConfig.validateHosts()) {
+                    log.warn("Your CQL capable config is wrong, the hosts for CQL and Thrift are not the same.");
+                    return Optional.empty();
+                }
+
+                return Optional.of(cqlCapableConfig);
+            }
+        });
     }
 }

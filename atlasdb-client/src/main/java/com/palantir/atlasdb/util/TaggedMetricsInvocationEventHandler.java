@@ -32,11 +32,11 @@ import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -130,7 +130,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
 
     public void update(InvocationContext context) {
         long nanos = System.nanoTime() - context.getStartTimeNanos();
-        getSuccessTimer(context).update(nanos, TimeUnit.NANOSECONDS);
+        getSuccessTimer(context).update(Duration.ofNanos(nanos));
     }
 
     private Timer getSuccessTimer(InvocationContext context) {

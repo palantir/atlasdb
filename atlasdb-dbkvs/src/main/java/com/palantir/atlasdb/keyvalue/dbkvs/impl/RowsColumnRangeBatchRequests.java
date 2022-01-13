@@ -45,7 +45,8 @@ public final class RowsColumnRangeBatchRequests {
         }
 
         List<List<byte[]>> partitionedRows = Lists.partition(getAllRowsInOrder(batch), partitionSize);
-        List<RowsColumnRangeBatchRequest> partitions = new ArrayList<>(partitionedRows.size());
+        ImmutableList.Builder<RowsColumnRangeBatchRequest> partitions =
+                ImmutableList.builderWithExpectedSize(partitionedRows.size());
 
         partitions.add(getFirstRequestInPartition(batch, partitionedRows.get(0)));
         for (int partitionNumber = 1; partitionNumber < partitionedRows.size() - 1; partitionNumber++) {
@@ -57,7 +58,7 @@ public final class RowsColumnRangeBatchRequests {
         }
         partitions.add(getLastRequestInPartition(batch, Iterables.getLast(partitionedRows)));
 
-        return partitions;
+        return partitions.build();
     }
 
     /**

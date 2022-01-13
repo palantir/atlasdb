@@ -40,7 +40,6 @@ check.dependsOn suiteTest
 check.dependsOn stressTest
 
 dependencies {
-    compile project(":dropwizard-metrics-hack")
     compile project(":timelock-agent")
 
     implementation group: 'io.dropwizard', name: 'dropwizard-core'

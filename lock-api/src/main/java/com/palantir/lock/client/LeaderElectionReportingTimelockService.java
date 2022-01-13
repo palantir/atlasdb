@@ -52,7 +52,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -261,7 +260,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     }
 
     private void updateMetrics(Duration timeTaken) {
-        metrics.observedDuration().update(timeTaken.toNanos(), TimeUnit.NANOSECONDS);
+        metrics.observedDuration().update(timeTaken);
     }
 
     private static Set<UUID> leadersWithBothBounds(Map<UUID, Instant> lowerBounds, Map<UUID, Instant> upperBounds) {

@@ -98,7 +98,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toList());
-            assertThat(successfulCommitTs.size()).isLessThanOrEqualTo(1);
+            assertThat(successfulCommitTs).hasSizeLessThanOrEqualTo(1);
 
             Optional<Long> onlyAllowedCommitTs = successfulCommitTs.stream().findFirst();
             for (int i = 0; i < 30; i++) {

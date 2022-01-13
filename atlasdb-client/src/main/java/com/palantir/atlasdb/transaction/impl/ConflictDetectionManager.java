@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 public class ConflictDetectionManager {
     private final LoadingCache<TableReference, Optional<ConflictHandler>> cache;
@@ -51,7 +50,6 @@ public class ConflictDetectionManager {
         return cache.asMap();
     }
 
-    @Nullable
     public Optional<ConflictHandler> get(TableReference tableReference) {
         return cache.getUnchecked(tableReference);
     }

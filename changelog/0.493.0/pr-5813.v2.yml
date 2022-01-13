@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Upgrade dropwizard-metrics to 4.1.1 matching spark and tritium
+  links:
+  - https://github.com/palantir/atlasdb/pull/5813

@@ -67,9 +67,9 @@ public class CassandraClientPoolTest {
     private static final String HOSTNAME_1 = "1.0.0.0";
     private static final String HOSTNAME_2 = "2.0.0.0";
     private static final String HOSTNAME_3 = "3.0.0.0";
-    private static final InetSocketAddress HOST_1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-    private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
-    private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_3 = InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT);
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();

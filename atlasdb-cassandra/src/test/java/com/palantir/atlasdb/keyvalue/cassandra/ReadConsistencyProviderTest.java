@@ -53,7 +53,7 @@ public class ReadConsistencyProviderTest {
     }
 
     @Test
-    public void consistencyForAtomicSerialTablesRemainsLocalSerialEvenAfterBroadConsistencyDowngrade() {
+    public void consistencyForAtomicSerialTablesRemainsLocalSeriallEvenAfterBroadConsistencyDowngrade() {
         provider.lowerConsistencyLevelToOne();
         AtlasDbConstants.SERIAL_CONSISTENCY_ATOMIC_TABLES.forEach(tableReference ->
                 assertThat(provider.getConsistency(tableReference)).isEqualTo(ConsistencyLevel.LOCAL_SERIAL));

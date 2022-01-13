@@ -122,6 +122,7 @@ public final class TableFactoryRenderer {
                 ClassName.get(Function.class), WildcardTypeName.supertypeOf(Transaction.class), sharedTriggersType);
 
         results.add(getDefaultNamespaceField());
+        results.add(getDefaultTableFactoryField());
         results.add(FieldSpec.builder(
                         ParameterizedTypeName.get(ClassName.get(List.class), functionOfTransactionAndTriggersType),
                         "sharedTriggers")
@@ -165,19 +166,11 @@ public final class TableFactoryRenderer {
 
         results.add(factoryBaseBuilder()
                 .addParameter(Namespace.class, "namespace")
-                .addStatement(
-                        "return of($T.<$T>of(), $L)",
-                        ImmutableList.class,
-                        functionOfTransactionAndTriggersType,
-                        "namespace")
+                .addStatement("return of($T.of(), $L)", ImmutableList.class, "namespace")
                 .build());
 
         results.add(factoryBaseBuilder()
-                .addStatement(
-                        "return of($T.<$T>of(), $L)",
-                        ImmutableList.class,
-                        functionOfTransactionAndTriggersType,
-                        "defaultNamespace")
+                .addStatement("return $L", "defaultTableFactory")
                 .build());
 
         results.add(MethodSpec.constructorBuilder()
@@ -317,5 +310,12 @@ public final class TableFactoryRenderer {
                     "$T.create($S, $T.UNCHECKED_NAME)", Namespace.class, defaultNamespaceName, Namespace.class);
         }
         return namespaceFieldBuilder.build();
+    }
+
+    private FieldSpec getDefaultTableFactoryField() {
+        return FieldSpec.builder(tableFactoryType, "defaultTableFactory")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
+                .initializer("of($T.of(), $L)", ImmutableList.class, "defaultNamespace")
+                .build();
     }
 }
