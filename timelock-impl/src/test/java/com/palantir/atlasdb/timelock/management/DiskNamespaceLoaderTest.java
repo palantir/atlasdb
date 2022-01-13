@@ -71,12 +71,14 @@ public class DiskNamespaceLoaderTest {
         PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContexts.timestampBoundPaxos(
                 rootFolderPath, SqliteConnections.getDefaultConfiguredPooledDataSource(rootFolderPath));
 
-        TimelockNamespaces namespaces = new TimelockNamespaces(
-                metricsManager, serviceFactory, maxNumberOfClientsSupplier, mock(LocalDisabledNamespacesStore.class));
+        LocalDisabledNamespacesStore disabledNamespaces = mock(LocalDisabledNamespacesStore.class);
+        TimelockNamespaces namespaces =
+                new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier, disabledNamespaces);
 
         timeLockManagementResource = TimeLockManagementResource.create(
                 persistentNamespaceContext,
                 namespaces,
+                disabledNamespaces,
                 redirectRetryTargeter,
                 new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor()));
 
