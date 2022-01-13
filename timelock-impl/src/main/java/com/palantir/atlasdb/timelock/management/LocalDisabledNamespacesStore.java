@@ -25,24 +25,25 @@ import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
-public class DisabledNamespaces {
+public class LocalDisabledNamespacesStore implements DisabledNamespacesStore {
     private final Jdbi jdbi;
 
-    public DisabledNamespaces(Jdbi jdbi) {
+    public LocalDisabledNamespacesStore(Jdbi jdbi) {
         this.jdbi = jdbi;
     }
 
-    public static DisabledNamespaces create(DataSource dataSource) {
+    public static LocalDisabledNamespacesStore create(DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
-        DisabledNamespaces disabledNamespaces = new DisabledNamespaces(jdbi);
-        disabledNamespaces.initialize();
-        return disabledNamespaces;
+        LocalDisabledNamespacesStore localDisabledNamespacesStore = new LocalDisabledNamespacesStore(jdbi);
+        localDisabledNamespacesStore.initialize();
+        return localDisabledNamespacesStore;
     }
 
     private void initialize() {
         execute(Queries::createTable);
     }
 
+    @Override
     public void disable(String namespace) {
         execute(dao -> dao.set(namespace));
     }
@@ -59,6 +60,7 @@ public class DisabledNamespaces {
         return execute(Queries::getAllStates);
     }
 
+    @Override
     public void reEnable(String namespace) {
         execute(dao -> dao.delete(namespace));
     }

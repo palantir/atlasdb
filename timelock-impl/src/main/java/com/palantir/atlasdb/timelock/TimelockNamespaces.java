@@ -16,10 +16,12 @@
 
 package com.palantir.atlasdb.timelock;
 
+import static java.util.stream.Collectors.toSet;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
+import com.palantir.atlasdb.timelock.management.LocalDisabledNamespacesStore;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
@@ -34,8 +36,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-
-import static java.util.stream.Collectors.toSet;
 
 public final class TimelockNamespaces {
     @VisibleForTesting
@@ -56,13 +56,13 @@ public final class TimelockNamespaces {
     private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>();
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
-    private final DisabledNamespaces disabledNamespaces;
+    private final LocalDisabledNamespacesStore disabledNamespaces;
 
     public TimelockNamespaces(
             MetricsManager metrics,
             Function<String, TimeLockServices> factory,
             Supplier<Integer> maxNumberOfClients,
-            DisabledNamespaces disabledNamespaces) {
+            LocalDisabledNamespacesStore disabledNamespaces) {
         this.factory = factory;
         this.maxNumberOfClients = maxNumberOfClients;
         this.disabledNamespaces = disabledNamespaces;
