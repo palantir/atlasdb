@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE;
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.DISABLED_NAMESPACES_PAXOS_NAMESPACE;
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE;
 
@@ -50,6 +51,13 @@ public enum PaxosUseCase {
         public Client resolveClient(Client client) {
             throw new SafeIllegalArgumentException("timestamp paxos should not be resolving clients");
         }
+    },
+
+    DISABLE_NAMESPACES(DISABLED_NAMESPACES_PAXOS_NAMESPACE, Paths.get("")) {
+        @Override
+        public Client resolveClient(Client client) {
+            throw new SafeIllegalArgumentException("timestamp paxos should not be resolving clients");
+        }
     };
 
     PaxosUseCase(String useCasePath, Path relativeLogDirectory) {
@@ -74,6 +82,8 @@ public enum PaxosUseCase {
                 return LEADER_FOR_EACH_CLIENT;
             case CLIENT_PAXOS_NAMESPACE:
                 return TIMESTAMP;
+            case DISABLED_NAMESPACES_PAXOS_NAMESPACE:
+                return DISABLE_NAMESPACES;
             default:
                 throw new SafeIllegalArgumentException("unrecognized use case");
         }
