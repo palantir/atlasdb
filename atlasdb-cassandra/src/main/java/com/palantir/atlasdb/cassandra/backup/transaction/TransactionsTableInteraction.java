@@ -61,16 +61,16 @@ public interface TransactionsTableInteraction {
     }
 
     static List<TransactionsTableInteraction> getTransactionTableInteractions(
-            Map<FullyBoundedTimestampRange, Integer> coordinationMap, RetryPolicy abortRetryPolicy) {
+            Map<FullyBoundedTimestampRange, Integer> coordinationMap, RetryPolicy casRetryPolicy) {
         return coordinationMap.entrySet().stream()
                 .map(entry -> {
                     switch (entry.getValue()) {
                         case TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION:
-                            return new Transactions1TableInteraction(entry.getKey(), abortRetryPolicy);
+                            return new Transactions1TableInteraction(entry.getKey(), casRetryPolicy);
                         case TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION:
-                            return new Transactions2TableInteraction(entry.getKey(), abortRetryPolicy);
+                            return new Transactions2TableInteraction(entry.getKey(), casRetryPolicy);
                         case TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION:
-                            return new Transactions3TableInteraction(entry.getKey(), abortRetryPolicy);
+                            return new Transactions3TableInteraction(entry.getKey());
                         default:
                             throw new SafeIllegalArgumentException(
                                     "Found unsupported transactions schema version",

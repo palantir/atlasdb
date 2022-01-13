@@ -23,7 +23,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
 import com.palantir.atlasdb.cassandra.backup.CqlSession;
@@ -41,11 +40,9 @@ import java.util.stream.Collectors;
 
 public class Transactions3TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
-    private final RetryPolicy abortRetryPolicy;
 
-    public Transactions3TableInteraction(FullyBoundedTimestampRange timestampRange, RetryPolicy abortRetryPolicy) {
+    public Transactions3TableInteraction(FullyBoundedTimestampRange timestampRange) {
         this.timestampRange = timestampRange;
-        this.abortRetryPolicy = abortRetryPolicy;
     }
 
     @Override
@@ -121,8 +118,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
-                .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients
-                .setRetryPolicy(abortRetryPolicy);
+                .setRetryPolicy(DefaultRetryPolicy.INSTANCE);
     }
 
     @Override
