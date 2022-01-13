@@ -68,9 +68,9 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
-                .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP + 1))
-                .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
-        // if you change this from CAS then you must update RetryPolicy
+                .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP + 1));
+        // abortRetryPolicy must match the type of operation of the abort statement
+        // so if the statement is changed TO a CAS, callers will need to change their policy
         return session.prepare(abortStatement);
     }
 
@@ -114,14 +114,10 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     @Override
     public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry) {
         long startTs = TransactionTableEntries.getStartTimestamp(entry);
-        PutUnlessExistsValue<Long> commitTs =
-                TransactionTableEntries.getCommitValue(entry).orElseThrow(() -> illegalEntry(entry));
         Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
-        ByteBuffer valueBb =
-                ByteBuffer.wrap(TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs));
-        BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
+        BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
