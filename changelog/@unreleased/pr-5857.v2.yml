@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Log the host name and address separately when adding or removing servers
+    to the Cassandra client pool. This is important as `InetSocketAddress`'s `toString`
+    method will only ever show one or the other.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5857
