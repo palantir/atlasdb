@@ -348,7 +348,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         static CassandraHost fromAddress(InetSocketAddress address) {
             return ImmutableCassandraHost.builder()
                     .hostName(address.getHostName())
-                    .hostAddress(address.getAddress().getAddress())
+                    .hostAddress(address.getAddress().getHostAddress())
                     .build();
         }
     }
