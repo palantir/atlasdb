@@ -298,9 +298,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         pool.setSwallowedExceptionListener(exception -> log.info("Swallowed exception within object pool", exception));
         registerMetrics(pool);
+
         log.info(
                 "Creating a Cassandra client pool for {} with the configuration {}",
                 SafeArg.of("host", host),
+                SafeArg.of("hostAddress", host.getAddress().getHostAddress()),
+                SafeArg.of("hostName", host.getHostName()),
                 SafeArg.of("poolConfig", poolConfig));
         return pool;
     }

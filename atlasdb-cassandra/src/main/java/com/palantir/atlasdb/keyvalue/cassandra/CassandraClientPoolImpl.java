@@ -50,8 +50,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
+import org.immutables.value.Value;
 
 /**
  * Feature breakdown:
@@ -320,13 +322,35 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             log.info(
                     "Servers to add and remove, inside the if block",
-                    SafeArg.of("serversToAdd", serversToAdd),
-                    SafeArg.of("serversToRemove", serversToRemove));
+                    SafeArg.of(
+                            "serversToAdd",
+                            serversToAdd.stream()
+                                    .map(CassandraHost::fromAddress)
+                                    .collect(Collectors.toSet())),
+                    SafeArg.of(
+                            "serversToRemove",
+                            serversToRemove.stream()
+                                    .map(CassandraHost::fromAddress)
+                                    .collect(Collectors.toSet())));
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
         }
 
         logRefreshedHosts(serversToAdd, serversToRemove);
+    }
+
+    @Value.Immutable
+    interface CassandraHost {
+        String hostName();
+
+        String hostAddress();
+
+        static CassandraHost fromAddress(InetSocketAddress address) {
+            return ImmutableCassandraHost.builder()
+                    .hostName(address.getHostName())
+                    .hostAddress(address.getAddress().getAddress())
+                    .build();
+        }
     }
 
     private static void logRefreshedHosts(Set<InetSocketAddress> serversToAdd, Set<InetSocketAddress> serversToRemove) {
