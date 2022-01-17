@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Upgraded cassandra-driver-core 3.x to java-driver-core 4.x.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5859
