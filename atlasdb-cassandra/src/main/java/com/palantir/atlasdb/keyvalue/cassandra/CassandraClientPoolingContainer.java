@@ -37,8 +37,6 @@ import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -110,12 +108,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     @Override
     public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
-        final String origName = Thread.currentThread().getName();
-        Thread.currentThread()
-                .setName(origName
-                        + " calling cassandra host " + host
-                        + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-                        + " - " + count.getAndIncrement());
+        // final String origName = Thread.currentThread().getName();
+        // Thread.currentThread()
+        //         .setName(origName
+        //                 + " calling cassandra host " + host
+        //                 + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+        //                 + " - " + count.getAndIncrement());
         try {
             openRequests.getAndIncrement();
             return runWithGoodResource(fn);
@@ -136,7 +134,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             throw t;
         } finally {
             openRequests.getAndDecrement();
-            Thread.currentThread().setName(origName);
+            // Thread.currentThread().setName(origName);
         }
     }
 

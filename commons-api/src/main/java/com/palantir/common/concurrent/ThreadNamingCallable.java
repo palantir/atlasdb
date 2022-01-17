@@ -52,13 +52,14 @@ public class ThreadNamingCallable<T> implements Callable<T> {
 
     @Override
     public T call() throws Exception {
-        final String oldName = Thread.currentThread().getName();
-        Thread.currentThread().setName(getNewName(oldName));
-        try {
-            return delegate.call();
-        } finally {
-            Thread.currentThread().setName(oldName);
-        }
+        // final String oldName = Thread.currentThread().getName();
+        // Thread.currentThread().setName(getNewName(oldName));
+        // try {
+        //     return delegate.call();
+        // } finally {
+        //     Thread.currentThread().setName(oldName);
+        // }
+        return delegate.call();
     }
 
     private String getNewName(String oldName) {
