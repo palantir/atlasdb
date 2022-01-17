@@ -303,7 +303,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 "Creating a Cassandra client pool for {} with the configuration {}",
                 SafeArg.of("host", host),
                 SafeArg.of("hostAddress", host.getAddress().getHostAddress()),
-                SafeArg.of("hostName", host.getHostName()),
+                SafeArg.of("hostName", host.getHostString()),
                 SafeArg.of("poolConfig", poolConfig));
         return pool;
     }
