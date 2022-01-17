@@ -61,17 +61,17 @@ public class ThreadNamingCallable<T> implements Callable<T> {
         // }
         return delegate.call();
     }
-
-    private String getNewName(String oldName) {
-        switch (type) {
-            case PREPEND:
-                return name + ' ' + oldName;
-            case REPLACE:
-                return name;
-            case APPEND:
-                return oldName + ' ' + name;
-            default:
-                throw new IllegalArgumentException("type not found: " + type);
-        }
-    }
+    //
+    // private String getNewName(String oldName) {
+    //     switch (type) {
+    //         case PREPEND:
+    //             return name + ' ' + oldName;
+    //         case REPLACE:
+    //             return name;
+    //         case APPEND:
+    //             return oldName + ' ' + name;
+    //         default:
+    //             throw new IllegalArgumentException("type not found: " + type);
+    //     }
+    // }
 }
