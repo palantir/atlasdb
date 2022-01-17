@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Stop annotating thread names - this will make debugging via thread
+    dumps more difficult, but may reduce the number of system calls.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5796
