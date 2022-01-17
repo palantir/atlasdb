@@ -1,5 +1,6 @@
 ch.qos.logback:* = 1.2.10
 com.boundary:high-scale-lib = 1.0.6
+com.datastax.oss:java-driver-core = 4.10.0
 com.ea.agentloader:ea-agent-loader = 1.0.3
 com.fasterxml.jackson.*:* = 2.11.1
 com.github.ben-manes.caffeine:caffeine = 3.0.5

@@ -15,7 +15,7 @@ dependencies {
     implementation group: 'org.awaitility', name: 'awaitility'
     implementation group: 'io.netty', name: 'netty-handler-proxy'
 
-    implementation 'com.datastax.cassandra:cassandra-driver-core'
+    implementation 'com.datastax.oss:java-driver-core'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'commons-io:commons-io'

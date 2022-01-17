@@ -22,7 +22,7 @@ dependencies {
     exclude group: 'org.apache.httpcomponents'
   }
 
-  explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+  explicitShadow ('com.datastax.oss:java-driver-core') {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
   explicitShadow group: 'com.google.guava', name: 'guava'

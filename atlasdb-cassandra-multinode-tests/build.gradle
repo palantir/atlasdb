@@ -20,7 +20,7 @@ dependencies {
 
        exclude group: 'org.apache.httpcomponents'
     }
-    testImplementation 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
+    testImplementation 'com.datastax.oss:java-driver-core'
 
     testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testImplementation group: 'org.assertj', name: 'assertj-core'
