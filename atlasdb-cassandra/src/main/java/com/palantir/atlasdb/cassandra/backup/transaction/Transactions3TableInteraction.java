@@ -23,7 +23,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
 import com.palantir.atlasdb.cassandra.backup.CqlSession;
@@ -41,11 +40,9 @@ import java.util.stream.Collectors;
 
 public class Transactions3TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
-    private final RetryPolicy abortRetryPolicy;
 
-    public Transactions3TableInteraction(FullyBoundedTimestampRange timestampRange, RetryPolicy abortRetryPolicy) {
+    public Transactions3TableInteraction(FullyBoundedTimestampRange timestampRange) {
         this.timestampRange = timestampRange;
-        this.abortRetryPolicy = abortRetryPolicy;
     }
 
     @Override
@@ -68,9 +65,9 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
                 .where(QueryBuilder.eq(CassandraConstants.ROW, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.COLUMN, QueryBuilder.bindMarker()))
                 .and(QueryBuilder.eq(CassandraConstants.TIMESTAMP, CassandraConstants.ENCODED_CAS_TABLE_TIMESTAMP))
-                .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP + 1))
-                .onlyIf(QueryBuilder.eq(CassandraConstants.VALUE, QueryBuilder.bindMarker()));
-        // if you change this from CAS then you must update RetryPolicy
+                .using(QueryBuilder.timestamp(CellValuePutter.SET_TIMESTAMP + 1));
+        // abortRetryPolicy must match the type of operation of the abort statement
+        // so if the statement is changed TO a CAS, callers will need to change their policy
         return session.prepare(abortStatement);
     }
 
@@ -114,19 +111,14 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     @Override
     public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry) {
         long startTs = TransactionTableEntries.getStartTimestamp(entry);
-        PutUnlessExistsValue<Long> commitTs =
-                TransactionTableEntries.getCommitValue(entry).orElseThrow(() -> illegalEntry(entry));
         Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
-        ByteBuffer valueBb =
-                ByteBuffer.wrap(TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs));
-        BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
+        BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
                 .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
-                .setIdempotent(true) // by default CAS operations are not idempotent in case of multiple clients
-                .setRetryPolicy(abortRetryPolicy);
+                .setRetryPolicy(DefaultRetryPolicy.INSTANCE);
     }
 
     @Override

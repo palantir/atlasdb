@@ -48,7 +48,7 @@ public class Transactions3TableInteractionTest {
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE, mockPolicy);
+    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 
     @Before
@@ -95,7 +95,7 @@ public class Transactions3TableInteractionTest {
     public void getAllRowsInPartition() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
         Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -107,7 +107,7 @@ public class Transactions3TableInteractionTest {
     public void getsRowsInAllSpannedPartitions() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, PARTITIONING_QUANTUM + 1000000);
         Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0, 2 * ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -119,7 +119,7 @@ public class Transactions3TableInteractionTest {
     public void doesntGetNextPartitionIfOpenBounded() {
         Range<Long> rangeWithinOnePartition = Range.closedOpen(100L, 25000000L);
         Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition), mockPolicy);
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, 15L);
         assertThat(selects)
