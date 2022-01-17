@@ -35,11 +35,13 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -302,7 +304,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         log.info(
                 "Creating a Cassandra client pool for {} with the configuration {}",
                 SafeArg.of("host", host),
-                SafeArg.of("hostAddress", host.getAddress().getHostAddress()),
+                SafeArg.of("hostAddress", Optional.ofNullable(host.getAddress()).map(InetAddress::getHostAddress)),
                 SafeArg.of("hostName", host.getHostString()),
                 SafeArg.of("poolConfig", poolConfig));
         return pool;

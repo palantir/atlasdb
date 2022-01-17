@@ -39,6 +39,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -343,12 +344,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     interface CassandraHost {
         String hostName();
 
-        String hostAddress();
+        Optional<String> hostAddress();
 
         static CassandraHost fromAddress(InetSocketAddress address) {
             return ImmutableCassandraHost.builder()
                     .hostName(address.getHostString())
-                    .hostAddress(address.getAddress().getHostAddress())
+                    .hostAddress(Optional.ofNullable(address.getAddress()).map(InetAddress::getHostAddress))
                     .build();
         }
     }
