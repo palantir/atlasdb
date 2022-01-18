@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock;
 
+import static java.util.stream.Collectors.toSet;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -34,8 +36,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-
-import static java.util.stream.Collectors.toSet;
 
 public final class TimelockNamespaces {
     @VisibleForTesting

@@ -16,14 +16,14 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.palantir.paxos.SqliteConnections;
 import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class DisabledNamespacesTest {
     @Rule
