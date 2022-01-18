@@ -34,6 +34,7 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
@@ -194,10 +195,12 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     }
 
     private void failAndLog(Arg<?>... args) {
+        SafeRuntimeException runtimeException = new SafeRuntimeException("I exist to show you the stacktrace");
         log.error(
                 "Reading from lock watch cache returned a different result to a remote read - this indicates there "
                         + "is a corruption bug in the caching logic",
-                Arrays.stream(args).collect(Collectors.toList()));
+                Arrays.stream(args).collect(Collectors.toList()),
+                runtimeException);
         failureCallback.run();
         throw new TransactionLockWatchFailedException(
                 "Failed lock watch cache validation - will retry without caching");

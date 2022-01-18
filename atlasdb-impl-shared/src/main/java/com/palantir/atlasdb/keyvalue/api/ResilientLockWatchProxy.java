@@ -98,6 +98,7 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     }
 
     public void fallback() {
+        log.warn("Falling back to fallback cache");
         delegate = fallbackCache;
         failureCallback.run();
     }
