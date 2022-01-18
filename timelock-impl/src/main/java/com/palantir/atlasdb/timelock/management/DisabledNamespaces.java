@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import com.palantir.atlasdb.timelock.api.DisabledNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.UUID;
 import java.util.function.Function;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
@@ -46,19 +48,6 @@ public class DisabledNamespaces {
         execute(Queries::createTable);
     }
 
-    public void applyModification(DisabledNamespacesRequest request) {
-        Consumer<Namespace> modification = request.getSetEnabled() ? this::reEnable : this::disable;
-        request.getNamespaces().forEach(modification);
-    }
-
-    public void disable(Namespace namespace) {
-        execute(dao -> dao.set(namespace.get()));
-    }
-
-    public void disable(String namespace) {
-        execute(dao -> dao.set(namespace));
-    }
-
     public boolean isDisabled(String namespace) {
         return execute(dao -> dao.getState(namespace)).isPresent();
     }
@@ -69,6 +58,27 @@ public class DisabledNamespaces {
 
     public Set<String> disabledNamespaces() {
         return execute(Queries::getAllStates);
+    }
+
+    public DisableNamespacesResponse disable(Set<Namespace> namespaces) {
+        UUID lockId = UUID.randomUUID();
+        namespaces.forEach(ns -> disable(ns, lockId));
+        return DisableNamespacesResponse.of(true, lockId);
+    }
+
+    public void disable(Namespace namespace, UUID lockId) {
+        execute(dao -> dao.set(namespace.get(), lockId));
+    }
+
+    // TODO(gs): remove
+    public void disable(String namespace) {
+        execute(dao -> dao.set(namespace, UUID.randomUUID()));
+    }
+
+    // TODO (gs): enforce passing the same lock ID
+    public ReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
+        request.getNamespaces().forEach(this::reEnable);
+        return ReenableNamespacesResponse.of(true);
     }
 
     public void reEnable(Namespace namespace) {
@@ -83,13 +93,17 @@ public class DisabledNamespaces {
         return jdbi.withExtension(Queries.class, call::apply);
     }
 
+    // management endpoint: forceReenable(Set<Namespace>) (should call itself)
+    // management endpoint 2: forceReenableAll()
+
     public interface Queries {
-        @SqlUpdate("CREATE TABLE IF NOT EXISTS disabled (namespace TEXT PRIMARY KEY)")
+        @SqlUpdate("CREATE TABLE IF NOT EXISTS disabled (namespace TEXT PRIMARY KEY, lockId UUID)")
         boolean createTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO disabled (namespace) VALUES (?)")
-        boolean set(String namespace);
+        @SqlUpdate("INSERT OR REPLACE INTO disabled (namespace) VALUES (?, ?)")
+        boolean set(String namespace, UUID lockId);
 
+        // TODO(gs): get lock ID
         @SqlQuery("SELECT namespace FROM disabled WHERE namespace = ?")
         Optional<String> getState(String namespace);
 

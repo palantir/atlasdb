@@ -17,9 +17,11 @@
 package com.palantir.atlasdb.timelock.management;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.api.DisabledNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.DisabledNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.paxos.BooleanPaxosResponse;
@@ -29,6 +31,7 @@ import com.palantir.paxos.PaxosResponsesWithRemote;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 public class AllNodesDisabledNamespacesUpdater {
@@ -48,44 +51,77 @@ public class AllNodesDisabledNamespacesUpdater {
         this.localUpdater = localUpdater;
     }
 
-    // TODO(gs): retry logic
-    public DisabledNamespacesResponse updateAllNodes(DisabledNamespacesRequest update) {
+    public DisableNamespacesResponse disableOnAllNodes(DisableNamespacesRequest request) {
         boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
 
+        // TODO(gs): exception
         if (!pingSuccess) {
-            // TODO(gs): exception
-            return DisabledNamespacesResponse.of(false);
+            // TODO(gs): no uuid
+            return DisableNamespacesResponse.of(false, null);
         }
 
-        Function<DisabledNamespacesUpdaterService, PaxosResponse> request =
-                service -> wrapModification(service, update);
-        boolean updateSuccess = attemptOnAllNodes(request);
+        // TODO(gs): should have same UUID across all nodes
+        Function<DisabledNamespacesUpdaterService, PaxosResponse> update = service ->
+                new BooleanPaxosResponse(service.disable(authHeader, request).getWasSuccessful());
+        boolean updateSuccess = attemptOnAllNodes(update);
 
         if (updateSuccess) {
-            localUpdater.applyModification(update);
             // TODO(gs): fall back if fails
-            return DisabledNamespacesResponse.of(true);
+            return localUpdater.disable(request.getNamespaces());
         }
 
         // if all else fails, do the opposite thing
         // TODO(gs): if _this_ fails, log something sensible so the user can fix themselves
         //      (safe to assume this is already monitored)
-        DisabledNamespacesRequest rollbackRequest = DisabledNamespacesRequest.builder()
-                .from(update)
-                .setEnabled(!update.getSetEnabled())
+        // TODO(gS): should be force-reenable
+        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.builder()
+                .namespaces(request.getNamespaces())
+                .lockId(UUID.randomUUID())
                 .build();
-        boolean rollbackSuccess = attemptOnAllNodes(service -> wrapModification(service, rollbackRequest));
+        boolean rollbackSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(
+                service.reenable(authHeader, rollbackRequest).getWasSuccessful()));
         if (rollbackSuccess) {
-            return DisabledNamespacesResponse.of(false);
+            return DisableNamespacesResponse.of(false, null);
         }
 
+        // TODO(gs): proper exception
         throw new SafeRuntimeException("ohno");
     }
 
-    private BooleanPaxosResponse wrapModification(
-            DisabledNamespacesUpdaterService service, DisabledNamespacesRequest update) {
-        return new BooleanPaxosResponse(
-                service.applyModification(authHeader, update).getWasSuccessful());
+    public ReenableNamespacesResponse reenableOnAllNodes(ReenableNamespacesRequest request) {
+        boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
+
+        // TODO(gs): exception
+        if (!pingSuccess) {
+            return ReenableNamespacesResponse.of(false);
+        }
+
+        // TODO(gs): should have same UUID across all nodes
+        Function<DisabledNamespacesUpdaterService, PaxosResponse> update = service ->
+                new BooleanPaxosResponse(service.reenable(authHeader, request).getWasSuccessful());
+        boolean updateSuccess = attemptOnAllNodes(update);
+
+        if (updateSuccess) {
+            // TODO(gs): fall back if fails
+            return localUpdater.reEnable(request);
+        }
+
+        // if all else fails, then... what? force-disable with the same lock ID
+        // TODO(gs): if _this_ fails, log something sensible so the user can fix themselves
+        //      (safe to assume this is already monitored)
+        // TODO(gS): should be force-reenable
+        //        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.builder()
+        //                .namespaces(request.getNamespaces())
+        //                .lockId(UUID.randomUUID())
+        //                .build();
+        //        boolean rollbackSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(
+        //                service.reenable(authHeader, rollbackRequest).getWasSuccessful()));
+        //        if (rollbackSuccess) {
+        //            return DisableNamespacesResponse.of(false, null);
+        //        }
+        //
+        // TODO(gs): proper exception
+        throw new SafeRuntimeException("ohno");
     }
 
     private boolean attemptOnAllNodes(Function<DisabledNamespacesUpdaterService, PaxosResponse> request) {

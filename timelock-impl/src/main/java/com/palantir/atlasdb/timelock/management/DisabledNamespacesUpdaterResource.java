@@ -21,15 +21,15 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
-import com.palantir.atlasdb.timelock.api.DisabledNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.DisabledNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterServiceEndpoints;
-import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UndertowDisabledNamespacesUpdaterService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class DisabledNamespacesUpdaterResource implements UndertowDisabledNamespacesUpdaterService {
@@ -44,7 +44,8 @@ public class DisabledNamespacesUpdaterResource implements UndertowDisabledNamesp
 
     public static UndertowService undertow(
             RedirectRetryTargeter redirectRetryTargeter, DisabledNamespaces disabledNamespaces) {
-        return DisabledNamespacesUpdaterServiceEndpoints.of(new DisabledNamespacesUpdaterResource(redirectRetryTargeter, disabledNamespaces));
+        return DisabledNamespacesUpdaterServiceEndpoints.of(
+                new DisabledNamespacesUpdaterResource(redirectRetryTargeter, disabledNamespaces));
     }
 
     public static DisabledNamespacesUpdaterService jersey(
@@ -58,14 +59,15 @@ public class DisabledNamespacesUpdaterResource implements UndertowDisabledNamesp
     }
 
     @Override
-    public ListenableFuture<DisabledNamespacesResponse> applyModification(
-            AuthHeader _authHeader, DisabledNamespacesRequest request) {
-        return handleExceptions(() -> {
-            boolean enable = request.getSetEnabled();
-            Consumer<Namespace> action = enable ? disabledNamespaces::reEnable : disabledNamespaces::disable;
-            request.getNamespaces().forEach(action);
-            return Futures.immediateFuture(DisabledNamespacesResponse.of(true));
-        });
+    public ListenableFuture<DisableNamespacesResponse> disable(
+            AuthHeader authHeader, DisableNamespacesRequest request) {
+        return handleExceptions(() -> Futures.immediateFuture(disabledNamespaces.disable(request.getNamespaces())));
+    }
+
+    @Override
+    public ListenableFuture<ReenableNamespacesResponse> reenable(
+            AuthHeader authHeader, ReenableNamespacesRequest request) {
+        return handleExceptions(() -> Futures.immediateFuture(disabledNamespaces.reEnable(request)));
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
@@ -79,15 +81,19 @@ public class DisabledNamespacesUpdaterResource implements UndertowDisabledNamesp
             this.resource = resource;
         }
 
-
         @Override
         public boolean ping(AuthHeader authHeader) {
             return unwrap(resource.ping(authHeader));
         }
 
         @Override
-        public DisabledNamespacesResponse applyModification(AuthHeader authHeader, DisabledNamespacesRequest request) {
-            return unwrap(resource.applyModification(authHeader, request)));
+        public DisableNamespacesResponse disable(AuthHeader authHeader, DisableNamespacesRequest request) {
+            return unwrap(resource.disable(authHeader, request));
+        }
+
+        @Override
+        public ReenableNamespacesResponse reenable(AuthHeader authHeader, ReenableNamespacesRequest request) {
+            return unwrap(resource.reenable(authHeader, request));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

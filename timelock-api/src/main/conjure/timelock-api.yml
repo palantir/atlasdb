@@ -158,14 +158,24 @@ types:
         package: com.palantir.atlasdb.backup.api
         fields:
           successfulNamespaces: set<Namespace>
-      DisabledNamespacesRequest:
+      DisableNamespacesRequest:
         package: com.palantir.atlasdb.timelock.api
         fields:
-          setEnabled: boolean
           namespaces: set<Namespace>
-      DisabledNamespacesResponse:
+      DisableNamespacesResponse:
         package: com.palantir.atlasdb.timelock.api
         fields:
+          wasSuccessful: boolean
+          lockId: uuid
+      ReenableNamespacesRequest:
+        package: com.palantir.atlasdb.timelock.api
+        fields:
+          namespaces: set<Namespace>
+          lockId: uuid
+      ReenableNamespacesResponse:
+        package: com.palantir.atlasdb.timelock.api
+        fields:
+          # TODO(gs): maybe a set of failed namespaces?
           wasSuccessful: boolean
 
 services:
@@ -210,7 +220,7 @@ services:
           request: CompleteRestoreRequest
         returns: CompleteRestoreResponse
   DisabledNamespacesUpdaterService:
-    name: Internal updater service, for propagating disabled namespaces across nodes.
+    name: Internal updater service, for propagating disabled namespace updates across nodes.
     default-auth: header
     package: com.palantir.atlasdb.timelock.api
     base-path: /dn
@@ -218,11 +228,16 @@ services:
       ping:
         http: GET /ping
         returns: boolean
-      applyModification:
-        http: POST /apply
+      disable:
+        http: POST /disable
         args:
-          request: DisabledNamespacesRequest
-        returns: DisabledNamespacesResponse
+          request: DisableNamespacesRequest
+        returns: DisableNamespacesResponse
+      reenable:
+        http: POST /reenable
+        args:
+          request: ReenableNamespacesRequest
+        returns: ReenableNamespacesResponse
   ConjureTimelockService:
     name: Timelock service
     default-auth: header
