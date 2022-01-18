@@ -341,7 +341,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @Value.Immutable
-    interface CassandraHost {
+    public interface CassandraHost {
         String hostName();
 
         Optional<String> hostAddress();

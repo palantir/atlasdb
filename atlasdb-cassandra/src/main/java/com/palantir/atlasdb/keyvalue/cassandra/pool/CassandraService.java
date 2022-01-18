@@ -33,6 +33,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.CassandraHost;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
@@ -250,9 +251,18 @@ public class CassandraService implements AutoCloseable {
         InetAddress resolvedHost = InetAddress.getByName(host);
         Set<InetSocketAddress> allKnownHosts =
                 Sets.union(currentPools.keySet(), config.servers().accept(new ThriftHostsExtractingVisitor()));
+        log.info(
+                "Logging Cassandra host information",
+                SafeArg.of("hostnamesByIp", hostnamesByIp),
+                SafeArg.of("inputHost", inputHost),
+                SafeArg.of("resolvedHost", resolvedHost),
+                SafeArg.of(
+                        "allKnownHosts",
+                        allKnownHosts.stream().map(CassandraHost::fromAddress).collect(Collectors.toSet())));
 
         for (InetSocketAddress address : allKnownHosts) {
             if (Objects.equals(address.getAddress(), resolvedHost)) {
+                log.info("Found host in all known hosts", SafeArg.of("address", CassandraHost.fromAddress(address)));
                 return address;
             }
         }
@@ -261,8 +271,14 @@ public class CassandraService implements AutoCloseable {
                 allKnownHosts.stream().map(InetSocketAddress::getPort).collect(Collectors.toSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
-            return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(allKnownPorts));
+            InetSocketAddress inetSocketAddress =
+                    new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(allKnownPorts));
+            log.info("Only one known port", SafeArg.of("address", inetSocketAddress));
+            return inetSocketAddress;
         } else {
+            log.warn(
+                    "Failed to find the host in the server list or current servers",
+                    SafeArg.of("inputHost", inputHost));
             throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
         }
     }
