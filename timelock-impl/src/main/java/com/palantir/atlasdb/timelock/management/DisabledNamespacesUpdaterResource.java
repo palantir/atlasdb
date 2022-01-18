@@ -32,7 +32,7 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.function.Supplier;
 
-public class DisabledNamespacesUpdaterResource implements UndertowDisabledNamespacesUpdaterService {
+public final class DisabledNamespacesUpdaterResource implements UndertowDisabledNamespacesUpdaterService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final DisabledNamespaces disabledNamespaces;
 
