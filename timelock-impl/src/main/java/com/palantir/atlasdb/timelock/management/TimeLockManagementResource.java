@@ -24,7 +24,10 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
@@ -118,15 +121,27 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
-    public ListenableFuture<Void> disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
-        // TODO(gs): copy from AtlasBackupClient
-        return null;
+    public ListenableFuture<DisableNamespacesResponse> disableTimelock(
+            AuthHeader authHeader, Set<Namespace> namespaces) {
+        return handleExceptions(() -> disableInternal(namespaces));
+    }
+
+    private ListenableFuture<DisableNamespacesResponse> disableInternal(Set<Namespace> namespaces) {
+        // todo(gmaretic): disable all remote nodes
+        // todo(gmaretic): disable locally
+        return Futures.immediateFuture(DisableNamespacesResponse.builder().build());
     }
 
     @Override
-    public ListenableFuture<Void> reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
-        // TODO(gs): copy from AtlasBackupClient
-        return null;
+    public ListenableFuture<ReenableNamespacesResponse> reenableTimelock(
+            AuthHeader authHeader, ReenableNamespacesRequest request) {
+        return handleExceptions(() -> reenableInternal(request));
+    }
+
+    public ListenableFuture<ReenableNamespacesResponse> reenableInternal(ReenableNamespacesRequest request) {
+        // todo(gmaretic): reenable all remote nodes
+        // todo(gmaretic): reenable locally
+        return Futures.immediateFuture(ReenableNamespacesResponse.builder().build());
     }
 
     @Override
@@ -182,13 +197,13 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         }
 
         @Override
-        public void disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
-            // TODO(gs): copy from AtlasBackupClient
+        public DisableNamespacesResponse disableTimelock(AuthHeader authHeader, Set<Namespace> request) {
+            return unwrap(resource.disableTimelock(authHeader, request));
         }
 
         @Override
-        public void reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
-            // TODO(gs): copy from AtlasBackupClient
+        public ReenableNamespacesResponse reenableTimelock(AuthHeader authHeader, ReenableNamespacesRequest request) {
+            return unwrap(resource.reenableTimelock(authHeader, request));
         }
 
         @Override

@@ -158,25 +158,6 @@ types:
         package: com.palantir.atlasdb.backup.api
         fields:
           successfulNamespaces: set<Namespace>
-      DisableNamespacesRequest:
-        package: com.palantir.atlasdb.timelock.api
-        fields:
-          namespaces: set<Namespace>
-      DisableNamespacesResponse:
-        package: com.palantir.atlasdb.timelock.api
-        fields:
-          wasSuccessful: boolean
-          lockId: uuid
-      ReenableNamespacesRequest:
-        package: com.palantir.atlasdb.timelock.api
-        fields:
-          namespaces: set<Namespace>
-          lockId: uuid
-      ReenableNamespacesResponse:
-        package: com.palantir.atlasdb.timelock.api
-        fields:
-          # TODO(gs): maybe a set of failed namespaces?
-          wasSuccessful: boolean
 
 services:
   AtlasBackupClient:
@@ -195,19 +176,6 @@ services:
         args:
           request: CompleteBackupRequest
         returns: CompleteBackupResponse
-      disableTimelock:
-        http: POST /disable
-        args:
-          namespaces: set<Namespace>
-        docs: |
-          Disables the TimeLock server in a persistant way for the specified namespaces. This includes invalidating
-          all currently held locks, all lock watch state, as well as refusing to serve new requests.
-      reenableTimelock:
-        http: POST /reenable
-        args:
-          namespaces: set<Namespace>
-        docs: |
-          Allows the TimeLock server to once again serve requests for these namespaces.
   AtlasRestoreClient:
     name: Internal restore service
     default-auth: header
@@ -219,25 +187,6 @@ services:
         args:
           request: CompleteRestoreRequest
         returns: CompleteRestoreResponse
-  DisabledNamespacesUpdaterService:
-    name: Internal updater service, for propagating disabled namespace updates across nodes.
-    default-auth: header
-    package: com.palantir.atlasdb.timelock.api
-    base-path: /dn
-    endpoints:
-      ping:
-        http: GET /ping
-        returns: boolean
-      disable:
-        http: POST /disable
-        args:
-          request: DisableNamespacesRequest
-        returns: DisableNamespacesResponse
-      reenable:
-        http: POST /reenable
-        args:
-          request: ReenableNamespacesRequest
-        returns: ReenableNamespacesResponse
   ConjureTimelockService:
     name: Timelock service
     default-auth: header

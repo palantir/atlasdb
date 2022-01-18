@@ -1,7 +1,46 @@
 types:
   conjure-imports:
     api: timelock-api.yml
+  definitions:
+    default-package: com.palantir.atlasdb.timelock.api
+    objects:
+      DisableNamespacesRequest:
+        fields:
+          namespaces: set<api.Namespace>
+          lockId: uuid
+      DisableNamespacesResponse:
+        fields:
+          wasSuccessful: boolean
+          lockId: uuid
+      ReenableNamespacesRequest:
+        fields:
+          namespaces: set<api.Namespace>
+          lockId: uuid
+      ReenableNamespacesResponse:
+        fields:
+          # TODO(gs): maybe a set of failed namespaces?
+          wasSuccessful: boolean
+
 services:
+  DisabledNamespacesUpdaterService:
+    name: Internal updater service, for propagating disabled namespace updates across nodes.
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.api
+    base-path: /dn
+    endpoints:
+      ping:
+        http: GET /ping
+        returns: boolean
+      disable:
+        http: POST /disable
+        args:
+          request: DisableNamespacesRequest
+        returns: DisableNamespacesResponse
+      reenable:
+        http: POST /reenable
+        args:
+          request: ReenableNamespacesRequest
+        returns: ReenableNamespacesResponse
   TimeLockManagementService:
     name: TimeLock Management Service
     default-auth: header
@@ -38,14 +77,16 @@ services:
       disableTimelock:
         http: POST /disable
         args:
-          namespaces: set<api.Namespace>
+          request: set<api.Namespace>
+        returns: DisableNamespacesResponse
         docs: |
           Disables the TimeLock server in a persistant way for the specified namespaces. This includes invalidating
           all currently held locks, all lock watch state, as well as refusing to serve new requests.
       reenableTimelock:
         http: POST /reenable
         args:
-          namespaces: set<api.Namespace>
+          request: ReenableNamespacesRequest
+        returns: ReenableNamespacesResponse
         docs: |
           Allows the TimeLock server to once again serve requests for these namespaces.
 
