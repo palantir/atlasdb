@@ -61,7 +61,7 @@ public final class DisabledNamespacesUpdaterResource implements UndertowDisabled
     @Override
     public ListenableFuture<DisableNamespacesResponse> disable(
             AuthHeader authHeader, DisableNamespacesRequest request) {
-        return handleExceptions(() -> Futures.immediateFuture(disabledNamespaces.disable(request.getNamespaces())));
+        return handleExceptions(() -> Futures.immediateFuture(disabledNamespaces.disable(request)));
     }
 
     @Override

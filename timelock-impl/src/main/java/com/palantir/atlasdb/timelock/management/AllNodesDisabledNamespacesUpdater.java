@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -31,6 +32,7 @@ import com.palantir.paxos.PaxosResponsesWithRemote;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -51,7 +53,7 @@ public class AllNodesDisabledNamespacesUpdater {
         this.localUpdater = localUpdater;
     }
 
-    public DisableNamespacesResponse disableOnAllNodes(DisableNamespacesRequest request) {
+    public DisableNamespacesResponse disableOnAllNodes(Set<Namespace> namespaces) {
         boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
 
         // TODO(gs): exception
@@ -60,14 +62,15 @@ public class AllNodesDisabledNamespacesUpdater {
             return DisableNamespacesResponse.of(false, null);
         }
 
-        // TODO(gs): should have same UUID across all nodes
+        UUID lockId = UUID.randomUUID();
+        DisableNamespacesRequest request = DisableNamespacesRequest.of(namespaces, lockId);
         Function<DisabledNamespacesUpdaterService, PaxosResponse> update = service ->
                 new BooleanPaxosResponse(service.disable(authHeader, request).getWasSuccessful());
         boolean updateSuccess = attemptOnAllNodes(update);
 
         if (updateSuccess) {
             // TODO(gs): fall back if fails
-            return localUpdater.disable(request.getNamespaces());
+            return localUpdater.disable(request);
         }
 
         // if all else fails, do the opposite thing

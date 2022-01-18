@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
@@ -60,9 +61,10 @@ public class DisabledNamespaces {
         return execute(Queries::getAllStates);
     }
 
-    public DisableNamespacesResponse disable(Set<Namespace> namespaces) {
-        UUID lockId = UUID.randomUUID();
-        namespaces.forEach(ns -> disable(ns, lockId));
+    // TODO(gs): should fail if already disabled
+    public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
+        UUID lockId = request.getLockId();
+        request.getNamespaces().forEach(ns -> disable(ns, lockId));
         return DisableNamespacesResponse.of(true, lockId);
     }
 
