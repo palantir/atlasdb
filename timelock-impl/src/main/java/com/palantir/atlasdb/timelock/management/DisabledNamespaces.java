@@ -16,9 +16,11 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import com.palantir.atlasdb.timelock.api.DisabledNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
@@ -42,6 +44,11 @@ public class DisabledNamespaces {
 
     private void initialize() {
         execute(Queries::createTable);
+    }
+
+    public void applyModification(DisabledNamespacesRequest request) {
+        Consumer<Namespace> modification = request.getSetEnabled() ? this::reEnable : this::disable;
+        request.getNamespaces().forEach(modification);
     }
 
     public void disable(Namespace namespace) {
