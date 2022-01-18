@@ -41,7 +41,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -113,6 +112,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final ScheduledExecutorService refreshDaemon;
     private final CassandraClientPoolMetrics metrics;
     private final InitializingWrapper wrapper = new InitializingWrapper();
+    private final CassandraPoolReaper reaper;
 
     private ScheduledFuture<?> refreshPoolFuture;
 
@@ -209,6 +209,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
         this.metrics = metrics;
+        this.reaper = new CassandraPoolReaper(config.consecutiveAbsencesBeforePoolRemoval());
     }
 
     private void tryInitialize() {
@@ -307,21 +308,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
-        Set<InetSocketAddress> serversToRemove = new HashSet<>();
-        Set<InetSocketAddress> serversToAdd = new HashSet<>();
-
         Set<InetSocketAddress> cachedServers = getCachedServers();
-        serversToAdd.addAll(Sets.difference(desiredServers, cachedServers));
-        serversToRemove.addAll(Sets.difference(cachedServers, desiredServers));
+        Set<InetSocketAddress> serversToAdd = Sets.difference(desiredServers, cachedServers);
+        Set<InetSocketAddress> absentServers = Sets.difference(cachedServers, desiredServers);
+        Set<InetSocketAddress> serversToRemove = reaper.computeServersToRemove(absentServers);
 
         serversToAdd.forEach(cassandra::addPool);
         serversToRemove.forEach(cassandra::removePool);
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
-            log.info(
-                    "Servers to add and remove, inside the if block",
-                    SafeArg.of("serversToAdd", serversToAdd),
-                    SafeArg.of("serversToRemove", serversToRemove));
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
         }
