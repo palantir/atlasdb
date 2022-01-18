@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Optional;
@@ -55,13 +56,18 @@ public class TimelockNamespacesTest {
     @Mock
     private Supplier<Integer> maxNumberOfClientsSupplier;
 
+    // TODO(gs): tests involving this mock
+    @Mock
+    private DisabledNamespaces disabledNamespaces;
+
     private final MetricsManager metricsManager =
             new MetricsManager(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault(), unused -> false);
     private TimelockNamespaces namespaces;
 
     @Before
     public void before() {
-        namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
+        namespaces =
+                new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier, disabledNamespaces);
         when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
         when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
         when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
