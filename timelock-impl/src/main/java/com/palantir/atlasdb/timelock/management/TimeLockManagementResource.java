@@ -24,6 +24,7 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
@@ -117,6 +118,18 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
+    public ListenableFuture<Void> disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+        // TODO(gs): copy from AtlasBackupClient
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Void> reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+        // TODO(gs): copy from AtlasBackupClient
+        return null;
+    }
+
+    @Override
     public ListenableFuture<UUID> getServerLifecycleId(AuthHeader authHeader) {
         return Futures.immediateFuture(serviceLifecycleController.getServerId());
     }
@@ -166,6 +179,16 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public void invalidateResources(AuthHeader authHeader, Set<String> namespaces) {
             unwrap(resource.invalidateResources(authHeader, namespaces));
+        }
+
+        @Override
+        public void disableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+            // TODO(gs): copy from AtlasBackupClient
+        }
+
+        @Override
+        public void reenableTimelock(AuthHeader authHeader, Set<Namespace> namespaces) {
+            // TODO(gs): copy from AtlasBackupClient
         }
 
         @Override
