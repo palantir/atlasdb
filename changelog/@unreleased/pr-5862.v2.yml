@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Don't remove Cassandra client pools until we are _sure_ they are dead
+    (i.e., they are on consecutive occasions not present).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5862
