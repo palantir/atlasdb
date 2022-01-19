@@ -24,6 +24,7 @@ import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
@@ -76,8 +77,13 @@ public class DisabledNamespaces {
         UUID lockId = request.getLockId();
         Set<Namespace> failedNamespaces = execute(dao -> dao.disableAll(request.getNamespaces(), lockId));
         if (failedNamespaces.isEmpty()) {
+            log.info("Successfully disabled namespaces", SafeArg.of("namespaces", request.getNamespaces()));
             return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
         } else {
+            log.error(
+                    "Failed to disable namespaces, as some were already disabled",
+                    SafeArg.of("namespaces", request.getNamespaces()),
+                    SafeArg.of("failedNamespaces", failedNamespaces));
             return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(failedNamespaces));
         }
     }
@@ -85,8 +91,13 @@ public class DisabledNamespaces {
     public ReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
         Set<Namespace> lockedNamespaces = execute(dao -> dao.enableAll(request.getNamespaces(), request.getLockId()));
         if (lockedNamespaces.isEmpty()) {
+            log.info("Successfully re-enabled namespaces", SafeArg.of("namespaces", request.getNamespaces()));
             return ReenableNamespacesResponse.of(true);
         } else {
+            log.error(
+                    "Failed to re-ensable namespaces, as some were disabled with a different lock ID",
+                    SafeArg.of("namespaces", request.getNamespaces()),
+                    SafeArg.of("failedNamespaces", lockedNamespaces));
             return ReenableNamespacesResponse.of(false);
         }
     }

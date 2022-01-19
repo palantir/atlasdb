@@ -108,10 +108,10 @@ public class DisabledNamespacesTest {
 
     @Test
     public void enableFailsIfDisabledWithWrongLock() {
-        DisableNamespacesResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        disabledNamespaces.disable(disableNamespacesRequest(FIRST));
         DisableNamespacesRequest wrongLockId =
                 DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(SECOND)), OTHER_LOCK_ID);
-        DisableNamespacesResponse secondResponse = disabledNamespaces.disable(wrongLockId);
+        disabledNamespaces.disable(wrongLockId);
 
         ReenableNamespacesResponse response = disabledNamespaces.reEnable(
                 ReenableNamespacesRequest.of(ImmutableSet.of(Namespace.of(FIRST), Namespace.of(SECOND)), LOCK_ID));
