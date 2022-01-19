@@ -20,7 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.paxos.SqliteConnections;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -71,6 +74,18 @@ public class DisabledNamespacesTest {
         assertThat(disabledNamespaces.isDisabled(FIRST)).isTrue();
         assertThat(disabledNamespaces.isDisabled(SECOND)).isTrue();
         assertThat(disabledNamespaces.disabledNamespaces()).containsExactlyInAnyOrder(FIRST, SECOND);
+    }
+
+    @Test
+    public void disableFailsIfAlreadyDisabled() {
+        DisableNamespacesResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(firstResponse)
+                .isEqualTo(DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID)));
+
+        DisableNamespacesResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(secondResponse)
+                .isEqualTo(DisableNamespacesResponse.unsuccessful(
+                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(Namespace.of(FIRST)))));
     }
 
     @Test
