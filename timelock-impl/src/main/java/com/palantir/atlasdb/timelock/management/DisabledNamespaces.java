@@ -69,13 +69,9 @@ public class DisabledNamespaces {
         return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
     }
 
-    public void disable(Namespace namespace, UUID lockId) {
+    // TODO (gs): single transaction
+    private void disable(Namespace namespace, UUID lockId) {
         execute(dao -> dao.set(namespace.get(), lockId));
-    }
-
-    // TODO(gs): remove
-    public void disable(String namespace) {
-        execute(dao -> dao.set(namespace, UUID.randomUUID()));
     }
 
     // TODO (gs): enforce passing the same lock ID
@@ -103,7 +99,7 @@ public class DisabledNamespaces {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS disabled (namespace TEXT PRIMARY KEY, lockId UUID)")
         boolean createTable();
 
-        @SqlUpdate("INSERT OR REPLACE INTO disabled (namespace) VALUES (?, ?)")
+        @SqlUpdate("INSERT OR REPLACE INTO disabled (namespace, lockId) VALUES (?, ?)")
         boolean set(String namespace, UUID lockId);
 
         // TODO(gs): get lock ID

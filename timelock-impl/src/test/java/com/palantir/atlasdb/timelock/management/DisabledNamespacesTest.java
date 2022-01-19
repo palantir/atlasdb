@@ -18,7 +18,11 @@ package com.palantir.atlasdb.timelock.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.paxos.SqliteConnections;
+import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.Before;
 import org.junit.Rule;
@@ -26,6 +30,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class DisabledNamespacesTest {
+    private static final UUID LOCK_ID = new UUID(13, 52);
+
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -50,7 +56,7 @@ public class DisabledNamespacesTest {
 
     @Test
     public void canDisableSingleNamespace() {
-        disabledNamespaces.disable(FIRST);
+        disabledNamespaces.disable(disableNamespacesRequest(FIRST));
 
         assertThat(disabledNamespaces.isDisabled(FIRST)).isTrue();
         assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
@@ -59,8 +65,8 @@ public class DisabledNamespacesTest {
 
     @Test
     public void canDisableMultipleNamespaces() {
-        disabledNamespaces.disable(FIRST);
-        disabledNamespaces.disable(SECOND);
+        disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        disabledNamespaces.disable(disableNamespacesRequest(SECOND));
 
         assertThat(disabledNamespaces.isDisabled(FIRST)).isTrue();
         assertThat(disabledNamespaces.isDisabled(SECOND)).isTrue();
@@ -69,8 +75,8 @@ public class DisabledNamespacesTest {
 
     @Test
     public void canReEnableNamespaces() {
-        disabledNamespaces.disable(FIRST);
-        disabledNamespaces.disable(SECOND);
+        disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        disabledNamespaces.disable(disableNamespacesRequest(SECOND));
         disabledNamespaces.reEnable(FIRST);
 
         assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
@@ -84,14 +90,18 @@ public class DisabledNamespacesTest {
 
     @Test
     public void disablingAndReEnablingAreIdempotent() {
-        disabledNamespaces.disable(FIRST);
-        disabledNamespaces.disable(FIRST);
-        disabledNamespaces.disable(FIRST);
+        disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        disabledNamespaces.disable(disableNamespacesRequest(FIRST));
 
         assertThat(disabledNamespaces.isDisabled(FIRST)).isTrue();
 
         disabledNamespaces.reEnable(FIRST);
         disabledNamespaces.reEnable(FIRST);
         assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
+    }
+
+    private DisableNamespacesRequest disableNamespacesRequest(String namespace) {
+        return DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(namespace)), LOCK_ID);
     }
 }
