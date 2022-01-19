@@ -30,14 +30,16 @@ import java.util.function.Supplier;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
- * Supplier that will evaluate a delegate supplier asynchronously, providing a result when the underlying computation
- * is complete. This computation is only initiated after the first call to get, but will be memoized infinitely after
- * that. This class is responsible for creating and shutting down any executors.
+ * Supplier that will evaluate a delegate supplier asynchronously, returning {@link Optional#empty()} until
+ * the underlying result is complete, at which point it will be returned. This computation is only initiated after
+ * the first call to get, but will be memoized infinitely after that. If the delegate throws, it will not be retried
+ * and {@link Optional#empty()} will be returned for the lifecycle of this supplier. Note that this class is
+ * responsible for creating and shutting down any executors.
  *
  * This class is thread safe by synchronising on {@link #get()}.
  */
 @ThreadSafe
-final class AsyncSupplier<T> implements Supplier<Optional<T>> {
+public final class AsyncSupplier<T> implements Supplier<Optional<T>> {
     private static final SafeLogger log = SafeLoggerFactory.get(AsyncSupplier.class);
     private final Supplier<Optional<T>> delegate;
     private final ExecutorService executorService;
@@ -68,7 +70,7 @@ final class AsyncSupplier<T> implements Supplier<Optional<T>> {
         return Optional.empty();
     }
 
-    static <T> AsyncSupplier<T> create(Supplier<Optional<T>> delegate) {
+    public static <T> AsyncSupplier<T> create(Supplier<Optional<T>> delegate) {
         return new AsyncSupplier<>(delegate, PTExecutors.newSingleThreadExecutor());
     }
 }
