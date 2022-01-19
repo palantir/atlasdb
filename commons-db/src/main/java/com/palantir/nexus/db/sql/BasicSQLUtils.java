@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.format.DateTimeFormat;
 
+@SuppressWarnings("InlineFormatString") // the strings being formatted here are complex and legacy; leaving in constants
 public class BasicSQLUtils {
 
     /**

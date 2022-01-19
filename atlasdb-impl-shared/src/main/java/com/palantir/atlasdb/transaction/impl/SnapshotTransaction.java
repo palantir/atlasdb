@@ -131,6 +131,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -138,6 +139,8 @@ import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1885,7 +1888,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
-                getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
+                getTimer("commitTotalTimeSinceTxCreation").update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN)
                         .update(byteCount.get());
             } finally {
@@ -1927,10 +1930,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected ConflictHandler getConflictHandlerForTable(TableReference tableRef) {
-        return com.google.common.base.Preconditions.checkNotNull(
-                conflictDetectionManager.get(tableRef),
-                "Not a valid table for this transaction. Make sure this table name exists or has a valid namespace: %s",
-                tableRef);
+        return conflictDetectionManager
+                .get(tableRef)
+                .orElseThrow(() -> new SafeNullPointerException(
+                        "Not a valid table for this transaction. Make sure this table name exists or has a valid "
+                                + "namespace.",
+                        LoggingArgs.tableRef(tableRef)));
     }
 
     private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken, Set<LockToken> expiredLocks) {
@@ -2552,7 +2557,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         throw new TransactionCommitFailedException(msg, ex);
     }
 
-    private boolean wasCommitSuccessful(long commitTs) throws Exception {
+    private boolean wasCommitSuccessful(long commitTs) {
         Map<Long, Long> commitTimestamps =
                 getCommitTimestampsSync(null, Collections.singleton(getStartTimestamp()), false);
         long storedCommit = commitTimestamps.get(getStartTimestamp());

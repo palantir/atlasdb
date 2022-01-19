@@ -23,16 +23,16 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
+import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
+import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.InProgressBackupToken;
+import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
+import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.api.CompleteBackupRequest;
-import com.palantir.atlasdb.timelock.api.CompleteBackupResponse;
-import com.palantir.atlasdb.timelock.api.CompletedBackup;
-import com.palantir.atlasdb.timelock.api.InProgressBackupToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.PrepareBackupRequest;
-import com.palantir.atlasdb.timelock.api.PrepareBackupResponse;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -56,6 +56,7 @@ public class AtlasBackupResourceTest {
             PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE));
     private static final long IMMUTABLE_TIMESTAMP = 1L;
     private static final long BACKUP_START_TIMESTAMP = 2L;
+    private static final long BACKUP_END_TIMESTAMP = 3L;
     private static final CompleteBackupResponse EMPTY_COMPLETE_BACKUP_RESPONSE =
             CompleteBackupResponse.of(ImmutableSet.of());
 
@@ -80,7 +81,7 @@ public class AtlasBackupResourceTest {
 
     @Test
     public void completeBackupContainsNamespaceWhenLockIsHeld() {
-        when(mockTimelock.getFreshTimestamp()).thenReturn(3L);
+        when(mockTimelock.getFreshTimestamp()).thenReturn(BACKUP_END_TIMESTAMP);
 
         InProgressBackupToken backupToken = validBackupToken();
         CompletedBackup expected = completedBackup(backupToken);
@@ -101,7 +102,7 @@ public class AtlasBackupResourceTest {
 
     @Test
     public void completeBackupFiltersOutUnsuccessfulNamespaces() {
-        when(mockTimelock.getFreshTimestamp()).thenReturn(3L);
+        when(mockTimelock.getFreshTimestamp()).thenReturn(BACKUP_END_TIMESTAMP);
 
         InProgressBackupToken validToken = validBackupToken();
         InProgressBackupToken invalidToken = invalidBackupToken(OTHER_NAMESPACE, otherTimelock);
@@ -168,8 +169,9 @@ public class AtlasBackupResourceTest {
     private static CompletedBackup completedBackup(InProgressBackupToken backupToken) {
         return CompletedBackup.builder()
                 .namespace(backupToken.getNamespace())
+                .immutableTimestamp(backupToken.getImmutableTimestamp())
                 .backupStartTimestamp(backupToken.getBackupStartTimestamp())
-                .backupEndTimestamp(3L)
+                .backupEndTimestamp(BACKUP_END_TIMESTAMP)
                 .build();
     }
 }

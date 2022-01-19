@@ -16,16 +16,26 @@ Target Transactions Schema Version
 
 .. warning::
 
-   _transactions2 is currently only supported for Cassandra and In-Memory KVSes.
+   _transactions2 and _transactions3 are currently only supported for Cassandra and In-Memory KVSes.
+
+.. warning::
+
+   Schema versions 1 and 2 are vulnerable to a Cassandra consistency issue. Cassandra users should use
+   schema version 3. Users of other key-value-services are not affected by this issue.
 
 AtlasDB needs to persist information about the start and commit timestamps of transactions that have committed.
-This may be done in various ways, and is configurable. We currently support two strategies:
+This may be done in various ways, and is configurable. We currently support three strategies:
 
 - version 1, which variable-length encodes the start and commit timestamps and stores them in the ``_transactions``
   table.
 - version 2, which variable-length encodes the start and commit timestamps following the
   `TicketsEncodingStrategy <https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TicketsEncodingStrategy.java>`__,
   storing them in the ``_transactions2`` table.
+- version 3, which variable-length encodes the start and commit timestamps following the
+  `TwoPhaseEncodingStrategy <https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TwoPhaseEncodingStrategy.java>`__,
+  storing them in the ``_transactions2`` table. This encoding strategy is for start timestamps consistent with the
+  TicketsEncodingStrategy, meaning that it is permissible to use the same table, but the encoding of commit timestamps
+  uses a two-phase commit protocol to avoid consistency issues.
 
 If specified, this AtlasDB client will attempt to install the provided transaction schema version. This parameter is
 optional; if it is not specified, this AtlasDB client will not install any new transaction schema versions, and will

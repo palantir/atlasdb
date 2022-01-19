@@ -56,11 +56,11 @@ public class ColumnMetadataDescription {
         if (dynamicColumn != null) {
             return ImmutableList.of(dynamicColumn.getValue());
         }
-        List<ColumnValueDescription> ret = new ArrayList<>();
+        ImmutableList.Builder<ColumnValueDescription> ret = ImmutableList.builder();
         for (NamedColumnDescription col : namedColumns) {
             ret.add(col.value);
         }
-        return ret;
+        return ret.build();
     }
 
     public int getMaxValueSize() {

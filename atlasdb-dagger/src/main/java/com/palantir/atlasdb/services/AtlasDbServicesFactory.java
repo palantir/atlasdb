@@ -16,5 +16,5 @@
 package com.palantir.atlasdb.services;
 
 public interface AtlasDbServicesFactory {
-    <T extends AtlasDbServices> T connect(ServicesConfigModule servicesConfigModule);
+    AtlasDbServices connect(ServicesConfigModule servicesConfigModule);
 }

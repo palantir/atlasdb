@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -32,7 +33,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import okio.ByteString;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -151,9 +151,9 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     private static List<byte[]> sortedUniqueRowKeys(List<Cell> cells) {
         return cells.stream()
                 .map(Cell::getRowName)
-                .map(ByteString::of)
+                .map(ByteString::copyFrom)
                 .distinct()
-                .sorted()
+                .sorted(ByteString.unsignedLexicographicalComparator())
                 .map(ByteString::toByteArray)
                 .collect(Collectors.toList());
     }

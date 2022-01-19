@@ -24,7 +24,6 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -56,6 +55,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+@SuppressWarnings("TooManyArguments") // Legacy
 public class SerializableTransactionManager extends SnapshotTransactionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(SerializableTransactionManager.class);
 
@@ -446,6 +446,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TimelockService legacyTimeLockService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
+            LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -458,7 +459,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 legacyTimeLockService,
-                NoOpLockWatchManager.create(),
+                lockWatchManager,
                 timestampManagementService,
                 lockService,
                 transactionService,

@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.encoding;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.google.common.collect.Iterables;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -143,7 +144,7 @@ public class TicketsEncodingStrategyTest {
 
     @Test
     public void canStoreTransactionsCommittingInstantaneously() {
-        assertThatCode(() -> STRATEGY.encodeCommitTimestampAsValue(10, 10)).doesNotThrowAnyException();
+        assertThatCode(() -> STRATEGY.encodeCommitTimestampAsValue(10, 10L)).doesNotThrowAnyException();
     }
 
     @Test
@@ -158,6 +159,37 @@ public class TicketsEncodingStrategyTest {
                 .isEqualTo(-1);
         assertThat(STRATEGY.decodeValueAsCommitTimestamp(862846378267L, PtBytes.EMPTY_BYTE_ARRAY))
                 .isEqualTo(-1);
+    }
+
+    @Test
+    public void encodeRangeOfTimestampsAsRowsIncludesAllRowsInPartitioning() {
+        assertThat(STRATEGY.getRowSetCoveringTimestampRange(2, 7)).containsExactlyElementsOf(allRowsInPartition(0));
+    }
+
+    @Test
+    public void encodeRangeOfTimestampsAsRowsIncludesAllRowsInEachPartitioning() {
+        assertThat(STRATEGY.getRowSetCoveringTimestampRange(
+                        2 * TicketsEncodingStrategy.PARTITIONING_QUANTUM - 1,
+                        4 * TicketsEncodingStrategy.PARTITIONING_QUANTUM + 1))
+                .containsExactlyElementsOf(Iterables.concat(
+                        allRowsInPartition(1), allRowsInPartition(2), allRowsInPartition(3), allRowsInPartition(4)));
+    }
+
+    @Test
+    public void encodeRangeOfTimestampsAsRowsIncludesAllRowsInEachPartitioningRangesClosed() {
+        assertThat(STRATEGY.getRowSetCoveringTimestampRange(
+                        2 * TicketsEncodingStrategy.PARTITIONING_QUANTUM,
+                        4 * TicketsEncodingStrategy.PARTITIONING_QUANTUM))
+                .containsExactlyElementsOf(
+                        Iterables.concat(allRowsInPartition(2), allRowsInPartition(3), allRowsInPartition(4)));
+    }
+
+    private static List<byte[]> allRowsInPartition(int partition) {
+        return LongStream.range(0, TicketsEncodingStrategy.ROWS_PER_QUANTUM)
+                .map(offset -> offset + partition * TicketsEncodingStrategy.PARTITIONING_QUANTUM)
+                .mapToObj(TicketsEncodingStrategy.INSTANCE::encodeStartTimestampAsCell)
+                .map(Cell::getRowName)
+                .collect(Collectors.toList());
     }
 
     private static void fuzzOneThousandTrials(Runnable test) {

@@ -915,7 +915,7 @@ public enum ValueType {
         try {
             return OBJECT_MAPPER.readValue(json, clazz);
         } catch (IOException e) {
-            throw new SafeIllegalArgumentException("{} must be a JSON string", UnsafeArg.of("json", json));
+            throw new SafeIllegalArgumentException("Input data must be a JSON string", UnsafeArg.of("json", json));
         }
     }
 

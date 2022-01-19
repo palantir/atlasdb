@@ -11,7 +11,6 @@ dependencies {
     implementation project(':atlasdb-ete-test-utils')
     implementation project(':atlasdb-impl-shared')
     implementation project(':atlasdb-hikari')
-    implementation project(":dropwizard-metrics-hack")
     implementation project(':lock-impl')
     implementation project(':leader-election-impl')
 
@@ -40,6 +39,11 @@ dependencies {
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-commons')
+<<<<<<< HEAD
+=======
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-tests-shared')
+>>>>>>> develop
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
@@ -57,6 +61,7 @@ dependencies {
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-cassandra')
+    testImplementation project(':atlasdb-cassandra').sourceSets.test.output
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-remoting-api')

@@ -40,6 +40,7 @@ class TaskRunner {
      * Similar to executor.invokeAll, but cancels all remaining tasks if one fails and doesn't spawn new threads if
      * there is only one task
      */
+    @SuppressWarnings("MixedMutabilityReturnType") // Want to be immutable, but need to support null also
     <V> List<V> runAllTasksCancelOnFailure(List<Callable<V>> tasks) {
         if (tasks.size() == 1) {
             try {

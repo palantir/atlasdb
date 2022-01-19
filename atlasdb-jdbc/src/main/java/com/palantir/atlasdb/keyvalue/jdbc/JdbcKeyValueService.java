@@ -275,7 +275,7 @@ public final class JdbcKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Value> get(final TableReference tableRef, final Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
-            return ImmutableMap.of();
+            return new HashMap<>();
         }
 
         Map<Cell, Value> toReturn = new HashMap<>();
@@ -300,7 +300,7 @@ public final class JdbcKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Long> getLatestTimestamps(final TableReference tableRef, final Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
-            return ImmutableMap.of();
+            return new HashMap<>();
         }
 
         Map<Cell, Long> toReturn = new HashMap<>();
@@ -509,8 +509,13 @@ public final class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.NOT_SUPPORTED;
+        return CheckAndSetCompatibility.unsupported();
     }
 
     @Override

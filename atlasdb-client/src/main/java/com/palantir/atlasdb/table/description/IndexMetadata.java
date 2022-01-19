@@ -48,6 +48,7 @@ public final class IndexMetadata {
     private final int numberOfComponentsHashed;
     final TableMetadataPersistence.LogSafety nameLogSafety;
 
+    @SuppressWarnings("TooManyArguments") // Legacy
     public static IndexMetadata createIndex(
             String name,
             String javaName,
@@ -84,6 +85,7 @@ public final class IndexMetadata {
                 logSafety);
     }
 
+    @SuppressWarnings("TooManyArguments") // Legacy
     public static IndexMetadata createDynamicIndex(
             String name,
             String javaName,

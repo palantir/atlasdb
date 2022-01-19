@@ -34,7 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class TransactionStarterHelper {
+final class TransactionStarterHelper {
     private TransactionStarterHelper() {
         // Do not instantiate helper class
     }

@@ -16,40 +16,94 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.immutables.value.Value;
 
 /**
  * Indicates whether a {@link KeyValueService} supports check and set (CAS) and put unless exists (PUE) operations, and
  * if so the granularity with which it can provide feedback.
  */
-public enum CheckAndSetCompatibility {
-    NOT_SUPPORTED,
+public interface CheckAndSetCompatibility {
     /**
-     * The {@link KeyValueService} supports CAS and PUE operations. However, in the event of failure, there are no
-     * guarantees that {@link CheckAndSetException#getActualValues()} or
-     * {@link KeyAlreadyExistsException#getExistingKeys()} actually return any meaningful data (other than the
-     * fact that the operation failed).
+     * If false, this {@link KeyValueService} does not support check and set operations.
      */
-    SUPPORTED_NO_DETAIL_ON_FAILURE,
-    /**
-     * The {@link KeyValueService} supports CAS and PUE operations. In the event of failure:
-     *
-     * - CAS: {@link CheckAndSetException#getActualValues()} on any such exception thrown must return the list
-     *        of existing values. (In practice, this should have zero or one elements.)
-     * - PUE: {@link KeyAlreadyExistsException#getExistingKeys()} on any such exception thrown must return the list
-     *        of all pre-existing cells for any row which the implementation attempted to put into the key value
-     *        service. Note that there is no guarantee that the implementation attempts to put all rows atomically.
-     */
-    SUPPORTED_DETAIL_ON_FAILURE;
+    boolean supportsCheckAndSetOperations();
 
-    public static CheckAndSetCompatibility min(Stream<CheckAndSetCompatibility> compatibilities) {
+    /**
+     * If false, there are no guarantees that a {@link CheckAndSetException#getActualValues()} or
+     * {@link KeyAlreadyExistsException#getExistingKeys()} from exceptions thrown by the the {@link KeyValueService}
+     * will actually return any meaningful data (other than the fact that the operation failed).
+     *
+     * This method should only be called if {@link CheckAndSetCompatibility#supportsCheckAndSetOperations()} is true.
+     * If it is not true, behaviour is undefined.
+     */
+    boolean supportsDetailOnFailure();
+
+    /**
+     *  If true, on CAS or PUE failure other than a {@link CheckAndSetException} or a
+     *  {@link KeyAlreadyExistsException}, the values may or may not have been persisted but the state is guaranteed to
+     *  be consistent: any subsequent reads will be repeatable. If false, the value may have been persisted
+     *  in a way that subsequent reads are not repeatable: if a read before the operation could have returned values
+     *  from a set S, it can non-deterministically return a value from S U {newValue} afterwards.
+     *
+     * This method should only be called if {@link CheckAndSetCompatibility#supportsCheckAndSetOperations()} is true.
+     * If it is not true, behaviour is undefined.
+     */
+    boolean consistentOnFailure();
+
+    static CheckAndSetCompatibility intersect(Stream<CheckAndSetCompatibility> compatibilities) {
         Set<CheckAndSetCompatibility> presentCompatibilities = compatibilities.collect(Collectors.toSet());
-        return Stream.of(NOT_SUPPORTED, SUPPORTED_NO_DETAIL_ON_FAILURE, SUPPORTED_DETAIL_ON_FAILURE)
-                .filter(presentCompatibilities::contains)
-                .findFirst()
-                .orElseThrow(() -> new SafeIllegalArgumentException("min requires at least 1 element, but 0 provided"));
+
+        boolean supported =
+                presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::supportsCheckAndSetOperations);
+        if (!supported) {
+            return Unsupported.INSTANCE;
+        }
+        boolean detail = presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::supportsDetailOnFailure);
+        boolean consistency = presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::consistentOnFailure);
+
+        return supportedBuilder()
+                .supportsDetailOnFailure(detail)
+                .consistentOnFailure(consistency)
+                .build();
+    }
+
+    static CheckAndSetCompatibility unsupported() {
+        return Unsupported.INSTANCE;
+    }
+
+    static ImmutableSupported.Builder supportedBuilder() {
+        return ImmutableSupported.builder();
+    }
+
+    enum Unsupported implements CheckAndSetCompatibility {
+        INSTANCE;
+
+        @Override
+        public boolean supportsCheckAndSetOperations() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsDetailOnFailure() {
+            throw new UnsupportedOperationException(
+                    "Should not check a KVS that does not support CAS operations for detail");
+        }
+
+        @Override
+        public boolean consistentOnFailure() {
+            throw new UnsupportedOperationException(
+                    "Should not check a KVS that does not support CAS operations for consistency");
+        }
+    }
+
+    @Value.Immutable
+    abstract class Supported implements CheckAndSetCompatibility {
+        @Override
+        public boolean supportsCheckAndSetOperations() {
+            return true;
+        }
     }
 }

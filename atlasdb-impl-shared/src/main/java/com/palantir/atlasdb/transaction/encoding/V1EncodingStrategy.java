@@ -19,7 +19,7 @@ package com.palantir.atlasdb.transaction.encoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-public enum V1EncodingStrategy implements TimestampEncodingStrategy {
+public enum V1EncodingStrategy implements TimestampEncodingStrategy<Long> {
     INSTANCE;
 
     @Override
@@ -34,12 +34,12 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy {
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, long commitTimestamp) {
+    public byte[] encodeCommitTimestampAsValue(long _ignoredStartTimestamp, Long commitTimestamp) {
         return TransactionConstants.getValueForTimestamp(commitTimestamp);
     }
 
     @Override
-    public long decodeValueAsCommitTimestamp(long ignoredStartTimestamp, byte[] value) {
+    public Long decodeValueAsCommitTimestamp(long _ignoredStartTimestamp, byte[] value) {
         return TransactionConstants.getTimestampForValue(value);
     }
 }

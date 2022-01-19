@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -300,11 +299,6 @@ public final class CassandraKeyValueServices {
      * deletion.
      */
     static Column createColumnForDelete(Cell cell, Value value, long cassandraTimestamp) {
-        Preconditions.checkState(
-                Arrays.equals(value.getContents(), PtBytes.EMPTY_BYTE_ARRAY),
-                "Attempted to createColumnForDelete on a non-delete value, for cell %s and value %s",
-                cell,
-                value);
         return createColumnAtSpecificCassandraTimestamp(cell, value, cassandraTimestamp);
     }
 

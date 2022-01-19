@@ -16,9 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@JsonSerialize(as = ImmutableLockWatchCachingConfig.class)
+@JsonDeserialize(as = ImmutableLockWatchCachingConfig.class)
 public interface LockWatchCachingConfig {
     /**
      * The maximum size, in bytes, for the lock watch value cache. Note that this is in truth an approximate maximum:

@@ -64,9 +64,10 @@ public class WriteInfoPartitionerTest {
     @Before
     public void setup() {
         partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards);
-        when(mockKvs.getMetadataForTable(any(TableReference.class)))
-                .thenAnswer(args ->
-                        METADATA_MAP.getOrDefault(args.getArguments()[0], AtlasDbConstants.EMPTY_TABLE_METADATA));
+        when(mockKvs.getMetadataForTable(any(TableReference.class))).thenAnswer(args -> {
+            TableReference tableRef = args.getArgument(0);
+            return METADATA_MAP.getOrDefault(tableRef, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        });
     }
 
     @Test

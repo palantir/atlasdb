@@ -19,8 +19,8 @@ package com.palantir.atlasdb.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.table.description.ValueType;
-import okio.ByteString;
 import org.junit.Test;
 
 public final class LongEntryMapperTests {
@@ -41,6 +41,6 @@ public final class LongEntryMapperTests {
     }
 
     private static ByteString toByteString(long value) {
-        return ByteString.of(ValueType.VAR_LONG.convertFromJava(value));
+        return ByteString.copyFrom(ValueType.VAR_LONG.convertFromJava(value));
     }
 }

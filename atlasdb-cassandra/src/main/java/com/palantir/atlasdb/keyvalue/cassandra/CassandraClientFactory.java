@@ -105,7 +105,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private Cassandra.Client getRawClientWithKeyspace(
-            InetSocketAddress inetSocketAddress, CassandraKeyValueServiceConfig kvsConfig) throws Exception {
+            InetSocketAddress inetSocketAddress, CassandraKeyValueServiceConfig kvsConfig) throws TException {
         Client ret = getRawClient(inetSocketAddress, kvsConfig, sslSocketFactory);
         try {
             ret.set_keyspace(kvsConfig.getKeyspaceOrThrow());
@@ -118,7 +118,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                             "usernameConfig",
                             " as user " + kvsConfig.credentials().username()));
             return ret;
-        } catch (Exception e) {
+        } catch (TException e) {
             ret.getOutputProtocol().getTransport().close();
             throw e;
         }

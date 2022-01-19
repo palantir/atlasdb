@@ -24,9 +24,9 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 public class LoggingLockEvents implements LockEvents {
@@ -54,7 +54,7 @@ public class LoggingLockEvents implements LockEvents {
 
     @Override
     public void timedOut(RequestInfo request, long acquisitionTimeMillis) {
-        requestTimer.update(acquisitionTimeMillis, TimeUnit.MILLISECONDS);
+        requestTimer.update(Duration.ofMillis(acquisitionTimeMillis));
         if (!isSlowAcquisition(acquisitionTimeMillis)) {
             return;
         }
@@ -70,7 +70,7 @@ public class LoggingLockEvents implements LockEvents {
 
     @Override
     public void successfulAcquisition(RequestInfo request, long acquisitionTimeMillis) {
-        requestTimer.update(acquisitionTimeMillis, TimeUnit.MILLISECONDS);
+        requestTimer.update(Duration.ofMillis(acquisitionTimeMillis));
         if (!isSlowAcquisition(acquisitionTimeMillis)) {
             return;
         }

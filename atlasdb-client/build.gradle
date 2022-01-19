@@ -45,7 +45,6 @@ dependencies {
   api group: "com.google.code.findbugs", name: "jsr305"
   api group: "com.google.guava", name: "guava"
   api group: "com.google.protobuf", name: "protobuf-java"
-  api group: "com.palantir.common", name: "streams"
   api group: "jakarta.annotation", name: "jakarta.annotation-api"
   api group: "org.slf4j", name: "slf4j-api"
 
@@ -74,9 +73,9 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
 
-  implementation group: 'com.squareup.okio', name: 'okio'
   implementation group: 'org.hdrhistogram', name: 'HdrHistogram'
   implementation group: 'com.github.rholder', name: 'guava-retrying'
+  implementation group: 'com.palantir.common', name: 'streams'
   implementation group: 'org.rocksdb', name: 'rocksdbjni'
 
   implementation group: 'com.squareup', name:'javapoet'
@@ -107,7 +106,6 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-api'
   implementation 'com.palantir.tritium:tritium-core'
   implementation 'com.palantir.tritium:tritium-slf4j'
-  implementation 'com.squareup.okio:okio'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
   implementation project(':atlasdb-autobatch')
@@ -121,7 +119,6 @@ dependencies {
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation 'com.palantir.tritium:tritium-api'
-  testImplementation 'com.squareup.okio:okio'
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.slf4j:slf4j-api'

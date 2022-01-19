@@ -51,7 +51,7 @@ public final class DatabasesContainer implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         dbs.forEach(DockerizedDatabase::close);
     }
 }

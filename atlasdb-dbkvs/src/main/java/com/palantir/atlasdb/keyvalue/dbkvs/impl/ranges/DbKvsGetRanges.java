@@ -65,6 +65,7 @@ import java.util.NavigableMap;
 import java.util.SortedSet;
 import java.util.function.Supplier;
 
+@SuppressWarnings("InlineFormatString") // complex query string, makes more sense to keep extracted as a constant
 public class DbKvsGetRanges {
     private static final SafeLogger log = SafeLoggerFactory.get(DbKvsGetRanges.class);
     private static final OperationTimer logTimer = LoggingOperationTimer.create(log);

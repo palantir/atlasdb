@@ -59,7 +59,7 @@ public class WriteBatchingTransactionServiceTest {
 
     @Before
     public void setUp() {
-        when(mockTransactionService.getEncodingStrategy()).thenReturn(ENCODING_STRATEGY);
+        when(mockTransactionService.getCellEncodingStrategy()).thenReturn(ENCODING_STRATEGY);
     }
 
     @After
@@ -115,7 +115,7 @@ public class WriteBatchingTransactionServiceTest {
 
         verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(2L, 200L, 3L, 300L));
         verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(3L, 300L));
-        verify(mockTransactionService, atLeastOnce()).getEncodingStrategy();
+        verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
     }
 
     @Test
@@ -159,7 +159,7 @@ public class WriteBatchingTransactionServiceTest {
         assertThatCode(() -> elementNotExisting.result().get()).doesNotThrowAnyException();
         assertThatCode(() -> elementToRetry.result().get()).doesNotThrowAnyException();
 
-        verify(mockTransactionService, atLeastOnce()).getEncodingStrategy();
+        verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
     }
 
     @Test
@@ -180,7 +180,7 @@ public class WriteBatchingTransactionServiceTest {
         AtomicInteger failureCount = new AtomicInteger();
         getResultsTrackingOutcomes(batchedRequest, successCount, failureCount);
         verify(mockTransactionService, times(1)).putUnlessExistsMultiple(anyMap());
-        verify(mockTransactionService, atLeastOnce()).getEncodingStrategy();
+        verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
 
         // XXX Technically invalid, but valid for a mock transaction service.
         assertThat(successCount).hasValue(1);
@@ -205,7 +205,7 @@ public class WriteBatchingTransactionServiceTest {
         AtomicInteger failureCount = new AtomicInteger();
         getResultsTrackingOutcomes(batchedRequest, successCount, failureCount);
         verify(mockTransactionService, times(1)).putUnlessExistsMultiple(anyMap());
-        verify(mockTransactionService, atLeastOnce()).getEncodingStrategy();
+        verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
 
         // XXX Technically invalid, but valid for a mock transaction service.
         assertThat(successCount).hasValue(0);
@@ -233,7 +233,7 @@ public class WriteBatchingTransactionServiceTest {
         AtomicInteger failureCount = new AtomicInteger();
         getResultsTrackingOutcomes(batchedRequest, successCount, failureCount);
         verify(mockTransactionService, times(1)).putUnlessExistsMultiple(anyMap());
-        verify(mockTransactionService, atLeastOnce()).getEncodingStrategy();
+        verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
 
         // XXX Technically invalid, but valid for a mock transaction service.
         assertThat(successCount).hasValue(1);
@@ -285,7 +285,7 @@ public class WriteBatchingTransactionServiceTest {
                                     (KeyAlreadyExistsException) executionException.getCause();
                             assertThat(keyAlreadyExistsException.getExistingKeys())
                                     .containsExactly(encodingTransactionService
-                                            .getEncodingStrategy()
+                                            .getCellEncodingStrategy()
                                             .encodeStartTimestampAsCell(1L));
                         });
                 exceptionCounter.incrementAndGet();

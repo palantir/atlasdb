@@ -19,9 +19,9 @@ package com.palantir.atlasdb.internalschema;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;

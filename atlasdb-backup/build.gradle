@@ -1,10 +1,15 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+    implementation project(':atlasdb-cassandra')
+    implementation project(':atlasdb-client')
     implementation project(':atlasdb-config')
     implementation project(':timelock-api:timelock-api-objects')
 
+    implementation 'com.palantir.common:streams'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
 
     testImplementation 'org.mockito:mockito-core'
+    testCompile group: 'commons-codec', name: 'commons-codec', version: '1.15'
 }
