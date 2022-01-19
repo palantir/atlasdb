@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: The host location supplier is now run in a separate thread, and will
+    return empty while evaluating. This is particularly important when the `Ec2HostLocationSupplier`
+    repeatedly (and slowly) fails to connect, as this is on the creation path of the
+    `CassandraClientPoolImpl` and thus the transaction manager creation path.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5865
