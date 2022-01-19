@@ -160,7 +160,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * STOPSHIP I am for RC only, this would make me a lot more expensive if just rolled out
+     * STOPSHIP I am for RC only, this would make me a lot more expensive if just rolled out.
      */
     @Value.Default
     default boolean tryToDetermineMyLocation() {

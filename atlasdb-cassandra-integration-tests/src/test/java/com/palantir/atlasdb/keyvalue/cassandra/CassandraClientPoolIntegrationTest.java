@@ -21,10 +21,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
@@ -32,8 +30,6 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
@@ -77,27 +73,6 @@ public class CassandraClientPoolIntegrationTest {
                 assertThat(hosts).contains(clientPool.getRandomHostForKey(tokenRange.upperEndpoint().bytes));
             }
         }
-    }
-
-    @Test
-    public void testRefreshLocalHosts() {
-        HostLocation localLocation = HostLocation.of("dc1", "rack1");
-        HostLocation remoteLocation = HostLocation.of("dc1", "rack4");
-
-        assertThat(getLocalHostsUsingLocation(localLocation)).isNotEmpty();
-        assertThat(getLocalHostsUsingLocation(remoteLocation)).isEmpty();
-    }
-
-    private Set<InetSocketAddress> getLocalHostsUsingLocation(HostLocation hostLocation) {
-        CassandraKeyValueServiceConfig configHostWithLocation = ImmutableCassandraKeyValueServiceConfig.builder()
-                .from(CASSANDRA.getConfig())
-                .overrideHostLocation(Optional.of(hostLocation))
-                .build();
-
-        CassandraClientPoolImpl clientPoolWithLocation = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
-
-        return clientPoolWithLocation.getLocalHosts();
     }
 
     @Test
