@@ -121,7 +121,6 @@ public final class TimelockNamespaces {
         if (removedServices != null) {
             removedServices.close();
         }
-        disabledNamespaces.disable(namespace);
     }
 
     private void registerClientCapacityMetrics(MetricsManager metricsManager) {
