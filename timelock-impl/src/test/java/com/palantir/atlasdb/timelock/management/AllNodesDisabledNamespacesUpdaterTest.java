@@ -125,6 +125,30 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     }
 
     @Test
+    public void rollsBackIfLocalUpdateFails() {
+        DisableNamespacesResponse successfulResponse =
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
+
+        when(remote1.disable(any(), any())).thenReturn(successfulResponse);
+        when(remote2.disable(any(), any())).thenReturn(successfulResponse);
+
+        Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
+        Set<Namespace> failedNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
+        DisableNamespacesResponse unsuccessfulResponse =
+                DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(failedNamespaces));
+        when(localUpdater.disable(DisableNamespacesRequest.of(namespaces, LOCK_ID)))
+                .thenReturn(unsuccessfulResponse);
+
+        DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
+
+        assertThat(response).isEqualTo(FAILED_SUCCESSFULLY);
+        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.of(failedNamespaces, LOCK_ID);
+        verify(remote1).reenable(AUTH_HEADER, rollbackRequest);
+        verify(remote2).reenable(AUTH_HEADER, rollbackRequest);
+        verify(localUpdater).reEnable(rollbackRequest);
+    }
+
+    @Test
     public void canReEnableSingleNamespace() {
         ReenableNamespacesResponse successfulResponse = ReenableNamespacesResponse.of(true);
 

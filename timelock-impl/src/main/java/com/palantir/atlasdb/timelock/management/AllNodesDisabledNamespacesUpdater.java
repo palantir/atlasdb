@@ -41,6 +41,7 @@ import com.palantir.paxos.PaxosResponsesWithRemote;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -98,14 +99,20 @@ public class AllNodesDisabledNamespacesUpdater {
         Set<DisableNamespacesResponse> responses = attemptOnAllNodes(update, successEvaluator);
         boolean updateSuccess = responses.stream().allMatch(successEvaluator::apply);
 
+        Set<DisableNamespacesResponse> localResponses = new HashSet<>();
         if (updateSuccess) {
-            // TODO(gs): fall back if fails
-            return localUpdater.disable(request);
+            DisableNamespacesResponse response = localUpdater.disable(request);
+            localResponses.add(response);
+            if (response.accept(successfulDisableVisitor())) {
+                return response;
+            }
+            // else, roll back
         }
 
         // roll back in the event of failure
         // TODO(gs): should we just force re-enable all namespaces?
-        Set<Namespace> failedNamespaces = responses.stream()
+        Set<DisableNamespacesResponse> allResponses = Sets.union(responses, localResponses);
+        Set<Namespace> failedNamespaces = allResponses.stream()
                 .map(resp -> resp.accept(disableResponseVisitor(
                         _unused -> ImmutableSet.of(), UnsuccessfulDisableNamespacesResponse::getDisabledNamespaces)))
                 .flatMap(Collection::stream)
@@ -124,6 +131,7 @@ public class AllNodesDisabledNamespacesUpdater {
                 .build();
         boolean rollbackSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(
                 service.reenable(authHeader, rollbackRequest).getWasSuccessful()));
+        localUpdater.reEnable(rollbackRequest);
         if (rollbackSuccess) {
             log.error(
                     "Failed to disable all namespaces. However, we successfully rolled back any partially disabled namespaces.",
