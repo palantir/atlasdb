@@ -31,6 +31,8 @@ import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
@@ -78,7 +80,8 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
     @Test
     public void canDisableSingleNamespace() {
-        DisableNamespacesResponse successfulResponse = DisableNamespacesResponse.of(true, LOCK_ID);
+        DisableNamespacesResponse successfulResponse =
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
 
         when(remote1.disable(any(), any())).thenReturn(successfulResponse);
         when(remote2.disable(any(), any())).thenReturn(successfulResponse);
@@ -87,6 +90,19 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE));
 
         assertThat(response).isEqualTo(successfulResponse);
+    }
+
+    @Test
+    public void doesNotDisableIfPingFailsOnOneNode() {
+        when(remote2.ping(AUTH_HEADER)).thenReturn(false);
+
+        DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE));
+
+        assertThat(response)
+                .isEqualTo(DisableNamespacesResponse.unsuccessful(
+                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of())));
+        verify(remote1, never()).disable(any(), any());
+        verify(remote2, never()).disable(any(), any());
     }
 
     @Test

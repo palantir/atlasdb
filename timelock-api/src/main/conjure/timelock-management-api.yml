@@ -8,10 +8,17 @@ types:
         fields:
           namespaces: set<api.Namespace>
           lockId: uuid
-      DisableNamespacesResponse:
+      SuccessfulDisableNamespacesResponse:
         fields:
-          wasSuccessful: boolean
           lockId: uuid
+      UnsuccessfulDisableNamespacesResponse:
+        fields:
+          # if this set is non-empty, action will be required
+          disabledNamespaces: set<api.Namespace>
+      DisableNamespacesResponse:
+        union:
+          successful: SuccessfulDisableNamespacesResponse
+          unsuccessful: UnsuccessfulDisableNamespacesResponse
       ReenableNamespacesRequest:
         fields:
           namespaces: set<api.Namespace>

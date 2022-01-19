@@ -28,6 +28,7 @@ import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
@@ -127,9 +128,9 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     private ListenableFuture<DisableNamespacesResponse> disableInternal(Set<Namespace> namespaces) {
-        // todo(gmaretic): disable all remote nodes
-        // todo(gmaretic): disable locally
-        return Futures.immediateFuture(DisableNamespacesResponse.builder().build());
+        // todo(gs): wire up ANDNU
+        return Futures.immediateFuture(
+                DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of())));
     }
 
     @Override
@@ -139,8 +140,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     public ListenableFuture<ReenableNamespacesResponse> reenableInternal(ReenableNamespacesRequest request) {
-        // todo(gmaretic): reenable all remote nodes
-        // todo(gmaretic): reenable locally
+        // todo(gs): wire up ANDNU
         return Futures.immediateFuture(ReenableNamespacesResponse.builder().build());
     }
 

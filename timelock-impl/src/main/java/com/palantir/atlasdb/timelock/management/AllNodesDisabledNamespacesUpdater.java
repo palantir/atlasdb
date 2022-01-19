@@ -17,13 +17,18 @@
 package com.palantir.atlasdb.timelock.management;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosQuorumChecker;
@@ -56,16 +61,15 @@ public class AllNodesDisabledNamespacesUpdater {
     public DisableNamespacesResponse disableOnAllNodes(Set<Namespace> namespaces) {
         boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
 
-        // TODO(gs): exception
         if (!pingSuccess) {
-            // TODO(gs): no uuid
-            return DisableNamespacesResponse.of(false, null);
+            // TODO(gs): log failure
+            return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of()));
         }
 
         UUID lockId = UUID.randomUUID();
         DisableNamespacesRequest request = DisableNamespacesRequest.of(namespaces, lockId);
         Function<DisabledNamespacesUpdaterService, PaxosResponse> update = service ->
-                new BooleanPaxosResponse(service.disable(authHeader, request).getWasSuccessful());
+                new BooleanPaxosResponse(service.disable(authHeader, request).accept(successfulDisableVisitor()));
         boolean updateSuccess = attemptOnAllNodes(update);
 
         if (updateSuccess) {
@@ -84,11 +88,32 @@ public class AllNodesDisabledNamespacesUpdater {
         boolean rollbackSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(
                 service.reenable(authHeader, rollbackRequest).getWasSuccessful()));
         if (rollbackSuccess) {
-            return DisableNamespacesResponse.of(false, null);
+            return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of()));
         }
 
-        // TODO(gs): proper exception
-        throw new SafeRuntimeException("ohno");
+        // TODO(gs): which namespaces were actually disabled?
+        return DisableNamespacesResponse.unsuccessful(
+                UnsuccessfulDisableNamespacesResponse.of(request.getNamespaces()));
+    }
+
+    private DisableNamespacesResponse.Visitor<Boolean> successfulDisableVisitor() {
+        return new DisableNamespacesResponse.Visitor<>() {
+            @Override
+            public Boolean visitSuccessful(SuccessfulDisableNamespacesResponse value) {
+                return true;
+            }
+
+            @Override
+            public Boolean visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
+                return false;
+            }
+
+            @Override
+            public Boolean visitUnknown(String unknownType) {
+                throw new SafeIllegalStateException(
+                        "Unknown DisabledNamespacesResponse", SafeArg.of("responseType", unknownType));
+            }
+        };
     }
 
     public ReenableNamespacesResponse reenableOnAllNodes(ReenableNamespacesRequest request) {
