@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,7 +58,6 @@ public class TimelockNamespacesTest {
     @Mock
     private Supplier<Integer> maxNumberOfClientsSupplier;
 
-    // TODO(gs): tests involving this mock
     @Mock
     private DisabledNamespaces disabledNamespaces;
 
@@ -71,6 +72,7 @@ public class TimelockNamespacesTest {
         when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
         when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
         when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
+        when(disabledNamespaces.isEnabled(anyString())).thenReturn(true);
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
@@ -87,6 +89,13 @@ public class TimelockNamespacesTest {
         namespaces.get(CLIENT_A);
 
         verify(serviceFactory, times(1)).apply(any());
+    }
+
+    @Test
+    public void cannotCreateServiceForDisabledNamespace() {
+        when(disabledNamespaces.isEnabled(CLIENT_A)).thenReturn(false);
+
+        assertThatThrownBy(() -> namespaces.get(CLIENT_A)).isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
