@@ -96,26 +96,6 @@ public class AllNodesDisabledNamespacesUpdater {
                 UnsuccessfulDisableNamespacesResponse.of(request.getNamespaces()));
     }
 
-    private DisableNamespacesResponse.Visitor<Boolean> successfulDisableVisitor() {
-        return new DisableNamespacesResponse.Visitor<>() {
-            @Override
-            public Boolean visitSuccessful(SuccessfulDisableNamespacesResponse value) {
-                return true;
-            }
-
-            @Override
-            public Boolean visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
-                return false;
-            }
-
-            @Override
-            public Boolean visitUnknown(String unknownType) {
-                throw new SafeIllegalStateException(
-                        "Unknown DisabledNamespacesResponse", SafeArg.of("responseType", unknownType));
-            }
-        };
-    }
-
     public ReenableNamespacesResponse reenableOnAllNodes(ReenableNamespacesRequest request) {
         boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
 
@@ -157,5 +137,25 @@ public class AllNodesDisabledNamespacesUpdater {
                 PaxosQuorumChecker.collectQuorumResponses(
                         updaters, request, updaters.size(), executors, Duration.ofSeconds(5L), true);
         return responses.responses().values().stream().allMatch(PaxosResponse::isSuccessful);
+    }
+
+    private DisableNamespacesResponse.Visitor<Boolean> successfulDisableVisitor() {
+        return new DisableNamespacesResponse.Visitor<>() {
+            @Override
+            public Boolean visitSuccessful(SuccessfulDisableNamespacesResponse value) {
+                return true;
+            }
+
+            @Override
+            public Boolean visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
+                return false;
+            }
+
+            @Override
+            public Boolean visitUnknown(String unknownType) {
+                throw new SafeIllegalStateException(
+                        "Unknown DisabledNamespacesResponse", SafeArg.of("responseType", unknownType));
+            }
+        };
     }
 }
