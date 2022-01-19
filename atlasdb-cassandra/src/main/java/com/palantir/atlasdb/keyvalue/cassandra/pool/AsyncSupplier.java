@@ -18,6 +18,9 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +37,7 @@ import javax.annotation.concurrent.ThreadSafe;
  */
 @ThreadSafe
 final class AsyncSupplier<T> implements Supplier<Optional<T>> {
+    private static final SafeLogger log = SafeLoggerFactory.get(AsyncSupplier.class);
     private final Supplier<Optional<T>> delegate;
     private final ExecutorService executorService;
     private Future<Optional<T>> result;
@@ -53,8 +57,9 @@ final class AsyncSupplier<T> implements Supplier<Optional<T>> {
                 return result.get();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
+                throw new SafeRuntimeException("Interrupted while attempting to compute supplier value", e);
             } catch (ExecutionException e) {
+                log.warn("Failed to evaluate delegate supplier asynchronously; returning empty", e);
                 result = Futures.immediateFuture(Optional.empty());
             }
         }
