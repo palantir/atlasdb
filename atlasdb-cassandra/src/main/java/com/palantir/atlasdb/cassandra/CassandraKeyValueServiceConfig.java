@@ -160,6 +160,14 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
+     * STOPSHIP I am for RC only, this would make me a lot more expensive if just rolled out
+     */
+    @Value.Default
+    default boolean tryToDetermineMyLocation() {
+        return false;
+    }
+
+    /**
      * Overrides the behaviour of the host location supplier.
      */
     Optional<HostLocation> overrideHostLocation();

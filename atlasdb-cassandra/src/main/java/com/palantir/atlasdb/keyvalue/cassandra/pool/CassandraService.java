@@ -96,7 +96,9 @@ public class CassandraService implements AutoCloseable {
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
         this.config = config;
-        this.myLocationSupplier = HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation());
+        this.myLocationSupplier = config.tryToDetermineMyLocation()
+                ? HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation())
+                : Optional::empty;
         this.blacklist = blacklist;
         this.poolMetrics = poolMetrics;
 
