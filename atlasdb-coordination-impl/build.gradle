@@ -23,6 +23,7 @@ dependencies {
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 
+  testImplementation project(':commons-executors')
   testImplementation group: 'org.assertj', name: 'assertj-core'
   testImplementation group: 'org.mockito', name: 'mockito-core'
   testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'

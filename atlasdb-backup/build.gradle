@@ -4,7 +4,9 @@ dependencies {
     implementation project(':atlasdb-cassandra')
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-config')
+    implementation project(':atlasdb-impl-shared')
     implementation project(':timelock-api:timelock-api-objects')
+    implementation project(':atlasdb-coordination-impl')
 
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.safe-logging:safe-logging'
