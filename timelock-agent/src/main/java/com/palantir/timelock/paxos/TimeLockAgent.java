@@ -176,8 +176,6 @@ public class TimeLockAgent {
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, restrictedRuntime::get));
 
-        // TODO(gs): set up AllNodesUpdater
-
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
                 install,
