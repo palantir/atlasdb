@@ -102,24 +102,10 @@ public class AllNodesDisabledNamespacesUpdater {
         //      (safe to assume this is already monitored)
         // TODO(gS): should be force-reenable
         Set<Namespace> failedNamespaces = responses.stream()
-                .map(resp -> resp.accept(new DisableNamespacesResponse.Visitor<Set<Namespace>>() {
-                    @Override
-                    public Set<Namespace> visitSuccessful(SuccessfulDisableNamespacesResponse value) {
-                        return ImmutableSet.of();
-                    }
-
-                    @Override
-                    public Set<Namespace> visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
-                        return value.getDisabledNamespaces();
-                    }
-
-                    @Override
-                    public Set<Namespace> visitUnknown(String unknownType) {
-                        throw new SafeIllegalStateException(
-                                "Unknown DisabledNamespacesResponse", SafeArg.of("responseType", unknownType));
-                    }
-                }))
+                .map(resp -> resp.accept(disableResponseVisitor(
+                        _unused -> ImmutableSet.of(), UnsuccessfulDisableNamespacesResponse::getDisabledNamespaces)))
                 .flatMap(Collection::stream)
+                .map(capture -> (Namespace) capture)
                 .collect(Collectors.toSet());
 
         // Don't try to rollback if there's nothing to roll back
@@ -198,19 +184,25 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     private DisableNamespacesResponse.Visitor<Boolean> successfulDisableVisitor() {
-        return new DisableNamespacesResponse.Visitor<>() {
+        return disableResponseVisitor(_unused -> true, _unused -> false);
+    }
+
+    private <T> DisableNamespacesResponse.Visitor<T> disableResponseVisitor(
+            Function<SuccessfulDisableNamespacesResponse, T> visitSuccessful,
+            Function<UnsuccessfulDisableNamespacesResponse, T> visitUnsuccessful) {
+        return new DisableNamespacesResponse.Visitor<T>() {
             @Override
-            public Boolean visitSuccessful(SuccessfulDisableNamespacesResponse value) {
-                return true;
+            public T visitSuccessful(SuccessfulDisableNamespacesResponse value) {
+                return visitSuccessful.apply(value);
             }
 
             @Override
-            public Boolean visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
-                return false;
+            public T visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
+                return visitUnsuccessful.apply(value);
             }
 
             @Override
-            public Boolean visitUnknown(String unknownType) {
+            public T visitUnknown(String unknownType) {
                 throw new SafeIllegalStateException(
                         "Unknown DisabledNamespacesResponse", SafeArg.of("responseType", unknownType));
             }
