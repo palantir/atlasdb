@@ -37,6 +37,7 @@ import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import org.junit.Before;
@@ -50,9 +51,10 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("bear");
     private static final AuthHeader AUTH_HEADER = AuthHeader.of(BEARER_TOKEN);
     private static final Namespace NAMESPACE = Namespace.of("namespace");
-
-    // TODO(gs): pass in a UUID supplier?
+    private static final Namespace OTHER_NAMESPACE = Namespace.of("other-namespace");
     private static final UUID LOCK_ID = new UUID(13, 37);
+    private static final DisableNamespacesResponse FAILED_SUCCESSFULLY =
+            DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of()));
 
     @Mock
     private DisabledNamespaces localUpdater;
@@ -75,7 +77,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
                 remote1, new CheckedRejectionExecutorService(Executors.newSingleThreadExecutor()),
                 remote2, new CheckedRejectionExecutorService(Executors.newSingleThreadExecutor()));
 
-        updater = new AllNodesDisabledNamespacesUpdater(AUTH_HEADER, remotes, executors, localUpdater);
+        updater = new AllNodesDisabledNamespacesUpdater(AUTH_HEADER, remotes, executors, localUpdater, () -> LOCK_ID);
     }
 
     @Test
@@ -98,11 +100,28 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
         DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE));
 
-        assertThat(response)
-                .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of())));
+        assertThat(response).isEqualTo(FAILED_SUCCESSFULLY);
         verify(remote1, never()).disable(any(), any());
         verify(remote2, never()).disable(any(), any());
+    }
+
+    @Test
+    public void rollsBackDisabledNamespacesAfterPartialFailure() {
+        DisableNamespacesResponse successfulResponse =
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
+        Set<Namespace> failedNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
+        DisableNamespacesResponse unsuccessfulResponse =
+                DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(failedNamespaces));
+
+        when(remote1.disable(any(), any())).thenReturn(successfulResponse);
+        when(remote2.disable(any(), any())).thenReturn(unsuccessfulResponse);
+
+        DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
+
+        assertThat(response).isEqualTo(FAILED_SUCCESSFULLY);
+        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.of(failedNamespaces, LOCK_ID);
+        verify(remote1).reenable(AUTH_HEADER, rollbackRequest);
+        verify(remote2).reenable(AUTH_HEADER, rollbackRequest);
     }
 
     @Test
