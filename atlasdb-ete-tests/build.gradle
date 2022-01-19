@@ -39,11 +39,8 @@ dependencies {
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-commons')
-<<<<<<< HEAD
-=======
     implementation project(':atlasdb-impl-shared')
     implementation project(':atlasdb-tests-shared')
->>>>>>> develop
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
@@ -92,7 +89,6 @@ dependencies {
     testImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
     testImplementation group: 'org.assertj', name: 'assertj-core'
 }
-
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     from distTar.outputs
