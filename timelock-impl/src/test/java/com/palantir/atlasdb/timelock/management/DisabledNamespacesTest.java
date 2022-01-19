@@ -22,6 +22,8 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.paxos.SqliteConnections;
@@ -34,6 +36,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class DisabledNamespacesTest {
     private static final UUID LOCK_ID = new UUID(13, 52);
+    private static final UUID OTHER_LOCK_ID = new UUID(123, 45);
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -89,6 +92,35 @@ public class DisabledNamespacesTest {
     }
 
     @Test
+    public void disableFailsIfPartiallyDisabled() {
+        DisableNamespacesResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(firstResponse)
+                .isEqualTo(DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID)));
+
+        DisableNamespacesResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(SECOND, FIRST));
+
+        assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
+
+        assertThat(secondResponse)
+                .isEqualTo(DisableNamespacesResponse.unsuccessful(
+                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(Namespace.of(FIRST)))));
+    }
+
+    @Test
+    public void enableFailsIfDisabledWithWrongLock() {
+        DisableNamespacesResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        DisableNamespacesRequest wrongLockId =
+                DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(SECOND)), OTHER_LOCK_ID);
+        DisableNamespacesResponse secondResponse = disabledNamespaces.disable(wrongLockId);
+
+        ReenableNamespacesResponse response = disabledNamespaces.reEnable(
+                ReenableNamespacesRequest.of(ImmutableSet.of(Namespace.of(FIRST), Namespace.of(SECOND)), LOCK_ID));
+
+        // TODO(gs): report deadlocked databases
+        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false));
+    }
+
+    @Test
     public void canReEnableNamespaces() {
         disabledNamespaces.disable(disableNamespacesRequest(FIRST));
         disabledNamespaces.disable(disableNamespacesRequest(SECOND));
@@ -118,5 +150,11 @@ public class DisabledNamespacesTest {
 
     private DisableNamespacesRequest disableNamespacesRequest(String namespace) {
         return DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(namespace)), LOCK_ID);
+    }
+
+    private DisableNamespacesRequest disableNamespacesRequest(String firstNamespace, String secondNamespace) {
+        ImmutableSet<Namespace> namespaces =
+                ImmutableSet.of(Namespace.of(firstNamespace), Namespace.of(secondNamespace));
+        return DisableNamespacesRequest.of(namespaces, LOCK_ID);
     }
 }

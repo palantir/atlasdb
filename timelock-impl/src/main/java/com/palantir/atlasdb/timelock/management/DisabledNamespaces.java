@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -23,19 +24,21 @@ import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.core.statement.UnableToExecuteStatementException;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import org.jdbi.v3.sqlobject.customizer.Bind;
+import org.jdbi.v3.sqlobject.statement.SqlBatch;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
+import org.jdbi.v3.sqlobject.transaction.Transaction;
 
 public class DisabledNamespaces {
     private static final SafeLogger log = SafeLoggerFactory.get(DisabledNamespaces.class);
@@ -71,28 +74,21 @@ public class DisabledNamespaces {
 
     public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
         UUID lockId = request.getLockId();
-        boolean allDisabled = request.getNamespaces().stream().allMatch(ns -> disable(ns, lockId));
-        return allDisabled
-                ? DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId))
-                : DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(request.getNamespaces()));
-    }
-
-    // TODO (gs): single transaction
-    private boolean disable(Namespace namespace, UUID lockId) {
-        try {
-            execute(dao -> dao.disable(namespace.get(), lockId));
-            return true;
-        } catch (UnableToExecuteStatementException ex) {
-            log.error("Could not disable namespace", SafeArg.of("namespace", namespace), ex);
-            return false;
+        Set<Namespace> failedNamespaces = execute(dao -> dao.disableAll(request.getNamespaces(), lockId));
+        if (failedNamespaces.isEmpty()) {
+            return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
+        } else {
+            return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(failedNamespaces));
         }
     }
 
-    // TODO (gs): enforce passing the same lock ID
     public ReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
-        request.getNamespaces().forEach(this::reEnable);
-        return ReenableNamespacesResponse.of(true);
+        Set<Namespace> lockedNamespaces = execute(dao -> dao.enableAll(request.getNamespaces(), request.getLockId()));
+        if (lockedNamespaces.isEmpty()) {
+            return ReenableNamespacesResponse.of(true);
+        } else {
+            return ReenableNamespacesResponse.of(false);
+        }
     }
 
     public void reEnable(Namespace namespace) {
@@ -107,16 +103,42 @@ public class DisabledNamespaces {
         return jdbi.withExtension(Queries.class, call::apply);
     }
 
-    // TODO(gs): future PR to add management endpoints:
-    //   - forceReenable(Set<Namespace>) (should call itself)
-    //   - forceReenableAll()
-
     public interface Queries {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS disabled (namespace TEXT PRIMARY KEY, lockId UUID)")
         boolean createTable();
 
-        @SqlUpdate("INSERT INTO disabled (namespace, lockId) VALUES (?, ?)")
-        boolean disable(String namespace, UUID lockId);
+        @Transaction
+        default Set<Namespace> disableAll(Set<Namespace> namespaces, UUID lockId) {
+            Set<Namespace> alreadyDisabled = namespaces.stream()
+                    .filter(ns -> getState(ns.toString()).isPresent())
+                    .collect(Collectors.toSet());
+            if (!alreadyDisabled.isEmpty()) {
+                return alreadyDisabled;
+            }
+
+            Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
+            disable(namespaceNames, lockId);
+            return ImmutableSet.of();
+        }
+
+        @Transaction
+        default Set<Namespace> enableAll(Set<Namespace> namespaces, UUID lockId) {
+            Set<Namespace> namespacesWithLockConflict = namespaces.stream()
+                    .filter(ns -> !getLockId(ns.get()).orElse(lockId).equals(lockId))
+                    .collect(Collectors.toSet());
+            if (!namespacesWithLockConflict.isEmpty()) {
+                return namespacesWithLockConflict;
+            }
+
+            namespaces.stream().map(Namespace::get).forEach(this::delete);
+            return ImmutableSet.of();
+        }
+
+        @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?)")
+        void disable(@Bind("namespace") Set<String> namespaces, @Bind("lockId") UUID lockId);
+
+        @SqlQuery("SELECT lockId FROM disabled WHERE namespace = ?")
+        Optional<UUID> getLockId(String namespace);
 
         // TODO(gs): get lock ID
         @SqlQuery("SELECT namespace FROM disabled WHERE namespace = ?")
