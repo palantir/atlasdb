@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,6 +27,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -72,7 +72,7 @@ public class TimelockNamespacesTest {
         when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
         when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
         when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
-        when(disabledNamespaces.isEnabled(anyString())).thenReturn(true);
+        when(disabledNamespaces.isEnabled(any())).thenReturn(true);
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
@@ -93,7 +93,7 @@ public class TimelockNamespacesTest {
 
     @Test
     public void cannotCreateServiceForDisabledNamespace() {
-        when(disabledNamespaces.isEnabled(CLIENT_A)).thenReturn(false);
+        when(disabledNamespaces.isEnabled(Namespace.of(CLIENT_A))).thenReturn(false);
 
         assertThatThrownBy(() -> namespaces.get(CLIENT_A)).isInstanceOf(SafeIllegalArgumentException.class);
     }

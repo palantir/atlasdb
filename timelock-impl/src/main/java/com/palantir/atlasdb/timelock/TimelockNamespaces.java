@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toSet;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -93,7 +94,7 @@ public final class TimelockNamespaces {
                 "The client name is reserved for the leader election service, and may not be used.",
                 SafeArg.of("clientName", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
         Preconditions.checkArgument(
-                disabledNamespaces.isEnabled(namespace),
+                disabledNamespaces.isEnabled(Namespace.of(namespace)),
                 "Cannot create a client for namespace because the namespace has been explicitly disabled.",
                 SafeArg.of("namespace", namespace));
 

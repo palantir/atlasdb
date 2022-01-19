@@ -41,8 +41,8 @@ public class DisabledNamespacesTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final String FIRST = "fst";
-    private static final String SECOND = "snd";
+    private static final Namespace FIRST = Namespace.of("fst");
+    private static final Namespace SECOND = Namespace.of("snd");
 
     private DisabledNamespaces disabledNamespaces;
 
@@ -88,7 +88,7 @@ public class DisabledNamespacesTest {
         DisableNamespacesResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
         assertThat(secondResponse)
                 .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(Namespace.of(FIRST)))));
+                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
     }
 
     @Test
@@ -103,18 +103,17 @@ public class DisabledNamespacesTest {
 
         assertThat(secondResponse)
                 .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(Namespace.of(FIRST)))));
+                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
     }
 
     @Test
     public void enableFailsIfDisabledWithWrongLock() {
         disabledNamespaces.disable(disableNamespacesRequest(FIRST));
-        DisableNamespacesRequest wrongLockId =
-                DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(SECOND)), OTHER_LOCK_ID);
+        DisableNamespacesRequest wrongLockId = DisableNamespacesRequest.of(ImmutableSet.of(SECOND), OTHER_LOCK_ID);
         disabledNamespaces.disable(wrongLockId);
 
-        ReenableNamespacesResponse response = disabledNamespaces.reEnable(
-                ReenableNamespacesRequest.of(ImmutableSet.of(Namespace.of(FIRST), Namespace.of(SECOND)), LOCK_ID));
+        ReenableNamespacesResponse response =
+                disabledNamespaces.reEnable(ReenableNamespacesRequest.of(ImmutableSet.of(FIRST, SECOND), LOCK_ID));
 
         // TODO(gs): report deadlocked databases
         assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false));
@@ -124,13 +123,13 @@ public class DisabledNamespacesTest {
     public void canReEnableNamespaces() {
         disabledNamespaces.disable(disableNamespacesRequest(FIRST));
         disabledNamespaces.disable(disableNamespacesRequest(SECOND));
-        disabledNamespaces.reEnable(FIRST);
+        disabledNamespaces.reEnable(reEnableNamespacesRequest(FIRST));
 
         assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
         assertThat(disabledNamespaces.isDisabled(SECOND)).isTrue();
         assertThat(disabledNamespaces.disabledNamespaces()).containsExactly(SECOND);
 
-        disabledNamespaces.reEnable(SECOND);
+        disabledNamespaces.reEnable(reEnableNamespacesRequest(SECOND));
         assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
         assertThat(disabledNamespaces.disabledNamespaces()).isEmpty();
     }
@@ -143,18 +142,16 @@ public class DisabledNamespacesTest {
 
         assertThat(disabledNamespaces.isDisabled(FIRST)).isTrue();
 
-        disabledNamespaces.reEnable(FIRST);
-        disabledNamespaces.reEnable(FIRST);
+        disabledNamespaces.reEnable(reEnableNamespacesRequest(FIRST));
+        disabledNamespaces.reEnable(reEnableNamespacesRequest(FIRST));
         assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
     }
 
-    private DisableNamespacesRequest disableNamespacesRequest(String namespace) {
-        return DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(namespace)), LOCK_ID);
+    private DisableNamespacesRequest disableNamespacesRequest(Namespace... namespaces) {
+        return DisableNamespacesRequest.of(ImmutableSet.copyOf(namespaces), LOCK_ID);
     }
 
-    private DisableNamespacesRequest disableNamespacesRequest(String firstNamespace, String secondNamespace) {
-        ImmutableSet<Namespace> namespaces =
-                ImmutableSet.of(Namespace.of(firstNamespace), Namespace.of(secondNamespace));
-        return DisableNamespacesRequest.of(namespaces, LOCK_ID);
+    private ReenableNamespacesRequest reEnableNamespacesRequest(Namespace... namespaces) {
+        return ReenableNamespacesRequest.of(ImmutableSet.copyOf(namespaces), LOCK_ID);
     }
 }

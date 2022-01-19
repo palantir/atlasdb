@@ -61,16 +61,16 @@ public class DisabledNamespaces {
         execute(Queries::createTable);
     }
 
-    public boolean isDisabled(String namespace) {
-        return execute(dao -> dao.getState(namespace)).isPresent();
+    public boolean isDisabled(Namespace namespace) {
+        return execute(dao -> dao.getState(namespace.get())).isPresent();
     }
 
-    public boolean isEnabled(String namespace) {
-        return execute(dao -> dao.getState(namespace)).isEmpty();
+    public boolean isEnabled(Namespace namespace) {
+        return execute(dao -> dao.getState(namespace.get())).isEmpty();
     }
 
-    public Set<String> disabledNamespaces() {
-        return execute(Queries::getAllStates);
+    public Set<Namespace> disabledNamespaces() {
+        return execute(Queries::getAllStates).stream().map(Namespace::of).collect(Collectors.toSet());
     }
 
     public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
@@ -100,14 +100,6 @@ public class DisabledNamespaces {
                     SafeArg.of("failedNamespaces", lockedNamespaces));
             return ReenableNamespacesResponse.of(false);
         }
-    }
-
-    public void reEnable(Namespace namespace) {
-        execute(dao -> dao.delete(namespace.get()));
-    }
-
-    public void reEnable(String namespace) {
-        execute(dao -> dao.delete(namespace));
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -151,7 +143,6 @@ public class DisabledNamespaces {
         @SqlQuery("SELECT lockId FROM disabled WHERE namespace = ?")
         Optional<UUID> getLockId(String namespace);
 
-        // TODO(gs): get lock ID
         @SqlQuery("SELECT namespace FROM disabled WHERE namespace = ?")
         Optional<String> getState(String namespace);
 
