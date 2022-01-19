@@ -150,7 +150,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
     @Test
     public void canReEnableSingleNamespace() {
-        ReenableNamespacesResponse successfulResponse = ReenableNamespacesResponse.of(true);
+        ReenableNamespacesResponse successfulResponse = ReenableNamespacesResponse.of(true, ImmutableSet.of());
 
         ReenableNamespacesRequest request = ReenableNamespacesRequest.of(ImmutableSet.of(NAMESPACE), LOCK_ID);
         when(remote1.reenable(AUTH_HEADER, request)).thenReturn(successfulResponse);
@@ -168,7 +168,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         ReenableNamespacesRequest request = ReenableNamespacesRequest.of(ImmutableSet.of(NAMESPACE), LOCK_ID);
         ReenableNamespacesResponse response = updater.reenableOnAllNodes(request);
 
-        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false));
+        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false, ImmutableSet.of()));
         verify(remote1, never()).reenable(any(), any());
         verify(remote2, never()).reenable(any(), any());
     }

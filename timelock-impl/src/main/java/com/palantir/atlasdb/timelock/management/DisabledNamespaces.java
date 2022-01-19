@@ -92,13 +92,13 @@ public class DisabledNamespaces {
         Set<Namespace> lockedNamespaces = execute(dao -> dao.enableAll(request.getNamespaces(), request.getLockId()));
         if (lockedNamespaces.isEmpty()) {
             log.info("Successfully re-enabled namespaces", SafeArg.of("namespaces", request.getNamespaces()));
-            return ReenableNamespacesResponse.of(true);
+            return ReenableNamespacesResponse.of(true, lockedNamespaces);
         } else {
             log.error(
                     "Failed to re-ensable namespaces, as some were disabled with a different lock ID",
                     SafeArg.of("namespaces", request.getNamespaces()),
                     SafeArg.of("failedNamespaces", lockedNamespaces));
-            return ReenableNamespacesResponse.of(false);
+            return ReenableNamespacesResponse.of(false, lockedNamespaces);
         }
     }
 

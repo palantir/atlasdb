@@ -158,7 +158,7 @@ public class AllNodesDisabledNamespacesUpdater {
             log.error(
                     "Failed to reach all remote nodes. Not re-enabling any namespaces",
                     SafeArg.of("namespaces", request.getNamespaces()));
-            return ReenableNamespacesResponse.of(false);
+            return ReenableNamespacesResponse.of(false, ImmutableSet.of());
         }
 
         Function<DisabledNamespacesUpdaterService, PaxosResponse> update = service ->

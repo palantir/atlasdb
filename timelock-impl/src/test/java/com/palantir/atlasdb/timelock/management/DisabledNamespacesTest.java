@@ -115,8 +115,7 @@ public class DisabledNamespacesTest {
         ReenableNamespacesResponse response =
                 disabledNamespaces.reEnable(ReenableNamespacesRequest.of(ImmutableSet.of(FIRST, SECOND), LOCK_ID));
 
-        // TODO(gs): report deadlocked databases
-        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false));
+        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false, ImmutableSet.of(SECOND)));
     }
 
     @Test

@@ -25,8 +25,8 @@ types:
           lockId: uuid
       ReenableNamespacesResponse:
         fields:
-          # TODO(gs): maybe a set of failed namespaces?
           wasSuccessful: boolean
+          lockedNamespaces: set<api.Namespace>
 
 services:
   DisabledNamespacesUpdaterService:
