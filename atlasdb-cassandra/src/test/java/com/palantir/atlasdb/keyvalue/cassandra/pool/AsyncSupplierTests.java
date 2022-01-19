@@ -19,9 +19,11 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.concurrent.PTExecutors;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.awaitility.Awaitility;
 import org.junit.Test;
@@ -80,5 +82,16 @@ public final class AsyncSupplierTests {
         }
 
         assertThat(calls).hasValue(1);
+    }
+
+    @Test
+    public void executorIsShutdownAfterExecution() {
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor();
+        AsyncSupplier<Integer> supplier = new AsyncSupplier<>(() -> Optional.of(1), executor);
+
+        Awaitility.await("wait for computation to complete")
+                .atMost(Duration.ofSeconds(1))
+                .untilAsserted(() -> assertThat(supplier.get()).hasValue(1));
+        assertThat(executor.isShutdown()).isTrue();
     }
 }

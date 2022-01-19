@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -42,6 +43,7 @@ final class AsyncSupplier<T> implements Supplier<Optional<T>> {
     private final ExecutorService executorService;
     private Future<Optional<T>> result;
 
+    @VisibleForTesting
     AsyncSupplier(Supplier<Optional<T>> delegate, ExecutorService executorService) {
         this.delegate = delegate;
         this.executorService = executorService;
