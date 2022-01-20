@@ -44,7 +44,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
-a
+
 @ThreadSafe
 final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
