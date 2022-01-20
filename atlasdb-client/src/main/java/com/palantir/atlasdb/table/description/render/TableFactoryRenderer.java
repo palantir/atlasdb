@@ -316,7 +316,7 @@ public final class TableFactoryRenderer {
     private FieldSpec getDefaultTableFactoryField() {
         return FieldSpec.builder(tableFactoryType, "defaultTableFactory")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
-                .initializer("of($T.of(), $L)", ImmutableList.class, "defaultNamespace")
+                .initializer("of($L)", "defaultNamespace")
                 .build();
     }
 }

@@ -13,7 +13,7 @@ import javax.annotation.Generated;
 public final class ApiTestTableFactory {
     private static final Namespace defaultNamespace = Namespace.create("default", Namespace.UNCHECKED_NAME);
 
-    private static final ApiTestTableFactory defaultTableFactory = of(ImmutableList.of(), defaultNamespace);
+    private static final ApiTestTableFactory defaultTableFactory = of(defaultNamespace);
 
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
 
