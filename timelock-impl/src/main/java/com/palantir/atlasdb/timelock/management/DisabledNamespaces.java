@@ -78,17 +78,7 @@ public class DisabledNamespaces {
     }
 
     public ReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
-        Set<Namespace> lockedNamespaces = execute(dao -> dao.enableAll(request.getNamespaces(), request.getLockId()));
-        if (lockedNamespaces.isEmpty()) {
-            log.info("Successfully re-enabled namespaces", SafeArg.of("namespaces", request.getNamespaces()));
-            return ReenableNamespacesResponse.of(true, lockedNamespaces);
-        } else {
-            log.error(
-                    "Failed to re-ensable namespaces, as some were disabled with a different lock ID",
-                    SafeArg.of("namespaces", request.getNamespaces()),
-                    SafeArg.of("failedNamespaces", lockedNamespaces));
-            return ReenableNamespacesResponse.of(false, lockedNamespaces);
-        }
+        return execute(dao -> dao.reEnableAll(request.getNamespaces(), request.getLockId()));
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -120,16 +110,20 @@ public class DisabledNamespaces {
         }
 
         @Transaction
-        default Set<Namespace> enableAll(Set<Namespace> namespaces, UUID lockId) {
+        default ReenableNamespacesResponse reEnableAll(Set<Namespace> namespaces, UUID lockId) {
             Set<Namespace> namespacesWithLockConflict = namespaces.stream()
                     .filter(ns -> !getLockId(ns.get()).orElse(lockId).equals(lockId))
                     .collect(Collectors.toSet());
             if (!namespacesWithLockConflict.isEmpty()) {
-                return namespacesWithLockConflict;
+                log.error(
+                        "Failed to re-ensable namespaces, as some were disabled with a different lock ID",
+                        SafeArg.of("namespaces", namespaces),
+                        SafeArg.of("failedNamespaces", namespacesWithLockConflict));
+                return ReenableNamespacesResponse.of(false, namespacesWithLockConflict);
             }
 
             namespaces.stream().map(Namespace::get).forEach(this::delete);
-            return ImmutableSet.of();
+            return ReenableNamespacesResponse.of(true, ImmutableSet.of());
         }
 
         @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?)")
