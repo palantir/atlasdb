@@ -106,6 +106,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(remote2, never()).disable(any(), any());
     }
 
+    // Case A: start with no disabled namespaces; disable fails on some node; we should re-enable all
     @Test
     public void rollsBackDisabledNamespacesAfterPartialFailure() {
         DisableNamespacesResponse successfulResponse =
@@ -116,11 +117,13 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
         when(remote1.disable(any(), any())).thenReturn(successfulResponse);
         when(remote2.disable(any(), any())).thenReturn(unsuccessfulResponse);
+        when(localUpdater.disable(any())).thenReturn(successfulResponse);
 
-        DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
+        Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
+        DisableNamespacesResponse response = updater.disableOnAllNodes(namespaces);
 
         assertThat(response).isEqualTo(FAILED_SUCCESSFULLY);
-        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.of(failedNamespaces, LOCK_ID);
+        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.of(namespaces, LOCK_ID);
         verify(remote1).reenable(AUTH_HEADER, rollbackRequest);
         verify(remote2).reenable(AUTH_HEADER, rollbackRequest);
     }
@@ -143,10 +146,32 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
 
         assertThat(response).isEqualTo(FAILED_SUCCESSFULLY);
-        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.of(failedNamespaces, LOCK_ID);
+        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.of(namespaces, LOCK_ID);
         verify(remote1).reenable(AUTH_HEADER, rollbackRequest);
         verify(remote2).reenable(AUTH_HEADER, rollbackRequest);
         verify(localUpdater).reEnable(rollbackRequest);
+    }
+
+    // Case B: One namespace already disabled on some nodes => should not disable any namespace on any node
+    @Test
+    public void doesNotDisableIfSomeNamespaceAlreadyDisabled() {
+        Set<Namespace> disabledNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
+        Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
+        DisableNamespacesResponse unsuccessfulResponse =
+                DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(disabledNamespaces));
+
+        when(remote1.disable(any(), any())).thenReturn(unsuccessfulResponse);
+        when(remote2.disable(any(), any())).thenReturn(unsuccessfulResponse);
+        when(localUpdater.disable(any())).thenReturn(unsuccessfulResponse);
+
+        DisableNamespacesResponse response = updater.disableOnAllNodes(namespaces);
+
+        assertThat(response).isEqualTo(unsuccessfulResponse);
+
+        // No re-enable should take place
+        verify(remote1, never()).reenable(any(), any());
+        verify(remote2, never()).reenable(any(), any());
+        verify(localUpdater, never()).reEnable(any());
     }
 
     @Test
