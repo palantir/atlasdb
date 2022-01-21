@@ -1963,7 +1963,7 @@ public final class AllValueTypesTestTable implements
     }
 
     private static Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             AllValueTypesTestRow row = AllValueTypesTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -2131,5 +2131,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6xLFlnVyHzB+tYXtqLsRTg==";
+    static String __CLASS_HASH = "+z9yTY9fbM1RMcCD3o7Eyg==";
 }

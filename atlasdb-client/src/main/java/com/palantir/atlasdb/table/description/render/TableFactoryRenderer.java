@@ -109,6 +109,7 @@ public final class TableFactoryRenderer {
         getMethods().forEach(tableFactory::addMethod);
 
         JavaFile javaFile = JavaFile.builder(packageName, tableFactory.build())
+                .skipJavaLangImports(true)
                 .indent("    ")
                 .build();
 
@@ -315,7 +316,7 @@ public final class TableFactoryRenderer {
     private FieldSpec getDefaultTableFactoryField() {
         return FieldSpec.builder(tableFactoryType, "defaultTableFactory")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
-                .initializer("of($T.of(), $L)", ImmutableList.class, "defaultNamespace")
+                .initializer("of($L)", "defaultNamespace")
                 .build();
     }
 }

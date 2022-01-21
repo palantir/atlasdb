@@ -641,7 +641,7 @@ public final class SchemaApiTestTable implements
     }
 
     private static Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             SchemaApiTestRow row = SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -871,5 +871,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0gf/hBo1iBOZCh4wzyO6Mg==";
+    static String __CLASS_HASH = "Yc3wzX0toIULZ5f1HiKrbw==";
 }

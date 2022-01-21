@@ -556,7 +556,7 @@ public final class HashComponentsTestTable implements
     }
 
     private static Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<HashComponentsTestRow, HashComponentsTestNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             HashComponentsTestRow row = HashComponentsTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -786,5 +786,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "f9YdA/BXtBTIWOZBN9hoWg==";
+    static String __CLASS_HASH = "xtZFNbacNMZC5kfQbmdZNA==";
 }
