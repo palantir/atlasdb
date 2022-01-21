@@ -176,7 +176,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
     // Case C: If we start with an inconsistent state, we roll back our request
     @Test
-    public void rollsBackIfInconsistentStateIsFound() {
+    public void rollsBackDisableIfInconsistentStateIsFound() {
         Set<Namespace> disabledNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
         DisableNamespacesResponse unsuccessfulResponse = unsuccessfulDisableResponse(disabledNamespaces);
 
@@ -195,6 +195,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(localUpdater).reEnable(rollbackRequest);
     }
 
+    // TODO(gs): flaky test
     @Test
     public void reportsRollBackFailures() {
         DisableNamespacesResponse successfulResponse = successfulDisableResponse();
@@ -277,6 +278,31 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(remote1, never()).disable(any(), any());
         verify(remote2, never()).disable(any(), any());
         verify(localUpdater, never()).disable(any());
+    }
+
+    // Case C: re-enable but inconsistent state -> roll back
+    @Test
+    public void rollsBackReEnableIfInconsistentStateIsFound() {
+        Set<Namespace> lockedNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
+        ReenableNamespacesResponse unsuccessfulResponse = ReenableNamespacesResponse.of(false, lockedNamespaces);
+
+        when(remote1.reenable(any(), any())).thenReturn(unsuccessfulResponse);
+        when(remote2.reenable(any(), any())).thenReturn(ReenableNamespacesResponse.of(true, ImmutableSet.of()));
+        when(localUpdater.reEnable(any())).thenReturn(unsuccessfulResponse);
+        when(remote1.disable(any(), any())).thenReturn(successfulDisableResponse());
+        when(remote2.disable(any(), any())).thenReturn(successfulDisableResponse());
+        when(localUpdater.disable(any())).thenReturn(successfulDisableResponse());
+
+        ReenableNamespacesResponse response =
+                updater.reenableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
+
+        // TODO(gs): report inconsistent state?
+        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false, ImmutableSet.of()));
+
+        DisableNamespacesRequest rollbackRequest = DisableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID);
+        verify(remote1).disable(AUTH_HEADER, rollbackRequest);
+        verify(remote2).disable(AUTH_HEADER, rollbackRequest);
+        verify(localUpdater).disable(rollbackRequest);
     }
 
     private static DisableNamespacesResponse successfulDisableResponse() {
