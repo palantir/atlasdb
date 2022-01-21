@@ -78,6 +78,10 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
                 remote1, new CheckedRejectionExecutorService(Executors.newSingleThreadExecutor()),
                 remote2, new CheckedRejectionExecutorService(Executors.newSingleThreadExecutor()));
 
+        when(remote1.reenable(any(), any())).thenReturn(ReenableNamespacesResponse.of(true, ImmutableSet.of()));
+        when(remote2.reenable(any(), any())).thenReturn(ReenableNamespacesResponse.of(true, ImmutableSet.of()));
+        when(localUpdater.reEnable(any())).thenReturn(ReenableNamespacesResponse.of(true, ImmutableSet.of()));
+
         updater = new AllNodesDisabledNamespacesUpdater(AUTH_HEADER, remotes, executors, localUpdater, () -> LOCK_ID);
     }
 
