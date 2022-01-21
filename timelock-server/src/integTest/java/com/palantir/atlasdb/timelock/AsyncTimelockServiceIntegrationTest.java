@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static com.palantir.conjure.java.api.testing.Assertions.assertThatRemoteExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -34,6 +35,7 @@ import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -208,10 +210,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
             // safety check only applies if the cluster is indeed async
             return;
         }
-        // Catching any exception since this currently is an error deserialization exception
-        // until we stop requiring http-remoting2 errors
-        assertThatThrownBy(() -> namespace.legacyLockService().getMinLockedInVersionId("foo"))
-                .isInstanceOf(Exception.class);
+        assertThatRemoteExceptionThrownBy(() -> namespace.legacyLockService().getMinLockedInVersionId("foo"))
+                .isGeneratedFromErrorType(ErrorType.INVALID_ARGUMENT);
     }
 
     @Test
@@ -351,10 +351,9 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .getLockDescriptors();
         assertThat(lockDescriptors).contains(LOCK_A);
 
-        // Catching any exception since this currently is an error deserialization exception
-        // until we stop requiring http-remoting2 errors
-        assertThatThrownBy(() -> namespace.legacyLockService().useGrant(TEST_CLIENT_3, heldLocksGrant.getGrantId()))
-                .isInstanceOf(Exception.class);
+        assertThatRemoteExceptionThrownBy(
+                        () -> namespace.legacyLockService().useGrant(TEST_CLIENT_3, heldLocksGrant.getGrantId()))
+                .isGeneratedFromErrorType(ErrorType.INVALID_ARGUMENT);
     }
 
     @Test

@@ -18,19 +18,19 @@ package com.palantir.atlasdb.http;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.exception.NotInitializedException;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 /**
  * Converts {@link NotInitializedException}s into appropriate status responses, depending on the user's
  * {@link AtlasDbHttpProtocolVersion}. The intention is that clients may retry on an arbitrary node of the service,
  * and they should backoff, as that node of the cluster is still starting up.
  *
- * This is a 503 without a {@code Retry-After} header and with a message body corresponding to
- * {@link NotInitializedException} in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
+ * This is a 503 response in {@link AtlasDbHttpProtocolVersion#LEGACY_OR_UNKNOWN}.
  */
 public class NotInitializedExceptionMapper extends ProtocolAwareExceptionMapper<NotInitializedException> {
     @Override
     Response handleLegacyOrUnknownVersion(NotInitializedException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+        return Response.status(Status.SERVICE_UNAVAILABLE).build();
     }
 
     @Override

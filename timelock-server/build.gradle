@@ -193,6 +193,7 @@ dependencies {
     integTestImplementation 'com.fasterxml.jackson.core:jackson-core'
     integTestImplementation 'com.fasterxml.jackson.core:jackson-databind'
     integTestImplementation 'com.google.guava:guava'
+    integTestImplementation 'com.palantir.conjure.java.api:test-utils'
     integTestImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     integTestImplementation 'com.palantir.conjure.java:conjure-lib'
     integTestImplementation 'com.palantir.refreshable:refreshable'
