@@ -185,11 +185,12 @@ public final class LockWatchValueScopingCacheImplTest {
     public void readOnlyTransactionCacheFiltersOutNewlyLockedValues() {
         processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1);
 
+        // Writes do not cache locally
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
         scopedCache1.write(TABLE, ImmutableMap.of(CELL_2, VALUE_2.value().get()));
-        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1);
-        verify(metrics, times(1)).registerHits(1);
-        verify(metrics, times(1)).registerMisses(1);
+        assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1, CELL_2);
+        verify(metrics, times(1)).registerHits(0);
+        verify(metrics, times(1)).registerMisses(2);
 
         // This update has a lock taken out for CELL_1: this means that all reads for it must be remote.
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), LOCK_WATCH_LOCK_SUCCESS);
@@ -251,7 +252,7 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(scopedCache3.getValueDigest().loadedValues())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_1), VALUE_1));
         assertThat(scopedCache3.getHitDigest().hitCells())
-                .containsExactly(CellReference.of(TABLE, CELL_2), CellReference.of(TABLE, CELL_3));
+                .containsExactlyInAnyOrder(CellReference.of(TABLE, CELL_2), CellReference.of(TABLE, CELL_3));
     }
 
     @Test

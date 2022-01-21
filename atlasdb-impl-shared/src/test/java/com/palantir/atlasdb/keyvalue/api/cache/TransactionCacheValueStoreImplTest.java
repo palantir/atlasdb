@@ -57,13 +57,41 @@ public final class TransactionCacheValueStoreImplTest {
     }
 
     @Test
-    public void localWritesAreStoredAndReadInsteadOfSnapshotReads() {
+    public void localWritesOverrideSnapshotReads() {
         TransactionCacheValueStore valueStore = cacheWithSingleValue();
         assertCacheContainsValue(valueStore, VALUE_1);
 
         valueStore.cacheRemoteWrite(TABLE, CELL);
 
-        assertCacheContainsValue(valueStore, VALUE_2);
+        assertCacheIsEmpty(valueStore);
+        assertDigestContainsEntries(valueStore, ImmutableMap.of());
+    }
+
+    @Test
+    public void localWritesOverrideLocalReads() {
+        TransactionCacheValueStore valueStore = emptyCache();
+        assertCacheIsEmpty(valueStore);
+
+        valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
+        assertCacheContainsValue(valueStore, VALUE_1);
+
+        valueStore.cacheRemoteWrite(TABLE, CELL);
+
+        assertCacheIsEmpty(valueStore);
+        assertDigestContainsEntries(valueStore, ImmutableMap.of());
+    }
+
+    @Test
+    public void localWritesAreNotOverwrittenByReads() {
+        TransactionCacheValueStore valueStore = cacheWithSingleValue();
+        assertCacheContainsValue(valueStore, VALUE_1);
+
+        valueStore.cacheRemoteWrite(TABLE, CELL);
+
+        assertCacheIsEmpty(valueStore);
+        valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
+
+        assertCacheIsEmpty(valueStore);
         assertDigestContainsEntries(valueStore, ImmutableMap.of());
     }
 
@@ -94,15 +122,15 @@ public final class TransactionCacheValueStoreImplTest {
     }
 
     @Test
-    public void createWithFilteredUpdateTransfersWrites() {
+    public void createWithFilteredUpdateDoesNotTransferWrites() {
         TransactionCacheValueStore valueStore = cacheWithSingleValue();
 
         valueStore.cacheRemoteWrite(TABLE, CELL);
-        assertCacheContainsValue(valueStore, VALUE_1);
+        assertCacheIsEmpty(valueStore);
 
         TransactionCacheValueStore filteredValueStore =
                 valueStore.createWithFilteredSnapshot(CommitUpdate.invalidateSome(ImmutableSet.of()));
-        assertCacheContainsValue(filteredValueStore, VALUE_1);
+        assertCacheIsEmpty(valueStore);
     }
 
     @Test
