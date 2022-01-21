@@ -53,7 +53,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.of(BEARER_TOKEN);
     private static final Namespace NAMESPACE = Namespace.of("namespace");
     private static final Namespace OTHER_NAMESPACE = Namespace.of("other-namespace");
-    private static final Set<Namespace> BOTH_NAMESPACES = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
+    private static final ImmutableSet<Namespace> BOTH_NAMESPACES = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
     private static final UUID LOCK_ID = new UUID(13, 37);
     private static final DisableNamespacesResponse FAILED_SUCCESSFULLY =
             DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of()));
