@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.TableMetadata;
+import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.RangeSet;
@@ -87,7 +87,7 @@ final class RepairRangeFetcher {
             String keyspaceName, TransactionsTableInteraction interaction) {
         TableMetadata transactionsTableMetadata = ClusterMetadataUtils.getTableMetadata(
                 cqlMetadata, keyspaceName, interaction.getTransactionsTableName());
-        List<Statement> selectStatements =
+        List<Statement<?>> selectStatements =
                 interaction.createSelectStatementsForScanningFullTimestampRange(transactionsTableMetadata);
         return cqlSession.retrieveRowKeysAtConsistencyAll(selectStatements);
     }

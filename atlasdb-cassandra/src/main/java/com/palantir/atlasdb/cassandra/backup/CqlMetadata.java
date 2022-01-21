@@ -16,12 +16,14 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.Token;
-import com.datastax.driver.core.TokenRange;
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.TokenMap;
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
+import com.datastax.oss.driver.api.core.metadata.token.Token;
+import com.datastax.oss.driver.api.core.metadata.token.TokenRange;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.logsafe.Preconditions;
@@ -40,20 +42,20 @@ public class CqlMetadata {
     }
 
     public KeyspaceMetadata getKeyspaceMetadata(String keyspace) {
-        return metadata.getKeyspace(keyspace);
+        return metadata.getKeyspace(keyspace).orElseThrow();
     }
 
     // This needs to be a Set<Range>, because we don't want to merge the token ranges.
     public Set<Range<LightweightOppToken>> getTokenRanges() {
-        return makeLightweight(metadata.getTokenRanges());
+        return metadata.getTokenMap().map(this::makeLightweight).orElseGet(ImmutableSet::of);
     }
 
     public LightweightOppToken newToken(ByteBuffer byteBuffer) {
-        return LightweightOppToken.serialize(metadata.newToken(byteBuffer));
+        return LightweightOppToken.serialize(getTokenMapOrThrow().newToken(byteBuffer));
     }
 
-    private Set<Range<LightweightOppToken>> makeLightweight(Set<TokenRange> tokenRanges) {
-        return tokenRanges.stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
+    private Set<Range<LightweightOppToken>> makeLightweight(TokenMap tokenMap) {
+        return tokenMap.getTokenRanges().stream().flatMap(this::makeLightweight).collect(Collectors.toSet());
     }
 
     @VisibleForTesting
@@ -77,8 +79,8 @@ public class CqlMetadata {
     }
 
     public Set<InetSocketAddress> getReplicas(String keyspace, Range<LightweightOppToken> range) {
-        return metadata.getReplicas(quotedKeyspace(keyspace), toTokenRange(range)).stream()
-                .map(host -> host.getEndPoint().resolve())
+        return getTokenMapOrThrow().getReplicas(quotedKeyspace(keyspace), toTokenRange(range)).stream()
+                .map(node -> node.getBroadcastAddress().orElseThrow())
                 .collect(Collectors.toSet());
     }
 
@@ -93,15 +95,21 @@ public class CqlMetadata {
                 "Token range upper bound should be closed",
                 SafeArg.of("range", range));
 
-        Token lower =
-                range.hasLowerBound() ? metadata.newToken(range.lowerEndpoint().deserialize()) : minToken();
-        Token upper =
-                range.hasUpperBound() ? metadata.newToken(range.upperEndpoint().deserialize()) : minToken();
-        return metadata.newTokenRange(lower, upper);
+        Token lower = range.hasLowerBound()
+                ? getTokenMapOrThrow().newToken(range.lowerEndpoint().deserialize())
+                : minToken();
+        Token upper = range.hasUpperBound()
+                ? getTokenMapOrThrow().newToken(range.upperEndpoint().deserialize())
+                : minToken();
+        return getTokenMapOrThrow().newTokenRange(lower, upper);
     }
 
     private Token minToken() {
-        return metadata.newToken(ByteBuffer.allocate(0));
+        return getTokenMapOrThrow().newToken(ByteBuffer.allocate(0));
+    }
+
+    private TokenMap getTokenMapOrThrow() {
+        return metadata.getTokenMap().orElseThrow();
     }
 
     private static String quotedKeyspace(String keyspaceName) {

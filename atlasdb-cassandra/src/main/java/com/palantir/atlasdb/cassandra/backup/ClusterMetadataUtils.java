@@ -18,8 +18,8 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.TableMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -56,8 +56,8 @@ public final class ClusterMetadataUtils {
 
     public static TableMetadata getTableMetadata(CqlMetadata metadata, String keyspace, String table) {
         KeyspaceMetadata keyspaceMetadata = metadata.getKeyspaceMetadata(keyspace);
-        Optional<TableMetadata> maybeTable = keyspaceMetadata.getTables().stream()
-                .filter(tableMetadata -> tableMetadata.getName().equals(table))
+        Optional<TableMetadata> maybeTable = keyspaceMetadata.getTables().values().stream()
+                .filter(tableMetadata -> tableMetadata.getName().toString().equals(table)) // .asInternal?
                 .collect(MoreCollectors.toOptional());
         return maybeTable.orElseThrow(() -> new SafeIllegalArgumentException(
                 "Can't find table",

@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.cassandra.backup.transaction;
 
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.policies.RetryPolicy;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.retry.RetryPolicy;
 import com.palantir.atlasdb.cassandra.backup.CqlSession;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
@@ -40,15 +40,15 @@ public interface TransactionsTableInteraction {
     // reduce this from default because we run CleanTransactionsTableTask across N keyspaces at the same time
     int SELECT_TRANSACTIONS_FETCH_SIZE = 1_000;
 
-    List<Statement> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable);
+    List<Statement<?>> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable);
 
     PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, CqlSession session);
 
     PreparedStatement prepareCheckStatement(TableMetadata transactionsTable, CqlSession session);
 
-    Statement bindCheckStatement(PreparedStatement preparedCheckStatement, TransactionTableEntry entry);
+    Statement<?> bindCheckStatement(PreparedStatement preparedCheckStatement, TransactionTableEntry entry);
 
-    Statement bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry);
+    Statement<?> bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry);
 
     String getTransactionsTableName();
 

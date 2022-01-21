@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.datastax.driver.core.Token;
+import com.datastax.oss.driver.api.core.metadata.token.Token;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.io.BaseEncoding;

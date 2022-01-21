@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.cassandra.backup.transaction;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.RetryPolicy;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.utils.Bytes;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.retry.RetryPolicy;
+import com.datastax.oss.driver.internal.core.retry.DefaultRetryPolicy;
+import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cassandra.backup.CqlSession;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -34,7 +33,7 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
-import java.util.List;
+import java.time.Duration;
 
 public class Transactions1TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
@@ -61,6 +60,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     @Override
+    // TODO(gs): find replacement for QueryBuilder
     public PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, CqlSession session) {
         Statement abortStatement = QueryBuilder.update(transactionsTable)
                 .with(QueryBuilder.set(CassandraConstants.VALUE, ByteBuffer.wrap(ABORT_COMMIT_TS_ENCODED)))
@@ -84,8 +84,8 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
 
     @Override
     public TransactionTableEntry extractTimestamps(Row row) {
-        long startTimestamp = decodeStartTs(Bytes.getArray(row.getBytes(CassandraConstants.ROW)));
-        long commitTimestamp = decodeCommitTs(Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
+        long startTimestamp = decodeStartTs(Bytes.getArray(row.getByteBuffer(CassandraConstants.ROW)));
+        long commitTimestamp = decodeCommitTs(Bytes.getArray(row.getByteBuffer(CassandraConstants.VALUE)));
         return commitTimestamp == TransactionConstants.FAILED_COMMIT_TS
                 ? TransactionTableEntries.explicitlyAborted(startTimestamp)
                 : TransactionTableEntries.committedLegacy(startTimestamp, commitTimestamp);
@@ -98,8 +98,8 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
         BoundStatement bound = preparedCheckStatement.bind(startTimestampBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)
-                .setReadTimeoutMillis(LONG_READ_TIMEOUT_MS)
-                .setRetryPolicy(DefaultRetryPolicy.INSTANCE);
+                .setTimeout(Duration.ofMillis(LONG_READ_TIMEOUT_MS))
+                .setRetryPolicy(DefaultRetryPolicy.RETRYING_ON_ERROR); // ?
     }
 
     @Override

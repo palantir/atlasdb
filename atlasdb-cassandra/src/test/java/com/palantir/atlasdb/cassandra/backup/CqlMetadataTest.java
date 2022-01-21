@@ -22,9 +22,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.CassandraTokenRanges;
-import com.datastax.driver.core.Metadata;
-import com.datastax.driver.core.Token;
-import com.datastax.driver.core.TokenRange;
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.token.Token;
+import com.datastax.oss.driver.api.core.metadata.token.TokenRange;
+import com.datastax.oss.driver.internal.core.metadata.token.DefaultTokenMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
@@ -33,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -63,7 +65,8 @@ public class CqlMetadataTest {
 
     @Before
     public void setUp() {
-        when(metadata.getTokenRanges()).thenReturn(ImmutableSet.of(FIRST_RANGE, SECOND_RANGE, WRAPAROUND_RANGE));
+        when(metadata.getTokenMap()).thenReturn(Optional.of(new DefaultTokenMap(
+                ImmutableSet.of(FIRST_RANGE, SECOND_RANGE, WRAPAROUND_RANGE));
 
         ArgumentCaptor<ByteBuffer> componentCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
         when(metadata.newToken(componentCaptor.capture()))

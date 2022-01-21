@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.session.Session;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.io.Closeable;
@@ -42,10 +42,10 @@ public class CqlSession implements Closeable {
     }
 
     public CqlMetadata getMetadata() {
-        return new CqlMetadata(session.getCluster().getMetadata());
+        return new CqlMetadata(session.getMetadata());
     }
 
-    public Set<LightweightOppToken> retrieveRowKeysAtConsistencyAll(List<Statement> selectStatements) {
+    public Set<LightweightOppToken> retrieveRowKeysAtConsistencyAll(List<Statement<?>> selectStatements) {
         return selectStatements.stream()
                 .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
                 .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))
@@ -54,6 +54,7 @@ public class CqlSession implements Closeable {
                 .collect(Collectors.toSet());
     }
 
+    // TODO(gs): find how session.prepare/execute should be changed
     public PreparedStatement prepare(Statement statement) {
         return session.prepare(statement.toString());
     }

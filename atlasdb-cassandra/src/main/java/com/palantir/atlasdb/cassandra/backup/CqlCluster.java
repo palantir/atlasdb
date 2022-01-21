@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.Cluster;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;

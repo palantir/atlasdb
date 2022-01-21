@@ -16,14 +16,16 @@
 
 package com.datastax.driver.core;
 
+import com.datastax.oss.driver.api.core.metadata.token.TokenRange;
+import com.datastax.oss.driver.internal.core.metadata.token.ByteOrderedToken;
+import com.datastax.oss.driver.internal.core.metadata.token.ByteOrderedTokenFactory;
+import com.datastax.oss.driver.internal.core.metadata.token.ByteOrderedTokenRange;
 import java.nio.ByteBuffer;
 import javax.xml.bind.DatatypeConverter;
 
 // Utility class - it's in com.datastax.driver.core package in order to allow us to create Tokens and TokenRanges
 // on the fly for unit testing purposes.
 public final class CassandraTokenRanges {
-    private static final Token.Factory FACTORY = Token.OPPToken.FACTORY;
-
     private CassandraTokenRanges() {
         // utility class
     }
@@ -32,21 +34,21 @@ public final class CassandraTokenRanges {
         return create(getToken(startHexBinary), getToken(endHexBinary));
     }
 
-    public static TokenRange create(Token start, Token end) {
-        return new TokenRange(start, end, FACTORY);
+    public static TokenRange create(ByteOrderedToken start, ByteOrderedToken end) {
+        return new ByteOrderedTokenRange(start, end);
     }
 
-    public static Token getToken(String hexBinary) {
-        return FACTORY.hash(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
+    public static ByteOrderedToken getToken(String hexBinary) {
+        return new ByteOrderedToken(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
     }
 
-    public static Token getToken(ByteBuffer byteBuffer) {
-        return FACTORY.hash(byteBuffer);
+    public static ByteOrderedToken getToken(ByteBuffer byteBuffer) {
+        return new ByteOrderedToken(byteBuffer);
     }
 
-    public static Token minToken() {
+    public static ByteOrderedToken minToken() {
         // The minimum token is a special value that no key ever hashes to.
         // It's used both as lower and upper bound.
-        return FACTORY.minToken();
+        return ByteOrderedTokenFactory.MIN_TOKEN;
     }
 }
