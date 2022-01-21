@@ -242,7 +242,6 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     public void rollsBackIfReEnableFails() {
         ImmutableSet<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
         ReenableNamespacesRequest request = ReenableNamespacesRequest.of(oneNamespace, LOCK_ID);
-        ReenableNamespacesResponse successfulResponse = ReenableNamespacesResponse.of(true, ImmutableSet.of());
 
         when(remote2.reenable(AUTH_HEADER, request)).thenReturn(ReenableNamespacesResponse.of(false, oneNamespace));
 
@@ -257,6 +256,27 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(remote1).disable(AUTH_HEADER, rollbackRequest);
         verify(remote2).disable(AUTH_HEADER, rollbackRequest);
         verify(localUpdater).disable(rollbackRequest);
+    }
+
+    // Case B: re-enable with wrong lock -> don't re-enable anywhere
+    @Test
+    public void doesNotReEnableIfSomeNamespaceDisabledWithOtherLock() {
+        Set<Namespace> disabledNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
+        ReenableNamespacesResponse unsuccessfulResponse = ReenableNamespacesResponse.of(false, disabledNamespaces);
+
+        when(remote1.reenable(any(), any())).thenReturn(unsuccessfulResponse);
+        when(remote2.reenable(any(), any())).thenReturn(unsuccessfulResponse);
+        when(localUpdater.reEnable(any())).thenReturn(unsuccessfulResponse);
+
+        ReenableNamespacesResponse response =
+                updater.reenableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
+
+        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false, disabledNamespaces));
+
+        // No disable should take place
+        verify(remote1, never()).disable(any(), any());
+        verify(remote2, never()).disable(any(), any());
+        verify(localUpdater, never()).disable(any());
     }
 
     private static DisableNamespacesResponse successfulDisableResponse() {

@@ -171,23 +171,49 @@ public class AllNodesDisabledNamespacesUpdater {
             return ReenableNamespacesResponse.of(false, ImmutableSet.of());
         }
 
-        Function<DisabledNamespacesUpdaterService, PaxosResponse> update = service ->
-                new BooleanPaxosResponse(service.reenable(authHeader, request).getWasSuccessful());
-        boolean updateSuccess = attemptOnAllNodes(update);
+        Function<DisabledNamespacesUpdaterService, ReenableNamespacesResponse> update =
+                service -> service.reenable(authHeader, request);
+        Function<ReenableNamespacesResponse, Boolean> successEvaluator = ReenableNamespacesResponse::getWasSuccessful;
+        List<ReenableNamespacesResponse> responses = attemptOnAllNodes(update, successEvaluator);
 
+        ReenableNamespacesResponse localResponse = localUpdater.reEnable(request);
+        responses.add(localResponse);
+        boolean updateSuccess = responses.stream().allMatch(successEvaluator::apply);
         if (updateSuccess) {
-            // TODO(gs): fall back if fails
-            return localUpdater.reEnable(request);
+            return localResponse;
         }
 
+        // Find any consistently undisabled namespaces
+        Map<Namespace, Integer> failedNamespaces = new HashMap<>();
+        for (ReenableNamespacesResponse response : responses) {
+            Set<Namespace> lockedNamespaces = response.getLockedNamespaces();
+            lockedNamespaces.forEach(ns -> failedNamespaces.merge(ns, 1, Integer::sum));
+        }
+
+        int numResponses = responses.size();
+        Set<Namespace> consistentlyLockedNamespaces = KeyedStream.stream(failedNamespaces)
+                .filter(val -> numResponses == val)
+                .keys()
+                .collect(Collectors.toSet());
+        if (!consistentlyLockedNamespaces.isEmpty()) {
+            log.error(
+                    "Failed to re-enable all namespaces, because some namespace was consistently disabled "
+                            + "with the wrong lock ID. This implies that this namespace being restored by another"
+                            + " process. If that is the case, please either wait for that restore to complete, "
+                            + " or kick off a restore without that namespace",
+                    SafeArg.of("lockedNamespaces", consistentlyLockedNamespaces));
+            return ReenableNamespacesResponse.of(false, consistentlyLockedNamespaces);
+        }
+
+        // Fall back
         DisableNamespacesRequest rollbackRequest = DisableNamespacesRequest.of(namespaces, lockId);
         Function<DisabledNamespacesUpdaterService, DisableNamespacesResponse> rollback =
                 service -> service.disable(authHeader, rollbackRequest);
-        Function<DisableNamespacesResponse, Boolean> successEvaluator =
+        Function<DisableNamespacesResponse, Boolean> rollbackSuccessEvaluator =
                 response -> response.accept(successfulDisableVisitor());
-        List<DisableNamespacesResponse> responses = attemptOnAllNodes(rollback, successEvaluator);
-        responses.add(localUpdater.disable(rollbackRequest));
-        if (responses.stream().allMatch(successEvaluator::apply)) {
+        List<DisableNamespacesResponse> rollbackResponses = attemptOnAllNodes(rollback, rollbackSuccessEvaluator);
+        rollbackResponses.add(localUpdater.disable(rollbackRequest));
+        if (rollbackResponses.stream().allMatch(rollbackSuccessEvaluator::apply)) {
             log.error(
                     "Failed to re-enable namespaces. However, we successfully rolled back any partially re-enabled namespaces",
                     SafeArg.of("namespaces", namespaces),
