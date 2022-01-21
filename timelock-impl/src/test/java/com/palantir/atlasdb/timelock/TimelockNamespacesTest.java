@@ -218,12 +218,12 @@ public class TimelockNamespacesTest {
         String client = uniqueClient();
         TimeLockServices services = namespaces.get(client);
 
-        ImmutableSet<Namespace> namespaces = ImmutableSet.of(Namespace.of(client));
+        ImmutableSet<Namespace> namespacesToDisable = ImmutableSet.of(Namespace.of(client));
         UUID lockId = UUID.randomUUID();
         when(disabledNamespaces.disable(any())).thenReturn(DisableNamespacesResponse.unsuccessful(
-                UnsuccessfulDisableNamespacesResponse.of(namespaces)));
+                UnsuccessfulDisableNamespacesResponse.of(namespacesToDisable)));
 
-        this.namespaces.disable(DisableNamespacesRequest.of(namespaces, lockId));
+        namespaces.disable(DisableNamespacesRequest.of(namespacesToDisable, lockId));
         verify(services, never()).close();
     }
 
