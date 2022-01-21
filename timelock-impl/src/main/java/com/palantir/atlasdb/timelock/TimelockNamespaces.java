@@ -141,14 +141,16 @@ public final class TimelockNamespaces {
 
             @Override
             public Void visitUnsuccessful(UnsuccessfulDisableNamespacesResponse response) {
-                log.info("Not invalidating resources, as the request to disable namespaces was unsuccessful",
+                log.info(
+                        "Not invalidating resources, as the request to disable namespaces was unsuccessful",
                         SafeArg.of("response", response));
                 return null;
             }
 
             @Override
             public Void visitUnknown(String unknownTypeThatShouldNeverHappen) {
-                throw new SafeIllegalStateException("Unknown response when disabling namespaces",
+                throw new SafeIllegalStateException(
+                        "Unknown response when disabling namespaces",
                         SafeArg.of("response", unknownTypeThatShouldNeverHappen));
             }
         });

@@ -112,7 +112,6 @@ public class DisabledNamespacesTest {
         assertThat(thirdResponse)
                 .isEqualTo(DisableNamespacesResponse.unsuccessful(
                         UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
-
     }
 
     @Test
