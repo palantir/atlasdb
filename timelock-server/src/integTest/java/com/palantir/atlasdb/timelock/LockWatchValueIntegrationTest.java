@@ -553,7 +553,7 @@ public final class LockWatchValueIntegrationTest {
                 transaction.get(60, TimeUnit.SECONDS);
             } catch (ExecutionException e) {
                 if (!(e.getCause() instanceof TransactionFailedRetriableException)) {
-                    fail("Encountered nonretriable exception");
+                    fail("Encountered nonretriable exception", e);
                 }
             } catch (InterruptedException | TimeoutException e) {
                 fail("Transaction took too long", e);

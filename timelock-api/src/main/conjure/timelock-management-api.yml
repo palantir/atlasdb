@@ -1,4 +1,53 @@
+types:
+  conjure-imports:
+    api: timelock-api.yml
+  definitions:
+    default-package: com.palantir.atlasdb.timelock.api
+    objects:
+      DisableNamespacesRequest:
+        fields:
+          namespaces: set<api.Namespace>
+          lockId: uuid
+      SuccessfulDisableNamespacesResponse:
+        fields:
+          lockId: uuid
+      UnsuccessfulDisableNamespacesResponse:
+        fields:
+          # if this set is non-empty, action will be required
+          disabledNamespaces: set<api.Namespace>
+      DisableNamespacesResponse:
+        union:
+          successful: SuccessfulDisableNamespacesResponse
+          unsuccessful: UnsuccessfulDisableNamespacesResponse
+      ReenableNamespacesRequest:
+        fields:
+          namespaces: set<api.Namespace>
+          lockId: uuid
+      ReenableNamespacesResponse:
+        fields:
+          wasSuccessful: boolean
+          lockedNamespaces: set<api.Namespace>
+
 services:
+  DisabledNamespacesUpdaterService:
+    name: Internal updater service, for propagating disabled namespace updates across nodes.
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.api
+    base-path: /dn
+    endpoints:
+      ping:
+        http: GET /ping
+        returns: boolean
+      disable:
+        http: POST /disable
+        args:
+          request: DisableNamespacesRequest
+        returns: DisableNamespacesResponse
+      reenable:
+        http: POST /reenable
+        args:
+          request: ReenableNamespacesRequest
+        returns: ReenableNamespacesResponse
   TimeLockManagementService:
     name: TimeLock Management Service
     default-auth: header
@@ -25,10 +74,12 @@ services:
         args:
           namespaces: set<string>
         docs: |
-          Invalidates existing resources for a given TimeLock namespace. Does not actually cause a leader election, and
-          should not interrupt service for other naemspaces. Note that this operation is atomic for each namespace (e.g.
-          users will not see two different lock services servicing the same startTransactions request), but not atomic
-          as a whole.
+          Invalidates existing resources for a given TimeLock namespace in a persistant way, until re-enabled. Does not
+          actually cause a leader election, and should not interrupt service for other naemspaces. Note that this
+          operation is atomic for each namespace (e.g. users will not see two different lock services servicing the
+          same startTransactions request), but not atomic as a whole. Additionally, if this method throws, it is
+          nondeterministic which, if any, namespaces have been invalidated; some may even be invalidated only on a
+          subset of nodes. This state can be cleared by re-enabling all namespaces.
 
       getServerLifecycleId:
         http: POST /getServerLifecycleId
