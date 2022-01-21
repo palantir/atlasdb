@@ -27,7 +27,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -193,6 +198,33 @@ public class TimelockNamespacesTest {
     public void handlesInvalidationOfNonexistentClients() {
         assertThatCode(() -> namespaces.invalidateResourcesForClient("somethingUnknown"))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void disableInvalidatesServices() {
+        String client = uniqueClient();
+        TimeLockServices services = namespaces.get(client);
+
+        UUID lockId = UUID.randomUUID();
+        when(disabledNamespaces.disable(any())).thenReturn(DisableNamespacesResponse.successful(
+                        SuccessfulDisableNamespacesResponse.of(lockId)));
+
+        namespaces.disable(DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(client)), lockId));
+        verify(services).close();
+    }
+
+    @Test
+    public void disableDoesNotInvalidateServicesOnFailure() {
+        String client = uniqueClient();
+        TimeLockServices services = namespaces.get(client);
+
+        ImmutableSet<Namespace> namespaces = ImmutableSet.of(Namespace.of(client));
+        UUID lockId = UUID.randomUUID();
+        when(disabledNamespaces.disable(any())).thenReturn(DisableNamespacesResponse.unsuccessful(
+                UnsuccessfulDisableNamespacesResponse.of(namespaces)));
+
+        this.namespaces.disable(DisableNamespacesRequest.of(namespaces, lockId));
+        verify(services, never()).close();
     }
 
     private void createMaximumNumberOfClients() {
