@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
@@ -34,23 +35,23 @@ import java.util.function.Supplier;
 
 public final class DisabledNamespacesUpdaterResource implements UndertowDisabledNamespacesUpdaterService {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final DisabledNamespaces disabledNamespaces;
+    private final TimelockNamespaces timelockNamespaces;
 
     private DisabledNamespacesUpdaterResource(
-            RedirectRetryTargeter redirectRetryTargeter, DisabledNamespaces disabledNamespaces) {
+            RedirectRetryTargeter redirectRetryTargeter, TimelockNamespaces timelockNamespaces) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
-        this.disabledNamespaces = disabledNamespaces;
+        this.timelockNamespaces = timelockNamespaces;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, DisabledNamespaces disabledNamespaces) {
+            RedirectRetryTargeter redirectRetryTargeter, TimelockNamespaces timelockNamespaces) {
         return DisabledNamespacesUpdaterServiceEndpoints.of(
-                new DisabledNamespacesUpdaterResource(redirectRetryTargeter, disabledNamespaces));
+                new DisabledNamespacesUpdaterResource(redirectRetryTargeter, timelockNamespaces));
     }
 
     public static DisabledNamespacesUpdaterService jersey(
-            RedirectRetryTargeter redirectRetryTargeter, DisabledNamespaces disabledNamespaces) {
-        return new JerseyAdapter(new DisabledNamespacesUpdaterResource(redirectRetryTargeter, disabledNamespaces));
+            RedirectRetryTargeter redirectRetryTargeter, TimelockNamespaces timelockNamespaces) {
+        return new JerseyAdapter(new DisabledNamespacesUpdaterResource(redirectRetryTargeter, timelockNamespaces));
     }
 
     @Override
@@ -61,13 +62,13 @@ public final class DisabledNamespacesUpdaterResource implements UndertowDisabled
     @Override
     public ListenableFuture<DisableNamespacesResponse> disable(
             AuthHeader authHeader, DisableNamespacesRequest request) {
-        return handleExceptions(() -> Futures.immediateFuture(disabledNamespaces.disable(request)));
+        return handleExceptions(() -> Futures.immediateFuture(timelockNamespaces.disable(request)));
     }
 
     @Override
     public ListenableFuture<ReenableNamespacesResponse> reenable(
             AuthHeader authHeader, ReenableNamespacesRequest request) {
-        return handleExceptions(() -> Futures.immediateFuture(disabledNamespaces.reEnable(request)));
+        return handleExceptions(() -> Futures.immediateFuture(timelockNamespaces.reEnable(request)));
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
