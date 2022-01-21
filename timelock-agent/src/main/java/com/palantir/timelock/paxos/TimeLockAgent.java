@@ -50,6 +50,7 @@ import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
+import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
 import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
@@ -322,7 +323,8 @@ public class TimeLockAgent {
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
-                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
+                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get),
+                DisabledNamespaces.create(sqliteDataSource));
         registerManagementResource();
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);

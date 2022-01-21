@@ -19,10 +19,18 @@ package com.palantir.atlasdb.timelock;
 import static java.util.stream.Collectors.toSet;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -55,11 +63,16 @@ public final class TimelockNamespaces {
     private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>();
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
+    private final DisabledNamespaces disabledNamespaces;
 
     public TimelockNamespaces(
-            MetricsManager metrics, Function<String, TimeLockServices> factory, Supplier<Integer> maxNumberOfClients) {
+            MetricsManager metrics,
+            Function<String, TimeLockServices> factory,
+            Supplier<Integer> maxNumberOfClients,
+            DisabledNamespaces disabledNamespaces) {
         this.factory = factory;
         this.maxNumberOfClients = maxNumberOfClients;
+        this.disabledNamespaces = disabledNamespaces;
         registerClientCapacityMetrics(metrics);
     }
 
@@ -84,8 +97,12 @@ public final class TimelockNamespaces {
                 IS_VALID_NAME.test(namespace), "Invalid namespace", SafeArg.of("namespace", namespace));
         Preconditions.checkArgument(
                 !namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
-                "The client name '%s' is reserved for the leader election service, and may not be " + "used.",
-                PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
+                "The client name is reserved for the leader election service, and may not be used.",
+                SafeArg.of("clientName", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
+        Preconditions.checkArgument(
+                disabledNamespaces.isEnabled(Namespace.of(namespace)),
+                "Cannot create a client for namespace because the namespace has been explicitly disabled.",
+                SafeArg.of("namespace", namespace));
 
         if (getNumberOfActiveClients() >= getMaxNumberOfClients()) {
             log.error(
@@ -111,6 +128,37 @@ public final class TimelockNamespaces {
         if (removedServices != null) {
             removedServices.close();
         }
+    }
+
+    public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
+        DisableNamespacesResponse response = disabledNamespaces.disable(request);
+        response.accept(new DisableNamespacesResponse.Visitor<Void>() {
+            @Override
+            public Void visitSuccessful(SuccessfulDisableNamespacesResponse _unused) {
+                request.getNamespaces().stream().map(Namespace::get).forEach(ns -> invalidateResourcesForClient(ns));
+                return null;
+            }
+
+            @Override
+            public Void visitUnsuccessful(UnsuccessfulDisableNamespacesResponse response) {
+                log.info(
+                        "Not invalidating resources, as the request to disable namespaces was unsuccessful",
+                        SafeArg.of("response", response));
+                return null;
+            }
+
+            @Override
+            public Void visitUnknown(String unknownTypeThatShouldNeverHappen) {
+                throw new SafeIllegalStateException(
+                        "Unknown response when disabling namespaces",
+                        SafeArg.of("response", unknownTypeThatShouldNeverHappen));
+            }
+        });
+        return response;
+    }
+
+    public ReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
+        return disabledNamespaces.reEnable(request);
     }
 
     private void registerClientCapacityMetrics(MetricsManager metricsManager) {
