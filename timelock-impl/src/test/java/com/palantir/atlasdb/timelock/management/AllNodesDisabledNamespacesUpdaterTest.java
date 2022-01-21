@@ -110,6 +110,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(remote2, never()).disable(any(), any());
     }
 
+    // TODO(gs): test what happens if we get exception from remote.disable()
     // Case A: start with no disabled namespaces; disable fails on some node; we should re-enable all
     @Test
     public void rollsBackDisabledNamespacesAfterPartialFailure() {
@@ -234,6 +235,28 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false, ImmutableSet.of()));
         verify(remote1, never()).reenable(any(), any());
         verify(remote2, never()).reenable(any(), any());
+    }
+
+    // Case A: Start with one disabled namespace, re-enable fails on some node, we should re-disable
+    @Test
+    public void rollsBackIfReEnableFails() {
+        ImmutableSet<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
+        ReenableNamespacesRequest request = ReenableNamespacesRequest.of(oneNamespace, LOCK_ID);
+        ReenableNamespacesResponse successfulResponse = ReenableNamespacesResponse.of(true, ImmutableSet.of());
+
+        when(remote2.reenable(AUTH_HEADER, request)).thenReturn(ReenableNamespacesResponse.of(false, oneNamespace));
+
+        DisableNamespacesRequest rollbackRequest = DisableNamespacesRequest.of(oneNamespace, LOCK_ID);
+        when(remote1.disable(AUTH_HEADER, rollbackRequest)).thenReturn(successfulDisableResponse());
+        when(remote2.disable(AUTH_HEADER, rollbackRequest)).thenReturn(successfulDisableResponse());
+        when(localUpdater.disable(rollbackRequest)).thenReturn(successfulDisableResponse());
+
+        ReenableNamespacesResponse response = updater.reenableOnAllNodes(request);
+        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false, ImmutableSet.of()));
+
+        verify(remote1).disable(AUTH_HEADER, rollbackRequest);
+        verify(remote2).disable(AUTH_HEADER, rollbackRequest);
+        verify(localUpdater).disable(rollbackRequest);
     }
 
     private static DisableNamespacesResponse successfulDisableResponse() {

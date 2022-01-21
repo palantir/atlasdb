@@ -32,7 +32,6 @@ import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.BooleanPaxosResponse;
@@ -161,12 +160,14 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     public ReenableNamespacesResponse reenableOnAllNodes(ReenableNamespacesRequest request) {
-        boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
+        Set<Namespace> namespaces = request.getNamespaces();
+        UUID lockId = request.getLockId();
 
+        boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
         if (!pingSuccess) {
             log.error(
                     "Failed to reach all remote nodes. Not re-enabling any namespaces",
-                    SafeArg.of("namespaces", request.getNamespaces()));
+                    SafeArg.of("namespaces", namespaces));
             return ReenableNamespacesResponse.of(false, ImmutableSet.of());
         }
 
@@ -179,22 +180,27 @@ public class AllNodesDisabledNamespacesUpdater {
             return localUpdater.reEnable(request);
         }
 
-        // if all else fails, then... what? force-disable with the same lock ID
-        // TODO(gs): if _this_ fails, log something sensible so the user can fix themselves
-        //      (safe to assume this is already monitored)
-        // TODO(gS): should be force-reenable
-        //        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.builder()
-        //                .namespaces(request.getNamespaces())
-        //                .lockId(UUID.randomUUID())
-        //                .build();
-        //        boolean rollbackSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(
-        //                service.reenable(authHeader, rollbackRequest).getWasSuccessful()));
-        //        if (rollbackSuccess) {
-        //            return DisableNamespacesResponse.of(false, null);
-        //        }
-        //
-        // TODO(gs): proper exception
-        throw new SafeRuntimeException("ohno");
+        DisableNamespacesRequest rollbackRequest = DisableNamespacesRequest.of(namespaces, lockId);
+        Function<DisabledNamespacesUpdaterService, DisableNamespacesResponse> rollback =
+                service -> service.disable(authHeader, rollbackRequest);
+        Function<DisableNamespacesResponse, Boolean> successEvaluator =
+                response -> response.accept(successfulDisableVisitor());
+        List<DisableNamespacesResponse> responses = attemptOnAllNodes(rollback, successEvaluator);
+        responses.add(localUpdater.disable(rollbackRequest));
+        if (responses.stream().allMatch(successEvaluator::apply)) {
+            log.error(
+                    "Failed to re-enable namespaces. However, we successfully rolled back any partially re-enabled namespaces",
+                    SafeArg.of("namespaces", namespaces),
+                    SafeArg.of("lockId", lockId));
+            return ReenableNamespacesResponse.of(false, ImmutableSet.of());
+        }
+
+        log.error(
+                "Failed to re-enable all namespaces, and we failed to roll back some partially re-enabled namespaces."
+                        + " These will need to be force-re-enabled in order to return Timelock to a consistent state.",
+                SafeArg.of("namespaces", namespaces),
+                SafeArg.of("lockId", lockId));
+        return ReenableNamespacesResponse.of(false, namespaces);
     }
 
     // TODO(gs): generify PaxosQuorumChecker
