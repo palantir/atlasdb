@@ -151,7 +151,10 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(localUpdater).reEnable(rollbackRequest);
     }
 
-    // Case B: One namespace already disabled on some nodes => should not disable any namespace on any node
+    // Case B: One namespace already disabled on all nodes => should not disable any namespace on any node
+    //   Note that if B and C are combined, we also don't need to roll back. Some namespaces would be
+    //   in an inconsistent state, but because one namespace is disabled on all nodes, we did not
+    //   successfully disable any namespaces ourselves, and we therefore have nothing to roll back.
     @Test
     public void doesNotDisableIfSomeNamespaceAlreadyDisabled() {
         Set<Namespace> disabledNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
@@ -192,6 +195,24 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(remote1).reenable(AUTH_HEADER, rollbackRequest);
         verify(remote2).reenable(AUTH_HEADER, rollbackRequest);
         verify(localUpdater).reEnable(rollbackRequest);
+    }
+
+    @Test
+    public void reportsRollBackFailures() {
+        DisableNamespacesResponse successfulResponse = successfulDisableResponse();
+        Set<Namespace> failedNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
+        DisableNamespacesResponse unsuccessfulResponse = unsuccessfulDisableResponse(failedNamespaces);
+
+        when(remote1.disable(any(), any())).thenReturn(successfulResponse);
+        when(remote2.disable(any(), any())).thenReturn(unsuccessfulResponse);
+        when(localUpdater.disable(any())).thenReturn(successfulResponse);
+
+        when(remote2.reenable(any(), any())).thenReturn(ReenableNamespacesResponse.of(false, failedNamespaces));
+
+        ImmutableSet<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
+        DisableNamespacesResponse response = updater.disableOnAllNodes(namespaces);
+
+        assertThat(response).isEqualTo(unsuccessfulDisableResponse(namespaces));
     }
 
     @Test

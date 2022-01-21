@@ -19,7 +19,6 @@ package com.palantir.atlasdb.timelock.management;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
@@ -42,6 +41,7 @@ import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponsesWithRemote;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -202,7 +202,7 @@ public class AllNodesDisabledNamespacesUpdater {
             Function<DisabledNamespacesUpdaterService, RESPONSE> request,
             Function<RESPONSE, Boolean> successEvaluator) {
         // Add one to take into account the local update
-        List<RESPONSE> responses = Lists.newArrayListWithCapacity(updaters.size() + 1);
+        List<RESPONSE> responses = new ArrayList<>(updaters.size() + 1);
         Function<DisabledNamespacesUpdaterService, PaxosResponse> composedFunction = service -> {
             RESPONSE response = request.apply(service);
             responses.add(response);
