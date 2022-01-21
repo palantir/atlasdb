@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
@@ -57,7 +58,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
             DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of()));
 
     @Mock
-    private DisabledNamespaces localUpdater;
+    private TimelockNamespaces localUpdater;
 
     @Mock
     private DisabledNamespacesUpdaterService remote1;

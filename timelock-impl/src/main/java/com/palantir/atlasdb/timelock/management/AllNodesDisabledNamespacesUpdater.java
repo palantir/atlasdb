@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
@@ -55,7 +56,7 @@ public class AllNodesDisabledNamespacesUpdater {
     private final AuthHeader authHeader;
     private final ImmutableList<DisabledNamespacesUpdaterService> updaters;
     private final Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> executors;
-    private final DisabledNamespaces localUpdater;
+    private final TimelockNamespaces localUpdater;
     private final Supplier<UUID> lockIdSupplier;
 
     @VisibleForTesting
@@ -63,7 +64,7 @@ public class AllNodesDisabledNamespacesUpdater {
             AuthHeader authHeader,
             ImmutableList<DisabledNamespacesUpdaterService> updaters,
             Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> executors,
-            DisabledNamespaces localUpdater,
+            TimelockNamespaces localUpdater,
             Supplier<UUID> lockIdSupplier) {
         this.authHeader = authHeader;
         this.updaters = updaters;
@@ -76,7 +77,7 @@ public class AllNodesDisabledNamespacesUpdater {
             AuthHeader authHeader,
             ImmutableList<DisabledNamespacesUpdaterService> updaters,
             Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> executors,
-            DisabledNamespaces localUpdater) {
+            TimelockNamespaces localUpdater) {
         return new AllNodesDisabledNamespacesUpdater(authHeader, updaters, executors, localUpdater, UUID::randomUUID);
     }
 
