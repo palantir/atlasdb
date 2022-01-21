@@ -32,16 +32,10 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
-import java.time.Duration;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.cassandra.thrift.AuthenticationRequest;
@@ -62,8 +56,6 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientFactory.class);
     private static final LoadingCache<SslConfiguration, SSLSocketFactory> sslSocketFactoryCache =
             Caffeine.newBuilder().weakValues().build(SslSocketFactories::createSslSocketFactory);
-    private static final ExpiringMemoizedRunnable SHUTDOWN_FAILURE_HANDLER =
-            ExpiringMemoizedRunnable.create(CassandraClientFactory::expensivelyLogAllThreadState, Duration.ofHours(1));
 
     private final MetricsManager metricsManager;
     private final InetSocketAddress addr;
@@ -218,7 +210,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
         try {
             TaskContext<Void> taskContext =
-                    TaskContext.createRunnable(() -> client.getObject().close(), SHUTDOWN_FAILURE_HANDLER);
+                    TaskContext.createRunnable(() -> client.getObject().close(), () -> {});
             timedRunner.run(taskContext);
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
@@ -235,29 +227,6 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     "Closed transport for client {} of host {}",
                     UnsafeArg.of("client", client),
                     SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
-        }
-    }
-
-    private static void expensivelyLogAllThreadState() {
-        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
-        ThreadInfo[] threadInfos = threadBean.getThreadInfo(threadBean.getAllThreadIds(), Integer.MAX_VALUE);
-        for (int index = 0; index < threadInfos.length; index++) {
-            // This is superior to using standard jstacks because it is based on what we believe to be the unique
-            // trigger of PDS-146088.
-            ThreadInfo info = threadInfos[index];
-            log.info(
-                    "This is a part of a Cassandra Client Factory triggered thread dump.",
-                    SafeArg.of("threadIndex", index),
-                    SafeArg.of("numThreads", threadInfos.length),
-                    UnsafeArg.of("threadName", info.getThreadName()),
-                    SafeArg.of("state", info.getThreadState()),
-                    SafeArg.of("blockedTime", info.getBlockedTime()),
-                    SafeArg.of("waitedTime", info.getWaitedTime()),
-                    UnsafeArg.of(
-                            "stackTrace",
-                            Arrays.stream(info.getStackTrace())
-                                    .map(StackTraceElement::toString)
-                                    .collect(Collectors.joining("\n"))));
         }
     }
 
