@@ -63,15 +63,13 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     @Override
     public synchronized void write(TableReference tableReference, Map<Cell, byte[]> values) {
         ensureNotFinalised();
-        KeyedStream.stream(values)
-                .map(CacheValue::of)
-                .forEach((cell, value) -> valueStore.cacheRemoteWrite(tableReference, cell, value));
+        values.keySet().forEach(cell -> valueStore.cacheRemoteWrite(tableReference, cell));
     }
 
     @Override
     public synchronized void delete(TableReference tableReference, Set<Cell> cells) {
         ensureNotFinalised();
-        cells.forEach(cell -> valueStore.cacheRemoteWrite(tableReference, cell, CacheValue.empty()));
+        cells.forEach(cell -> valueStore.cacheRemoteWrite(tableReference, cell));
     }
 
     @Override
