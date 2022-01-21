@@ -74,18 +74,7 @@ public class DisabledNamespaces {
     }
 
     public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
-        UUID lockId = request.getLockId();
-        Set<Namespace> failedNamespaces = execute(dao -> dao.disableAll(request.getNamespaces(), lockId));
-        if (failedNamespaces.isEmpty()) {
-            log.info("Successfully disabled namespaces", SafeArg.of("namespaces", request.getNamespaces()));
-            return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
-        } else {
-            log.error(
-                    "Failed to disable namespaces, as some were already disabled",
-                    SafeArg.of("namespaces", request.getNamespaces()),
-                    SafeArg.of("failedNamespaces", failedNamespaces));
-            return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(failedNamespaces));
-        }
+        return execute(dao -> dao.disableAll(request.getNamespaces(), request.getLockId()));
     }
 
     public ReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
@@ -111,17 +100,22 @@ public class DisabledNamespaces {
         boolean createTable();
 
         @Transaction
-        default Set<Namespace> disableAll(Set<Namespace> namespaces, UUID lockId) {
+        default DisableNamespacesResponse disableAll(Set<Namespace> namespaces, UUID lockId) {
             Set<Namespace> alreadyDisabled = namespaces.stream()
                     .filter(ns -> getState(ns.toString()).isPresent())
                     .collect(Collectors.toSet());
             if (!alreadyDisabled.isEmpty()) {
-                return alreadyDisabled;
+                log.error(
+                        "Failed to disable namespaces, as some were already disabled",
+                        SafeArg.of("namespaces", namespaces),
+                        SafeArg.of("alreadyDisabledNamespaces", alreadyDisabled));
+                return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.of(alreadyDisabled));
             }
 
             Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
             disable(namespaceNames, lockId);
-            return ImmutableSet.of();
+            log.info("Successfully disabled namespaces", SafeArg.of("namespaces", namespaces));
+            return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
         }
 
         @Transaction

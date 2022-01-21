@@ -104,6 +104,15 @@ public class DisabledNamespacesTest {
         assertThat(secondResponse)
                 .isEqualTo(DisableNamespacesResponse.unsuccessful(
                         UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
+
+        DisableNamespacesResponse thirdResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST, SECOND));
+
+        assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
+
+        assertThat(thirdResponse)
+                .isEqualTo(DisableNamespacesResponse.unsuccessful(
+                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
+
     }
 
     @Test
