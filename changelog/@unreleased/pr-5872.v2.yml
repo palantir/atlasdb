@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: We do a costly thread dump when failing to evict an object from the
+    Cassandra client pool. This was necessary as part of PDS-146088, but since we
+    fixed that in commons pool, it's not needed any more.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5872

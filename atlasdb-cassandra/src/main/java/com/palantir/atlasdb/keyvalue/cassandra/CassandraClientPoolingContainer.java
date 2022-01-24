@@ -44,10 +44,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
-import org.apache.commons.pool2.impl.EvictionConfig;
-import org.apache.commons.pool2.impl.EvictionPolicy;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.transport.TFramedTransport;
@@ -294,7 +291,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
-        poolConfig.setEvictionPolicy(new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()));
+        poolConfig.setEvictionPolicy(new DefaultEvictionPolicy<>());
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         pool.setSwallowedExceptionListener(exception -> log.info("Swallowed exception within object pool", exception));
         registerMetrics(pool);
@@ -338,37 +335,5 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge) {
         poolMetrics.registerPoolMetric(metric, gauge, poolNumber);
-    }
-
-    private static final class NonEvictionLoggingEvictionPolicy<T> implements EvictionPolicy<T> {
-        private final EvictionPolicy<T> delegate;
-
-        private NonEvictionLoggingEvictionPolicy(EvictionPolicy<T> delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public boolean evict(EvictionConfig config, PooledObject<T> underTest, int idleCount) {
-            boolean delegateResult = delegate.evict(config, underTest, idleCount);
-            // PDS-146088: the issue manifests with failures to evict anything
-            if (log.isDebugEnabled()) {
-                if (delegateResult) {
-                    log.debug(
-                            "Attempting to evict an object from the Cassandra client pool",
-                            SafeArg.of("underTestState", underTest.getState()),
-                            SafeArg.of("idleState", underTest.getIdleTimeMillis()),
-                            SafeArg.of("idleCount", idleCount),
-                            SafeArg.of("evictionConfig", config));
-                } else {
-                    log.debug(
-                            "Considered an object to be evicted from the Cassandra client pool, but did not evict it",
-                            SafeArg.of("underTestState", underTest.getState()),
-                            SafeArg.of("idleState", underTest.getIdleTimeMillis()),
-                            SafeArg.of("idleCount", idleCount),
-                            SafeArg.of("evictionConfig", config));
-                }
-            }
-            return delegateResult;
-        }
     }
 }
