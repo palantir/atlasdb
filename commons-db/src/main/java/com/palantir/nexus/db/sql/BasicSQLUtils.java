@@ -316,6 +316,7 @@ public class BasicSQLUtils {
         return result;
     }
 
+    @SuppressWarnings("ReadReturnValueIgnored") // Read is from a byte array input stream; will read everything
     public static void toStringSqlArgs(final StringBuilder sb, Object[] args) {
         if (args instanceof Object[][]) {
             // then we're doing a batch query

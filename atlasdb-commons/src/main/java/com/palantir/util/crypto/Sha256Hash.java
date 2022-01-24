@@ -192,6 +192,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
             return createDigest(algorithm);
         }
 
+        @SuppressWarnings("ReturnValueIgnored") // This method tests whether cloning is possible.
         private static boolean supportsClone(MessageDigest prototype) {
             try {
                 prototype.clone();

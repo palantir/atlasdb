@@ -159,6 +159,7 @@ public class BlockConsumingInputStreamTest {
     }
 
     @Test
+    @SuppressWarnings("ReadReturnValueIgnored") // Relates to part of system not under test in this test
     public void readSingleByteWhenStreamExhaustedReturnsMinusOne() throws IOException {
         dataStream.read(new byte[DATA_SIZE]);
 
@@ -167,6 +168,7 @@ public class BlockConsumingInputStreamTest {
     }
 
     @Test
+    @SuppressWarnings("ReadReturnValueIgnored") // Relates to part of system not under test in this test
     public void readWhenStreamExhaustedReturnsMinusOne() throws IOException {
         byte[] result = new byte[DATA_SIZE];
         dataStream.read(result);
@@ -279,6 +281,7 @@ public class BlockConsumingInputStreamTest {
     }
 
     @Test
+    @SuppressWarnings("ReadReturnValueIgnored") // Relates to part of system not under test in this test
     public void canLoadMultipleBlocksAtOnceAndAlsoFewerBlocksAtEnd() throws IOException {
         BlockGetter spiedGetter = Mockito.spy(singleByteConsumer);
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(spiedGetter, DATA_SIZE, 3);

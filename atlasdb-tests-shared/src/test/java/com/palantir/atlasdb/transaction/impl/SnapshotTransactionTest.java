@@ -1672,6 +1672,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    @SuppressWarnings("ReturnValueIgnored") // Part of an assertion!
     public void getSortedColumnsThrowsIfLockIsLost() {
         List<Cell> cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A));
         putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
