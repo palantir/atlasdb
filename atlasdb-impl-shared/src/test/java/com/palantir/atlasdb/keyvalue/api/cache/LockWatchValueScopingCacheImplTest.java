@@ -185,30 +185,36 @@ public final class LockWatchValueScopingCacheImplTest {
     public void readOnlyTransactionCacheFiltersOutNewlyLockedValues() {
         processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1);
 
-        // Writes do not cache locally
         TransactionScopedCache scopedCache1 = valueCache.getTransactionScopedCache(TIMESTAMP_1);
-        scopedCache1.write(TABLE, ImmutableMap.of(CELL_2, VALUE_2.value().get()));
+        // The cache is initially empty, and thus both reads read from remote
         assertThatRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1, CELL_2);
         verify(metrics, times(1)).registerHits(0);
         verify(metrics, times(1)).registerMisses(2);
 
-        // This update has a lock taken out for CELL_1: this means that all reads for it must be remote.
+        // This update has a lock taken out for CELL_1, and so all reads must be remote for it
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), LOCK_WATCH_LOCK_SUCCESS);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
         processEventCacheCommit(TIMESTAMP_1, 1L);
         valueCache.updateCacheWithCommitTimestampsInformation(ImmutableSet.of(TIMESTAMP_1));
 
-        // The difference between the read only cache and the new scoped cache, despite being at the same sequence,
-        // is that the read-only cache contains all the locally cached values, including writes, whereas the fresh
-        // cache only contains those published values from the first cache - and since one was a write, and the other
-        // had a lock taken out during the transaction, none of the values were actually pushed centrally.
+        // The read only cache cannot cache CELL_1 due to it being locked, but can cache CELL_2 as it was read locally.
+        // The new scoped cache cannot cache CELL_1 either, but also cannot initially read CELL_2 from the cache as it
+        // has not yet been flushed to the central one.
         TransactionScopedCache readOnlyCache = valueCache.getReadOnlyTransactionScopedCacheForCommit(TIMESTAMP_1);
         assertThatRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1);
-        verify(metrics, times(2)).registerHits(1);
-        verify(metrics, times(2)).registerMisses(1);
+        verify(metrics, times(1)).registerHits(1);
+        verify(metrics, times(1)).registerMisses(1);
+
+        // While this commit does update the central cache, the second cache has already been created before this point
+        // and thus does not receive the update
         valueCache.onSuccessfulCommit(TIMESTAMP_1);
 
         TransactionScopedCache scopedCache2 = valueCache.getTransactionScopedCache(TIMESTAMP_2);
         assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1, CELL_2);
+
+        // This confirms that CELL_1 remains uncacheable for this cache due to there having been a lock taken out when
+        // this cache was created
+        assertThatRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2).containsExactlyInAnyOrder(CELL_1);
     }
 
     @Test
