@@ -86,9 +86,7 @@ public class DisabledNamespacesTest {
                 .isEqualTo(DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID)));
 
         DisableNamespacesResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
-        assertThat(secondResponse)
-                .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
+        assertThat(secondResponse).isEqualTo(DisableNamespacesResponse.unsuccessful(unsuccessfulResponse()));
     }
 
     @Test
@@ -101,17 +99,19 @@ public class DisabledNamespacesTest {
 
         assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
 
-        assertThat(secondResponse)
-                .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
+        assertThat(secondResponse).isEqualTo(DisableNamespacesResponse.unsuccessful(unsuccessfulResponse()));
 
         DisableNamespacesResponse thirdResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST, SECOND));
 
         assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
 
-        assertThat(thirdResponse)
-                .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
+        assertThat(thirdResponse).isEqualTo(DisableNamespacesResponse.unsuccessful(unsuccessfulResponse()));
+    }
+
+    private UnsuccessfulDisableNamespacesResponse unsuccessfulResponse() {
+        return UnsuccessfulDisableNamespacesResponse.builder()
+                .consistentlyDisabledNamespaces(FIRST)
+                .build();
     }
 
     @Test

@@ -13,8 +13,11 @@ types:
           lockId: uuid
       UnsuccessfulDisableNamespacesResponse:
         fields:
-          # if this set is non-empty, action will be required
-          disabledNamespaces: set<api.Namespace>
+          # we can assume another restore is in progress for this namespace
+          consistentlyDisabledNamespaces: set<api.Namespace>
+          # either another restore is in progress for this namespace (and we've hit a race condition), or
+          # the namespace is stuck and needs to be manually fixed.
+          partiallyDisabledNamespaces: set<api.Namespace>
       DisableNamespacesResponse:
         union:
           successful: SuccessfulDisableNamespacesResponse

@@ -99,8 +99,10 @@ public class DisabledNamespaces {
                         "Failed to disable namespaces, as some were already disabled",
                         SafeArg.of("namespaces", namespaces),
                         SafeArg.of("alreadyDisabledNamespaces", alreadyDisabled));
-                return DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(alreadyDisabled));
+                return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
+                        // we're querying a single node and are consistent with ourselves
+                        .consistentlyDisabledNamespaces(alreadyDisabled)
+                        .build());
             }
 
             Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());

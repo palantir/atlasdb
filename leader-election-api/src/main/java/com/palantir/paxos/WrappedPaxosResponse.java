@@ -16,25 +16,17 @@
 
 package com.palantir.paxos;
 
-import java.util.function.Function;
-
 public final class WrappedPaxosResponse<T> implements PaxosResponse {
-    private final boolean isSuccessful;
     private final T response;
 
-    public WrappedPaxosResponse(boolean isSuccessful, T response) {
+    public WrappedPaxosResponse(T response) {
         this.response = response;
-        this.isSuccessful = isSuccessful;
-    }
-
-    public WrappedPaxosResponse(Function<T, Boolean> successEvaluator, T response) {
-        this.response = response;
-        this.isSuccessful = successEvaluator.apply(response);
     }
 
     @Override
     public boolean isSuccessful() {
-        return isSuccessful;
+        // We got the response, so we're obviously successful.
+        return true;
     }
 
     public T getResponse() {
