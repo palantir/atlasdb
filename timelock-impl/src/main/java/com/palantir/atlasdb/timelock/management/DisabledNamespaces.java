@@ -16,14 +16,15 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulReenableNamespacesResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -121,11 +122,13 @@ public class DisabledNamespaces {
                         "Failed to re-ensable namespaces, as some were disabled with a different lock ID",
                         SafeArg.of("namespaces", namespaces),
                         SafeArg.of("failedNamespaces", namespacesWithLockConflict));
-                return ReenableNamespacesResponse.of(false, namespacesWithLockConflict);
+                return ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
+                        .consistentlyLockedNamespaces(namespacesWithLockConflict)
+                        .build());
             }
 
             namespaces.stream().map(Namespace::get).forEach(this::delete);
-            return ReenableNamespacesResponse.of(true, ImmutableSet.of());
+            return ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true));
         }
 
         @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?)")

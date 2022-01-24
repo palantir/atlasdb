@@ -26,6 +26,7 @@ import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulReenableNamespacesResponse;
 import com.palantir.paxos.SqliteConnections;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -123,7 +124,10 @@ public class DisabledNamespacesTest {
         ReenableNamespacesResponse response =
                 disabledNamespaces.reEnable(ReenableNamespacesRequest.of(ImmutableSet.of(FIRST, SECOND), LOCK_ID));
 
-        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false, ImmutableSet.of(SECOND)));
+        assertThat(response)
+                .isEqualTo(ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
+                        .consistentlyLockedNamespaces(SECOND)
+                        .build()));
     }
 
     @Test

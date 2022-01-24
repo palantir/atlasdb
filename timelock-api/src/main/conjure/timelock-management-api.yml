@@ -26,10 +26,19 @@ types:
         fields:
           namespaces: set<api.Namespace>
           lockId: uuid
-      ReenableNamespacesResponse:
+      SuccessfulReenableNamespacesResponse:
+        alias: boolean
+      UnsuccessfulReenableNamespacesResponse:
         fields:
-          wasSuccessful: boolean
-          lockedNamespaces: set<api.Namespace>
+          # we can assume another restore is in progress for this namespace (we lost our lock)
+          consistentlyLockedNamespaces: set<api.Namespace>
+          # either another restore is in progress for this namespace (and we lost our lock), or
+          # the namespace is stuck and needs to be manually fixed.
+          partiallyLockedNamespaces: set<api.Namespace>
+      ReenableNamespacesResponse:
+        union:
+          successful: SuccessfulReenableNamespacesResponse
+          unsuccessful: UnsuccessfulReenableNamespacesResponse
 
 services:
   DisabledNamespacesUpdaterService:

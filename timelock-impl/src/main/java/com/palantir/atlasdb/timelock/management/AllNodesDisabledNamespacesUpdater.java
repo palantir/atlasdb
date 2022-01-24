@@ -27,6 +27,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulReenableNamespacesResponse;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
@@ -95,7 +96,7 @@ public class AllNodesDisabledNamespacesUpdater {
         Function<DisabledNamespacesUpdaterService, DisableNamespacesResponse> update =
                 service -> service.disable(authHeader, request);
         Function<DisableNamespacesResponse, Boolean> successEvaluator =
-                response -> response.accept(DisableNamespacesResponseVisitors.successfulDisableVisitor());
+                response -> response.accept(NamespaceUpdateVisitors.successfulDisableVisitor());
 
         List<DisableNamespacesResponse> responses = attemptOnAllNodes(update);
 
@@ -107,10 +108,8 @@ public class AllNodesDisabledNamespacesUpdater {
         }
 
         // roll back in the event of failure
-        DisableNamespacesResponse.Visitor<Set<Namespace>> disabledNamespacesFetcher =
-                DisableNamespacesResponseVisitors.of(
-                        _unused -> ImmutableSet.of(),
-                        UnsuccessfulDisableNamespacesResponse::getConsistentlyDisabledNamespaces);
+        DisableNamespacesResponse.Visitor<Set<Namespace>> disabledNamespacesFetcher = NamespaceUpdateVisitors.disable(
+                _unused -> ImmutableSet.of(), UnsuccessfulDisableNamespacesResponse::getConsistentlyDisabledNamespaces);
         Map<Namespace, Integer> failedNamespaces = new HashMap<>();
         for (DisableNamespacesResponse response : responses) {
             Set<Namespace> disabledNamespaces = response.accept(disabledNamespacesFetcher);
@@ -141,12 +140,13 @@ public class AllNodesDisabledNamespacesUpdater {
                 .namespaces(namespaces)
                 .lockId(lockId)
                 .build();
-        boolean rollbackSuccess = isSuccessfulOnAllNodes(service -> new BooleanPaxosResponse(
-                service.reenable(authHeader, rollbackRequest).getWasSuccessful()));
+        boolean rollbackSuccess =
+                isSuccessfulOnAllNodes(service -> new BooleanPaxosResponse(service.reenable(authHeader, rollbackRequest)
+                        .accept(NamespaceUpdateVisitors.successfulReEnableVisitor())));
 
-        // todo(gs): local failure?
-        localUpdater.reEnable(rollbackRequest);
-        if (rollbackSuccess) {
+        boolean localSuccess =
+                localUpdater.reEnable(rollbackRequest).accept(NamespaceUpdateVisitors.successfulReEnableVisitor());
+        if (rollbackSuccess && localSuccess) {
             log.error(
                     "Failed to disable all namespaces. However, we successfully rolled back any partially disabled namespaces.",
                     SafeArg.of("namespaces", namespaces),
@@ -177,12 +177,14 @@ public class AllNodesDisabledNamespacesUpdater {
             log.error(
                     "Failed to reach all remote nodes. Not re-enabling any namespaces",
                     SafeArg.of("namespaces", namespaces));
-            return ReenableNamespacesResponse.of(false, ImmutableSet.of());
+            return ReenableNamespacesResponse.unsuccessful(
+                    UnsuccessfulReenableNamespacesResponse.builder().build());
         }
 
         Function<DisabledNamespacesUpdaterService, ReenableNamespacesResponse> update =
                 service -> service.reenable(authHeader, request);
-        Function<ReenableNamespacesResponse, Boolean> successEvaluator = ReenableNamespacesResponse::getWasSuccessful;
+        Function<ReenableNamespacesResponse, Boolean> successEvaluator =
+                res -> res.accept(NamespaceUpdateVisitors.successfulReEnableVisitor());
         List<ReenableNamespacesResponse> responses = attemptOnAllNodes(update);
 
         ReenableNamespacesResponse localResponse = localUpdater.reEnable(request);
@@ -193,9 +195,11 @@ public class AllNodesDisabledNamespacesUpdater {
         }
 
         // Find any consistently locked namespaces
+        ReenableNamespacesResponse.Visitor<Set<Namespace>> lockedNamespacesFetcher = NamespaceUpdateVisitors.reEnable(
+                _unused -> ImmutableSet.of(), UnsuccessfulReenableNamespacesResponse::getConsistentlyLockedNamespaces);
         Map<Namespace, Integer> failedNamespaces = new HashMap<>();
         for (ReenableNamespacesResponse response : responses) {
-            Set<Namespace> lockedNamespaces = response.getLockedNamespaces();
+            Set<Namespace> lockedNamespaces = response.accept(lockedNamespacesFetcher);
             lockedNamespaces.forEach(ns -> failedNamespaces.merge(ns, 1, Integer::sum));
         }
 
@@ -211,7 +215,9 @@ public class AllNodesDisabledNamespacesUpdater {
                             + " process. If that is the case, please either wait for that restore to complete, "
                             + " or kick off a restore without that namespace",
                     SafeArg.of("lockedNamespaces", consistentlyLockedNamespaces));
-            return ReenableNamespacesResponse.of(false, consistentlyLockedNamespaces);
+            return ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
+                    .consistentlyLockedNamespaces(consistentlyLockedNamespaces)
+                    .build());
         }
 
         // Fall back
@@ -219,7 +225,7 @@ public class AllNodesDisabledNamespacesUpdater {
         Function<DisabledNamespacesUpdaterService, DisableNamespacesResponse> rollback =
                 service -> service.disable(authHeader, rollbackRequest);
         Function<DisableNamespacesResponse, Boolean> rollbackSuccessEvaluator =
-                response -> response.accept(DisableNamespacesResponseVisitors.successfulDisableVisitor());
+                response -> response.accept(NamespaceUpdateVisitors.successfulDisableVisitor());
         List<DisableNamespacesResponse> rollbackResponses = attemptOnAllNodes(rollback);
         rollbackResponses.add(localUpdater.disable(rollbackRequest));
         if (rollbackResponses.stream().allMatch(rollbackSuccessEvaluator::apply)) {
@@ -227,7 +233,8 @@ public class AllNodesDisabledNamespacesUpdater {
                     "Failed to re-enable namespaces. However, we successfully rolled back any partially re-enabled namespaces",
                     SafeArg.of("namespaces", namespaces),
                     SafeArg.of("lockId", lockId));
-            return ReenableNamespacesResponse.of(false, ImmutableSet.of());
+            return ReenableNamespacesResponse.unsuccessful(
+                    UnsuccessfulReenableNamespacesResponse.builder().build());
         }
 
         log.error(
@@ -235,7 +242,9 @@ public class AllNodesDisabledNamespacesUpdater {
                         + " These will need to be force-re-enabled in order to return Timelock to a consistent state.",
                 SafeArg.of("namespaces", namespaces),
                 SafeArg.of("lockId", lockId));
-        return ReenableNamespacesResponse.of(false, namespaces);
+        return ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
+                .partiallyLockedNamespaces(namespaces)
+                .build());
     }
 
     private <T> List<T> attemptOnAllNodes(Function<DisabledNamespacesUpdaterService, T> request) {

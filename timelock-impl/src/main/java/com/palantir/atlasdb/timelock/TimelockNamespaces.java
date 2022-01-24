@@ -25,8 +25,8 @@ import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
-import com.palantir.atlasdb.timelock.management.DisableNamespacesResponseVisitors;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
+import com.palantir.atlasdb.timelock.management.NamespaceUpdateVisitors;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
@@ -131,7 +131,7 @@ public final class TimelockNamespaces {
 
     public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
         DisableNamespacesResponse response = disabledNamespaces.disable(request);
-        response.accept(DisableNamespacesResponseVisitors.of(
+        response.accept(NamespaceUpdateVisitors.disable(
                 _unused -> {
                     request.getNamespaces().stream().map(Namespace::get).forEach(this::invalidateResourcesForClient);
                     return null;

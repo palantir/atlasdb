@@ -17,22 +17,25 @@
 package com.palantir.atlasdb.timelock.management;
 
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulReenableNamespacesResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.function.Function;
 
-public final class DisableNamespacesResponseVisitors {
-    private DisableNamespacesResponseVisitors() {
+public final class NamespaceUpdateVisitors {
+    private NamespaceUpdateVisitors() {
         // don't even think about it
     }
 
     public static DisableNamespacesResponse.Visitor<Boolean> successfulDisableVisitor() {
-        return of(_unused -> true, _unused -> false);
+        return disable(_unused -> true, _unused -> false);
     }
 
-    public static <T> DisableNamespacesResponse.Visitor<T> of(
+    public static <T> DisableNamespacesResponse.Visitor<T> disable(
             Function<SuccessfulDisableNamespacesResponse, T> visitSuccessful,
             Function<UnsuccessfulDisableNamespacesResponse, T> visitUnsuccessful) {
         return new DisableNamespacesResponse.Visitor<>() {
@@ -49,7 +52,33 @@ public final class DisableNamespacesResponseVisitors {
             @Override
             public T visitUnknown(String unknownType) {
                 throw new SafeIllegalStateException(
-                        "Unknown DisabledNamespacesResponse", SafeArg.of("responseType", unknownType));
+                        "Unknown DisableNamespacesResponse", SafeArg.of("responseType", unknownType));
+            }
+        };
+    }
+
+    public static ReenableNamespacesResponse.Visitor<Boolean> successfulReEnableVisitor() {
+        return reEnable(_unused -> true, _unused -> false);
+    }
+
+    public static <T> ReenableNamespacesResponse.Visitor<T> reEnable(
+            Function<SuccessfulReenableNamespacesResponse, T> visitSuccessful,
+            Function<UnsuccessfulReenableNamespacesResponse, T> visitUnsuccessful) {
+        return new ReenableNamespacesResponse.Visitor<T>() {
+            @Override
+            public T visitSuccessful(SuccessfulReenableNamespacesResponse value) {
+                return visitSuccessful.apply(value);
+            }
+
+            @Override
+            public T visitUnsuccessful(UnsuccessfulReenableNamespacesResponse value) {
+                return visitUnsuccessful.apply(value);
+            }
+
+            @Override
+            public T visitUnknown(String unknownType) {
+                throw new SafeIllegalStateException(
+                        "Unknown ReenableNamespacesResponse", SafeArg.of("responseType", unknownType));
             }
         };
     }
