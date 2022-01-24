@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
@@ -345,20 +346,12 @@ public final class CassandraVerifier {
     }
 
     static void sanityCheckReplicationFactor(KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs) {
-        checkRfsSpecified(config, dcs, ks.getStrategy_options());
-        checkRfsMatchConfig(ks, config, dcs, ks.getStrategy_options());
+        Set<String> scopedDownDcs = checkRfsSpecifiedAndScopeDownDcs(dcs, ks.getStrategy_options());
+        checkRfsMatchConfig(ks, config, scopedDownDcs, ks.getStrategy_options());
     }
 
-    private static void checkRfsSpecified(
-            CassandraKeyValueServiceConfig config, Set<String> dcs, Map<String, String> strategyOptions) {
-        for (String datacenter : dcs) {
-            if (strategyOptions.get(datacenter) == null) {
-                logErrorOrThrow(
-                        "The datacenter for this cassandra cluster is invalid. " + " failed dc: " + datacenter
-                                + "  strategyOptions: " + strategyOptions,
-                        config.ignoreDatacenterConfigurationChecks());
-            }
-        }
+    private static Set<String> checkRfsSpecifiedAndScopeDownDcs(Set<String> dcs, Map<String, String> strategyOptions) {
+        return Sets.intersection(dcs, strategyOptions.keySet());
     }
 
     private static void checkRfsMatchConfig(

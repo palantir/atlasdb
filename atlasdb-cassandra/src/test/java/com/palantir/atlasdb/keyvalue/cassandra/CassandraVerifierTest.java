@@ -16,13 +16,13 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
@@ -91,6 +91,21 @@ public class CassandraVerifierTest {
 
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(client, config))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void moreDcsPresentThanInStrategyOptionsSucceeds() throws TException {
+        setTopology(createDetails(DC_1, RACK_1, HOST_1));
+        when(config.replicationFactor()).thenReturn(3);
+
+        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, config);
+        CassandraVerifier.sanityCheckedDatacenters.invalidateAll();
+        CassandraVerifier.sanityCheckedDatacenters.cleanUp();
+        setTopology(createDetails(DC_1, RACK_1, HOST_1), createDetails(DC_2, RACK_2, HOST_2));
+
+        assertThatCode(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config))
+                .as("strategy options should only contain info for DC_1 but should not throw despite detecting two DCs")
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -225,15 +240,6 @@ public class CassandraVerifierTest {
 
         ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
         assertThat(ksDef.strategy_options).isEqualTo(strategyOptions);
-    }
-
-    @Test
-    public void noStrategyForDcThrows() {
-        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
-        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "1"));
-        assertThatThrownBy(() ->
-                        CassandraVerifier.sanityCheckReplicationFactor(ksDef, config, ImmutableSet.of(DC_1, DC_2)))
-                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
