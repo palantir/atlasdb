@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Remove a Cassandra verification check that effectively verifies that
+    the datacenters have not been changed for a keyspace when compared against the
+    `SAMPLE_RF_KEYSPACE` as this invariant cannot be broken through AtlasDB and would
+    require direct Cassandra modification.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5874
