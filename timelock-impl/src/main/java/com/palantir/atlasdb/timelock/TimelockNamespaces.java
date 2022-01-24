@@ -25,8 +25,7 @@ import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.management.DisableNamespacesResponseVisitors;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -132,28 +131,17 @@ public final class TimelockNamespaces {
 
     public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
         DisableNamespacesResponse response = disabledNamespaces.disable(request);
-        response.accept(new DisableNamespacesResponse.Visitor<Void>() {
-            @Override
-            public Void visitSuccessful(SuccessfulDisableNamespacesResponse _unused) {
-                request.getNamespaces().stream().map(Namespace::get).forEach(ns -> invalidateResourcesForClient(ns));
-                return null;
-            }
-
-            @Override
-            public Void visitUnsuccessful(UnsuccessfulDisableNamespacesResponse response) {
-                log.info(
-                        "Not invalidating resources, as the request to disable namespaces was unsuccessful",
-                        SafeArg.of("response", response));
-                return null;
-            }
-
-            @Override
-            public Void visitUnknown(String unknownTypeThatShouldNeverHappen) {
-                throw new SafeIllegalStateException(
-                        "Unknown response when disabling namespaces",
-                        SafeArg.of("response", unknownTypeThatShouldNeverHappen));
-            }
-        });
+        response.accept(DisableNamespacesResponseVisitors.of(
+                _unused -> {
+                    request.getNamespaces().stream().map(Namespace::get).forEach(this::invalidateResourcesForClient);
+                    return null;
+                },
+                unsuccessfulResponse -> {
+                    log.info(
+                            "Not invalidating resources, as the request to disable namespaces was unsuccessful",
+                            SafeArg.of("response", unsuccessfulResponse));
+                    return null;
+                }));
         return response;
     }
 

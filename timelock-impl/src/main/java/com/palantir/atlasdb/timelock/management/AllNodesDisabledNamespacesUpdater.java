@@ -26,12 +26,10 @@ import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.BooleanPaxosResponse;
@@ -96,7 +94,7 @@ public class AllNodesDisabledNamespacesUpdater {
         Function<DisabledNamespacesUpdaterService, DisableNamespacesResponse> update =
                 service -> service.disable(authHeader, request);
         Function<DisableNamespacesResponse, Boolean> successEvaluator =
-                response -> response.accept(successfulDisableVisitor());
+                response -> response.accept(DisableNamespacesResponseVisitors.successfulDisableVisitor());
 
         List<DisableNamespacesResponse> responses = attemptOnAllNodes(update, successEvaluator);
 
@@ -108,8 +106,9 @@ public class AllNodesDisabledNamespacesUpdater {
         }
 
         // roll back in the event of failure
-        DisableNamespacesResponse.Visitor<Set<Namespace>> disabledNamespacesFetcher = disableResponseVisitor(
-                _unused -> ImmutableSet.of(), UnsuccessfulDisableNamespacesResponse::getDisabledNamespaces);
+        DisableNamespacesResponse.Visitor<Set<Namespace>> disabledNamespacesFetcher =
+                DisableNamespacesResponseVisitors.of(
+                        _unused -> ImmutableSet.of(), UnsuccessfulDisableNamespacesResponse::getDisabledNamespaces);
         Map<Namespace, Integer> failedNamespaces = new HashMap<>();
         for (DisableNamespacesResponse response : responses) {
             Set<Namespace> disabledNamespaces = response.accept(disabledNamespacesFetcher);
@@ -211,7 +210,7 @@ public class AllNodesDisabledNamespacesUpdater {
         Function<DisabledNamespacesUpdaterService, DisableNamespacesResponse> rollback =
                 service -> service.disable(authHeader, rollbackRequest);
         Function<DisableNamespacesResponse, Boolean> rollbackSuccessEvaluator =
-                response -> response.accept(successfulDisableVisitor());
+                response -> response.accept(DisableNamespacesResponseVisitors.successfulDisableVisitor());
         List<DisableNamespacesResponse> rollbackResponses = attemptOnAllNodes(rollback, rollbackSuccessEvaluator);
         rollbackResponses.add(localUpdater.disable(rollbackRequest));
         if (rollbackResponses.stream().allMatch(rollbackSuccessEvaluator::apply)) {
@@ -247,31 +246,5 @@ public class AllNodesDisabledNamespacesUpdater {
             Function<DisabledNamespacesUpdaterService, T> request) {
         return PaxosQuorumChecker.collectQuorumResponses(
                 updaters, request, updaters.size(), executors, Duration.ofSeconds(5L), true);
-    }
-
-    private DisableNamespacesResponse.Visitor<Boolean> successfulDisableVisitor() {
-        return disableResponseVisitor(_unused -> true, _unused -> false);
-    }
-
-    private <T> DisableNamespacesResponse.Visitor<T> disableResponseVisitor(
-            Function<SuccessfulDisableNamespacesResponse, T> visitSuccessful,
-            Function<UnsuccessfulDisableNamespacesResponse, T> visitUnsuccessful) {
-        return new DisableNamespacesResponse.Visitor<T>() {
-            @Override
-            public T visitSuccessful(SuccessfulDisableNamespacesResponse value) {
-                return visitSuccessful.apply(value);
-            }
-
-            @Override
-            public T visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
-                return visitUnsuccessful.apply(value);
-            }
-
-            @Override
-            public T visitUnknown(String unknownType) {
-                throw new SafeIllegalStateException(
-                        "Unknown DisabledNamespacesResponse", SafeArg.of("responseType", unknownType));
-            }
-        };
     }
 }
