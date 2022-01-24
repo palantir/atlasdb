@@ -38,9 +38,9 @@ import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponsesWithRemote;
+import com.palantir.paxos.WrappedPaxosResponse;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +82,7 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     public DisableNamespacesResponse disableOnAllNodes(Set<Namespace> namespaces) {
-        boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
+        boolean pingSuccess = isSuccessfulOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
 
         if (!pingSuccess) {
             log.error(
@@ -97,6 +97,7 @@ public class AllNodesDisabledNamespacesUpdater {
                 service -> service.disable(authHeader, request);
         Function<DisableNamespacesResponse, Boolean> successEvaluator =
                 response -> response.accept(successfulDisableVisitor());
+
         List<DisableNamespacesResponse> responses = attemptOnAllNodes(update, successEvaluator);
 
         DisableNamespacesResponse localResponse = localUpdater.disable(request);
@@ -138,7 +139,7 @@ public class AllNodesDisabledNamespacesUpdater {
                 .namespaces(namespaces)
                 .lockId(lockId)
                 .build();
-        boolean rollbackSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(
+        boolean rollbackSuccess = isSuccessfulOnAllNodes(service -> new BooleanPaxosResponse(
                 service.reenable(authHeader, rollbackRequest).getWasSuccessful()));
         localUpdater.reEnable(rollbackRequest);
         if (rollbackSuccess) {
@@ -163,7 +164,7 @@ public class AllNodesDisabledNamespacesUpdater {
         Set<Namespace> namespaces = request.getNamespaces();
         UUID lockId = request.getLockId();
 
-        boolean pingSuccess = attemptOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
+        boolean pingSuccess = isSuccessfulOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
         if (!pingSuccess) {
             log.error(
                     "Failed to reach all remote nodes. Not re-enabling any namespaces",
@@ -229,27 +230,23 @@ public class AllNodesDisabledNamespacesUpdater {
         return ReenableNamespacesResponse.of(false, namespaces);
     }
 
-    // TODO(gs): generify PaxosQuorumChecker
-    private <RESPONSE> List<RESPONSE> attemptOnAllNodes(
-            Function<DisabledNamespacesUpdaterService, RESPONSE> request,
-            Function<RESPONSE, Boolean> successEvaluator) {
-        // Add one to take into account the local update
-        List<RESPONSE> responses = new ArrayList<>(updaters.size() + 1);
-        Function<DisabledNamespacesUpdaterService, PaxosResponse> composedFunction = service -> {
-            RESPONSE response = request.apply(service);
-            responses.add(response);
-            return new BooleanPaxosResponse(successEvaluator.apply(response));
-        };
-        PaxosQuorumChecker.collectQuorumResponses(
-                updaters, composedFunction, updaters.size(), executors, Duration.ofSeconds(5L), false);
-        return responses;
+    private <T> List<T> attemptOnAllNodes(
+            Function<DisabledNamespacesUpdaterService, T> request, Function<T, Boolean> successEvaluator) {
+        Function<DisabledNamespacesUpdaterService, WrappedPaxosResponse<T>> composedFunction =
+                service -> new WrappedPaxosResponse<>(successEvaluator, request.apply(service));
+        return executeOnAllNodes(composedFunction).responses().values().stream()
+                .map(WrappedPaxosResponse::getResponse)
+                .collect(Collectors.toList());
     }
 
-    private boolean attemptOnAllNodes(Function<DisabledNamespacesUpdaterService, PaxosResponse> request) {
-        PaxosResponsesWithRemote<DisabledNamespacesUpdaterService, PaxosResponse> responses =
-                PaxosQuorumChecker.collectQuorumResponses(
-                        updaters, request, updaters.size(), executors, Duration.ofSeconds(5L), true);
-        return responses.responses().values().stream().allMatch(PaxosResponse::isSuccessful);
+    private boolean isSuccessfulOnAllNodes(Function<DisabledNamespacesUpdaterService, PaxosResponse> request) {
+        return executeOnAllNodes(request).responses().values().stream().allMatch(PaxosResponse::isSuccessful);
+    }
+
+    private <T extends PaxosResponse> PaxosResponsesWithRemote<DisabledNamespacesUpdaterService, T> executeOnAllNodes(
+            Function<DisabledNamespacesUpdaterService, T> request) {
+        return PaxosQuorumChecker.collectQuorumResponses(
+                updaters, request, updaters.size(), executors, Duration.ofSeconds(5L), true);
     }
 
     private DisableNamespacesResponse.Visitor<Boolean> successfulDisableVisitor() {
