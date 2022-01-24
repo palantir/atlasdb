@@ -39,7 +39,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -345,26 +344,8 @@ public final class CassandraVerifier {
     }
 
     static void sanityCheckReplicationFactor(KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs) {
-        checkRfsSpecified(config, dcs, ks.getStrategy_options());
-        checkRfsMatchConfig(ks, config, dcs, ks.getStrategy_options());
-    }
-
-    private static void checkRfsSpecified(
-            CassandraKeyValueServiceConfig config, Set<String> dcs, Map<String, String> strategyOptions) {
         for (String datacenter : dcs) {
-            if (strategyOptions.get(datacenter) == null) {
-                logErrorOrThrow(
-                        "The datacenter for this cassandra cluster is invalid. " + " failed dc: " + datacenter
-                                + "  strategyOptions: " + strategyOptions,
-                        config.ignoreDatacenterConfigurationChecks());
-            }
-        }
-    }
-
-    private static void checkRfsMatchConfig(
-            KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs, Map<String, String> strategyOptions) {
-        for (String datacenter : dcs) {
-            if (Integer.parseInt(strategyOptions.get(datacenter)) != config.replicationFactor()) {
+            if (Integer.parseInt(ks.getStrategy_options().get(datacenter)) != config.replicationFactor()) {
                 throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName()
                         + ") has a replication factor not matching your Atlas Cassandra configuration."
                         + " Change them to match, but be mindful of what steps you'll need to"
