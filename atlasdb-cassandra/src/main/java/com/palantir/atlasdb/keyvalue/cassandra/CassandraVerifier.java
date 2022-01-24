@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
@@ -39,6 +40,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -344,8 +346,18 @@ public final class CassandraVerifier {
     }
 
     static void sanityCheckReplicationFactor(KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs) {
+        Set<String> scopedDownDcs = checkRfsSpecifiedAndScopeDownDcs(dcs, ks.getStrategy_options());
+        checkRfsMatchConfig(ks, config, scopedDownDcs, ks.getStrategy_options());
+    }
+
+    private static Set<String> checkRfsSpecifiedAndScopeDownDcs(Set<String> dcs, Map<String, String> strategyOptions) {
+        return Sets.intersection(dcs, strategyOptions.keySet());
+    }
+
+    private static void checkRfsMatchConfig(
+            KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs, Map<String, String> strategyOptions) {
         for (String datacenter : dcs) {
-            if (Integer.parseInt(ks.getStrategy_options().get(datacenter)) != config.replicationFactor()) {
+            if (Integer.parseInt(strategyOptions.get(datacenter)) != config.replicationFactor()) {
                 throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName()
                         + ") has a replication factor not matching your Atlas Cassandra configuration."
                         + " Change them to match, but be mindful of what steps you'll need to"
