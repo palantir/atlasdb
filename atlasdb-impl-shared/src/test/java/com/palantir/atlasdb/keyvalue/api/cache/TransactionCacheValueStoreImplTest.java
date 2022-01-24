@@ -61,7 +61,7 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = cacheWithSingleValue();
         assertCacheContainsValue(valueStore, VALUE_1);
 
-        valueStore.cacheRemoteWrite(TABLE, CELL);
+        valueStore.recordRemoteWrite(TABLE, CELL);
 
         assertCacheIsEmpty(valueStore);
         assertDigestContainsEntries(valueStore, ImmutableMap.of());
@@ -75,8 +75,7 @@ public final class TransactionCacheValueStoreImplTest {
         valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
         assertCacheContainsValue(valueStore, VALUE_1);
 
-        valueStore.cacheRemoteWrite(TABLE, CELL);
-
+        valueStore.recordRemoteWrite(TABLE, CELL);
         assertCacheIsEmpty(valueStore);
         assertDigestContainsEntries(valueStore, ImmutableMap.of());
     }
@@ -86,11 +85,10 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = cacheWithSingleValue();
         assertCacheContainsValue(valueStore, VALUE_1);
 
-        valueStore.cacheRemoteWrite(TABLE, CELL);
-
+        valueStore.recordRemoteWrite(TABLE, CELL);
         assertCacheIsEmpty(valueStore);
-        valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
 
+        valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
         assertCacheIsEmpty(valueStore);
         assertDigestContainsEntries(valueStore, ImmutableMap.of());
     }
@@ -111,7 +109,7 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = new TransactionCacheValueStoreImpl(
                 ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
 
-        valueStore.cacheRemoteWrite(TABLE, CELL);
+        valueStore.recordRemoteWrite(TABLE, CELL);
         assertCacheIsEmpty(valueStore);
 
         valueStore.cacheEmptyReads(TABLE, ImmutableSet.of(CELL));
@@ -122,15 +120,15 @@ public final class TransactionCacheValueStoreImplTest {
     }
 
     @Test
-    public void createWithFilteredUpdateDoesNotTransferWrites() {
+    public void createWithFilteredUpdateTransfersWrittenCells() {
         TransactionCacheValueStore valueStore = cacheWithSingleValue();
 
-        valueStore.cacheRemoteWrite(TABLE, CELL);
+        valueStore.recordRemoteWrite(TABLE, CELL);
         assertCacheIsEmpty(valueStore);
 
         TransactionCacheValueStore filteredValueStore =
                 valueStore.createWithFilteredSnapshot(CommitUpdate.invalidateSome(ImmutableSet.of()));
-        assertCacheIsEmpty(valueStore);
+        assertCacheIsEmpty(filteredValueStore);
     }
 
     @Test

@@ -51,9 +51,9 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public void cacheRemoteWrite(TableReference table, Cell cell) {
+    public void recordRemoteWrite(TableReference table, Cell cell) {
         CellReference cellReference = CellReference.of(table, cell);
-        cacheRemoteWriteInternal(cellReference);
+        recordRemoteWriteInternal(cellReference);
     }
 
     @Override
@@ -86,7 +86,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                     newStore.cacheRemoteReadInternal(cell, getReadValue(cacheEntry.value()));
                     break;
                 case WRITE:
-                    newStore.cacheRemoteWriteInternal(cell);
+                    newStore.recordRemoteWriteInternal(cell);
                     break;
                 case HIT:
                 default:
@@ -168,7 +168,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .collect(Collectors.toSet());
     }
 
-    private void cacheRemoteWriteInternal(CellReference cellReference) {
+    private void recordRemoteWriteInternal(CellReference cellReference) {
         if (snapshot.isUnlocked(cellReference)) {
             localUpdates.put(cellReference, LocalCacheEntry.write());
         }
