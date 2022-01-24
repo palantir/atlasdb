@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
@@ -225,15 +224,6 @@ public class CassandraVerifierTest {
 
         ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
         assertThat(ksDef.strategy_options).isEqualTo(strategyOptions);
-    }
-
-    @Test
-    public void noStrategyForDcThrows() {
-        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
-        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "1"));
-        assertThatThrownBy(() ->
-                        CassandraVerifier.sanityCheckReplicationFactor(ksDef, config, ImmutableSet.of(DC_1, DC_2)))
-                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
