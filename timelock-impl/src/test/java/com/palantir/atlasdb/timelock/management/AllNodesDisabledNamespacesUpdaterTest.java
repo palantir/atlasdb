@@ -117,7 +117,6 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(localUpdater, never()).disable(any());
     }
 
-    // TODO(gs): test what happens if we get exception from remote.disable()
     // Case A: start with no disabled namespaces; disable fails on some node; we should re-enable all
     @Test
     public void rollsBackDisabledNamespacesAfterPartialFailure() {
