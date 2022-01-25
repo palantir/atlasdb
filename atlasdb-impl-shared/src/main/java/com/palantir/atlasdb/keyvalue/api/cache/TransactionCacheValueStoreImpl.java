@@ -102,17 +102,17 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         Set<Cell> locallyWrittenCells = getLocallyWrittenCells(table, cells);
         Set<Cell> cacheableCells = Sets.difference(cells, locallyWrittenCells);
 
-        Map<Cell, CacheValue> locallyCachedValues = getLocallyCachedValues(table, cacheableCells);
+        Map<Cell, CacheValue> locallyCachedReads = getLocallyCachedReads(table, cacheableCells);
 
         // Filter out which values have not been read yet
-        Set<Cell> remainingCells = Sets.difference(cacheableCells, locallyCachedValues.keySet());
+        Set<Cell> remainingCells = Sets.difference(cacheableCells, locallyCachedReads.keySet());
 
         // Read values from the snapshot. For the hits, mark as hit in the local map.
         Map<Cell, CacheValue> snapshotCachedValues = getSnapshotValues(table, remainingCells);
         snapshotCachedValues.forEach((cell, value) -> cacheHitInternal(table, cell, value));
 
         return ImmutableMap.<Cell, CacheValue>builder()
-                .putAll(locallyCachedValues)
+                .putAll(locallyCachedReads)
                 .putAll(snapshotCachedValues)
                 .build();
     }
@@ -149,7 +149,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         });
     }
 
-    private Map<Cell, CacheValue> getLocallyCachedValues(TableReference table, Set<Cell> cells) {
+    private Map<Cell, CacheValue> getLocallyCachedReads(TableReference table, Set<Cell> cells) {
         return KeyedStream.of(cells)
                 .map(cell -> localUpdates.get(CellReference.of(table, cell)))
                 .filter(Objects::nonNull)
