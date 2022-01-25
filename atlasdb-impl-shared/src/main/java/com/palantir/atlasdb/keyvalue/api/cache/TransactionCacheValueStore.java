@@ -31,7 +31,7 @@ import java.util.Set;
 interface TransactionCacheValueStore {
     boolean isWatched(TableReference tableReference);
 
-    void cacheRemoteWrite(TableReference tableReference, Cell cell, CacheValue value);
+    void recordRemoteWrite(TableReference tableReference, Cell cell);
 
     void cacheRemoteReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues);
 
