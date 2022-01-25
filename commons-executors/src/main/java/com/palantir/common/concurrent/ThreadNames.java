@@ -21,7 +21,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.lang.reflect.Field;
 import java.security.PrivilegedAction;
 
-@SuppressWarnings("UnnecessarilyQualified") // Internal classes should not be imported
+@SuppressWarnings({"UnnecessarilyQualified", "deprecation", "removal"}) // Internal classes should not be imported
 public final class ThreadNames {
 
     private static final sun.misc.Unsafe unsafe = initUnsafe();

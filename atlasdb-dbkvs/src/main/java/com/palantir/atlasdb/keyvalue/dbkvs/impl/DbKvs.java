@@ -92,6 +92,7 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.concurrent.ThreadNames;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -414,12 +415,13 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             for (final List<Map.Entry<Cell, byte[]>> p : partitions) {
                 callables.add(() -> {
                     String originalName = Thread.currentThread().getName();
-                    Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
+                    ThreadNames.setThreadName(
+                            Thread.currentThread(), "Atlas multiPut of " + p.size() + " cells into " + table);
                     try {
                         put(table, Maps2.fromEntries(p), timestamp);
                         return null;
                     } finally {
-                        Thread.currentThread().setName(originalName);
+                        ThreadNames.setThreadName(Thread.currentThread(), originalName);
                     }
                 });
             }

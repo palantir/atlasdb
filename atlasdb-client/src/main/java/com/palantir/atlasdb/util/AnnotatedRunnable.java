@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.util;
 
+import com.palantir.common.concurrent.ThreadNames;
+
 /**
  * Whenever this runnable is run, for the duration of the call we will have a new thread name.
  * <p>
@@ -47,14 +49,14 @@ public final class AnnotatedRunnable implements Runnable {
     @Override
     public void run() {
         final String oldName = Thread.currentThread().getName();
-        Thread.currentThread().setName(type.join(name, oldName));
+        ThreadNames.setThreadName(Thread.currentThread(), type.join(name, oldName));
         try {
             delegate.run();
         } catch (Throwable throwable) {
             throwable.addSuppressed(SuppressedException.from(throwable));
             throw throwable;
         } finally {
-            Thread.currentThread().setName(oldName);
+            ThreadNames.setThreadName(Thread.currentThread(), oldName);
         }
     }
 }
