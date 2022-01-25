@@ -86,13 +86,13 @@ final class AtlasRenamingExecutorService extends AbstractExecutorService {
         public void run() {
             final Thread currentThread = Thread.currentThread();
             final String originalName = currentThread.getName();
-            currentThread.setName(nameSupplier.get());
+            ThreadNames.setThreadName(currentThread, nameSupplier.get());
             try {
                 command.run();
             } catch (Throwable t) {
                 handler.uncaughtException(currentThread, t);
             } finally {
-                currentThread.setName(originalName);
+                ThreadNames.setThreadName(currentThread, originalName);
             }
         }
     }

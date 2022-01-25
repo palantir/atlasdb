@@ -40,6 +40,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultiset;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.concurrent.ThreadNames;
 import com.palantir.common.random.SecureRandomPool;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.streams.KeyedStream;
@@ -1263,25 +1264,17 @@ public final class LockServiceImpl
         return System.currentTimeMillis();
     }
 
-    private String getRequestDescription(LockRequest request) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("\twaiting to lock() ").append(request);
-        builder.append(" starting at ").append(ISODateTimeFormat.dateTime().print(DateTime.now()));
-        builder.append("\n\tfor requesting thread\n\t\t");
-        builder.append(request.getCreatingThreadName()).append("\n");
-        return builder.toString();
-    }
-
-    private String updateThreadName(LockRequest request) {
+    private static String updateThreadName(LockRequest request) {
         String currentThreadName = Thread.currentThread().getName();
-        String requestDescription = getRequestDescription(request);
-        tryRenameThread(currentThreadName + "\n" + requestDescription);
+        tryRenameThread(currentThreadName + "\n\twaiting to lock() " + request + " starting at "
+                + ISODateTimeFormat.dateTime().print(DateTime.now()) + "\n\tfor requesting thread\n\t\t"
+                + request.getCreatingThreadName() + "\n");
         return currentThreadName;
     }
 
-    private void tryRenameThread(String name) {
+    private static void tryRenameThread(String name) {
         try {
-            Thread.currentThread().setName(name);
+            ThreadNames.setThreadName(Thread.currentThread(), name);
         } catch (SecurityException ex) {
             requestLogger.error("Cannot rename LockServer threads", ex);
         }
@@ -1299,12 +1292,12 @@ public final class LockServiceImpl
             this.executor = executor;
 
             Future<Void> tokenReaperFuture = executor.resource().submit(() -> {
-                Thread.currentThread().setName("Held Locks Token Reaper");
+                ThreadNames.setThreadName(Thread.currentThread(), "Held Locks Token Reaper");
                 reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
                 return null;
             });
             Future<Void> grantReaperFuture = executor.resource().submit(() -> {
-                Thread.currentThread().setName("Held Locks Grant Reaper");
+                ThreadNames.setThreadName(Thread.currentThread(), "Held Locks Grant Reaper");
                 reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
                 return null;
             });

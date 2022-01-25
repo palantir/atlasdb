@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Tasks which rename threads avoid updating the OS thread
+  links:
+  - https://github.com/palantir/atlasdb/pull/5877

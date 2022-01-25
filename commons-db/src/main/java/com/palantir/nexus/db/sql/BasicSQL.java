@@ -19,6 +19,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.concurrent.ThreadNames;
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.JdbcHandler.BlobHandler;
@@ -491,7 +492,8 @@ public abstract class BasicSQL {
         long startTime = System.currentTimeMillis();
         final String oldName = Thread.currentThread().getName();
         final String currentTimestamp = DateTimeFormat.forPattern("HH:mm:ss").print(System.currentTimeMillis());
-        Thread.currentThread().setName(oldName + " blocking on " + threadString + " started at " + currentTimestamp);
+        ThreadNames.setThreadName(
+                Thread.currentThread(), oldName + " blocking on " + threadString + " started at " + currentTimestamp);
         try {
             rs = result.get();
             return visitor.visit(rs);
@@ -508,7 +510,7 @@ public abstract class BasicSQL {
         } catch (ExecutionException ee) {
             throw handleInterruptions(startTime, ee);
         } finally {
-            Thread.currentThread().setName(oldName);
+            ThreadNames.setThreadName(Thread.currentThread(), oldName);
             if (rs != null && autoClose == AutoClose.TRUE) {
                 ResultSets.close(rs);
             }

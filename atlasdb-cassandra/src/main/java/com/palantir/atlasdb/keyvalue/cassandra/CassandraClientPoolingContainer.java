@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevel
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.ThreadNames;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -108,8 +109,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
         final String origName = Thread.currentThread().getName();
-        Thread.currentThread()
-                .setName(origName
+        ThreadNames.setThreadName(
+                Thread.currentThread(),
+                origName
                         + " calling cassandra host " + host
                         + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
                         + " - " + count.getAndIncrement());
@@ -133,7 +135,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             throw t;
         } finally {
             openRequests.getAndDecrement();
-            Thread.currentThread().setName(origName);
+            ThreadNames.setThreadName(Thread.currentThread(), origName);
         }
     }
 
