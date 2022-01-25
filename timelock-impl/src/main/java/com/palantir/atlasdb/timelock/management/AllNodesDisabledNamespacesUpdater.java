@@ -42,6 +42,7 @@ import com.palantir.paxos.PaxosResponsesWithRemote;
 import com.palantir.paxos.WrappedPaxosResponse;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,23 +56,25 @@ public class AllNodesDisabledNamespacesUpdater {
     private static final SafeLogger log = SafeLoggerFactory.get(AllNodesDisabledNamespacesUpdater.class);
 
     private final AuthHeader authHeader;
-    private final ImmutableList<DisabledNamespacesUpdaterService> updaters;
-    private final Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> executors;
+    private final ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters;
+    private final Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors;
     private final TimelockNamespaces localUpdater;
     private final Supplier<UUID> lockIdSupplier;
+    private final int clusterSize;
 
     @VisibleForTesting
     AllNodesDisabledNamespacesUpdater(
             AuthHeader authHeader,
-            ImmutableList<DisabledNamespacesUpdaterService> updaters,
-            Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> executors,
+            ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters,
+            Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors,
             TimelockNamespaces localUpdater,
             Supplier<UUID> lockIdSupplier) {
         this.authHeader = authHeader;
-        this.updaters = updaters;
-        this.executors = executors;
+        this.remoteUpdaters = remoteUpdaters;
+        this.remoteExecutors = remoteExecutors;
         this.localUpdater = localUpdater;
         this.lockIdSupplier = lockIdSupplier;
+        this.clusterSize = remoteUpdaters.size() + 1;
     }
 
     public static AllNodesDisabledNamespacesUpdater create(
@@ -111,7 +114,7 @@ public class AllNodesDisabledNamespacesUpdater {
 
         // If no namespaces were consistently disabled, we should roll back our request,
         // to avoid leaving ourselves in an inconsistent state.
-        boolean rollbackSuccess = attemptReEnableOnAllNodes(namespaces, lockId);
+        boolean rollbackSuccess = attemptReEnableOnAllNodes(namespaces, lockId, responses.size());
         if (rollbackSuccess) {
             log.error(
                     "Failed to disable all namespaces. However, we successfully rolled back any partially disabled"
@@ -163,7 +166,7 @@ public class AllNodesDisabledNamespacesUpdater {
         }
 
         UUID lockId = request.getLockId();
-        boolean rollbackSuccess = attemptDisableOnAllNodes(namespaces, lockId);
+        boolean rollbackSuccess = attemptDisableOnAllNodes(namespaces, lockId, responses.size());
         if (rollbackSuccess) {
             log.error(
                     "Failed to re-enable namespaces. However, we successfully rolled back any partially re-enabled"
@@ -190,13 +193,16 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     private boolean isSuccessfulOnAllNodes(Function<DisabledNamespacesUpdaterService, PaxosResponse> request) {
-        return executeOnAllRemoteNodes(request).responses().values().stream().allMatch(PaxosResponse::isSuccessful);
+        Collection<PaxosResponse> remoteResponses =
+                executeOnAllRemoteNodes(request).responses().values();
+        return remoteResponses.size() == remoteUpdaters.size()
+                && remoteResponses.stream().allMatch(PaxosResponse::isSuccessful);
     }
 
     // Disable
-    private boolean attemptDisableOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
+    private boolean attemptDisableOnAllNodes(Set<Namespace> namespaces, UUID lockId, int expectedResponseCount) {
         List<DisableNamespacesResponse> rollbackResponses = disableNamespacesOnAllNodes(namespaces, lockId);
-        return disableWasSuccessfulOnAllNodes(rollbackResponses);
+        return disableWasSuccessfulOnAllNodes(rollbackResponses, expectedResponseCount);
     }
 
     private List<DisableNamespacesResponse> disableNamespacesOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
@@ -209,20 +215,33 @@ public class AllNodesDisabledNamespacesUpdater {
         return responses;
     }
 
-    private static boolean disableWasSuccessfulOnAllNodes(List<DisableNamespacesResponse> responses) {
+    private boolean disableWasSuccessfulOnAllNodes(List<DisableNamespacesResponse> responses) {
+        return disableWasSuccessfulOnAllNodes(responses, clusterSize);
+    }
+
+    private static boolean disableWasSuccessfulOnAllNodes(
+            List<DisableNamespacesResponse> responses, int expectedResponseCount) {
+        if (responses.size() < expectedResponseCount) {
+            log.error(
+                    "Failed to reach some node(s) during disable operation",
+                    SafeArg.of("responseCount", responses.size()),
+                    SafeArg.of("expectedResponseCount", expectedResponseCount));
+            return false;
+        }
+
         Function<DisableNamespacesResponse, Boolean> successEvaluator =
                 response -> response.accept(NamespaceUpdateVisitors.successfulDisableVisitor());
         return responses.stream().allMatch(successEvaluator::apply);
     }
 
     // ReEnable
-    private boolean attemptReEnableOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
+    private boolean attemptReEnableOnAllNodes(Set<Namespace> namespaces, UUID lockId, int expectedResponseCount) {
         ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.builder()
                 .namespaces(namespaces)
                 .lockId(lockId)
                 .build();
         List<ReenableNamespacesResponse> responses = reEnableNamespacesOnAllNodes(rollbackRequest);
-        return reEnableWasSuccessfulOnAllNodes(responses);
+        return reEnableWasSuccessfulOnAllNodes(responses, expectedResponseCount);
     }
 
     private List<ReenableNamespacesResponse> reEnableNamespacesOnAllNodes(ReenableNamespacesRequest request) {
@@ -234,7 +253,20 @@ public class AllNodesDisabledNamespacesUpdater {
         return responses;
     }
 
-    private static boolean reEnableWasSuccessfulOnAllNodes(List<ReenableNamespacesResponse> responses) {
+    private boolean reEnableWasSuccessfulOnAllNodes(List<ReenableNamespacesResponse> responses) {
+        return reEnableWasSuccessfulOnAllNodes(responses, clusterSize);
+    }
+
+    private static boolean reEnableWasSuccessfulOnAllNodes(
+            List<ReenableNamespacesResponse> responses, int expectedResponseCount) {
+        if (responses.size() < expectedResponseCount) {
+            log.error(
+                    "Failed to reach some node(s) during reEnable operation",
+                    SafeArg.of("responseCount", responses.size()),
+                    SafeArg.of("expectedResponseCount", expectedResponseCount));
+            return false;
+        }
+
         Function<ReenableNamespacesResponse, Boolean> successEvaluator =
                 res -> res.accept(NamespaceUpdateVisitors.successfulReEnableVisitor());
         return responses.stream().allMatch(successEvaluator::apply);
@@ -293,6 +325,6 @@ public class AllNodesDisabledNamespacesUpdater {
             PaxosResponsesWithRemote<DisabledNamespacesUpdaterService, T> executeOnAllRemoteNodes(
                     Function<DisabledNamespacesUpdaterService, T> request) {
         return PaxosQuorumChecker.collectQuorumResponses(
-                updaters, request, updaters.size(), executors, Duration.ofSeconds(5L), false);
+                remoteUpdaters, request, remoteUpdaters.size(), remoteExecutors, Duration.ofSeconds(5L), false);
     }
 }

@@ -37,6 +37,7 @@ import com.palantir.atlasdb.timelock.api.SuccessfulReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulReenableNamespacesResponse;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
 import java.util.Map;
@@ -106,13 +107,14 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
     @Test
     public void doesNotDisableIfPingFailsOnOneNode() {
-        when(remote2.ping(AUTH_HEADER)).thenReturn(false);
+        when(remote2.ping(any())).thenThrow(new SafeRuntimeException("unreachable"));
 
         DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE));
 
         assertThat(response).isEqualTo(DISABLE_FAILED_SUCCESSFULLY);
         verify(remote1, never()).disable(any(), any());
         verify(remote2, never()).disable(any(), any());
+        verify(localUpdater, never()).disable(any());
     }
 
     // TODO(gs): test what happens if we get exception from remote.disable()
@@ -216,6 +218,40 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     }
 
     @Test
+    public void handlesNodesBecomingUnreachableDuringDisable() {
+        when(remote1.disable(any(), any())).thenReturn(successfulDisableResponse());
+        when(localUpdater.disable(any())).thenReturn(successfulDisableResponse());
+        when(remote2.disable(any(), any())).thenThrow(new SafeRuntimeException("unreachable"));
+        when(remote2.reenable(any(), any())).thenThrow(new SafeRuntimeException("unreachable"));
+
+        DisableNamespacesResponse response = updater.disableOnAllNodes(BOTH_NAMESPACES);
+
+        // We can't reach one node; we do optimistically attempt to rollback (in case it threw an exception _after_
+        // successfully updating), but we don't know that we were unsuccessful.
+        // Either way, retrying will be the best outcome here, so we want to report "failed successfully"
+        assertThat(response).isEqualTo(DISABLE_FAILED_SUCCESSFULLY);
+    }
+
+    @Test
+    public void handlesNodesBecomingUnreachableDuringReEnable() {
+        when(remote1.disable(any(), any())).thenReturn(successfulDisableResponse());
+        when(localUpdater.disable(any())).thenReturn(successfulDisableResponse());
+        when(remote1.reenable(any(), any())).thenReturn(REENABLED_SUCCESSFULLY);
+        when(localUpdater.reEnable(any())).thenReturn(REENABLED_SUCCESSFULLY);
+
+        when(remote2.reenable(any(), any())).thenThrow(new SafeRuntimeException("unreachable"));
+        when(remote2.disable(any(), any())).thenThrow(new SafeRuntimeException("unreachable"));
+
+        ReenableNamespacesRequest request = ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID);
+        ReenableNamespacesResponse response = updater.reEnableOnAllNodes(request);
+
+        // We can't reach one node; we do optimistically attempt to rollback (in case it threw an exception _after_
+        // successfully updating), but we don't know that we were unsuccessful.
+        // Either way, retrying will be the best outcome here, so we want to report "failed successfully"
+        assertThat(response).isEqualTo(consistentlyLocked(ImmutableSet.of()));
+    }
+
+    @Test
     public void canReEnableSingleNamespace() {
         ReenableNamespacesRequest request = ReenableNamespacesRequest.of(ImmutableSet.of(NAMESPACE), LOCK_ID);
         when(remote1.reenable(AUTH_HEADER, request)).thenReturn(REENABLED_SUCCESSFULLY);
@@ -228,7 +264,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
     @Test
     public void doesNotReEnableIfPingFailsOnOneNode() {
-        when(remote1.ping(AUTH_HEADER)).thenReturn(false);
+        when(remote1.ping(any())).thenThrow(new SafeRuntimeException("unreachable"));
 
         ReenableNamespacesRequest request = ReenableNamespacesRequest.of(ImmutableSet.of(NAMESPACE), LOCK_ID);
         ReenableNamespacesResponse response = updater.reEnableOnAllNodes(request);
@@ -236,6 +272,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         assertThat(response).isEqualTo(consistentlyLocked(ImmutableSet.of()));
         verify(remote1, never()).reenable(any(), any());
         verify(remote2, never()).reenable(any(), any());
+        verify(localUpdater, never()).reEnable(any());
     }
 
     // Case A: Start with one disabled namespace, re-enable fails on some node, we should re-disable
