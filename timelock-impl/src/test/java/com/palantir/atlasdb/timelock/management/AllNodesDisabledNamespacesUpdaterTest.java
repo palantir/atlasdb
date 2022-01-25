@@ -222,7 +222,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote2.reenable(AUTH_HEADER, request)).thenReturn(REENABLED_SUCCESSFULLY);
         when(localUpdater.reEnable(request)).thenReturn(REENABLED_SUCCESSFULLY);
 
-        ReenableNamespacesResponse response = updater.reenableOnAllNodes(request);
+        ReenableNamespacesResponse response = updater.reEnableOnAllNodes(request);
         assertThat(response).isEqualTo(REENABLED_SUCCESSFULLY);
     }
 
@@ -231,7 +231,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote1.ping(AUTH_HEADER)).thenReturn(false);
 
         ReenableNamespacesRequest request = ReenableNamespacesRequest.of(ImmutableSet.of(NAMESPACE), LOCK_ID);
-        ReenableNamespacesResponse response = updater.reenableOnAllNodes(request);
+        ReenableNamespacesResponse response = updater.reEnableOnAllNodes(request);
 
         assertThat(response).isEqualTo(consistentlyLocked(ImmutableSet.of()));
         verify(remote1, never()).reenable(any(), any());
@@ -251,7 +251,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote2.disable(AUTH_HEADER, rollbackRequest)).thenReturn(successfulDisableResponse());
         when(localUpdater.disable(rollbackRequest)).thenReturn(successfulDisableResponse());
 
-        ReenableNamespacesResponse response = updater.reenableOnAllNodes(request);
+        ReenableNamespacesResponse response = updater.reEnableOnAllNodes(request);
         assertThat(response).isEqualTo(consistentlyLocked(ImmutableSet.of()));
 
         verify(remote1).disable(AUTH_HEADER, rollbackRequest);
@@ -270,7 +270,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(localUpdater.reEnable(any())).thenReturn(unsuccessfulResponse);
 
         ReenableNamespacesResponse response =
-                updater.reenableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
+                updater.reEnableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
 
         assertThat(response).isEqualTo(consistentlyLocked(disabledNamespaces));
 
@@ -294,7 +294,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(localUpdater.disable(any())).thenReturn(successfulDisableResponse());
 
         ReenableNamespacesResponse response =
-                updater.reenableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
+                updater.reEnableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
 
         assertThat(response).isEqualTo(consistentlyLocked(ImmutableSet.of()));
 
@@ -317,7 +317,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(localUpdater.disable(any())).thenReturn(successfulDisableResponse());
 
         ReenableNamespacesResponse response =
-                updater.reenableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
+                updater.reEnableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
 
         assertThat(response).isEqualTo(partiallyLocked(BOTH_NAMESPACES));
     }
