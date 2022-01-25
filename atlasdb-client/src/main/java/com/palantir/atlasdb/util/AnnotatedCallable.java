@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.util;
 
+import com.palantir.common.concurrent.ThreadNames;
 import java.util.concurrent.Callable;
 
 /**
@@ -49,14 +50,14 @@ public final class AnnotatedCallable<T> implements Callable<T> {
     @Override
     public T call() throws Exception {
         final String oldName = Thread.currentThread().getName();
-        Thread.currentThread().setName(type.join(name, oldName));
+        ThreadNames.setThreadName(Thread.currentThread(), type.join(name, oldName));
         try {
             return delegate.call();
         } catch (Throwable throwable) {
             throwable.addSuppressed(SuppressedException.from(throwable));
             throw throwable;
         } finally {
-            Thread.currentThread().setName(oldName);
+            ThreadNames.setThreadName(Thread.currentThread(), oldName);
         }
     }
 }
