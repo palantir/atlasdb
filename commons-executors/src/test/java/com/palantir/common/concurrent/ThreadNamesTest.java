@@ -19,6 +19,7 @@ package com.palantir.common.concurrent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.io.ByteStreams;
+import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -49,13 +50,18 @@ public final class ThreadNamesTest {
             ThreadNames.setThreadName(current, newName);
             assertThat(current.getName()).isEqualTo(newName);
 
+            // Use the current JVM, not 'jstack' from the PATH
+            String jstackPath = new File(System.getProperty("java.home"), "bin/jstack").getAbsolutePath();
+
             Process process = Runtime.getRuntime().exec(new String[] {
-                "jstack", Long.toString(ProcessHandle.current().pid())
+                jstackPath, Long.toString(ProcessHandle.current().pid())
             });
             String jstackOutput;
             try (InputStream data = process.getInputStream()) {
                 jstackOutput = new String(ByteStreams.toByteArray(data), StandardCharsets.UTF_8);
             }
+            int exitCode = process.waitFor();
+            assertThat(exitCode).as("Jstack exited non-zero").isZero();
             assertThat(jstackOutput).contains('"' + newName + "\" ");
         } finally {
             current.setName(originalName);
