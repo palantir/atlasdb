@@ -41,7 +41,7 @@ public final class ThreadNames {
      * Note that unlike {@link Thread#setName(String)} this implementation may not
      * synchronize on the {@code thread} object.
      *
-     * @see <a href="https://github.com/palantir/atlasdb/pull/5796>atlasdb#5796</a>
+     * @see <a href="https://github.com/palantir/atlasdb/pull/5796">atlasdb#5796</a>
      */
     public static void setThreadName(Thread thread, String name) {
         Preconditions.checkNotNull(thread, "Thread is required");
