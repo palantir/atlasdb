@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.coordination.CoordinationResource;
 import com.palantir.atlasdb.ete.EteSetup;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MultipleSchemaVersionsCoordinationEteTest {
@@ -30,6 +31,7 @@ public class MultipleSchemaVersionsCoordinationEteTest {
             EteSetup.createClientToSingleNode(CoordinationResource.class);
 
     @Test
+    @Ignore
     public void transactionFailsUnderUnknownSchemaVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
         CoordinationEteTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
@@ -37,6 +39,7 @@ public class MultipleSchemaVersionsCoordinationEteTest {
     }
 
     @Test
+    @Ignore
     public void transactionOnKnownVersionFailsOnValueWithUnknownVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
         CoordinationEteTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
