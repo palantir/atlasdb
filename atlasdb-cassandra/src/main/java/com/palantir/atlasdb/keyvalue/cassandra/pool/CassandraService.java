@@ -399,10 +399,9 @@ public class CassandraService implements AutoCloseable {
 
     public void removePool(InetSocketAddress removedServerAddress) {
         blacklist.remove(removedServerAddress);
-        CassandraClientPoolingContainer containerToRemove = currentPools.get(removedServerAddress);
-        currentPools.remove(removedServerAddress);
+        CassandraClientPoolingContainer removedContainer = currentPools.remove(removedServerAddress);
         try {
-            containerToRemove.shutdownPooling();
+            removedContainer.shutdownPooling();
         } catch (Exception e) {
             log.warn(
                     "While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
