@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PartitionerAssertions {
+public final class PartitionerAssertions {
     private static final SafeLogger log = SafeLoggerFactory.get(PartitionerAssertions.class);
     private static final String PARTITIONING_ERROR_MESSAGE = "Some elements were changed during partitioning!";
 

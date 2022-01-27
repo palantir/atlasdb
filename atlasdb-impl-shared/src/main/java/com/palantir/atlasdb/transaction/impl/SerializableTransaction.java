@@ -846,7 +846,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                             "conflictingCellExpectedValue",
                             PtBytes.encodeHexString(localWrites.get(remoteRead.getKey()))));
             try {
-                throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
+                throwIfImmutableTsOrCommitLocksExpired(commitToken);
             } catch (Exception e) {
                 log.info(
                         "It's ok - we were not going to commit anyway",

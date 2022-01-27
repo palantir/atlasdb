@@ -258,7 +258,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
 
     protected volatile boolean hasReads;
-    protected volatile LockToken commitLocksToken = null;
+    protected volatile LockToken commitToken = null;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -1833,14 +1833,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // This must happen before conflict checking, otherwise we could complete the checks and then have someone
             // else write underneath us before we proceed (thus missing a write/write conflict).
             // Timing still useful to distinguish bad lock percentiles from user-generated lock requests.
-            commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
+            commitToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
 
             try {
                 // Conflict checking. We can actually do this later without compromising correctness, but there is no
                 // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
                 timedAndTraced(
-                        "commitCheckingForConflicts",
-                        () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
+                        "commitCheckingForConflicts", () -> throwIfConflictOnCommit(commitToken, transactionService));
 
                 // Write to the targeted sweep queue. We must do this before writing to the key value service -
                 // otherwise we may have hanging values that targeted sweep won't know about.
@@ -1856,7 +1855,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // Timing is still useful, as this may perform operations pertaining to lock watches.
                 long commitTimestamp = timedAndTraced(
                         "getCommitTimestamp",
-                        () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
+                        () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitToken));
                 commitTsForScrubbing = commitTimestamp;
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,
@@ -1882,12 +1881,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
-                traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+                traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitToken));
 
                 // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
-                traced(
-                        "commitPutCommitTs",
-                        () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
+                traced("commitPutCommitTs", () -> putCommitTimestamp(commitTimestamp, commitToken, transactionService));
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
@@ -1895,7 +1892,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .update(byteCount.get());
             } finally {
                 // Not timed because tryUnlock() is an asynchronous operation.
-                traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
+                traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitToken)));
             }
         });
     }
