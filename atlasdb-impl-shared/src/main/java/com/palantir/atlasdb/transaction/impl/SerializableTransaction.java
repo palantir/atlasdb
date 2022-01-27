@@ -845,23 +845,20 @@ public class SerializableTransaction extends SnapshotTransaction {
                     UnsafeArg.of(
                             "conflictingCellExpectedValue",
                             PtBytes.encodeHexString(localWrites.get(remoteRead.getKey()))));
-            boolean passedValidation = false;
             try {
                 throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-                log.error(
-                        "We did not read our own writes but still held the immutable timestamp lock!",
-                        SafeArg.of("transactionTimestamp", getTimestamp()));
-                passedValidation = true;
-                throw new SafeIllegalStateException(
-                        "We did not read our own writes but still held the" + " immutable timestamp lock!");
             } catch (Exception e) {
-                if (!passedValidation) {
-                    log.info(
-                            "It's ok - we were not going to commit anyway",
-                            SafeArg.of("transactionTimestamp", getTimestamp()));
-                }
+                log.info(
+                        "It's ok - we were not going to commit anyway",
+                        SafeArg.of("transactionTimestamp", getTimestamp()),
+                        e);
                 throw e;
             }
+            log.error(
+                    "We did not read our own writes but still held the immutable timestamp lock!",
+                    SafeArg.of("transactionTimestamp", getTimestamp()));
+            throw new SafeIllegalStateException(
+                    "We did not read our own writes but still held the immutable timestamp lock!");
         }
     }
 
