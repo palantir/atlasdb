@@ -66,6 +66,8 @@ final class HostPartitioner {
             InetSocketAddress host = clientPool.getRandomHostForKey(key.array());
             valuesByHost.putAll(host, partitionedByKey.get(key));
         }
-        return Multimaps.asMap(valuesByHost);
+        Map<InetSocketAddress, List<V>> hostToValues = Multimaps.asMap(valuesByHost);
+        PartitionerAssertions.checkPartitioning(hostToValues, iterable);
+        return hostToValues;
     }
 }
