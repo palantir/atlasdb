@@ -39,6 +39,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +51,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 
@@ -318,10 +320,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         serversToRemove.forEach(cassandra::removePool);
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
+            // Log IP addresses along with hostnames
+            Set<InetAddress> addressesToAdd =
+                    serversToAdd.stream().map(InetSocketAddress::getAddress).collect(Collectors.toSet());
+            Set<InetAddress> addressesToRemove =
+                    serversToRemove.stream().map(InetSocketAddress::getAddress).collect(Collectors.toSet());
+
             log.info(
-                    "Servers to add and remove, inside the if block",
-                    SafeArg.of("serversToAdd", serversToAdd),
-                    SafeArg.of("serversToRemove", serversToRemove));
+                    "Added and removed servers from the client pool",
+                    SafeArg.of("serversAdded", addressesToAdd),
+                    SafeArg.of("serversRemoved", addressesToRemove));
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
         }
