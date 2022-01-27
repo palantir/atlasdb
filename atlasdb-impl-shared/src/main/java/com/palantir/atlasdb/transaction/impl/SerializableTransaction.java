@@ -633,10 +633,6 @@ public class SerializableTransaction extends SnapshotTransaction {
                 if (!ByteArrayUtilities.areMapsEqual(currentBatch, originalReads)) {
                     handleTransactionConflict(table);
                 }
-
-                Set<Cell> cellsWithLocalWrites = hasLocalWrites.getOrDefault(true, new HashSet<>());
-                Map<Cell, byte[]> anotherBatch = readOnlyTransaction.get(table, cellsWithLocalWrites);
-                anotherBatch.entrySet().forEach(entry -> verifyLocalWritesAreRead(writesByTable.get(table), entry));
             }
         }
     }
