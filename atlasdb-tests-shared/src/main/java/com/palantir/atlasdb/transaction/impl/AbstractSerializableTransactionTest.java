@@ -353,7 +353,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                                 .hasCauseInstanceOf(TransactionFailedRetriableException.class));
     }
 
-    private void withdrawMoney(Transaction txn, boolean account, boolean isCellGet) {
+    protected void withdrawMoney(Transaction txn, boolean account, boolean isCellGet) {
         long account1 = Long.parseLong(
                 isCellGet
                         ? getCell(txn, TEST_TABLE_SERIALIZABLE, "row1", "col1")

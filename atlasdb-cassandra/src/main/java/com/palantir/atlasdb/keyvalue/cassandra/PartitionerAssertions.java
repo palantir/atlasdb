@@ -36,15 +36,16 @@ public class PartitionerAssertions {
     }
 
     public static <T> void checkPartitioning(
-            Map<InetSocketAddress, List<T>> partitionedByHost,
-            Iterable<T> originalElements) {
+            Map<InetSocketAddress, List<T>> partitionedByHost, Iterable<T> originalElements) {
         Stream<T> partitionedElements = partitionedByHost.values().stream().flatMap(List::stream);
         Map<T, Long> partitionedElementCounts = countElements(partitionedElements);
         if (!partitionedElementCounts.equals(countElements(Streams.stream(originalElements)))) {
-            log.error(PARTITIONING_ERROR_MESSAGE,
+            log.error(
+                    PARTITIONING_ERROR_MESSAGE,
                     UnsafeArg.of("elementsToBePartitioned", originalElements),
                     UnsafeArg.of("proposedPartition", partitionedElements));
-            throw new SafeIllegalStateException(PARTITIONING_ERROR_MESSAGE,
+            throw new SafeIllegalStateException(
+                    PARTITIONING_ERROR_MESSAGE,
                     UnsafeArg.of("elementsToBePartitioned", originalElements),
                     UnsafeArg.of("proposedPartition", partitionedElements));
         }

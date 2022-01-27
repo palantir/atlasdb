@@ -258,6 +258,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
 
     protected volatile boolean hasReads;
+    protected volatile LockToken commitLocksToken = null;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -1832,7 +1833,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // This must happen before conflict checking, otherwise we could complete the checks and then have someone
             // else write underneath us before we proceed (thus missing a write/write conflict).
             // Timing still useful to distinguish bad lock percentiles from user-generated lock requests.
-            LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
+            commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
+
             try {
                 // Conflict checking. We can actually do this later without compromising correctness, but there is no
                 // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
@@ -1958,7 +1960,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
+    protected void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
         Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
         if (!expiredLocks.isEmpty()) {
             final String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";

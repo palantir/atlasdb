@@ -79,17 +79,23 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -560,18 +566,25 @@ public class SerializableTransaction extends SnapshotTransaction {
 
                 // We want to filter out all our reads to just the set that matches our column selection.
                 originalReads = Maps.filterKeys(originalReads, input -> columns.contains(input.getColumnName()));
+                Map<Boolean, Map<Cell, byte[]>> entriesWithLocalWrites = writesByTable.containsKey(table)
+                        ? originalReads.entrySet().stream()
+                                .collect(Collectors.groupingBy(
+                                        e -> writesByTable.get(table).containsKey(e.getKey()),
+                                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                        : ImmutableMap.of(false, originalReads);
 
-                if (writesByTable.get(table) != null) {
-                    // We don't want to verify any reads that we wrote to cause
-                    // we will just read our own values.
-                    // NB: We filter our write set out here because our normal SI
-                    // checking handles this case to ensure the value hasn't changed.
-                    originalReads = Maps.filterKeys(
-                            originalReads,
-                            Predicates.not(
-                                    Predicates.in(writesByTable.get(table).keySet())));
+                // Check true stuff
+                if (writesByTable.containsKey(table)) {
+                    // What did we now read?
+                    Set<Cell> cellsLocallyWritten = entriesWithLocalWrites
+                            .getOrDefault(true, ImmutableMap.of())
+                            .keySet();
+                    Streams.stream(currentRow.getCells())
+                            .filter(rowElement -> cellsLocallyWritten.contains(rowElement.getKey()))
+                            .forEach(rowElement -> verifyLocalWritesAreRead(writesByTable.get(table), rowElement));
                 }
 
+                originalReads = entriesWithLocalWrites.getOrDefault(false, ImmutableMap.of());
                 if (currentRow == null && originalReads.isEmpty()) {
                     continue;
                 }
@@ -607,20 +620,24 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Iterable<Cell> batch : Iterables.partition(cells, BATCH_SIZE)) {
                 // We don't want to verify any reads that we wrote to cause we will just read our own values.
                 // NB: If the value has changed between read and write, our normal SI checking handles this case
-                Iterable<Cell> batchWithoutWrites = writesByTable.get(table) != null
-                        ? Iterables.filter(
-                                batch,
-                                Predicates.not(
-                                        Predicates.in(writesByTable.get(table).keySet())))
-                        : batch;
-                ImmutableSet<Cell> batchWithoutWritesSet = ImmutableSet.copyOf(batchWithoutWrites);
-                Map<Cell, byte[]> currentBatch = readOnlyTransaction.get(table, batchWithoutWritesSet);
+                Map<Boolean, Set<Cell>> hasLocalWrites = writesByTable.containsKey(table)
+                        ? Streams.stream(batch) // NOT evil: batch is small
+                                .collect(Collectors.groupingBy(
+                                        c -> writesByTable.get(table).containsKey(c), Collectors.toSet()))
+                        : ImmutableMap.of(false, ImmutableSet.copyOf(batch));
+                Set<Cell> cellsWithoutLocalWrites = hasLocalWrites.getOrDefault(false, new HashSet<>());
+
+                Map<Cell, byte[]> currentBatch = readOnlyTransaction.get(table, cellsWithoutLocalWrites);
                 ImmutableMap<Cell, byte[]> originalReads = Maps.toMap(
-                        Sets.intersection(batchWithoutWritesSet, readsForTable.keySet()),
+                        Sets.intersection(cellsWithoutLocalWrites, readsForTable.keySet()),
                         Functions.forMap(readsForTable));
                 if (!ByteArrayUtilities.areMapsEqual(currentBatch, originalReads)) {
                     handleTransactionConflict(table);
                 }
+
+                Set<Cell> cellsWithLocalWrites = hasLocalWrites.getOrDefault(true, new HashSet<>());
+                Map<Cell, byte[]> anotherBatch = readOnlyTransaction.get(table, cellsWithLocalWrites);
+                anotherBatch.entrySet().forEach(entry -> verifyLocalWritesAreRead(writesByTable.get(table), entry));
             }
         }
     }
@@ -798,7 +815,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         return filterWritesFromCells(cells, writesByTable.get(table));
     }
 
-    private static List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
+    private List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
             Iterable<Map.Entry<Cell, byte[]>> cells, @Nullable Map<Cell, byte[]> writes) {
         List<Map.Entry<Cell, ByteBuffer>> cellsWithoutWrites = new ArrayList<>();
         for (Map.Entry<Cell, byte[]> cell : cells) {
@@ -806,12 +823,49 @@ public class SerializableTransaction extends SnapshotTransaction {
             // checking handles this case to ensure the value hasn't changed.
             if (writes == null || !writes.containsKey(cell.getKey())) {
                 cellsWithoutWrites.add(Maps.immutableEntry(cell.getKey(), ByteBuffer.wrap(cell.getValue())));
+            } else {
+                verifyLocalWritesAreRead(writes, cell);
             }
         }
         return cellsWithoutWrites;
     }
 
-    private static List<Map.Entry<Cell, ByteBuffer>> filterWritesFromRows(
+    private void verifyLocalWritesAreRead(@Nullable Map<Cell, byte[]> localWrites, Entry<Cell, byte[]> remoteRead) {
+        if (localWrites == null) {
+            return;
+        }
+        boolean readOurWrite = Arrays.equals(localWrites.get(remoteRead.getKey()), remoteRead.getValue());
+        if (!readOurWrite) {
+            log.warn(
+                    "Did not read our local write. This may be suspicious. Now performing more costly check "
+                            + "to evaluate whether it is suspicious...",
+                    SafeArg.of("transactionTimestamp", getTimestamp()),
+                    UnsafeArg.of("conflictingCell", remoteRead.getKey()),
+                    UnsafeArg.of("conflictingCellPersistedValue", PtBytes.encodeHexString(remoteRead.getValue())),
+                    UnsafeArg.of(
+                            "conflictingCellExpectedValue",
+                            PtBytes.encodeHexString(localWrites.get(remoteRead.getKey()))));
+            boolean passedValidation = false;
+            try {
+                throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
+                log.error(
+                        "We did not read our own writes but still held the immutable timestamp lock!",
+                        SafeArg.of("transactionTimestamp", getTimestamp()));
+                passedValidation = true;
+                throw new SafeIllegalStateException(
+                        "We did not read our own writes but still held the" + " immutable timestamp lock!");
+            } catch (Exception e) {
+                if (!passedValidation) {
+                    log.info(
+                            "It's ok - we were not going to commit anyway",
+                            SafeArg.of("transactionTimestamp", getTimestamp()));
+                }
+                throw e;
+            }
+        }
+    }
+
+    private List<Map.Entry<Cell, ByteBuffer>> filterWritesFromRows(
             Iterable<RowResult<byte[]>> rows, @Nullable Map<Cell, byte[]> writes) {
         List<Map.Entry<Cell, ByteBuffer>> rowsWithoutWrites = new ArrayList<>();
         for (RowResult<byte[]> row : rows) {
