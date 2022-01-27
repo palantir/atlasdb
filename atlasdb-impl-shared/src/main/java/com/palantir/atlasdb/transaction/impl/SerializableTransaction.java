@@ -574,11 +574,10 @@ public class SerializableTransaction extends SnapshotTransaction {
                         : ImmutableMap.of(false, originalReads);
 
                 // Check true stuff
-                if (writesByTable.containsKey(table)) {
+                if (entriesWithLocalWrites.get(true) != null && currentRow != null) {
                     // What did we now read?
-                    Set<Cell> cellsLocallyWritten = entriesWithLocalWrites
-                            .getOrDefault(true, ImmutableMap.of())
-                            .keySet();
+                    Set<Cell> cellsLocallyWritten =
+                            entriesWithLocalWrites.get(true).keySet();
                     Streams.stream(currentRow.getCells())
                             .filter(rowElement -> cellsLocallyWritten.contains(rowElement.getKey()))
                             .forEach(rowElement -> verifyLocalWritesAreRead(writesByTable.get(table), rowElement));
