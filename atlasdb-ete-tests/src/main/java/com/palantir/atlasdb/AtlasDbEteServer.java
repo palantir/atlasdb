@@ -26,6 +26,7 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -101,7 +102,15 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment
                 .jersey()
                 .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
-        environment.jersey().register(SimpleCoordinationResource.create(txManager));
+        AtlasDbConfig coordinationAtlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .from(config.getAtlasDbConfig())
+                .namespace("coordination")
+                .build();
+        AtlasDbEteConfiguration coordinationConfig =
+                new AtlasDbEteConfiguration(coordinationAtlasDbConfig, config.getAtlasDbRuntimeConfig());
+        TransactionManager tmForCoordinationTest =
+                tryToCreateTransactionManager(coordinationConfig, environment, taggedMetrics);
+        environment.jersey().register(SimpleCoordinationResource.create(tmForCoordinationTest));
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
