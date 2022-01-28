@@ -54,6 +54,7 @@ import java.util.concurrent.ExecutorService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
+import org.mockito.Mockito;
 
 public class AtlasDbTestCase {
     private static final String CLIENT = "fake lock client";
@@ -131,6 +132,7 @@ public class AtlasDbTestCase {
     public void tearDown() throws Exception {
         // JUnit keeps instantiated test cases in memory, so we need to null out
         // some fields to prevent OOMs.
+        Mockito.clearInvocations(keyValueService, transactionService, sweepQueue);
         keyValueService.close();
         keyValueService = null;
         transactionService.close();
