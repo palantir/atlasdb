@@ -31,10 +31,15 @@ import java.util.function.Supplier;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface TimeLockHelperServices {
+public interface TimeLockHelperServices extends AutoCloseable {
     LockWatchManagerInternal lockWatchManager();
 
     RequestBatchersFactory requestBatchersFactory();
+
+    @Override
+    default void close() {
+        lockWatchManager().close();
+    }
 
     static TimeLockHelperServices create(
             String namespace,
