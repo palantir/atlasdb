@@ -15,7 +15,6 @@ atlasdb:
     servers:
       - cassandra:9160
     poolSize: 20
-    keyspace: atlasete
     credentials:
       username: cassandra
       password: cassandra
@@ -25,7 +24,7 @@ atlasdb:
     mutationBatchSizeBytes: 10000000
     fetchBatchCount: 1000
     autoRefreshNodes: false
-
+  namespace: atlasete
   leader:
     quorumSize: 1
     learnerLogDir: var/data/paxosLog/learner1

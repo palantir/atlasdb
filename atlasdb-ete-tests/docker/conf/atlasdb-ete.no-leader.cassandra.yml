@@ -15,7 +15,6 @@ atlasdb:
     servers:
       - cassandra:9160
     poolSize: 20
-    keyspace: atlasete
     credentials:
       username: cassandra
       password: cassandra
@@ -27,6 +26,7 @@ atlasdb:
     autoRefreshNodes: false
   targetedSweep:
     enableSweepQueueWrites: true
+  namespace: atlasete
 
 atlasDbRuntime:
   internalSchema:
