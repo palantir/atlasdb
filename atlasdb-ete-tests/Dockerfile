@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:debian-jre
+FROM adoptopenjdk/openjdk11:x86_64-debian-jre-11.0.13_8
 
 ENV DOCKERIZE_VERSION v0.2.0
 
