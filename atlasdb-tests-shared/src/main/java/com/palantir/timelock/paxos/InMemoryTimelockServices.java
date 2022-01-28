@@ -60,6 +60,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.awaitility.Awaitility;
@@ -75,6 +76,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private static final int BLOCKING_TIMEOUT_MS = 60 * 800; // 0.8 mins to ms
 
     private final TemporaryFolder tempFolder;
+    private final List<AutoCloseable> closeables = new ArrayList<>();
 
     private String client;
     private TimeLockAgent timeLockAgent;
@@ -136,8 +138,11 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 OrderableSlsVersion.valueOf("0.0.0"),
                 ObjectMappers.newServerObjectMapper(),
                 () -> System.exit(0));
+        closeables.add(timeLockAgent::shutdown);
 
         delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
+        closeables.add(delegate);
+
         createHelperServices(metricsManager);
 
         // Wait for leadership
@@ -156,6 +161,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 delegate.getTimelockService(),
                 LockWatchCachingConfig.builder().build(),
                 Optional::empty);
+        closeables.add(helperServices);
 
         RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
         ConjureTimelockService conjureTimelockService =
@@ -163,6 +169,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         namespacedConjureTimelockService = new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
         lockLeaseService = LockLeaseService.create(
                 namespacedConjureTimelockService, new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
+        closeables.add(lockLeaseService);
     }
 
     @Override
@@ -173,7 +180,13 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
 
     @Override
     public void close() {
-        timeLockAgent.shutdown();
+        closeables.forEach(resource -> {
+            try {
+                resource.close();
+            } catch (Exception e) {
+                // only best effort for tests
+            }
+        });
     }
 
     private static File tryCreateSubFolder(TemporaryFolder tempFolder) {
@@ -230,12 +243,13 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         NamespacedTimelockRpcClient namespacedTimelockRpcClient =
                 new InMemoryNamespacedTimelockRpcClient(getTimelockService());
 
-        return new RemoteTimelockServiceAdapter(
+        RemoteTimelockServiceAdapter timelockService = new RemoteTimelockServiceAdapter(
                 namespacedTimelockRpcClient,
                 namespacedConjureTimelockService,
                 lockLeaseService,
                 transactionStarter,
                 commitTimestampGetter);
+        closeables.add(timelockService);
     }
 
     public LockLeaseService getLockLeaseService() {
