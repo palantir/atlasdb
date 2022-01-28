@@ -400,7 +400,7 @@ public class CassandraService implements AutoCloseable {
     /**
      * Removes the pool from the set of current pools. Note that this shuts down all idle connections, but active ones
      * remain alive until they are returned to the pool, whereby they are destroyed immediately. Threads waiting on the
-     * pool will be interrupted.s
+     * pool will be interrupted.
      */
     public void removePool(InetSocketAddress removedServerAddress) {
         blacklist.remove(removedServerAddress);
