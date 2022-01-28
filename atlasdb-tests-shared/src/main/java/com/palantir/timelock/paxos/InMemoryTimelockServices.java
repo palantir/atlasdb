@@ -250,6 +250,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 transactionStarter,
                 commitTimestampGetter);
         closeables.add(timelockService);
+        return timelockService;
     }
 
     public LockLeaseService getLockLeaseService() {
