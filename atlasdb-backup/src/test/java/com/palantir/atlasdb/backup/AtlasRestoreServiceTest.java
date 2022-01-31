@@ -31,8 +31,11 @@ import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
@@ -92,12 +95,17 @@ public class AtlasRestoreServiceTest {
     }
 
     @Test
-    public void repairsOnlyWhenBackupPresent() {
+    public void repairsOnlyWhenBackupPresentAndDisableSuccessful() {
         BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
+        DisableNamespacesResponse successfulDisable =
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
+        when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
+                .thenReturn(successfulDisable);
 
-        // TODO(gs): validate response object
-        // TODO(gs): test: calls CassandraRepairHelper only when repair was successful
-        atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+        DisableNamespacesResponse actualDisable =
+                atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+
+        assertThat(actualDisable).isEqualTo(successfulDisable);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
         verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyList(), eq(doNothingConsumer));
@@ -106,13 +114,33 @@ public class AtlasRestoreServiceTest {
     }
 
     @Test
-    public void disablesTimelockBeforeRepairing() {
+    public void disablesTimeLockBeforeRepairing() {
         BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
+        DisableNamespacesResponse successfulDisable =
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
+        when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
+                .thenReturn(successfulDisable);
+
         atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
 
         InOrder inOrder = Mockito.inOrder(timeLockManagementService, cassandraRepairHelper);
         inOrder.verify(timeLockManagementService).disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP));
         inOrder.verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
+    }
+
+    @Test
+    public void doesNotRepairIfDisableFails() {
+        BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
+        DisableNamespacesResponse failedDisable = DisableNamespacesResponse.unsuccessful(
+                UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(WITH_BACKUP), ImmutableSet.of()));
+        when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
+                .thenReturn(failedDisable);
+
+        DisableNamespacesResponse actualDisable =
+                atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+        assertThat(actualDisable).isEqualTo(failedDisable);
+
+        verifyNoInteractions(cassandraRepairHelper);
     }
 
     @Test

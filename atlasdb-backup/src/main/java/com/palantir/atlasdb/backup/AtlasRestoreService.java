@@ -30,13 +30,17 @@ import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableIntera
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse.Visitor;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -114,10 +118,35 @@ public class AtlasRestoreService {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRepair = completedBackups.keySet();
 
-        // Disable timelock
         DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, namespacesToRepair);
-        // TODO(gs): bail out if unsuccessful
+        return response.accept(new Visitor<>() {
+            @Override
+            public DisableNamespacesResponse visitSuccessful(SuccessfulDisableNamespacesResponse value) {
+                restoreTables(repairTable, completedBackups, namespacesToRepair);
+                return response;
+            }
 
+            @Override
+            public DisableNamespacesResponse visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
+                log.error(
+                        "Failed to disable namespaces prior to restore",
+                        SafeArg.of("namespaces", namespaces),
+                        SafeArg.of("response", value));
+                return response;
+            }
+
+            @Override
+            public DisableNamespacesResponse visitUnknown(String unknownType) {
+                throw new SafeIllegalStateException(
+                        "Unknown DisableNamespacesResponse", SafeArg.of("unknownType", unknownType));
+            }
+        });
+    }
+
+    private void restoreTables(
+            BiConsumer<String, RangesForRepair> repairTable,
+            Map<Namespace, CompletedBackup> completedBackups,
+            Set<Namespace> namespacesToRepair) {
         // ConsistentCasTablesTask
         namespacesToRepair.forEach(namespace -> cassandraRepairHelper.repairInternalTables(namespace, repairTable));
 
@@ -125,8 +154,6 @@ public class AtlasRestoreService {
         KeyedStream.stream(completedBackups)
                 .forEach((namespace, completedBackup) ->
                         restoreTransactionsTables(namespace, completedBackup, repairTable));
-
-        return response;
     }
 
     private void restoreTransactionsTables(
