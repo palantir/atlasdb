@@ -101,7 +101,7 @@ services:
           operation is atomic for each namespace (e.g. users will not see two different lock services servicing the
           same startTransactions request), but not atomic as a whole. Additionally, if this method throws, it is
           nondeterministic which, if any, namespaces have been invalidated; some may even be invalidated only on a
-          subset od nodes. This state can be cleared by re-enabling all namespaces.
+          subset of nodes. This state can be cleared by re-enabling all namespaces.
 
       disableTimelock:
         http: POST /disable
