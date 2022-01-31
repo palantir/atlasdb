@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableIntera
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.dialogue.clients.DialogueClients;
@@ -52,6 +53,7 @@ public class AtlasRestoreService {
 
     private final AuthHeader authHeader;
     private final AtlasRestoreClientBlocking atlasRestoreClientBlocking;
+    private final TimeLockManagementServiceBlocking timeLockManagementService;
     private final BackupPersister backupPersister;
     private final CassandraRepairHelper cassandraRepairHelper;
 
@@ -59,10 +61,12 @@ public class AtlasRestoreService {
     AtlasRestoreService(
             AuthHeader authHeader,
             AtlasRestoreClientBlocking atlasRestoreClientBlocking,
+            TimeLockManagementServiceBlocking timeLockManagementService,
             BackupPersister backupPersister,
             CassandraRepairHelper cassandraRepairHelper) {
         this.authHeader = authHeader;
         this.atlasRestoreClientBlocking = atlasRestoreClientBlocking;
+        this.timeLockManagementService = timeLockManagementService;
         this.backupPersister = backupPersister;
         this.cassandraRepairHelper = cassandraRepairHelper;
     }
@@ -77,10 +81,17 @@ public class AtlasRestoreService {
         DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
         AtlasRestoreClientBlocking atlasRestoreClientBlocking =
                 reloadingFactory.get(AtlasRestoreClientBlocking.class, serviceName);
+        TimeLockManagementServiceBlocking timeLockManagementService =
+                reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName);
 
         CassandraRepairHelper cassandraRepairHelper =
                 new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
-        return new AtlasRestoreService(authHeader, atlasRestoreClientBlocking, backupPersister, cassandraRepairHelper);
+        return new AtlasRestoreService(
+                authHeader,
+                atlasRestoreClientBlocking,
+                timeLockManagementService,
+                backupPersister,
+                cassandraRepairHelper);
     }
 
     /**
