@@ -78,6 +78,7 @@ public class DiskNamespaceLoaderTest {
         timeLockManagementResource = TimeLockManagementResource.create(
                 persistentNamespaceContext,
                 namespaces,
+                mock(AllNodesDisabledNamespacesUpdater.class),
                 redirectRetryTargeter,
                 new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor()));
 
