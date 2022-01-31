@@ -102,8 +102,6 @@ allprojects {
                 'FutureReturnValueIgnored',
                 'NarrowingCompoundAssignment',
                 'PublicConstructorForAbstractClass',
-                'ReadReturnValueIgnored',
-                'ReturnValueIgnored',
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable'
