@@ -51,6 +51,7 @@ import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
+import com.palantir.atlasdb.timelock.management.DisabledNamespacesUpdaterResource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
 import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
@@ -367,6 +368,9 @@ public class TimeLockAgent {
                     presentUndertowRegistrar,
                     AtlasRestoreResource.undertow(
                             permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
+                    DisabledNamespacesUpdaterResource.undertow(redirectRetryTargeter, namespaces));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -378,6 +382,7 @@ public class TimeLockAgent {
                     permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
                     permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(DisabledNamespacesUpdaterResource.jersey(redirectRetryTargeter, namespaces));
         }
     }
 
