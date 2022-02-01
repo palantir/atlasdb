@@ -28,8 +28,6 @@ import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulReenableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.UnsuccessfulReenableNamespacesResponse;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
@@ -87,11 +85,7 @@ public class AllNodesDisabledNamespacesUpdater {
 
     public DisableNamespacesResponse disableOnAllNodes(Set<Namespace> namespaces) {
         if (anyNodeIsUnreachable()) {
-            log.error(
-                    "Failed to reach all remote nodes. Not disabling any namespaces",
-                    SafeArg.of("namespaces", namespaces));
-            return DisableNamespacesResponse.unsuccessful(
-                    UnsuccessfulDisableNamespacesResponse.builder().build());
+            return DisableNamespaceResponses.unsuccessfulDueToPingFailure(namespaces);
         }
 
         UUID lockId = lockIdSupplier.get();
@@ -100,50 +94,27 @@ public class AllNodesDisabledNamespacesUpdater {
             return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
         }
 
-        Set<Namespace> consistentlyDisabledNamespaces = getConsistentFailures(responses);
-        if (!consistentlyDisabledNamespaces.isEmpty()) {
-            log.error(
-                    "Failed to disable all namespaces, because some namespace was consistently disabled. This implies"
-                        + " that this namespace is already being restored. If that is the case, please either wait for"
-                        + " that restore to complete, or kick off a restore without that namespace",
-                    SafeArg.of("disabledNamespaces", consistentlyDisabledNamespaces));
-            return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
-                    .consistentlyDisabledNamespaces(consistentlyDisabledNamespaces)
-                    .build());
+        Set<Namespace> consistentlyLockedNamespaces = getConsistentFailures(responses);
+        if (!consistentlyLockedNamespaces.isEmpty()) {
+            return DisableNamespaceResponses.unsuccessfulDueToConsistentlyLockedNamespaces(
+                    consistentlyLockedNamespaces);
         }
 
         // If no namespaces were consistently disabled, we should roll back our request,
         // to avoid leaving ourselves in an inconsistent state.
         boolean rollbackSuccess = attemptReEnableOnAllNodes(namespaces, lockId, responses.size());
         if (rollbackSuccess) {
-            log.error(
-                    "Failed to disable all namespaces. However, we successfully rolled back any partially disabled"
-                            + " namespaces.",
-                    SafeArg.of("namespaces", namespaces),
-                    SafeArg.of("lockId", lockId));
-            return DisableNamespacesResponse.unsuccessful(
-                    UnsuccessfulDisableNamespacesResponse.builder().build());
+            return DisableNamespaceResponses.unsuccessfulButRolledBack(namespaces, lockId);
         }
 
-        log.error(
-                "Failed to disable all namespaces, and we failed to roll back some namespaces."
-                        + " These will need to be force-re-enabled in order to return Timelock to a consistent state.",
-                SafeArg.of("namespaces", namespaces),
-                SafeArg.of("lockId", lockId));
-        return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
-                .partiallyDisabledNamespaces(namespaces)
-                .build());
+        return DisableNamespaceResponses.unsuccessfulAndRollBackFailed(namespaces, lockId);
     }
 
     public ReenableNamespacesResponse reEnableOnAllNodes(ReenableNamespacesRequest request) {
         Set<Namespace> namespaces = request.getNamespaces();
 
         if (anyNodeIsUnreachable()) {
-            log.error(
-                    "Failed to reach all remote nodes. Not re-enabling any namespaces",
-                    SafeArg.of("namespaces", namespaces));
-            return ReenableNamespacesResponse.unsuccessful(
-                    UnsuccessfulReenableNamespacesResponse.builder().build());
+            return ReEnableNamespaceResponses.unsuccessfulDueToPingFailure(namespaces);
         }
 
         List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(request);
@@ -153,38 +124,18 @@ public class AllNodesDisabledNamespacesUpdater {
 
         Set<Namespace> consistentlyLockedNamespaces = getConsistentFailures(responses);
         if (!consistentlyLockedNamespaces.isEmpty()) {
-            log.error(
-                    "Failed to re-enable all namespaces, because some namespace was consistently disabled "
-                            + "with the wrong lock ID. This implies that this namespace being restored by another"
-                            + " process. If that is the case, please either wait for that restore to complete, "
-                            + " or kick off a restore without that namespace",
-                    SafeArg.of("lockedNamespaces", consistentlyLockedNamespaces));
-            return ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
-                    .consistentlyLockedNamespaces(consistentlyLockedNamespaces)
-                    .build());
+            return ReEnableNamespaceResponses.unsuccessfulDueToConsistentlyLockedNamespaces(
+                    consistentlyLockedNamespaces);
         }
 
+        // TODO(gs): should only attempt to roll back locally?
         UUID lockId = request.getLockId();
-        // should only roll back locally
         boolean rollbackSuccess = attemptDisableOnAllNodes(namespaces, lockId, responses.size());
         if (rollbackSuccess) {
-            log.error(
-                    "Failed to re-enable namespaces. However, we successfully rolled back any partially re-enabled"
-                            + " namespaces",
-                    SafeArg.of("namespaces", namespaces),
-                    SafeArg.of("lockId", lockId));
-            return ReenableNamespacesResponse.unsuccessful(
-                    UnsuccessfulReenableNamespacesResponse.builder().build());
+            return ReEnableNamespaceResponses.unsuccessfulButRolledBack(namespaces, lockId);
         }
 
-        log.error(
-                "Failed to re-enable all namespaces, and we failed to roll back some partially re-enabled namespaces."
-                        + " These will need to be force-re-enabled in order to return Timelock to a consistent state.",
-                SafeArg.of("namespaces", namespaces),
-                SafeArg.of("lockId", lockId));
-        return ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
-                .partiallyLockedNamespaces(namespaces)
-                .build());
+        return ReEnableNamespaceResponses.unsuccessfulAndRollBackFailed(namespaces, lockId);
     }
 
     // Ping
