@@ -51,6 +51,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public class AllNodesDisabledNamespacesUpdater {
     private static final SafeLogger log = SafeLoggerFactory.get(AllNodesDisabledNamespacesUpdater.class);
@@ -131,7 +132,6 @@ public class AllNodesDisabledNamespacesUpdater {
                 SafeArg.of("namespaces", namespaces),
                 SafeArg.of("lockId", lockId));
         return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
-                .consistentlyDisabledNamespaces(consistentlyDisabledNamespaces)
                 .partiallyDisabledNamespaces(namespaces)
                 .build());
     }
@@ -221,13 +221,7 @@ public class AllNodesDisabledNamespacesUpdater {
             UUID lockId,
             DisableNamespacesRequest request,
             List<SingleNodeUpdateResponse> responses) {
-        if (responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful)) {
-            return localUpdater.disable(request);
-        } else {
-            Map<Namespace, UUID> incorrectlyLockedNamespaces =
-                    localUpdater.getIncorrectlyLockedNamespaces(namespaces, lockId);
-            return SingleNodeUpdateResponse.of(false, incorrectlyLockedNamespaces);
-        }
+        return updateLocallyOrCheckState(responses, namespaces, lockId, () -> localUpdater.disable(request));
     }
 
     private boolean disableWasSuccessfulOnAllNodes(List<SingleNodeUpdateResponse> responses) {
@@ -268,11 +262,23 @@ public class AllNodesDisabledNamespacesUpdater {
 
     private SingleNodeUpdateResponse reEnableLocallyOrCheckState(
             ReenableNamespacesRequest request, List<SingleNodeUpdateResponse> responses) {
-        if (responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful)) {
-            return localUpdater.reEnable(request);
+        Set<Namespace> namespaces = request.getNamespaces();
+        UUID lockId = request.getLockId();
+        Supplier<SingleNodeUpdateResponse> localUpdate = () -> localUpdater.reEnable(request);
+        return updateLocallyOrCheckState(responses, namespaces, lockId, localUpdate);
+    }
+
+    private SingleNodeUpdateResponse updateLocallyOrCheckState(
+            List<SingleNodeUpdateResponse> responses,
+            Set<Namespace> namespaces,
+            UUID lockId,
+            Supplier<SingleNodeUpdateResponse> localUpdate) {
+        if (responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful)
+                && responses.size() == remoteUpdaters.size()) {
+            return localUpdate.get();
         } else {
             Map<Namespace, UUID> incorrectlyLockedNamespaces =
-                    localUpdater.getIncorrectlyLockedNamespaces(request.getNamespaces(), request.getLockId());
+                    localUpdater.getIncorrectlyLockedNamespaces(namespaces, lockId);
             return SingleNodeUpdateResponse.of(false, incorrectlyLockedNamespaces);
         }
     }
@@ -299,21 +305,46 @@ public class AllNodesDisabledNamespacesUpdater {
         return getConsistentFailures(getNamespacesByFailureCount(responses), responses.size());
     }
 
-    private static Set<Namespace> getConsistentFailures(Map<Namespace, Integer> failedNamespaces, int responseCount) {
+    private static Set<Namespace> getConsistentFailures(
+            Map<Namespace, UpdateFailureRecord> failedNamespaces, int responseCount) {
         return KeyedStream.stream(failedNamespaces)
-                .filter(val -> responseCount == val)
+                .filter(val ->
+                        val.failureCount() == responseCount && val.lockIds().size() == 1)
                 .keys()
                 .collect(Collectors.toSet());
     }
 
-    private static Map<Namespace, Integer> getNamespacesByFailureCount(List<SingleNodeUpdateResponse> responses) {
-        Map<Namespace, Integer> failedNamespaces = new HashMap<>();
+    private static Map<Namespace, UpdateFailureRecord> getNamespacesByFailureCount(
+            List<SingleNodeUpdateResponse> responses) {
+        Map<Namespace, UpdateFailureRecord> failuresByNamespace = new HashMap<>();
         for (SingleNodeUpdateResponse response : responses) {
-            // TODO(gs): consider lock ID
-            Set<Namespace> lockedNamespaces = response.getLockedNamespaces().keySet();
-            lockedNamespaces.forEach(ns -> failedNamespaces.merge(ns, 1, Integer::sum));
+            KeyedStream.stream(response.getLockedNamespaces()).forEach((namespace, lockId) -> {
+                failuresByNamespace.merge(namespace, UpdateFailureRecord.of(lockId), UpdateFailureRecord::merge);
+            });
         }
-        return failedNamespaces;
+        return failuresByNamespace;
+    }
+
+    @Value.Immutable
+    interface UpdateFailureRecord {
+        int failureCount();
+
+        Set<UUID> lockIds();
+
+        static UpdateFailureRecord of(UUID lockId) {
+            return ImmutableUpdateFailureRecord.builder()
+                    .failureCount(1)
+                    .addLockIds(lockId)
+                    .build();
+        }
+
+        static UpdateFailureRecord merge(UpdateFailureRecord existingRecord, UpdateFailureRecord newRecord) {
+            return ImmutableUpdateFailureRecord.builder()
+                    .failureCount(existingRecord.failureCount() + newRecord.failureCount())
+                    .addAllLockIds(existingRecord.lockIds())
+                    .addAllLockIds(newRecord.lockIds())
+                    .build();
+        }
     }
 
     // Execution
