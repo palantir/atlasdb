@@ -32,6 +32,8 @@ import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
@@ -59,6 +61,11 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     private static final ImmutableSet<Namespace> BOTH_NAMESPACES = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
     private static final UUID LOCK_ID = new UUID(13, 37);
 
+    private static final SingleNodeDisableNamespacesResponse SINGLE_SUCCESSFUL_DISABLE =
+            SingleNodeDisableNamespacesResponse.builder().wasSuccessful(true).build();
+    private static final SingleNodeReenableNamespacesResponse SINGLE_SUCCESSFUL_REENABLE =
+            SingleNodeReenableNamespacesResponse.builder().wasSuccessful(true).build();
+
     private static final DisableNamespacesResponse DISABLE_FAILED_SUCCESSFULLY = DisableNamespacesResponse.unsuccessful(
             UnsuccessfulDisableNamespacesResponse.builder().build());
     private static final ReenableNamespacesResponse REENABLED_SUCCESSFULLY =
@@ -85,9 +92,9 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
                 remote1, new CheckedRejectionExecutorService(Executors.newSingleThreadExecutor()),
                 remote2, new CheckedRejectionExecutorService(Executors.newSingleThreadExecutor()));
 
-        when(remote1.reenable(any(), any())).thenReturn(REENABLED_SUCCESSFULLY);
-        when(remote2.reenable(any(), any())).thenReturn(REENABLED_SUCCESSFULLY);
-        when(localUpdater.reEnable(any())).thenReturn(REENABLED_SUCCESSFULLY);
+        when(remote1.reenable(any(), any())).thenReturn(SINGLE_SUCCESSFUL_REENABLE);
+        when(remote2.reenable(any(), any())).thenReturn(SINGLE_SUCCESSFUL_REENABLE);
+        when(localUpdater.reEnable(any())).thenReturn(SINGLE_SUCCESSFUL_REENABLE);
 
         updater = new AllNodesDisabledNamespacesUpdater(AUTH_HEADER, remotes, executors, localUpdater, () -> LOCK_ID);
     }

@@ -21,12 +21,11 @@ import static java.util.stream.Collectors.toSet;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
-import com.palantir.atlasdb.timelock.management.NamespaceUpdateVisitors;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
@@ -129,23 +128,20 @@ public final class TimelockNamespaces {
         }
     }
 
-    public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
-        DisableNamespacesResponse response = disabledNamespaces.disable(request);
-        response.accept(NamespaceUpdateVisitors.disable(
-                _unused -> {
-                    request.getNamespaces().stream().map(Namespace::get).forEach(this::invalidateResourcesForClient);
-                    return null;
-                },
-                unsuccessfulResponse -> {
-                    log.info(
-                            "Not invalidating resources, as the request to disable namespaces was unsuccessful",
-                            SafeArg.of("response", unsuccessfulResponse));
-                    return null;
-                }));
+    public SingleNodeDisableNamespacesResponse disable(DisableNamespacesRequest request) {
+        SingleNodeDisableNamespacesResponse response = disabledNamespaces.disable(request);
+        if (response.getWasSuccessful()) {
+            request.getNamespaces().stream().map(Namespace::get).forEach(this::invalidateResourcesForClient);
+        } else {
+            log.info(
+                    "Not invalidating resources, as the request to disable namespaces was unsuccessful",
+                    SafeArg.of("response", response));
+        }
+
         return response;
     }
 
-    public ReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
+    public SingleNodeReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
         return disabledNamespaces.reEnable(request);
     }
 

@@ -23,11 +23,11 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UndertowDisabledNamespacesUpdaterService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
@@ -60,13 +60,13 @@ public final class DisabledNamespacesUpdaterResource implements UndertowDisabled
     }
 
     @Override
-    public ListenableFuture<DisableNamespacesResponse> disable(
+    public ListenableFuture<SingleNodeDisableNamespacesResponse> disable(
             AuthHeader authHeader, DisableNamespacesRequest request) {
         return handleExceptions(() -> Futures.immediateFuture(timelockNamespaces.disable(request)));
     }
 
     @Override
-    public ListenableFuture<ReenableNamespacesResponse> reenable(
+    public ListenableFuture<SingleNodeReenableNamespacesResponse> reenable(
             AuthHeader authHeader, ReenableNamespacesRequest request) {
         return handleExceptions(() -> Futures.immediateFuture(timelockNamespaces.reEnable(request)));
     }
@@ -88,12 +88,12 @@ public final class DisabledNamespacesUpdaterResource implements UndertowDisabled
         }
 
         @Override
-        public DisableNamespacesResponse disable(AuthHeader authHeader, DisableNamespacesRequest request) {
+        public SingleNodeDisableNamespacesResponse disable(AuthHeader authHeader, DisableNamespacesRequest request) {
             return unwrap(resource.disable(authHeader, request));
         }
 
         @Override
-        public ReenableNamespacesResponse reenable(AuthHeader authHeader, ReenableNamespacesRequest request) {
+        public SingleNodeReenableNamespacesResponse reenable(AuthHeader authHeader, ReenableNamespacesRequest request) {
             return unwrap(resource.reenable(authHeader, request));
         }
 
