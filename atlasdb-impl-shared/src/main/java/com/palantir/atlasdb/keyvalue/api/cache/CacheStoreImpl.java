@@ -63,8 +63,8 @@ final class CacheStoreImpl implements CacheStore {
         cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
                 .getSnapshot(key)
                 .map(snapshot -> TransactionScopedCacheImpl.create(snapshot, metrics))
-                .map(newCache ->
-                        ValidatingTransactionScopedCache.create(newCache, validationProbability, failureCallback))
+                .map(newCache -> ValidatingTransactionScopedCache.create(
+                        newCache, validationProbability, failureCallback, metrics))
                 .map(Caches::create)
                 .orElse(null));
     }

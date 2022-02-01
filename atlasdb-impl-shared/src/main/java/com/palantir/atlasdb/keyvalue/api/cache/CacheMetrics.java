@@ -29,6 +29,8 @@ public final class CacheMetrics {
     private final Counter getRowsCellsHit;
     private final Counter getRowsCellLookups;
     private final Counter getRowsRowLookups;
+    private final Counter validations;
+    private final Counter skippedValidations;
     private final CurrentValueMetric<Integer> eventCacheValidationFailures;
     private final CurrentValueMetric<Integer> valueCacheValidationFailures;
     private final MetricsManager metricsManager;
@@ -40,6 +42,8 @@ public final class CacheMetrics {
             Counter getRowsCellsHit,
             Counter getRowsCellLookups,
             Counter getRowsRowLookups,
+            Counter validations,
+            Counter skippedValidations,
             CurrentValueMetric<Integer> eventCacheValidationFailures,
             CurrentValueMetric<Integer> valueCacheValidationFailures,
             MetricsManager metricsManager) {
@@ -49,6 +53,8 @@ public final class CacheMetrics {
         this.getRowsCellsHit = getRowsCellsHit;
         this.getRowsCellLookups = getRowsCellLookups;
         this.getRowsRowLookups = getRowsRowLookups;
+        this.validations = validations;
+        this.skippedValidations = skippedValidations;
         this.eventCacheValidationFailures = eventCacheValidationFailures;
         this.valueCacheValidationFailures = valueCacheValidationFailures;
         this.metricsManager = metricsManager;
@@ -64,6 +70,9 @@ public final class CacheMetrics {
                         CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_GET_ROWS_CELLS_LOADED),
                 metricsManager.registerOrGetCounter(
                         CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_GET_ROWS_ROWS_LOADED),
+                metricsManager.registerOrGetCounter(CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_VALIDATIONS),
+                metricsManager.registerOrGetCounter(
+                        CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_SKIPPED_VALIDATIONS),
                 registerCurrentValueMetric(metricsManager, AtlasDbMetricNames.LW_EVENT_CACHE_FALLBACK_COUNT),
                 registerCurrentValueMetric(metricsManager, AtlasDbMetricNames.LW_VALUE_CACHE_FALLBACK_COUNT),
                 metricsManager);
@@ -107,6 +116,14 @@ public final class CacheMetrics {
 
     public void registerValueCacheValidationFailure() {
         valueCacheValidationFailures.setValue(1);
+    }
+
+    public void increaseValidations() {
+        validations.inc();
+    }
+
+    public void increaseSkippedValidations() {
+        skippedValidations.inc();
     }
 
     public void setMaximumCacheSize(long maximumCacheSize) {

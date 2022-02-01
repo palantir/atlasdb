@@ -56,19 +56,27 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private final Random random;
     private final double validationProbability;
     private final Runnable failureCallback;
+    private final CacheMetrics cacheMetrics;
 
     @VisibleForTesting
     ValidatingTransactionScopedCache(
-            TransactionScopedCache delegate, double validationProbability, Runnable failureCallback) {
+            TransactionScopedCache delegate,
+            double validationProbability,
+            Runnable failureCallback,
+            CacheMetrics cacheMetrics) {
         this.delegate = delegate;
         this.validationProbability = validationProbability;
         this.failureCallback = failureCallback;
+        this.cacheMetrics = cacheMetrics;
         this.random = new Random();
     }
 
     static TransactionScopedCache create(
-            TransactionScopedCache delegate, double validationProbability, Runnable failureCallback) {
-        return new ValidatingTransactionScopedCache(delegate, validationProbability, failureCallback);
+            TransactionScopedCache delegate,
+            double validationProbability,
+            Runnable failureCallback,
+            CacheMetrics cacheMetrics) {
+        return new ValidatingTransactionScopedCache(delegate, validationProbability, failureCallback, cacheMetrics);
     }
 
     @Override
@@ -95,6 +103,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         if (shouldValidate()) {
+            cacheMetrics.increaseValidations();
             ListenableFuture<Map<Cell, byte[]>> remoteReads = valueLoader.apply(cells);
             ListenableFuture<Map<Cell, byte[]>> cacheReads = delegate.getAsync(
                     tableReference,
@@ -110,6 +119,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                     },
                     MoreExecutors.directExecutor());
         } else {
+            cacheMetrics.increaseSkippedValidations();
             return delegate.getAsync(tableReference, cells, valueLoader);
         }
     }
@@ -122,6 +132,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
             Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
         if (shouldValidate()) {
+            cacheMetrics.increaseValidations();
             NavigableMap<byte[], RowResult<byte[]>> remoteReads = rowLoader.apply(rows);
             NavigableMap<byte[], RowResult<byte[]>> cacheReads = delegate.getRows(
                     tableRef,
@@ -142,6 +153,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             validateCacheRowReads(tableRef, remoteReads, cacheReads);
             return cacheReads;
         } else {
+            cacheMetrics.increaseSkippedValidations();
             return delegate.getRows(tableRef, rows, columnSelection, cellLoader, rowLoader);
         }
     }
@@ -163,7 +175,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
 
     @Override
     public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
-        return create(delegate.createReadOnlyCache(commitUpdate), validationProbability, failureCallback);
+        return create(delegate.createReadOnlyCache(commitUpdate), validationProbability, failureCallback, cacheMetrics);
     }
 
     private boolean shouldValidate() {

@@ -98,6 +98,8 @@ public final class AtlasDbMetricNames {
     public static final String LEGACY_WRITE = "legacyWrite";
 
     public static final String LW_CACHE_HITS = "lockWatchCacheHits";
+    public static final String LW_CACHE_VALIDATIONS = "lockWatchCacheValidations";
+    public static final String LW_CACHE_SKIPPED_VALIDATIONS = "lockWatchCacheSkippedValidations";
     public static final String LW_CACHE_MISSES = "lockWatchCacheMisses";
     public static final String LW_CACHE_SIZE = "lockWatchCacheSize";
     public static final String LW_CACHE_GET_ROWS_HITS = "lockWatchCacheGetRowsHits";

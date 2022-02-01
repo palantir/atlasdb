@@ -76,7 +76,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void validationCausesAllCellsToBeReadRemotely() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {}, metrics);
 
         when(valueLoader.apply(CELLS)).thenReturn(remoteRead(CELLS));
 
@@ -87,7 +87,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void validationDoesNotReadFromRemoteWhenItShouldNotValidate() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 0.0, () -> {});
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 0.0, () -> {}, metrics);
 
         validatingCache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader);
         verify(valueLoader, never()).apply(any());
@@ -97,7 +97,8 @@ public final class ValidatingTransactionScopedCacheTest {
     public void validationFailsWhenMismatchingValuesReturned() {
         TransactionScopedCache delegate = mock(TransactionScopedCache.class);
         Runnable failureCallback = mock(Runnable.class);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, failureCallback);
+        TransactionScopedCache validatingCache =
+                new ValidatingTransactionScopedCache(delegate, 1.0, failureCallback, metrics);
         when(valueLoader.apply(CELLS)).thenReturn(remoteRead(CELLS));
 
         when(delegate.getAsync(eq(TABLE), eq(CELLS), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
@@ -110,7 +111,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void readOnlyCacheAlsoValidates() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {}, metrics);
 
         when(valueLoader.apply(CELLS)).thenReturn(remoteRead(CELLS));
 
@@ -126,7 +127,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void differentByteArrayReferencesDoNotCauseValidationToFail() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {}, metrics);
 
         when(valueLoader.apply(CELLS))
                 .thenReturn(Futures.immediateFuture(ImmutableMap.of(
@@ -144,7 +145,7 @@ public final class ValidatingTransactionScopedCacheTest {
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot, metrics);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {}, metrics);
 
         ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(1), createBytes(2));
         ColumnSelection columns = ColumnSelection.create(rowsAndCols);
@@ -173,7 +174,7 @@ public final class ValidatingTransactionScopedCacheTest {
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot, metrics);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {}, metrics);
 
         ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(1));
         ColumnSelection columns = ColumnSelection.create(rowsAndCols);
