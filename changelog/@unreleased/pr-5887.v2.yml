@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add a metric to track validations in the lock watch cache
+  links:
+  - https://github.com/palantir/atlasdb/pull/5887
