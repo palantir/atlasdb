@@ -8,6 +8,11 @@ types:
         fields:
           namespaces: set<api.Namespace>
           lockId: uuid
+      SingleNodeUpdateResponse:
+        fields:
+          wasSuccessful: boolean
+          # other namespaces will not have been disabled/re-enabled (the transaction will not complete)
+          lockedNamespaces: map<api.Namespace, uuid>
       SuccessfulDisableNamespacesResponse:
         fields:
           lockId: uuid
@@ -54,12 +59,12 @@ services:
         http: POST /disable
         args:
           request: DisableNamespacesRequest
-        returns: DisableNamespacesResponse
+        returns: SingleNodeUpdateResponse
       reenable:
         http: POST /reenable
         args:
           request: ReenableNamespacesRequest
-        returns: ReenableNamespacesResponse
+        returns: SingleNodeUpdateResponse
   TimeLockManagementService:
     name: TimeLock Management Service
     default-auth: header

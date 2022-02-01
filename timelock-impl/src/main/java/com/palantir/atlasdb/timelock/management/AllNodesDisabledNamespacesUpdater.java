@@ -25,8 +25,7 @@ import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SingleNodeDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SingleNodeReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
@@ -96,7 +95,7 @@ public class AllNodesDisabledNamespacesUpdater {
         }
 
         UUID lockId = lockIdSupplier.get();
-        List<SingleNodeDisableNamespacesResponse> responses = disableNamespacesOnAllNodes(namespaces, lockId);
+        List<SingleNodeUpdateResponse> responses = disableNamespacesOnAllNodes(namespaces, lockId);
         if (disableWasSuccessfulOnAllNodes(responses)) {
             return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
         }
@@ -105,8 +104,8 @@ public class AllNodesDisabledNamespacesUpdater {
         if (!consistentlyDisabledNamespaces.isEmpty()) {
             log.error(
                     "Failed to disable all namespaces, because some namespace was consistently disabled. This implies"
-                            + " that this namespace is already being restored. If that is the case, please either wait for"
-                            + " that restore to complete, or kick off a restore without that namespace",
+                        + " that this namespace is already being restored. If that is the case, please either wait for"
+                        + " that restore to complete, or kick off a restore without that namespace",
                     SafeArg.of("disabledNamespaces", consistentlyDisabledNamespaces));
             return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
                     .consistentlyDisabledNamespaces(consistentlyDisabledNamespaces)
@@ -148,7 +147,7 @@ public class AllNodesDisabledNamespacesUpdater {
                     UnsuccessfulReenableNamespacesResponse.builder().build());
         }
 
-        List<SingleNodeReenableNamespacesResponse> responses = reEnableNamespacesOnAllNodes(request);
+        List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(request);
         if (reEnableWasSuccessfulOnAllNodes(responses)) {
             return ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true));
         }
@@ -202,30 +201,29 @@ public class AllNodesDisabledNamespacesUpdater {
 
     // Disable
     private boolean attemptDisableOnAllNodes(Set<Namespace> namespaces, UUID lockId, int expectedResponseCount) {
-        List<SingleNodeDisableNamespacesResponse> rollbackResponses = disableNamespacesOnAllNodes(namespaces, lockId);
+        List<SingleNodeUpdateResponse> rollbackResponses = disableNamespacesOnAllNodes(namespaces, lockId);
         return disableWasSuccessfulOnAllNodes(rollbackResponses, expectedResponseCount);
     }
 
-    private List<SingleNodeDisableNamespacesResponse> disableNamespacesOnAllNodes(
-            Set<Namespace> namespaces, UUID lockId) {
+    private List<SingleNodeUpdateResponse> disableNamespacesOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
         DisableNamespacesRequest request = DisableNamespacesRequest.of(namespaces, lockId);
-        Function<DisabledNamespacesUpdaterService, SingleNodeDisableNamespacesResponse> update =
+        Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.disable(authHeader, request);
-        List<SingleNodeDisableNamespacesResponse> responses = attemptOnAllRemoteNodes(update);
+        List<SingleNodeUpdateResponse> responses = attemptOnAllRemoteNodes(update);
 
         // TODO(gs): only actually disable locally if successful; otherwise, just validate
-        SingleNodeDisableNamespacesResponse localResponse = localUpdater.disable(request);
+        SingleNodeUpdateResponse localResponse = localUpdater.disable(request);
         responses.add(localResponse);
 
         return responses;
     }
 
-    private boolean disableWasSuccessfulOnAllNodes(List<SingleNodeDisableNamespacesResponse> responses) {
+    private boolean disableWasSuccessfulOnAllNodes(List<SingleNodeUpdateResponse> responses) {
         return disableWasSuccessfulOnAllNodes(responses, clusterSize);
     }
 
     private static boolean disableWasSuccessfulOnAllNodes(
-            List<SingleNodeDisableNamespacesResponse> responses, int expectedResponseCount) {
+            List<SingleNodeUpdateResponse> responses, int expectedResponseCount) {
         if (responses.size() < expectedResponseCount) {
             log.error(
                     "Failed to reach some node(s) during disable operation",
@@ -234,7 +232,7 @@ public class AllNodesDisabledNamespacesUpdater {
             return false;
         }
 
-        return responses.stream().allMatch(SingleNodeDisableNamespacesResponse::getWasSuccessful);
+        return responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful);
     }
 
     // ReEnable
@@ -243,25 +241,25 @@ public class AllNodesDisabledNamespacesUpdater {
                 .namespaces(namespaces)
                 .lockId(lockId)
                 .build();
-        List<SingleNodeReenableNamespacesResponse> responses = reEnableNamespacesOnAllNodes(rollbackRequest);
+        List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(rollbackRequest);
         return reEnableWasSuccessfulOnAllNodes(responses, expectedResponseCount);
     }
 
-    private List<SingleNodeReenableNamespacesResponse> reEnableNamespacesOnAllNodes(ReenableNamespacesRequest request) {
-        Function<DisabledNamespacesUpdaterService, SingleNodeReenableNamespacesResponse> update =
+    private List<SingleNodeUpdateResponse> reEnableNamespacesOnAllNodes(ReenableNamespacesRequest request) {
+        Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.reenable(authHeader, request);
-        List<SingleNodeReenableNamespacesResponse> responses = attemptOnAllRemoteNodes(update);
-        SingleNodeReenableNamespacesResponse localResponse = localUpdater.reEnable(request);
+        List<SingleNodeUpdateResponse> responses = attemptOnAllRemoteNodes(update);
+        SingleNodeUpdateResponse localResponse = localUpdater.reEnable(request);
         responses.add(localResponse);
         return responses;
     }
 
-    private boolean reEnableWasSuccessfulOnAllNodes(List<SingleNodeReenableNamespacesResponse> responses) {
+    private boolean reEnableWasSuccessfulOnAllNodes(List<SingleNodeUpdateResponse> responses) {
         return reEnableWasSuccessfulOnAllNodes(responses, clusterSize);
     }
 
     private static boolean reEnableWasSuccessfulOnAllNodes(
-            List<SingleNodeReenableNamespacesResponse> responses, int expectedResponseCount) {
+            List<SingleNodeUpdateResponse> responses, int expectedResponseCount) {
         if (responses.size() < expectedResponseCount) {
             log.error(
                     "Failed to reach some node(s) during reEnable operation",
@@ -270,17 +268,15 @@ public class AllNodesDisabledNamespacesUpdater {
             return false;
         }
 
-        return responses.stream().allMatch(SingleNodeReenableNamespacesResponse::getWasSuccessful);
+        return responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful);
     }
 
     // Failure analysis
-    private static Set<Namespace> getConsistentlyLockedNamespaces(
-            List<SingleNodeReenableNamespacesResponse> responses) {
+    private static Set<Namespace> getConsistentlyLockedNamespaces(List<SingleNodeUpdateResponse> responses) {
         return getConsistentFailures(getNamespacesByReEnableFailureCount(responses), responses.size());
     }
 
-    private static Set<Namespace> getConsistentlyDisabledNamespaces(
-            List<SingleNodeDisableNamespacesResponse> responses) {
+    private static Set<Namespace> getConsistentlyDisabledNamespaces(List<SingleNodeUpdateResponse> responses) {
         return getConsistentFailures(getNamespacesByDisableFailureCount(responses), responses.size());
     }
 
@@ -292,9 +288,9 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     private static Map<Namespace, Integer> getNamespacesByReEnableFailureCount(
-            List<SingleNodeReenableNamespacesResponse> responses) {
+            List<SingleNodeUpdateResponse> responses) {
         Map<Namespace, Integer> failedNamespaces = new HashMap<>();
-        for (SingleNodeReenableNamespacesResponse response : responses) {
+        for (SingleNodeUpdateResponse response : responses) {
             // TODO(gs): consider lock ID
             Set<Namespace> lockedNamespaces = response.getLockedNamespaces().keySet();
             lockedNamespaces.forEach(ns -> failedNamespaces.merge(ns, 1, Integer::sum));
@@ -303,9 +299,9 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     private static Map<Namespace, Integer> getNamespacesByDisableFailureCount(
-            List<SingleNodeDisableNamespacesResponse> responses) {
+            List<SingleNodeUpdateResponse> responses) {
         Map<Namespace, Integer> failedNamespaces = new HashMap<>();
-        for (SingleNodeDisableNamespacesResponse response : responses) {
+        for (SingleNodeUpdateResponse response : responses) {
             Set<Namespace> disabledNamespaces = response.getLockedNamespaces().keySet();
             disabledNamespaces.forEach(ns -> failedNamespaces.merge(ns, 1, Integer::sum));
         }

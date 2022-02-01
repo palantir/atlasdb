@@ -23,8 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.SingleNodeDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SingleNodeReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -128,8 +127,8 @@ public final class TimelockNamespaces {
         }
     }
 
-    public SingleNodeDisableNamespacesResponse disable(DisableNamespacesRequest request) {
-        SingleNodeDisableNamespacesResponse response = disabledNamespaces.disable(request);
+    public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
+        SingleNodeUpdateResponse response = disabledNamespaces.disable(request);
         if (response.getWasSuccessful()) {
             request.getNamespaces().stream().map(Namespace::get).forEach(this::invalidateResourcesForClient);
         } else {
@@ -141,7 +140,7 @@ public final class TimelockNamespaces {
         return response;
     }
 
-    public SingleNodeReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
+    public SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
         return disabledNamespaces.reEnable(request);
     }
 

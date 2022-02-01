@@ -26,8 +26,7 @@ import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.SingleNodeDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SingleNodeReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.atlasdb.timelock.api.UndertowDisabledNamespacesUpdaterService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
@@ -60,13 +59,12 @@ public final class DisabledNamespacesUpdaterResource implements UndertowDisabled
     }
 
     @Override
-    public ListenableFuture<SingleNodeDisableNamespacesResponse> disable(
-            AuthHeader authHeader, DisableNamespacesRequest request) {
+    public ListenableFuture<SingleNodeUpdateResponse> disable(AuthHeader authHeader, DisableNamespacesRequest request) {
         return handleExceptions(() -> Futures.immediateFuture(timelockNamespaces.disable(request)));
     }
 
     @Override
-    public ListenableFuture<SingleNodeReenableNamespacesResponse> reenable(
+    public ListenableFuture<SingleNodeUpdateResponse> reenable(
             AuthHeader authHeader, ReenableNamespacesRequest request) {
         return handleExceptions(() -> Futures.immediateFuture(timelockNamespaces.reEnable(request)));
     }
@@ -88,12 +86,12 @@ public final class DisabledNamespacesUpdaterResource implements UndertowDisabled
         }
 
         @Override
-        public SingleNodeDisableNamespacesResponse disable(AuthHeader authHeader, DisableNamespacesRequest request) {
+        public SingleNodeUpdateResponse disable(AuthHeader authHeader, DisableNamespacesRequest request) {
             return unwrap(resource.disable(authHeader, request));
         }
 
         @Override
-        public SingleNodeReenableNamespacesResponse reenable(AuthHeader authHeader, ReenableNamespacesRequest request) {
+        public SingleNodeUpdateResponse reenable(AuthHeader authHeader, ReenableNamespacesRequest request) {
             return unwrap(resource.reenable(authHeader, request));
         }
 

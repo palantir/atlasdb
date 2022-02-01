@@ -19,8 +19,7 @@ package com.palantir.atlasdb.timelock.management;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.SingleNodeDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SingleNodeReenableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -72,11 +71,11 @@ public class DisabledNamespaces {
         return execute(Queries::getAllStates).stream().map(Namespace::of).collect(Collectors.toSet());
     }
 
-    public SingleNodeDisableNamespacesResponse disable(DisableNamespacesRequest request) {
+    public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
         return execute(dao -> dao.disableAll(request.getNamespaces(), request.getLockId()));
     }
 
-    public SingleNodeReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
+    public SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
         return execute(dao -> dao.reEnableAll(request.getNamespaces(), request.getLockId()));
     }
 
@@ -89,7 +88,7 @@ public class DisabledNamespaces {
         boolean createTable();
 
         @Transaction
-        default SingleNodeDisableNamespacesResponse disableAll(Set<Namespace> namespaces, UUID lockId) {
+        default SingleNodeUpdateResponse disableAll(Set<Namespace> namespaces, UUID lockId) {
             Map<Namespace, UUID> lockedNamespaces = KeyedStream.of(namespaces)
                     .map(Namespace::get)
                     .map(this::getLockId)
@@ -103,19 +102,17 @@ public class DisabledNamespaces {
                         SafeArg.of("namespaces", namespaces),
                         SafeArg.of("lockId", lockId),
                         SafeArg.of("lockedNamespace", lockedNamespaces));
-                return SingleNodeDisableNamespacesResponse.of(false, lockedNamespaces);
+                return SingleNodeUpdateResponse.of(false, lockedNamespaces);
             }
 
             Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
             disable(namespaceNames, lockId);
             log.info("Successfully disabled namespaces", SafeArg.of("namespaces", namespaces));
-            return SingleNodeDisableNamespacesResponse.builder()
-                    .wasSuccessful(true)
-                    .build();
+            return SingleNodeUpdateResponse.builder().wasSuccessful(true).build();
         }
 
         @Transaction
-        default SingleNodeReenableNamespacesResponse reEnableAll(Set<Namespace> namespaces, UUID lockId) {
+        default SingleNodeUpdateResponse reEnableAll(Set<Namespace> namespaces, UUID lockId) {
             Map<Namespace, UUID> namespacesWithLockConflict = KeyedStream.of(namespaces)
                     .map(Namespace::get)
                     .map(this::getLockId)
@@ -129,13 +126,11 @@ public class DisabledNamespaces {
                         SafeArg.of("namespaces", namespaces),
                         SafeArg.of("expectedLockId", lockId),
                         SafeArg.of("conflictingNamespaces", namespacesWithLockConflict));
-                return SingleNodeReenableNamespacesResponse.of(false, namespacesWithLockConflict);
+                return SingleNodeUpdateResponse.of(false, namespacesWithLockConflict);
             }
 
             namespaces.stream().map(Namespace::get).forEach(this::delete);
-            return SingleNodeReenableNamespacesResponse.builder()
-                    .wasSuccessful(true)
-                    .build();
+            return SingleNodeUpdateResponse.builder().wasSuccessful(true).build();
         }
 
         @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?)")

@@ -28,16 +28,16 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -208,7 +208,8 @@ public class TimelockNamespacesTest {
 
         UUID lockId = UUID.randomUUID();
         when(disabledNamespaces.disable(any()))
-                .thenReturn(DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId)));
+                .thenReturn(
+                        SingleNodeUpdateResponse.builder().wasSuccessful(true).build());
 
         namespaces.disable(DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(client)), lockId));
         verify(services).close();
@@ -221,10 +222,8 @@ public class TimelockNamespacesTest {
 
         ImmutableSet<Namespace> namespacesToDisable = ImmutableSet.of(Namespace.of(client));
         UUID lockId = UUID.randomUUID();
-        when(disabledNamespaces.disable(any()))
-                .thenReturn(DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
-                        .consistentlyDisabledNamespaces(namespacesToDisable)
-                        .build()));
+        Map<Namespace, UUID> lockedNamespace = ImmutableMap.of(Namespace.of(client), lockId);
+        when(disabledNamespaces.disable(any())).thenReturn(SingleNodeUpdateResponse.of(false, lockedNamespace));
 
         namespaces.disable(DisableNamespacesRequest.of(namespacesToDisable, lockId));
         verify(services, never()).close();
