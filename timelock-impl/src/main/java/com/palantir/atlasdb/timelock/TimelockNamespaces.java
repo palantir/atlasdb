@@ -33,7 +33,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -125,6 +127,14 @@ public final class TimelockNamespaces {
         if (removedServices != null) {
             removedServices.close();
         }
+    }
+
+    public Map<Namespace, UUID> getIncorrectlyLockedNamespaces(Set<Namespace> namespaces, UUID expectedLockId) {
+        log.info(
+                "Reading namespace state locally",
+                SafeArg.of("namespaces", namespaces),
+                SafeArg.of("expectedLockId", expectedLockId));
+        return disabledNamespaces.getIncorrectlyLockedNamespaces(namespaces, expectedLockId);
     }
 
     public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {

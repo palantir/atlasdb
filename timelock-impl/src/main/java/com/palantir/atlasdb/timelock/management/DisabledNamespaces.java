@@ -71,6 +71,10 @@ public class DisabledNamespaces {
         return execute(Queries::getAllStates).stream().map(Namespace::of).collect(Collectors.toSet());
     }
 
+    public Map<Namespace, UUID> getIncorrectlyLockedNamespaces(Set<Namespace> namespaces, UUID expectedLockId) {
+        return execute(dao -> dao.getIncorrectlyLockedNamespaces(namespaces, expectedLockId));
+    }
+
     public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
         return execute(dao -> dao.disableAll(request.getNamespaces(), request.getLockId()));
     }
@@ -86,6 +90,17 @@ public class DisabledNamespaces {
     public interface Queries {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS disabled (namespace TEXT PRIMARY KEY, lockId UUID)")
         boolean createTable();
+
+        @Transaction
+        default Map<Namespace, UUID> getIncorrectlyLockedNamespaces(Set<Namespace> namespaces, UUID expectedLockId) {
+            return KeyedStream.of(namespaces)
+                    .map(Namespace::get)
+                    .map(this::getLockId)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .filter(lockId -> !lockId.equals(expectedLockId))
+                    .collectToMap();
+        }
 
         @Transaction
         default SingleNodeUpdateResponse disableAll(Set<Namespace> namespaces, UUID lockId) {
