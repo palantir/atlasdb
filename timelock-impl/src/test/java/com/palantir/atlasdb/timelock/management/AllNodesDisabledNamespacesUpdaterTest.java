@@ -99,7 +99,6 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
     @Test
     public void canDisableSingleNamespace() {
-
         when(remote1.disable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
         when(remote2.disable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
         when(localUpdater.disable(any(DisableNamespacesRequest.class))).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);

@@ -51,7 +51,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.immutables.value.Value;
 
 public class AllNodesDisabledNamespacesUpdater {
     private static final SafeLogger log = SafeLoggerFactory.get(AllNodesDisabledNamespacesUpdater.class);
@@ -97,7 +96,7 @@ public class AllNodesDisabledNamespacesUpdater {
 
         UUID lockId = lockIdSupplier.get();
         List<SingleNodeUpdateResponse> responses = disableNamespacesOnAllNodes(namespaces, lockId);
-        if (disableWasSuccessfulOnAllNodes(responses)) {
+        if (updateWasSuccessfulOnAllNodes(responses)) {
             return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
         }
 
@@ -148,7 +147,7 @@ public class AllNodesDisabledNamespacesUpdater {
         }
 
         List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(request);
-        if (reEnableWasSuccessfulOnAllNodes(responses)) {
+        if (updateWasSuccessfulOnAllNodes(responses)) {
             return ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true));
         }
 
@@ -202,7 +201,7 @@ public class AllNodesDisabledNamespacesUpdater {
     // Disable
     private boolean attemptDisableOnAllNodes(Set<Namespace> namespaces, UUID lockId, int expectedResponseCount) {
         List<SingleNodeUpdateResponse> rollbackResponses = disableNamespacesOnAllNodes(namespaces, lockId);
-        return disableWasSuccessfulOnAllNodes(rollbackResponses, expectedResponseCount);
+        return updateWasSuccessfulOnAllNodes(rollbackResponses, expectedResponseCount);
     }
 
     private List<SingleNodeUpdateResponse> disableNamespacesOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
@@ -211,34 +210,15 @@ public class AllNodesDisabledNamespacesUpdater {
                 service -> service.disable(authHeader, request);
         List<SingleNodeUpdateResponse> responses = attemptOnAllRemoteNodes(update);
 
-        SingleNodeUpdateResponse localResponse = disableLocallyOrCheckState(namespaces, lockId, request, responses);
+        SingleNodeUpdateResponse localResponse = disableLocallyOrCheckState(request, responses);
         responses.add(localResponse);
         return responses;
     }
 
     private SingleNodeUpdateResponse disableLocallyOrCheckState(
-            Set<Namespace> namespaces,
-            UUID lockId,
-            DisableNamespacesRequest request,
-            List<SingleNodeUpdateResponse> responses) {
-        return updateLocallyOrCheckState(responses, namespaces, lockId, () -> localUpdater.disable(request));
-    }
-
-    private boolean disableWasSuccessfulOnAllNodes(List<SingleNodeUpdateResponse> responses) {
-        return disableWasSuccessfulOnAllNodes(responses, clusterSize);
-    }
-
-    private static boolean disableWasSuccessfulOnAllNodes(
-            List<SingleNodeUpdateResponse> responses, int expectedResponseCount) {
-        if (responses.size() < expectedResponseCount) {
-            log.error(
-                    "Failed to reach some node(s) during disable operation",
-                    SafeArg.of("responseCount", responses.size()),
-                    SafeArg.of("expectedResponseCount", expectedResponseCount));
-            return false;
-        }
-
-        return responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful);
+            DisableNamespacesRequest request, List<SingleNodeUpdateResponse> responses) {
+        return updateLocallyOrCheckState(
+                responses, request.getNamespaces(), request.getLockId(), () -> localUpdater.disable(request));
     }
 
     // ReEnable
@@ -248,7 +228,7 @@ public class AllNodesDisabledNamespacesUpdater {
                 .lockId(lockId)
                 .build();
         List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(rollbackRequest);
-        return reEnableWasSuccessfulOnAllNodes(responses, expectedResponseCount);
+        return updateWasSuccessfulOnAllNodes(responses, expectedResponseCount);
     }
 
     private List<SingleNodeUpdateResponse> reEnableNamespacesOnAllNodes(ReenableNamespacesRequest request) {
@@ -262,10 +242,8 @@ public class AllNodesDisabledNamespacesUpdater {
 
     private SingleNodeUpdateResponse reEnableLocallyOrCheckState(
             ReenableNamespacesRequest request, List<SingleNodeUpdateResponse> responses) {
-        Set<Namespace> namespaces = request.getNamespaces();
-        UUID lockId = request.getLockId();
-        Supplier<SingleNodeUpdateResponse> localUpdate = () -> localUpdater.reEnable(request);
-        return updateLocallyOrCheckState(responses, namespaces, lockId, localUpdate);
+        return updateLocallyOrCheckState(
+                responses, request.getNamespaces(), request.getLockId(), () -> localUpdater.reEnable(request));
     }
 
     private SingleNodeUpdateResponse updateLocallyOrCheckState(
@@ -283,15 +261,16 @@ public class AllNodesDisabledNamespacesUpdater {
         }
     }
 
-    private boolean reEnableWasSuccessfulOnAllNodes(List<SingleNodeUpdateResponse> responses) {
-        return reEnableWasSuccessfulOnAllNodes(responses, clusterSize);
+    // Update analysis
+    private boolean updateWasSuccessfulOnAllNodes(List<SingleNodeUpdateResponse> responses) {
+        return updateWasSuccessfulOnAllNodes(responses, clusterSize);
     }
 
-    private static boolean reEnableWasSuccessfulOnAllNodes(
+    private static boolean updateWasSuccessfulOnAllNodes(
             List<SingleNodeUpdateResponse> responses, int expectedResponseCount) {
         if (responses.size() < expectedResponseCount) {
             log.error(
-                    "Failed to reach some node(s) during reEnable operation",
+                    "Failed to reach some node(s) during update",
                     SafeArg.of("responseCount", responses.size()),
                     SafeArg.of("expectedResponseCount", expectedResponseCount));
             return false;
@@ -300,7 +279,6 @@ public class AllNodesDisabledNamespacesUpdater {
         return responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful);
     }
 
-    // Failure analysis
     private static Set<Namespace> getConsistentFailures(List<SingleNodeUpdateResponse> responses) {
         return getConsistentFailures(getNamespacesByFailureCount(responses), responses.size());
     }
@@ -323,28 +301,6 @@ public class AllNodesDisabledNamespacesUpdater {
             });
         }
         return failuresByNamespace;
-    }
-
-    @Value.Immutable
-    interface UpdateFailureRecord {
-        int failureCount();
-
-        Set<UUID> lockIds();
-
-        static UpdateFailureRecord of(UUID lockId) {
-            return ImmutableUpdateFailureRecord.builder()
-                    .failureCount(1)
-                    .addLockIds(lockId)
-                    .build();
-        }
-
-        static UpdateFailureRecord merge(UpdateFailureRecord existingRecord, UpdateFailureRecord newRecord) {
-            return ImmutableUpdateFailureRecord.builder()
-                    .failureCount(existingRecord.failureCount() + newRecord.failureCount())
-                    .addAllLockIds(existingRecord.lockIds())
-                    .addAllLockIds(newRecord.lockIds())
-                    .build();
-        }
     }
 
     // Execution
