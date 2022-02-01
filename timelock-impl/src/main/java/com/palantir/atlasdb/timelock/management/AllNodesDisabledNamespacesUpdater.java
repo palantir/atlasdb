@@ -104,8 +104,8 @@ public class AllNodesDisabledNamespacesUpdater {
         if (!consistentlyDisabledNamespaces.isEmpty()) {
             log.error(
                     "Failed to disable all namespaces, because some namespace was consistently disabled. This implies"
-                            + " that this namespace is already being restored. If that is the case, please either wait for"
-                            + " that restore to complete, or kick off a restore without that namespace",
+                        + " that this namespace is already being restored. If that is the case, please either wait for"
+                        + " that restore to complete, or kick off a restore without that namespace",
                     SafeArg.of("disabledNamespaces", consistentlyDisabledNamespaces));
             return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
                     .consistentlyDisabledNamespaces(consistentlyDisabledNamespaces)
