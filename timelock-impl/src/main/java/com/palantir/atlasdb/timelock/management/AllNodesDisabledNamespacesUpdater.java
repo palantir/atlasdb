@@ -165,6 +165,7 @@ public class AllNodesDisabledNamespacesUpdater {
         }
 
         UUID lockId = request.getLockId();
+        // should only roll back locally
         boolean rollbackSuccess = attemptDisableOnAllNodes(namespaces, lockId, responses.size());
         if (rollbackSuccess) {
             log.error(
@@ -208,42 +209,41 @@ public class AllNodesDisabledNamespacesUpdater {
         DisableNamespacesRequest request = DisableNamespacesRequest.of(namespaces, lockId);
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.disable(authHeader, request);
-        List<SingleNodeUpdateResponse> responses = attemptOnAllRemoteNodes(update);
+        Supplier<SingleNodeUpdateResponse> localUpdate = () -> localUpdater.disable(request);
 
-        SingleNodeUpdateResponse localResponse = disableLocallyOrCheckState(request, responses);
-        responses.add(localResponse);
-        return responses;
-    }
-
-    private SingleNodeUpdateResponse disableLocallyOrCheckState(
-            DisableNamespacesRequest request, List<SingleNodeUpdateResponse> responses) {
-        return updateLocallyOrCheckState(
-                responses, request.getNamespaces(), request.getLockId(), () -> localUpdater.disable(request));
+        return attemptOnAllNodes(namespaces, lockId, update, localUpdate);
     }
 
     // ReEnable
     private boolean attemptReEnableOnAllNodes(Set<Namespace> namespaces, UUID lockId, int expectedResponseCount) {
-        ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.builder()
+        ReenableNamespacesRequest request = ReenableNamespacesRequest.builder()
                 .namespaces(namespaces)
                 .lockId(lockId)
                 .build();
-        List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(rollbackRequest);
+        List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(request);
         return updateWasSuccessfulOnAllNodes(responses, expectedResponseCount);
     }
 
     private List<SingleNodeUpdateResponse> reEnableNamespacesOnAllNodes(ReenableNamespacesRequest request) {
+        Set<Namespace> namespaces = request.getNamespaces();
+        UUID lockId = request.getLockId();
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.reenable(authHeader, request);
-        List<SingleNodeUpdateResponse> responses = attemptOnAllRemoteNodes(update);
-        SingleNodeUpdateResponse localResponse = reEnableLocallyOrCheckState(request, responses);
-        responses.add(localResponse);
-        return responses;
+        Supplier<SingleNodeUpdateResponse> localUpdate = () -> localUpdater.reEnable(request);
+
+        return attemptOnAllNodes(namespaces, lockId, update, localUpdate);
     }
 
-    private SingleNodeUpdateResponse reEnableLocallyOrCheckState(
-            ReenableNamespacesRequest request, List<SingleNodeUpdateResponse> responses) {
-        return updateLocallyOrCheckState(
-                responses, request.getNamespaces(), request.getLockId(), () -> localUpdater.reEnable(request));
+    // Update and analysis
+    private List<SingleNodeUpdateResponse> attemptOnAllNodes(
+            Set<Namespace> namespaces,
+            UUID lockId,
+            Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update,
+            Supplier<SingleNodeUpdateResponse> localUpdate) {
+        List<SingleNodeUpdateResponse> responses = attemptOnAllRemoteNodes(update);
+        SingleNodeUpdateResponse localResponse = updateLocallyOrCheckState(responses, namespaces, lockId, localUpdate);
+        responses.add(localResponse);
+        return responses;
     }
 
     private SingleNodeUpdateResponse updateLocallyOrCheckState(
@@ -261,7 +261,6 @@ public class AllNodesDisabledNamespacesUpdater {
         }
     }
 
-    // Update analysis
     private boolean updateWasSuccessfulOnAllNodes(List<SingleNodeUpdateResponse> responses) {
         return updateWasSuccessfulOnAllNodes(responses, clusterSize);
     }
