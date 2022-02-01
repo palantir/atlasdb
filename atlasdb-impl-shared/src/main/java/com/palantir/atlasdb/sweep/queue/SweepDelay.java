@@ -77,9 +77,9 @@ class SweepDelay {
     long getNextPause(SweepIterationResult result) {
         return SweepIterationResults.caseOf(result)
                 .success(this::updateCurrentPauseAndGet)
-                .unableToAcquireShard_(maxPauseMillis)
+                .unableToAcquireShard_(maxPauseMillis.getAsLong())
                 .insufficientConsistency_(getInsufficientConsistencyPauseAndCalculateNext())
-                .otherError_(maxPauseMillis)
+                .otherError_(maxPauseMillis.getAsLong())
                 .disabled_(MIN_BACKOFF);
     }
 
