@@ -203,7 +203,36 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(localUpdater).reEnable(rollbackRequest);
     }
 
-    // TODO(gs): test when lock IDs are different on different nodes
+    @Test
+    public void doesNotReportConsistentStateWhenNamespacesAreLockedWithDifferentIds() {
+        Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE);
+        UUID otherLockId = UUID.randomUUID();
+        UUID yetAnotherLockId = UUID.randomUUID();
+
+        SingleNodeUpdateResponse lockedWithOtherLock = SingleNodeUpdateResponse.builder()
+                .wasSuccessful(false)
+                .lockedNamespaces(NAMESPACE, otherLockId)
+                .build();
+        SingleNodeUpdateResponse lockedWithYetAnotherLock = SingleNodeUpdateResponse.builder()
+                .wasSuccessful(false)
+                .lockedNamespaces(NAMESPACE, yetAnotherLockId)
+                .build();
+
+        when(remote1.disable(any(), any())).thenReturn(lockedWithOtherLock);
+        when(remote2.disable(any(), any())).thenReturn(lockedWithYetAnotherLock);
+        when(localUpdater.getIncorrectlyLockedNamespaces(any(), any())).thenReturn(ImmutableMap.of());
+
+        when(remote1.reenable(any(), any())).thenReturn(lockedWithOtherLock);
+        when(remote2.reenable(any(), any())).thenReturn(lockedWithYetAnotherLock);
+
+        DisableNamespacesResponse response = updater.disableOnAllNodes(namespaces);
+        assertThat(response).isEqualTo(partiallyDisabled(namespaces));
+
+        ReenableNamespacesResponse reenableResponse =
+                updater.reEnableOnAllNodes(ReenableNamespacesRequest.of(namespaces, LOCK_ID));
+        assertThat(reenableResponse).isEqualTo(partiallyLocked(namespaces));
+    }
+
     @Test
     public void reportsRollbackFailures() {
         Set<Namespace> failedNamespaces = ImmutableSet.of(OTHER_NAMESPACE);
