@@ -16,20 +16,20 @@
 
 package com.palantir.paxos;
 
-public final class WrappedPaxosResponse<T> implements PaxosResponse {
-    private final T response;
+import org.immutables.value.Value;
 
-    public WrappedPaxosResponse(T response) {
-        this.response = response;
-    }
+@Value.Immutable
+public interface SuccessfulPaxosResponse<T> extends PaxosResponse {
 
     @Override
-    public boolean isSuccessful() {
+    default boolean isSuccessful() {
         // We got the response, so we're obviously successful.
         return true;
     }
 
-    public T getResponse() {
-        return response;
+    T getResponse();
+
+    static <T> SuccessfulPaxosResponse<T> of(T response) {
+        return ImmutableSuccessfulPaxosResponse.<T>builder().response(response).build();
     }
 }

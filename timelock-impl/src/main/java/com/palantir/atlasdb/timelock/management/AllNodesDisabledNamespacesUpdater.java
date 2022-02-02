@@ -37,7 +37,7 @@ import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponsesWithRemote;
-import com.palantir.paxos.WrappedPaxosResponse;
+import com.palantir.paxos.SuccessfulPaxosResponse;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
 import java.util.Collection;
@@ -255,10 +255,10 @@ public class AllNodesDisabledNamespacesUpdater {
 
     // Execution
     private <T> List<T> attemptOnAllRemoteNodes(Function<DisabledNamespacesUpdaterService, T> request) {
-        Function<DisabledNamespacesUpdaterService, WrappedPaxosResponse<T>> composedFunction =
-                service -> new WrappedPaxosResponse<>(request.apply(service));
+        Function<DisabledNamespacesUpdaterService, SuccessfulPaxosResponse<T>> composedFunction =
+                service -> SuccessfulPaxosResponse.of(request.apply(service));
         return executeOnAllRemoteNodes(composedFunction).responses().values().stream()
-                .map(WrappedPaxosResponse::getResponse)
+                .map(SuccessfulPaxosResponse::getResponse)
                 .collect(Collectors.toList());
     }
 
