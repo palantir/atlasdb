@@ -11,18 +11,22 @@ types:
       SingleNodeUpdateResponse:
         fields:
           wasSuccessful: boolean
-          # other namespaces will not have been disabled/re-enabled (the transaction will not complete)
-          lockedNamespaces: map<api.Namespace, uuid>
+          lockedNamespaces:
+            type: map<api.Namespace, uuid>
+            docs: other namespaces will not have been disabled/re-enabled (the transaction will not complete)
       SuccessfulDisableNamespacesResponse:
         fields:
           lockId: uuid
       UnsuccessfulDisableNamespacesResponse:
         fields:
-          # we can assume another restore is in progress for this namespace
-          consistentlyDisabledNamespaces: set<api.Namespace>
-          # either another restore is in progress for this namespace (and we've hit a race condition), or
-          # the namespace is stuck and needs to be manually fixed.
-          partiallyDisabledNamespaces: set<api.Namespace>
+          consistentlyDisabledNamespaces:
+            type: set<api.Namespace>
+            docs: Namespaces where we can assume another restore is in progress
+          partiallyDisabledNamespaces:
+            type: set<api.Namespace>
+            docs: |
+              Either another restore is in progress for this namespace (and we've hit a race condition), or
+              the namespace is stuck and needs to be manually fixed.
       DisableNamespacesResponse:
         union:
           successful: SuccessfulDisableNamespacesResponse
@@ -35,11 +39,14 @@ types:
         alias: boolean
       UnsuccessfulReenableNamespacesResponse:
         fields:
-          # we can assume another restore is in progress for this namespace (we lost our lock)
-          consistentlyLockedNamespaces: set<api.Namespace>
-          # either another restore is in progress for this namespace (and we lost our lock), or
-          # the namespace is stuck and needs to be manually fixed.
-          partiallyLockedNamespaces: set<api.Namespace>
+          consistentlyLockedNamespaces:
+            type: set<api.Namespace>
+            docs: We can assume another restore is in progress for this namespace (we lost our lock)
+          partiallyLockedNamespaces:
+            type: set<api.Namespace>
+            docs: |
+              Either another restore is in progress for this namespace (and we lost our lock), or
+              the namespace is stuck and needs to be manually fixed.
       ReenableNamespacesResponse:
         union:
           successful: SuccessfulReenableNamespacesResponse
