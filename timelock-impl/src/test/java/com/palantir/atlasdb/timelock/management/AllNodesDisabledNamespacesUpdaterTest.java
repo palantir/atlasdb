@@ -29,6 +29,7 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
+import com.palantir.atlasdb.timelock.api.ImmutableSingleNodeUpdateResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
@@ -61,8 +62,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     private static final ImmutableSet<Namespace> BOTH_NAMESPACES = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
     private static final UUID LOCK_ID = new UUID(13, 37);
 
-    private static final SingleNodeUpdateResponse SUCCESSFUL_SINGLE_NODE_UPDATE =
-            SingleNodeUpdateResponse.builder().wasSuccessful(true).build();
+    private static final SingleNodeUpdateResponse SUCCESSFUL_SINGLE_NODE_UPDATE = SingleNodeUpdateResponse.successful();
 
     private static final DisableNamespacesResponse DISABLE_FAILED_SUCCESSFULLY = DisableNamespacesResponse.unsuccessful(
             UnsuccessfulDisableNamespacesResponse.builder().build());
@@ -166,7 +166,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote1.disable(any(), any())).thenReturn(unsuccessfulResponse);
         when(remote2.disable(any(), any())).thenReturn(unsuccessfulResponse);
         when(localUpdater.getIncorrectlyLockedNamespaces(any(), any()))
-                .thenReturn(unsuccessfulResponse.getLockedNamespaces());
+                .thenReturn(unsuccessfulResponse.lockedNamespaces());
 
         DisableNamespacesResponse response = updater.disableOnAllNodes(BOTH_NAMESPACES);
 
@@ -208,13 +208,13 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         UUID otherLockId = UUID.randomUUID();
         UUID yetAnotherLockId = UUID.randomUUID();
 
-        SingleNodeUpdateResponse lockedWithOtherLock = SingleNodeUpdateResponse.builder()
-                .wasSuccessful(false)
-                .lockedNamespaces(NAMESPACE, otherLockId)
+        SingleNodeUpdateResponse lockedWithOtherLock = ImmutableSingleNodeUpdateResponse.builder()
+                .isSuccessful(false)
+                .putLockedNamespaces(NAMESPACE, otherLockId)
                 .build();
-        SingleNodeUpdateResponse lockedWithYetAnotherLock = SingleNodeUpdateResponse.builder()
-                .wasSuccessful(false)
-                .lockedNamespaces(NAMESPACE, yetAnotherLockId)
+        SingleNodeUpdateResponse lockedWithYetAnotherLock = ImmutableSingleNodeUpdateResponse.builder()
+                .isSuccessful(false)
+                .putLockedNamespaces(NAMESPACE, yetAnotherLockId)
                 .build();
 
         when(remote1.disable(any(), any())).thenReturn(lockedWithOtherLock);
@@ -331,7 +331,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote1.reenable(any(), any())).thenReturn(unsuccessfulResponse);
         when(remote2.reenable(any(), any())).thenReturn(unsuccessfulResponse);
         when(localUpdater.getIncorrectlyLockedNamespaces(any(), any()))
-                .thenReturn(unsuccessfulResponse.getLockedNamespaces());
+                .thenReturn(unsuccessfulResponse.lockedNamespaces());
 
         ReenableNamespacesResponse response =
                 updater.reEnableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));
@@ -380,7 +380,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote1.disable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
         when(remote2.disable(any(), any())).thenReturn(unsuccessfulResponse);
         when(localUpdater.getIncorrectlyLockedNamespaces(any(), any()))
-                .thenReturn(unsuccessfulResponse.getLockedNamespaces());
+                .thenReturn(unsuccessfulResponse.lockedNamespaces());
 
         ReenableNamespacesResponse response =
                 updater.reEnableOnAllNodes(ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID));

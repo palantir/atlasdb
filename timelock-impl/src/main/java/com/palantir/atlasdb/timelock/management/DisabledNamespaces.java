@@ -115,7 +115,7 @@ public class DisabledNamespaces {
             Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
             disable(namespaceNames, lockId);
             log.info("Successfully disabled namespaces", SafeArg.of("namespaces", namespaces));
-            return SingleNodeUpdateResponse.builder().wasSuccessful(true).build();
+            return SingleNodeUpdateResponse.successful();
         }
 
         @Transaction
@@ -134,7 +134,7 @@ public class DisabledNamespaces {
             }
 
             namespaces.stream().map(Namespace::get).forEach(this::delete);
-            return SingleNodeUpdateResponse.builder().wasSuccessful(true).build();
+            return SingleNodeUpdateResponse.successful();
         }
 
         private KeyedStream<Namespace, UUID> getLockedNamespaces(Set<Namespace> namespaces) {

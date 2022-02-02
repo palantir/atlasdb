@@ -135,7 +135,7 @@ public final class TimelockNamespaces {
 
     public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
         SingleNodeUpdateResponse response = disabledNamespaces.disable(request);
-        if (response.getWasSuccessful()) {
+        if (response.isSuccessful()) {
             request.getNamespaces().stream().map(Namespace::get).forEach(this::invalidateResourcesForClient);
         } else {
             log.info(

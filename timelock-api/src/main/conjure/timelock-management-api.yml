@@ -1,6 +1,10 @@
 types:
   conjure-imports:
     api: timelock-api.yml
+  imports:
+    SingleNodeUpdateResponse:
+      external:
+        java: com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
@@ -8,12 +12,6 @@ types:
         fields:
           namespaces: set<api.Namespace>
           lockId: uuid
-      SingleNodeUpdateResponse:
-        fields:
-          wasSuccessful: boolean
-          lockedNamespaces:
-            type: map<api.Namespace, uuid>
-            docs: other namespaces will not have been disabled/re-enabled (the transaction will not complete)
       SuccessfulDisableNamespacesResponse:
         fields:
           lockId: uuid

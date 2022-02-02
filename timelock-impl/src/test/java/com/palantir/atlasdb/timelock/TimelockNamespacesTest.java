@@ -207,9 +207,7 @@ public class TimelockNamespacesTest {
         TimeLockServices services = namespaces.get(client);
 
         UUID lockId = UUID.randomUUID();
-        when(disabledNamespaces.disable(any()))
-                .thenReturn(
-                        SingleNodeUpdateResponse.builder().wasSuccessful(true).build());
+        when(disabledNamespaces.disable(any())).thenReturn(SingleNodeUpdateResponse.successful());
 
         namespaces.disable(DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(client)), lockId));
         verify(services).close();

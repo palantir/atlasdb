@@ -202,7 +202,7 @@ public class AllNodesDisabledNamespacesUpdater {
             Set<Namespace> namespaces,
             UUID lockId,
             Supplier<SingleNodeUpdateResponse> localUpdate) {
-        if (responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful)
+        if (responses.stream().allMatch(SingleNodeUpdateResponse::isSuccessful)
                 && responses.size() == remoteUpdaters.size()) {
             return localUpdate.get();
         } else {
@@ -226,7 +226,7 @@ public class AllNodesDisabledNamespacesUpdater {
             return false;
         }
 
-        return responses.stream().allMatch(SingleNodeUpdateResponse::getWasSuccessful);
+        return responses.stream().allMatch(SingleNodeUpdateResponse::isSuccessful);
     }
 
     private static Set<Namespace> getConsistentFailures(List<SingleNodeUpdateResponse> responses) {
@@ -246,7 +246,7 @@ public class AllNodesDisabledNamespacesUpdater {
             List<SingleNodeUpdateResponse> responses) {
         Map<Namespace, UpdateFailureRecord> failuresByNamespace = new HashMap<>();
         for (SingleNodeUpdateResponse response : responses) {
-            KeyedStream.stream(response.getLockedNamespaces()).forEach((namespace, lockId) -> {
+            KeyedStream.stream(response.lockedNamespaces()).forEach((namespace, lockId) -> {
                 failuresByNamespace.merge(namespace, UpdateFailureRecord.of(lockId), UpdateFailureRecord::merge);
             });
         }
@@ -254,8 +254,9 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     // Execution
-    private <T> List<T> attemptOnAllRemoteNodes(Function<DisabledNamespacesUpdaterService, T> request) {
-        Function<DisabledNamespacesUpdaterService, SuccessfulPaxosResponse<T>> composedFunction =
+    private List<SingleNodeUpdateResponse> attemptOnAllRemoteNodes(
+            Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> request) {
+        Function<DisabledNamespacesUpdaterService, SuccessfulPaxosResponse<SingleNodeUpdateResponse>> composedFunction =
                 service -> SuccessfulPaxosResponse.of(request.apply(service));
         return executeOnAllRemoteNodes(composedFunction).responses().values().stream()
                 .map(SuccessfulPaxosResponse::getResponse)

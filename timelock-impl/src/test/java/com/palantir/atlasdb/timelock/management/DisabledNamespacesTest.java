@@ -151,7 +151,7 @@ public class DisabledNamespacesTest {
     }
 
     private SingleNodeUpdateResponse successfulResponse() {
-        return SingleNodeUpdateResponse.builder().wasSuccessful(true).build();
+        return SingleNodeUpdateResponse.successful();
     }
 
     private SingleNodeUpdateResponse unsuccessfulResponse() {
