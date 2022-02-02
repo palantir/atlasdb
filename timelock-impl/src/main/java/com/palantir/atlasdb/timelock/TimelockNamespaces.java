@@ -130,10 +130,6 @@ public final class TimelockNamespaces {
     }
 
     public Map<Namespace, UUID> getIncorrectlyLockedNamespaces(Set<Namespace> namespaces, UUID expectedLockId) {
-        log.info(
-                "Reading namespace state locally",
-                SafeArg.of("namespaces", namespaces),
-                SafeArg.of("expectedLockId", expectedLockId));
         return disabledNamespaces.getIncorrectlyLockedNamespaces(namespaces, expectedLockId);
     }
 

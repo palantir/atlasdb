@@ -63,8 +63,8 @@ final class DisableNamespaceResponses {
 
     static DisableNamespacesResponse unsuccessfulAndRollBackFailed(Set<Namespace> namespaces, UUID lockId) {
         log.error(
-                "Failed to disable all namespaces, and we failed to roll back some namespaces."
-                        + " These will need to be force-re-enabled in order to return Timelock to a consistent state.",
+                "Failed to disable all namespaces, and we may have failed to roll back some namespaces."
+                        + " These may need to be force-re-enabled in order to return Timelock to a consistent state.",
                 SafeArg.of("namespaces", namespaces),
                 SafeArg.of("lockId", lockId));
         return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()

@@ -93,23 +93,15 @@ public class DisabledNamespaces {
 
         @Transaction
         default Map<Namespace, UUID> getIncorrectlyLockedNamespaces(Set<Namespace> namespaces, UUID expectedLockId) {
-            return KeyedStream.of(namespaces)
-                    .map(Namespace::get)
-                    .map(this::getLockId)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
+            return getLockedNamespaces(namespaces)
                     .filter(lockId -> !lockId.equals(expectedLockId))
                     .collectToMap();
         }
 
         @Transaction
         default SingleNodeUpdateResponse disableAll(Set<Namespace> namespaces, UUID lockId) {
-            Map<Namespace, UUID> lockedNamespaces = KeyedStream.of(namespaces)
-                    .map(Namespace::get)
-                    .map(this::getLockId)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .collectToMap();
+            Map<Namespace, UUID> lockedNamespaces =
+                    getLockedNamespaces(namespaces).collectToMap();
 
             if (!lockedNamespaces.isEmpty()) {
                 log.error(
@@ -128,11 +120,8 @@ public class DisabledNamespaces {
 
         @Transaction
         default SingleNodeUpdateResponse reEnableAll(Set<Namespace> namespaces, UUID lockId) {
-            Map<Namespace, UUID> namespacesWithLockConflict = KeyedStream.of(namespaces)
-                    .map(Namespace::get)
-                    .map(this::getLockId)
-                    .flatMap(Optional::stream)
-                    .filter(val -> !val.equals(lockId))
+            Map<Namespace, UUID> namespacesWithLockConflict = getLockedNamespaces(namespaces)
+                    .filter(lockIdForNamespace -> !lockIdForNamespace.equals(lockId))
                     .collectToMap();
 
             if (!namespacesWithLockConflict.isEmpty()) {
@@ -146,6 +135,13 @@ public class DisabledNamespaces {
 
             namespaces.stream().map(Namespace::get).forEach(this::delete);
             return SingleNodeUpdateResponse.builder().wasSuccessful(true).build();
+        }
+
+        private KeyedStream<Namespace, UUID> getLockedNamespaces(Set<Namespace> namespaces) {
+            return KeyedStream.of(namespaces)
+                    .map(Namespace::get)
+                    .map(this::getLockId)
+                    .flatMap(Optional::stream);
         }
 
         @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?)")
