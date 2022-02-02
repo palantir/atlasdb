@@ -207,7 +207,7 @@ public class AllNodesDisabledNamespacesUpdater {
             return localUpdate.get();
         } else {
             Map<Namespace, UUID> incorrectlyLockedNamespaces =
-                    localUpdater.getIncorrectlyLockedNamespaces(namespaces, lockId);
+                    localUpdater.getNamespacesLockedWithDifferentLockId(namespaces, lockId);
             return SingleNodeUpdateResponse.of(false, incorrectlyLockedNamespaces);
         }
     }
@@ -236,8 +236,7 @@ public class AllNodesDisabledNamespacesUpdater {
     private static Set<Namespace> getConsistentFailures(
             Map<Namespace, UpdateFailureRecord> failedNamespaces, int responseCount) {
         return KeyedStream.stream(failedNamespaces)
-                .filter(val ->
-                        val.failureCount() == responseCount && val.lockIds().size() == 1)
+                .filter(val -> val.isConsistent(responseCount))
                 .keys()
                 .collect(Collectors.toSet());
     }

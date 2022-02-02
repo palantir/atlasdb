@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.immutables.value.Value;
 
+// TODO(gs): Value.Modifiable?
 @Value.Immutable
 interface UpdateFailureRecord {
     int failureCount();
@@ -39,5 +40,10 @@ interface UpdateFailureRecord {
                 .addAllLockIds(existingRecord.lockIds())
                 .addAllLockIds(newRecord.lockIds())
                 .build();
+    }
+
+    @Value.Derived
+    default boolean isConsistent(int expectedResponseCount) {
+        return failureCount() == expectedResponseCount && lockIds().size() == 1;
     }
 }

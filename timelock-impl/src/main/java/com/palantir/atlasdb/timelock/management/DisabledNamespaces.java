@@ -71,7 +71,7 @@ public class DisabledNamespaces {
         return execute(Queries::getAllStates).stream().map(Namespace::of).collect(Collectors.toSet());
     }
 
-    public Map<Namespace, UUID> getIncorrectlyLockedNamespaces(Set<Namespace> namespaces, UUID expectedLockId) {
+    public Map<Namespace, UUID> getNamespacesLockedWithDifferentLockId(Set<Namespace> namespaces, UUID expectedLockId) {
         return execute(dao -> dao.getIncorrectlyLockedNamespaces(namespaces, expectedLockId));
     }
 

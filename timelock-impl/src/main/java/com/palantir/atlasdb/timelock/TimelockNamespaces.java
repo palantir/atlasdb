@@ -129,8 +129,8 @@ public final class TimelockNamespaces {
         }
     }
 
-    public Map<Namespace, UUID> getIncorrectlyLockedNamespaces(Set<Namespace> namespaces, UUID expectedLockId) {
-        return disabledNamespaces.getIncorrectlyLockedNamespaces(namespaces, expectedLockId);
+    public Map<Namespace, UUID> getNamespacesLockedWithDifferentLockId(Set<Namespace> namespaces, UUID expectedLockId) {
+        return disabledNamespaces.getNamespacesLockedWithDifferentLockId(namespaces, expectedLockId);
     }
 
     public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
