@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.api;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
@@ -25,6 +26,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface Namespace {
     // Weird naming for back-compatibility with conjure-generated Namespace
+    @JsonValue
     String get();
 
     static Namespace valueOf(String value) {
