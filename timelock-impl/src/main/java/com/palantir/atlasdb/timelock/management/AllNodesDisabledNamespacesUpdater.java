@@ -83,6 +83,21 @@ public class AllNodesDisabledNamespacesUpdater {
         return new AllNodesDisabledNamespacesUpdater(authHeader, updaters, executors, localUpdater, UUID::randomUUID);
     }
 
+    /**
+     *  Attempts to disable the given set of namespaces on all nodes.
+     *  First checks if all remote nodes are reachable - if so, it fails without attempting to disable on any node.
+     *  Then attempts to disable the namespaces on all nodes, using a unique lock ID. This ID is returned to the caller,
+     *  and must be supplied when re-enabling the namespaces.
+     *  If, for some nodes, some namespaces are already disabled, then we do not overwrite the lock ID.
+     *  In this case, we will attempt to roll back our operation, so that the set of disabled namespaces is left in
+     *  the state in which we found it.
+     *
+     *  If some namespace is disabled on all nodes with the same lock ID, this implies that another restore is already
+     *  running (or perhaps died).
+     *
+     *  If we fail to roll back for some node (e.g. it becomes unreachable), then we're left in an inconsistent state
+     *  which will need manual remediation.
+     */
     public DisableNamespacesResponse disableOnAllNodes(Set<Namespace> namespaces) {
         if (anyNodeIsUnreachable()) {
             return DisableNamespaceResponses.unsuccessfulDueToPingFailure(namespaces);
@@ -110,6 +125,11 @@ public class AllNodesDisabledNamespacesUpdater {
         return DisableNamespaceResponses.unsuccessfulAndRollBackFailed(namespaces, lockId);
     }
 
+    /**
+     * Attempts to re-enable the provided namespaces on all nodes.
+     * If some namespaces are locked with a different lock ID, then these namespaces will remain disabled, however
+     * we will still re-enable those that were locked with the provided lock ID.
+     */
     public ReenableNamespacesResponse reEnableOnAllNodes(ReenableNamespacesRequest request) {
         Set<Namespace> namespaces = request.getNamespaces();
 
