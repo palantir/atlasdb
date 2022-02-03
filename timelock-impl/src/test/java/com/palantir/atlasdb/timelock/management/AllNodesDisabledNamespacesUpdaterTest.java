@@ -268,14 +268,19 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote1.disable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
         when(remote1.reenable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
         when(remote2.disable(any(), any())).thenThrow(new SafeRuntimeException("unreachable"));
+        when(remote2.reenable(any(), any())).thenThrow(new SafeRuntimeException("unreachable"));
 
         when(localUpdater.getNamespacesLockedWithDifferentLockId(any(), any())).thenReturn(ImmutableMap.of());
 
         DisableNamespacesResponse response = updater.disableOnAllNodes(BOTH_NAMESPACES);
 
+        // We don't know if the request succeeded or failed on remote2, so we should try our best to roll back
+        verify(remote2).reenable(any(), any());
+
         verify(remote1).reenable(any(), any());
-        verify(remote2, never()).reenable(any(), any());
-        assertThat(response).isEqualTo(partiallyDisabled(BOTH_NAMESPACES));
+
+        // No known bad namespaces
+        assertThat(response).isEqualTo(DISABLE_FAILED_SUCCESSFULLY);
     }
 
     @Test

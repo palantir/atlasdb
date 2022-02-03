@@ -113,20 +113,22 @@ public class AllNodesDisabledNamespacesUpdater {
 
         Set<Namespace> consistentlyLockedNamespaces = getConsistentFailures(responses.allResponses());
         Set<Namespace> partiallyLockedNamespaces = getPartialFailures(responses.allResponses());
-        boolean updateFailedOnAllNodes = responses.remoteResponses().size() == remoteUpdaters.size()
-                && responses.remoteResponses().values().stream().noneMatch(SingleNodeUpdateResponse::isSuccessful);
+        Map<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> remoteResponses = responses.remoteResponses();
+        boolean updateFailedOnAllNodes = remoteResponses.size() == remoteUpdaters.size()
+                && remoteResponses.values().stream().noneMatch(SingleNodeUpdateResponse::isSuccessful);
         if (updateFailedOnAllNodes) {
             return DisableNamespaceResponses.unsuccessfulDueToLockedNamespaces(
                     consistentlyLockedNamespaces, partiallyLockedNamespaces);
         }
 
         // If no namespaces were consistently disabled, we should roll back our request for those nodes where we
-        // successfully disabled
-        List<DisabledNamespacesUpdaterService> successfulNodes = KeyedStream.stream(responses.remoteResponses())
-                .filter(PaxosResponse::isSuccessful)
-                .keys()
+        // successfully disabled, or those which we failed to reach.
+        List<DisabledNamespacesUpdaterService> successfulOrUnreachableNodes = remoteUpdaters.stream()
+                .filter(node -> !remoteResponses.containsKey(node)
+                        || remoteResponses.get(node).isSuccessful())
                 .collect(Collectors.toList());
-        boolean rollbackSuccess = attemptReEnableOnNodes(namespaces, lockId, successfulNodes);
+
+        boolean rollbackSuccess = attemptReEnableOnNodes(namespaces, lockId, successfulOrUnreachableNodes);
         if (rollbackSuccess) {
             return DisableNamespaceResponses.unsuccessfulButRolledBack(namespaces, lockId);
         }
