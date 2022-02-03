@@ -112,6 +112,10 @@ public class DisabledNamespacesTest {
                 disabledNamespaces.reEnable(ReenableNamespacesRequest.of(ImmutableSet.of(FIRST, SECOND), LOCK_ID));
 
         assertThat(response).isEqualTo(SingleNodeUpdateResponse.of(false, ImmutableMap.of(SECOND, OTHER_LOCK_ID)));
+
+        // non-conflicting namespaces should still be re-enabled
+        assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
+        assertThat(disabledNamespaces.isDisabled(SECOND)).isTrue();
     }
 
     @Test

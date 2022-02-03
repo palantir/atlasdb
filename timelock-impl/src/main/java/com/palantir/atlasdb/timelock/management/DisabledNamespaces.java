@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
@@ -125,16 +126,25 @@ public class DisabledNamespaces {
                     .collectToMap();
 
             if (!namespacesWithLockConflict.isEmpty()) {
+                // Unlock the namespaces we can
+                Set<Namespace> namespacesWithExpectedLock =
+                        Sets.difference(namespaces, namespacesWithLockConflict.keySet());
+                unlockNamespaces(namespacesWithExpectedLock);
+
                 log.error(
-                        "Failed to re-enable namespaces, as some were disabled with a different lock ID",
-                        SafeArg.of("namespaces", namespaces),
+                        "Failed to re-enable all namespaces, as some were disabled with a different lock ID.",
+                        SafeArg.of("reEnabledNamespaces", namespacesWithExpectedLock),
                         SafeArg.of("expectedLockId", lockId),
                         SafeArg.of("conflictingNamespaces", namespacesWithLockConflict));
                 return SingleNodeUpdateResponse.of(false, namespacesWithLockConflict);
             }
 
-            namespaces.stream().map(Namespace::get).forEach(this::delete);
+            unlockNamespaces(namespaces);
             return SingleNodeUpdateResponse.successful();
+        }
+
+        private void unlockNamespaces(Set<Namespace> namespaces) {
+            namespaces.stream().map(Namespace::get).forEach(this::delete);
         }
 
         private KeyedStream<Namespace, UUID> getLockedNamespaces(Set<Namespace> namespaces) {
