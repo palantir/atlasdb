@@ -129,7 +129,6 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote2.disable(any(), any())).thenReturn(singleNodeUpdateFailure(failedNamespaces));
 
         when(remote1.reenable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
-        when(remote2.reenable(any(), any())).thenReturn(singleNodeUpdateFailure(failedNamespaces));
 
         when(localUpdater.getNamespacesLockedWithDifferentLockId(any(), any())).thenReturn(ImmutableMap.of());
 
@@ -137,7 +136,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
         ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID);
         verify(remote1).reenable(AUTH_HEADER, rollbackRequest);
-        verify(remote2).reenable(AUTH_HEADER, rollbackRequest);
+        verify(remote2, never()).reenable(AUTH_HEADER, rollbackRequest);
         verify(localUpdater, never()).disable(any());
 
         assertThat(response).isEqualTo(partiallyDisabled(BOTH_NAMESPACES));
@@ -199,7 +198,6 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote1.disable(any(), any())).thenReturn(unsuccessfulResponse);
         when(remote2.disable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
 
-        when(remote1.reenable(any(), any())).thenReturn(unsuccessfulResponse);
         when(remote2.reenable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
 
         when(localUpdater.getNamespacesLockedWithDifferentLockId(any(), any())).thenReturn(ImmutableMap.of());
@@ -207,7 +205,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         DisableNamespacesResponse response = updater.disableOnAllNodes(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
 
         ReenableNamespacesRequest rollbackRequest = ReenableNamespacesRequest.of(BOTH_NAMESPACES, LOCK_ID);
-        verify(remote1).reenable(any(), any());
+        verify(remote1, never()).reenable(any(), any());
         verify(remote2).reenable(AUTH_HEADER, rollbackRequest);
         verify(localUpdater, never()).reEnable(any());
         assertThat(response).isEqualTo(partiallyDisabled(BOTH_NAMESPACES));
@@ -230,13 +228,12 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
 
         when(remote1.disable(any(), any())).thenReturn(lockedWithOtherLock);
         when(remote2.disable(any(), any())).thenReturn(SingleNodeUpdateResponse.successful());
-        when(remote1.reenable(any(), any())).thenReturn(lockedWithOtherLock);
         when(remote2.reenable(any(), any())).thenReturn(SingleNodeUpdateResponse.successful());
         when(localUpdater.getNamespacesLockedWithDifferentLockId(any(), any()))
                 .thenReturn(lockedWithYetAnotherLock.lockedNamespaces());
 
         DisableNamespacesResponse response = updater.disableOnAllNodes(namespaces);
-        verify(remote1).reenable(any(), any());
+        verify(remote1, never()).reenable(any(), any());
         verify(remote2).reenable(any(), any());
         assertThat(response).isEqualTo(partiallyDisabled(namespaces));
 
@@ -256,12 +253,11 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(localUpdater.getNamespacesLockedWithDifferentLockId(any(), any())).thenReturn(ImmutableMap.of());
 
         when(remote1.reenable(any(), any())).thenReturn(singleNodeUpdateFailure(failedNamespaces));
-        when(remote2.reenable(any(), any())).thenReturn(singleNodeUpdateFailure(failedNamespaces));
 
         DisableNamespacesResponse response = updater.disableOnAllNodes(BOTH_NAMESPACES);
 
         verify(remote1).reenable(any(), any());
-        verify(remote2).reenable(any(), any());
+        verify(remote2, never()).reenable(any(), any());
         verify(localUpdater).getNamespacesLockedWithDifferentLockId(any(), any());
         verifyNoMoreInteractions(localUpdater);
         assertThat(response).isEqualTo(partiallyDisabled(failedNamespaces));
@@ -272,14 +268,13 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         when(remote1.disable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
         when(remote1.reenable(any(), any())).thenReturn(SUCCESSFUL_SINGLE_NODE_UPDATE);
         when(remote2.disable(any(), any())).thenThrow(new SafeRuntimeException("unreachable"));
-        when(remote2.reenable(any(), any())).thenThrow(new SafeRuntimeException("unreachable"));
 
         when(localUpdater.getNamespacesLockedWithDifferentLockId(any(), any())).thenReturn(ImmutableMap.of());
 
         DisableNamespacesResponse response = updater.disableOnAllNodes(BOTH_NAMESPACES);
 
         verify(remote1).reenable(any(), any());
-        verify(remote2).reenable(any(), any());
+        verify(remote2, never()).reenable(any(), any());
         assertThat(response).isEqualTo(partiallyDisabled(BOTH_NAMESPACES));
     }
 

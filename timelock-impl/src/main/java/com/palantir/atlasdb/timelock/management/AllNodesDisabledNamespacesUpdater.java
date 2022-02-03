@@ -204,9 +204,11 @@ public class AllNodesDisabledNamespacesUpdater {
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 node -> node.reenable(authHeader, request);
 
+        Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> correspondingExecutors =
+                KeyedStream.stream(remoteExecutors).filterKeys(nodes::contains).collectToMap();
         PaxosResponsesWithRemote<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> responses =
                 PaxosQuorumChecker.collectAllResponses(
-                        remoteUpdaters, update, remoteExecutors, Duration.ofSeconds(5L), false);
+                        ImmutableList.copyOf(nodes), update, correspondingExecutors, Duration.ofSeconds(5L), false);
         return responses.responses().values();
     }
 
