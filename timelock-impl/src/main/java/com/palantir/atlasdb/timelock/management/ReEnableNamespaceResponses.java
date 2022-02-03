@@ -32,15 +32,17 @@ final class ReEnableNamespaceResponses {
     }
 
     static ReenableNamespacesResponse unsuccessfulDueToConsistentlyLockedNamespaces(
-            Set<Namespace> consistentlyLockedNamespaces) {
+            Set<Namespace> consistentlyLockedNamespaces, Set<Namespace> partialFailures) {
         log.error(
                 "Failed to re-enable all namespaces, because some namespace was consistently disabled "
                         + "with the wrong lock ID. This implies that this namespace being restored by another"
                         + " process. If that is the case, please either wait for that restore to complete, "
                         + " or kick off a restore without that namespace",
-                SafeArg.of("lockedNamespaces", consistentlyLockedNamespaces));
+                SafeArg.of("consistentlyLockedNamespaces", consistentlyLockedNamespaces),
+                SafeArg.of("partiallyLockedNamespaces", partialFailures));
         return ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
                 .consistentlyLockedNamespaces(consistentlyLockedNamespaces)
+                .partiallyLockedNamespaces(partialFailures)
                 .build());
     }
 

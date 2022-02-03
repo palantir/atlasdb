@@ -65,6 +65,25 @@ public final class PaxosQuorumChecker {
         // Private constructor. Disallow instantiation.
     }
 
+    public static <SERVICE, RESPONSE extends PaxosResponse>
+            PaxosResponsesWithRemote<SERVICE, RESPONSE> collectAllResponses(
+                    ImmutableList<SERVICE> remotes,
+                    Function<SERVICE, RESPONSE> request,
+                    Map<? extends SERVICE, CheckedRejectionExecutorService> executors,
+                    Duration remoteRequestTimeout,
+                    boolean cancelRemainingCalls) {
+        Preconditions.checkState(
+                executors.keySet().equals(new HashSet<>(remotes)), "Each remote should have an executor.");
+        return collectResponses(
+                remotes,
+                request,
+                remotes.size(), // wait until all responses have been received
+                remoteRequestTimeout,
+                _unused -> false, // never abort early
+                cancelRemainingCalls,
+                MultiplexingCompletionService.createFromCheckedExecutors(executors));
+    }
+
     /**
      * Collects a list of responses from a quorum of remote services.
      * This method short-circuits if a quorum can no longer be obtained (if too many servers have sent nacks), and

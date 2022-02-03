@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.management;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
@@ -49,6 +50,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public class AllNodesDisabledNamespacesUpdater {
     private static final SafeLogger log = SafeLoggerFactory.get(AllNodesDisabledNamespacesUpdater.class);
@@ -104,25 +106,32 @@ public class AllNodesDisabledNamespacesUpdater {
         }
 
         UUID lockId = lockIdSupplier.get();
-        List<SingleNodeUpdateResponse> responses = disableNamespacesOnAllNodes(namespaces, lockId);
-        if (updateWasSuccessfulOnAllNodes(responses)) {
+        AllNodesUpdateResponse responses = disableNamespacesOnAllNodes(namespaces, lockId);
+        if (updateWasSuccessfulOnAllNodes(responses.allResponses())) {
             return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
         }
 
-        Set<Namespace> consistentlyLockedNamespaces = getConsistentFailures(responses);
-        if (!consistentlyLockedNamespaces.isEmpty()) {
-            return DisableNamespaceResponses.unsuccessfulDueToConsistentlyLockedNamespaces(
-                    consistentlyLockedNamespaces);
+        Set<Namespace> consistentlyLockedNamespaces = getConsistentFailures(responses.allResponses());
+        Set<Namespace> partiallyLockedNamespaces = getPartialFailures(responses.allResponses());
+        boolean updateFailedOnAllNodes = responses.remoteResponses().size() == remoteUpdaters.size()
+                && responses.remoteResponses().values().stream().noneMatch(SingleNodeUpdateResponse::isSuccessful);
+        if (updateFailedOnAllNodes) {
+            return DisableNamespaceResponses.unsuccessfulDueToLockedNamespaces(
+                    consistentlyLockedNamespaces, partiallyLockedNamespaces);
         }
 
-        // If no namespaces were consistently disabled, we should roll back our request,
-        // to avoid leaving ourselves in an inconsistent state.
-        boolean rollbackSuccess = attemptReEnableOnAllNodes(namespaces, lockId, responses.size());
+        // If no namespaces were consistently disabled, we should roll back our request for those nodes where we
+        // successfully disabled
+        List<DisabledNamespacesUpdaterService> successfulNodes = KeyedStream.stream(responses.remoteResponses())
+                .filter(PaxosResponse::isSuccessful)
+                .keys()
+                .collect(Collectors.toList());
+        boolean rollbackSuccess = attemptReEnableOnNodes(namespaces, lockId, successfulNodes);
         if (rollbackSuccess) {
             return DisableNamespaceResponses.unsuccessfulButRolledBack(namespaces, lockId);
         }
 
-        return DisableNamespaceResponses.unsuccessfulAndRollBackFailed(namespaces, lockId);
+        return DisableNamespaceResponses.unsuccessfulAndRollBackFailed(partiallyLockedNamespaces, lockId);
     }
 
     /**
@@ -131,21 +140,20 @@ public class AllNodesDisabledNamespacesUpdater {
      * we will still re-enable those that were locked with the provided lock ID.
      */
     public ReenableNamespacesResponse reEnableOnAllNodes(ReenableNamespacesRequest request) {
-        Set<Namespace> namespaces = request.getNamespaces();
-
-        List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(request);
+        List<SingleNodeUpdateResponse> responses =
+                reEnableNamespacesOnAllNodes(request).allResponses();
         if (updateWasSuccessfulOnAllNodes(responses)) {
             return ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true));
         }
 
         Set<Namespace> consistentlyLockedNamespaces = getConsistentFailures(responses);
+        Set<Namespace> partialFailures = getPartialFailures(responses);
         if (!consistentlyLockedNamespaces.isEmpty()) {
             return ReEnableNamespaceResponses.unsuccessfulDueToConsistentlyLockedNamespaces(
-                    consistentlyLockedNamespaces);
+                    consistentlyLockedNamespaces, partialFailures);
         }
 
-        // TODO(gs): actually get partially locked namespaces here
-        return ReEnableNamespaceResponses.unsuccessfulWithPartiallyLockedNamespaces(namespaces);
+        return ReEnableNamespaceResponses.unsuccessfulWithPartiallyLockedNamespaces(partialFailures);
     }
 
     // Ping
@@ -161,7 +169,7 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     // Disable
-    private List<SingleNodeUpdateResponse> disableNamespacesOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
+    private AllNodesUpdateResponse disableNamespacesOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
         DisableNamespacesRequest request = DisableNamespacesRequest.of(namespaces, lockId);
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.disable(authHeader, request);
@@ -171,16 +179,17 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     // ReEnable
-    private boolean attemptReEnableOnAllNodes(Set<Namespace> namespaces, UUID lockId, int expectedResponseCount) {
+    private boolean attemptReEnableOnNodes(
+            Set<Namespace> namespaces, UUID lockId, List<DisabledNamespacesUpdaterService> successfulNodes) {
         ReenableNamespacesRequest request = ReenableNamespacesRequest.builder()
                 .namespaces(namespaces)
                 .lockId(lockId)
                 .build();
-        List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(request);
-        return updateWasSuccessfulOnAllNodes(responses, expectedResponseCount);
+        Collection<SingleNodeUpdateResponse> responses = reEnableNamespacesOnRemoteNodes(request, successfulNodes);
+        return responses.stream().filter(SingleNodeUpdateResponse::isSuccessful).count() == successfulNodes.size();
     }
 
-    private List<SingleNodeUpdateResponse> reEnableNamespacesOnAllNodes(ReenableNamespacesRequest request) {
+    private AllNodesUpdateResponse reEnableNamespacesOnAllNodes(ReenableNamespacesRequest request) {
         Set<Namespace> namespaces = request.getNamespaces();
         UUID lockId = request.getLockId();
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
@@ -190,22 +199,36 @@ public class AllNodesDisabledNamespacesUpdater {
         return attemptOnAllNodes(namespaces, lockId, update, localUpdate, true);
     }
 
+    private Collection<SingleNodeUpdateResponse> reEnableNamespacesOnRemoteNodes(
+            ReenableNamespacesRequest request, List<DisabledNamespacesUpdaterService> nodes) {
+        Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
+                node -> node.reenable(authHeader, request);
+
+        PaxosResponsesWithRemote<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> responses =
+                PaxosQuorumChecker.collectAllResponses(
+                        remoteUpdaters, update, remoteExecutors, Duration.ofSeconds(5L), false);
+        return responses.responses().values();
+    }
+
     // Update and analysis
-    private List<SingleNodeUpdateResponse> attemptOnAllNodes(
+    private AllNodesUpdateResponse attemptOnAllNodes(
             Set<Namespace> namespaces,
             UUID lockId,
             Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update,
             Supplier<SingleNodeUpdateResponse> localUpdate,
             boolean alwaysAttemptOnLocalNode) {
-        List<SingleNodeUpdateResponse> responses = attemptOnAllRemoteNodes(update);
-        SingleNodeUpdateResponse localResponse =
-                updateLocallyOrCheckState(responses, namespaces, lockId, localUpdate, alwaysAttemptOnLocalNode);
-        responses.add(localResponse);
-        return responses;
+        Map<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> remoteResponses =
+                attemptOnAllRemoteNodes(update);
+        SingleNodeUpdateResponse localResponse = updateLocallyOrCheckState(
+                remoteResponses.values(), namespaces, lockId, localUpdate, alwaysAttemptOnLocalNode);
+        return AllNodesUpdateResponse.builder()
+                .remoteResponses(remoteResponses)
+                .localResponse(localResponse)
+                .build();
     }
 
     private SingleNodeUpdateResponse updateLocallyOrCheckState(
-            List<SingleNodeUpdateResponse> responses,
+            Collection<SingleNodeUpdateResponse> responses,
             Set<Namespace> namespaces,
             UUID lockId,
             Supplier<SingleNodeUpdateResponse> localUpdate,
@@ -250,6 +273,12 @@ public class AllNodesDisabledNamespacesUpdater {
                 .collect(Collectors.toSet());
     }
 
+    private static Set<Namespace> getPartialFailures(List<SingleNodeUpdateResponse> responses) {
+        Map<Namespace, UpdateFailureRecord> namespacesByFailureCount = getNamespacesByFailureCount(responses);
+        Set<Namespace> consistentFailures = getConsistentFailures(namespacesByFailureCount, responses.size());
+        return Sets.difference(namespacesByFailureCount.keySet(), consistentFailures);
+    }
+
     private static Map<Namespace, UpdateFailureRecord> getNamespacesByFailureCount(
             List<SingleNodeUpdateResponse> responses) {
         Map<Namespace, UpdateFailureRecord> failuresByNamespace = new HashMap<>();
@@ -262,15 +291,36 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     // Execution
-    private List<SingleNodeUpdateResponse> attemptOnAllRemoteNodes(
+    private Map<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> attemptOnAllRemoteNodes(
             Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> request) {
-        return new ArrayList<>(executeOnAllRemoteNodes(request).responses().values());
+        return executeOnAllRemoteNodes(request).responses();
     }
 
     private <T extends PaxosResponse>
             PaxosResponsesWithRemote<DisabledNamespacesUpdaterService, T> executeOnAllRemoteNodes(
                     Function<DisabledNamespacesUpdaterService, T> request) {
-        return PaxosQuorumChecker.collectQuorumResponses(
-                remoteUpdaters, request, remoteUpdaters.size(), remoteExecutors, Duration.ofSeconds(5L), false);
+
+        return PaxosQuorumChecker.collectAllResponses(
+                remoteUpdaters, request, remoteExecutors, Duration.ofSeconds(5L), false);
+    }
+
+    @Value.Immutable
+    interface AllNodesUpdateResponse {
+        Map<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> remoteResponses();
+
+        SingleNodeUpdateResponse localResponse();
+
+        default List<SingleNodeUpdateResponse> allResponses() {
+            List<SingleNodeUpdateResponse> responses =
+                    new ArrayList<>(remoteResponses().values());
+            responses.add(localResponse());
+            return responses;
+        }
+
+        class Builder extends ImmutableAllNodesUpdateResponse.Builder {}
+
+        static Builder builder() {
+            return new Builder();
+        }
     }
 }

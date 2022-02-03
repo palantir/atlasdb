@@ -39,26 +39,29 @@ final class DisableNamespaceResponses {
                 UnsuccessfulDisableNamespacesResponse.builder().build());
     }
 
-    static DisableNamespacesResponse unsuccessfulDueToConsistentlyLockedNamespaces(
-            Set<Namespace> consistentlyDisabledNamespaces) {
+    static DisableNamespacesResponse unsuccessfulDueToLockedNamespaces(
+            Set<Namespace> consistentlyDisabledNamespaces, Set<Namespace> partiallyDisabledNamespaces) {
         log.error(
-                "Failed to disable all namespaces, because some namespace was consistently disabled. This implies"
+                "Failed to disable all namespaces, because some namespaces were disabled. This implies"
                         + " that this namespace is already being restored. If that is the case, please either wait for"
                         + " that restore to complete, or kick off a restore without that namespace",
-                SafeArg.of("disabledNamespaces", consistentlyDisabledNamespaces));
+                SafeArg.of("consistentlyDisabledNamespaces", consistentlyDisabledNamespaces),
+                SafeArg.of("partiallyDisabledNamespaces", partiallyDisabledNamespaces));
         return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
                 .consistentlyDisabledNamespaces(consistentlyDisabledNamespaces)
+                .partiallyDisabledNamespaces(partiallyDisabledNamespaces)
                 .build());
     }
 
-    static DisableNamespacesResponse unsuccessfulButRolledBack(Set<Namespace> namespaces, UUID lockId) {
+    static DisableNamespacesResponse unsuccessfulButRolledBack(
+            Set<Namespace> partiallyDisabledNamespaces, UUID lockId) {
         log.error(
-                "Failed to disable all namespaces. However, we successfully rolled back any partially disabled"
-                        + " namespaces.",
-                SafeArg.of("namespaces", namespaces),
+                "Failed to disable all namespaces. However, we successfully rolled back our changes.",
+                SafeArg.of("partiallyDisabledNamespaces", partiallyDisabledNamespaces),
                 SafeArg.of("lockId", lockId));
-        return DisableNamespacesResponse.unsuccessful(
-                UnsuccessfulDisableNamespacesResponse.builder().build());
+        return DisableNamespacesResponse.unsuccessful(UnsuccessfulDisableNamespacesResponse.builder()
+                .partiallyDisabledNamespaces(partiallyDisabledNamespaces)
+                .build());
     }
 
     static DisableNamespacesResponse unsuccessfulAndRollBackFailed(Set<Namespace> namespaces, UUID lockId) {
