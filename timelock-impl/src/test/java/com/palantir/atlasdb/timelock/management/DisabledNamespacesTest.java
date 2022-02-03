@@ -111,7 +111,7 @@ public class DisabledNamespacesTest {
         SingleNodeUpdateResponse response =
                 disabledNamespaces.reEnable(ReenableNamespacesRequest.of(ImmutableSet.of(FIRST, SECOND), LOCK_ID));
 
-        assertThat(response).isEqualTo(SingleNodeUpdateResponse.of(false, ImmutableMap.of(SECOND, OTHER_LOCK_ID)));
+        assertThat(response).isEqualTo(SingleNodeUpdateResponse.failed(ImmutableMap.of(SECOND, OTHER_LOCK_ID)));
 
         // non-conflicting namespaces should still be re-enabled
         assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
@@ -159,6 +159,6 @@ public class DisabledNamespacesTest {
     }
 
     private SingleNodeUpdateResponse unsuccessfulResponse() {
-        return SingleNodeUpdateResponse.of(false, ImmutableMap.of(FIRST, LOCK_ID));
+        return SingleNodeUpdateResponse.failed(ImmutableMap.of(FIRST, LOCK_ID));
     }
 }

@@ -351,7 +351,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     private static SingleNodeUpdateResponse singleNodeUpdateFailure(Set<Namespace> lockedNamespaces) {
         Map<Namespace, UUID> locked =
                 KeyedStream.of(lockedNamespaces).map(_unused -> LOCK_ID).collectToMap();
-        return SingleNodeUpdateResponse.of(false, locked);
+        return SingleNodeUpdateResponse.failed(locked);
     }
 
     private static DisableNamespacesResponse partiallyDisabled(Set<Namespace> partiallyDisabled) {

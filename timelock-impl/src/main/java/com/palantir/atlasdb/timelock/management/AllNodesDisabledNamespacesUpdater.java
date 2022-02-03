@@ -244,7 +244,7 @@ public class AllNodesDisabledNamespacesUpdater {
         } else {
             Map<Namespace, UUID> incorrectlyLockedNamespaces =
                     localUpdater.getNamespacesLockedWithDifferentLockId(namespaces, lockId);
-            return SingleNodeUpdateResponse.of(false, incorrectlyLockedNamespaces);
+            return SingleNodeUpdateResponse.failed(incorrectlyLockedNamespaces);
         }
     }
 
@@ -270,7 +270,7 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     private static Set<Namespace> getConsistentFailures(
-            Map<Namespace, UpdateFailureRecord> failedNamespaces, int responseCount) {
+            Map<Namespace, ModifiableUpdateFailureRecord> failedNamespaces, int responseCount) {
         return KeyedStream.stream(failedNamespaces)
                 .filter(val -> val.isConsistent(responseCount))
                 .keys()
@@ -278,14 +278,14 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     private static Set<Namespace> getPartialFailures(List<SingleNodeUpdateResponse> responses) {
-        Map<Namespace, UpdateFailureRecord> namespacesByFailureCount = getNamespacesByFailureCount(responses);
+        Map<Namespace, ModifiableUpdateFailureRecord> namespacesByFailureCount = getNamespacesByFailureCount(responses);
         Set<Namespace> consistentFailures = getConsistentFailures(namespacesByFailureCount, responses.size());
         return Sets.difference(namespacesByFailureCount.keySet(), consistentFailures);
     }
 
-    private static Map<Namespace, UpdateFailureRecord> getNamespacesByFailureCount(
+    private static Map<Namespace, ModifiableUpdateFailureRecord> getNamespacesByFailureCount(
             List<SingleNodeUpdateResponse> responses) {
-        Map<Namespace, UpdateFailureRecord> failuresByNamespace = new HashMap<>();
+        Map<Namespace, ModifiableUpdateFailureRecord> failuresByNamespace = new HashMap<>();
         for (SingleNodeUpdateResponse response : responses) {
             KeyedStream.stream(response.lockedNamespaces()).forEach((namespace, lockId) -> {
                 failuresByNamespace.merge(namespace, UpdateFailureRecord.of(lockId), UpdateFailureRecord::merge);

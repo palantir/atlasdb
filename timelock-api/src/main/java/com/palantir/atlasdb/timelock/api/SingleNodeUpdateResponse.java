@@ -36,12 +36,10 @@ public interface SingleNodeUpdateResponse extends PaxosResponse {
         return ImmutableSingleNodeUpdateResponse.builder().isSuccessful(true).build();
     }
 
-    static SingleNodeUpdateResponse of(boolean wasSuccessful, Map<Namespace, UUID> lockedNamespaces) {
+    static SingleNodeUpdateResponse failed(Map<Namespace, UUID> lockedNamespaces) {
         return ImmutableSingleNodeUpdateResponse.builder()
-                .isSuccessful(wasSuccessful)
+                .isSuccessful(false)
                 .lockedNamespaces(lockedNamespaces)
                 .build();
     }
-
-    // TODO(gs): check to validate success/locked state?
 }

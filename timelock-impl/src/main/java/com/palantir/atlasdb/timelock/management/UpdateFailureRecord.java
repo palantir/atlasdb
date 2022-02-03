@@ -20,26 +20,21 @@ import java.util.Set;
 import java.util.UUID;
 import org.immutables.value.Value;
 
-// TODO(gs): Value.Modifiable?
-@Value.Immutable
+@Value.Modifiable
 interface UpdateFailureRecord {
     int failureCount();
 
     Set<UUID> lockIds();
 
-    static UpdateFailureRecord of(UUID lockId) {
-        return ImmutableUpdateFailureRecord.builder()
-                .failureCount(1)
-                .addLockIds(lockId)
-                .build();
+    static ModifiableUpdateFailureRecord of(UUID lockId) {
+        return ModifiableUpdateFailureRecord.create().setFailureCount(1).addLockIds(lockId);
     }
 
-    static UpdateFailureRecord merge(UpdateFailureRecord existingRecord, UpdateFailureRecord newRecord) {
-        return ImmutableUpdateFailureRecord.builder()
-                .failureCount(existingRecord.failureCount() + newRecord.failureCount())
-                .addAllLockIds(existingRecord.lockIds())
-                .addAllLockIds(newRecord.lockIds())
-                .build();
+    static ModifiableUpdateFailureRecord merge(
+            ModifiableUpdateFailureRecord existingRecord, ModifiableUpdateFailureRecord newRecord) {
+        return existingRecord
+                .setFailureCount(existingRecord.failureCount() + newRecord.failureCount())
+                .addAllLockIds(newRecord.lockIds());
     }
 
     @Value.Derived

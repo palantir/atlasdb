@@ -110,7 +110,7 @@ public class DisabledNamespaces {
                         SafeArg.of("namespaces", namespaces),
                         SafeArg.of("lockId", lockId),
                         SafeArg.of("lockedNamespace", lockedNamespaces));
-                return SingleNodeUpdateResponse.of(false, lockedNamespaces);
+                return SingleNodeUpdateResponse.failed(lockedNamespaces);
             }
 
             Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
@@ -136,7 +136,7 @@ public class DisabledNamespaces {
                         SafeArg.of("reEnabledNamespaces", namespacesWithExpectedLock),
                         SafeArg.of("expectedLockId", lockId),
                         SafeArg.of("conflictingNamespaces", namespacesWithLockConflict));
-                return SingleNodeUpdateResponse.of(false, namespacesWithLockConflict);
+                return SingleNodeUpdateResponse.failed(namespacesWithLockConflict);
             }
 
             unlockNamespaces(namespaces);

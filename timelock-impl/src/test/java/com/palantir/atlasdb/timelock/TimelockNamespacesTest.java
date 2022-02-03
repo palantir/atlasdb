@@ -221,7 +221,7 @@ public class TimelockNamespacesTest {
         ImmutableSet<Namespace> namespacesToDisable = ImmutableSet.of(Namespace.of(client));
         UUID lockId = UUID.randomUUID();
         Map<Namespace, UUID> lockedNamespace = ImmutableMap.of(Namespace.of(client), lockId);
-        when(disabledNamespaces.disable(any())).thenReturn(SingleNodeUpdateResponse.of(false, lockedNamespace));
+        when(disabledNamespaces.disable(any())).thenReturn(SingleNodeUpdateResponse.failed(lockedNamespace));
 
         namespaces.disable(DisableNamespacesRequest.of(namespacesToDisable, lockId));
         verify(services, never()).close();
