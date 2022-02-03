@@ -28,7 +28,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface SingleNodeUpdateResponse extends PaxosResponse {
     /**
-     * other namespaces will not have been disabled/re-enabled (the transaction will not complete)
+     * other namespaces will not have been disabled/re-enabled (the transaction will not complete).
      */
     Map<Namespace, UUID> lockedNamespaces();
 

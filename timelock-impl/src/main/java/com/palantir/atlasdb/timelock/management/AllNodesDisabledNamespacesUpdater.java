@@ -191,7 +191,6 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     // Update and analysis
-
     private List<SingleNodeUpdateResponse> attemptOnAllNodes(
             Set<Namespace> namespaces,
             UUID lockId,
