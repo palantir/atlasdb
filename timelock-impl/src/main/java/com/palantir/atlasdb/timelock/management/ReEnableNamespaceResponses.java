@@ -23,34 +23,12 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
-import java.util.UUID;
 
 final class ReEnableNamespaceResponses {
     private static final SafeLogger log = SafeLoggerFactory.get(ReEnableNamespaceResponses.class);
 
     private ReEnableNamespaceResponses() {
         // utility class
-    }
-
-    static ReenableNamespacesResponse unsuccessfulAndRollBackFailed(Set<Namespace> namespaces, UUID lockId) {
-        log.error(
-                "Failed to re-enable all namespaces, and we failed to roll back some partially re-enabled namespaces."
-                        + " These will need to be force-re-enabled in order to return Timelock to a consistent state.",
-                SafeArg.of("namespaces", namespaces),
-                SafeArg.of("lockId", lockId));
-        return ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
-                .partiallyLockedNamespaces(namespaces)
-                .build());
-    }
-
-    static ReenableNamespacesResponse unsuccessfulButRolledBack(Set<Namespace> namespaces, UUID lockId) {
-        log.error(
-                "Failed to re-enable namespaces. However, we successfully rolled back any partially re-enabled"
-                        + " namespaces",
-                SafeArg.of("namespaces", namespaces),
-                SafeArg.of("lockId", lockId));
-        return ReenableNamespacesResponse.unsuccessful(
-                UnsuccessfulReenableNamespacesResponse.builder().build());
     }
 
     static ReenableNamespacesResponse unsuccessfulDueToConsistentlyLockedNamespaces(
@@ -66,11 +44,15 @@ final class ReEnableNamespaceResponses {
                 .build());
     }
 
-    static ReenableNamespacesResponse unsuccessfulDueToPingFailure(Set<Namespace> namespaces) {
+    static ReenableNamespacesResponse unsuccessfulWithPartiallyLockedNamespaces(
+            Set<Namespace> partiallyLockedNamespaces) {
         log.error(
-                "Failed to reach all remote nodes. Not re-enabling any namespaces",
-                SafeArg.of("namespaces", namespaces));
-        return ReenableNamespacesResponse.unsuccessful(
-                UnsuccessfulReenableNamespacesResponse.builder().build());
+                "Failed to re-enable all namespaces, because some namespace was disabled "
+                        + "with the wrong lock ID on some, but not all, nodes. "
+                        + "Manual action may be required to unblock these namespaces.",
+                SafeArg.of("lockedNamespaces", partiallyLockedNamespaces));
+        return ReenableNamespacesResponse.unsuccessful(UnsuccessfulReenableNamespacesResponse.builder()
+                .partiallyLockedNamespaces(partiallyLockedNamespaces)
+                .build());
     }
 }

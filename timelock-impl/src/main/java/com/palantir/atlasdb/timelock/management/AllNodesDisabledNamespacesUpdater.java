@@ -113,10 +113,6 @@ public class AllNodesDisabledNamespacesUpdater {
     public ReenableNamespacesResponse reEnableOnAllNodes(ReenableNamespacesRequest request) {
         Set<Namespace> namespaces = request.getNamespaces();
 
-        if (anyNodeIsUnreachable()) {
-            return ReEnableNamespaceResponses.unsuccessfulDueToPingFailure(namespaces);
-        }
-
         List<SingleNodeUpdateResponse> responses = reEnableNamespacesOnAllNodes(request);
         if (updateWasSuccessfulOnAllNodes(responses)) {
             return ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true));
@@ -128,14 +124,8 @@ public class AllNodesDisabledNamespacesUpdater {
                     consistentlyLockedNamespaces);
         }
 
-        // TODO(gs): should only attempt to roll back locally?
-        UUID lockId = request.getLockId();
-        boolean rollbackSuccess = attemptDisableOnAllNodes(namespaces, lockId, responses.size());
-        if (rollbackSuccess) {
-            return ReEnableNamespaceResponses.unsuccessfulButRolledBack(namespaces, lockId);
-        }
-
-        return ReEnableNamespaceResponses.unsuccessfulAndRollBackFailed(namespaces, lockId);
+        // TODO(gs): actually get partially locked namespaces here
+        return ReEnableNamespaceResponses.unsuccessfulWithPartiallyLockedNamespaces(namespaces);
     }
 
     // Ping
@@ -151,18 +141,13 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     // Disable
-    private boolean attemptDisableOnAllNodes(Set<Namespace> namespaces, UUID lockId, int expectedResponseCount) {
-        List<SingleNodeUpdateResponse> rollbackResponses = disableNamespacesOnAllNodes(namespaces, lockId);
-        return updateWasSuccessfulOnAllNodes(rollbackResponses, expectedResponseCount);
-    }
-
     private List<SingleNodeUpdateResponse> disableNamespacesOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
         DisableNamespacesRequest request = DisableNamespacesRequest.of(namespaces, lockId);
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.disable(authHeader, request);
         Supplier<SingleNodeUpdateResponse> localUpdate = () -> localUpdater.disable(request);
 
-        return attemptOnAllNodes(namespaces, lockId, update, localUpdate);
+        return attemptOnAllNodes(namespaces, lockId, update, localUpdate, false);
     }
 
     // ReEnable
@@ -182,17 +167,20 @@ public class AllNodesDisabledNamespacesUpdater {
                 service -> service.reenable(authHeader, request);
         Supplier<SingleNodeUpdateResponse> localUpdate = () -> localUpdater.reEnable(request);
 
-        return attemptOnAllNodes(namespaces, lockId, update, localUpdate);
+        return attemptOnAllNodes(namespaces, lockId, update, localUpdate, true);
     }
 
     // Update and analysis
+
     private List<SingleNodeUpdateResponse> attemptOnAllNodes(
             Set<Namespace> namespaces,
             UUID lockId,
             Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update,
-            Supplier<SingleNodeUpdateResponse> localUpdate) {
+            Supplier<SingleNodeUpdateResponse> localUpdate,
+            boolean alwaysAttemptOnLocalNode) {
         List<SingleNodeUpdateResponse> responses = attemptOnAllRemoteNodes(update);
-        SingleNodeUpdateResponse localResponse = updateLocallyOrCheckState(responses, namespaces, lockId, localUpdate);
+        SingleNodeUpdateResponse localResponse =
+                updateLocallyOrCheckState(responses, namespaces, lockId, localUpdate, alwaysAttemptOnLocalNode);
         responses.add(localResponse);
         return responses;
     }
@@ -201,9 +189,11 @@ public class AllNodesDisabledNamespacesUpdater {
             List<SingleNodeUpdateResponse> responses,
             Set<Namespace> namespaces,
             UUID lockId,
-            Supplier<SingleNodeUpdateResponse> localUpdate) {
-        if (responses.stream().allMatch(SingleNodeUpdateResponse::isSuccessful)
-                && responses.size() == remoteUpdaters.size()) {
+            Supplier<SingleNodeUpdateResponse> localUpdate,
+            boolean alwaysAttemptOnLocalNode) {
+        if (alwaysAttemptOnLocalNode
+                || (responses.stream().allMatch(SingleNodeUpdateResponse::isSuccessful)
+                        && responses.size() == remoteUpdaters.size())) {
             return localUpdate.get();
         } else {
             Map<Namespace, UUID> incorrectlyLockedNamespaces =
