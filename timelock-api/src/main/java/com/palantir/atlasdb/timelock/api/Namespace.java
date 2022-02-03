@@ -25,15 +25,19 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableNamespace.class)
 @Value.Immutable
 public interface Namespace {
-    // Weird naming for back-compatibility with conjure-generated Namespace
     @JsonValue
-    String get();
+    String value();
+
+    // For back-compatibility with conjure-generated Namespace
+    default String get() {
+        return value();
+    }
 
     static Namespace valueOf(String value) {
         return of(value);
     }
 
     static Namespace of(String value) {
-        return ImmutableNamespace.builder().get(value).build();
+        return ImmutableNamespace.builder().value(value).build();
     }
 }
