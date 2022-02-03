@@ -212,7 +212,7 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
     }
 
     @Test
-    public void doesNotReportConsistentStateWhenNamespacesAreLockedWithDifferentIds() {
+    public void disableDoesNotReportConsistentStateWhenNamespacesAreLockedWithDifferentIds() {
         Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE);
         UUID otherLockId = UUID.randomUUID();
         UUID yetAnotherLockId = UUID.randomUUID();
@@ -236,11 +236,32 @@ public final class AllNodesDisabledNamespacesUpdaterTest {
         verify(remote1, never()).reenable(any(), any());
         verify(remote2).reenable(any(), any());
         assertThat(response).isEqualTo(partiallyDisabled(namespaces));
+    }
 
-        // TODO(gs): split out to other test
-        //        ReenableNamespacesResponse reenableResponse =
-        //                updater.reEnableOnAllNodes(ReenableNamespacesRequest.of(namespaces, LOCK_ID));
-        //        assertThat(reenableResponse).isEqualTo(partiallyLocked(namespaces));
+    @Test
+    public void reEnableDoesNotReportConsistentStateWhenNamespacesAreLockedWithDifferentIds() {
+        Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE);
+        UUID otherLockId = UUID.randomUUID();
+        UUID yetAnotherLockId = UUID.randomUUID();
+
+        SingleNodeUpdateResponse lockedWithOtherLock = ImmutableSingleNodeUpdateResponse.builder()
+                .isSuccessful(false)
+                .putLockedNamespaces(NAMESPACE, otherLockId)
+                .build();
+        SingleNodeUpdateResponse lockedWithYetAnotherLock = ImmutableSingleNodeUpdateResponse.builder()
+                .isSuccessful(false)
+                .putLockedNamespaces(NAMESPACE, yetAnotherLockId)
+                .build();
+
+        when(remote1.reenable(any(), any())).thenReturn(lockedWithOtherLock);
+        when(remote2.reenable(any(), any())).thenReturn(SingleNodeUpdateResponse.successful());
+        when(localUpdater.reEnable(any())).thenReturn(lockedWithYetAnotherLock);
+
+        ReenableNamespacesResponse reenableResponse =
+                updater.reEnableOnAllNodes(ReenableNamespacesRequest.of(namespaces, LOCK_ID));
+        assertThat(reenableResponse).isEqualTo(partiallyLocked(namespaces));
+        verify(remote1, never()).disable(any(), any());
+        verify(remote2, never()).disable(any(), any());
     }
 
     @Test
