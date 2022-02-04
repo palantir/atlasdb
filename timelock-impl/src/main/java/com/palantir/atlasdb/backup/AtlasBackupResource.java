@@ -92,8 +92,8 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     private PrepareBackupResponse prepareBackupInternal(AuthHeader authHeader, PrepareBackupRequest request) {
-        if (!permittedBackupToken.get().equals(authHeader.getBearerToken())) {
-            log.error("Attempted to complete restore with an invalid auth header", SafeArg.of("request", request));
+        if (permittedBackupToken.get() != null && !permittedBackupToken.get().equals(authHeader.getBearerToken())) {
+            log.error("Attempted to prepare backup with an invalid auth header", SafeArg.of("request", request));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
 
@@ -124,8 +124,8 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     @SuppressWarnings("ConstantConditions")
     private ListenableFuture<CompleteBackupResponse> completeBackupInternal(
             AuthHeader authHeader, CompleteBackupRequest request) {
-        if (!permittedBackupToken.get().equals(authHeader.getBearerToken())) {
-            log.error("Attempted to complete restore with an invalid auth header", SafeArg.of("request", request));
+        if (permittedBackupToken.get() != null && !permittedBackupToken.get().equals(authHeader.getBearerToken())) {
+            log.error("Attempted to complete backup with an invalid auth header", SafeArg.of("request", request));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
 

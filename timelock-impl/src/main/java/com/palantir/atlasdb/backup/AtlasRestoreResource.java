@@ -87,7 +87,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private ListenableFuture<CompleteRestoreResponse> completeRestoreInternal(
             AuthHeader authHeader, CompleteRestoreRequest request) {
-        if (!permittedToken.get().equals(authHeader.getBearerToken())) {
+        if (permittedBackupToken.get() != null && !permittedToken.get().equals(authHeader.getBearerToken())) {
             log.error("Attempted to complete restore with an invalid auth header", SafeArg.of("request", request));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }

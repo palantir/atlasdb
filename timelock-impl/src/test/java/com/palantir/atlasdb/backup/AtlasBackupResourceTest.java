@@ -54,6 +54,7 @@ public class AtlasBackupResourceTest {
 
     private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("bear");
     private static final AuthHeader AUTH_HEADER = AuthHeader.of(BEARER_TOKEN);
+    private static final AuthHeader WRONG_AUTH_HEADER = AuthHeader.of(BearerToken.valueOf("imposter"));
     private static final Namespace NAMESPACE = Namespace.of("test");
     private static final Namespace OTHER_NAMESPACE = Namespace.of("other");
     private static final PrepareBackupRequest PREPARE_BACKUP_REQUEST =
@@ -72,17 +73,15 @@ public class AtlasBackupResourceTest {
 
     @Test
     public void prepareBackupThrowsIfAuthHeaderIsWrong() {
-        AuthHeader wrongHeader = AuthHeader.of(BearerToken.valueOf("imposter"));
         assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
-                        atlasBackupService.prepareBackup(wrongHeader, PREPARE_BACKUP_REQUEST)))
+                        atlasBackupService.prepareBackup(WRONG_AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
                 .hasType(ErrorType.PERMISSION_DENIED);
     }
 
     @Test
     public void completeBackupThrowsIfAuthHeaderIsWrong() {
-        AuthHeader wrongHeader = AuthHeader.of(BearerToken.valueOf("imposter"));
-        assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
-                        atlasBackupService.completeBackup(wrongHeader, completeBackupRequest(validBackupToken()))))
+        assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(atlasBackupService.completeBackup(
+                        WRONG_AUTH_HEADER, completeBackupRequest(validBackupToken()))))
                 .hasType(ErrorType.PERMISSION_DENIED);
     }
 
