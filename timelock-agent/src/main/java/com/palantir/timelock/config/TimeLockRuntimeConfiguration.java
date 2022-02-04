@@ -44,7 +44,7 @@ public abstract class TimeLockRuntimeConfiguration {
      *  The token required by other services to use backup and restore-related endpoints.
      */
     @JsonProperty("permitted-backup-token")
-    public abstract BearerToken permittedBackupToken();
+    public abstract Optional<BearerToken> permittedBackupToken();
 
     /**
      * As of now, TimeLock is not equipped to handle live-changes in the cluster configuration. For this reason,

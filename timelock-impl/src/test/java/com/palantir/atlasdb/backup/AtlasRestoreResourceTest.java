@@ -34,6 +34,7 @@ import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -58,7 +59,7 @@ public class AtlasRestoreResourceTest {
     private AsyncTimelockService otherTimelock;
 
     private final AtlasRestoreResource atlasRestoreResource = new AtlasRestoreResource(
-            () -> BEARER_TOKEN, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+            () -> Optional.of(BEARER_TOKEN), TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
 
     @Test
     public void throwsIfWrongAuthHeaderIsProvided() {

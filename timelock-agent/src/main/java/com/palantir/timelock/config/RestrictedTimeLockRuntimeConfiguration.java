@@ -32,7 +32,7 @@ public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfi
     }
 
     @Override
-    public BearerToken permittedBackupToken() {
+    public Optional<BearerToken> permittedBackupToken() {
         return runtime.permittedBackupToken();
     }
 

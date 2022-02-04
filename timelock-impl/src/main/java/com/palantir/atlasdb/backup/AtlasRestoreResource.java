@@ -51,11 +51,11 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private final Function<String, AsyncTimelockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final Supplier<BearerToken> permittedToken;
+    private final Supplier<Optional<BearerToken>> permittedToken;
 
     @VisibleForTesting
     AtlasRestoreResource(
-            Supplier<BearerToken> permittedToken,
+            Supplier<Optional<BearerToken>> permittedToken,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
         this.permittedToken = permittedToken;
@@ -64,7 +64,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     }
 
     public static UndertowService undertow(
-            Supplier<BearerToken> permittedToken,
+            Supplier<Optional<BearerToken>> permittedToken,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
         return AtlasRestoreClientEndpoints.of(
@@ -72,7 +72,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     }
 
     public static AtlasRestoreClient jersey(
-            Supplier<BearerToken> permittedToken,
+            Supplier<Optional<BearerToken>> permittedToken,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
         return new JerseyAtlasRestoreClientAdapter(
@@ -87,7 +87,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private ListenableFuture<CompleteRestoreResponse> completeRestoreInternal(
             AuthHeader authHeader, CompleteRestoreRequest request) {
-        if (permittedBackupToken.get() != null && !permittedToken.get().equals(authHeader.getBearerToken())) {
+        if (!suppliedTokenIsValid(authHeader)) {
             log.error("Attempted to complete restore with an invalid auth header", SafeArg.of("request", request));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
@@ -108,6 +108,13 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
         AsyncTimelockService timelock = timelock(namespace);
         timelock.fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
         return Futures.immediateFuture(Optional.of(namespace));
+    }
+
+    private Boolean suppliedTokenIsValid(AuthHeader suppliedAuthHeader) {
+        return permittedToken
+                .get()
+                .map(token -> token.equals(suppliedAuthHeader.getBearerToken()))
+                .orElse(false);
     }
 
     private AsyncTimelockService timelock(Namespace namespace) {

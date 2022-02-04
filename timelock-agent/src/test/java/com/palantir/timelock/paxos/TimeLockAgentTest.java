@@ -38,7 +38,6 @@ import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterRuntimeConfiguration;
-import com.palantir.tokens.auth.BearerToken;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -61,7 +60,6 @@ public class TimeLockAgentTest {
                     ImmutableList.of(SERVER_A, SERVER_B, "the-mane-event:3456"), Optional.empty()))
             .addKnownNewServers(SERVER_B)
             .build();
-    private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("neigh-friend-and-enter");
 
     private final PersistedSchemaVersion schemaVersion = mock(PersistedSchemaVersion.class);
 
@@ -106,7 +104,6 @@ public class TimeLockAgentTest {
     public void getKeyValueServiceRuntimeConfigThrowsIfConfiguredToNotUseDatabase() {
         assertThatThrownBy(() ->
                         TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
-                                .permittedBackupToken(BEARER_TOKEN)
                                 .timestampBoundPersistence(mock(TsBoundPersisterRuntimeConfiguration.class))
                                 .clusterSnapshot(CLUSTER_CONFIG)
                                 .build()))
@@ -117,7 +114,6 @@ public class TimeLockAgentTest {
     @Test
     public void getKeyValueServiceRuntimeConfigReturnsEmptyIfNotProvided() {
         assertThat(TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
-                        .permittedBackupToken(BEARER_TOKEN)
                         .clusterSnapshot(CLUSTER_CONFIG)
                         .build()))
                 .isEmpty();
@@ -130,7 +126,6 @@ public class TimeLockAgentTest {
         when(runtimeConfig.type()).thenReturn("relational");
 
         assertThat(TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
-                        .permittedBackupToken(BEARER_TOKEN)
                         .timestampBoundPersistence(ImmutableDatabaseTsBoundPersisterRuntimeConfiguration.builder()
                                 .keyValueServiceRuntimeConfig(runtimeConfig)
                                 .build())

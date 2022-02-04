@@ -338,7 +338,8 @@ public class TimeLockAgent {
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
-        Refreshable<BearerToken> permittedBackupToken = runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
+        Refreshable<Optional<BearerToken>> permittedBackupToken =
+                runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
         RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();

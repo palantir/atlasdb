@@ -56,13 +56,13 @@ import java.util.stream.Collectors;
 public class AtlasBackupResource implements UndertowAtlasBackupClient {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupResource.class);
 
-    private final Supplier<BearerToken> permittedBackupToken;
+    private final Supplier<Optional<BearerToken>> permittedBackupToken;
     private final Function<String, AsyncTimelockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
     @VisibleForTesting
     AtlasBackupResource(
-            Supplier<BearerToken> permittedBackupToken,
+            Supplier<Optional<BearerToken>> permittedBackupToken,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
         this.permittedBackupToken = permittedBackupToken;
@@ -71,7 +71,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     public static UndertowService undertow(
-            Supplier<BearerToken> permittedAuthHeader,
+            Supplier<Optional<BearerToken>> permittedAuthHeader,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
         return AtlasBackupClientEndpoints.of(
@@ -79,7 +79,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     public static AtlasBackupClient jersey(
-            Supplier<BearerToken> permittedAuthHeader,
+            Supplier<Optional<BearerToken>> permittedAuthHeader,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
         return new JerseyAtlasBackupClientAdapter(
@@ -92,7 +92,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     private PrepareBackupResponse prepareBackupInternal(AuthHeader authHeader, PrepareBackupRequest request) {
-        if (permittedBackupToken.get() != null && !permittedBackupToken.get().equals(authHeader.getBearerToken())) {
+        if (!suppliedTokenIsValid(authHeader)) {
             log.error("Attempted to prepare backup with an invalid auth header", SafeArg.of("request", request));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
@@ -124,7 +124,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     @SuppressWarnings("ConstantConditions")
     private ListenableFuture<CompleteBackupResponse> completeBackupInternal(
             AuthHeader authHeader, CompleteBackupRequest request) {
-        if (permittedBackupToken.get() != null && !permittedBackupToken.get().equals(authHeader.getBearerToken())) {
+        if (!suppliedTokenIsValid(authHeader)) {
             log.error("Attempted to complete backup with an invalid auth header", SafeArg.of("request", request));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
@@ -165,6 +165,13 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
                 .backupStartTimestamp(backupToken.getBackupStartTimestamp())
                 .backupEndTimestamp(fastForwardTimestamp)
                 .build();
+    }
+
+    private Boolean suppliedTokenIsValid(AuthHeader suppliedAuthHeader) {
+        return permittedBackupToken
+                .get()
+                .map(token -> token.equals(suppliedAuthHeader.getBearerToken()))
+                .orElse(false);
     }
 
     private AsyncTimelockService timelock(Namespace namespace) {

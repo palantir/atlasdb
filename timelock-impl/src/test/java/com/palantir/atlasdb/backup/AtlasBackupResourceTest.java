@@ -42,6 +42,7 @@ import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.Test;
@@ -69,7 +70,7 @@ public class AtlasBackupResourceTest {
     private final AsyncTimelockService otherTimelock = mock(AsyncTimelockService.class);
 
     private final AtlasBackupResource atlasBackupService = new AtlasBackupResource(
-            () -> BEARER_TOKEN, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+            () -> Optional.of(BEARER_TOKEN), TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
 
     @Test
     public void prepareBackupThrowsIfAuthHeaderIsWrong() {

@@ -47,7 +47,6 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void canSpecifyPositiveLockLoggerTimeout() {
         ImmutableTimeLockRuntimeConfiguration.builder()
-                .permittedBackupToken(BEARER_TOKEN)
                 .clusterSnapshot(CLUSTER_CONFIG)
                 .slowLockLogTriggerMillis(1L)
                 .build();
@@ -56,7 +55,6 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void throwOnNegativeLeaderPingResponseWait() {
         assertThatThrownBy(() -> ImmutableTimeLockRuntimeConfiguration.builder()
-                        .permittedBackupToken(BEARER_TOKEN)
                         .clusterSnapshot(CLUSTER_CONFIG)
                         .slowLockLogTriggerMillis(-1L)
                         .build())
@@ -66,7 +64,6 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void newNodeInExistingServiceRecognisedAsNew() {
         assertThat(ImmutableTimeLockRuntimeConfiguration.builder()
-                        .permittedBackupToken(BEARER_TOKEN)
                         .clusterSnapshot(ImmutableDefaultClusterConfiguration.builder()
                                 .localServer(SERVER_A)
                                 .cluster(PartialServiceConfiguration.of(
