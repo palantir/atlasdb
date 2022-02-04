@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Added AuthHeader validation to the backup and restore endpoints.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5890
