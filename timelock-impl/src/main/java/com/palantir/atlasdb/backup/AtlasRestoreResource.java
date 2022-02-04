@@ -32,10 +32,14 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.conjure.java.api.errors.ErrorType;
+import com.palantir.conjure.java.api.errors.ServiceException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
+import com.palantir.tokens.auth.BearerToken;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -47,31 +51,47 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private final Function<String, AsyncTimelockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
+    private final Supplier<BearerToken> permittedToken;
 
     @VisibleForTesting
     AtlasRestoreResource(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+            Supplier<BearerToken> permittedToken,
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices) {
+        this.permittedToken = permittedToken;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return AtlasRestoreClientEndpoints.of(new AtlasRestoreResource(redirectRetryTargeter, timelockServices));
+            Supplier<BearerToken> permittedToken,
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices) {
+        return AtlasRestoreClientEndpoints.of(
+                new AtlasRestoreResource(permittedToken, redirectRetryTargeter, timelockServices));
     }
 
     public static AtlasRestoreClient jersey(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return new JerseyAtlasRestoreClientAdapter(new AtlasRestoreResource(redirectRetryTargeter, timelockServices));
+            Supplier<BearerToken> permittedToken,
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices) {
+        return new JerseyAtlasRestoreClientAdapter(
+                new AtlasRestoreResource(permittedToken, redirectRetryTargeter, timelockServices));
     }
 
     @Override
     public ListenableFuture<CompleteRestoreResponse> completeRestore(
             AuthHeader authHeader, CompleteRestoreRequest request) {
-        return handleExceptions(() -> completeRestoreInternal(request));
+        return handleExceptions(() -> completeRestoreInternal(authHeader, request));
     }
 
-    private ListenableFuture<CompleteRestoreResponse> completeRestoreInternal(CompleteRestoreRequest request) {
+    private ListenableFuture<CompleteRestoreResponse> completeRestoreInternal(
+            AuthHeader authHeader, CompleteRestoreRequest request) {
+        if (!permittedToken.get().equals(authHeader.getBearerToken())) {
+            log.error("Attempted to complete restore with an invalid auth header", SafeArg.of("request", request));
+            throw new ServiceException(ErrorType.PERMISSION_DENIED);
+        }
+
         Map<CompletedBackup, ListenableFuture<Optional<Namespace>>> futureMap = request.getCompletedBackups().stream()
                 .collect(Collectors.toMap(backup -> backup, this::completeRestoreAsync));
         ListenableFuture<Map<CompletedBackup, Namespace>> singleFuture =
