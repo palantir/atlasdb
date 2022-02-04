@@ -358,7 +358,8 @@ public class TimeLockAgent {
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    AtlasBackupResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    AtlasBackupResource.undertow(
+                            permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasRestoreResource.undertow(
@@ -370,7 +371,8 @@ public class TimeLockAgent {
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(AtlasBackupResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(AtlasBackupResource.jersey(
+                    permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
                     permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
         }
