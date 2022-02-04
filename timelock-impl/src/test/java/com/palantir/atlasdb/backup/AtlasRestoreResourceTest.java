@@ -72,6 +72,18 @@ public class AtlasRestoreResourceTest {
     }
 
     @Test
+    public void emptyBearerTokenInConfigWillCauseBackupOperationsToFail() {
+        AtlasRestoreResource emptyTokenResource = new AtlasRestoreResource(
+                Optional::empty, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+
+        CompletedBackup completedBackup = completedBackup();
+        CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
+        assertThatServiceExceptionThrownBy(
+                        () -> AtlasFutures.getUnchecked(emptyTokenResource.completeRestore(AUTH_HEADER, request)))
+                .hasType(ErrorType.PERMISSION_DENIED);
+    }
+
+    @Test
     public void completesRestoreSuccessfully() {
         CompletedBackup completedBackup = completedBackup();
         CompleteRestoreResponse response = AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(

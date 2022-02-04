@@ -87,6 +87,19 @@ public class AtlasBackupResourceTest {
     }
 
     @Test
+    public void emptyBearerTokenInConfigWillCauseBackupOperationsToFail() {
+        AtlasBackupResource emptyTokenResource = new AtlasBackupResource(
+                Optional::empty, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+
+        assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
+                        emptyTokenResource.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
+                .hasType(ErrorType.PERMISSION_DENIED);
+        assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
+                        emptyTokenResource.completeBackup(AUTH_HEADER, completeBackupRequest(validBackupToken()))))
+                .hasType(ErrorType.PERMISSION_DENIED);
+    }
+
+    @Test
     public void preparesBackupSuccessfully() {
         LockToken lockToken = lockToken();
         when(mockTimelock.lockImmutableTimestamp(any()))
