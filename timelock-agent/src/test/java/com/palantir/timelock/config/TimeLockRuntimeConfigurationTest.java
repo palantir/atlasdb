@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+import com.palantir.tokens.auth.BearerToken;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -33,10 +34,12 @@ public class TimeLockRuntimeConfigurationTest {
                     ImmutableList.of(SERVER_A, SERVER_B, "the-mane-event:3456"), Optional.empty()))
             .addKnownNewServers(SERVER_B)
             .build();
+    private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("quit-horsing-around");
 
     @Test
     public void canCreateWithZeroClients() {
         ImmutableTimeLockRuntimeConfiguration.builder()
+                .permittedBackupToken(BEARER_TOKEN)
                 .clusterSnapshot(CLUSTER_CONFIG)
                 .build();
     }
@@ -44,6 +47,7 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void canSpecifyPositiveLockLoggerTimeout() {
         ImmutableTimeLockRuntimeConfiguration.builder()
+                .permittedBackupToken(BEARER_TOKEN)
                 .clusterSnapshot(CLUSTER_CONFIG)
                 .slowLockLogTriggerMillis(1L)
                 .build();
@@ -52,6 +56,7 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void throwOnNegativeLeaderPingResponseWait() {
         assertThatThrownBy(() -> ImmutableTimeLockRuntimeConfiguration.builder()
+                        .permittedBackupToken(BEARER_TOKEN)
                         .clusterSnapshot(CLUSTER_CONFIG)
                         .slowLockLogTriggerMillis(-1L)
                         .build())
@@ -61,6 +66,7 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void newNodeInExistingServiceRecognisedAsNew() {
         assertThat(ImmutableTimeLockRuntimeConfiguration.builder()
+                        .permittedBackupToken(BEARER_TOKEN)
                         .clusterSnapshot(ImmutableDefaultClusterConfiguration.builder()
                                 .localServer(SERVER_A)
                                 .cluster(PartialServiceConfiguration.of(
