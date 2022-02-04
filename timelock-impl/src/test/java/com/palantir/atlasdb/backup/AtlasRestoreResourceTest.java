@@ -72,7 +72,7 @@ public class AtlasRestoreResourceTest {
     }
 
     @Test
-    public void emptyBearerTokenInConfigWillCauseBackupOperationsToFail() {
+    public void emptyBearerTokenInConfigWillCauseRestoreOperationsToFail() {
         AtlasRestoreResource emptyTokenResource = new AtlasRestoreResource(
                 Optional::empty, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
 
