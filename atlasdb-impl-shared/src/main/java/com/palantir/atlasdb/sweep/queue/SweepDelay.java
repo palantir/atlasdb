@@ -16,12 +16,15 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.base.Suppliers;
 import com.google.common.math.DoubleMath;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntSupplier;
 import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 /**
  * This class calculates the delay for the next iteration of targeted sweep from the current delay and the outcome
@@ -48,42 +51,42 @@ class SweepDelay {
     static final double EXPONENTIAL_BACKOFF_MULTIPLIER =
             Math.exp(Math.log((double) MAX_BACKOFF / MIN_BACKOFF) / ITERATIONS_TO_REACH_MAX_BACKOFF);
 
-    private final long initialPause;
-    private final long maxPauseMillis;
+    private final LongSupplier initialPause;
+    private final LongSupplier maxPauseMillis;
     private final LongConsumer sweepDelayMetricsUpdater;
-    private final AtomicLong currentPause;
+    private final Supplier<AtomicLong> currentPause;
     private final AtomicLong insufficientConsistencyPause = new AtomicLong(MIN_BACKOFF);
     private final IntSupplier readBatchThreshold;
 
-    SweepDelay(long configPause, LongConsumer sweepDelayMetricsUpdater, IntSupplier readBatchThreshold) {
-        this.maxPauseMillis = Math.max(DEFAULT_MAX_PAUSE_MILLIS, configPause);
-        this.initialPause = Math.max(MIN_PAUSE_MILLIS, configPause);
+    SweepDelay(LongSupplier configPause, LongConsumer sweepDelayMetricsUpdater, IntSupplier readBatchThreshold) {
+        this.maxPauseMillis = () -> Math.max(DEFAULT_MAX_PAUSE_MILLIS, configPause.getAsLong());
+        this.initialPause = () -> Math.max(MIN_PAUSE_MILLIS, configPause.getAsLong());
         this.sweepDelayMetricsUpdater = sweepDelayMetricsUpdater;
         this.readBatchThreshold = readBatchThreshold;
-        this.currentPause = new AtomicLong(initialPause);
+        this.currentPause = Suppliers.memoize(() -> new AtomicLong(initialPause.getAsLong()));
     }
 
     long getInitialPause() {
-        return initialPause;
+        return initialPause.getAsLong();
     }
 
     long getMaxPause() {
-        return maxPauseMillis;
+        return maxPauseMillis.getAsLong();
     }
 
     long getNextPause(SweepIterationResult result) {
         return SweepIterationResults.caseOf(result)
                 .success(this::updateCurrentPauseAndGet)
-                .unableToAcquireShard_(maxPauseMillis)
+                .unableToAcquireShard_(maxPauseMillis.getAsLong())
                 .insufficientConsistency_(getInsufficientConsistencyPauseAndCalculateNext())
-                .otherError_(maxPauseMillis)
+                .otherError_(maxPauseMillis.getAsLong())
                 .disabled_(MIN_BACKOFF);
     }
 
     private long updateCurrentPauseAndGet(long numSwept) {
         resetInsufficientConsistencyBackoff();
         long target = pauseTarget(numSwept);
-        long newPause = currentPause.updateAndGet(oldPause -> (4 * oldPause + target) / 5);
+        long newPause = currentPause.get().updateAndGet(oldPause -> (4 * oldPause + target) / 5);
         sweepDelayMetricsUpdater.accept(newPause);
         return newPause;
     }
@@ -99,10 +102,10 @@ class SweepDelay {
 
     private long pauseTarget(long numSwept) {
         if (numSwept <= Math.min(BATCH_CELLS_LOW_THRESHOLD, readBatchThreshold.getAsInt() - 1)) {
-            return maxPauseMillis;
+            return maxPauseMillis.getAsLong();
         } else if (numSwept >= readBatchThreshold.getAsInt()) {
             return MIN_PAUSE_MILLIS;
         }
-        return initialPause;
+        return initialPause.getAsLong();
     }
 }

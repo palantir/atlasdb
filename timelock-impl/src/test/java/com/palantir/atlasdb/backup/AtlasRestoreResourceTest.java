@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.backup;
 
+import static com.palantir.conjure.java.api.testing.Assertions.assertThatServiceExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
@@ -28,9 +29,12 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.TimelockTestUtils;
+import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.tokens.auth.AuthHeader;
+import com.palantir.tokens.auth.BearerToken;
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -43,7 +47,8 @@ public class AtlasRestoreResourceTest {
     private static final URL REMOTE = TimelockTestUtils.url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER = RedirectRetryTargeter.create(LOCAL, List.of(LOCAL, REMOTE));
 
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("header");
+    private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("bear");
+    private static final AuthHeader AUTH_HEADER = AuthHeader.of(BEARER_TOKEN);
     private static final Namespace NAMESPACE = Namespace.of("test");
     private static final long FAST_FORWARD_TIMESTAMP = 9000L;
 
@@ -53,8 +58,30 @@ public class AtlasRestoreResourceTest {
     @Mock
     private AsyncTimelockService otherTimelock;
 
-    private final AtlasRestoreResource atlasRestoreResource =
-            new AtlasRestoreResource(TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+    private final AtlasRestoreResource atlasRestoreResource = new AtlasRestoreResource(
+            () -> Optional.of(BEARER_TOKEN), TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+
+    @Test
+    public void throwsIfWrongAuthHeaderIsProvided() {
+        CompletedBackup completedBackup = completedBackup();
+        AuthHeader wrongHeader = AuthHeader.of(BearerToken.valueOf("imposter"));
+        CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
+        assertThatServiceExceptionThrownBy(
+                        () -> AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(wrongHeader, request)))
+                .hasType(ErrorType.PERMISSION_DENIED);
+    }
+
+    @Test
+    public void emptyBearerTokenInConfigWillCauseRestoreOperationsToFail() {
+        AtlasRestoreResource emptyTokenResource = new AtlasRestoreResource(
+                Optional::empty, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+
+        CompletedBackup completedBackup = completedBackup();
+        CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
+        assertThatServiceExceptionThrownBy(
+                        () -> AtlasFutures.getUnchecked(emptyTokenResource.completeRestore(AUTH_HEADER, request)))
+                .hasType(ErrorType.PERMISSION_DENIED);
+    }
 
     @Test
     public void completesRestoreSuccessfully() {

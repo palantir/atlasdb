@@ -9,10 +9,21 @@ conjure {
     }
 }
 
+dependencies {
+    implementation project(':leader-election-api')
+
+    compileOnly 'com.fasterxml.jackson.core:jackson-databind'
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor group: 'org.immutables', name: 'value'
+}
+
 subprojects {
     apply from: "../../gradle/shared.gradle"
     dependencies {
         compile project(':lock-api-objects')
+        compile project(':timelock-api')
+        implementation project(':leader-election-api')
+
         compile 'com.palantir.conjure.java:conjure-lib'
 
         implementation 'com.fasterxml.jackson.core:jackson-annotations'

@@ -1,6 +1,10 @@
 types:
   conjure-imports:
     api: timelock-api.yml
+  imports:
+    SingleNodeUpdateResponse:
+      external:
+        java: com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
@@ -13,8 +17,14 @@ types:
           lockId: uuid
       UnsuccessfulDisableNamespacesResponse:
         fields:
-          # if this set is non-empty, action will be required
-          disabledNamespaces: set<api.Namespace>
+          consistentlyDisabledNamespaces:
+            type: set<api.Namespace>
+            docs: Namespaces where we can assume another restore is in progress
+          partiallyDisabledNamespaces:
+            type: set<api.Namespace>
+            docs: |
+              Either another restore is in progress for this namespace (and we've hit a race condition), or
+              the namespace is stuck and needs to be manually fixed.
       DisableNamespacesResponse:
         union:
           successful: SuccessfulDisableNamespacesResponse
@@ -23,10 +33,22 @@ types:
         fields:
           namespaces: set<api.Namespace>
           lockId: uuid
-      ReenableNamespacesResponse:
+      SuccessfulReenableNamespacesResponse:
+        alias: boolean
+      UnsuccessfulReenableNamespacesResponse:
         fields:
-          wasSuccessful: boolean
-          lockedNamespaces: set<api.Namespace>
+          consistentlyLockedNamespaces:
+            type: set<api.Namespace>
+            docs: We can assume another restore is in progress for this namespace (we lost our lock)
+          partiallyLockedNamespaces:
+            type: set<api.Namespace>
+            docs: |
+              Either another restore is in progress for this namespace (and we lost our lock), or
+              the namespace is stuck and needs to be manually fixed.
+      ReenableNamespacesResponse:
+        union:
+          successful: SuccessfulReenableNamespacesResponse
+          unsuccessful: UnsuccessfulReenableNamespacesResponse
 
 services:
   DisabledNamespacesUpdaterService:
@@ -42,12 +64,12 @@ services:
         http: POST /disable
         args:
           request: DisableNamespacesRequest
-        returns: DisableNamespacesResponse
+        returns: SingleNodeUpdateResponse
       reenable:
         http: POST /reenable
         args:
           request: ReenableNamespacesRequest
-        returns: ReenableNamespacesResponse
+        returns: SingleNodeUpdateResponse
   TimeLockManagementService:
     name: TimeLock Management Service
     default-auth: header

@@ -18,14 +18,12 @@ package com.palantir.atlasdb.timelock.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.paxos.SqliteConnections;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -81,37 +79,27 @@ public class DisabledNamespacesTest {
 
     @Test
     public void disableFailsIfAlreadyDisabled() {
-        DisableNamespacesResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
-        assertThat(firstResponse)
-                .isEqualTo(DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID)));
+        SingleNodeUpdateResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(firstResponse).isEqualTo(successfulResponse());
 
-        DisableNamespacesResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
-        assertThat(secondResponse)
-                .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
+        SingleNodeUpdateResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(secondResponse).isEqualTo(unsuccessfulResponse());
     }
 
     @Test
     public void disableFailsIfPartiallyDisabled() {
-        DisableNamespacesResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
-        assertThat(firstResponse)
-                .isEqualTo(DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID)));
+        SingleNodeUpdateResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(firstResponse).isEqualTo(successfulResponse());
 
-        DisableNamespacesResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(SECOND, FIRST));
-
-        assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
-
-        assertThat(secondResponse)
-                .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
-
-        DisableNamespacesResponse thirdResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST, SECOND));
+        SingleNodeUpdateResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(SECOND, FIRST));
 
         assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
+        assertThat(secondResponse).isEqualTo(unsuccessfulResponse());
 
-        assertThat(thirdResponse)
-                .isEqualTo(DisableNamespacesResponse.unsuccessful(
-                        UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(FIRST))));
+        SingleNodeUpdateResponse thirdResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST, SECOND));
+
+        assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
+        assertThat(thirdResponse).isEqualTo(unsuccessfulResponse());
     }
 
     @Test
@@ -120,10 +108,14 @@ public class DisabledNamespacesTest {
         DisableNamespacesRequest wrongLockId = DisableNamespacesRequest.of(ImmutableSet.of(SECOND), OTHER_LOCK_ID);
         disabledNamespaces.disable(wrongLockId);
 
-        ReenableNamespacesResponse response =
+        SingleNodeUpdateResponse response =
                 disabledNamespaces.reEnable(ReenableNamespacesRequest.of(ImmutableSet.of(FIRST, SECOND), LOCK_ID));
 
-        assertThat(response).isEqualTo(ReenableNamespacesResponse.of(false, ImmutableSet.of(SECOND)));
+        assertThat(response).isEqualTo(SingleNodeUpdateResponse.failed(ImmutableMap.of(SECOND, OTHER_LOCK_ID)));
+
+        // non-conflicting namespaces should still be re-enabled
+        assertThat(disabledNamespaces.isDisabled(FIRST)).isFalse();
+        assertThat(disabledNamespaces.isDisabled(SECOND)).isTrue();
     }
 
     @Test
@@ -160,5 +152,13 @@ public class DisabledNamespacesTest {
 
     private ReenableNamespacesRequest reEnableNamespacesRequest(Namespace... namespaces) {
         return ReenableNamespacesRequest.of(ImmutableSet.copyOf(namespaces), LOCK_ID);
+    }
+
+    private SingleNodeUpdateResponse successfulResponse() {
+        return SingleNodeUpdateResponse.successful();
+    }
+
+    private SingleNodeUpdateResponse unsuccessfulResponse() {
+        return SingleNodeUpdateResponse.failed(ImmutableMap.of(FIRST, LOCK_ID));
     }
 }

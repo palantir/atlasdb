@@ -95,6 +95,7 @@ import com.palantir.timelock.management.TimestampStorage;
 import com.palantir.timelock.store.PersistenceConfigStore;
 import com.palantir.timelock.store.SqliteBlobStore;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.tokens.auth.BearerToken;
 import com.zaxxer.hikari.HikariDataSource;
 import java.net.URL;
 import java.nio.file.Path;
@@ -337,6 +338,8 @@ public class TimeLockAgent {
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
+        Refreshable<Optional<BearerToken>> permittedBackupToken =
+                runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
         RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
@@ -356,10 +359,12 @@ public class TimeLockAgent {
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    AtlasBackupResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    AtlasBackupResource.undertow(
+                            permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    AtlasRestoreResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    AtlasRestoreResource.undertow(
+                            permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -367,8 +372,10 @@ public class TimeLockAgent {
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(AtlasBackupResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(AtlasRestoreResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(AtlasBackupResource.jersey(
+                    permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(AtlasRestoreResource.jersey(
+                    permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
         }
     }
 

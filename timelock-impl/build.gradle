@@ -8,6 +8,7 @@ dependencies {
     compile project(":lock-conjure-api:lock-conjure-api-undertow")
     compile project(":lock-conjure-api:lock-conjure-api-jersey")
     compile project(":lock-impl")
+    compile project(':timelock-api')
     compile project(':timelock-api:timelock-api-undertow')
     compile project(':timelock-api:timelock-api-jersey')
     compile project(":leader-election-impl")

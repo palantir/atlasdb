@@ -52,7 +52,7 @@ public class ScalingSweepTaskSchedulerTest {
     private final ScalingSweepTaskScheduler scheduler = createScheduler(delay);
     private final AtomicLong metrics = new AtomicLong();
     private final ScalingSweepTaskScheduler schedulerWithDelay =
-            createScheduler(new SweepDelay(DELAY, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE));
+            createScheduler(new SweepDelay(() -> DELAY, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE));
 
     private boolean firstIteration = true;
 
@@ -115,7 +115,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenVeryFewEntriesIncreasePause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
+        SweepDelay sweepDelay = new SweepDelay(() -> 100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(SUCCESS_TINY);
 
@@ -127,7 +127,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenVeryManyEntriesDecreasePause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
+        SweepDelay sweepDelay = new SweepDelay(() -> 100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(SUCCESS_HUGE);
 
@@ -139,7 +139,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void exceptionalIterationsDoNotAffectPause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
+        SweepDelay sweepDelay = new SweepDelay(() -> 100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call())
                 .thenReturn(
