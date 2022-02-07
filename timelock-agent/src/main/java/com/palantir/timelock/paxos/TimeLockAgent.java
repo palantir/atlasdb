@@ -350,9 +350,7 @@ public class TimeLockAgent {
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
-        Refreshable<Optional<BearerToken>> permittedBackupToken =
-                runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
-        AuthHeaderValidator authHeaderValidator = new AuthHeaderValidator(permittedBackupToken);
+        AuthHeaderValidator authHeaderValidator = getAuthHeaderValidator();
         RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
@@ -373,11 +371,11 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasBackupResource.undertow(
-                            permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+                            authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasRestoreResource.undertow(
-                            permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+                            authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     DisabledNamespacesUpdaterResource.undertow(authHeaderValidator, redirectRetryTargeter, namespaces));
@@ -388,10 +386,10 @@ public class TimeLockAgent {
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(AtlasBackupResource.jersey(
-                    permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(
+                    AtlasBackupResource.jersey(authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
-                    permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+                    authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(
                     DisabledNamespacesUpdaterResource.jersey(authHeaderValidator, redirectRetryTargeter, namespaces));
         }
@@ -431,9 +429,6 @@ public class TimeLockAgent {
         ServiceLifecycleController serviceLifecycleController =
                 new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor());
         AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater = updaterFactory.create(namespaces);
-        Refreshable<Optional<BearerToken>> permittedBackupToken =
-                runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
-        AuthHeaderValidator authHeaderValidator = new AuthHeaderValidator(permittedBackupToken);
 
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
@@ -442,7 +437,7 @@ public class TimeLockAgent {
                             timestampStorage.persistentNamespaceContext(),
                             namespaces,
                             allNodesDisabledNamespacesUpdater,
-                            authHeaderValidator,
+                            getAuthHeaderValidator(),
                             redirectRetryTargeter(),
                             serviceLifecycleController));
         } else {
@@ -450,10 +445,16 @@ public class TimeLockAgent {
                     timestampStorage.persistentNamespaceContext(),
                     namespaces,
                     allNodesDisabledNamespacesUpdater,
-                    authHeaderValidator,
+                    getAuthHeaderValidator(),
                     redirectRetryTargeter(),
                     serviceLifecycleController));
         }
+    }
+
+    private AuthHeaderValidator getAuthHeaderValidator() {
+        Refreshable<Optional<BearerToken>> permittedBackupToken =
+                runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
+        return new AuthHeaderValidator(permittedBackupToken);
     }
 
     private void registerTimeLockCorruptionJerseyFilter() {

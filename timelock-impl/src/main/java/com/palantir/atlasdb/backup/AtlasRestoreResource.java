@@ -39,7 +39,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
-import com.palantir.tokens.auth.BearerToken;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -55,28 +54,28 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     @VisibleForTesting
     AtlasRestoreResource(
-            Supplier<Optional<BearerToken>> permittedToken,
+            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
-        this.authHeaderValidator = new AuthHeaderValidator(permittedToken);
+        this.authHeaderValidator = authHeaderValidator;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
-            Supplier<Optional<BearerToken>> permittedToken,
+            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
         return AtlasRestoreClientEndpoints.of(
-                new AtlasRestoreResource(permittedToken, redirectRetryTargeter, timelockServices));
+                new AtlasRestoreResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
 
     public static AtlasRestoreClient jersey(
-            Supplier<Optional<BearerToken>> permittedToken,
+            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
         return new JerseyAtlasRestoreClientAdapter(
-                new AtlasRestoreResource(permittedToken, redirectRetryTargeter, timelockServices));
+                new AtlasRestoreResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
 
     @Override
