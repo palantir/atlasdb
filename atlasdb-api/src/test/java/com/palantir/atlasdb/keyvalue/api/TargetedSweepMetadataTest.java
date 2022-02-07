@@ -35,7 +35,7 @@ public class TargetedSweepMetadataTest {
     private static final TargetedSweepMetadata ALL_ONE_METADATA = ImmutableTargetedSweepMetadata.builder()
             .conservative(true)
             .dedicatedRow(true)
-            .shard(255)
+            .shard(1023)
             .dedicatedRowNumber(63)
             .build();
 
@@ -88,10 +88,22 @@ public class TargetedSweepMetadataTest {
     }
 
     @Test
+    public void persistAndHydrateWith512Shards() {
+        TargetedSweepMetadata metadata = ImmutableTargetedSweepMetadata.builder()
+                .conservative(true)
+                .dedicatedRow(true)
+                .shard(512)
+                .dedicatedRowNumber(1)
+                .build();
+        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
+                .isEqualTo(metadata);
+    }
+
+    @Test
     public void testIllegalShardSize() {
         ImmutableTargetedSweepMetadata.Builder builder =
                 ImmutableTargetedSweepMetadata.builder().from(ALL_ZERO_METADATA);
-        assertThatThrownBy(() -> builder.shard(300).build()).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> builder.shard(3000).build()).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

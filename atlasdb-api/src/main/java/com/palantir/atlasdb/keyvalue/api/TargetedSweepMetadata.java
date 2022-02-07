@@ -29,11 +29,12 @@ public abstract class TargetedSweepMetadata implements Persistable {
 
     public abstract long dedicatedRowNumber();
 
-    public static final int MAX_SHARDS = 256;
+    public static final int MAX_SHARDS = 1024;
     public static final int MAX_DEDICATED_ROWS = 64;
     private static final int SWEEP_STRATEGY_MASK = 0x80;
     private static final int USE_DEDICATED_ROWS_MASK = 0x40;
     private static final int DEDICATED_ROW_NUMBER_MASK = 0x3F;
+    private static final int EXTRA_SHARD_MASK = 0xC0;
     private static final int BYTE_MASK = 0xFF;
 
     @Value.Check
@@ -58,7 +59,9 @@ public abstract class TargetedSweepMetadata implements Persistable {
             input -> ImmutableTargetedSweepMetadata.builder()
                     .conservative((input[0] & SWEEP_STRATEGY_MASK) != 0)
                     .dedicatedRow((input[0] & USE_DEDICATED_ROWS_MASK) != 0)
-                    .shard((input[0] << 2 | (input[1] & BYTE_MASK) >> 6) & BYTE_MASK)
+                    .shard(((input[2] & EXTRA_SHARD_MASK) << 2)
+                            + ((input[0] << 2) & BYTE_MASK)
+                            + ((input[1] & BYTE_MASK) >> 6))
                     .dedicatedRowNumber(input[1] & DEDICATED_ROW_NUMBER_MASK)
                     .build();
 
@@ -74,6 +77,7 @@ public abstract class TargetedSweepMetadata implements Persistable {
         }
         result[1] |= dedicatedRowNumber() & DEDICATED_ROW_NUMBER_MASK;
         result[1] |= (shard() << 6) & BYTE_MASK;
+        result[2] |= (shard() >> 8 << 6) & BYTE_MASK;
         return result;
     }
 }
