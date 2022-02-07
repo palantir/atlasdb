@@ -79,10 +79,11 @@ public class AllNodesDisabledNamespacesUpdater {
 
     public static AllNodesDisabledNamespacesUpdater create(
             AuthHeader authHeader,
-            ImmutableList<DisabledNamespacesUpdaterService> updaters,
-            Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> executors,
+            ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters,
+            Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors,
             TimelockNamespaces localUpdater) {
-        return new AllNodesDisabledNamespacesUpdater(authHeader, updaters, executors, localUpdater, UUID::randomUUID);
+        return new AllNodesDisabledNamespacesUpdater(
+                authHeader, remoteUpdaters, remoteExecutors, localUpdater, UUID::randomUUID);
     }
 
     /**

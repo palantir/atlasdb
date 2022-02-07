@@ -59,7 +59,6 @@ public class AtlasRestoreServiceTest {
     private static final long BACKUP_START_TIMESTAMP = 2L;
     private static final UUID LOCK_ID = new UUID(12, 9);
 
-    // TODO(gs): auth header tests
     @Mock
     private AuthHeader authHeader;
 
@@ -95,7 +94,6 @@ public class AtlasRestoreServiceTest {
         backupPersister.storeCompletedBackup(completedBackup);
     }
 
-    // TODO(gs): should return namespaces too
     @Test
     public void prepareReturnsOnlyCompletedBackups() {
         DisableNamespacesResponse successfulDisable =
@@ -124,7 +122,9 @@ public class AtlasRestoreServiceTest {
     public void repairsOnlyWhenBackupPresentAndDisableSuccessful() {
         BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
 
-        atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+        Set<Namespace> repairedNamespaces =
+                atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+        assertThat(repairedNamespaces).containsExactly(WITH_BACKUP);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
         verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyList(), eq(doNothingConsumer));

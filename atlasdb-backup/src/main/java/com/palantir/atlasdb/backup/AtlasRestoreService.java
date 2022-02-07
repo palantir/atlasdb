@@ -53,7 +53,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-// TODO(gs): retry logic for disable/re-enable
 public class AtlasRestoreService {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasRestoreService.class);
 
@@ -160,11 +159,12 @@ public class AtlasRestoreService {
             return ImmutableSet.of();
         }
 
+        // Fast forward timestamps
         CompleteRestoreResponse response =
                 atlasRestoreClientBlocking.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
-
-        // TODO(gs): what to do about failed namespaces?
         Set<Namespace> successfulNamespaces = response.getSuccessfulNamespaces();
+
+        // Re-enable timelock
         timeLockManagementService.reenableTimelock(
                 authHeader, ReenableNamespacesRequest.of(successfulNamespaces, request.getLockId()));
 

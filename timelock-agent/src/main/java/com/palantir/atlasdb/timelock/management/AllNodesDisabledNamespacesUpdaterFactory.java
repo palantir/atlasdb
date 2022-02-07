@@ -49,8 +49,7 @@ public final class AllNodesDisabledNamespacesUpdaterFactory {
 
         List<WithDedicatedExecutor<DisabledNamespacesUpdaterService>> remoteUpdaters = remoteClients.updaters();
 
-        // TODO(gs): include local one here??
-        Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> executorMap =
+        Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors =
                 ImmutableMap.<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService>builder()
                         .putAll(KeyedStream.of(remoteUpdaters)
                                 .mapKeys(WithDedicatedExecutor::service)
@@ -58,9 +57,9 @@ public final class AllNodesDisabledNamespacesUpdaterFactory {
                                 .collectToMap())
                         .build();
 
-        ImmutableList<DisabledNamespacesUpdaterService> services = ImmutableList.copyOf(
+        ImmutableList<DisabledNamespacesUpdaterService> remoteServices = ImmutableList.copyOf(
                 remoteUpdaters.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()));
 
-        return AllNodesDisabledNamespacesUpdater.create(authHeader, services, executorMap, localNamespaces);
+        return AllNodesDisabledNamespacesUpdater.create(authHeader, remoteServices, remoteExecutors, localNamespaces);
     }
 }
