@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Targeted sweep now supports configuring up to 1024 shards
+  links:
+  - https://github.com/palantir/atlasdb/pull/5894
