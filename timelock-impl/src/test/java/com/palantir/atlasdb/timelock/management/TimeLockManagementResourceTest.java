@@ -19,6 +19,8 @@ package com.palantir.atlasdb.timelock.management;
 import static com.palantir.conjure.java.api.testing.Assertions.assertThatServiceExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -69,6 +71,9 @@ public class TimeLockManagementResourceTest {
     private AuthHeaderValidator authHeaderValidator;
 
     @Mock
+    private AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater;
+
+    @Mock
     private Function<String, TimeLockServices> serviceFactory;
 
     @Mock
@@ -101,7 +106,7 @@ public class TimeLockManagementResourceTest {
         timeLockManagementResource = TimeLockManagementResource.create(
                 persistentNamespaceContext,
                 namespaces,
-                mock(AllNodesDisabledNamespacesUpdater.class),
+                allNodesDisabledNamespacesUpdater,
                 authHeaderValidator,
                 redirectRetryTargeter,
                 new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor()));
@@ -115,8 +120,14 @@ public class TimeLockManagementResourceTest {
         assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
                         timeLockManagementResource.disableTimelock(WRONG_AUTH_HEADER, NAMESPACES)))
                 .hasType(ErrorType.PERMISSION_DENIED);
+        verifyNoInteractions(allNodesDisabledNamespacesUpdater);
     }
-    // TODO(gs): dis/reenable tests with valid auth header
+
+    @Test
+    public void disableTimeLockCallsUpdater() {
+        timeLockManagementResource.disableTimelock(AUTH_HEADER, NAMESPACES);
+        verify(allNodesDisabledNamespacesUpdater).disableOnAllNodes(NAMESPACES);
+    }
 
     @Test
     public void reEnableTimeLockThrowsIfAuthHeaderIsWrong() {
@@ -124,6 +135,14 @@ public class TimeLockManagementResourceTest {
         assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
                         timeLockManagementResource.reenableTimelock(WRONG_AUTH_HEADER, request)))
                 .hasType(ErrorType.PERMISSION_DENIED);
+        verifyNoInteractions(allNodesDisabledNamespacesUpdater);
+    }
+
+    @Test
+    public void reEnableTimeLockCallsUpdater() {
+        ReenableNamespacesRequest request = ReenableNamespacesRequest.of(NAMESPACES, UUID.randomUUID());
+        timeLockManagementResource.reenableTimelock(AUTH_HEADER, request);
+        verify(allNodesDisabledNamespacesUpdater).reEnableOnAllNodes(request);
     }
 
     @Test
