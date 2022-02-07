@@ -19,6 +19,7 @@ package com.palantir.atlasdb.backup;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
@@ -178,10 +179,22 @@ public class AtlasRestoreService {
         CompleteRestoreResponse response =
                 atlasRestoreClientBlocking.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
         Set<Namespace> successfulNamespaces = response.getSuccessfulNamespaces();
+        Set<Namespace> failedNamespaces = Sets.difference(request.getNamespaces(), successfulNamespaces);
+        if (!failedNamespaces.isEmpty()) {
+            log.error(
+                    "Failed to fast-forward timestamp for some namespaces. These will not be re-enabled.",
+                    SafeArg.of("failedNamespaces", failedNamespaces),
+                    SafeArg.of("fastForwardedNamespaces", successfulNamespaces));
+        }
 
         // Re-enable timelock
         timeLockManagementService.reenableTimelock(
                 authHeader, ReenableNamespacesRequest.of(successfulNamespaces, request.getLockId()));
+        if (successfulNamespaces.containsAll(request.getNamespaces())) {
+            log.info(
+                    "Successfully completed restore for all namespaces",
+                    SafeArg.of("namespaces", successfulNamespaces));
+        }
 
         return successfulNamespaces;
     }

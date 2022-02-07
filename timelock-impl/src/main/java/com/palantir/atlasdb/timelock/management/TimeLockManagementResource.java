@@ -158,11 +158,12 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
                     SafeArg.of("namespaces", namespaces));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
-        return handleExceptions(() -> disableInternal(namespaces));
+        return handleExceptions(() -> disableInternal(authHeader, namespaces));
     }
 
-    private ListenableFuture<DisableNamespacesResponse> disableInternal(Set<Namespace> namespaces) {
-        return Futures.immediateFuture(allNodesDisabledNamespacesUpdater.disableOnAllNodes(namespaces));
+    private ListenableFuture<DisableNamespacesResponse> disableInternal(
+            AuthHeader authHeader, Set<Namespace> namespaces) {
+        return Futures.immediateFuture(allNodesDisabledNamespacesUpdater.disableOnAllNodes(authHeader, namespaces));
     }
 
     @Override
@@ -175,11 +176,12 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
                     SafeArg.of("request", request));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
-        return handleExceptions(() -> reenableInternal(request));
+        return handleExceptions(() -> reenableInternal(authHeader, request));
     }
 
-    public ListenableFuture<ReenableNamespacesResponse> reenableInternal(ReenableNamespacesRequest request) {
-        return Futures.immediateFuture(allNodesDisabledNamespacesUpdater.reEnableOnAllNodes(request));
+    public ListenableFuture<ReenableNamespacesResponse> reenableInternal(
+            AuthHeader authHeader, ReenableNamespacesRequest request) {
+        return Futures.immediateFuture(allNodesDisabledNamespacesUpdater.reEnableOnAllNodes(authHeader, request));
     }
 
     @Override

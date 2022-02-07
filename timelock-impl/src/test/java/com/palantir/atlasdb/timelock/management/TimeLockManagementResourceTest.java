@@ -126,7 +126,7 @@ public class TimeLockManagementResourceTest {
     @Test
     public void disableTimeLockCallsUpdater() {
         timeLockManagementResource.disableTimelock(AUTH_HEADER, NAMESPACES);
-        verify(allNodesDisabledNamespacesUpdater).disableOnAllNodes(NAMESPACES);
+        verify(allNodesDisabledNamespacesUpdater).disableOnAllNodes(AUTH_HEADER, NAMESPACES);
     }
 
     @Test
@@ -142,7 +142,7 @@ public class TimeLockManagementResourceTest {
     public void reEnableTimeLockCallsUpdater() {
         ReenableNamespacesRequest request = ReenableNamespacesRequest.of(NAMESPACES, UUID.randomUUID());
         timeLockManagementResource.reenableTimelock(AUTH_HEADER, request);
-        verify(allNodesDisabledNamespacesUpdater).reEnableOnAllNodes(request);
+        verify(allNodesDisabledNamespacesUpdater).reEnableOnAllNodes(AUTH_HEADER, request);
     }
 
     @Test

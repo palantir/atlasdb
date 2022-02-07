@@ -27,19 +27,16 @@ import com.palantir.atlasdb.timelock.paxos.WithDedicatedExecutor;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public final class AllNodesDisabledNamespacesUpdaterFactory {
-    private final AuthHeader authHeader;
     private final TimelockPaxosInstallationContext install;
     private final MetricsManager metricsManager;
 
     public AllNodesDisabledNamespacesUpdaterFactory(
-            AuthHeader authHeader, TimelockPaxosInstallationContext install, MetricsManager metricsManager) {
-        this.authHeader = authHeader;
+            TimelockPaxosInstallationContext install, MetricsManager metricsManager) {
         this.install = install;
         this.metricsManager = metricsManager;
     }
@@ -60,6 +57,6 @@ public final class AllNodesDisabledNamespacesUpdaterFactory {
         ImmutableList<DisabledNamespacesUpdaterService> remoteServices = ImmutableList.copyOf(
                 remoteUpdaters.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()));
 
-        return AllNodesDisabledNamespacesUpdater.create(authHeader, remoteServices, remoteExecutors, localNamespaces);
+        return AllNodesDisabledNamespacesUpdater.create(remoteServices, remoteExecutors, localNamespaces);
     }
 }

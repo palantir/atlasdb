@@ -99,7 +99,6 @@ import com.palantir.timelock.management.TimestampStorage;
 import com.palantir.timelock.store.PersistenceConfigStore;
 import com.palantir.timelock.store.SqliteBlobStore;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
 import com.zaxxer.hikari.HikariDataSource;
 import java.net.URL;
@@ -183,8 +182,8 @@ public class TimeLockAgent {
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, restrictedRuntime::get));
 
-        AllNodesDisabledNamespacesUpdaterFactory updaterFactory = new AllNodesDisabledNamespacesUpdaterFactory(
-                AuthHeader.valueOf("WIRE_ME_UP_SCOTTY"), installationContext, metricsManager);
+        AllNodesDisabledNamespacesUpdaterFactory updaterFactory =
+                new AllNodesDisabledNamespacesUpdaterFactory(installationContext, metricsManager);
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
@@ -353,6 +352,7 @@ public class TimeLockAgent {
 
         Refreshable<Optional<BearerToken>> permittedBackupToken =
                 runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
+        AuthHeaderValidator authHeaderValidator = new AuthHeaderValidator(permittedBackupToken);
         RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
@@ -380,7 +380,7 @@ public class TimeLockAgent {
                             permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    DisabledNamespacesUpdaterResource.undertow(redirectRetryTargeter, namespaces));
+                    DisabledNamespacesUpdaterResource.undertow(authHeaderValidator, redirectRetryTargeter, namespaces));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -392,7 +392,8 @@ public class TimeLockAgent {
                     permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
                     permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(DisabledNamespacesUpdaterResource.jersey(redirectRetryTargeter, namespaces));
+            registrar.accept(
+                    DisabledNamespacesUpdaterResource.jersey(authHeaderValidator, redirectRetryTargeter, namespaces));
         }
     }
 
