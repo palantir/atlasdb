@@ -59,6 +59,7 @@ public class AtlasRestoreServiceTest {
     private static final long BACKUP_START_TIMESTAMP = 2L;
     private static final UUID LOCK_ID = new UUID(12, 9);
 
+    // TODO(gs): auth header tests
     @Mock
     private AuthHeader authHeader;
 
@@ -94,53 +95,41 @@ public class AtlasRestoreServiceTest {
         backupPersister.storeCompletedBackup(completedBackup);
     }
 
+    // TODO(gs): should return namespaces too
     @Test
-    public void repairsOnlyWhenBackupPresentAndDisableSuccessful() {
-        BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
+    public void prepareReturnsOnlyCompletedBackups() {
         DisableNamespacesResponse successfulDisable =
                 DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
         when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
                 .thenReturn(successfulDisable);
 
         DisableNamespacesResponse actualDisable =
-                atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
-
+                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP));
         assertThat(actualDisable).isEqualTo(successfulDisable);
-
-        verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
-        verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyList(), eq(doNothingConsumer));
-        verify(cassandraRepairHelper).cleanTransactionsTables(eq(WITH_BACKUP), eq(BACKUP_START_TIMESTAMP), anyList());
-        verifyNoMoreInteractions(cassandraRepairHelper);
     }
 
     @Test
-    public void disablesTimeLockBeforeRepairing() {
-        BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
-        DisableNamespacesResponse successfulDisable =
-                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
-        when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
-                .thenReturn(successfulDisable);
-
-        atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
-
-        InOrder inOrder = Mockito.inOrder(timeLockManagementService, cassandraRepairHelper);
-        inOrder.verify(timeLockManagementService).disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP));
-        inOrder.verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
-    }
-
-    @Test
-    public void doesNotRepairIfDisableFails() {
-        BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
+    public void prepareBackupFailsIfDisableFails() {
         DisableNamespacesResponse failedDisable = DisableNamespacesResponse.unsuccessful(
                 UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(WITH_BACKUP), ImmutableSet.of()));
         when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
                 .thenReturn(failedDisable);
 
         DisableNamespacesResponse actualDisable =
-                atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP));
         assertThat(actualDisable).isEqualTo(failedDisable);
+    }
 
-        verifyNoInteractions(cassandraRepairHelper);
+    @Test
+    public void repairsOnlyWhenBackupPresentAndDisableSuccessful() {
+        BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
+
+        atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+
+        verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
+        verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyList(), eq(doNothingConsumer));
+        verify(cassandraRepairHelper).cleanTransactionsTables(eq(WITH_BACKUP), eq(BACKUP_START_TIMESTAMP), anyList());
+        verifyNoMoreInteractions(cassandraRepairHelper);
     }
 
     @Test
