@@ -69,11 +69,10 @@ public final class PaxosQuorumChecker {
             PaxosResponsesWithRemote<SERVICE, RESPONSE> collectAllResponses(
                     ImmutableList<SERVICE> remotes,
                     Function<SERVICE, RESPONSE> request,
-                    Map<? extends SERVICE, CheckedRejectionExecutorService> executors,
+                    Map<SERVICE, CheckedRejectionExecutorService> executors,
                     Duration remoteRequestTimeout,
                     boolean cancelRemainingCalls) {
-        Preconditions.checkState(
-                executors.keySet().equals(new HashSet<>(remotes)), "Each remote should have an executor.");
+        Preconditions.checkState(executors.keySet().containsAll(remotes), "Each remote should have an executor.");
         return collectResponses(
                 remotes,
                 request,

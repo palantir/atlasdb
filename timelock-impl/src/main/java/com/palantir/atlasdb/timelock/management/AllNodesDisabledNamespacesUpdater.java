@@ -160,14 +160,13 @@ public class AllNodesDisabledNamespacesUpdater {
 
     // Ping
     private boolean anyNodeIsUnreachable() {
-        return !isSuccessfulOnAllNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
+        return !isSuccessfulOnAllRemoteNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
     }
 
-    private boolean isSuccessfulOnAllNodes(Function<DisabledNamespacesUpdaterService, PaxosResponse> request) {
+    private boolean isSuccessfulOnAllRemoteNodes(Function<DisabledNamespacesUpdaterService, PaxosResponse> request) {
         Collection<PaxosResponse> remoteResponses =
                 executeOnAllRemoteNodes(request).responses().values();
-        return remoteResponses.size() == remoteUpdaters.size()
-                && remoteResponses.stream().allMatch(PaxosResponse::isSuccessful);
+        return allRemoteNodesSucceeded(remoteResponses);
     }
 
     // Disable
@@ -237,15 +236,17 @@ public class AllNodesDisabledNamespacesUpdater {
             UUID lockId,
             Supplier<SingleNodeUpdateResponse> localUpdate,
             boolean alwaysAttemptOnLocalNode) {
-        if (alwaysAttemptOnLocalNode
-                || (responses.stream().allMatch(SingleNodeUpdateResponse::isSuccessful)
-                        && responses.size() == remoteUpdaters.size())) {
+        if (alwaysAttemptOnLocalNode || allRemoteNodesSucceeded(responses)) {
             return localUpdate.get();
         } else {
             Map<Namespace, UUID> incorrectlyLockedNamespaces =
                     localUpdater.getNamespacesLockedWithDifferentLockId(namespaces, lockId);
             return SingleNodeUpdateResponse.failed(incorrectlyLockedNamespaces);
         }
+    }
+
+    private boolean allRemoteNodesSucceeded(Collection<? extends PaxosResponse> responses) {
+        return responses.stream().allMatch(PaxosResponse::isSuccessful) && responses.size() == remoteUpdaters.size();
     }
 
     private boolean updateWasSuccessfulOnAllNodes(List<SingleNodeUpdateResponse> responses) {
