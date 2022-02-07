@@ -139,11 +139,12 @@ public class AtlasRestoreService {
      *
      * @return the set of namespaces for which we issued a repair command via the provided Consumer.
      */
-    // TODO(gs): response object?
-    public void repairInternalTables(Set<Namespace> namespaces, BiConsumer<String, RangesForRepair> repairTable) {
+    public Set<Namespace> repairInternalTables(
+            Set<Namespace> namespaces, BiConsumer<String, RangesForRepair> repairTable) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRepair = completedBackups.keySet();
         restoreTables(repairTable, completedBackups, namespacesToRepair);
+        return namespacesToRepair;
     }
 
     public Set<Namespace> completeRestore(ReenableNamespacesRequest request) {

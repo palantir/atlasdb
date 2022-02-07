@@ -60,7 +60,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TimeLockManagementResourceTest {
     private static final String NAMESPACE_1 = "namespace_1";
     private static final String NAMESPACE_2 = "namespace_2";
-    private static final Set<Namespace> NAMESPACES =
+    private static final ImmutableSet<Namespace> NAMESPACES =
             ImmutableSet.of(Namespace.of(NAMESPACE_1), Namespace.of(NAMESPACE_2));
     private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("bear");
     private static final BearerToken WRONG_BEARER_TOKEN = BearerToken.valueOf("tiger");
