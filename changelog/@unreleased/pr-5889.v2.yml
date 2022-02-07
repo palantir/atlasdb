@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Reads that go through the lock-watch backed cache are no longer in
+    a synchronised block.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5889
