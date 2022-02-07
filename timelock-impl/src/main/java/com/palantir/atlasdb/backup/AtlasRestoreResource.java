@@ -51,14 +51,14 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private final Function<String, AsyncTimelockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final Supplier<Optional<BearerToken>> permittedToken;
+    private final AuthHeaderValidator authHeaderValidator;
 
     @VisibleForTesting
     AtlasRestoreResource(
             Supplier<Optional<BearerToken>> permittedToken,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, AsyncTimelockService> timelockServices) {
-        this.permittedToken = permittedToken;
+        this.authHeaderValidator = new AuthHeaderValidator(permittedToken);
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
@@ -87,7 +87,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private ListenableFuture<CompleteRestoreResponse> completeRestoreInternal(
             AuthHeader authHeader, CompleteRestoreRequest request) {
-        if (!suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
             log.error(
                     "Attempted to complete restore with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",
@@ -111,13 +111,6 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
         AsyncTimelockService timelock = timelock(namespace);
         timelock.fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
         return Futures.immediateFuture(Optional.of(namespace));
-    }
-
-    private Boolean suppliedTokenIsValid(AuthHeader suppliedAuthHeader) {
-        return permittedToken
-                .get()
-                .map(token -> token.equals(suppliedAuthHeader.getBearerToken()))
-                .orElse(false);
     }
 
     private AsyncTimelockService timelock(Namespace namespace) {
