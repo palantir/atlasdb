@@ -82,7 +82,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     }
 
     @Override
-    public synchronized ListenableFuture<Map<Cell, byte[]>> getAsync(
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
