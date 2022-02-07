@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.backup.AtlasRestoreResource;
+import com.palantir.atlasdb.backup.AuthHeaderValidator;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -429,6 +430,9 @@ public class TimeLockAgent {
         ServiceLifecycleController serviceLifecycleController =
                 new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor());
         AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater = updaterFactory.create(namespaces);
+        Refreshable<Optional<BearerToken>> permittedBackupToken =
+                runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
+        AuthHeaderValidator authHeaderValidator = new AuthHeaderValidator(permittedBackupToken);
 
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
@@ -437,6 +441,7 @@ public class TimeLockAgent {
                             timestampStorage.persistentNamespaceContext(),
                             namespaces,
                             allNodesDisabledNamespacesUpdater,
+                            authHeaderValidator,
                             redirectRetryTargeter(),
                             serviceLifecycleController));
         } else {
@@ -444,6 +449,7 @@ public class TimeLockAgent {
                     timestampStorage.persistentNamespaceContext(),
                     namespaces,
                     allNodesDisabledNamespacesUpdater,
+                    authHeaderValidator,
                     redirectRetryTargeter(),
                     serviceLifecycleController));
         }
