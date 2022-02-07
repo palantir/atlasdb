@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: Added AtlasRestoreService methods `prepareRestore` and `completeRestore`,
+    which will respectively disable and re-enable TimeLock, and should be called during
+    the restore process.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5892
