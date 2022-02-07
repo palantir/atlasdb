@@ -21,12 +21,9 @@ import static java.util.stream.Collectors.toSet;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -36,7 +33,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -130,34 +129,24 @@ public final class TimelockNamespaces {
         }
     }
 
-    public DisableNamespacesResponse disable(DisableNamespacesRequest request) {
-        DisableNamespacesResponse response = disabledNamespaces.disable(request);
-        response.accept(new DisableNamespacesResponse.Visitor<Void>() {
-            @Override
-            public Void visitSuccessful(SuccessfulDisableNamespacesResponse _unused) {
-                request.getNamespaces().stream().map(Namespace::get).forEach(ns -> invalidateResourcesForClient(ns));
-                return null;
-            }
+    public Map<Namespace, UUID> getNamespacesLockedWithDifferentLockId(Set<Namespace> namespaces, UUID expectedLockId) {
+        return disabledNamespaces.getNamespacesLockedWithDifferentLockId(namespaces, expectedLockId);
+    }
 
-            @Override
-            public Void visitUnsuccessful(UnsuccessfulDisableNamespacesResponse response) {
-                log.info(
-                        "Not invalidating resources, as the request to disable namespaces was unsuccessful",
-                        SafeArg.of("response", response));
-                return null;
-            }
+    public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
+        SingleNodeUpdateResponse response = disabledNamespaces.disable(request);
+        if (response.isSuccessful()) {
+            request.getNamespaces().stream().map(Namespace::get).forEach(this::invalidateResourcesForClient);
+        } else {
+            log.info(
+                    "Not invalidating resources, as the request to disable namespaces was unsuccessful",
+                    SafeArg.of("response", response));
+        }
 
-            @Override
-            public Void visitUnknown(String unknownTypeThatShouldNeverHappen) {
-                throw new SafeIllegalStateException(
-                        "Unknown response when disabling namespaces",
-                        SafeArg.of("response", unknownTypeThatShouldNeverHappen));
-            }
-        });
         return response;
     }
 
-    public ReenableNamespacesResponse reEnable(ReenableNamespacesRequest request) {
+    public SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
         return disabledNamespaces.reEnable(request);
     }
 
