@@ -77,11 +77,35 @@ public class DisabledNamespaces {
     }
 
     public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
-        return execute(dao -> dao.disableAll(request.getNamespaces(), request.getLockId()));
+        Set<Namespace> namespaces = request.getNamespaces();
+        UUID lockId = request.getLockId();
+        SingleNodeUpdateResponse response = execute(dao -> dao.disableAll(namespaces, lockId));
+        if (response.isSuccessful()) {
+            log.info("Successfully disabled namespaces", SafeArg.of("namespaces", namespaces));
+        } else {
+            log.error(
+                    "Failed to disable namespaces, as some were already disabled",
+                    SafeArg.of("namespaces", namespaces),
+                    SafeArg.of("lockId", lockId),
+                    SafeArg.of("lockedNamespace", response.lockedNamespaces()));
+        }
+        return response;
     }
 
     public SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
-        return execute(dao -> dao.reEnableAll(request.getNamespaces(), request.getLockId()));
+        UUID lockId = request.getLockId();
+        SingleNodeUpdateResponse response = execute(dao -> dao.reEnableAll(request.getNamespaces(), lockId));
+        if (!response.isSuccessful()) {
+            Map<Namespace, UUID> conflictingNamespaces = response.lockedNamespaces();
+            Set<Namespace> namespacesWithExpectedLock =
+                    Sets.difference(request.getNamespaces(), conflictingNamespaces.keySet());
+            log.error(
+                    "Failed to re-enable all namespaces, as some were disabled with a different lock ID.",
+                    SafeArg.of("reEnabledNamespaces", namespacesWithExpectedLock),
+                    SafeArg.of("expectedLockId", lockId),
+                    SafeArg.of("conflictingNamespaces", conflictingNamespaces));
+        }
+        return response;
     }
 
     private <T> T execute(Function<Queries, T> call) {
@@ -105,17 +129,11 @@ public class DisabledNamespaces {
                     getLockedNamespaces(namespaces).collectToMap();
 
             if (!lockedNamespaces.isEmpty()) {
-                log.error(
-                        "Failed to disable namespaces, as some were already disabled",
-                        SafeArg.of("namespaces", namespaces),
-                        SafeArg.of("lockId", lockId),
-                        SafeArg.of("lockedNamespace", lockedNamespaces));
                 return SingleNodeUpdateResponse.failed(lockedNamespaces);
             }
 
             Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
             disable(namespaceNames, lockId);
-            log.info("Successfully disabled namespaces", SafeArg.of("namespaces", namespaces));
             return SingleNodeUpdateResponse.successful();
         }
 
@@ -131,11 +149,6 @@ public class DisabledNamespaces {
                         Sets.difference(namespaces, namespacesWithLockConflict.keySet());
                 unlockNamespaces(namespacesWithExpectedLock);
 
-                log.error(
-                        "Failed to re-enable all namespaces, as some were disabled with a different lock ID.",
-                        SafeArg.of("reEnabledNamespaces", namespacesWithExpectedLock),
-                        SafeArg.of("expectedLockId", lockId),
-                        SafeArg.of("conflictingNamespaces", namespacesWithLockConflict));
                 return SingleNodeUpdateResponse.failed(namespacesWithLockConflict);
             }
 
