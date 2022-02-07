@@ -99,6 +99,14 @@ public class AtlasRestoreService {
                 cassandraRepairHelper);
     }
 
+    /**
+     * Disables TimeLock on all nodes for the given namespaces.
+     * Should be called exactly once prior to a restore operation. Calling this on multiple nodes will cause conflicts.
+     *
+     * @param namespaces the namespaces to disable
+     *
+     * @return the result of the request, including a lock ID which must later be passed to completeRestore.
+     */
     public DisableNamespacesResponse prepareRestore(Set<Namespace> namespaces) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRepair = completedBackups.keySet();
@@ -146,6 +154,13 @@ public class AtlasRestoreService {
         return namespacesToRepair;
     }
 
+    /**
+     * Completes the restore process for the requested namespaces.
+     * This includes fast-forwarding the timestamp, and then re-enabling the TimeLock namespaces.
+     *
+     * @param request the request object, which must include the lock ID returned by {@link #prepareRestore(Set)}
+     * @return the set of namespaces that were successfully fast-forwarded and re-enabled.
+     */
     public Set<Namespace> completeRestore(ReenableNamespacesRequest request) {
         Set<CompletedBackup> completedBackups = request.getNamespaces().stream()
                 .map(backupPersister::getCompletedBackup)
