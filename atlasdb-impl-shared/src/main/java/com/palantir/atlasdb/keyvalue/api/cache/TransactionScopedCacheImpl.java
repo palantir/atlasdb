@@ -99,8 +99,8 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         } else {
             return Futures.transform(
                     valueLoader.apply(cacheLookup.missedCells()),
-                    remoteReadValues -> processRemoteRead(
-                            tableReference, cacheLookup.cacheHits(), cacheLookup.missedCells(), remoteReadValues),
+                    uncachedValues -> processUncachedCells(
+                            tableReference, cacheLookup.cacheHits(), cacheLookup.missedCells(), uncachedValues),
                     MoreExecutors.directExecutor());
         }
     }
@@ -138,14 +138,16 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         metrics.increaseGetRowsCellLookups(missedCells.size());
         metrics.increaseGetRowsRowLookups(completelyMissedRows.size());
 
-        Map<Cell, byte[]> remoteDirectRead = missedCells.isEmpty() ? ImmutableMap.of() : cellLoader.apply(missedCells);
-        Map<Cell, byte[]> cellLookups = processRemoteRead(tableRef, cached.cacheHits(), missedCells, remoteDirectRead);
+        Map<Cell, byte[]> uncachedCellsDirectRead =
+                missedCells.isEmpty() ? ImmutableMap.of() : cellLoader.apply(missedCells);
+        Map<Cell, byte[]> cellLookups =
+                processUncachedCells(tableRef, cached.cacheHits(), missedCells, uncachedCellsDirectRead);
 
-        NavigableMap<byte[], RowResult<byte[]>> remoteRowRead = completelyMissedRows.isEmpty()
+        NavigableMap<byte[], RowResult<byte[]>> uncachedRows = completelyMissedRows.isEmpty()
                 ? new TreeMap<>(UnsignedBytes.lexicographicalComparator())
                 : rowLoader.apply(completelyMissedRows);
         NavigableMap<byte[], RowResult<byte[]>> rowReads =
-                processRemoteReadRows(tableRef, completelyMissedRowsCells, remoteRowRead);
+                processUncachedRows(tableRef, completelyMissedRowsCells, uncachedRows);
 
         rowReads.putAll(RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(cellLookups)));
         return rowReads;
@@ -188,7 +190,16 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         }
     }
 
-    private synchronized Map<Cell, byte[]> processRemoteRead(
+    /**
+     * Processes values that were loaded from the value loader due to not being present in the cache at the time.
+     * Note that:
+     * - these may not necessarily be remote values: local writes may be read, but this is abstracted away from this
+     *   cache as these are read through a regular {@link com.palantir.atlasdb.transaction.impl.SnapshotTransaction}
+     *   read;
+     * - it is possible to read some values from the KVS that then become out of date due to local writes; these will
+     *   not end up in the cache due to the use of {@link Map#putIfAbsent(Object, Object)} inside the value store.
+     */
+    private synchronized Map<Cell, byte[]> processUncachedCells(
             TableReference tableReference,
             Map<Cell, CacheValue> cacheHits,
             Set<Cell> cacheMisses,
@@ -201,7 +212,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
                 .build();
     }
 
-    private synchronized NavigableMap<byte[], RowResult<byte[]>> processRemoteReadRows(
+    private synchronized NavigableMap<byte[], RowResult<byte[]>> processUncachedRows(
             TableReference tableReference, Set<Cell> cacheMisses, Map<byte[], RowResult<byte[]>> remoteReadValues) {
         Map<Cell, byte[]> rowsReadAsCells = remoteReadValues.values().stream()
                 .map(RowResult::getCells)
