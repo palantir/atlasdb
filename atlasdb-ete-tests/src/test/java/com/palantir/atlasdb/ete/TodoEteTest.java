@@ -17,12 +17,16 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
+import com.palantir.tokens.auth.AuthHeader;
 import java.net.SocketTimeoutException;
 import org.junit.After;
 import org.junit.Rule;
@@ -32,7 +36,7 @@ import org.junit.rules.TestRule;
 public class TodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
-    private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+    private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
@@ -46,6 +50,20 @@ public class TodoEteTest {
     public void shouldBeAbleToWriteAndListTodos() {
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList()).contains(TODO);
+    }
+
+    // TODO(gs): split into own test class
+    @Test
+    public void canPrepareBackup() {
+        todoClient.addTodo(TODO);
+        SimpleBackupAndRestoreResource backupResource =
+                EteSetup.createClientToSingleNode(SimpleBackupAndRestoreResource.class);
+        // TODO(gs): constants?
+        Namespace namespace = Namespace.of("atlasete");
+        backupResource.prepareBackup(AuthHeader.valueOf("test-auth"), ImmutableSet.of(namespace));
+
+        // verify we persisted the immutable timestamp to disk
+        assertThat(backupResource.getStoredImmutableTimestamp(namespace)).isNotEmpty();
     }
 
     @Test

@@ -13,6 +13,9 @@ dependencies {
     compile project(':atlasdb-ete-test-utils')
     compile project(':atlasdb-hikari')
 
+    implementation project(':atlasdb-backup')
+    implementation project(':timelock-agent')
+    implementation project(':timelock-impl')
     implementation group: 'org.awaitility', name: 'awaitility'
     implementation group: 'com.palantir.tritium', name: 'tritium-lib'
     implementation group: 'io.dropwizard', name: 'dropwizard-core'
@@ -25,9 +28,11 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.sls.versions:sls-versions'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'io.dropwizard:dropwizard-configuration'

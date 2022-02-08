@@ -21,11 +21,16 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.backup.AtlasBackupService;
+import com.palantir.atlasdb.backup.ExternalBackupPersister;
+import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -41,6 +46,7 @@ import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timestamp.SimpleEteTimestampResource;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
@@ -50,11 +56,15 @@ import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
@@ -63,8 +73,11 @@ import io.dropwizard.configuration.SubstitutingSourceProvider;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import javax.ws.rs.core.Response;
@@ -101,12 +114,40 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment
                 .jersey()
                 .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
+
+        AuthHeader authHeader = AuthHeader.valueOf("test-auth");
+        Optional<AtlasDbRuntimeConfig> maybeRuntimeConfig = config.getAtlasDbRuntimeConfig();
+        maybeRuntimeConfig.ifPresent(runtimeConfig -> {
+            Refreshable<ServicesConfigBlock> servicesConfigBlock = Refreshable.create(getServices(runtimeConfig));
+            //        Supplier<AsyncTimelockService> timelockSupplier =
+            //                Suppliers.memoize(() -> getAsyncTimelockService(config, txManager));
+            Function<Namespace, Path> backupFolderFactory = _unused -> Paths.get("var/data/backup");
+            Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
+            ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
+            AtlasBackupService atlasBackupService = AtlasBackupService.create(
+                    authHeader, servicesConfigBlock, "ete", backupFolderFactory, keyValueServiceFactory);
+            environment
+                    .jersey()
+                    .register(new SimpleBackupAndRestoreResource(atlasBackupService, externalBackupPersister));
+        });
         environment.jersey().register(SimpleCoordinationResource.create(txManager));
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
+    }
+
+    private ServicesConfigBlock getServices(AtlasDbRuntimeConfig config) {
+        PartialServiceConfiguration timelockConfig = PartialServiceConfiguration.builder()
+                .addAllUris(config.timelockRuntime()
+                        .map(TimeLockRuntimeConfig::serversList)
+                        .map(ServerListConfig::servers)
+                        .orElseGet(ImmutableSet::of))
+                .build();
+        return ServicesConfigBlock.builder()
+                .putServices("timelock", timelockConfig)
+                .build();
     }
 
     private void ensureTransactionSchemaVersionInstalled(
@@ -149,6 +190,30 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                     config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment, taggedMetricRegistry);
         }
     }
+
+    //    private AsyncTimelockService getAsyncTimelockService(
+    //            AtlasDbEteConfiguration config, TransactionManager transactionManager) {
+    //        TimeLockInstallConfiguration timelockInstallConfig =
+    //                config.getTimeLockInstallConfiguration().orElseThrow();
+    //        TimeLockRuntimeConfiguration timelockRuntimeConfig =
+    //                config.getTimeLockRuntimeConfiguration().orElseThrow();
+    //        TimeLockAgent timeLockAgent = TimeLockAgent.create(
+    //                MetricsManagers.createForTests(),
+    //                timelockInstallConfig,
+    //                Refreshable.only(timelockRuntimeConfig),
+    //                timelockRuntimeConfig.clusterSnapshot(),
+    //                UserAgent.of(UserAgent.Agent.of("user-agent", "2.718")),
+    //                128,
+    //                48000,
+    //                _unused -> {},
+    //                Optional.empty(),
+    //                OrderableSlsVersion.valueOf("0.0.0"),
+    //                ObjectMappers.newServerObjectMapper(),
+    //                () -> System.exit(0));
+    //        TimeLockServices timeLockServices = timeLockAgent.createInvalidatingTimeLockServices(
+    //                config.getAtlasDbConfig().namespace().orElseThrow());
+    //        return timeLockServices.getTimelockService();
+    //    }
 
     private SweepTaskRunner getSweepTaskRunner(TransactionManager transactionManager) {
         KeyValueService kvs = transactionManager.getKeyValueService();
