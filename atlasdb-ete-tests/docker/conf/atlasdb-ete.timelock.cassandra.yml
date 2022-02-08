@@ -44,3 +44,16 @@ atlasDbRuntime:
         keyStorePath: "var/security/keyStore.jks"
         keyStorePassword: "keystore"
         trustStorePath: "var/security/trustStore.jks"
+
+timeLockInstall:
+  paxos:
+    data-directory: "var/data/paxos"
+    is-new-service: false
+
+timeLockRuntime:
+  cluster-config-not-live-reloaded:
+    cluster:
+      uris:
+        - "timelock:8421"
+    local-server: "timelock:8421"
+    enableNonstandardAndPossiblyDangerousTopology: true
