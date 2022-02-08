@@ -55,7 +55,6 @@ import org.immutables.value.Value;
 public class AllNodesDisabledNamespacesUpdater {
     private static final SafeLogger log = SafeLoggerFactory.get(AllNodesDisabledNamespacesUpdater.class);
 
-    private final AuthHeader authHeader;
     private final ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters;
     private final Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors;
     private final TimelockNamespaces localUpdater;
@@ -64,12 +63,10 @@ public class AllNodesDisabledNamespacesUpdater {
 
     @VisibleForTesting
     AllNodesDisabledNamespacesUpdater(
-            AuthHeader authHeader,
             ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters,
             Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors,
             TimelockNamespaces localUpdater,
             Supplier<UUID> lockIdSupplier) {
-        this.authHeader = authHeader;
         this.remoteUpdaters = remoteUpdaters;
         this.remoteExecutors = remoteExecutors;
         this.localUpdater = localUpdater;
@@ -78,11 +75,10 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     public static AllNodesDisabledNamespacesUpdater create(
-            AuthHeader authHeader,
-            ImmutableList<DisabledNamespacesUpdaterService> updaters,
-            Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> executors,
+            ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters,
+            Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors,
             TimelockNamespaces localUpdater) {
-        return new AllNodesDisabledNamespacesUpdater(authHeader, updaters, executors, localUpdater, UUID::randomUUID);
+        return new AllNodesDisabledNamespacesUpdater(remoteUpdaters, remoteExecutors, localUpdater, UUID::randomUUID);
     }
 
     /**
@@ -100,13 +96,13 @@ public class AllNodesDisabledNamespacesUpdater {
      *  If we fail to roll back for some node (e.g. it becomes unreachable), then we're left in an inconsistent state
      *  which will need manual remediation.
      */
-    public DisableNamespacesResponse disableOnAllNodes(Set<Namespace> namespaces) {
-        if (anyNodeIsUnreachable()) {
+    public DisableNamespacesResponse disableOnAllNodes(AuthHeader authHeader, Set<Namespace> namespaces) {
+        if (anyNodeIsUnreachable(authHeader)) {
             return DisableNamespaceResponses.unsuccessfulDueToPingFailure(namespaces);
         }
 
         UUID lockId = lockIdSupplier.get();
-        AllNodesUpdateResponse responses = disableNamespacesOnAllNodes(namespaces, lockId);
+        AllNodesUpdateResponse responses = disableNamespacesOnAllNodes(authHeader, namespaces, lockId);
         if (updateWasSuccessfulOnAllNodes(responses.allResponses())) {
             return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
         }
@@ -128,7 +124,7 @@ public class AllNodesDisabledNamespacesUpdater {
                         || remoteResponses.get(node).isSuccessful())
                 .collect(Collectors.toList());
 
-        boolean rollbackSuccess = attemptReEnableOnNodes(namespaces, lockId, successfulOrUnreachableNodes);
+        boolean rollbackSuccess = attemptReEnableOnNodes(authHeader, namespaces, lockId, successfulOrUnreachableNodes);
         if (rollbackSuccess) {
             return DisableNamespaceResponses.unsuccessfulButRolledBack(namespaces, lockId);
         }
@@ -141,9 +137,9 @@ public class AllNodesDisabledNamespacesUpdater {
      * If some namespaces are locked with a different lock ID, then these namespaces will remain disabled, however
      * we will still re-enable those that were locked with the provided lock ID.
      */
-    public ReenableNamespacesResponse reEnableOnAllNodes(ReenableNamespacesRequest request) {
+    public ReenableNamespacesResponse reEnableOnAllNodes(AuthHeader authHeader, ReenableNamespacesRequest request) {
         List<SingleNodeUpdateResponse> responses =
-                reEnableNamespacesOnAllNodes(request).allResponses();
+                reEnableNamespacesOnAllNodes(authHeader, request).allResponses();
         if (updateWasSuccessfulOnAllNodes(responses)) {
             return ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true));
         }
@@ -159,7 +155,7 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     // Ping
-    private boolean anyNodeIsUnreachable() {
+    private boolean anyNodeIsUnreachable(AuthHeader authHeader) {
         return !isSuccessfulOnAllRemoteNodes(service -> new BooleanPaxosResponse(service.ping(authHeader)));
     }
 
@@ -170,7 +166,8 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     // Disable
-    private AllNodesUpdateResponse disableNamespacesOnAllNodes(Set<Namespace> namespaces, UUID lockId) {
+    private AllNodesUpdateResponse disableNamespacesOnAllNodes(
+            AuthHeader authHeader, Set<Namespace> namespaces, UUID lockId) {
         DisableNamespacesRequest request = DisableNamespacesRequest.of(namespaces, lockId);
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.disable(authHeader, request);
@@ -181,16 +178,21 @@ public class AllNodesDisabledNamespacesUpdater {
 
     // ReEnable
     private boolean attemptReEnableOnNodes(
-            Set<Namespace> namespaces, UUID lockId, List<DisabledNamespacesUpdaterService> successfulNodes) {
+            AuthHeader authHeader,
+            Set<Namespace> namespaces,
+            UUID lockId,
+            List<DisabledNamespacesUpdaterService> successfulNodes) {
         ReenableNamespacesRequest request = ReenableNamespacesRequest.builder()
                 .namespaces(namespaces)
                 .lockId(lockId)
                 .build();
-        Collection<SingleNodeUpdateResponse> responses = reEnableNamespacesOnRemoteNodes(request, successfulNodes);
+        Collection<SingleNodeUpdateResponse> responses =
+                reEnableNamespacesOnRemoteNodes(authHeader, request, successfulNodes);
         return responses.stream().filter(SingleNodeUpdateResponse::isSuccessful).count() == successfulNodes.size();
     }
 
-    private AllNodesUpdateResponse reEnableNamespacesOnAllNodes(ReenableNamespacesRequest request) {
+    private AllNodesUpdateResponse reEnableNamespacesOnAllNodes(
+            AuthHeader authHeader, ReenableNamespacesRequest request) {
         Set<Namespace> namespaces = request.getNamespaces();
         UUID lockId = request.getLockId();
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
@@ -201,7 +203,7 @@ public class AllNodesDisabledNamespacesUpdater {
     }
 
     private Collection<SingleNodeUpdateResponse> reEnableNamespacesOnRemoteNodes(
-            ReenableNamespacesRequest request, List<DisabledNamespacesUpdaterService> nodes) {
+            AuthHeader authHeader, ReenableNamespacesRequest request, List<DisabledNamespacesUpdaterService> nodes) {
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 node -> node.reenable(authHeader, request);
 

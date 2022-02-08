@@ -18,7 +18,10 @@ package com.palantir.atlasdb.backup;
 
 import static com.palantir.conjure.java.api.testing.Assertions.assertThatServiceExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.AdditionalMatchers.not;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
@@ -34,7 +37,7 @@ import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
 import java.net.URL;
 import java.util.List;
-import java.util.Optional;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -58,8 +61,19 @@ public class AtlasRestoreResourceTest {
     @Mock
     private AsyncTimelockService otherTimelock;
 
-    private final AtlasRestoreResource atlasRestoreResource = new AtlasRestoreResource(
-            () -> Optional.of(BEARER_TOKEN), TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+    @Mock
+    private AuthHeaderValidator authHeaderValidator;
+
+    private AtlasRestoreResource atlasRestoreResource;
+
+    @Before
+    public void setUp() {
+        when(authHeaderValidator.suppliedTokenIsValid(AUTH_HEADER)).thenReturn(true);
+        when(authHeaderValidator.suppliedTokenIsValid(not(eq(AUTH_HEADER)))).thenReturn(false);
+
+        atlasRestoreResource = new AtlasRestoreResource(
+                authHeaderValidator, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+    }
 
     @Test
     public void throwsIfWrongAuthHeaderIsProvided() {
@@ -68,18 +82,6 @@ public class AtlasRestoreResourceTest {
         CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
         assertThatServiceExceptionThrownBy(
                         () -> AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(wrongHeader, request)))
-                .hasType(ErrorType.PERMISSION_DENIED);
-    }
-
-    @Test
-    public void emptyBearerTokenInConfigWillCauseRestoreOperationsToFail() {
-        AtlasRestoreResource emptyTokenResource = new AtlasRestoreResource(
-                Optional::empty, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
-
-        CompletedBackup completedBackup = completedBackup();
-        CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
-        assertThatServiceExceptionThrownBy(
-                        () -> AtlasFutures.getUnchecked(emptyTokenResource.completeRestore(AUTH_HEADER, request)))
                 .hasType(ErrorType.PERMISSION_DENIED);
     }
 
