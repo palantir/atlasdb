@@ -36,6 +36,7 @@ import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
+import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.dialogue.clients.DialogueClients;
@@ -108,11 +109,12 @@ public class AtlasRestoreService {
      *
      * @return the result of the request, including a lock ID which must later be passed to completeRestore.
      */
+    @NonIdempotent
     public DisableNamespacesResponse prepareRestore(Set<Namespace> namespaces) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
-        Set<Namespace> namespacesToRepair = completedBackups.keySet();
+        Set<Namespace> namespacesToRestore = completedBackups.keySet();
 
-        DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, namespacesToRepair);
+        DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, namespacesToRestore);
         return response.accept(new DisableNamespacesResponse.Visitor<>() {
             @Override
             public DisableNamespacesResponse visitSuccessful(SuccessfulDisableNamespacesResponse value) {
@@ -151,7 +153,7 @@ public class AtlasRestoreService {
             Set<Namespace> namespaces, BiConsumer<String, RangesForRepair> repairTable) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRepair = completedBackups.keySet();
-        restoreTables(repairTable, completedBackups, namespacesToRepair);
+        repairTables(repairTable, completedBackups, namespacesToRepair);
         return namespacesToRepair;
     }
 
@@ -162,6 +164,7 @@ public class AtlasRestoreService {
      * @param request the request object, which must include the lock ID returned by {@link #prepareRestore(Set)}
      * @return the set of namespaces that were successfully fast-forwarded and re-enabled.
      */
+    @NonIdempotent
     public Set<Namespace> completeRestore(ReenableNamespacesRequest request) {
         Set<CompletedBackup> completedBackups = request.getNamespaces().stream()
                 .map(backupPersister::getCompletedBackup)
@@ -199,7 +202,7 @@ public class AtlasRestoreService {
         return successfulNamespaces;
     }
 
-    private void restoreTables(
+    private void repairTables(
             BiConsumer<String, RangesForRepair> repairTable,
             Map<Namespace, CompletedBackup> completedBackups,
             Set<Namespace> namespacesToRepair) {
@@ -209,10 +212,10 @@ public class AtlasRestoreService {
         // RepairTransactionsTablesTask
         KeyedStream.stream(completedBackups)
                 .forEach((namespace, completedBackup) ->
-                        restoreTransactionsTables(namespace, completedBackup, repairTable));
+                        repairTransactionsTables(namespace, completedBackup, repairTable));
     }
 
-    private void restoreTransactionsTables(
+    private void repairTransactionsTables(
             Namespace namespace, CompletedBackup completedBackup, BiConsumer<String, RangesForRepair> repairTable) {
         Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(namespace, completedBackup);
         List<TransactionsTableInteraction> transactionsTableInteractions =
