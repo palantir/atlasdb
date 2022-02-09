@@ -31,6 +31,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 
 public class ExternalBackupPersister implements BackupPersister {
@@ -41,6 +42,7 @@ public class ExternalBackupPersister implements BackupPersister {
     private static final String BACKUP_TIMESTAMP_FILE_NAME = "backup.timestamp";
     private static final String IMMUTABLE_TIMESTAMP_FILE_NAME = "immutable.timestamp";
     private static final String FAST_FORWARD_TIMESTAMP_FILE_NAME = "fast-forward.timestamp";
+    private static final String RESTORE_LOCK_ID_FILE_NAME = "restore.lock";
 
     private final Function<Namespace, Path> pathFactory;
 
@@ -94,6 +96,16 @@ public class ExternalBackupPersister implements BackupPersister {
         return loadFromFile(namespace, getImmutableTimestampFile(namespace), Long.class);
     }
 
+    @Override
+    public void storeRestoreLockId(Namespace namespace, UUID lockId) {
+        writeToFile(namespace, getRestoreLockIdFile(namespace), lockId);
+    }
+
+    @Override
+    public Optional<UUID> getRestoreLockId(Namespace namespace) {
+        return loadFromFile(namespace, getRestoreLockIdFile(namespace), UUID.class);
+    }
+
     private File getSchemaMetadataFile(Namespace namespace) {
         return getFile(namespace, SCHEMA_METADATA_FILE_NAME);
     }
@@ -108,6 +120,10 @@ public class ExternalBackupPersister implements BackupPersister {
 
     private File getFastForwardTimestampFile(Namespace namespace) {
         return getFile(namespace, FAST_FORWARD_TIMESTAMP_FILE_NAME);
+    }
+
+    private File getRestoreLockIdFile(Namespace namespace) {
+        return getFile(namespace, RESTORE_LOCK_ID_FILE_NAME);
     }
 
     private File getFile(Namespace namespace, String fileName) {

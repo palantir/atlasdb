@@ -19,6 +19,7 @@ package com.palantir.atlasdb.backup;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
@@ -33,13 +34,17 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -47,10 +52,12 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -118,6 +125,8 @@ public class AtlasRestoreService {
         return response.accept(new DisableNamespacesResponse.Visitor<>() {
             @Override
             public DisableNamespacesResponse visitSuccessful(SuccessfulDisableNamespacesResponse value) {
+                UUID lockId = value.getLockId();
+                namespacesToRestore.forEach(ns -> backupPersister.storeRestoreLockId(ns, lockId));
                 return response;
             }
 
@@ -191,15 +200,53 @@ public class AtlasRestoreService {
         }
 
         // Re-enable timelock
-        timeLockManagementService.reenableTimelock(
-                authHeader, ReenableNamespacesRequest.of(successfulNamespaces, request.getLockId()));
-        if (successfulNamespaces.containsAll(request.getNamespaces())) {
-            log.info(
-                    "Successfully completed restore for all namespaces",
-                    SafeArg.of("namespaces", successfulNamespaces));
-        }
+        Map<Namespace, UUID> namespaceToLockId = KeyedStream.of(successfulNamespaces)
+                .map(backupPersister::getRestoreLockId)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collectToMap();
 
-        return successfulNamespaces;
+        // Simplifying precondition - in practice we expect one namespace at a time to be restored
+        Collection<UUID> lockIds = namespaceToLockId.values();
+        Preconditions.checkState(
+                lockIds.size() == 1 && namespaceToLockId.size() == successfulNamespaces.size(),
+                "Expected all namespaces to have been locked with the same ID, but found multiple (or none)",
+                SafeArg.of("namespaces", successfulNamespaces),
+                SafeArg.of("lockIds", lockIds),
+                SafeArg.of("namespaceToLockId", namespaceToLockId));
+
+        UUID lockId = Iterables.getOnlyElement(lockIds);
+        ReenableNamespacesRequest actualRequest = ReenableNamespacesRequest.of(successfulNamespaces, lockId);
+        ReenableNamespacesResponse responseForLockId =
+                timeLockManagementService.reenableTimelock(authHeader, actualRequest);
+        return responseForLockId.accept(new ReenableNamespacesResponse.Visitor<>() {
+            @Override
+            public Set<Namespace> visitSuccessful(SuccessfulReenableNamespacesResponse value) {
+                if (actualRequest.getNamespaces().containsAll(request.getNamespaces())) {
+                    log.info(
+                            "Successfully completed restore for all namespaces",
+                            SafeArg.of("namespaces", successfulNamespaces));
+                }
+
+                return successfulNamespaces;
+            }
+
+            @Override
+            public Set<Namespace> visitUnsuccessful(UnsuccessfulReenableNamespacesResponse value) {
+                log.error(
+                        "Failed to re-enable namespaces",
+                        SafeArg.of("namespaces", actualRequest.getNamespaces()),
+                        SafeArg.of("lockId", actualRequest.getLockId()),
+                        SafeArg.of("response", value));
+                return ImmutableSet.of();
+            }
+
+            @Override
+            public Set<Namespace> visitUnknown(String unknownType) {
+                throw new SafeIllegalStateException(
+                        "Unknown re-enable namespaces response", SafeArg.of("type", unknownType));
+            }
+        });
     }
 
     private void repairTables(

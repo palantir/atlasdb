@@ -34,7 +34,9 @@ import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.tokens.auth.AuthHeader;
@@ -95,7 +97,7 @@ public class AtlasRestoreServiceTest {
     }
 
     @Test
-    public void prepareReturnsOnlyCompletedBackups() {
+    public void prepareRestoreReturnsOnlyCompletedBackups() {
         DisableNamespacesResponse successfulDisable =
                 DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
         when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
@@ -107,7 +109,25 @@ public class AtlasRestoreServiceTest {
     }
 
     @Test
-    public void prepareBackupFailsIfDisableFails() {
+    public void prepareRestorePersistsLockId() {
+        Namespace otherSuccessfulNamespace = Namespace.valueOf("success2");
+        storeCompletedBackup(otherSuccessfulNamespace);
+        DisableNamespacesResponse successfulDisable =
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
+        when(timeLockManagementService.disableTimelock(
+                        authHeader, ImmutableSet.of(WITH_BACKUP, otherSuccessfulNamespace)))
+                .thenReturn(successfulDisable);
+
+        DisableNamespacesResponse actualDisable =
+                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, otherSuccessfulNamespace));
+
+        assertThat(actualDisable).isEqualTo(successfulDisable);
+        assertThat(backupPersister.getRestoreLockId(WITH_BACKUP)).contains(LOCK_ID);
+        assertThat(backupPersister.getRestoreLockId(otherSuccessfulNamespace)).contains(LOCK_ID);
+    }
+
+    @Test
+    public void prepareRestoreFailsIfDisableFails() {
         DisableNamespacesResponse failedDisable = DisableNamespacesResponse.unsuccessful(
                 UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(WITH_BACKUP), ImmutableSet.of()));
         when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
@@ -139,12 +159,15 @@ public class AtlasRestoreServiceTest {
                 .map(backupPersister::getCompletedBackup)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
+        backupPersister.storeRestoreLockId(WITH_BACKUP, LOCK_ID);
 
         CompleteRestoreRequest completeRequest = CompleteRestoreRequest.of(completedBackups);
         when(atlasRestoreClient.completeRestore(authHeader, completeRequest))
                 .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
 
         ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, LOCK_ID);
+        when(timeLockManagementService.reenableTimelock(authHeader, reenableRequest))
+                .thenReturn(ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true)));
 
         Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(reenableRequest);
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
@@ -176,11 +199,39 @@ public class AtlasRestoreServiceTest {
         CompleteRestoreRequest request = CompleteRestoreRequest.of(completedBackups);
         when(atlasRestoreClient.completeRestore(authHeader, request))
                 .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
+        backupPersister.storeRestoreLockId(WITH_BACKUP, LOCK_ID);
 
-        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, LOCK_ID);
+        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), LOCK_ID);
+        when(timeLockManagementService.reenableTimelock(authHeader, reenableRequest))
+                .thenReturn(ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true)));
 
-        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(reenableRequest);
+        Set<Namespace> successfulNamespaces =
+                atlasRestoreService.completeRestore(ReenableNamespacesRequest.of(namespaces, LOCK_ID));
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
         verify(atlasRestoreClient).completeRestore(authHeader, request);
+    }
+
+    @Test
+    public void completeRestoreUsesPersistedLockId() {
+        Set<Namespace> namespaces = ImmutableSet.of(WITH_BACKUP);
+        Set<CompletedBackup> completedBackups = namespaces.stream()
+                .map(backupPersister::getCompletedBackup)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+        UUID actualLockId = new UUID(23, 223);
+        backupPersister.storeRestoreLockId(WITH_BACKUP, actualLockId);
+
+        CompleteRestoreRequest request = CompleteRestoreRequest.of(completedBackups);
+        when(atlasRestoreClient.completeRestore(authHeader, request))
+                .thenReturn(CompleteRestoreResponse.of(namespaces));
+        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, LOCK_ID);
+        ReenableNamespacesRequest expectedRequest = ReenableNamespacesRequest.of(namespaces, actualLockId);
+        when(timeLockManagementService.reenableTimelock(authHeader, expectedRequest))
+                .thenReturn(ReenableNamespacesResponse.successful(SuccessfulReenableNamespacesResponse.of(true)));
+
+        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(reenableRequest);
+
+        assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
+        verify(timeLockManagementService).reenableTimelock(authHeader, expectedRequest);
     }
 }

@@ -22,17 +22,20 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 class InMemoryBackupPersister implements BackupPersister {
     private final Map<Namespace, Long> immutableTimestamps;
     private final Map<Namespace, InternalSchemaMetadataState> schemaMetadatas;
     private final Map<Namespace, CompletedBackup> completedBackups;
+    private final Map<Namespace, UUID> restoreLockIds;
 
     InMemoryBackupPersister() {
         schemaMetadatas = new ConcurrentHashMap<>();
         completedBackups = new ConcurrentHashMap<>();
         immutableTimestamps = new ConcurrentHashMap<>();
+        restoreLockIds = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -63,5 +66,15 @@ class InMemoryBackupPersister implements BackupPersister {
     @Override
     public Optional<Long> getImmutableTimestamp(Namespace namespace) {
         return Optional.ofNullable(immutableTimestamps.get(namespace));
+    }
+
+    @Override
+    public void storeRestoreLockId(Namespace namespace, UUID lockId) {
+        restoreLockIds.put(namespace, lockId);
+    }
+
+    @Override
+    public Optional<UUID> getRestoreLockId(Namespace namespace) {
+        return Optional.ofNullable(restoreLockIds.get(namespace));
     }
 }

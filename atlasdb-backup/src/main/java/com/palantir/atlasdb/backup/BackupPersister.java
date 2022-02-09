@@ -21,6 +21,7 @@ import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
+import java.util.UUID;
 
 interface BackupPersister {
     void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
@@ -34,4 +35,8 @@ interface BackupPersister {
     void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken);
 
     Optional<Long> getImmutableTimestamp(Namespace namespace);
+
+    void storeRestoreLockId(Namespace namespace, UUID lockId);
+
+    Optional<UUID> getRestoreLockId(Namespace namespace);
 }

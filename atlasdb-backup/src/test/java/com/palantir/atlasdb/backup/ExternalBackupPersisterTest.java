@@ -98,6 +98,18 @@ public class ExternalBackupPersisterTest {
         assertThat(externalBackupPersister.getCompletedBackup(NAMESPACE)).contains(completedBackup);
     }
 
+    @Test
+    public void getRestoreLockIdWhenEmpty() {
+        assertThat(externalBackupPersister.getRestoreLockId(NAMESPACE)).isEmpty();
+    }
+
+    @Test
+    public void putAndGetRestoreLockId() {
+        UUID lockId = UUID.randomUUID();
+        externalBackupPersister.storeRestoreLockId(NAMESPACE, lockId);
+        assertThat(externalBackupPersister.getRestoreLockId(NAMESPACE)).contains(lockId);
+    }
+
     private Path getPath(Namespace namespace) {
         try {
             return getOrCreateFolder(namespace).toPath();
