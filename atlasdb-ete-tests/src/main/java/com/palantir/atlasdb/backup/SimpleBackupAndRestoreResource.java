@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.backup;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.Set;
 
@@ -32,7 +31,7 @@ public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource 
     }
 
     @Override
-    public Set<Namespace> prepareBackup(AuthHeader authHeader, Set<Namespace> namespaces) {
+    public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {
         return atlasBackupService.prepareBackup(namespaces);
     }
 

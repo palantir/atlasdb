@@ -26,7 +26,6 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
-import com.palantir.tokens.auth.AuthHeader;
 import java.net.SocketTimeoutException;
 import org.junit.After;
 import org.junit.Rule;
@@ -59,7 +58,7 @@ public class TodoEteTest {
         BackupAndRestoreResource backupResource = EteSetup.createClientToSingleNode(BackupAndRestoreResource.class);
         // TODO(gs): constants?
         Namespace namespace = Namespace.of("atlasete");
-        backupResource.prepareBackup(AuthHeader.valueOf("test-auth"), ImmutableSet.of(namespace));
+        backupResource.prepareBackup(ImmutableSet.of(namespace));
 
         // verify we persisted the immutable timestamp to disk
         assertThat(backupResource.getStoredImmutableTimestamp(namespace)).isNotEmpty();

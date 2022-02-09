@@ -18,7 +18,6 @@ package com.palantir.atlasdb.backup;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.processors.AutoDelegate;
-import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.Set;
 import javax.ws.rs.Consumes;
@@ -34,7 +33,7 @@ public interface BackupAndRestoreResource {
     @Path("/prepare")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<Namespace> prepareBackup(AuthHeader authHeader, Set<Namespace> namespaces);
+    Set<Namespace> prepareBackup(Set<Namespace> namespaces);
 
     @POST
     @Path("/immutable-ts")
