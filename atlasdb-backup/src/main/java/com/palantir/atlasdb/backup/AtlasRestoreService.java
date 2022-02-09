@@ -163,7 +163,7 @@ public class AtlasRestoreService {
      * Completes the restore process for the requested namespaces.
      * This includes fast-forwarding the timestamp, and then re-enabling the TimeLock namespaces.
      *
-     * @param request the request object, which must include the lock ID returned by {@link #prepareRestore(Set)}
+     * @param request the request object, which must include the lock ID given to {@link #prepareRestore(Set, String)}
      * @return the set of namespaces that were successfully fast-forwarded and re-enabled.
      */
     @NonIdempotent
