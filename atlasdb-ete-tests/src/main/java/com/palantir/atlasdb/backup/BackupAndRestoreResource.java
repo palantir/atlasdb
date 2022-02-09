@@ -22,7 +22,6 @@ import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.Set;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -37,7 +36,9 @@ public interface BackupAndRestoreResource {
     @Consumes(MediaType.APPLICATION_JSON)
     Set<Namespace> prepareBackup(AuthHeader authHeader, Set<Namespace> namespaces);
 
-    @GET
+    @POST
     @Path("/immutable-ts")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     Optional<Long> getStoredImmutableTimestamp(Namespace namespace);
 }
