@@ -110,37 +110,38 @@ public class AtlasRestoreService {
 
     /**
      * Disables TimeLock on all nodes for the given namespaces.
-     * Should be called exactly once prior to a restore operation. Calling this on multiple nodes will cause conflicts.
+     * Should be called exactly once prior to a restore operation, BEFORE restoring data.
+     * Calling this on multiple nodes will cause conflicts.
      *
-     * @param namespaces the namespaces to disable
+     * @param namespaces the namespaces to prepare
      *
-     * @return the result of the request, including a lock ID which must later be passed to completeRestore.
+     * @return the set of namespaces which may now be restored.
      */
     @NonIdempotent
-    public DisableNamespacesResponse prepareRestore(Set<Namespace> namespaces) {
+    public Set<Namespace> prepareRestore(Set<Namespace> namespaces) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRestore = completedBackups.keySet();
 
         DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, namespacesToRestore);
         return response.accept(new DisableNamespacesResponse.Visitor<>() {
             @Override
-            public DisableNamespacesResponse visitSuccessful(SuccessfulDisableNamespacesResponse value) {
+            public Set<Namespace> visitSuccessful(SuccessfulDisableNamespacesResponse value) {
                 UUID lockId = value.getLockId();
                 namespacesToRestore.forEach(ns -> backupPersister.storeRestoreLockId(ns, lockId));
-                return response;
+                return namespacesToRestore;
             }
 
             @Override
-            public DisableNamespacesResponse visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
+            public Set<Namespace> visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
                 log.error(
                         "Failed to disable namespaces prior to restore",
                         SafeArg.of("namespaces", namespaces),
                         SafeArg.of("response", value));
-                return response;
+                return ImmutableSet.of();
             }
 
             @Override
-            public DisableNamespacesResponse visitUnknown(String unknownType) {
+            public Set<Namespace> visitUnknown(String unknownType) {
                 throw new SafeIllegalStateException(
                         "Unknown DisableNamespacesResponse", SafeArg.of("unknownType", unknownType));
             }
@@ -170,12 +171,11 @@ public class AtlasRestoreService {
      * Completes the restore process for the requested namespaces.
      * This includes fast-forwarding the timestamp, and then re-enabling the TimeLock namespaces.
      *
-     * @param request the request object, which must include the lock ID returned by {@link #prepareRestore(Set)}
      * @return the set of namespaces that were successfully fast-forwarded and re-enabled.
      */
     @NonIdempotent
-    public Set<Namespace> completeRestore(ReenableNamespacesRequest request) {
-        Set<CompletedBackup> completedBackups = request.getNamespaces().stream()
+    public Set<Namespace> completeRestore(Set<Namespace> namespaces) {
+        Set<CompletedBackup> completedBackups = namespaces.stream()
                 .map(backupPersister::getCompletedBackup)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
@@ -183,7 +183,7 @@ public class AtlasRestoreService {
         if (completedBackups.isEmpty()) {
             log.info(
                     "Attempted to complete restore, but no completed backups were found",
-                    SafeArg.of("namespaces", request.getNamespaces()));
+                    SafeArg.of("namespaces", namespaces));
             return ImmutableSet.of();
         }
 
@@ -191,7 +191,7 @@ public class AtlasRestoreService {
         CompleteRestoreResponse response =
                 atlasRestoreClientBlocking.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
         Set<Namespace> successfulNamespaces = response.getSuccessfulNamespaces();
-        Set<Namespace> failedNamespaces = Sets.difference(request.getNamespaces(), successfulNamespaces);
+        Set<Namespace> failedNamespaces = Sets.difference(namespaces, successfulNamespaces);
         if (!failedNamespaces.isEmpty()) {
             log.error(
                     "Failed to fast-forward timestamp for some namespaces. These will not be re-enabled.",
@@ -216,13 +216,12 @@ public class AtlasRestoreService {
                 SafeArg.of("namespaceToLockId", namespaceToLockId));
 
         UUID lockId = Iterables.getOnlyElement(lockIds);
-        ReenableNamespacesRequest actualRequest = ReenableNamespacesRequest.of(successfulNamespaces, lockId);
-        ReenableNamespacesResponse responseForLockId =
-                timeLockManagementService.reenableTimelock(authHeader, actualRequest);
+        ReenableNamespacesRequest request = ReenableNamespacesRequest.of(successfulNamespaces, lockId);
+        ReenableNamespacesResponse responseForLockId = timeLockManagementService.reenableTimelock(authHeader, request);
         return responseForLockId.accept(new ReenableNamespacesResponse.Visitor<>() {
             @Override
             public Set<Namespace> visitSuccessful(SuccessfulReenableNamespacesResponse value) {
-                if (actualRequest.getNamespaces().containsAll(request.getNamespaces())) {
+                if (request.getNamespaces().containsAll(namespaces)) {
                     log.info(
                             "Successfully completed restore for all namespaces",
                             SafeArg.of("namespaces", successfulNamespaces));
@@ -235,8 +234,8 @@ public class AtlasRestoreService {
             public Set<Namespace> visitUnsuccessful(UnsuccessfulReenableNamespacesResponse value) {
                 log.error(
                         "Failed to re-enable namespaces",
-                        SafeArg.of("namespaces", actualRequest.getNamespaces()),
-                        SafeArg.of("lockId", actualRequest.getLockId()),
+                        SafeArg.of("namespaces", namespaces),
+                        SafeArg.of("lockId", request.getLockId()),
                         SafeArg.of("response", value));
                 return ImmutableSet.of();
             }
