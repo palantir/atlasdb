@@ -18,7 +18,7 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
+import com.palantir.atlasdb.backup.BackupAndRestoreResource;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -56,8 +56,7 @@ public class TodoEteTest {
     @Test
     public void canPrepareBackup() {
         todoClient.addTodo(TODO);
-        SimpleBackupAndRestoreResource backupResource =
-                EteSetup.createClientToSingleNode(SimpleBackupAndRestoreResource.class);
+        BackupAndRestoreResource backupResource = EteSetup.createClientToSingleNode(BackupAndRestoreResource.class);
         // TODO(gs): constants?
         Namespace namespace = Namespace.of("atlasete");
         backupResource.prepareBackup(AuthHeader.valueOf("test-auth"), ImmutableSet.of(namespace));
