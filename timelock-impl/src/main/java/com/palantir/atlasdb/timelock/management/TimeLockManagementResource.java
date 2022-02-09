@@ -25,8 +25,8 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
@@ -150,20 +150,20 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
 
     @Override
     public ListenableFuture<DisableNamespacesResponse> disableTimelock(
-            AuthHeader authHeader, Set<Namespace> namespaces) {
+            AuthHeader authHeader, DisableNamespacesRequest request) {
         if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
             log.error(
                     "Attempted to disable TimeLock with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",
-                    SafeArg.of("namespaces", namespaces));
+                    SafeArg.of("namespaces", request.getNamespaces()));
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
-        return handleExceptions(() -> disableInternal(authHeader, namespaces));
+        return handleExceptions(() -> disableInternal(authHeader, request));
     }
 
     private ListenableFuture<DisableNamespacesResponse> disableInternal(
-            AuthHeader authHeader, Set<Namespace> namespaces) {
-        return Futures.immediateFuture(allNodesDisabledNamespacesUpdater.disableOnAllNodes(authHeader, namespaces));
+            AuthHeader authHeader, DisableNamespacesRequest request) {
+        return Futures.immediateFuture(allNodesDisabledNamespacesUpdater.disableOnAllNodes(authHeader, request));
     }
 
     @Override
@@ -237,7 +237,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         }
 
         @Override
-        public DisableNamespacesResponse disableTimelock(AuthHeader authHeader, Set<Namespace> request) {
+        public DisableNamespacesResponse disableTimelock(AuthHeader authHeader, DisableNamespacesRequest request) {
             return unwrap(resource.disableTimelock(authHeader, request));
         }
 

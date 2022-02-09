@@ -31,6 +31,7 @@ import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
@@ -58,6 +59,7 @@ public class AtlasRestoreServiceTest {
     private static final Namespace FAILING_NAMESPACE = Namespace.of("failing");
     private static final long BACKUP_START_TIMESTAMP = 2L;
     private static final UUID LOCK_ID = new UUID(12, 9);
+    private static final String BACKUP_ID = "backup-19890526215242";
 
     @Mock
     private AuthHeader authHeader;
@@ -97,25 +99,25 @@ public class AtlasRestoreServiceTest {
     @Test
     public void prepareReturnsOnlyCompletedBackups() {
         DisableNamespacesResponse successfulDisable =
-                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(LOCK_ID));
-        when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
-                .thenReturn(successfulDisable);
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(BACKUP_ID));
+        DisableNamespacesRequest request = DisableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
+        when(timeLockManagementService.disableTimelock(authHeader, request)).thenReturn(successfulDisable);
 
-        DisableNamespacesResponse actualDisable =
-                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP));
-        assertThat(actualDisable).isEqualTo(successfulDisable);
+        Set<Namespace> disabledNamespaces =
+                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), BACKUP_ID);
+        assertThat(disabledNamespaces).containsExactly(WITH_BACKUP);
     }
 
     @Test
     public void prepareBackupFailsIfDisableFails() {
         DisableNamespacesResponse failedDisable = DisableNamespacesResponse.unsuccessful(
                 UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(WITH_BACKUP), ImmutableSet.of()));
-        when(timeLockManagementService.disableTimelock(authHeader, ImmutableSet.of(WITH_BACKUP)))
-                .thenReturn(failedDisable);
+        DisableNamespacesRequest request = DisableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
+        when(timeLockManagementService.disableTimelock(authHeader, request)).thenReturn(failedDisable);
 
-        DisableNamespacesResponse actualDisable =
-                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP));
-        assertThat(actualDisable).isEqualTo(failedDisable);
+        Set<Namespace> disabledNamespaces =
+                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), BACKUP_ID);
+        assertThat(disabledNamespaces).isEmpty();
     }
 
     @Test
@@ -144,7 +146,7 @@ public class AtlasRestoreServiceTest {
         when(atlasRestoreClient.completeRestore(authHeader, completeRequest))
                 .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
 
-        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, LOCK_ID);
+        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, BACKUP_ID);
 
         Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(reenableRequest);
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
@@ -156,7 +158,7 @@ public class AtlasRestoreServiceTest {
 
     @Test
     public void completeRestoreDoesNotRunNamespacesWithoutCompletedBackup() {
-        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(ImmutableSet.of(NO_BACKUP), LOCK_ID);
+        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(ImmutableSet.of(NO_BACKUP), BACKUP_ID);
 
         Set<Namespace> namespaces = atlasRestoreService.completeRestore(reenableRequest);
 
@@ -177,7 +179,7 @@ public class AtlasRestoreServiceTest {
         when(atlasRestoreClient.completeRestore(authHeader, request))
                 .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
 
-        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, LOCK_ID);
+        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, BACKUP_ID);
 
         Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(reenableRequest);
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);

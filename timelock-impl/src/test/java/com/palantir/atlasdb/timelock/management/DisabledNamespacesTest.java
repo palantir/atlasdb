@@ -33,8 +33,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class DisabledNamespacesTest {
-    private static final UUID LOCK_ID = new UUID(13, 52);
-    private static final UUID OTHER_LOCK_ID = new UUID(123, 45);
+    private static final String LOCK_ID = new UUID(13, 52).toString();
+    private static final String OTHER_LOCK_ID = new UUID(123, 45).toString();
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();

@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
@@ -107,31 +108,32 @@ public class AtlasRestoreService {
      *
      * @param namespaces the namespaces to disable
      *
-     * @return the result of the request, including a lock ID which must later be passed to completeRestore.
+     * @return the namespaces successfully disabled.
      */
-    @NonIdempotent
-    public DisableNamespacesResponse prepareRestore(Set<Namespace> namespaces) {
+    @NonIdempotent // TODO(gs): disable twice with same ID should be acceptable
+    public Set<Namespace> prepareRestore(Set<Namespace> namespaces, String backupId) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRestore = completedBackups.keySet();
 
-        DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, namespacesToRestore);
+        DisableNamespacesRequest request = DisableNamespacesRequest.of(namespacesToRestore, backupId);
+        DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, request);
         return response.accept(new DisableNamespacesResponse.Visitor<>() {
             @Override
-            public DisableNamespacesResponse visitSuccessful(SuccessfulDisableNamespacesResponse value) {
-                return response;
+            public Set<Namespace> visitSuccessful(SuccessfulDisableNamespacesResponse value) {
+                return namespacesToRestore;
             }
 
             @Override
-            public DisableNamespacesResponse visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
+            public Set<Namespace> visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
                 log.error(
                         "Failed to disable namespaces prior to restore",
                         SafeArg.of("namespaces", namespaces),
                         SafeArg.of("response", value));
-                return response;
+                return ImmutableSet.of();
             }
 
             @Override
-            public DisableNamespacesResponse visitUnknown(String unknownType) {
+            public Set<Namespace> visitUnknown(String unknownType) {
                 throw new SafeIllegalStateException(
                         "Unknown DisableNamespacesResponse", SafeArg.of("unknownType", unknownType));
             }

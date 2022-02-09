@@ -30,6 +30,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
@@ -62,6 +63,9 @@ public class TimeLockManagementResourceTest {
     private static final String NAMESPACE_2 = "namespace_2";
     private static final ImmutableSet<Namespace> NAMESPACES =
             ImmutableSet.of(Namespace.of(NAMESPACE_1), Namespace.of(NAMESPACE_2));
+    private static final String LOCK_ID = UUID.randomUUID().toString();
+    private static final DisableNamespacesRequest DISABLE_NAMESPACES_REQUEST =
+            DisableNamespacesRequest.of(NAMESPACES, LOCK_ID);
     private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("bear");
     private static final BearerToken WRONG_BEARER_TOKEN = BearerToken.valueOf("tiger");
     private static final AuthHeader AUTH_HEADER = AuthHeader.of(BEARER_TOKEN);
@@ -118,20 +122,20 @@ public class TimeLockManagementResourceTest {
     @Test
     public void disableTimeLockThrowsIfAuthHeaderIsWrong() {
         assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
-                        timeLockManagementResource.disableTimelock(WRONG_AUTH_HEADER, NAMESPACES)))
+                        timeLockManagementResource.disableTimelock(WRONG_AUTH_HEADER, DISABLE_NAMESPACES_REQUEST)))
                 .hasType(ErrorType.PERMISSION_DENIED);
         verifyNoInteractions(allNodesDisabledNamespacesUpdater);
     }
 
     @Test
     public void disableTimeLockCallsUpdater() {
-        timeLockManagementResource.disableTimelock(AUTH_HEADER, NAMESPACES);
-        verify(allNodesDisabledNamespacesUpdater).disableOnAllNodes(AUTH_HEADER, NAMESPACES);
+        timeLockManagementResource.disableTimelock(AUTH_HEADER, DISABLE_NAMESPACES_REQUEST);
+        verify(allNodesDisabledNamespacesUpdater).disableOnAllNodes(AUTH_HEADER, DISABLE_NAMESPACES_REQUEST);
     }
 
     @Test
     public void reEnableTimeLockThrowsIfAuthHeaderIsWrong() {
-        ReenableNamespacesRequest request = ReenableNamespacesRequest.of(NAMESPACES, UUID.randomUUID());
+        ReenableNamespacesRequest request = ReenableNamespacesRequest.of(NAMESPACES, LOCK_ID);
         assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
                         timeLockManagementResource.reenableTimelock(WRONG_AUTH_HEADER, request)))
                 .hasType(ErrorType.PERMISSION_DENIED);
@@ -140,7 +144,7 @@ public class TimeLockManagementResourceTest {
 
     @Test
     public void reEnableTimeLockCallsUpdater() {
-        ReenableNamespacesRequest request = ReenableNamespacesRequest.of(NAMESPACES, UUID.randomUUID());
+        ReenableNamespacesRequest request = ReenableNamespacesRequest.of(NAMESPACES, LOCK_ID);
         timeLockManagementResource.reenableTimelock(AUTH_HEADER, request);
         verify(allNodesDisabledNamespacesUpdater).reEnableOnAllNodes(AUTH_HEADER, request);
     }
