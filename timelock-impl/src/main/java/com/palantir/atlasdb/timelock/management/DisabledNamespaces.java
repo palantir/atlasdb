@@ -93,7 +93,7 @@ public class DisabledNamespaces {
     }
 
     public SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
-        String lockId = request.getLockId().toString(); // TODO(gs): RNR -> String
+        String lockId = request.getLockId();
         SingleNodeUpdateResponse response = execute(dao -> dao.reEnableAll(request.getNamespaces(), lockId));
         if (!response.isSuccessful()) {
             Map<Namespace, String> conflictingNamespaces = response.lockedNamespaces();
