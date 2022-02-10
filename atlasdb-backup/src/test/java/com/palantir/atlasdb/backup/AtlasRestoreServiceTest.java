@@ -41,7 +41,6 @@ import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlo
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -58,7 +57,6 @@ public class AtlasRestoreServiceTest {
     private static final Namespace NO_BACKUP = Namespace.of("no-backup");
     private static final Namespace FAILING_NAMESPACE = Namespace.of("failing");
     private static final long BACKUP_START_TIMESTAMP = 2L;
-    private static final UUID LOCK_ID = new UUID(12, 9);
     private static final String BACKUP_ID = "backup-19890526215242";
 
     @Mock
@@ -148,7 +146,7 @@ public class AtlasRestoreServiceTest {
 
         ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, BACKUP_ID);
 
-        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(reenableRequest);
+        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(namespaces, BACKUP_ID);
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
 
         InOrder inOrder = Mockito.inOrder(atlasRestoreClient, timeLockManagementService);
@@ -158,9 +156,7 @@ public class AtlasRestoreServiceTest {
 
     @Test
     public void completeRestoreDoesNotRunNamespacesWithoutCompletedBackup() {
-        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(ImmutableSet.of(NO_BACKUP), BACKUP_ID);
-
-        Set<Namespace> namespaces = atlasRestoreService.completeRestore(reenableRequest);
+        Set<Namespace> namespaces = atlasRestoreService.completeRestore(ImmutableSet.of(NO_BACKUP), BACKUP_ID);
 
         assertThat(namespaces).isEmpty();
         verifyNoInteractions(atlasRestoreClient);
@@ -179,10 +175,12 @@ public class AtlasRestoreServiceTest {
         when(atlasRestoreClient.completeRestore(authHeader, request))
                 .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
 
-        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, BACKUP_ID);
+        ReenableNamespacesRequest reenableRequest =
+                ReenableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
 
-        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(reenableRequest);
+        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(namespaces, BACKUP_ID);
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
         verify(atlasRestoreClient).completeRestore(authHeader, request);
+        verify(timeLockManagementService).reenableTimelock(authHeader, reenableRequest);
     }
 }

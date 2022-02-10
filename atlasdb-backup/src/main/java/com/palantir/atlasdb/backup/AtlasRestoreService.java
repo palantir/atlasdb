@@ -164,12 +164,13 @@ public class AtlasRestoreService {
      * Completes the restore process for the requested namespaces.
      * This includes fast-forwarding the timestamp, and then re-enabling the TimeLock namespaces.
      *
-     * @param request the request object, which must include the lock ID given to {@link #prepareRestore(Set, String)}
+     * @param namespaces the namespaces to re-enable
+     * @param backupId the backup identifier, which must match the one given to {@link #prepareRestore(Set, String)}
      * @return the set of namespaces that were successfully fast-forwarded and re-enabled.
      */
     @NonIdempotent
-    public Set<Namespace> completeRestore(ReenableNamespacesRequest request) {
-        Set<CompletedBackup> completedBackups = request.getNamespaces().stream()
+    public Set<Namespace> completeRestore(Set<Namespace> namespaces, String backupId) {
+        Set<CompletedBackup> completedBackups = namespaces.stream()
                 .map(backupPersister::getCompletedBackup)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
@@ -177,15 +178,23 @@ public class AtlasRestoreService {
         if (completedBackups.isEmpty()) {
             log.info(
                     "Attempted to complete restore, but no completed backups were found",
-                    SafeArg.of("namespaces", request.getNamespaces()));
+                    SafeArg.of("namespaces", namespaces));
             return ImmutableSet.of();
+        } else if (completedBackups.size() < namespaces.size()) {
+            Set<Namespace> namespacesWithBackup =
+                    completedBackups.stream().map(CompletedBackup::getNamespace).collect(Collectors.toSet());
+            Set<Namespace> namespacesWithoutBackup = Sets.difference(namespaces, namespacesWithBackup);
+            log.warn(
+                    "Completed backups were not found for some namespaces",
+                    SafeArg.of("namespacesWithBackup", namespacesWithBackup),
+                    SafeArg.of("namespacesWithoutBackup", namespacesWithoutBackup));
         }
 
         // Fast forward timestamps
         CompleteRestoreResponse response =
                 atlasRestoreClientBlocking.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
         Set<Namespace> successfulNamespaces = response.getSuccessfulNamespaces();
-        Set<Namespace> failedNamespaces = Sets.difference(request.getNamespaces(), successfulNamespaces);
+        Set<Namespace> failedNamespaces = Sets.difference(namespaces, successfulNamespaces);
         if (!failedNamespaces.isEmpty()) {
             log.error(
                     "Failed to fast-forward timestamp for some namespaces. These will not be re-enabled.",
@@ -195,8 +204,8 @@ public class AtlasRestoreService {
 
         // Re-enable timelock
         timeLockManagementService.reenableTimelock(
-                authHeader, ReenableNamespacesRequest.of(successfulNamespaces, request.getLockId()));
-        if (successfulNamespaces.containsAll(request.getNamespaces())) {
+                authHeader, ReenableNamespacesRequest.of(successfulNamespaces, backupId));
+        if (successfulNamespaces.containsAll(namespaces)) {
             log.info(
                     "Successfully completed restore for all namespaces",
                     SafeArg.of("namespaces", successfulNamespaces));
