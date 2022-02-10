@@ -59,6 +59,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -144,6 +145,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                         .map(TimeLockRuntimeConfig::serversList)
                         .map(ServerListConfig::servers)
                         .orElseGet(ImmutableSet::of))
+                .security(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
                 .build();
         return ServicesConfigBlock.builder()
                 .putServices("timelock", timelockConfig)
