@@ -317,7 +317,7 @@ public class CassandraService implements AutoCloseable {
                 .filter(attempts -> Objects.equals(
                         attempts,
                         maximumAttemptsPerDatacenter.orElseThrow(() -> new SafeIllegalStateException(
-                                "Unexpectedly could not find the max attempts per " + "datacenter"))))
+                                "Unexpectedly could not find the max attempts per datacenter"))))
                 .keys()
                 .collect(Collectors.toSet());
 
