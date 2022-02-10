@@ -127,7 +127,8 @@ public class CassandraService implements AutoCloseable {
         Map<InetSocketAddress, String> hostToDatacentersThisRefresh = new HashMap<>();
 
         try {
-            Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing = ImmutableRangeMap.builder();
+            ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
+                    ImmutableRangeMap.builder();
 
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
