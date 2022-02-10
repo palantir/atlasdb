@@ -169,6 +169,7 @@ public class CassandraService implements AutoCloseable {
                 }
             }
             tokenMap = tokensInterner.intern(newTokenRing.build());
+            logHostToDatacenterMapping(hostToDatacentersThisRefresh);
             hostToDatacenter = hostToDatacentersThisRefresh;
             return servers;
         } catch (Exception e) {
@@ -187,6 +188,16 @@ public class CassandraService implements AutoCloseable {
                     .collect(Collectors.toSet());
 
             return Sets.union(resolvedConfigAddresses, lastKnownAddresses);
+        }
+    }
+
+    private void logHostToDatacenterMapping(Map<InetSocketAddress, String> hostToDatacentersThisRefresh) {
+        if (log.isDebugEnabled()) {
+            Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
+                    .mapKeys(inetSocketAddress -> inetSocketAddress.getAddress().getHostAddress())
+                    .collectToMap();
+            log.debug("Logging host -> datacenter mapping following a refresh",
+                    SafeArg.of("hostAddressToDatacenter", hostAddressToDatacenter));
         }
     }
 
