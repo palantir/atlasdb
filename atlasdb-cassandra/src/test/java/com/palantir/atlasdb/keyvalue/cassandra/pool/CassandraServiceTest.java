@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -30,6 +31,9 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class CassandraServiceTest {
@@ -40,6 +44,9 @@ public class CassandraServiceTest {
     private static final String HOSTNAME_3 = "3.0.0.0";
     private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_3 = InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT);
+    private static final String DC_1 = "london";
+    private static final String DC_2 = "singapore";
 
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
@@ -148,10 +155,77 @@ public class CassandraServiceTest {
         assertContainerHasHostOne(container);
     }
 
-    @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
+    @Test
+    public void selectsHostsInAnotherDatacenter() {
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
+        cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2));
+        assertContainerHasHost(
+                cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of(HOST_2)), HOST_1);
+        assertContainerHasHost(
+                cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of(HOST_1)), HOST_2);
+    }
+
+    @Test
+    public void selectsAnyHostIfAllDatacentersAlreadyTried() {
+        ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2);
+        CassandraService cassandra = clientPoolWithServers(allHosts);
+        cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2));
+        Set<InetSocketAddress> suggestedHosts = IntStream.range(0, 1_000)
+                .mapToObj(attempt -> cassandra.getRandomGoodHostForPredicate(address -> true, allHosts))
+                .flatMap(Optional::stream)
+                .map(CassandraClientPoolingContainer::getHost)
+                .collect(Collectors.toSet());
+        assertThat(suggestedHosts).containsExactlyInAnyOrderElementsOf(allHosts);
+    }
+
+    @Test
+    public void selectsAnyHostIfNoDatacentersAlreadyTried() {
+        ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2);
+        CassandraService cassandra = clientPoolWithServers(allHosts);
+        cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2));
+        Set<InetSocketAddress> suggestedHosts = IntStream.range(0, 1_000)
+                .mapToObj(attempt -> cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of()))
+                .flatMap(Optional::stream)
+                .map(CassandraClientPoolingContainer::getHost)
+                .collect(Collectors.toSet());
+        assertThat(suggestedHosts).containsExactlyInAnyOrderElementsOf(allHosts);
+    }
+
+    @Test
+    public void selectsHostMatchingPredicateEvenIfRelatedHostsAlreadyTried() {
+        ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2, HOST_3);
+        CassandraService cassandra = clientPoolWithServers(allHosts);
+        cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2, HOST_3, DC_1));
+
+        assertThat(cassandra
+                        .getRandomGoodHostForPredicate(address -> address.equals(HOST_1), ImmutableSet.of(HOST_1))
+                        .map(CassandraClientPoolingContainer::getHost))
+                .as("obeys the predicate even if this host was already tried")
+                .hasValue(HOST_1);
+        assertThat(cassandra
+                        .getRandomGoodHostForPredicate(address -> address.equals(HOST_1), ImmutableSet.of(HOST_3))
+                        .map(CassandraClientPoolingContainer::getHost))
+                .as("obeys the predicate even if another host in this datacenter was already tried")
+                .hasValue(HOST_1);
+    }
+
+    @Test
+    public void selectsHostsWithUnknownDatacenterMappingIfAllKnownDatacentersTried() {
+        ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2, HOST_3);
+        CassandraService cassandra = clientPoolWithServers(allHosts);
+        cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2));
+        assertContainerHasHost(
+                cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of(HOST_1, HOST_2)), HOST_3);
+    }
+
     private void assertContainerHasHostOne(Optional<CassandraClientPoolingContainer> container) {
+        assertContainerHasHost(container, HOST_1);
+    }
+
+    @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
+    private void assertContainerHasHost(Optional<CassandraClientPoolingContainer> container, InetSocketAddress host) {
         assertThat(container).isPresent();
-        assertThat(container.get().getHost()).isEqualTo(HOST_1);
+        assertThat(container.get().getHost()).isEqualTo(host);
     }
 
     private CassandraService clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {

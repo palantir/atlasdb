@@ -457,4 +457,9 @@ public class CassandraService implements AutoCloseable {
     public void clearInitialCassandraHosts() {
         cassandraHosts = Collections.emptyList();
     }
+
+    @VisibleForTesting
+    void overrideHostToDatacenterMapping(Map<InetSocketAddress, String> hostToDatacenterOverride) {
+        this.hostToDatacenter = hostToDatacenterOverride;
+    }
 }
