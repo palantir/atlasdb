@@ -27,6 +27,7 @@ import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.refreshable.Refreshable;
@@ -65,7 +66,9 @@ public final class AtlasBackupService {
             String serviceName,
             Function<Namespace, Path> backupFolderFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
-        ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
+        ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
+                // TODO(gs): wire a proper user agent!
+                .withUserAgent(UserAgent.of(UserAgent.Agent.of("atlas-backup", "0.539.0")));
         AtlasBackupClientBlocking atlasBackupClientBlocking =
                 reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName);
 
