@@ -249,7 +249,7 @@ public class CassandraVerifierTest {
         when(config.replicationFactor()).thenReturn(1);
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
                         ksDef, config, ImmutableSortedSet.of(DC_1, DC_2)))
-                .isInstanceOf(UnsupportedOperationException.class);
+                .isInstanceOf(IllegalStateException.class);
     }
 
     private void setTopology(EndpointDetails... details) throws TException {
