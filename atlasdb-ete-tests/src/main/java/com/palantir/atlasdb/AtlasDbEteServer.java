@@ -125,7 +125,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
             ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
             AtlasBackupService atlasBackupService = AtlasBackupService.create(
-                    authHeader, servicesConfigBlock, "ete", backupFolderFactory, keyValueServiceFactory);
+                    authHeader, servicesConfigBlock, "timelock", backupFolderFactory, keyValueServiceFactory);
             environment
                     .jersey()
                     .register(new SimpleBackupAndRestoreResource(atlasBackupService, externalBackupPersister));
