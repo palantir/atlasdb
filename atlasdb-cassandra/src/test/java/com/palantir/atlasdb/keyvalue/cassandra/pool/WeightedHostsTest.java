@@ -30,16 +30,16 @@ public class WeightedHostsTest {
 
     @Test
     public void testWeightedHostsWithUniformActivity() {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(2), createMockClientPoolingContainerWithUtilization(10));
+        Map<DcAwareHost, CassandraClientPoolingContainer> pools = ImmutableMap.of(
+                getHost(0), createMockClientPoolingContainerWithUtilization(10),
+                getHost(1), createMockClientPoolingContainerWithUtilization(10),
+                getHost(2), createMockClientPoolingContainerWithUtilization(10));
 
-        NavigableMap<Integer, InetSocketAddress> result = WeightedHosts.create(pools).hosts;
+        NavigableMap<Integer, DcAwareHost> result = WeightedHosts.create(pools).hosts;
 
         int expectedWeight = result.firstEntry().getKey();
         int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
+        for (Map.Entry<Integer, DcAwareHost> entry : result.entrySet()) {
             int currWeight = entry.getKey() - prevKey;
             assertThat(currWeight).isEqualTo(expectedWeight);
             prevKey = entry.getKey();
@@ -48,21 +48,21 @@ public class WeightedHostsTest {
 
     @Test
     public void testWeightedHostsWithLowActivityPool() {
-        InetSocketAddress lowActivityHost = new InetSocketAddress(2);
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0),
+        DcAwareHost lowActivityHost = getHost(2);
+        Map<DcAwareHost, CassandraClientPoolingContainer> pools = ImmutableMap.of(
+                getHost(0),
                 createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(1),
+                getHost(1),
                 createMockClientPoolingContainerWithUtilization(10),
                 lowActivityHost,
                 createMockClientPoolingContainerWithUtilization(0));
 
-        NavigableMap<Integer, InetSocketAddress> result = WeightedHosts.create(pools).hosts;
+        NavigableMap<Integer, DcAwareHost> result = WeightedHosts.create(pools).hosts;
 
         int largestWeight = result.firstEntry().getKey();
-        InetSocketAddress hostWithLargestWeight = result.firstEntry().getValue();
+        DcAwareHost hostWithLargestWeight = result.firstEntry().getValue();
         int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
+        for (Map.Entry<Integer, DcAwareHost> entry : result.entrySet()) {
             int currWeight = entry.getKey() - prevKey;
             prevKey = entry.getKey();
             if (currWeight > largestWeight) {
@@ -75,21 +75,21 @@ public class WeightedHostsTest {
 
     @Test
     public void testWeightedHostsWithMaxActivityPool() {
-        InetSocketAddress highActivityHost = new InetSocketAddress(2);
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0),
+        DcAwareHost highActivityHost = getHost(2);
+        Map<DcAwareHost, CassandraClientPoolingContainer> pools = ImmutableMap.of(
+                getHost(0),
                 createMockClientPoolingContainerWithUtilization(5),
-                new InetSocketAddress(1),
+                getHost(1),
                 createMockClientPoolingContainerWithUtilization(5),
                 highActivityHost,
                 createMockClientPoolingContainerWithUtilization(20));
 
-        NavigableMap<Integer, InetSocketAddress> result = WeightedHosts.create(pools).hosts;
+        NavigableMap<Integer, DcAwareHost> result = WeightedHosts.create(pools).hosts;
 
         int smallestWeight = result.firstEntry().getKey();
-        InetSocketAddress hostWithSmallestWeight = result.firstEntry().getValue();
+        DcAwareHost hostWithSmallestWeight = result.firstEntry().getValue();
         int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
+        for (Map.Entry<Integer, DcAwareHost> entry : result.entrySet()) {
             int currWeight = entry.getKey() - prevKey;
             prevKey = entry.getKey();
             if (currWeight < smallestWeight) {
@@ -102,15 +102,15 @@ public class WeightedHostsTest {
 
     @Test
     public void testWeightedHostsWithNonZeroWeights() {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(5),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(2), createMockClientPoolingContainerWithUtilization(15));
+        Map<DcAwareHost, CassandraClientPoolingContainer> pools = ImmutableMap.of(
+                getHost(0), createMockClientPoolingContainerWithUtilization(5),
+                getHost(1), createMockClientPoolingContainerWithUtilization(10),
+                getHost(2), createMockClientPoolingContainerWithUtilization(15));
 
-        NavigableMap<Integer, InetSocketAddress> result = WeightedHosts.create(pools).hosts;
+        NavigableMap<Integer, DcAwareHost> result = WeightedHosts.create(pools).hosts;
 
         int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
+        for (Map.Entry<Integer, DcAwareHost> entry : result.entrySet()) {
             assertThat(entry.getKey()).isGreaterThan(prevKey);
             prevKey = entry.getKey();
         }
@@ -119,22 +119,22 @@ public class WeightedHostsTest {
     // Covers a bug where we used ceilingEntry instead of higherEntry
     @Test
     public void testSelectingHostFromWeightedHostsMatchesWeight() {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(5),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(2), createMockClientPoolingContainerWithUtilization(15));
+        Map<DcAwareHost, CassandraClientPoolingContainer> pools = ImmutableMap.of(
+                getHost(0), createMockClientPoolingContainerWithUtilization(5),
+                getHost(1), createMockClientPoolingContainerWithUtilization(10),
+                getHost(2), createMockClientPoolingContainerWithUtilization(15));
         WeightedHosts weightedHosts = WeightedHosts.create(pools);
-        Map<InetSocketAddress, Integer> hostsToWeight = new HashMap<>();
+        Map<DcAwareHost, Integer> hostsToWeight = new HashMap<>();
         int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : weightedHosts.hosts.entrySet()) {
+        for (Map.Entry<Integer, DcAwareHost> entry : weightedHosts.hosts.entrySet()) {
             hostsToWeight.put(entry.getValue(), entry.getKey() - prevKey);
             prevKey = entry.getKey();
         }
 
         // Exhaustively test all indexes
-        Map<InetSocketAddress, Integer> numTimesSelected = new HashMap<>();
+        Map<DcAwareHost, Integer> numTimesSelected = new HashMap<>();
         for (int index = 0; index < weightedHosts.hosts.lastKey(); index++) {
-            InetSocketAddress host = weightedHosts.getRandomHostInternal(index);
+            DcAwareHost host = weightedHosts.getRandomHostInternal(index);
             if (!numTimesSelected.containsKey(host)) {
                 numTimesSelected.put(host, 0);
             }
@@ -142,6 +142,10 @@ public class WeightedHostsTest {
         }
 
         assertThat(numTimesSelected).isEqualTo(hostsToWeight);
+    }
+
+    private DcAwareHost getHost(int port) {
+        return DcAwareHost.of("foo", new InetSocketAddress(port));
     }
 
     private static CassandraClientPoolingContainer createMockClientPoolingContainerWithUtilization(int utilization) {

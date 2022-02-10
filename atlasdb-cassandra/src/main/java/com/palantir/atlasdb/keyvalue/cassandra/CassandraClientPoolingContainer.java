@@ -22,6 +22,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevelMetric;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.ThreadNames;
@@ -57,6 +58,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolingContainer.class);
 
     private final InetSocketAddress host;
+    private final DcAwareHost dcAwareHost;
     private final CassandraKeyValueServiceConfig config;
     private final MetricsManager metricsManager;
     private final AtomicLong count = new AtomicLong();
@@ -68,12 +70,13 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
-            InetSocketAddress host,
+            DcAwareHost dcAwareHost,
             CassandraKeyValueServiceConfig config,
             int poolNumber,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
-        this.host = host;
+        this.host = dcAwareHost.address();
+        this.dcAwareHost = dcAwareHost;
         this.config = config;
         this.poolNumber = poolNumber;
         this.poolMetrics = poolMetrics;
@@ -83,6 +86,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     public InetSocketAddress getHost() {
         return host;
+    }
+
+    public DcAwareHost getDcAwareHost() {
+        return dcAwareHost;
     }
 
     /**

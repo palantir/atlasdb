@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.common.base.FunctionCheckedException;
 import java.net.InetSocketAddress;
 import org.junit.Before;
@@ -26,8 +27,10 @@ public class RetryableCassandraRequestTest {
     private static final int DEFAULT_PORT = 5000;
     private static final String HOSTNAME_1 = "1.0.0.0";
     private static final String HOSTNAME_2 = "2.0.0.0";
-    private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
-    private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
+    private static final DcAwareHost HOST_1 =
+            DcAwareHost.of("foo", InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT));
+    private static final DcAwareHost HOST_2 =
+            DcAwareHost.of("foo", InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT));
 
     private RetryableCassandraRequest<Void, RuntimeException> request;
 
@@ -75,7 +78,7 @@ public class RetryableCassandraRequestTest {
         assertThat(request.getNumberOfAttempts()).isEqualTo(expected);
     }
 
-    private void assertNumberOfAttemptsOnHost(int expected, InetSocketAddress host) {
+    private void assertNumberOfAttemptsOnHost(int expected, DcAwareHost host) {
         assertThat(request.getNumberOfAttemptsOnHost(host)).isEqualTo(expected);
     }
 

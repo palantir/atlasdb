@@ -25,7 +25,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import java.net.InetSocketAddress;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -60,7 +60,7 @@ final class CellLoadingBatcher {
     }
 
     List<List<Cell>> partitionIntoBatches(
-            Collection<Cell> cellsToPartition, InetSocketAddress host, TableReference tableReference) {
+            Collection<Cell> cellsToPartition, DcAwareHost host, TableReference tableReference) {
         CassandraCellLoadingConfig config = loadingConfigSupplier.get();
 
         ListMultimap<byte[], Cell> cellsByColumn = indexCellsByColumnName(cellsToPartition);
@@ -82,10 +82,7 @@ final class CellLoadingBatcher {
     }
 
     private List<List<Cell>> partitionBySingleQueryLoadBatchLimit(
-            List<Cell> cells,
-            CassandraCellLoadingConfig config,
-            InetSocketAddress host,
-            TableReference tableReference) {
+            List<Cell> cells, CassandraCellLoadingConfig config, DcAwareHost host, TableReference tableReference) {
         if (cells.size() > config.singleQueryLoadBatchLimit()) {
             rebatchingManyRowsForColumnCallback.consume(host, tableReference, cells.size());
             return Lists.partition(cells, config.singleQueryLoadBatchLimit());
@@ -110,6 +107,6 @@ final class CellLoadingBatcher {
 
     @FunctionalInterface
     interface BatchCallback {
-        void consume(InetSocketAddress host, TableReference tableReference, int numRows);
+        void consume(DcAwareHost host, TableReference tableReference, int numRows);
     }
 }

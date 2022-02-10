@@ -16,29 +16,28 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
-    private final InetSocketAddress preferredHost;
+    private final DcAwareHost preferredHost;
     private final FunctionCheckedException<CassandraClient, V, K> fn;
 
     private boolean shouldGiveUpOnPreferredHost = false;
-    private Map<InetSocketAddress, Integer> triedHosts = new ConcurrentHashMap<>();
+    private Map<DcAwareHost, Integer> triedHosts = new ConcurrentHashMap<>();
     private List<Exception> encounteredExceptions = new ArrayList<>();
 
-    public RetryableCassandraRequest(
-            InetSocketAddress preferredHost, FunctionCheckedException<CassandraClient, V, K> fn) {
+    public RetryableCassandraRequest(DcAwareHost preferredHost, FunctionCheckedException<CassandraClient, V, K> fn) {
         this.preferredHost = preferredHost;
         this.fn = fn;
     }
 
-    public InetSocketAddress getPreferredHost() {
+    public DcAwareHost getPreferredHost() {
         return preferredHost;
     }
 
@@ -50,7 +49,7 @@ public class RetryableCassandraRequest<V, K extends Exception> {
         return triedHosts.values().stream().mapToInt(Number::intValue).sum();
     }
 
-    public int getNumberOfAttemptsOnHost(InetSocketAddress host) {
+    public int getNumberOfAttemptsOnHost(DcAwareHost host) {
         return triedHosts.getOrDefault(host, 0);
     }
 
@@ -62,11 +61,11 @@ public class RetryableCassandraRequest<V, K extends Exception> {
         shouldGiveUpOnPreferredHost = true;
     }
 
-    public boolean alreadyTriedOnHost(InetSocketAddress address) {
+    public boolean alreadyTriedOnHost(DcAwareHost address) {
         return triedHosts.containsKey(address);
     }
 
-    public void triedOnHost(InetSocketAddress host) {
+    public void triedOnHost(DcAwareHost host) {
         triedHosts.merge(host, 1, (old, ignore) -> old + 1);
     }
 

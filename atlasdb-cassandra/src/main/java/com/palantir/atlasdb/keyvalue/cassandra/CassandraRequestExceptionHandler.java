@@ -17,12 +17,12 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
@@ -71,7 +71,7 @@ class CassandraRequestExceptionHandler {
 
     @SuppressWarnings("unchecked")
     <K extends Exception> void handleExceptionFromRequest(
-            RetryableCassandraRequest<?, K> req, InetSocketAddress hostTried, Exception ex) throws K {
+            RetryableCassandraRequest<?, K> req, DcAwareHost hostTried, Exception ex) throws K {
         if (!isRetryable(ex)) {
             throw (K) ex;
         }
@@ -146,7 +146,7 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleBackoff(
             RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
+            DcAwareHost hostTried,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
         if (!shouldBackoff(ex, strategy)) {
@@ -175,7 +175,7 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleRetryOnDifferentHosts(
             RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
+            DcAwareHost hostTried,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
         if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(hostTried), strategy)) {

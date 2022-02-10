@@ -70,7 +70,7 @@ import org.apache.cassandra.thrift.TokenRange;
 public class CassandraService implements AutoCloseable {
     // TODO(tboam): keep logging on old class?
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);
-    private static final Interner<RangeMap<LightweightOppToken, List<InetSocketAddress>>> tokensInterner =
+    private static final Interner<RangeMap<LightweightOppToken, List<DcAwareHost>>> tokensInterner =
             Interners.newWeakInterner();
 
     private final MetricsManager metricsManager;
@@ -78,12 +78,12 @@ public class CassandraService implements AutoCloseable {
     private final Blacklist blacklist;
     private final CassandraClientPoolMetrics poolMetrics;
 
-    private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+    private volatile RangeMap<LightweightOppToken, List<DcAwareHost>> tokenMap = ImmutableRangeMap.of();
     private final Map<DcAwareHost, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
 
-    private List<InetSocketAddress> cassandraHosts;
+    private List<DcAwareHost> cassandraHosts;
 
-    private volatile Set<InetSocketAddress> localHosts = ImmutableSet.of();
+    private volatile Set<DcAwareHost> localHosts = ImmutableSet.of();
     private final Supplier<Optional<HostLocation>> myLocationSupplier;
     private final Supplier<Map<String, String>> hostnameByIpSupplier;
 
@@ -123,7 +123,7 @@ public class CassandraService implements AutoCloseable {
         Set<DcAwareHost> servers = new HashSet<>();
 
         try {
-            ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
+            ImmutableRangeMap.Builder<LightweightOppToken, List<DcAwareHost>> newTokenRing =
                     ImmutableRangeMap.builder();
 
             // grab latest token ring view from a random node in the cluster and update local hosts
@@ -132,9 +132,9 @@ public class CassandraService implements AutoCloseable {
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
-                String onlyEndpoint = Iterables.getOnlyElement(
-                        Iterables.getOnlyElement(tokenRanges).getEndpoints());
-                InetSocketAddress onlyHost = getAddressForHost(onlyEndpoint);
+                EndpointDetails onlyEndpoint = Iterables.getOnlyElement(
+                        Iterables.getOnlyElement(tokenRanges).getEndpoint_details());
+                DcAwareHost onlyHost = getAddressForHost(onlyEndpoint);
                 newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
                 servers.add(onlyHost);
             } else { // normal case, large cluster with many vnodes
@@ -171,11 +171,15 @@ public class CassandraService implements AutoCloseable {
             Set<InetSocketAddress> resolvedConfigAddresses =
                     config.servers().accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
 
-            Set<InetSocketAddress> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream()
+            Set<DcAwareHost> dcUnawareHosts = resolvedConfigAddresses.stream()
+                    .map(addr -> DcAwareHost.of("unknown", addr))
+                    .collect(Collectors.toSet());
+
+            Set<DcAwareHost> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream()
                     .flatMap(Collection::stream)
                     .collect(Collectors.toSet());
 
-            return Sets.union(resolvedConfigAddresses, lastKnownAddresses);
+            return Sets.union(dcUnawareHosts, lastKnownAddresses);
         }
     }
 
@@ -193,18 +197,17 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    private Set<InetSocketAddress> refreshLocalHosts(List<TokenRange> tokenRanges) {
+    private Set<DcAwareHost> refreshLocalHosts(List<TokenRange> tokenRanges) {
         Optional<HostLocation> myLocation = myLocationSupplier.get();
 
         if (!myLocation.isPresent()) {
             return ImmutableSet.of();
         }
 
-        Set<InetSocketAddress> newLocalHosts = tokenRanges.stream()
+        Set<DcAwareHost> newLocalHosts = tokenRanges.stream()
                 .map(TokenRange::getEndpoint_details)
                 .flatMap(Collection::stream)
                 .filter(details -> isHostLocal(details, myLocation.get()))
-                .map(EndpointDetails::getHost)
                 .map(this::getAddressForHostThrowUnchecked)
                 .collect(Collectors.toSet());
 
@@ -223,11 +226,11 @@ public class CassandraService implements AutoCloseable {
     }
 
     @VisibleForTesting
-    void setLocalHosts(Set<InetSocketAddress> localHosts) {
+    void setLocalHosts(Set<DcAwareHost> localHosts) {
         this.localHosts = localHosts;
     }
 
-    public Set<InetSocketAddress> getLocalHosts() {
+    public Set<DcAwareHost> getLocalHosts() {
         return localHosts;
     }
 
@@ -275,7 +278,7 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    private List<InetSocketAddress> getHostsFor(byte[] key) {
+    private List<DcAwareHost> getHostsFor(byte[] key) {
         return tokenMap.get(new LightweightOppToken(key));
     }
 
@@ -289,14 +292,14 @@ public class CassandraService implements AutoCloseable {
             return Optional.empty();
         }
 
-        Set<InetSocketAddress> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
+        Set<DcAwareHost> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
         if (livingHosts.isEmpty()) {
             log.info("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
             livingHosts = filteredHosts;
         }
 
-        Optional<InetSocketAddress> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
+        Optional<DcAwareHost> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
         return randomLivingHost.map(pools::get);
     }
 
@@ -309,18 +312,18 @@ public class CassandraService implements AutoCloseable {
         return CassandraLogHelper.tokenMap(tokenMap).toString();
     }
 
-    public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
+    public RangeMap<LightweightOppToken, List<DcAwareHost>> getTokenMap() {
         return tokenMap;
     }
 
-    public Map<InetSocketAddress, CassandraClientPoolingContainer> getPools() {
+    public Map<DcAwareHost, CassandraClientPoolingContainer> getPools() {
         return currentPools;
     }
 
     @VisibleForTesting
-    Set<InetSocketAddress> maybeFilterLocalHosts(Set<InetSocketAddress> hosts) {
+    Set<DcAwareHost> maybeFilterLocalHosts(Set<DcAwareHost> hosts) {
         if (random.nextDouble() < config.localHostWeighting()) {
-            Set<InetSocketAddress> localFilteredHosts = Sets.intersection(localHosts, hosts);
+            Set<DcAwareHost> localFilteredHosts = Sets.intersection(localHosts, hosts);
             if (!localFilteredHosts.isEmpty()) {
                 return localFilteredHosts;
             }
@@ -329,11 +332,11 @@ public class CassandraService implements AutoCloseable {
         return hosts;
     }
 
-    private Optional<InetSocketAddress> getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
+    private Optional<DcAwareHost> getRandomHostByActiveConnections(Set<DcAwareHost> desiredHosts) {
 
-        Set<InetSocketAddress> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
+        Set<DcAwareHost> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
 
-        Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = KeyedStream.stream(
+        Map<DcAwareHost, CassandraClientPoolingContainer> matchingPools = KeyedStream.stream(
                         ImmutableMap.copyOf(currentPools))
                 .filterKeys(localFilteredHosts::contains)
                 .collectToMap();
@@ -350,7 +353,7 @@ public class CassandraService implements AutoCloseable {
             currentState.append(String.format(
                     "POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
                     blacklist.describeBlacklistedHosts(), currentPools.keySet().toString()));
-            for (Map.Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
+            for (Map.Entry<DcAwareHost, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
                 int activeCheckouts = entry.getValue().getActiveCheckouts();
                 int totalAllowed = entry.getValue().getPoolSize();
 
@@ -364,8 +367,8 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    public InetSocketAddress getRandomHostForKey(byte[] key) {
-        List<InetSocketAddress> hostsForKey = getHostsFor(key);
+    public DcAwareHost getRandomHostForKey(byte[] key) {
+        List<DcAwareHost> hostsForKey = getHostsFor(key);
 
         if (hostsForKey == null) {
             if (config.autoRefreshNodes()) {
@@ -373,13 +376,13 @@ public class CassandraService implements AutoCloseable {
                         + " However, the mapping of which host contains which data is not available yet."
                         + " We will choose a random host instead.");
             }
-            return getRandomGoodHost().getHost();
+            return getRandomGoodHost().getDcAwareHost();
         }
 
-        Set<InetSocketAddress> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
+        Set<DcAwareHost> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
 
         if (!liveOwnerHosts.isEmpty()) {
-            Optional<InetSocketAddress> activeHost = getRandomHostByActiveConnections(liveOwnerHosts);
+            Optional<DcAwareHost> activeHost = getRandomHostByActiveConnections(liveOwnerHosts);
             if (activeHost.isPresent()) {
                 return activeHost.get();
             }
@@ -393,10 +396,10 @@ public class CassandraService implements AutoCloseable {
                         + " Current state logged at TRACE",
                 SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
         log.trace("Current ring view is: {}.", SafeArg.of("tokenMap", getRingViewDescription()));
-        return getRandomGoodHost().getHost();
+        return getRandomGoodHost().getDcAwareHost();
     }
 
-    public void addPool(InetSocketAddress server) {
+    public void addPool(DcAwareHost server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
         currentPools.put(
                 server,
@@ -408,7 +411,7 @@ public class CassandraService implements AutoCloseable {
      * remain alive until they are returned to the pool, whereby they are destroyed immediately. Threads waiting on the
      * pool will be interrupted.
      */
-    public void removePool(InetSocketAddress removedServerAddress) {
+    public void removePool(DcAwareHost removedServerAddress) {
         blacklist.remove(removedServerAddress);
         CassandraClientPoolingContainer removedContainer = currentPools.remove(removedServerAddress);
         try {
@@ -426,6 +429,7 @@ public class CassandraService implements AutoCloseable {
 
         cassandraHosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(InetSocketAddress::toString))
+                .map(addr -> DcAwareHost.of("unknown", addr))
                 .collect(Collectors.toList());
         cassandraHosts.forEach(this::addPool);
     }

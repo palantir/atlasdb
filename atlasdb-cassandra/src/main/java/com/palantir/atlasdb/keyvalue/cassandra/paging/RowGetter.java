@@ -20,10 +20,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -50,32 +50,29 @@ public class RowGetter {
     }
 
     public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
-        InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
-        return clientPool.runWithRetryOnHost(
-                host, new FunctionCheckedException<CassandraClient, List<KeySlice>, RuntimeException>() {
-                    @Override
-                    public List<KeySlice> apply(CassandraClient client) {
-                        try {
-                            return queryRunner.run(
-                                    client,
-                                    tableRef,
-                                    () -> client.get_range_slices(
-                                            kvsMethodName, tableRef, slicePredicate, keyRange, consistency));
-                        } catch (UnavailableException e) {
-                            throw new InsufficientConsistencyException(
-                                    "get_range_slices requires " + consistency
-                                            + " Cassandra nodes to be up and available.",
-                                    e);
-                        } catch (Exception e) {
-                            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-                        }
-                    }
+        DcAwareHost host = clientPool.getRandomHostForKey(keyRange.getStart_key());
+        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<>() {
+            @Override
+            public List<KeySlice> apply(CassandraClient client) {
+                try {
+                    return queryRunner.run(
+                            client,
+                            tableRef,
+                            () -> client.get_range_slices(
+                                    kvsMethodName, tableRef, slicePredicate, keyRange, consistency));
+                } catch (UnavailableException e) {
+                    throw new InsufficientConsistencyException(
+                            "get_range_slices requires " + consistency + " Cassandra nodes to be up and available.", e);
+                } catch (Exception e) {
+                    throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                }
+            }
 
-                    @Override
-                    public String toString() {
-                        return "get_range_slices(" + tableRef + ")";
-                    }
-                });
+            @Override
+            public String toString() {
+                return "get_range_slices(" + tableRef + ")";
+            }
+        });
     }
 
     public List<byte[]> getRowKeysInRange(byte[] rangeStart, byte[] rangeEnd, int maxResults) {

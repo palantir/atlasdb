@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,7 +53,7 @@ public class CellLoadingBatcherTest {
             .singleQueryLoadBatchLimit(SINGLE_QUERY_LIMIT)
             .build();
 
-    private static final InetSocketAddress ADDRESS = new InetSocketAddress(42);
+    private static final DcAwareHost ADDRESS = DcAwareHost.of("the-answer-is", new InetSocketAddress(42));
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("a.b");
     private static final int SEED = 1;
 

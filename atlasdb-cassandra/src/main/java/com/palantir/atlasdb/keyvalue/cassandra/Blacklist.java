@@ -19,11 +19,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Iterator;
@@ -41,7 +41,7 @@ public class Blacklist {
     private final CassandraKeyValueServiceConfig config;
     private final Clock clock;
 
-    private Map<InetSocketAddress, Long> blacklist;
+    private Map<DcAwareHost, Long> blacklist;
 
     public Blacklist(CassandraKeyValueServiceConfig config) {
         this(config, Clock.systemUTC());
@@ -54,14 +54,14 @@ public class Blacklist {
         this.clock = clock;
     }
 
-    void checkAndUpdate(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+    void checkAndUpdate(Map<DcAwareHost, CassandraClientPoolingContainer> pools) {
         // Check blacklist and re-integrate or continue to wait as necessary
-        Iterator<Entry<InetSocketAddress, Long>> blacklistIterator =
+        Iterator<Entry<DcAwareHost, Long>> blacklistIterator =
                 blacklist.entrySet().iterator();
         while (blacklistIterator.hasNext()) {
-            Map.Entry<InetSocketAddress, Long> blacklistedEntry = blacklistIterator.next();
+            Map.Entry<DcAwareHost, Long> blacklistedEntry = blacklistIterator.next();
             if (coolOffPeriodExpired(blacklistedEntry)) {
-                InetSocketAddress host = blacklistedEntry.getKey();
+                DcAwareHost host = blacklistedEntry.getKey();
                 if (!pools.containsKey(host)) {
                     // Probably the pool changed underneath us
                     blacklistIterator.remove();
@@ -78,7 +78,7 @@ public class Blacklist {
         }
     }
 
-    private boolean coolOffPeriodExpired(Map.Entry<InetSocketAddress, Long> blacklistedEntry) {
+    private boolean coolOffPeriodExpired(Map.Entry<DcAwareHost, Long> blacklistedEntry) {
         long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
         return blacklistedEntry.getValue() + backoffTimeMillis < clock.millis();
     }
@@ -92,7 +92,7 @@ public class Blacklist {
             log.info(
                     "We tried to add blacklisted host '{}' back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
-                    SafeArg.of("host", CassandraLogHelper.host(container.getHost())),
+                    SafeArg.of("host", CassandraLogHelper.host(container.getDcAwareHost())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
                     UnsafeArg.of("exceptionMessage", e.getMessage()),
                     e);
@@ -100,24 +100,24 @@ public class Blacklist {
         }
     }
 
-    public Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
+    public Set<DcAwareHost> filterBlacklistedHostsFrom(Collection<DcAwareHost> potentialHosts) {
         return Sets.difference(ImmutableSet.copyOf(potentialHosts), blacklist.keySet());
     }
 
-    boolean contains(InetSocketAddress host) {
+    boolean contains(DcAwareHost host) {
         return blacklist.containsKey(host);
     }
 
-    public void add(InetSocketAddress host) {
+    public void add(DcAwareHost host) {
         blacklist.put(host, clock.millis());
         log.info("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
 
-    void addAll(Set<InetSocketAddress> hosts) {
+    void addAll(Set<DcAwareHost> hosts) {
         hosts.forEach(this::add);
     }
 
-    public void remove(InetSocketAddress host) {
+    public void remove(DcAwareHost host) {
         blacklist.remove(host);
     }
 

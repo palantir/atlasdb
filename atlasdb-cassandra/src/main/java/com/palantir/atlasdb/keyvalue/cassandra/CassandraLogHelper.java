@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
@@ -34,7 +35,15 @@ public final class CassandraLogHelper {
         return host.getHostString();
     }
 
+    public static String host(DcAwareHost host) {
+        return host.datacenter() + "-" + host(host.address());
+    }
+
     static Collection<String> collectionOfHosts(Collection<InetSocketAddress> hosts) {
+        return hosts.stream().map(CassandraLogHelper::host).collect(Collectors.toSet());
+    }
+
+    static Collection<String> collectionOfDcAwareHosts(Collection<DcAwareHost> hosts) {
         return hosts.stream().map(CassandraLogHelper::host).collect(Collectors.toSet());
     }
 
@@ -45,13 +54,13 @@ public final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    public static List<String> tokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
+    public static List<String> tokenMap(RangeMap<LightweightOppToken, List<DcAwareHost>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format(
                         "range from %s to %s is on host %s",
                         getLowerEndpoint(rangeListToHostEntry.getKey()),
                         getUpperEndpoint(rangeListToHostEntry.getKey()),
-                        CassandraLogHelper.collectionOfHosts(rangeListToHostEntry.getValue())))
+                        CassandraLogHelper.collectionOfHosts(DcAwareHost.addresses(rangeListToHostEntry.getValue()))))
                 .collect(Collectors.toList());
     }
 

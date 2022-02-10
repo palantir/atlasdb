@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -67,15 +68,18 @@ public class CassandraClientPoolTest {
     private static final String HOSTNAME_1 = "1.0.0.0";
     private static final String HOSTNAME_2 = "2.0.0.0";
     private static final String HOSTNAME_3 = "3.0.0.0";
-    private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
-    private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
-    private static final InetSocketAddress HOST_3 = InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT);
+    private static final DcAwareHost HOST_1 =
+            DcAwareHost.of("dc1", InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT));
+    private static final DcAwareHost HOST_2 =
+            DcAwareHost.of("dc1", InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT));
+    private static final DcAwareHost HOST_3 =
+            DcAwareHost.of("dc1", InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT));
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
 
     private DeterministicScheduler deterministicExecutor = new DeterministicScheduler();
-    private Set<InetSocketAddress> poolServers = new HashSet<>();
+    private Set<DcAwareHost> poolServers = new HashSet<>();
 
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
@@ -133,9 +137,9 @@ public class CassandraClientPoolTest {
         // TODO(ssouza): make 4 =
         // 1 + CassandraClientPoolImpl.MAX_TRIES_TOTAL - CassandraClientPoolImpl.MAX_TRIES_SAME_HOST
         int numHosts = 4;
-        List<InetSocketAddress> hostList = new ArrayList<>();
+        List<DcAwareHost> hostList = new ArrayList<>();
         for (int i = 0; i < numHosts; i++) {
-            hostList.add(new InetSocketAddress(i));
+            hostList.add(DcAwareHost.of("foo", new InetSocketAddress(i)));
         }
 
         CassandraClientPoolImpl clientPool =
@@ -221,7 +225,7 @@ public class CassandraClientPoolTest {
     @Test
     public void resilientToRollingRestarts() {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
-        AtomicReference<InetSocketAddress> downHost = new AtomicReference<>(HOST_1);
+        AtomicReference<DcAwareHost> downHost = new AtomicReference<>(HOST_1);
         cassandraClientPool
                 .getCurrentPools()
                 .values()
@@ -262,7 +266,7 @@ public class CassandraClientPoolTest {
     public void hostIsAutomaticallyRemovedOnStartup() {
         when(config.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
-                        .addThriftHosts(HOST_1, HOST_2, HOST_3)
+                        .addThriftHosts(HOST_1.address(), HOST_2.address(), HOST_3.address())
                         .build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -276,7 +280,7 @@ public class CassandraClientPoolTest {
     public void hostIsAutomaticallyRemovedOnRefresh() {
         when(config.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
-                        .addThriftHosts(HOST_1, HOST_2, HOST_3)
+                        .addThriftHosts(HOST_1.address(), HOST_2.address(), HOST_3.address())
                         .build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -293,8 +297,9 @@ public class CassandraClientPoolTest {
     @Test
     public void hostIsAutomaticallyAddedOnStartup() {
         when(config.servers())
-                .thenReturn(
-                        ImmutableDefaultConfig.builder().addThriftHosts(HOST_1).build());
+                .thenReturn(ImmutableDefaultConfig.builder()
+                        .addThriftHosts(HOST_1.address())
+                        .build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(HOST_1, HOST_2);
@@ -307,7 +312,7 @@ public class CassandraClientPoolTest {
     public void hostIsAutomaticallyAddedOnRefresh() {
         when(config.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
-                        .addThriftHosts(HOST_1, HOST_2)
+                        .addThriftHosts(HOST_1.address(), HOST_2.address())
                         .build());
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -325,7 +330,7 @@ public class CassandraClientPoolTest {
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
         when(config.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
-                        .addThriftHosts(HOST_1, HOST_2)
+                        .addThriftHosts(HOST_1.address(), HOST_2.address())
                         .build());
         when(config.autoRefreshNodes()).thenReturn(false);
 
@@ -342,7 +347,7 @@ public class CassandraClientPoolTest {
     public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
         when(config.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
-                        .addThriftHosts(HOST_1, HOST_2)
+                        .addThriftHosts(HOST_1.address(), HOST_2.address())
                         .build());
         when(config.autoRefreshNodes()).thenReturn(false);
 
@@ -364,11 +369,11 @@ public class CassandraClientPoolTest {
         assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
     }
 
-    private InetSocketAddress getInvocationAddress(InvocationOnMock invocation) {
-        return invocation.getArgument(0);
+    private DcAwareHost getInvocationAddress(InvocationOnMock invocation) {
+        return DcAwareHost.of("mocked", invocation.getArgument(0));
     }
 
-    private void setCassandraServersTo(InetSocketAddress... hosts) {
+    private void setCassandraServersTo(DcAwareHost... hosts) {
         when(cassandra.refreshTokenRangesAndGetServers())
                 .thenReturn(Arrays.stream(hosts).collect(Collectors.toSet()));
     }
@@ -383,16 +388,16 @@ public class CassandraClientPoolTest {
                 cassandra);
     }
 
-    private HostBuilder host(InetSocketAddress address) {
+    private HostBuilder host(DcAwareHost address) {
         return new HostBuilder(address);
     }
 
     static class HostBuilder {
-        private InetSocketAddress address;
+        private DcAwareHost address;
         private List<Exception> exceptions = new ArrayList<>();
         private boolean returnsValue = true;
 
-        HostBuilder(InetSocketAddress address) {
+        HostBuilder(DcAwareHost address) {
             this.address = address;
         }
 
@@ -403,7 +408,8 @@ public class CassandraClientPoolTest {
 
         void inPool(CassandraClientPool cassandraClientPool) {
             CassandraClientPoolingContainer container = mock(CassandraClientPoolingContainer.class);
-            when(container.getHost()).thenReturn(address);
+            when(container.getHost()).thenReturn(address.address());
+            when(container.getDcAwareHost()).thenReturn(address);
             try {
                 OngoingStubbing<Object> stubbing = when(container.runWithPooledResource(
                         Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()));
@@ -421,33 +427,33 @@ public class CassandraClientPoolTest {
     }
 
     private void verifyNumberOfAttemptsOnHost(
-            InetSocketAddress host, CassandraClientPool cassandraClientPool, int numAttempts) {
+            DcAwareHost host, CassandraClientPool cassandraClientPool, int numAttempts) {
         Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
                 .runWithPooledResource(
                         Mockito.<FunctionCheckedException<CassandraClient, Object, RuntimeException>>any());
     }
 
-    private CassandraClientPoolImpl clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
+    private CassandraClientPoolImpl clientPoolWithServers(ImmutableSet<DcAwareHost> servers) {
         return clientPoolWith(servers, ImmutableSet.of(), Optional.empty());
     }
 
-    private CassandraClientPoolImpl clientPoolWithServersInCurrentPool(ImmutableSet<InetSocketAddress> servers) {
+    private CassandraClientPoolImpl clientPoolWithServersInCurrentPool(ImmutableSet<DcAwareHost> servers) {
         return clientPoolWith(ImmutableSet.of(), servers, Optional.empty());
     }
 
     private CassandraClientPoolImpl throwingClientPoolWithServersInCurrentPool(
-            ImmutableSet<InetSocketAddress> servers, Exception exception) {
+            ImmutableSet<DcAwareHost> servers, Exception exception) {
         return clientPoolWith(ImmutableSet.of(), servers, Optional.of(exception));
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Unpacking it seems less readable
     private CassandraClientPoolImpl clientPoolWith(
-            ImmutableSet<InetSocketAddress> servers,
-            ImmutableSet<InetSocketAddress> serversInPool,
+            ImmutableSet<DcAwareHost> servers,
+            ImmutableSet<DcAwareHost> serversInPool,
             Optional<Exception> failureMode) {
         when(config.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(servers)
+                        .addAllThriftHosts(DcAwareHost.addresses(servers))
                         .build());
         when(config.timeoutOnConnectionClose()).thenReturn(Duration.ofSeconds(10));
         when(config.timeoutOnConnectionBorrow()).thenReturn(HumanReadableDuration.minutes(10));
@@ -467,9 +473,10 @@ public class CassandraClientPoolTest {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Unpacking it seems less readable
     private CassandraClientPoolingContainer getMockPoolingContainerForHost(
-            InetSocketAddress address, Optional<Exception> maybeFailureMode) {
+            DcAwareHost address, Optional<Exception> maybeFailureMode) {
         CassandraClientPoolingContainer poolingContainer = mock(CassandraClientPoolingContainer.class);
-        when(poolingContainer.getHost()).thenReturn(address);
+        when(poolingContainer.getHost()).thenReturn(address.address());
+        when(poolingContainer.getDcAwareHost()).thenReturn(address);
         maybeFailureMode.ifPresent(e -> setFailureModeForHost(poolingContainer, e));
         return poolingContainer;
     }
@@ -500,11 +507,11 @@ public class CassandraClientPoolTest {
         }
     }
 
-    private void runNoopOnHost(InetSocketAddress host, CassandraClientPool pool) {
+    private void runNoopOnHost(DcAwareHost host, CassandraClientPool pool) {
         pool.runOnHost(host, noOp());
     }
 
-    private void runNoopWithRetryOnHost(InetSocketAddress host, CassandraClientPool pool) {
+    private void runNoopWithRetryOnHost(DcAwareHost host, CassandraClientPool pool) {
         pool.runWithRetryOnHost(host, noOp());
     }
 

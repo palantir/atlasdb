@@ -21,10 +21,10 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,17 +54,15 @@ class CellDeleter {
     }
 
     void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost =
+        Map<DcAwareHost, Map<Cell, Collection<Long>>> keysByHost =
                 HostPartitioner.partitionMapByHost(clientPool, keys.asMap().entrySet());
-        for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
+        for (Map.Entry<DcAwareHost, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
             deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
         }
     }
 
     private void deleteOnSingleHost(
-            final InetSocketAddress host,
-            final TableReference tableRef,
-            final Map<Cell, Collection<Long>> cellVersionsMap) {
+            final DcAwareHost host, final TableReference tableRef, final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
                 private int numVersions = 0;

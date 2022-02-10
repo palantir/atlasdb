@@ -17,6 +17,9 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -30,5 +33,9 @@ public interface DcAwareHost {
                 .datacenter(datacenter)
                 .address(address)
                 .build();
+    }
+
+    static Set<InetSocketAddress> addresses(Collection<DcAwareHost> hosts) {
+        return hosts.stream().map(DcAwareHost::address).collect(Collectors.toSet());
     }
 }

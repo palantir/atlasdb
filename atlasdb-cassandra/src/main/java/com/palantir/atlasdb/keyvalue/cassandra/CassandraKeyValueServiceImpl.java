@@ -68,6 +68,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
@@ -105,7 +106,6 @@ import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -590,11 +590,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
 
-        Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
+        Set<Map.Entry<DcAwareHost, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
         List<Callable<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
-        for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
+        for (final Map.Entry<DcAwareHost, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
@@ -610,7 +610,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> getRowsForSingleHost(
-            final InetSocketAddress host, final TableReference tableRef, final List<byte[]> rows, final long startTs) {
+            final DcAwareHost host, final TableReference tableRef, final List<byte[]> rows, final long startTs) {
         try {
             int rowCount = 0;
             final Map<Cell, Value> result = new HashMap<>();
@@ -634,7 +634,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> getAllCellsForRows(
-            final InetSocketAddress host, final TableReference tableRef, final List<byte[]> rows, final long startTs)
+            final DcAwareHost host, final TableReference tableRef, final List<byte[]> rows, final long startTs)
             throws Exception {
 
         final ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = LinkedListMultimap.create();
@@ -674,7 +674,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> getForKeyPredicates(
-            final InetSocketAddress host, final TableReference tableRef, List<KeyPredicate> query, final long startTs)
+            final DcAwareHost host, final TableReference tableRef, List<KeyPredicate> query, final long startTs)
             throws Exception {
         return clientPool.runWithRetryOnHost(
                 host,
@@ -844,11 +844,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
+        Set<Map.Entry<DcAwareHost, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = new ArrayList<>(rowsByHost.size());
-        for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
+        for (final Map.Entry<DcAwareHost, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas getRowsColumnRange " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
@@ -870,7 +870,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<byte[], RowColumnRangeIterator> getRowsColumnRangeIteratorForSingleHost(
-            InetSocketAddress host,
+            DcAwareHost host,
             TableReference tableRef,
             List<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
@@ -931,7 +931,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(
-            InetSocketAddress host,
+            DcAwareHost host,
             TableReference tableRef,
             List<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
@@ -978,7 +978,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(
-            InetSocketAddress host,
+            DcAwareHost host,
             TableReference tableRef,
             byte[] row,
             BatchColumnRangeSelection batchColumnRangeSelection,
@@ -1165,18 +1165,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 flattened.add(new TableCellAndValue(tableAndValues.getKey(), entry.getKey(), entry.getValue()));
             }
         }
-        Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost =
+        Map<DcAwareHost, List<TableCellAndValue>> partitionedByHost =
                 HostPartitioner.partitionByHost(clientPool, flattened, TableCellAndValue::extractRowName);
 
         List<Callable<Void>> callables = new ArrayList<>();
-        for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
+        for (Map.Entry<DcAwareHost, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
             callables.addAll(getMultiPutTasksForSingleHost(entry.getKey(), entry.getValue(), timestamp));
         }
         taskRunner.runAllTasksCancelOnFailure(callables);
     }
 
     private List<Callable<Void>> getMultiPutTasksForSingleHost(
-            final InetSocketAddress host, Collection<TableCellAndValue> values, final long timestamp) {
+            final DcAwareHost host, Collection<TableCellAndValue> values, final long timestamp) {
         Iterable<List<TableCellAndValue>> partitioned = IterablePartitioner.partitionByCountAndBytes(
                 values,
                 getMultiPutBatchCount(),
@@ -1203,7 +1203,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Void multiPutForSingleHostInternal(
-            final InetSocketAddress host,
+            final DcAwareHost host,
             final Set<TableReference> tableRefs,
             final List<TableCellAndValue> batch,
             long timestamp)
@@ -1994,7 +1994,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int countUnreachableNodes = 0;
-        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
+        for (DcAwareHost host : clientPool.getCurrentPools().keySet()) {
             try {
                 clientPool.runOnHost(host, CassandraVerifier.healthCheck);
                 if (!partitionerIsValid(host)) {
@@ -2007,7 +2007,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return getNodeAvailabilityStatus(countUnreachableNodes);
     }
 
-    private boolean partitionerIsValid(InetSocketAddress host) {
+    private boolean partitionerIsValid(DcAwareHost host) {
         try {
             clientPool.runOnHost(host, clientPool.getValidatePartitioner());
             return true;

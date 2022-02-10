@@ -24,6 +24,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
@@ -33,7 +34,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,7 +94,7 @@ final class CellLoader {
             boolean loadAllTs,
             CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
-        Map<InetSocketAddress, List<Cell>> hostsAndCells;
+        Map<DcAwareHost, List<Cell>> hostsAndCells;
         try (CloseableTracer tracer = CloseableTracer.startSpan(
                 "partitionByHost",
                 ImmutableMap.of(
@@ -121,7 +121,7 @@ final class CellLoader {
         }
 
         List<Callable<Void>> tasks = new ArrayList<>();
-        for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
+        for (Map.Entry<DcAwareHost, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (log.isTraceEnabled()) {
                 log.trace(
                         "Requesting {} cells from {} {}starting at timestamp {} on {}",
@@ -151,7 +151,7 @@ final class CellLoader {
     // TODO(unknown): after cassandra api change: handle different column select per row
     private List<Callable<Void>> getLoadWithTsTasksForSingleHost(
             final String kvsMethodName,
-            final InetSocketAddress host,
+            final DcAwareHost host,
             final TableReference tableRef,
             final Collection<Cell> cells,
             final long startTs,
@@ -218,7 +218,7 @@ final class CellLoader {
         return keyPredicates;
     }
 
-    private static void logRebatchingWarnMessage(InetSocketAddress host, TableReference tableRef, int numRows) {
+    private static void logRebatchingWarnMessage(DcAwareHost host, TableReference tableRef, int numRows) {
         log.warn(
                 "Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to"
                         + " multiget {} rows; this may indicate overly-large batching on a higher level."

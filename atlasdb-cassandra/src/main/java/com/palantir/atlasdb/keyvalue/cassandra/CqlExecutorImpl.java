@@ -21,6 +21,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.DcAwareHost;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.annotation.Output;
@@ -31,7 +32,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -242,7 +242,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         private final CassandraClientPool clientPool;
         private final ConsistencyLevel consistency;
 
-        private Map<Integer, InetSocketAddress> hostsPerPreparedQuery;
+        private Map<Integer, DcAwareHost> hostsPerPreparedQuery;
 
         QueryExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
             this.clientPool = clientPool;
@@ -261,7 +261,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                     client -> client.prepare_cql3_query(query, compression);
 
             try {
-                InetSocketAddress hostForRow = getHostForRow(rowHintForHostSelection);
+                DcAwareHost hostForRow = getHostForRow(rowHintForHostSelection);
                 CqlPreparedResult preparedResult = clientPool.runWithRetryOnHost(hostForRow, prepareFunction);
                 hostsPerPreparedQuery.put(preparedResult.getItemId(), hostForRow);
                 return preparedResult;
@@ -275,22 +275,22 @@ public class CqlExecutorImpl implements CqlExecutor {
             FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction =
                     client -> client.execute_prepared_cql3_query(queryId, values, consistency);
 
-            InetSocketAddress host = hostsPerPreparedQuery.getOrDefault(
+            DcAwareHost host = hostsPerPreparedQuery.getOrDefault(
                     queryId, getHostForRow(values.get(0).array()));
 
             return executeFunctionOnHost(cqlFunction, host);
         }
 
-        private InetSocketAddress getHostForRow(byte[] row) {
+        private DcAwareHost getHostForRow(byte[] row) {
             return clientPool.getRandomHostForKey(row);
         }
 
-        private CqlResult executeQueryOnHost(CqlQuery cqlQuery, InetSocketAddress host) {
+        private CqlResult executeQueryOnHost(CqlQuery cqlQuery, DcAwareHost host) {
             return executeFunctionOnHost(createCqlFunction(cqlQuery), host);
         }
 
         private CqlResult executeFunctionOnHost(
-                FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction, InetSocketAddress host) {
+                FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction, DcAwareHost host) {
             try {
                 return clientPool.runWithRetryOnHost(host, cqlFunction);
             } catch (RetryLimitReachedException e) {
@@ -304,7 +304,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         }
 
         private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(CqlQuery cqlQuery) {
-            return new FunctionCheckedException<CassandraClient, CqlResult, TException>() {
+            return new FunctionCheckedException<>() {
                 @Override
                 public CqlResult apply(CassandraClient client) throws TException {
                     return client.execute_cql3_query(cqlQuery, Compression.NONE, consistency);
