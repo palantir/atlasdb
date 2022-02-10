@@ -20,7 +20,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeMap;
-import com.google.common.collect.ImmutableRangeMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
@@ -30,6 +29,7 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
@@ -180,7 +180,7 @@ public class CassandraService implements AutoCloseable {
             // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
             // conditions where the entire pool becomes invalid between refreshes.
             Set<InetSocketAddress> resolvedConfigAddresses =
-                    config.servers().accept(new ThriftHostsExtractingVisitor());
+                    config.servers().accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
 
             Set<InetSocketAddress> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream()
                     .flatMap(Collection::stream)
