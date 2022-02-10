@@ -196,7 +196,8 @@ public class CassandraService implements AutoCloseable {
             Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
                     .mapKeys(inetSocketAddress -> inetSocketAddress.getAddress().getHostAddress())
                     .collectToMap();
-            log.debug("Logging host -> datacenter mapping following a refresh",
+            log.debug(
+                    "Logging host -> datacenter mapping following a refresh",
                     SafeArg.of("hostAddressToDatacenter", hostAddressToDatacenter));
         }
     }
