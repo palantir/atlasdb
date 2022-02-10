@@ -218,8 +218,7 @@ public class CassandraServiceTest {
     }
 
     private Set<InetSocketAddress> getRecommendedHostsFromAThousandTrials(
-            CassandraService cassandra,
-            Set<InetSocketAddress> hosts) {
+            CassandraService cassandra, Set<InetSocketAddress> hosts) {
         return IntStream.range(0, 1_000)
                 .mapToObj(attempt -> cassandra.getRandomGoodHostForPredicate(address -> true, hosts))
                 .flatMap(Optional::stream)
