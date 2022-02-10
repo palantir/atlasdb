@@ -79,7 +79,7 @@ public class CassandraService implements AutoCloseable {
     private final CassandraClientPoolMetrics poolMetrics;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
+    private final Map<DcAwareHost, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
 
     private List<InetSocketAddress> cassandraHosts;
 
@@ -272,11 +272,10 @@ public class CassandraService implements AutoCloseable {
         return tokenMap.get(new LightweightOppToken(key));
     }
 
-    public Optional<CassandraClientPoolingContainer> getRandomGoodHostForPredicate(
-            Predicate<InetSocketAddress> predicate) {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
+    public Optional<CassandraClientPoolingContainer> getRandomGoodHostForPredicate(Predicate<DcAwareHost> predicate) {
+        Map<DcAwareHost, CassandraClientPoolingContainer> pools = currentPools;
 
-        Set<InetSocketAddress> filteredHosts =
+        Set<DcAwareHost> filteredHosts =
                 pools.keySet().stream().filter(predicate).collect(Collectors.toSet());
         if (filteredHosts.isEmpty()) {
             log.info("No hosts match the provided predicate.");

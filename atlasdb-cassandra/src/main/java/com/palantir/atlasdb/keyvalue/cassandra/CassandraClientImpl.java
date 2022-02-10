@@ -82,7 +82,6 @@ public class CassandraClientImpl implements CassandraClient {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         ColumnParent colFam = getColumnParent(tableRef);
-
         return executeHandlingExceptions(() -> client.multiget_slice(keys, colFam, predicate, consistency_level));
     }
 
