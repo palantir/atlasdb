@@ -73,7 +73,7 @@ public class DisabledNamespaces {
 
     public Map<Namespace, String> getNamespacesLockedWithDifferentLockId(
             Set<Namespace> namespaces, String expectedLockId) {
-        return execute(dao -> dao.getIncorrectlyLockedNamespaces(namespaces, expectedLockId));
+        return execute(dao -> dao.getNamespacesWithLockConflict(namespaces, expectedLockId));
     }
 
     public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
@@ -117,20 +117,18 @@ public class DisabledNamespaces {
         boolean createTable();
 
         @Transaction
-        default Map<Namespace, String> getIncorrectlyLockedNamespaces(
-                Set<Namespace> namespaces, String expectedLockId) {
+        default Map<Namespace, String> getNamespacesWithLockConflict(Set<Namespace> namespaces, String expectedLockId) {
             return getLockedNamespaces(namespaces)
-                    .filter(lockId -> !lockId.equals(expectedLockId))
+                    .filter(lockIdForNamespace -> !lockIdForNamespace.equals(expectedLockId))
                     .collectToMap();
         }
 
         @Transaction
         default SingleNodeUpdateResponse disableAll(Set<Namespace> namespaces, String lockId) {
-            Map<Namespace, String> lockedNamespaces =
-                    getLockedNamespaces(namespaces).collectToMap();
+            Map<Namespace, String> conflictingNamespaces = getNamespacesWithLockConflict(namespaces, lockId);
 
-            if (!lockedNamespaces.isEmpty()) {
-                return SingleNodeUpdateResponse.failed(lockedNamespaces);
+            if (!conflictingNamespaces.isEmpty()) {
+                return SingleNodeUpdateResponse.failed(conflictingNamespaces);
             }
 
             Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
@@ -140,9 +138,7 @@ public class DisabledNamespaces {
 
         @Transaction
         default SingleNodeUpdateResponse reEnableAll(Set<Namespace> namespaces, String lockId) {
-            Map<Namespace, String> namespacesWithLockConflict = getLockedNamespaces(namespaces)
-                    .filter(lockIdForNamespace -> !lockIdForNamespace.equals(lockId))
-                    .collectToMap();
+            Map<Namespace, String> namespacesWithLockConflict = getNamespacesWithLockConflict(namespaces, lockId);
 
             if (!namespacesWithLockConflict.isEmpty()) {
                 // Unlock the namespaces we can
@@ -168,7 +164,8 @@ public class DisabledNamespaces {
                     .flatMap(Optional::stream);
         }
 
-        @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?)")
+        // Can ignore conflicts, provided we called getNamespacesWithLockConflict prior to insertion.
+        @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?) ON CONFLICT DO NOTHING")
         void disable(@Bind("namespace") Set<String> namespaces, @Bind("lockId") String lockId);
 
         @SqlQuery("SELECT lockId FROM disabled WHERE namespace = ?")

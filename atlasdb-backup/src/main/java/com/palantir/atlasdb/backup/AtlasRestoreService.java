@@ -104,13 +104,14 @@ public class AtlasRestoreService {
 
     /**
      * Disables TimeLock on all nodes for the given namespaces.
-     * Should be called exactly once prior to a restore operation. Calling this on multiple nodes will cause conflicts.
+     * This will fail if any namespace is already disabled, unless it was disabled with the provided backupId.
+     * Namespaces for which we don't have a recorded backup will be ignored.
      *
-     * @param namespaces the namespaces to disable
+     * @param namespaces the namespaces to disable.
+     * @param backupId a unique identifier for this request (uniquely identifies the backup to which we're restoring)
      *
      * @return the namespaces successfully disabled.
      */
-    @NonIdempotent // TODO(gs): disable twice with same ID should be acceptable
     public Set<Namespace> prepareRestore(Set<Namespace> namespaces, String backupId) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRestore = completedBackups.keySet();

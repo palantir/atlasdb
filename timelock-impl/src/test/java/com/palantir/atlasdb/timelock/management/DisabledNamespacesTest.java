@@ -78,28 +78,41 @@ public class DisabledNamespacesTest {
     }
 
     @Test
-    public void disableFailsIfAlreadyDisabled() {
+    public void disableFailsIfAlreadyDisabledWithDifferentId() {
         SingleNodeUpdateResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
         assertThat(firstResponse).isEqualTo(successfulResponse());
 
-        SingleNodeUpdateResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        SingleNodeUpdateResponse secondResponse =
+                disabledNamespaces.disable(DisableNamespacesRequest.of(ImmutableSet.of(FIRST), "otherLockId"));
         assertThat(secondResponse).isEqualTo(unsuccessfulResponse());
     }
 
     @Test
-    public void disableFailsIfPartiallyDisabled() {
+    public void disableSucceedsIfAlreadyDisabledWithTheSameId() {
         SingleNodeUpdateResponse firstResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(firstResponse).isEqualTo(successfulResponse());
+
+        SingleNodeUpdateResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(secondResponse).isEqualTo(successfulResponse());
+    }
+
+    @Test
+    public void disableFailsIfPartiallyDisabledWithOtherLockId() {
+        String otherLockId = "otherLockId";
+        SingleNodeUpdateResponse firstResponse =
+                disabledNamespaces.disable(DisableNamespacesRequest.of(ImmutableSet.of(FIRST), otherLockId));
+
         assertThat(firstResponse).isEqualTo(successfulResponse());
 
         SingleNodeUpdateResponse secondResponse = disabledNamespaces.disable(disableNamespacesRequest(SECOND, FIRST));
 
         assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
-        assertThat(secondResponse).isEqualTo(unsuccessfulResponse());
+        assertThat(secondResponse).isEqualTo(unsuccessfulResponse(otherLockId));
 
         SingleNodeUpdateResponse thirdResponse = disabledNamespaces.disable(disableNamespacesRequest(FIRST, SECOND));
 
         assertThat(disabledNamespaces.isDisabled(SECOND)).isFalse();
-        assertThat(thirdResponse).isEqualTo(unsuccessfulResponse());
+        assertThat(thirdResponse).isEqualTo(unsuccessfulResponse(otherLockId));
     }
 
     @Test
@@ -159,6 +172,10 @@ public class DisabledNamespacesTest {
     }
 
     private SingleNodeUpdateResponse unsuccessfulResponse() {
-        return SingleNodeUpdateResponse.failed(ImmutableMap.of(FIRST, LOCK_ID));
+        return unsuccessfulResponse(LOCK_ID);
+    }
+
+    private SingleNodeUpdateResponse unsuccessfulResponse(String lockId) {
+        return SingleNodeUpdateResponse.failed(ImmutableMap.of(FIRST, lockId));
     }
 }
