@@ -358,10 +358,12 @@ public final class CassandraVerifier {
             KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs, Map<String, String> strategyOptions) {
         for (String datacenter : dcs) {
             if (Integer.parseInt(strategyOptions.get(datacenter)) != config.replicationFactor()) {
-                throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName()
-                        + ") has a replication factor not matching your Atlas Cassandra configuration."
-                        + " Change them to match, but be mindful of what steps you'll need to"
-                        + " take to correctly repair or cleanup existing data in your cluster.");
+                logErrorOrThrow(
+                        "Your current Cassandra keyspace (" + ks.getName()
+                                + ") has a replication factor not matching your Atlas Cassandra configuration."
+                                + " Change them to match, but be mindful of what steps you'll need to"
+                                + " take to correctly repair or cleanup existing data in your cluster.",
+                        config.ignoreDatacenterConfigurationChecks());
             }
         }
     }
