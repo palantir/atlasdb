@@ -47,6 +47,7 @@ public class CassandraServiceTest {
     private static final InetSocketAddress HOST_3 = InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT);
     private static final String DC_1 = "london";
     private static final String DC_2 = "singapore";
+    private static final String DC_3 = "zurich";
 
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
@@ -163,6 +164,24 @@ public class CassandraServiceTest {
                 cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of(HOST_2)), HOST_1);
         assertContainerHasHost(
                 cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of(HOST_1)), HOST_2);
+    }
+
+    @Test
+    public void choosesTheHostInTheLeastAttemptedDatacenter() {
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+        cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2, HOST_3, DC_1));
+        assertContainerHasHost(
+                cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of(HOST_1, HOST_2, HOST_3)),
+                HOST_2);
+    }
+
+    @Test
+    public void distributesAttemptsWhenMultipleDatacentersAreLeastAttempted() {
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+        cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2, HOST_3, DC_3));
+        Set<InetSocketAddress> suggestedHosts =
+                getRecommendedHostsFromAThousandTrials(cassandra, ImmutableSet.of(HOST_1));
+        assertThat(suggestedHosts).containsExactlyInAnyOrder(HOST_2, HOST_3);
     }
 
     @Test
