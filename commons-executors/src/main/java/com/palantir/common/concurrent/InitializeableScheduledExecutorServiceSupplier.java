@@ -35,13 +35,13 @@ public final class InitializeableScheduledExecutorServiceSupplier implements Sup
         this.threadFactory = threadFactory;
     }
 
-    private InitializeableScheduledExecutorServiceSupplier(ScheduledExecutorService executor) {
-        threadFactory = null;
+    private InitializeableScheduledExecutorServiceSupplier(ScheduledExecutorService executor, ThreadFactory factory) {
+        threadFactory = factory;
         delegate.set(executor);
     }
 
     public static InitializeableScheduledExecutorServiceSupplier createForTests(ScheduledExecutorService executor) {
-        return new InitializeableScheduledExecutorServiceSupplier(executor);
+        return new InitializeableScheduledExecutorServiceSupplier(executor, new NamedThreadFactory("fake", true));
     }
 
     public void initialize(int numThreads) {
