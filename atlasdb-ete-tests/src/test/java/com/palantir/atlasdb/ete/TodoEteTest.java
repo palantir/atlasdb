@@ -17,10 +17,7 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.backup.BackupAndRestoreResource;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
@@ -49,19 +46,6 @@ public class TodoEteTest {
     public void shouldBeAbleToWriteAndListTodos() {
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList()).contains(TODO);
-    }
-
-    // TODO(gs): split into own test class
-    @Test
-    public void canPrepareBackup() {
-        todoClient.addTodo(TODO);
-        BackupAndRestoreResource backupResource = EteSetup.createClientToSingleNode(BackupAndRestoreResource.class);
-        // TODO(gs): constants?
-        Namespace namespace = Namespace.of("atlasete");
-        backupResource.prepareBackup(ImmutableSet.of(namespace));
-
-        // verify we persisted the immutable timestamp to disk
-        assertThat(backupResource.getStoredImmutableTimestamp(namespace)).isNotEmpty();
     }
 
     @Test
