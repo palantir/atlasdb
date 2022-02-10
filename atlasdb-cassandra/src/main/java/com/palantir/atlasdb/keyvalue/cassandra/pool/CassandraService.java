@@ -119,8 +119,8 @@ public class CassandraService implements AutoCloseable {
     @Override
     public void close() {}
 
-    public Set<InetSocketAddress> refreshTokenRangesAndGetServers() {
-        Set<InetSocketAddress> servers = new HashSet<>();
+    public Set<DcAwareHost> refreshTokenRangesAndGetServers() {
+        Set<DcAwareHost> servers = new HashSet<>();
 
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
@@ -139,7 +139,7 @@ public class CassandraService implements AutoCloseable {
                 servers.add(onlyHost);
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
+                    List<DcAwareHost> hosts = tokenRange.getEndpoint_details().stream()
                             .map(this::getAddressForHostThrowUnchecked)
                             .collect(Collectors.toList());
 
@@ -231,30 +231,36 @@ public class CassandraService implements AutoCloseable {
         return localHosts;
     }
 
-    private InetSocketAddress getAddressForHostThrowUnchecked(String host) {
+    private DcAwareHost getAddressForHostThrowUnchecked(EndpointDetails endpointDetails) {
         try {
-            return getAddressForHost(host);
+            return getAddressForHost(endpointDetails);
         } catch (UnknownHostException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
     @VisibleForTesting
-    InetSocketAddress getAddressForHost(String inputHost) throws UnknownHostException {
+    DcAwareHost getAddressForHost(EndpointDetails endpointDetails) throws UnknownHostException {
+        String datacenter = endpointDetails.getDatacenter();
+        String inputHost = endpointDetails.getHost();
         if (config.addressTranslation().containsKey(inputHost)) {
-            return config.addressTranslation().get(inputHost);
+            InetSocketAddress addressFromHost = config.addressTranslation().get(inputHost);
+            return DcAwareHost.of(datacenter, addressFromHost);
         }
 
         Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
         String host = hostnamesByIp.getOrDefault(inputHost, inputHost);
 
         InetAddress resolvedHost = InetAddress.getByName(host);
+
+        Set<DcAwareHost> currentHosts = currentPools.keySet();
+        Set<InetSocketAddress> configHosts = config.servers().accept(new ThriftHostsExtractingVisitor());
         Set<InetSocketAddress> allKnownHosts =
-                Sets.union(currentPools.keySet(), config.servers().accept(new ThriftHostsExtractingVisitor()));
+                Sets.union(currentHosts.stream().map(DcAwareHost::address).collect(Collectors.toSet()), configHosts);
 
         for (InetSocketAddress address : allKnownHosts) {
             if (Objects.equals(address.getAddress(), resolvedHost)) {
-                return address;
+                return DcAwareHost.of(datacenter, address);
             }
         }
 
@@ -262,7 +268,8 @@ public class CassandraService implements AutoCloseable {
                 allKnownHosts.stream().map(InetSocketAddress::getPort).collect(Collectors.toSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
-            return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(allKnownPorts));
+            return DcAwareHost.of(
+                    datacenter, new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(allKnownPorts)));
         } else {
             throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
         }
