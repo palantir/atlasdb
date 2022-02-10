@@ -170,11 +170,7 @@ public class CassandraServiceTest {
         ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2);
         CassandraService cassandra = clientPoolWithServers(allHosts);
         cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2));
-        Set<InetSocketAddress> suggestedHosts = IntStream.range(0, 1_000)
-                .mapToObj(attempt -> cassandra.getRandomGoodHostForPredicate(address -> true, allHosts))
-                .flatMap(Optional::stream)
-                .map(CassandraClientPoolingContainer::getHost)
-                .collect(Collectors.toSet());
+        Set<InetSocketAddress> suggestedHosts = getRecommendedHostsFromAThousandTrials(cassandra, allHosts);
         assertThat(suggestedHosts).containsExactlyInAnyOrderElementsOf(allHosts);
     }
 
@@ -183,18 +179,13 @@ public class CassandraServiceTest {
         ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2);
         CassandraService cassandra = clientPoolWithServers(allHosts);
         cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2));
-        Set<InetSocketAddress> suggestedHosts = IntStream.range(0, 1_000)
-                .mapToObj(attempt -> cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of()))
-                .flatMap(Optional::stream)
-                .map(CassandraClientPoolingContainer::getHost)
-                .collect(Collectors.toSet());
+        Set<InetSocketAddress> suggestedHosts = getRecommendedHostsFromAThousandTrials(cassandra, ImmutableSet.of());
         assertThat(suggestedHosts).containsExactlyInAnyOrderElementsOf(allHosts);
     }
 
     @Test
     public void selectsHostMatchingPredicateEvenIfRelatedHostsAlreadyTried() {
-        ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2, HOST_3);
-        CassandraService cassandra = clientPoolWithServers(allHosts);
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
         cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2, HOST_3, DC_1));
 
         assertThat(cassandra
@@ -211,11 +202,29 @@ public class CassandraServiceTest {
 
     @Test
     public void selectsHostsWithUnknownDatacenterMappingIfAllKnownDatacentersTried() {
-        ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2, HOST_3);
-        CassandraService cassandra = clientPoolWithServers(allHosts);
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
         cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(HOST_1, DC_1, HOST_2, DC_2));
         assertContainerHasHost(
                 cassandra.getRandomGoodHostForPredicate(address -> true, ImmutableSet.of(HOST_1, HOST_2)), HOST_3);
+    }
+
+    @Test
+    public void selectsFromAllHostsIfDatacenterMappingNotAvailable() {
+        ImmutableSet<InetSocketAddress> allHosts = ImmutableSet.of(HOST_1, HOST_2, HOST_3);
+        CassandraService cassandra = clientPoolWithServers(allHosts);
+        cassandra.overrideHostToDatacenterMapping(ImmutableMap.of());
+        Set<InetSocketAddress> suggestedHosts = getRecommendedHostsFromAThousandTrials(cassandra, ImmutableSet.of());
+        assertThat(suggestedHosts).containsExactlyInAnyOrderElementsOf(allHosts);
+    }
+
+    private Set<InetSocketAddress> getRecommendedHostsFromAThousandTrials(
+            CassandraService cassandra,
+            Set<InetSocketAddress> hosts) {
+        return IntStream.range(0, 1_000)
+                .mapToObj(attempt -> cassandra.getRandomGoodHostForPredicate(address -> true, hosts))
+                .flatMap(Optional::stream)
+                .map(CassandraClientPoolingContainer::getHost)
+                .collect(Collectors.toSet());
     }
 
     private void assertContainerHasHostOne(Optional<CassandraClientPoolingContainer> container) {
