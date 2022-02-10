@@ -35,7 +35,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -129,7 +128,8 @@ public final class TimelockNamespaces {
         }
     }
 
-    public Map<Namespace, UUID> getNamespacesLockedWithDifferentLockId(Set<Namespace> namespaces, UUID expectedLockId) {
+    public Map<Namespace, String> getNamespacesLockedWithDifferentLockId(
+            Set<Namespace> namespaces, String expectedLockId) {
         return disabledNamespaces.getNamespacesLockedWithDifferentLockId(namespaces, expectedLockId);
     }
 

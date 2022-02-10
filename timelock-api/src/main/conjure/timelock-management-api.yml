@@ -11,10 +11,10 @@ types:
       DisableNamespacesRequest:
         fields:
           namespaces: set<api.Namespace>
-          lockId: uuid
+          lockId: string
       SuccessfulDisableNamespacesResponse:
         fields:
-          lockId: uuid
+          lockId: string
       UnsuccessfulDisableNamespacesResponse:
         fields:
           consistentlyDisabledNamespaces:
@@ -32,7 +32,7 @@ types:
       ReenableNamespacesRequest:
         fields:
           namespaces: set<api.Namespace>
-          lockId: uuid
+          lockId: string
       SuccessfulReenableNamespacesResponse:
         alias: boolean
       UnsuccessfulReenableNamespacesResponse:
@@ -106,7 +106,7 @@ services:
       disableTimelock:
         http: POST /disable
         args:
-          request: set<api.Namespace>
+          request: DisableNamespacesRequest
         returns: DisableNamespacesResponse
         docs: |
           Disables the TimeLock server in a persistant way for the specified namespaces. This includes invalidating

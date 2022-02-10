@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
@@ -103,35 +104,37 @@ public class AtlasRestoreService {
 
     /**
      * Disables TimeLock on all nodes for the given namespaces.
-     * Should be called exactly once prior to a restore operation. Calling this on multiple nodes will cause conflicts.
+     * This will fail if any namespace is already disabled, unless it was disabled with the provided backupId.
+     * Namespaces for which we don't have a recorded backup will be ignored.
      *
-     * @param namespaces the namespaces to disable
+     * @param namespaces the namespaces to disable.
+     * @param backupId a unique identifier for this request (uniquely identifies the backup to which we're restoring)
      *
-     * @return the result of the request, including a lock ID which must later be passed to completeRestore.
+     * @return the namespaces successfully disabled.
      */
-    @NonIdempotent
-    public DisableNamespacesResponse prepareRestore(Set<Namespace> namespaces) {
+    public Set<Namespace> prepareRestore(Set<Namespace> namespaces, String backupId) {
         Map<Namespace, CompletedBackup> completedBackups = getCompletedBackups(namespaces);
         Set<Namespace> namespacesToRestore = completedBackups.keySet();
 
-        DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, namespacesToRestore);
+        DisableNamespacesRequest request = DisableNamespacesRequest.of(namespacesToRestore, backupId);
+        DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, request);
         return response.accept(new DisableNamespacesResponse.Visitor<>() {
             @Override
-            public DisableNamespacesResponse visitSuccessful(SuccessfulDisableNamespacesResponse value) {
-                return response;
+            public Set<Namespace> visitSuccessful(SuccessfulDisableNamespacesResponse value) {
+                return namespacesToRestore;
             }
 
             @Override
-            public DisableNamespacesResponse visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
+            public Set<Namespace> visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
                 log.error(
                         "Failed to disable namespaces prior to restore",
                         SafeArg.of("namespaces", namespaces),
                         SafeArg.of("response", value));
-                return response;
+                return ImmutableSet.of();
             }
 
             @Override
-            public DisableNamespacesResponse visitUnknown(String unknownType) {
+            public Set<Namespace> visitUnknown(String unknownType) {
                 throw new SafeIllegalStateException(
                         "Unknown DisableNamespacesResponse", SafeArg.of("unknownType", unknownType));
             }
@@ -161,12 +164,13 @@ public class AtlasRestoreService {
      * Completes the restore process for the requested namespaces.
      * This includes fast-forwarding the timestamp, and then re-enabling the TimeLock namespaces.
      *
-     * @param request the request object, which must include the lock ID returned by {@link #prepareRestore(Set)}
+     * @param namespaces the namespaces to re-enable
+     * @param backupId the backup identifier, which must match the one given to {@link #prepareRestore(Set, String)}
      * @return the set of namespaces that were successfully fast-forwarded and re-enabled.
      */
     @NonIdempotent
-    public Set<Namespace> completeRestore(ReenableNamespacesRequest request) {
-        Set<CompletedBackup> completedBackups = request.getNamespaces().stream()
+    public Set<Namespace> completeRestore(Set<Namespace> namespaces, String backupId) {
+        Set<CompletedBackup> completedBackups = namespaces.stream()
                 .map(backupPersister::getCompletedBackup)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
@@ -174,15 +178,23 @@ public class AtlasRestoreService {
         if (completedBackups.isEmpty()) {
             log.info(
                     "Attempted to complete restore, but no completed backups were found",
-                    SafeArg.of("namespaces", request.getNamespaces()));
+                    SafeArg.of("namespaces", namespaces));
             return ImmutableSet.of();
+        } else if (completedBackups.size() < namespaces.size()) {
+            Set<Namespace> namespacesWithBackup =
+                    completedBackups.stream().map(CompletedBackup::getNamespace).collect(Collectors.toSet());
+            Set<Namespace> namespacesWithoutBackup = Sets.difference(namespaces, namespacesWithBackup);
+            log.warn(
+                    "Completed backups were not found for some namespaces",
+                    SafeArg.of("namespacesWithBackup", namespacesWithBackup),
+                    SafeArg.of("namespacesWithoutBackup", namespacesWithoutBackup));
         }
 
         // Fast forward timestamps
         CompleteRestoreResponse response =
                 atlasRestoreClientBlocking.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
         Set<Namespace> successfulNamespaces = response.getSuccessfulNamespaces();
-        Set<Namespace> failedNamespaces = Sets.difference(request.getNamespaces(), successfulNamespaces);
+        Set<Namespace> failedNamespaces = Sets.difference(namespaces, successfulNamespaces);
         if (!failedNamespaces.isEmpty()) {
             log.error(
                     "Failed to fast-forward timestamp for some namespaces. These will not be re-enabled.",
@@ -192,8 +204,8 @@ public class AtlasRestoreService {
 
         // Re-enable timelock
         timeLockManagementService.reenableTimelock(
-                authHeader, ReenableNamespacesRequest.of(successfulNamespaces, request.getLockId()));
-        if (successfulNamespaces.containsAll(request.getNamespaces())) {
+                authHeader, ReenableNamespacesRequest.of(successfulNamespaces, backupId));
+        if (successfulNamespaces.containsAll(namespaces)) {
             log.info(
                     "Successfully completed restore for all namespaces",
                     SafeArg.of("namespaces", successfulNamespaces));

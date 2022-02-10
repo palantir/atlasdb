@@ -46,7 +46,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -58,19 +57,16 @@ public class AllNodesDisabledNamespacesUpdater {
     private final ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters;
     private final Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors;
     private final TimelockNamespaces localUpdater;
-    private final Supplier<UUID> lockIdSupplier;
     private final int clusterSize;
 
     @VisibleForTesting
     AllNodesDisabledNamespacesUpdater(
             ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters,
             Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors,
-            TimelockNamespaces localUpdater,
-            Supplier<UUID> lockIdSupplier) {
+            TimelockNamespaces localUpdater) {
         this.remoteUpdaters = remoteUpdaters;
         this.remoteExecutors = remoteExecutors;
         this.localUpdater = localUpdater;
-        this.lockIdSupplier = lockIdSupplier;
         this.clusterSize = remoteUpdaters.size() + 1;
     }
 
@@ -78,7 +74,7 @@ public class AllNodesDisabledNamespacesUpdater {
             ImmutableList<DisabledNamespacesUpdaterService> remoteUpdaters,
             Map<DisabledNamespacesUpdaterService, CheckedRejectionExecutorService> remoteExecutors,
             TimelockNamespaces localUpdater) {
-        return new AllNodesDisabledNamespacesUpdater(remoteUpdaters, remoteExecutors, localUpdater, UUID::randomUUID);
+        return new AllNodesDisabledNamespacesUpdater(remoteUpdaters, remoteExecutors, localUpdater);
     }
 
     /**
@@ -96,13 +92,14 @@ public class AllNodesDisabledNamespacesUpdater {
      *  If we fail to roll back for some node (e.g. it becomes unreachable), then we're left in an inconsistent state
      *  which will need manual remediation.
      */
-    public DisableNamespacesResponse disableOnAllNodes(AuthHeader authHeader, Set<Namespace> namespaces) {
+    public DisableNamespacesResponse disableOnAllNodes(AuthHeader authHeader, DisableNamespacesRequest request) {
         if (anyNodeIsUnreachable(authHeader)) {
-            return DisableNamespaceResponses.unsuccessfulDueToPingFailure(namespaces);
+            return DisableNamespaceResponses.unsuccessfulDueToPingFailure(request.getNamespaces());
         }
 
-        UUID lockId = lockIdSupplier.get();
-        AllNodesUpdateResponse responses = disableNamespacesOnAllNodes(authHeader, namespaces, lockId);
+        Set<Namespace> namespaces = request.getNamespaces();
+        String lockId = request.getLockId();
+        AllNodesUpdateResponse responses = disableNamespacesOnAllNodes(authHeader, request);
         if (updateWasSuccessfulOnAllNodes(responses.allResponses())) {
             return DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(lockId));
         }
@@ -167,20 +164,19 @@ public class AllNodesDisabledNamespacesUpdater {
 
     // Disable
     private AllNodesUpdateResponse disableNamespacesOnAllNodes(
-            AuthHeader authHeader, Set<Namespace> namespaces, UUID lockId) {
-        DisableNamespacesRequest request = DisableNamespacesRequest.of(namespaces, lockId);
+            AuthHeader authHeader, DisableNamespacesRequest request) {
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.disable(authHeader, request);
         Supplier<SingleNodeUpdateResponse> localUpdate = () -> localUpdater.disable(request);
 
-        return attemptOnAllNodes(namespaces, lockId, update, localUpdate, false);
+        return attemptOnAllNodes(request.getNamespaces(), request.getLockId(), update, localUpdate, false);
     }
 
     // ReEnable
     private boolean attemptReEnableOnNodes(
             AuthHeader authHeader,
             Set<Namespace> namespaces,
-            UUID lockId,
+            String lockId,
             List<DisabledNamespacesUpdaterService> successfulNodes) {
         ReenableNamespacesRequest request = ReenableNamespacesRequest.builder()
                 .namespaces(namespaces)
@@ -194,7 +190,7 @@ public class AllNodesDisabledNamespacesUpdater {
     private AllNodesUpdateResponse reEnableNamespacesOnAllNodes(
             AuthHeader authHeader, ReenableNamespacesRequest request) {
         Set<Namespace> namespaces = request.getNamespaces();
-        UUID lockId = request.getLockId();
+        String lockId = request.getLockId();
         Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update =
                 service -> service.reenable(authHeader, request);
         Supplier<SingleNodeUpdateResponse> localUpdate = () -> localUpdater.reEnable(request);
@@ -218,7 +214,7 @@ public class AllNodesDisabledNamespacesUpdater {
     // Update and analysis
     private AllNodesUpdateResponse attemptOnAllNodes(
             Set<Namespace> namespaces,
-            UUID lockId,
+            String lockId,
             Function<DisabledNamespacesUpdaterService, SingleNodeUpdateResponse> update,
             Supplier<SingleNodeUpdateResponse> localUpdate,
             boolean alwaysAttemptOnLocalNode) {
@@ -235,13 +231,13 @@ public class AllNodesDisabledNamespacesUpdater {
     private SingleNodeUpdateResponse updateLocallyOrCheckState(
             Collection<SingleNodeUpdateResponse> responses,
             Set<Namespace> namespaces,
-            UUID lockId,
+            String lockId,
             Supplier<SingleNodeUpdateResponse> localUpdate,
             boolean alwaysAttemptOnLocalNode) {
         if (alwaysAttemptOnLocalNode || allRemoteNodesSucceeded(responses)) {
             return localUpdate.get();
         } else {
-            Map<Namespace, UUID> incorrectlyLockedNamespaces =
+            Map<Namespace, String> incorrectlyLockedNamespaces =
                     localUpdater.getNamespacesLockedWithDifferentLockId(namespaces, lockId);
             return SingleNodeUpdateResponse.failed(incorrectlyLockedNamespaces);
         }
