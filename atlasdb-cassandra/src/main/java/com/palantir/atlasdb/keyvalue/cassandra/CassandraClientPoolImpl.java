@@ -452,8 +452,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         if (blacklist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
             InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getHost();
-            Optional<CassandraClientPoolingContainer> hostPoolCandidate =
-                    cassandra.getRandomGoodHostForPredicate(address -> !req.alreadyTriedOnHost(address));
+            Optional<CassandraClientPoolingContainer> hostPoolCandidate = cassandra.getRandomGoodHostForPredicate(
+                    address -> !req.alreadyTriedOnHost(address), req.getTriedHosts());
             hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
             log.warn(
                     "Randomly redirected a query intended for host {} to {}.",

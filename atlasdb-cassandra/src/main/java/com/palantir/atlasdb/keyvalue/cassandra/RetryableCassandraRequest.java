@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
@@ -68,6 +69,10 @@ public class RetryableCassandraRequest<V, K extends Exception> {
 
     public void triedOnHost(InetSocketAddress host) {
         triedHosts.merge(host, 1, (old, ignore) -> old + 1);
+    }
+
+    public Set<InetSocketAddress> getTriedHosts() {
+        return triedHosts.keySet();
     }
 
     public void registerException(Exception exception) {
