@@ -32,8 +32,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -73,8 +73,9 @@ import org.apache.cassandra.thrift.TokenRange;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
-    private static final ScheduledExecutorService sharedRefreshDaemon =
-            PTExecutors.newScheduledThreadPool(1, new NamedThreadFactory("CassandraClientPoolRefresh", true));
+    private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
+            new InitializeableScheduledExecutorServiceSupplier(
+                    new NamedThreadFactory("CassandraClientPoolRefresh", true));
 
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
@@ -141,14 +142,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
-            ScheduledExecutorService refreshDaemon,
+            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             Blacklist blacklist,
             CassandraService cassandra) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 config,
                 startupChecks,
-                refreshDaemon,
+                initializeableExecutorSupplier,
                 exceptionHandler,
                 blacklist,
                 cassandra,
@@ -189,7 +190,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this(
                 config,
                 startupChecks,
-                sharedRefreshDaemon,
+                SHARED_EXECUTOR_SUPPLIER,
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, blacklist, metrics),
@@ -199,14 +200,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private CassandraClientPoolImpl(
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
-            ScheduledExecutorService refreshDaemon,
+            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraService cassandra,
             CassandraClientPoolMetrics metrics) {
         this.config = config;
         this.startupChecks = startupChecks;
-        this.refreshDaemon = refreshDaemon;
+        initializeableExecutorSupplier.initialize(config.numPoolRefreshingThreads());
+        this.refreshDaemon = initializeableExecutorSupplier.get();
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;

@@ -381,4 +381,13 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
                 localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
                 "'localHostWeighting' must be between 0 and 1 inclusive");
     }
+
+    /**
+     * Number of threads to be used across ALL transaction managers to refresh the client pool. It is suggested to use
+     * one thread per approximately 10 transaction managers that are expected to be used.
+     */
+    @Value.Default
+    default int numPoolRefreshingThreads() {
+        return 1;
+    }
 }
