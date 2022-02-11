@@ -63,6 +63,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -306,19 +307,28 @@ public class CassandraService implements AutoCloseable {
 
         Set<InetSocketAddress> hostsMatchingPredicate =
                 pools.keySet().stream().filter(predicate).collect(Collectors.toSet());
-        Set<String> triedDatacenters = triedHosts.stream()
+        Map<String, Long> triedDatacenters = triedHosts.stream()
                 .map(hostToDatacenter::get)
                 .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        Optional<Long> maximumAttemptsPerDatacenter =
+                triedDatacenters.values().stream().max(Long::compareTo);
+        Set<String> maximallyAttemptedDatacenters = KeyedStream.stream(triedDatacenters)
+                .filter(attempts -> Objects.equals(
+                        attempts,
+                        maximumAttemptsPerDatacenter.orElseThrow(() -> new SafeIllegalStateException(
+                                "Unexpectedly could not find the max attempts per datacenter"))))
+                .keys()
                 .collect(Collectors.toSet());
 
-        Set<InetSocketAddress> hostsInUntriedDatacenters = hostsMatchingPredicate.stream()
+        Set<InetSocketAddress> hostsInPermittedDatacenters = hostsMatchingPredicate.stream()
                 .filter(pool -> {
                     String datacenter = hostToDatacenter.get(pool);
-                    return datacenter == null || !triedDatacenters.contains(datacenter);
+                    return datacenter == null || !maximallyAttemptedDatacenters.contains(datacenter);
                 })
                 .collect(Collectors.toSet());
         Set<InetSocketAddress> filteredHosts =
-                hostsInUntriedDatacenters.isEmpty() ? hostsMatchingPredicate : hostsInUntriedDatacenters;
+                hostsInPermittedDatacenters.isEmpty() ? hostsMatchingPredicate : hostsInPermittedDatacenters;
 
         if (filteredHosts.isEmpty()) {
             log.info("No hosts match the provided predicate.");
