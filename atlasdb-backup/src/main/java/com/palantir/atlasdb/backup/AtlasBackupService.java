@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
 
 public final class AtlasBackupService {
     private final AuthHeader authHeader;
-    private final AtlasBackupClientBlocking atlasBackupClientBlocking;
+    private final AtlasBackupClient atlasBackupClient;
     private final CoordinationServiceRecorder coordinationServiceRecorder;
     private final BackupPersister backupPersister;
     private final Map<Namespace, InProgressBackupToken> inProgressBackups;
@@ -50,11 +51,11 @@ public final class AtlasBackupService {
     @VisibleForTesting
     AtlasBackupService(
             AuthHeader authHeader,
-            AtlasBackupClientBlocking atlasBackupClientBlocking,
+            AtlasBackupClient atlasBackupClient,
             CoordinationServiceRecorder coordinationServiceRecorder,
             BackupPersister backupPersister) {
         this.authHeader = authHeader;
-        this.atlasBackupClientBlocking = atlasBackupClientBlocking;
+        this.atlasBackupClient = atlasBackupClient;
         this.coordinationServiceRecorder = coordinationServiceRecorder;
         this.backupPersister = backupPersister;
         this.inProgressBackups = new ConcurrentHashMap<>();
@@ -67,22 +68,33 @@ public final class AtlasBackupService {
             Function<Namespace, Path> backupFolderFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
-                // TODO(gs): wire a proper user agent!
-                .withUserAgent(UserAgent.of(UserAgent.Agent.of("atlas-backup", "0.539.0")));
-        AtlasBackupClientBlocking atlasBackupClientBlocking =
-                reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName);
+                .withUserAgent(UserAgent.of(UserAgent.Agent.of("atlas-backup", "0.1337.0")));
+
+        AtlasBackupClient atlasBackupClient = new DialogueAdaptingAtlasBackupClient(
+                reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName));
 
         BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
         CoordinationServiceRecorder coordinationServiceRecorder =
                 new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
 
-        return new AtlasBackupService(
-                authHeader, atlasBackupClientBlocking, coordinationServiceRecorder, backupPersister);
+        return new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
+    }
+
+    public static AtlasBackupService create(
+            AuthHeader authHeader,
+            AtlasBackupClient atlasBackupClient,
+            Function<Namespace, Path> backupFolderFactory,
+            Function<Namespace, KeyValueService> keyValueServiceFactory) {
+        BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
+        CoordinationServiceRecorder coordinationServiceRecorder =
+                new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
+
+        return new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
     }
 
     public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {
         PrepareBackupRequest request = PrepareBackupRequest.of(namespaces);
-        PrepareBackupResponse response = atlasBackupClientBlocking.prepareBackup(authHeader, request);
+        PrepareBackupResponse response = atlasBackupClient.prepareBackup(authHeader, request);
 
         return response.getSuccessful().stream()
                 .peek(this::storeBackupToken)
@@ -101,7 +113,7 @@ public final class AtlasBackupService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
-        CompleteBackupResponse response = atlasBackupClientBlocking.completeBackup(authHeader, request);
+        CompleteBackupResponse response = atlasBackupClient.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
                 .peek(coordinationServiceRecorder::storeFastForwardState)
