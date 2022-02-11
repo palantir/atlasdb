@@ -73,7 +73,7 @@ import org.apache.cassandra.thrift.TokenRange;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
-    private static final InitializeableScheduledExecutorServiceSupplier sharedExecutorSupplier =
+    private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
             new InitializeableScheduledExecutorServiceSupplier(
                     new NamedThreadFactory("CassandraClientPoolRefresh", true));
 
@@ -190,7 +190,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this(
                 config,
                 startupChecks,
-                sharedExecutorSupplier,
+                SHARED_EXECUTOR_SUPPLIER,
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, blacklist, metrics),
