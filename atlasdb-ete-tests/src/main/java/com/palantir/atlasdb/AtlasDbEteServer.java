@@ -31,8 +31,6 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -61,10 +59,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
-import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -131,22 +126,17 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Optional<AtlasDbRuntimeConfig> maybeRuntimeConfig = config.getAtlasDbRuntimeConfig();
         URL localServer = new URL("https://localhost:1234");
         maybeRuntimeConfig.ifPresent(runtimeConfig -> {
-            Refreshable<ServicesConfigBlock> servicesConfigBlock = Refreshable.create(getServices(runtimeConfig));
-            //        Supplier<AsyncTimelockService> timelockSupplier =
-            //                Suppliers.memoize(() -> getAsyncTimelockService(config, txManager));
             Function<Namespace, Path> backupFolderFactory = _unused -> Paths.get("var/data/backup");
             Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
             ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
-            Function<String, AsyncTimelockService> timelockServices = _unused -> getAsyncTimelockService(config, txManager);
-            AtlasBackupClient jerseyClient = AtlasBackupResource.JerseyAtlasBackupClientAdapter(
-                    AtlasBackupResource.jersey(() -> Optional.of(authHeader.getBearerToken()),
-                            RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer)),
-                            timelockServices);
-            )
-
+            Function<String, AsyncTimelockService> timelockServices = _unused -> getAsyncTimelockService(config);
+            AtlasBackupClient atlasBackupClient = AtlasBackupResource.jersey(
+                    () -> Optional.of(authHeader.getBearerToken()),
+                    RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer)),
+                    timelockServices);
             AtlasBackupService atlasBackupService = AtlasBackupService.create(
-                    authHeader, servicesConfigBlock, "timelock", backupFolderFactory, keyValueServiceFactory);
+                    authHeader, atlasBackupClient, backupFolderFactory, keyValueServiceFactory);
             environment
                     .jersey()
                     .register(new SimpleBackupAndRestoreResource(atlasBackupService, externalBackupPersister));
@@ -157,19 +147,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
-    }
-
-    private ServicesConfigBlock getServices(AtlasDbRuntimeConfig config) {
-        PartialServiceConfiguration timelockConfig = PartialServiceConfiguration.builder()
-                .addAllUris(config.timelockRuntime()
-                        .map(TimeLockRuntimeConfig::serversList)
-                        .map(ServerListConfig::servers)
-                        .orElseGet(ImmutableSet::of))
-                .security(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
-                .build();
-        return ServicesConfigBlock.builder()
-                .putServices("timelock", timelockConfig)
-                .build();
     }
 
     private void ensureTransactionSchemaVersionInstalled(
@@ -214,8 +191,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     // TODO(gs): there must be an easier way to do this!
-    private AsyncTimelockService getAsyncTimelockService(
-            AtlasDbEteConfiguration config, TransactionManager transactionManager) {
+    private AsyncTimelockService getAsyncTimelockService(AtlasDbEteConfiguration config) {
         TimeLockInstallConfiguration timelockInstallConfig =
                 config.getTimeLockInstallConfiguration().orElseThrow();
         TimeLockRuntimeConfiguration timelockRuntimeConfig =
