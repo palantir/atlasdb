@@ -196,7 +196,7 @@ public final class ClientAwareLockTest {
         anonymousReadLock.unlock();
         anonymousWriteLock.lock();
         assertThat(ImmutableList.copyOf(orderingQueue))
-                .isEqualTo(ImmutableList.of("one", "two", "two", "three", "four", "five", "five"));
+                .containsExactly("one", "two", "two", "three", "four", "five", "five");
         anonymousWriteLock.unlock();
     }
 

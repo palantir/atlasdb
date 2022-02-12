@@ -73,7 +73,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
         Map<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>> results =
                 paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));
 
-        assertThat(results).isEqualTo(expected);
+        assertThat(results).containsExactlyInAnyOrderEntriesOf(expected);
     }
 
     @Test
@@ -96,7 +96,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
 
         Map<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>> results =
                 paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));
-        assertThat(results).isEqualTo(expected);
+        assertThat(results).containsExactlyInAnyOrderEntriesOf(expected);
     }
 
     private PaxosQuorumCheckingCoalescingFunction<Long, PaxosLong, TestFunction> paxosQuorumCheckerFor(

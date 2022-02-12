@@ -18,7 +18,6 @@ package com.palantir.common.concurrent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Callables;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -157,7 +156,7 @@ public class ExecutorInheritableThreadLocalTest {
             return null;
         });
         future.get();
-        assertThat(outputList).isEqualTo(ImmutableList.of(11, 12));
+        assertThat(outputList).containsExactly(11, 12);
     }
 
     @Test

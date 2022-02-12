@@ -120,7 +120,7 @@ public abstract class AbstractSweepTest {
 
         assertThat(getFromDefaultColumn("foo", 150)).isEqualTo("baz");
         assertThat(getFromDefaultColumn("foo", 80)).isEmpty();
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 100L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 100L);
     }
 
     @Test(timeout = 50000)
@@ -153,7 +153,7 @@ public abstract class AbstractSweepTest {
 
         assertThat(getFromDefaultColumn("foo", 200)).isEqualTo("buzz");
         assertThat(getFromDefaultColumn("foo", 124)).isEmpty();
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 125L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 125L);
     }
 
     @Test(timeout = 50000)
@@ -177,7 +177,7 @@ public abstract class AbstractSweepTest {
             assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(3);
         });
 
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 100L, 125L, 150L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 100L, 125L, 150L);
     }
 
     @Test(timeout = 50000)
@@ -194,7 +194,7 @@ public abstract class AbstractSweepTest {
 
         assertThat(getFromDefaultColumn("foo", 150)).isEqualTo("baz");
         assertThat(getFromDefaultColumn("foo", 80)).isNull();
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(100L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(100L);
     }
 
     @Test(timeout = 50000)
@@ -209,7 +209,7 @@ public abstract class AbstractSweepTest {
         });
 
         assertThat(getFromDefaultColumn("foo", 150)).isEqualTo("bar");
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(50L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L);
     }
 
     @Test(timeout = 50000)
@@ -246,7 +246,7 @@ public abstract class AbstractSweepTest {
 
         // The other column was unaffected
         assertThat(get("foo", "other column", 150)).isEqualTo("other value");
-        assertThat(getAllTs("foo", "other column")).isEqualTo(ImmutableSet.of(40L));
+        assertThat(getAllTs("foo", "other column")).containsExactlyInAnyOrder(40L);
     }
 
     @Test(timeout = 50000)
@@ -262,7 +262,7 @@ public abstract class AbstractSweepTest {
         });
 
         assertThat(getFromDefaultColumn("foo", 150)).isEmpty();
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 50L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 50L);
     }
 
     @Test(timeout = 50000)
@@ -278,7 +278,7 @@ public abstract class AbstractSweepTest {
         });
 
         assertThat(getFromDefaultColumn("foo", 150)).isEqualTo("new value");
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(50L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L);
     }
 
     @Test(timeout = 50000)
@@ -356,7 +356,7 @@ public abstract class AbstractSweepTest {
         });
 
         assertThat(getFromDefaultColumn("foo", 200)).isEqualTo("foo");
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(125L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(125L);
     }
 
     @Test(timeout = 50000)
@@ -375,7 +375,7 @@ public abstract class AbstractSweepTest {
             assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(3);
         });
 
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(100L, 125L, 150L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(100L, 125L, 150L);
     }
 
     @Test(timeout = 50000)
@@ -413,9 +413,10 @@ public abstract class AbstractSweepTest {
 
     void assertEqualsDisregardingExtraSentinels(Set<Long> expectedTimestamps, Set<Long> actualTimestamps) {
         if (expectedTimestamps.contains(-1L)) {
-            assertThat(actualTimestamps).isEqualTo(expectedTimestamps);
+            assertThat(actualTimestamps).containsExactlyInAnyOrderElementsOf(expectedTimestamps);
         } else {
-            assertThat(Sets.difference(actualTimestamps, ImmutableSet.of(-1L))).isEqualTo(expectedTimestamps);
+            assertThat(Sets.difference(actualTimestamps, ImmutableSet.of(-1L)))
+                    .containsExactlyInAnyOrderElementsOf(expectedTimestamps);
         }
     }
 

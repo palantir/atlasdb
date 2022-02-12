@@ -148,7 +148,7 @@ public class WriteInfoPartitionerTest {
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
         assertThat(partitions.keySet())
                 .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
-        assertThat(Iterables.getOnlyElement(partitions.values())).isEqualTo(writes);
+        assertThat(Iterables.getOnlyElement(partitions.values())).containsExactlyElementsOf(writes);
     }
 
     @Test

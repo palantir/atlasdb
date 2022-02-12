@@ -71,6 +71,7 @@ public class ReadOnlyTransactionServiceIntegrationTest {
 
         assertThat(readOnlyTransactionService.get(
                         ImmutableList.of(1L, COORDINATION_QUANTUM + 1L, 2 * COORDINATION_QUANTUM + 1L)))
-                .isEqualTo(ImmutableMap.of(1L, 8L, COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L));
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(1L, 8L, COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L));
     }
 }

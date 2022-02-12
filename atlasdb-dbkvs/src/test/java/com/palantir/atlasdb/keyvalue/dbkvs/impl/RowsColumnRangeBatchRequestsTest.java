@@ -113,7 +113,7 @@ public class RowsColumnRangeBatchRequestsTest {
         List<byte[]> actualAllRows = partitions.stream()
                 .flatMap(partition -> RowsColumnRangeBatchRequests.getAllRowsInOrder(partition).stream())
                 .collect(Collectors.toList());
-        assertThat(actualAllRows).isEqualTo(RowsColumnRangeBatchRequests.getAllRowsInOrder(original));
+        assertThat(actualAllRows).containsExactlyElementsOf(RowsColumnRangeBatchRequests.getAllRowsInOrder(original));
     }
 
     private static void assertColumnRangesInPartitionsMatchOriginal(

@@ -358,7 +358,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Map<Cell, Value> result = keyValueService.getRows(
                 tableReference, ImmutableList.of(row1), ColumnSelection.all(), STARTING_ATLAS_TIMESTAMP - 1);
 
-        assertThat(result).isEqualTo(tableValues);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(tableValues);
     }
 
     @Test

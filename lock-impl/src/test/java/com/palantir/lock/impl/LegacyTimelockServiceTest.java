@@ -198,7 +198,7 @@ public class LegacyTimelockServiceTest {
         when(lockService.unlock(toLegacyToken(tokenB))).thenReturn(false);
 
         Set<LockToken> expected = ImmutableSet.of(tokenA);
-        assertThat(timelock.unlock(ImmutableSet.of(tokenA, tokenB))).isEqualTo(expected);
+        assertThat(timelock.unlock(ImmutableSet.of(tokenA, tokenB))).containsExactlyInAnyOrderElementsOf(expected);
     }
 
     private static LockToken randomLockToken() {

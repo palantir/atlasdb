@@ -48,7 +48,7 @@ public class PaxosStateLogBatchReaderTest {
                 .persistToBytes());
 
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {
-            assertThat(reader.readBatch(START_SEQUENCE, BATCH_SIZE)).isEqualTo(EXPECTED_ROUNDS);
+            assertThat(reader.readBatch(START_SEQUENCE, BATCH_SIZE)).containsExactlyElementsOf(EXPECTED_ROUNDS);
         }
     }
 
@@ -82,7 +82,7 @@ public class PaxosStateLogBatchReaderTest {
 
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {
             assertThat(reader.readBatch(START_SEQUENCE, BATCH_SIZE))
-                    .isEqualTo(EXPECTED_ROUNDS.stream()
+                    .containsExactlyElementsOf(EXPECTED_ROUNDS.stream()
                             .filter(round -> isOdd.test(round.sequence()))
                             .collect(Collectors.toList()));
         }

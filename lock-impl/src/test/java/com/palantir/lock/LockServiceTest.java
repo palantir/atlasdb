@@ -123,7 +123,7 @@ public abstract class LockServiceTest {
         assertThat(token1).isNotNull();
         assertThat(token1.getClient()).isEqualTo(this.client);
         assertThat(token1.getVersionId()).isEqualTo(10);
-        assertThat(token1.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token1.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
         assertThat(token1.getExpirationDateMs())
                 .isBetween(currentTimeMs + lockTimeoutMs, System.currentTimeMillis() + lockTimeoutMs);
 
@@ -169,16 +169,16 @@ public abstract class LockServiceTest {
                 .getToken();
         assertThat(token3).isNotNull();
 
-        assertThat(server.getTokens(this.client)).isEqualTo(ImmutableSet.of(token1, token2, token3));
+        assertThat(server.getTokens(this.client)).containsExactlyInAnyOrder(token1, token2, token3);
         assertThat(server.getMinLockedInVersionId(this.client).longValue()).isEqualTo(5);
 
         server.unlock(token2);
-        assertThat(server.getTokens(this.client)).isEqualTo(ImmutableSet.of(token1, token3));
+        assertThat(server.getTokens(this.client)).containsExactlyInAnyOrder(token1, token3);
         assertThat(server.getMinLockedInVersionId(this.client).longValue()).isEqualTo(10);
 
         server.unlock(token1);
         assertThat(server.refreshTokens(ImmutableSet.of(token1, token2, token3)))
-                .isEqualTo(ImmutableSet.of(token3));
+                .containsExactlyInAnyOrder(token3);
         assertThat(server.getMinLockedInVersionId(this.client)).isNull();
 
         server.unlock(token3);
@@ -203,7 +203,7 @@ public abstract class LockServiceTest {
         HeldLocksToken token1 = response.getToken();
         assertThat(token1).isNotNull();
         assertThat(token1.getClient()).isEqualTo(client);
-        assertThat(token1.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token1.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
         assertThat(token1.getExpirationDateMs())
                 .isBetween(currentTimeMs + lockTimeoutMs, System.currentTimeMillis() + lockTimeoutMs);
 
@@ -214,7 +214,9 @@ public abstract class LockServiceTest {
                             .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
                             .build());
             assertThat(response1.success()).isFalse();
-            assertThat(response1.getLockHolders()).isNotEmpty().isEqualTo(ImmutableSortedMap.of(lock2, client));
+            assertThat(response1.getLockHolders())
+                    .isNotEmpty()
+                    .containsExactlyInAnyOrderEntriesOf(ImmutableSortedMap.of(lock2, client));
             assertThat(response1.getToken()).isNull();
             barrier.await();
 
@@ -270,18 +272,18 @@ public abstract class LockServiceTest {
         HeldLocksToken token3 = response.getToken();
         assertThat(token3).isNotNull();
 
-        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token1, token2, token3));
+        assertThat(server.getTokens(client)).containsExactlyInAnyOrder(token1, token2, token3);
         assertThat(server.getMinLockedInVersionId(client).longValue()).isEqualTo(5);
         assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS)).isNull();
 
         server.unlock(token2);
-        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token1, token3));
+        assertThat(server.getTokens(client)).containsExactlyInAnyOrder(token1, token3);
         assertThat(server.getMinLockedInVersionId(client).longValue()).isEqualTo(10);
         assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS)).isNull();
 
         server.unlock(token1);
         assertThat(server.refreshTokens(ImmutableSet.of(token1, token2, token3)))
-                .isEqualTo(ImmutableSet.of(token3));
+                .containsExactlyInAnyOrder(token3);
         assertThat(server.getMinLockedInVersionId(client)).isNull();
 
         server.unlock(token3);
@@ -305,7 +307,7 @@ public abstract class LockServiceTest {
         HeldLocksToken token1 = response.getToken();
         assertThat(token1).isNotNull();
         assertThat(token1.getClient()).isEqualTo(client);
-        assertThat(token1.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token1.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
         assertThat(token1.getExpirationDateMs())
                 .isBetween(currentTimeMs + lockTimeoutMs, System.currentTimeMillis() + lockTimeoutMs);
 
@@ -351,18 +353,18 @@ public abstract class LockServiceTest {
                 .getToken();
         assertThat(token3).isNotNull();
 
-        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token1, token2, token3));
+        assertThat(server.getTokens(client)).containsExactlyInAnyOrder(token1, token2, token3);
         assertThat(server.getMinLockedInVersionId(client).longValue()).isEqualTo(5);
         assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS)).isNull();
 
         server.unlock(token2);
-        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token1, token3));
+        assertThat(server.getTokens(client)).containsExactlyInAnyOrder(token1, token3);
         assertThat(server.getMinLockedInVersionId(client).longValue()).isEqualTo(10);
         assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS)).isNull();
 
         server.unlock(token1);
         assertThat(server.refreshTokens(ImmutableSet.of(token1, token2, token3)))
-                .isEqualTo(ImmutableSet.of(token3));
+                .containsExactlyInAnyOrder(token3);
         assertThat(server.getMinLockedInVersionId(client)).isNull();
 
         server.unlock(token3);
@@ -456,14 +458,14 @@ public abstract class LockServiceTest {
         HeldLocksToken token1 = response.getToken();
         assertThat(token1).isNotNull();
         assertThat(token1.getClient()).isEqualTo(client);
-        assertThat(token1.getLockDescriptors()).isEqualTo(request1.getLockDescriptors());
+        assertThat(token1.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request1.getLockDescriptors());
 
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
         HeldLocksToken token2 = response.getToken();
         System.out.println(response.getLockHolders());
         assertThat(token2).isNotNull();
         assertThat(token2.getClient()).isEqualTo(LockClient.ANONYMOUS);
-        assertThat(token2.getLockDescriptors()).isEqualTo(request2.getLockDescriptors());
+        assertThat(token2.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request2.getLockDescriptors());
 
         LockRequest request3 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.WRITE))
                 .lockAsManyAsPossible()
@@ -475,7 +477,7 @@ public abstract class LockServiceTest {
         assertThat(token3).isNotNull();
         assertThat(token3.getClient()).isEqualTo(client);
         assertThat(token3.getLockDescriptors())
-                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ)));
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ)));
 
         server.unlock(token1);
         server.unlock(token2);
@@ -503,7 +505,7 @@ public abstract class LockServiceTest {
         HeldLocksToken token1 = response1.getToken();
         assertThat(token1).isNotNull();
         assertThat(token1.getClient()).isEqualTo(LockClient.ANONYMOUS);
-        assertThat(token1.getLockDescriptors()).isEqualTo(request1.getLockDescriptors());
+        assertThat(token1.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request1.getLockDescriptors());
         assertThat(token1.getExpirationDateMs())
                 .isBetween(currentTimeMs + lockTimeoutMs, System.currentTimeMillis() + lockTimeoutMs);
 
@@ -556,7 +558,7 @@ public abstract class LockServiceTest {
         assertThat(response1.success()).isTrue();
         LockState state1 = server.getLockState(lock1);
         assertThat(state1.isWriteLocked()).isFalse();
-        assertThat(ImmutableList.of(LockClient.ANONYMOUS)).isEqualTo(state1.exactCurrentLockHolders());
+        assertThat(ImmutableList.of(LockClient.ANONYMOUS)).containsExactlyElementsOf(state1.exactCurrentLockHolders());
         assertThat(Thread.currentThread().getName())
                 .isEqualTo(Iterables.getOnlyElement(state1.holders()).requestingThread());
 
@@ -630,11 +632,11 @@ public abstract class LockServiceTest {
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
         assertThat(response.success()).isTrue();
         assertThat(response.getLockHolders().isEmpty()).isFalse();
-        assertThat(response.getLockHolders()).isEqualTo(ImmutableMap.of(lock3, client));
+        assertThat(response.getLockHolders()).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(lock3, client));
         HeldLocksToken token = response.getToken();
         assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
         assertThat(token.getLockDescriptors())
-                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ)));
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ)));
 
         request = LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.READ, lock4, LockMode.WRITE))
                 .lockAsManyAsPossible()
@@ -643,11 +645,11 @@ public abstract class LockServiceTest {
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
         assertThat(response.success()).isTrue();
         assertThat(response.getLockHolders().isEmpty()).isFalse();
-        assertThat(response.getLockHolders()).isEqualTo(ImmutableMap.of(lock4, client));
+        assertThat(response.getLockHolders()).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(lock4, client));
         token = response.getToken();
         assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
         assertThat(token.getLockDescriptors())
-                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock2, LockMode.READ)));
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.of(lock2, LockMode.READ)));
 
         request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.READ))
                 .lockAsManyAsPossible()
@@ -659,7 +661,8 @@ public abstract class LockServiceTest {
         token = response.getToken();
         assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
         assertThat(token.getLockDescriptors())
-                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.READ)));
+                .containsExactlyInAnyOrderElementsOf(
+                        LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.READ)));
 
         request = LockRequest.builder(ImmutableSortedMap.of(lock3, LockMode.WRITE, lock4, LockMode.WRITE))
                 .lockAsManyAsPossible()
@@ -668,7 +671,8 @@ public abstract class LockServiceTest {
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
         assertThat(response.success()).isFalse();
         assertThat(response.getLockHolders().isEmpty()).isFalse();
-        assertThat(response.getLockHolders()).isEqualTo(ImmutableSortedMap.of(lock3, client, lock4, client));
+        assertThat(response.getLockHolders())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableSortedMap.of(lock3, client, lock4, client));
         token = response.getToken();
         assertThat(token).isNull();
     }
@@ -710,7 +714,7 @@ public abstract class LockServiceTest {
         LockClient client2 = LockClient.of("client2");
         LockResponse response = server.lockWithFullLockResponse(client2, requestWrite);
         assertThat(response.success()).isFalse();
-        assertThat(response.getLockHolders()).isEqualTo(ImmutableMap.of(lock1, client));
+        assertThat(response.getLockHolders()).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(lock1, client));
         HeldLocksToken nullToken = response.getToken();
         assertThat(nullToken).isNull();
 
@@ -814,7 +818,7 @@ public abstract class LockServiceTest {
                 .getToken();
 
         assertThat(token).isNotNull();
-        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token));
+        assertThat(server.getTokens(client)).containsExactlyInAnyOrder(token);
         assertThatThrownBy(() -> server.getTokens(LockClient.ANONYMOUS))
                 .describedAs("Expected: can't refresh an anonymous client")
                 .isInstanceOf(IllegalArgumentException.class);
@@ -853,7 +857,7 @@ public abstract class LockServiceTest {
         assertThat(readWriteToken).isNotNull();
         assertThat(readWriteToken.getClient()).isEqualTo(client);
         assertThat(readWriteToken.getLockDescriptors())
-                .isEqualTo(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
 
         lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
@@ -864,7 +868,8 @@ public abstract class LockServiceTest {
                 server.lockWithFullLockResponse(client, requestAllLocks).getToken();
         assertThat(token).isNotNull();
         assertThat(token.getClient()).isEqualTo(client);
-        assertThat(token.getLockDescriptors()).isEqualTo(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
+        assertThat(token.getLockDescriptors())
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
 
         server.unlock(token);
         server.unlock(readWriteToken);
@@ -896,7 +901,8 @@ public abstract class LockServiceTest {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.WRITE);
             }
         }
-        assertThat(token.getLockDescriptors()).isEqualTo(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
+        assertThat(token.getLockDescriptors())
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
         server.unlock(token);
 
         lockMap = new TreeMap<>();
@@ -918,7 +924,8 @@ public abstract class LockServiceTest {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.READ);
             }
         }
-        assertThat(token.getLockDescriptors()).isEqualTo(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
+        assertThat(token.getLockDescriptors())
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
         server.unlock(token);
     }
 
@@ -991,7 +998,8 @@ public abstract class LockServiceTest {
                             } else {
                                 numSuccess.set(numSuccess.get() + 1);
                                 assertThat(token.getClient().getClientId()).isEqualTo(Integer.toString(clientID));
-                                assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+                                assertThat(token.getLockDescriptors())
+                                        .containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
                                 try {
                                     Thread.sleep(50);
                                 } catch (InterruptedException e) {
@@ -1026,7 +1034,7 @@ public abstract class LockServiceTest {
                 server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
         assertThat(token).isNotNull();
         assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
-        assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
         server.unlock(token);
     }
 
@@ -1049,7 +1057,7 @@ public abstract class LockServiceTest {
         HeldLocksToken token = server.lockWithFullLockResponse(client, request).getToken();
         assertThat(token).isNotNull();
         assertThat(token.getClient()).isEqualTo(client);
-        assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
         Thread.sleep(51);
         assertThat(token.getExpirationDateMs() - System.currentTimeMillis()).isLessThan(450);
         HeldLocksToken nullToken =
@@ -1060,12 +1068,12 @@ public abstract class LockServiceTest {
         token = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
         assertThat(token).isNotNull();
         assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
-        assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
 
         HeldLocksGrant grant = server.convertToGrant(token);
         assertThat(grant).isNotNull();
         assertThat(grant.getClient()).isNull();
-        assertThat(grant.getLocks()).isEqualTo(request.getLockDescriptors());
+        assertThat(grant.getLocks()).containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
         Thread.sleep(51);
         assertThat(grant.getExpirationDateMs() - System.currentTimeMillis()).isLessThan(450);
         grant = server.refreshGrant(grant);
@@ -1079,7 +1087,7 @@ public abstract class LockServiceTest {
         token = server.lockWithFullLockResponse(client, request).getToken();
         assertThat(token).isNotNull();
         assertThat(token.getClient()).isEqualTo(client);
-        assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request.getLockDescriptors());
         server.unlock(token);
         assertThat(server.getTokens(client)).isEmpty();
     }
@@ -1097,7 +1105,7 @@ public abstract class LockServiceTest {
                 server.lockWithFullLockResponse(client, request1).getToken();
         assertThat(token1).isNotNull();
         assertThat(token1.getClient()).isEqualTo(client);
-        assertThat(token1.getLockDescriptors()).isEqualTo(request1.getLockDescriptors());
+        assertThat(token1.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request1.getLockDescriptors());
 
         Future<?> future = executor.submit((Callable<Void>) () -> {
             barrier.await();
@@ -1105,7 +1113,8 @@ public abstract class LockServiceTest {
                     .getToken();
             assertThat(validToken).isNotNull();
             assertThat(validToken.getClient()).isEqualTo(LockClient.ANONYMOUS);
-            assertThat(validToken.getLockDescriptors()).isEqualTo(request2.getLockDescriptors());
+            assertThat(validToken.getLockDescriptors())
+                    .containsExactlyInAnyOrderElementsOf(request2.getLockDescriptors());
             assertThat(server.unlock(validToken)).isTrue();
             return null;
         });
@@ -1115,7 +1124,7 @@ public abstract class LockServiceTest {
                 server.lockWithFullLockResponse(client, request2).getToken();
         assertThat(token2).isNotNull();
         assertThat(token2.getClient()).isEqualTo(client);
-        assertThat(token2.getLockDescriptors()).isEqualTo(request2.getLockDescriptors());
+        assertThat(token2.getLockDescriptors()).containsExactlyInAnyOrderElementsOf(request2.getLockDescriptors());
         assertThat(server.unlock(token1)).isTrue();
         future.get();
         assertThat(server.unlock(token2)).isTrue();
@@ -1151,7 +1160,7 @@ public abstract class LockServiceTest {
                 server.lockWithFullLockResponse(lockClient, request).getToken();
         assertThat(token).isNotNull().extracting(HeldLocksToken::getClient).isEqualTo(lockClient);
         assertThat(token.getLockDescriptors())
-                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock, LockMode.READ)));
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.of(lock, LockMode.READ)));
 
         LockRequest request2 = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE))
                 .blockForAtMost(SimpleTimeDuration.of(0, TimeUnit.SECONDS))
@@ -1207,7 +1216,7 @@ public abstract class LockServiceTest {
         assertThat(token).isNotNull();
         assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
         assertThat(token.getLockDescriptors())
-                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)));
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)));
         HeldLocksToken finalToken = token;
         assertThatThrownBy(() -> server.unlockAndFreeze(finalToken))
                 .describedAs("Expected: anonymous clients can't unlock and freeze")
@@ -1221,7 +1230,7 @@ public abstract class LockServiceTest {
         assertThat(token2).isNotNull();
         assertThat(token2.getClient()).isEqualTo(client);
         assertThat(token2.getLockDescriptors())
-                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)));
+                .containsExactlyInAnyOrderElementsOf(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)));
         server.unlockAndFreeze(token2);
         token2 = server.lockWithFullLockResponse(client, request).getToken();
         assertThat(token2).isNull();
@@ -1245,7 +1254,7 @@ public abstract class LockServiceTest {
                                 .build())
                 .getToken();
         assertThat(token4).isNotNull();
-        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token4));
+        assertThat(server.getTokens(client)).containsExactlyInAnyOrder(token4);
         token = server.lockWithFullLockResponse(client, request).getToken();
         assertThat(token).isNull();
         Thread.sleep(1000);

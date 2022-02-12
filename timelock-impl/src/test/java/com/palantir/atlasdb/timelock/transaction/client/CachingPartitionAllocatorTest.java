@@ -57,7 +57,7 @@ public class CachingPartitionAllocatorTest {
         verify(generator, times(1)).getAndMarkResidue();
         verifyNoMoreInteractions(generator);
 
-        assertThat(firstResponse).isEqualTo(secondResponse).isEqualTo(thirdResponse);
+        assertThat(firstResponse).containsExactlyElementsOf(secondResponse).containsExactlyElementsOf(thirdResponse);
     }
 
     @Test
