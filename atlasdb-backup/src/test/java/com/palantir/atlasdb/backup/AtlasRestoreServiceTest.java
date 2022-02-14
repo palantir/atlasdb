@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
+import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
@@ -54,7 +54,7 @@ public class AtlasRestoreServiceTest {
     private AuthHeader authHeader;
 
     @Mock
-    private AtlasRestoreClientBlocking atlasRestoreClient;
+    private AtlasRestoreClient atlasRestoreClient;
 
     @Mock
     private CassandraRepairHelper cassandraRepairHelper;
