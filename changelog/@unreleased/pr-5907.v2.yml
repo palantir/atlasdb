@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '`LeasedLockToken` is now serialisable for the sake of logging.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5907
