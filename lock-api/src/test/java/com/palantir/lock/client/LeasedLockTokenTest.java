@@ -19,8 +19,11 @@ package com.palantir.lock.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.common.time.NanoTime;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
@@ -44,6 +47,19 @@ public class LeasedLockTokenTest {
 
         advance(LEASE_TIMEOUT.minus(Duration.ofNanos(1)));
         assertThat(token.isValid(getIdentifiedTime())).isTrue();
+    }
+
+    @Test
+    public void leasedLockTokenSerialisesAndDeserialisesConsistently() throws JsonProcessingException {
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+
+        ObjectMapper mapper = ObjectMappers.newClientObjectMapper();
+        String serialised = mapper.writeValueAsString(token);
+        LeasedLockToken deserialised = mapper.readValue(serialised, LeasedLockToken.class);
+
+        assertThat(deserialised.serverToken()).isEqualTo(token.serverToken());
+        assertThat(deserialised.getLease()).isEqualTo(token.getLease());
+        assertThat(deserialised.getRequestId()).isEqualTo(token.getRequestId());
     }
 
     @Test

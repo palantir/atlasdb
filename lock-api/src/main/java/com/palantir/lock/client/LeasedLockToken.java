@@ -16,6 +16,10 @@
 
 package com.palantir.lock.client;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
@@ -25,11 +29,17 @@ import com.palantir.logsafe.SafeArg;
 import java.util.UUID;
 import javax.annotation.concurrent.GuardedBy;
 
+@JsonSerialize(as = LeasedLockToken.class)
+@JsonDeserialize(as = LeasedLockToken.class)
 public final class LeasedLockToken implements LockToken {
+    @JsonProperty("serverToken")
     private final ConjureLockToken serverToken;
+
+    @JsonProperty("requestId")
     private final UUID requestId;
 
     @GuardedBy("this")
+    @JsonProperty("lease")
     private Lease lease;
 
     @GuardedBy("this")
@@ -39,7 +49,11 @@ public final class LeasedLockToken implements LockToken {
         return new LeasedLockToken(serverToken, UUID.randomUUID(), lease);
     }
 
-    private LeasedLockToken(ConjureLockToken serverToken, UUID requestId, Lease lease) {
+    @JsonCreator
+    private LeasedLockToken(
+            @JsonProperty("serverToken") ConjureLockToken serverToken,
+            @JsonProperty("requestId") UUID requestId,
+            @JsonProperty("lease") Lease lease) {
         this.serverToken = serverToken;
         this.requestId = requestId;
         this.lease = lease;
