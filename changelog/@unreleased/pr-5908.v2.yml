@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: 'Users of `PostgresConnectionConfig` will have their `ssl: true` flag
+    replaced with `sslmode: require`; this is due to a breaking change in Postgres
+    42.2.5 (https://github.com/pgjdbc/pgjdbc/issues/1307).'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5908
