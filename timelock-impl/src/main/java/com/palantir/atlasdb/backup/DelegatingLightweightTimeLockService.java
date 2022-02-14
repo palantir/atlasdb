@@ -58,7 +58,6 @@ public class DelegatingLightweightTimeLockService implements LightweightTimeLock
 
     @Override
     public ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens) {
-        // TODO(gs): be less futuristic?
         return Futures.immediateFuture(timelockService.unlock(tokens));
     }
 }

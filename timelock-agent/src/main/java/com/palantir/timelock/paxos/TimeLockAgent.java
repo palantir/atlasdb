@@ -348,7 +348,6 @@ public class TimeLockAgent {
 
         Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
                 namespace -> namespaces.get(namespace).getTimelockService();
-        // TODO(gs): use something other than ATSI here
         Function<String, LightweightTimeLockService> lightweightTimelockServiceGetter =
                 namespace -> namespaces.get(namespace).getTimelockService();
         Function<String, LockService> lockServiceGetter =

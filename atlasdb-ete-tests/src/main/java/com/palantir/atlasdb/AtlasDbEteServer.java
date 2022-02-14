@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.backup.AtlasBackupService;
+import com.palantir.atlasdb.backup.AuthHeaderValidator;
 import com.palantir.atlasdb.backup.DelegatingLightweightTimeLockService;
 import com.palantir.atlasdb.backup.ExternalBackupPersister;
 import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
@@ -133,7 +134,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Function<String, LightweightTimeLockService> timelockServices =
                 _unused -> createLightweightTimeLockService(txManager);
         AtlasBackupClient atlasBackupClient = AtlasBackupResource.jersey(
-                () -> Optional.of(authHeader.getBearerToken()),
+                new AuthHeaderValidator(() -> Optional.of(authHeader.getBearerToken())),
                 RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer)),
                 timelockServices);
         AtlasBackupService atlasBackupService =
