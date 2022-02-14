@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.backup.AtlasBackupService;
+import com.palantir.atlasdb.backup.DelegatingLightweightTimeLockService;
 import com.palantir.atlasdb.backup.ExternalBackupPersister;
 import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
@@ -60,9 +61,12 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -118,23 +122,21 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         AuthHeader authHeader = AuthHeader.valueOf("test-auth");
         Optional<AtlasDbRuntimeConfig> maybeRuntimeConfig = config.getAtlasDbRuntimeConfig();
         URL localServer = new URL("https://localhost:1234");
-        maybeRuntimeConfig.ifPresent(runtimeConfig -> {
-            Function<Namespace, Path> backupFolderFactory = _unused -> Paths.get("var/data/backup");
-            Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
-            ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
-            Function<String, LightweightTimeLockService> timelockServices =
-                    _unused -> createLightweightTimeLockService(config);
-            AtlasBackupClient atlasBackupClient = AtlasBackupResource.jersey(
-                    () -> Optional.of(authHeader.getBearerToken()),
-                    RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer)),
-                    timelockServices);
-            AtlasBackupService atlasBackupService = AtlasBackupService.create(
-                    authHeader, atlasBackupClient, backupFolderFactory, keyValueServiceFactory);
-            environment
-                    .jersey()
-                    .register(new SimpleBackupAndRestoreResource(atlasBackupService, externalBackupPersister));
-        });
+        Function<Namespace, Path> backupFolderFactory = _unused -> Paths.get("var/data/backup");
+        Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
+        ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
+
+        Function<String, LightweightTimeLockService> timelockServices =
+                _unused -> createLightweightTimeLockService(txManager);
+        AtlasBackupClient atlasBackupClient = AtlasBackupResource.jersey(
+                () -> Optional.of(authHeader.getBearerToken()),
+                RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer)),
+                timelockServices);
+        AtlasBackupService atlasBackupService =
+                AtlasBackupService.create(authHeader, atlasBackupClient, backupFolderFactory, keyValueServiceFactory);
+        environment.jersey().register(new SimpleBackupAndRestoreResource(atlasBackupService, externalBackupPersister));
+
         environment.jersey().register(SimpleCoordinationResource.create(txManager));
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
@@ -184,18 +186,12 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
-    // TODO(gs): wiring
-    private LightweightTimeLockService createLightweightTimeLockService(AtlasDbEteConfiguration _config) {
-        return null;
+    private LightweightTimeLockService createLightweightTimeLockService(TransactionManager txManager) {
+        TimelockService timelockService = txManager.getTimelockService();
+        TimestampService timestampService = txManager.getTimestampService();
+        TimestampManagementService timestampManagementService = txManager.getTimestampManagementService();
+        return new DelegatingLightweightTimeLockService(timelockService, timestampService, timestampManagementService);
     }
-
-    //    private AsyncTimelockService getAsyncTimelockService(AtlasDbEteConfiguration config) {
-    //        TimeLockInstallConfiguration timelockInstallConfig =
-    //                config.getTimeLockInstallConfiguration().orElseThrow();
-    //        TimeLockRuntimeConfiguration timelockRuntimeConfig =
-    //                config.getTimeLockRuntimeConfiguration().orElseThrow();
-    //        return timeLockServices.getTimelockService();
-    //    }
 
     private SweepTaskRunner getSweepTaskRunner(TransactionManager transactionManager) {
         KeyValueService kvs = transactionManager.getKeyValueService();
