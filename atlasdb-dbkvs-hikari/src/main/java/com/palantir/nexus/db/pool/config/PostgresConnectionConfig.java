@@ -79,7 +79,14 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
-        props.putAll(getConnectionParameters());
+
+        getConnectionParameters().forEach((key, value) -> {
+            if (key.equals("ssl") && value.equals("true")) {
+                props.setProperty("sslmode", "require");
+            } else {
+                props.setProperty(key, value);
+            }
+        });
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());
