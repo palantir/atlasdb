@@ -39,6 +39,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
+import com.palantir.atlasdb.timelock.LightweightTimeLockService;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
@@ -335,6 +336,9 @@ public class TimeLockAgent {
 
         Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
                 namespace -> namespaces.get(namespace).getTimelockService();
+        // TODO(gs): use something other than ATSI here
+        Function<String, LightweightTimeLockService> lightweightTimelockServiceGetter =
+                namespace -> namespaces.get(namespace).getTimelockService();
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
@@ -360,11 +364,11 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasBackupResource.undertow(
-                            permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+                            permittedBackupToken, redirectRetryTargeter, lightweightTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasRestoreResource.undertow(
-                            permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+                            permittedBackupToken, redirectRetryTargeter, lightweightTimelockServiceGetter));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -373,9 +377,9 @@ public class TimeLockAgent {
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasBackupResource.jersey(
-                    permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+                    permittedBackupToken, redirectRetryTargeter, lightweightTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
-                    permittedBackupToken, redirectRetryTargeter, asyncTimelockServiceGetter));
+                    permittedBackupToken, redirectRetryTargeter, lightweightTimelockServiceGetter));
         }
     }
 

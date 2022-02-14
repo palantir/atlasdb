@@ -47,8 +47,7 @@ import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.LightweightTimeLockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timestamp.SimpleEteTimestampResource;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
@@ -60,16 +59,10 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.refreshable.Refreshable;
-import com.palantir.sls.versions.OrderableSlsVersion;
-import com.palantir.timelock.config.TimeLockInstallConfiguration;
-import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
-import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -130,7 +123,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
             ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
-            Function<String, AsyncTimelockService> timelockServices = _unused -> getAsyncTimelockService(config);
+            Function<String, LightweightTimeLockService> timelockServices =
+                    _unused -> createLightweightTimeLockService(config);
             AtlasBackupClient atlasBackupClient = AtlasBackupResource.jersey(
                     () -> Optional.of(authHeader.getBearerToken()),
                     RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer)),
@@ -190,29 +184,18 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
-    // TODO(gs): there must be an easier way to do this!
-    private AsyncTimelockService getAsyncTimelockService(AtlasDbEteConfiguration config) {
-        TimeLockInstallConfiguration timelockInstallConfig =
-                config.getTimeLockInstallConfiguration().orElseThrow();
-        TimeLockRuntimeConfiguration timelockRuntimeConfig =
-                config.getTimeLockRuntimeConfiguration().orElseThrow();
-        TimeLockAgent timeLockAgent = TimeLockAgent.create(
-                MetricsManagers.createForTests(),
-                timelockInstallConfig,
-                Refreshable.only(timelockRuntimeConfig),
-                timelockRuntimeConfig.clusterSnapshot(),
-                UserAgent.of(UserAgent.Agent.of("user-agent", "2.718")),
-                128,
-                48000,
-                _unused -> {},
-                Optional.empty(),
-                OrderableSlsVersion.valueOf("0.0.0"),
-                ObjectMappers.newServerObjectMapper(),
-                () -> System.exit(0));
-        TimeLockServices timeLockServices = timeLockAgent.createInvalidatingTimeLockServices(
-                config.getAtlasDbConfig().namespace().orElseThrow());
-        return timeLockServices.getTimelockService();
+    // TODO(gs): wiring
+    private LightweightTimeLockService createLightweightTimeLockService(AtlasDbEteConfiguration _config) {
+        return null;
     }
+
+    //    private AsyncTimelockService getAsyncTimelockService(AtlasDbEteConfiguration config) {
+    //        TimeLockInstallConfiguration timelockInstallConfig =
+    //                config.getTimeLockInstallConfiguration().orElseThrow();
+    //        TimeLockRuntimeConfiguration timelockRuntimeConfig =
+    //                config.getTimeLockRuntimeConfiguration().orElseThrow();
+    //        return timeLockServices.getTimelockService();
+    //    }
 
     private SweepTaskRunner getSweepTaskRunner(TransactionManager transactionManager) {
         KeyValueService kvs = transactionManager.getKeyValueService();
