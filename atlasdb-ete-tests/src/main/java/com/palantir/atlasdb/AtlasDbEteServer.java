@@ -77,6 +77,7 @@ import io.dropwizard.configuration.SubstitutingSourceProvider;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -117,10 +118,21 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
+
+        createAndRegisterBackupAndRestoreResource(config, environment, txManager);
         environment
                 .jersey()
                 .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
+        environment.jersey().register(SimpleCoordinationResource.create(txManager));
+        environment.jersey().register(ConjureJerseyFeature.INSTANCE);
+        environment.jersey().register(new NotInitializedExceptionMapper());
+        environment.jersey().register(new SimpleEteTimestampResource(txManager));
+        environment.jersey().register(new SimpleLockResource(txManager));
+        environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
+    }
 
+    private void createAndRegisterBackupAndRestoreResource(
+            AtlasDbEteConfiguration config, Environment environment, TransactionManager txManager) throws IOException {
         AuthHeader authHeader = AuthHeader.valueOf("test-auth");
         Optional<AtlasDbRuntimeConfig> maybeRuntimeConfig = config.getAtlasDbRuntimeConfig();
         URL localServer = new URL("https://localhost:1234");
@@ -140,13 +152,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         AtlasBackupService atlasBackupService =
                 AtlasBackupService.create(authHeader, atlasBackupClient, backupFolderFactory, keyValueServiceFactory);
         environment.jersey().register(new SimpleBackupAndRestoreResource(atlasBackupService, externalBackupPersister));
-
-        environment.jersey().register(SimpleCoordinationResource.create(txManager));
-        environment.jersey().register(ConjureJerseyFeature.INSTANCE);
-        environment.jersey().register(new NotInitializedExceptionMapper());
-        environment.jersey().register(new SimpleEteTimestampResource(txManager));
-        environment.jersey().register(new SimpleLockResource(txManager));
-        environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
     }
 
     private void ensureTransactionSchemaVersionInstalled(
