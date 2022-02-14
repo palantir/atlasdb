@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.paxos.PaxosResponse;
 import java.util.Map;
-import java.util.UUID;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableSingleNodeUpdateResponse.class)
@@ -30,13 +29,13 @@ public interface SingleNodeUpdateResponse extends PaxosResponse {
     /**
      * other namespaces will not have been disabled/re-enabled (the transaction will not complete).
      */
-    Map<Namespace, UUID> lockedNamespaces();
+    Map<Namespace, String> lockedNamespaces();
 
     static SingleNodeUpdateResponse successful() {
         return ImmutableSingleNodeUpdateResponse.builder().isSuccessful(true).build();
     }
 
-    static SingleNodeUpdateResponse failed(Map<Namespace, UUID> lockedNamespaces) {
+    static SingleNodeUpdateResponse failed(Map<Namespace, String> lockedNamespaces) {
         return ImmutableSingleNodeUpdateResponse.builder()
                 .isSuccessful(false)
                 .lockedNamespaces(lockedNamespaces)

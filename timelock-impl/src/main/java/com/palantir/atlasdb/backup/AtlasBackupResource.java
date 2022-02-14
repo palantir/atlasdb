@@ -45,7 +45,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
-import com.palantir.tokens.auth.BearerToken;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -56,34 +55,34 @@ import java.util.stream.Collectors;
 public class AtlasBackupResource implements UndertowAtlasBackupClient {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupResource.class);
 
-    private final Supplier<Optional<BearerToken>> permittedBackupToken;
+    private final AuthHeaderValidator authHeaderValidator;
     private final Function<String, LightweightTimeLockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
     @VisibleForTesting
     AtlasBackupResource(
-            Supplier<Optional<BearerToken>> permittedBackupToken,
+            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, LightweightTimeLockService> timelockServices) {
-        this.permittedBackupToken = permittedBackupToken;
+        this.authHeaderValidator = authHeaderValidator;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
-            Supplier<Optional<BearerToken>> permittedAuthHeader,
+            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, LightweightTimeLockService> timelockServices) {
         return AtlasBackupClientEndpoints.of(
-                new AtlasBackupResource(permittedAuthHeader, redirectRetryTargeter, timelockServices));
+                new AtlasBackupResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
 
     public static AtlasBackupClient jersey(
-            Supplier<Optional<BearerToken>> permittedAuthHeader,
+            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, LightweightTimeLockService> timelockServices) {
         return new JerseyAtlasBackupClientAdapter(
-                new AtlasBackupResource(permittedAuthHeader, redirectRetryTargeter, timelockServices));
+                new AtlasBackupResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
 
     @Override
@@ -92,7 +91,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     private PrepareBackupResponse prepareBackupInternal(AuthHeader authHeader, PrepareBackupRequest request) {
-        if (!suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
             log.error(
                     "Attempted to prepare backup with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",
@@ -127,7 +126,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     @SuppressWarnings("ConstantConditions")
     private ListenableFuture<CompleteBackupResponse> completeBackupInternal(
             AuthHeader authHeader, CompleteBackupRequest request) {
-        if (!suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
             log.error(
                     "Attempted to complete backup with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",
@@ -171,13 +170,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
                 .backupStartTimestamp(backupToken.getBackupStartTimestamp())
                 .backupEndTimestamp(fastForwardTimestamp)
                 .build();
-    }
-
-    private Boolean suppliedTokenIsValid(AuthHeader suppliedAuthHeader) {
-        return permittedBackupToken
-                .get()
-                .map(token -> token.equals(suppliedAuthHeader.getBearerToken()))
-                .orElse(false);
     }
 
     private LightweightTimeLockService timelock(Namespace namespace) {

@@ -11,10 +11,10 @@ types:
       DisableNamespacesRequest:
         fields:
           namespaces: set<api.Namespace>
-          lockId: uuid
+          lockId: string
       SuccessfulDisableNamespacesResponse:
         fields:
-          lockId: uuid
+          lockId: string
       UnsuccessfulDisableNamespacesResponse:
         fields:
           consistentlyDisabledNamespaces:
@@ -32,7 +32,7 @@ types:
       ReenableNamespacesRequest:
         fields:
           namespaces: set<api.Namespace>
-          lockId: uuid
+          lockId: string
       SuccessfulReenableNamespacesResponse:
         alias: boolean
       UnsuccessfulReenableNamespacesResponse:
@@ -102,6 +102,22 @@ services:
           same startTransactions request), but not atomic as a whole. Additionally, if this method throws, it is
           nondeterministic which, if any, namespaces have been invalidated; some may even be invalidated only on a
           subset of nodes. This state can be cleared by re-enabling all namespaces.
+
+      disableTimelock:
+        http: POST /disable
+        args:
+          request: DisableNamespacesRequest
+        returns: DisableNamespacesResponse
+        docs: |
+          Disables the TimeLock server in a persistant way for the specified namespaces. This includes invalidating
+          all currently held locks, all lock watch state, as well as refusing to serve new requests.
+      reenableTimelock:
+        http: POST /reenable
+        args:
+          request: ReenableNamespacesRequest
+        returns: ReenableNamespacesResponse
+        docs: |
+          Allows the TimeLock server to once again serve requests for these namespaces.
 
       getServerLifecycleId:
         http: POST /getServerLifecycleId

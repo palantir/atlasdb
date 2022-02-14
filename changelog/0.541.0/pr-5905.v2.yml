@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: |-
+    Update postgresql driver due to CVE-2022-21724
+
+    This does not actually affect AtlasDB since the JDBC url is not
+    controllable by an attacker. But it triggers scanners.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5905

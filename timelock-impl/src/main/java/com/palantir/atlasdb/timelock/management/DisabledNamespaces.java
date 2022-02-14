@@ -28,7 +28,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
@@ -72,13 +71,14 @@ public class DisabledNamespaces {
         return execute(Queries::getAllStates).stream().map(Namespace::of).collect(Collectors.toSet());
     }
 
-    public Map<Namespace, UUID> getNamespacesLockedWithDifferentLockId(Set<Namespace> namespaces, UUID expectedLockId) {
-        return execute(dao -> dao.getIncorrectlyLockedNamespaces(namespaces, expectedLockId));
+    public Map<Namespace, String> getNamespacesLockedWithDifferentLockId(
+            Set<Namespace> namespaces, String expectedLockId) {
+        return execute(dao -> dao.getNamespacesWithLockConflict(namespaces, expectedLockId));
     }
 
     public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
         Set<Namespace> namespaces = request.getNamespaces();
-        UUID lockId = request.getLockId();
+        String lockId = request.getLockId();
         SingleNodeUpdateResponse response = execute(dao -> dao.disableAll(namespaces, lockId));
         if (response.isSuccessful()) {
             log.info("Successfully disabled namespaces", SafeArg.of("namespaces", namespaces));
@@ -93,10 +93,10 @@ public class DisabledNamespaces {
     }
 
     public SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
-        UUID lockId = request.getLockId();
+        String lockId = request.getLockId();
         SingleNodeUpdateResponse response = execute(dao -> dao.reEnableAll(request.getNamespaces(), lockId));
         if (!response.isSuccessful()) {
-            Map<Namespace, UUID> conflictingNamespaces = response.lockedNamespaces();
+            Map<Namespace, String> conflictingNamespaces = response.lockedNamespaces();
             Set<Namespace> namespacesWithExpectedLock =
                     Sets.difference(request.getNamespaces(), conflictingNamespaces.keySet());
             log.error(
@@ -117,19 +117,18 @@ public class DisabledNamespaces {
         boolean createTable();
 
         @Transaction
-        default Map<Namespace, UUID> getIncorrectlyLockedNamespaces(Set<Namespace> namespaces, UUID expectedLockId) {
+        default Map<Namespace, String> getNamespacesWithLockConflict(Set<Namespace> namespaces, String expectedLockId) {
             return getLockedNamespaces(namespaces)
-                    .filter(lockId -> !lockId.equals(expectedLockId))
+                    .filter(lockIdForNamespace -> !lockIdForNamespace.equals(expectedLockId))
                     .collectToMap();
         }
 
         @Transaction
-        default SingleNodeUpdateResponse disableAll(Set<Namespace> namespaces, UUID lockId) {
-            Map<Namespace, UUID> lockedNamespaces =
-                    getLockedNamespaces(namespaces).collectToMap();
+        default SingleNodeUpdateResponse disableAll(Set<Namespace> namespaces, String lockId) {
+            Map<Namespace, String> conflictingNamespaces = getNamespacesWithLockConflict(namespaces, lockId);
 
-            if (!lockedNamespaces.isEmpty()) {
-                return SingleNodeUpdateResponse.failed(lockedNamespaces);
+            if (!conflictingNamespaces.isEmpty()) {
+                return SingleNodeUpdateResponse.failed(conflictingNamespaces);
             }
 
             Set<String> namespaceNames = namespaces.stream().map(Namespace::get).collect(Collectors.toSet());
@@ -138,10 +137,8 @@ public class DisabledNamespaces {
         }
 
         @Transaction
-        default SingleNodeUpdateResponse reEnableAll(Set<Namespace> namespaces, UUID lockId) {
-            Map<Namespace, UUID> namespacesWithLockConflict = getLockedNamespaces(namespaces)
-                    .filter(lockIdForNamespace -> !lockIdForNamespace.equals(lockId))
-                    .collectToMap();
+        default SingleNodeUpdateResponse reEnableAll(Set<Namespace> namespaces, String lockId) {
+            Map<Namespace, String> namespacesWithLockConflict = getNamespacesWithLockConflict(namespaces, lockId);
 
             if (!namespacesWithLockConflict.isEmpty()) {
                 // Unlock the namespaces we can
@@ -160,18 +157,19 @@ public class DisabledNamespaces {
             namespaces.stream().map(Namespace::get).forEach(this::delete);
         }
 
-        private KeyedStream<Namespace, UUID> getLockedNamespaces(Set<Namespace> namespaces) {
+        private KeyedStream<Namespace, String> getLockedNamespaces(Set<Namespace> namespaces) {
             return KeyedStream.of(namespaces)
                     .map(Namespace::get)
                     .map(this::getLockId)
                     .flatMap(Optional::stream);
         }
 
-        @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?)")
-        void disable(@Bind("namespace") Set<String> namespaces, @Bind("lockId") UUID lockId);
+        // Can ignore conflicts, provided we called getNamespacesWithLockConflict prior to insertion.
+        @SqlBatch("INSERT INTO disabled (namespace, lockId) VALUES (?, ?) ON CONFLICT DO NOTHING")
+        void disable(@Bind("namespace") Set<String> namespaces, @Bind("lockId") String lockId);
 
         @SqlQuery("SELECT lockId FROM disabled WHERE namespace = ?")
-        Optional<UUID> getLockId(String namespace);
+        Optional<String> getLockId(String namespace);
 
         @SqlQuery("SELECT namespace FROM disabled WHERE namespace = ?")
         Optional<String> getState(String namespace);

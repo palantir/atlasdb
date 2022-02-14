@@ -23,7 +23,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
-import java.util.UUID;
 
 final class DisableNamespaceResponses {
     private static final SafeLogger log = SafeLoggerFactory.get(DisableNamespaceResponses.class);
@@ -54,7 +53,7 @@ final class DisableNamespaceResponses {
     }
 
     static DisableNamespacesResponse unsuccessfulButRolledBack(
-            Set<Namespace> partiallyDisabledNamespaces, UUID lockId) {
+            Set<Namespace> partiallyDisabledNamespaces, String lockId) {
         log.error(
                 "Failed to disable all namespaces. However, we successfully rolled back our changes.",
                 SafeArg.of("partiallyDisabledNamespaces", partiallyDisabledNamespaces),
@@ -64,7 +63,7 @@ final class DisableNamespaceResponses {
                 .build());
     }
 
-    static DisableNamespacesResponse unsuccessfulAndRollBackFailed(Set<Namespace> namespaces, UUID lockId) {
+    static DisableNamespacesResponse unsuccessfulAndRollBackFailed(Set<Namespace> namespaces, String lockId) {
         log.error(
                 "Failed to disable all namespaces, and we may have failed to roll back some namespaces."
                         + " These may need to be force-re-enabled in order to return Timelock to a consistent state.",

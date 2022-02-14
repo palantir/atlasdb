@@ -20,6 +20,7 @@ import static com.palantir.conjure.java.api.testing.Assertions.assertThatService
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -42,9 +43,9 @@ import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
 import java.net.URL;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.Before;
 import org.junit.Test;
 
 public class AtlasBackupResourceTest {
@@ -66,11 +67,19 @@ public class AtlasBackupResourceTest {
     private static final CompleteBackupResponse EMPTY_COMPLETE_BACKUP_RESPONSE =
             CompleteBackupResponse.of(ImmutableSet.of());
 
+    private final AuthHeaderValidator authHeaderValidator = mock(AuthHeaderValidator.class);
+
     private final AsyncTimelockService mockTimelock = mock(AsyncTimelockService.class);
     private final AsyncTimelockService otherTimelock = mock(AsyncTimelockService.class);
 
     private final AtlasBackupResource atlasBackupService = new AtlasBackupResource(
-            () -> Optional.of(BEARER_TOKEN), TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+            authHeaderValidator, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+
+    @Before
+    public void setUp() {
+        when(authHeaderValidator.suppliedTokenIsValid(AUTH_HEADER)).thenReturn(true);
+        when(authHeaderValidator.suppliedTokenIsValid(WRONG_AUTH_HEADER)).thenReturn(false);
+    }
 
     @Test
     public void prepareBackupThrowsIfAuthHeaderIsWrong() {
@@ -87,19 +96,6 @@ public class AtlasBackupResourceTest {
     }
 
     @Test
-    public void emptyBearerTokenInConfigWillCauseBackupOperationsToFail() {
-        AtlasBackupResource emptyTokenResource = new AtlasBackupResource(
-                Optional::empty, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
-
-        assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
-                        emptyTokenResource.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
-                .hasType(ErrorType.PERMISSION_DENIED);
-        assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
-                        emptyTokenResource.completeBackup(AUTH_HEADER, completeBackupRequest(validBackupToken()))))
-                .hasType(ErrorType.PERMISSION_DENIED);
-    }
-
-    @Test
     public void preparesBackupSuccessfully() {
         LockToken lockToken = lockToken();
         when(mockTimelock.lockImmutableTimestamp(any()))
@@ -110,6 +106,7 @@ public class AtlasBackupResourceTest {
 
         assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
                 .isEqualTo(prepareBackupResponseWith(expectedBackupToken));
+        verify(authHeaderValidator).suppliedTokenIsValid(AUTH_HEADER);
     }
 
     @Test
@@ -122,6 +119,7 @@ public class AtlasBackupResourceTest {
         assertThat(AtlasFutures.getUnchecked(
                         atlasBackupService.completeBackup(AUTH_HEADER, completeBackupRequest(backupToken))))
                 .isEqualTo(completeBackupResponseWith(expected));
+        verify(authHeaderValidator).suppliedTokenIsValid(AUTH_HEADER);
     }
 
     @Test

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.management;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.backup.AuthHeaderValidator;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
@@ -28,29 +29,45 @@ import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterServiceEndpoin
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
 import com.palantir.atlasdb.timelock.api.UndertowDisabledNamespacesUpdaterService;
+import com.palantir.conjure.java.api.errors.ErrorType;
+import com.palantir.conjure.java.api.errors.ServiceException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.function.Supplier;
 
 public final class DisabledNamespacesUpdaterResource implements UndertowDisabledNamespacesUpdaterService {
+    private static final SafeLogger log = SafeLoggerFactory.get(DisabledNamespacesUpdaterResource.class);
+
+    private final AuthHeaderValidator authHeaderValidator;
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final TimelockNamespaces timelockNamespaces;
 
     private DisabledNamespacesUpdaterResource(
-            RedirectRetryTargeter redirectRetryTargeter, TimelockNamespaces timelockNamespaces) {
+            AuthHeaderValidator authHeaderValidator,
+            RedirectRetryTargeter redirectRetryTargeter,
+            TimelockNamespaces timelockNamespaces) {
+        this.authHeaderValidator = authHeaderValidator;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockNamespaces = timelockNamespaces;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, TimelockNamespaces timelockNamespaces) {
+            AuthHeaderValidator authHeaderValidator,
+            RedirectRetryTargeter redirectRetryTargeter,
+            TimelockNamespaces timelockNamespaces) {
         return DisabledNamespacesUpdaterServiceEndpoints.of(
-                new DisabledNamespacesUpdaterResource(redirectRetryTargeter, timelockNamespaces));
+                new DisabledNamespacesUpdaterResource(authHeaderValidator, redirectRetryTargeter, timelockNamespaces));
     }
 
     public static DisabledNamespacesUpdaterService jersey(
-            RedirectRetryTargeter redirectRetryTargeter, TimelockNamespaces timelockNamespaces) {
-        return new JerseyAdapter(new DisabledNamespacesUpdaterResource(redirectRetryTargeter, timelockNamespaces));
+            AuthHeaderValidator authHeaderValidator,
+            RedirectRetryTargeter redirectRetryTargeter,
+            TimelockNamespaces timelockNamespaces) {
+        return new JerseyAdapter(
+                new DisabledNamespacesUpdaterResource(authHeaderValidator, redirectRetryTargeter, timelockNamespaces));
     }
 
     @Override
@@ -60,12 +77,26 @@ public final class DisabledNamespacesUpdaterResource implements UndertowDisabled
 
     @Override
     public ListenableFuture<SingleNodeUpdateResponse> disable(AuthHeader authHeader, DisableNamespacesRequest request) {
+        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+            log.error(
+                    "Attempted to disable TimeLock with an invalid auth header. "
+                            + "The provided token must match the configured permitted-backup-token.",
+                    SafeArg.of("request", request));
+            throw new ServiceException(ErrorType.PERMISSION_DENIED);
+        }
         return handleExceptions(() -> Futures.immediateFuture(timelockNamespaces.disable(request)));
     }
 
     @Override
     public ListenableFuture<SingleNodeUpdateResponse> reenable(
             AuthHeader authHeader, ReenableNamespacesRequest request) {
+        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+            log.error(
+                    "Attempted to re-enable TimeLock with an invalid auth header. "
+                            + "The provided token must match the configured permitted-backup-token.",
+                    SafeArg.of("request", request));
+            throw new ServiceException(ErrorType.PERMISSION_DENIED);
+        }
         return handleExceptions(() -> Futures.immediateFuture(timelockNamespaces.reEnable(request)));
     }
 

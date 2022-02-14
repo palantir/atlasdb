@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Cassandra host routing now distributes retry attempts between datacenters
+    as evenly as possible.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5903

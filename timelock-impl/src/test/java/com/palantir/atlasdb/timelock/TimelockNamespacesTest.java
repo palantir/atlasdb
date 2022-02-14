@@ -206,7 +206,7 @@ public class TimelockNamespacesTest {
         String client = uniqueClient();
         TimeLockServices services = namespaces.get(client);
 
-        UUID lockId = UUID.randomUUID();
+        String lockId = "lockId";
         when(disabledNamespaces.disable(any())).thenReturn(SingleNodeUpdateResponse.successful());
 
         namespaces.disable(DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(client)), lockId));
@@ -219,8 +219,8 @@ public class TimelockNamespacesTest {
         TimeLockServices services = namespaces.get(client);
 
         ImmutableSet<Namespace> namespacesToDisable = ImmutableSet.of(Namespace.of(client));
-        UUID lockId = UUID.randomUUID();
-        Map<Namespace, UUID> lockedNamespace = ImmutableMap.of(Namespace.of(client), lockId);
+        String lockId = "lockId";
+        Map<Namespace, String> lockedNamespace = ImmutableMap.of(Namespace.of(client), lockId);
         when(disabledNamespaces.disable(any())).thenReturn(SingleNodeUpdateResponse.failed(lockedNamespace));
 
         namespaces.disable(DisableNamespacesRequest.of(namespacesToDisable, lockId));

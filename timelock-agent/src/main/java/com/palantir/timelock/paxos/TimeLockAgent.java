@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.backup.AtlasRestoreResource;
+import com.palantir.atlasdb.backup.AuthHeaderValidator;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -51,7 +52,10 @@ import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
 import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
+import com.palantir.atlasdb.timelock.management.AllNodesDisabledNamespacesUpdater;
+import com.palantir.atlasdb.timelock.management.AllNodesDisabledNamespacesUpdaterFactory;
 import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
+import com.palantir.atlasdb.timelock.management.DisabledNamespacesUpdaterResource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
 import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
@@ -125,6 +129,7 @@ public class TimeLockAgent {
     private final TimeLockServicesCreator timelockCreator;
     private final NoSimultaneousServiceCheck noSimultaneousServiceCheck;
     private final PersistedSchemaVersion persistedSchemaVersion;
+    private final AllNodesDisabledNamespacesUpdaterFactory updaterFactory;
     private final HikariDataSource sqliteDataSource;
     private final FeedbackHandler feedbackHandler;
     private final LeaderElectionMetricAggregator leaderElectionAggregator;
@@ -178,6 +183,9 @@ public class TimeLockAgent {
                 metricsManager,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, restrictedRuntime::get));
 
+        AllNodesDisabledNamespacesUpdaterFactory updaterFactory =
+                new AllNodesDisabledNamespacesUpdaterFactory(installationContext, metricsManager);
+
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
                 install,
@@ -188,6 +196,7 @@ public class TimeLockAgent {
                 blockingTimeoutMs,
                 registrar,
                 paxosResources,
+                updaterFactory,
                 userAgent,
                 persistedSchemaVersion,
                 installationContext.sqliteDataSource(),
@@ -233,6 +242,7 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             PaxosResources paxosResources,
+            AllNodesDisabledNamespacesUpdaterFactory updaterFactory,
             UserAgent userAgent,
             PersistedSchemaVersion persistedSchemaVersion,
             HikariDataSource sqliteDataSource,
@@ -244,6 +254,7 @@ public class TimeLockAgent {
         this.undertowRegistrar = undertowRegistrar;
         this.registrar = registrar;
         this.paxosResources = paxosResources;
+        this.updaterFactory = updaterFactory;
         this.sqliteDataSource = sqliteDataSource;
         this.serviceStopper = serviceStopper;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
@@ -327,6 +338,7 @@ public class TimeLockAgent {
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get),
                 DisabledNamespaces.create(sqliteDataSource));
+
         registerManagementResource();
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
@@ -342,8 +354,7 @@ public class TimeLockAgent {
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
-        Refreshable<Optional<BearerToken>> permittedBackupToken =
-                runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
+        AuthHeaderValidator authHeaderValidator = getAuthHeaderValidator();
         RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
@@ -364,11 +375,14 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasBackupResource.undertow(
-                            permittedBackupToken, redirectRetryTargeter, lightweightTimelockServiceGetter));
+                            authHeaderValidator, redirectRetryTargeter, lightweightTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasRestoreResource.undertow(
-                            permittedBackupToken, redirectRetryTargeter, lightweightTimelockServiceGetter));
+                            authHeaderValidator, redirectRetryTargeter, lightweightTimelockServiceGetter));
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
+                    DisabledNamespacesUpdaterResource.undertow(authHeaderValidator, redirectRetryTargeter, namespaces));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -377,9 +391,11 @@ public class TimeLockAgent {
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasBackupResource.jersey(
-                    permittedBackupToken, redirectRetryTargeter, lightweightTimelockServiceGetter));
+                    authHeaderValidator, redirectRetryTargeter, lightweightTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
-                    permittedBackupToken, redirectRetryTargeter, lightweightTimelockServiceGetter));
+                    authHeaderValidator, redirectRetryTargeter, lightweightTimelockServiceGetter));
+            registrar.accept(
+                    DisabledNamespacesUpdaterResource.jersey(authHeaderValidator, redirectRetryTargeter, namespaces));
         }
     }
 
@@ -416,21 +432,33 @@ public class TimeLockAgent {
     private void registerManagementResource() {
         ServiceLifecycleController serviceLifecycleController =
                 new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor());
+        AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater = updaterFactory.create(namespaces);
+
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
                     TimeLockManagementResource.undertow(
                             timestampStorage.persistentNamespaceContext(),
                             namespaces,
+                            allNodesDisabledNamespacesUpdater,
+                            getAuthHeaderValidator(),
                             redirectRetryTargeter(),
                             serviceLifecycleController));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
                     timestampStorage.persistentNamespaceContext(),
                     namespaces,
+                    allNodesDisabledNamespacesUpdater,
+                    getAuthHeaderValidator(),
                     redirectRetryTargeter(),
                     serviceLifecycleController));
         }
+    }
+
+    private AuthHeaderValidator getAuthHeaderValidator() {
+        Refreshable<Optional<BearerToken>> permittedBackupToken =
+                runtime.map(TimeLockRuntimeConfiguration::permittedBackupToken);
+        return new AuthHeaderValidator(permittedBackupToken);
     }
 
     private void registerTimeLockCorruptionJerseyFilter() {

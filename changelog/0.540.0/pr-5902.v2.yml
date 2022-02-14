@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: In a multi-DC configuration, we will try at least one host in *each*
+    datacenter matching the predicate before trying other hosts. This is necessary
+    for internal deployments.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5902

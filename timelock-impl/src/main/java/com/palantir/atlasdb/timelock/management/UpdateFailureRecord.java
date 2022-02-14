@@ -17,16 +17,15 @@
 package com.palantir.atlasdb.timelock.management;
 
 import java.util.Set;
-import java.util.UUID;
 import org.immutables.value.Value;
 
 @Value.Modifiable
 interface UpdateFailureRecord {
     int failureCount();
 
-    Set<UUID> lockIds();
+    Set<String> lockIds();
 
-    static ModifiableUpdateFailureRecord of(UUID lockId) {
+    static ModifiableUpdateFailureRecord of(String lockId) {
         return ModifiableUpdateFailureRecord.create().setFailureCount(1).addLockIds(lockId);
     }
 

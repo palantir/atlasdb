@@ -28,5 +28,5 @@ ext.libVersions =
     hikariCP: '3.4.1',
     findbugsAnnotations: '2.0.3',
     ant: '1.9.4',
-    postgresql: '42.2.1'
+    postgresql: '42.2.25'
 ]

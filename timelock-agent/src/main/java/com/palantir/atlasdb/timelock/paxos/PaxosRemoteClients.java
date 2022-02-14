@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.timelock.api.DisabledNamespacesUpdaterService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -119,6 +120,12 @@ public abstract class PaxosRemoteClients {
     @Value.Derived
     public List<WithDedicatedExecutor<BatchPaxosLearnerRpcClient>> batchLearner() {
         return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(BatchPaxosLearnerRpcClient.class, true);
+    }
+
+    @Value.Derived
+    public List<WithDedicatedExecutor<DisabledNamespacesUpdaterService>> updaters() {
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
+                DisabledNamespacesUpdaterService.class, true);
     }
 
     @Value.Derived
