@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 import java.util.Set;
@@ -36,7 +37,17 @@ public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource 
     }
 
     @Override
+    public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
+        return atlasBackupService.completeBackup(namespaces);
+    }
+
+    @Override
     public Optional<Long> getStoredImmutableTimestamp(Namespace namespace) {
         return externalBackupPersister.getImmutableTimestamp(namespace);
+    }
+
+    @Override
+    public Optional<CompletedBackup> getStoredBackup(Namespace namespace) {
+        return externalBackupPersister.getCompletedBackup(namespace);
     }
 }
