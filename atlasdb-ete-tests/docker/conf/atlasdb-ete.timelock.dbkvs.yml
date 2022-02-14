@@ -21,6 +21,7 @@ atlasdb:
       dbName: atlasete
       dbLogin: palantir
       dbPassword: palantir
+      ssl: true
 
   namespace: atlasete
 
