@@ -24,12 +24,12 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevel
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.concurrent.ThreadNames;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.lang.management.ManagementFactory;

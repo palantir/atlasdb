@@ -4,6 +4,7 @@ dependencies {
   compile project(":lock-api")
   compile project(":atlasdb-commons")
 
+  implementation "com.palantir.nylon:nylon-threads"
   implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
   implementation group: 'joda-time', name: 'joda-time'
   implementation group: 'org.yaml', name: 'snakeyaml'

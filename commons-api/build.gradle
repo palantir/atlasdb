@@ -4,6 +4,7 @@ dependencies {
   compile project(':atlasdb-commons')
   compile project(':commons-annotations')
 
+  implementation "com.palantir.nylon:nylon-threads"
   implementation 'com.google.guava:guava'
 
 }
