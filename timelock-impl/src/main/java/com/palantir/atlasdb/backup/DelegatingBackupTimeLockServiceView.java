@@ -18,32 +18,27 @@ package com.palantir.atlasdb.backup;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.timelock.LightweightTimeLockService;
+import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import java.util.Set;
 
-public class DelegatingLightweightTimeLockService implements LightweightTimeLockService {
+public class DelegatingBackupTimeLockServiceView implements BackupTimeLockServiceView {
     private final TimelockService timelockService;
-    private final TimestampService timestampService;
     private final TimestampManagementService timestampManagementService;
 
-    public DelegatingLightweightTimeLockService(
-            TimelockService timelockService,
-            TimestampService timestampService,
-            TimestampManagementService timestampManagementService) {
+    public DelegatingBackupTimeLockServiceView(
+            TimelockService timelockService, TimestampManagementService timestampManagementService) {
         this.timelockService = timelockService;
-        this.timestampService = timestampService;
         this.timestampManagementService = timestampManagementService;
     }
 
     @Override
     public long getFreshTimestamp() {
-        return timestampService.getFreshTimestamp();
+        return timelockService.getFreshTimestamp();
     }
 
     @Override

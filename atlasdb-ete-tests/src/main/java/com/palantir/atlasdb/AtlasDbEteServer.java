@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.backup.AtlasBackupService;
 import com.palantir.atlasdb.backup.AuthHeaderValidator;
-import com.palantir.atlasdb.backup.DelegatingLightweightTimeLockService;
+import com.palantir.atlasdb.backup.DelegatingBackupTimeLockServiceView;
 import com.palantir.atlasdb.backup.ExternalBackupPersister;
 import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
@@ -49,7 +49,7 @@ import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.timelock.LightweightTimeLockService;
+import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timestamp.SimpleEteTimestampResource;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
@@ -67,7 +67,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -143,7 +142,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
         ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
-        Function<String, LightweightTimeLockService> timelockServices =
+        Function<String, BackupTimeLockServiceView> timelockServices =
                 _unused -> createLightweightTimeLockService(txManager);
         AtlasBackupClient atlasBackupClient = AtlasBackupResource.jersey(
                 new AuthHeaderValidator(() -> Optional.of(authHeader.getBearerToken())),
@@ -195,11 +194,10 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
-    private LightweightTimeLockService createLightweightTimeLockService(TransactionManager txManager) {
+    private BackupTimeLockServiceView createLightweightTimeLockService(TransactionManager txManager) {
         TimelockService timelockService = txManager.getTimelockService();
-        TimestampService timestampService = txManager.getTimestampService();
         TimestampManagementService timestampManagementService = txManager.getTimestampManagementService();
-        return new DelegatingLightweightTimeLockService(timelockService, timestampService, timestampManagementService);
+        return new DelegatingBackupTimeLockServiceView(timelockService, timestampManagementService);
     }
 
     private SweepTaskRunner getSweepTaskRunner(TransactionManager transactionManager) {

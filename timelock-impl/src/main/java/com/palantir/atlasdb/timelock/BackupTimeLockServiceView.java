@@ -22,8 +22,8 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import java.util.Set;
 
-// Only the methods necessary for AtlasBackup/RestoreService
-public interface LightweightTimeLockService {
+// View containing only the methods necessary for AtlasBackup/RestoreService functionality
+public interface BackupTimeLockServiceView {
     long getFreshTimestamp();
 
     void fastForwardTimestamp(long currentTimestamp);

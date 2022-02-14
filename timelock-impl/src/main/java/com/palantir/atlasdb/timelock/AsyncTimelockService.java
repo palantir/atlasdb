@@ -41,7 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface AsyncTimelockService
-        extends LightweightTimeLockService, ManagedTimestampService, LockWatchingService, Closeable {
+        extends BackupTimeLockServiceView, ManagedTimestampService, LockWatchingService, Closeable {
 
     long currentTimeMillis();
 
