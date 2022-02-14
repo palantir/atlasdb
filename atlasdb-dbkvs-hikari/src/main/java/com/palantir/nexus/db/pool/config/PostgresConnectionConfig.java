@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.nexus.db.DBType;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -79,7 +80,14 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
-        props.putAll(getConnectionParameters());
+        Map<String, String> updatedConnectionParameters = new HashMap<>(getConnectionParameters());
+        // As per https://github.com/pgjdbc/pgjdbc/issues/1307, we need to replace ssl: true with sslmode: require
+        if ("true".equals(updatedConnectionParameters.get("ssl"))) {
+            updatedConnectionParameters.remove("ssl");
+            updatedConnectionParameters.put("sslmode", "require");
+        }
+
+        props.putAll(updatedConnectionParameters);
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());
