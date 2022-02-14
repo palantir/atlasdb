@@ -37,7 +37,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.Set;
@@ -66,7 +66,7 @@ public class AtlasRestoreServiceTest {
     private AtlasRestoreClient atlasRestoreClient;
 
     @Mock
-    private TimeLockManagementServiceBlocking timeLockManagementService;
+    private TimeLockManagementService timeLockManagementService;
 
     @Mock
     private CassandraRepairHelper cassandraRepairHelper;

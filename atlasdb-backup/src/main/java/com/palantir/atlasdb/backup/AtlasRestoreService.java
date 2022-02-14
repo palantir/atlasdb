@@ -38,6 +38,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.streams.KeyedStream;
@@ -64,8 +65,7 @@ public class AtlasRestoreService {
 
     private final AuthHeader authHeader;
     private final AtlasRestoreClient atlasRestoreClient;
-    // TODO(gs): not blocking
-    private final TimeLockManagementServiceBlocking timeLockManagementService;
+    private final TimeLockManagementService timeLockManagementService;
     private final BackupPersister backupPersister;
     private final CassandraRepairHelper cassandraRepairHelper;
 
@@ -73,7 +73,7 @@ public class AtlasRestoreService {
     AtlasRestoreService(
             AuthHeader authHeader,
             AtlasRestoreClient atlasRestoreClient,
-            TimeLockManagementServiceBlocking timeLockManagementService,
+            TimeLockManagementService timeLockManagementService,
             BackupPersister backupPersister,
             CassandraRepairHelper cassandraRepairHelper) {
         this.authHeader = authHeader;
@@ -94,8 +94,8 @@ public class AtlasRestoreService {
                 .withUserAgent(UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT));
         AtlasRestoreClient atlasRestoreClient = new DialogueAdaptingAtlasRestoreClient(
                 reloadingFactory.get(AtlasRestoreClientBlocking.class, serviceName));
-        TimeLockManagementServiceBlocking timeLockManagementService =
-                reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName);
+        TimeLockManagementService timeLockManagementService = new DialogueAdaptingTimeLockManagementService(
+                reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName));
         CassandraRepairHelper cassandraRepairHelper =
                 new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
 
