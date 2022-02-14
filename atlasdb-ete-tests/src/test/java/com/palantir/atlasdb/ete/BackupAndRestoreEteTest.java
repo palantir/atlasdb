@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.BackupAndRestoreResource;
+import com.palantir.atlasdb.backup.UniqueBackup;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -32,6 +33,7 @@ import org.junit.Test;
 public class BackupAndRestoreEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Namespace NAMESPACE = Namespace.of("atlasete");
+    private static final ImmutableSet<Namespace> NAMESPACES = ImmutableSet.of(NAMESPACE);
 
     private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
     private final BackupAndRestoreResource backupResource =
@@ -42,7 +44,7 @@ public class BackupAndRestoreEteTest {
         todoClient.addTodo(TODO);
         assertThat(backupResource.getStoredImmutableTimestamp(NAMESPACE)).isEmpty();
 
-        Set<Namespace> preparedNamespaces = backupResource.prepareBackup(ImmutableSet.of(NAMESPACE));
+        Set<Namespace> preparedNamespaces = backupResource.prepareBackup(NAMESPACES);
         assertThat(preparedNamespaces).containsExactly(NAMESPACE);
 
         // verify we persisted the immutable timestamp to disk
@@ -52,18 +54,46 @@ public class BackupAndRestoreEteTest {
     @Test
     public void canCompletePreparedBackup() {
         todoClient.addTodo(TODO);
-        backupResource.prepareBackup(ImmutableSet.of(NAMESPACE));
+        backupResource.prepareBackup(NAMESPACES);
 
         Long immutableTimestamp =
                 backupResource.getStoredImmutableTimestamp(NAMESPACE).orElseThrow();
 
         assertThat(backupResource.getStoredBackup(NAMESPACE)).isEmpty();
 
-        Set<Namespace> completedNamespaces = backupResource.completeBackup(ImmutableSet.of(NAMESPACE));
+        Set<Namespace> completedNamespaces = backupResource.completeBackup(NAMESPACES);
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
 
         Optional<CompletedBackup> storedBackup = backupResource.getStoredBackup(NAMESPACE);
         assertThat(storedBackup).isNotEmpty();
         assertThat(storedBackup.get().getImmutableTimestamp()).isEqualTo(immutableTimestamp);
+    }
+
+    @Test
+    public void canPrepareRestore() {
+        todoClient.addTodo(TODO);
+        backupResource.prepareBackup(NAMESPACES);
+        backupResource.completeBackup(NAMESPACES);
+
+        UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
+        Set<Namespace> preparedNamespaces = backupResource.prepareRestore(uniqueBackup);
+        assertThat(preparedNamespaces).containsExactly(NAMESPACE);
+
+        // TODO(gs): verify TimeLock is disabled
+    }
+
+    @Test
+    public void canCompleteRestore() {
+        // TODO(gs): verify TimeLock is re-enabled
+        // TODO(gs): test repair?
+        todoClient.addTodo(TODO);
+        backupResource.prepareBackup(NAMESPACES);
+        backupResource.completeBackup(NAMESPACES);
+
+        UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
+        backupResource.prepareRestore(uniqueBackup);
+
+        Set<Namespace> completedNamespaces = backupResource.completeRestore(uniqueBackup);
+        assertThat(completedNamespaces).containsExactly(NAMESPACE);
     }
 }
