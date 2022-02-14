@@ -18,27 +18,18 @@ package com.palantir.atlasdb;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.timelock.config.TimeLockInstallConfiguration;
-import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import io.dropwizard.Configuration;
 import java.util.Optional;
 
-@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class AtlasDbEteConfiguration extends Configuration {
     private final AtlasDbConfig atlasdb;
     private final Optional<AtlasDbRuntimeConfig> atlasdbRuntime;
-    private final Optional<TimeLockInstallConfiguration> timeLockInstall;
-    private final Optional<TimeLockRuntimeConfiguration> timeLockRuntime;
 
     public AtlasDbEteConfiguration(
             @JsonProperty("atlasdb") AtlasDbConfig atlasdb,
-            @JsonProperty("atlasDbRuntime") Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig,
-            @JsonProperty("timeLockInstall") Optional<TimeLockInstallConfiguration> timeLockInstall,
-            @JsonProperty("timeLockRuntime") Optional<TimeLockRuntimeConfiguration> timeLockRuntime) {
+            @JsonProperty("atlasDbRuntime") Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig) {
         this.atlasdb = atlasdb;
         this.atlasdbRuntime = atlasDbRuntimeConfig;
-        this.timeLockInstall = timeLockInstall;
-        this.timeLockRuntime = timeLockRuntime;
     }
 
     public AtlasDbConfig getAtlasDbConfig() {
@@ -47,13 +38,5 @@ public class AtlasDbEteConfiguration extends Configuration {
 
     public Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
         return atlasdbRuntime;
-    }
-
-    public Optional<TimeLockInstallConfiguration> getTimeLockInstallConfiguration() {
-        return timeLockInstall;
-    }
-
-    public Optional<TimeLockRuntimeConfiguration> getTimeLockRuntimeConfiguration() {
-        return timeLockRuntime;
     }
 }
