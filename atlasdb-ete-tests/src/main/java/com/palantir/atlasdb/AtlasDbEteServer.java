@@ -77,6 +77,7 @@ import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -123,7 +124,9 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Optional<AtlasDbRuntimeConfig> maybeRuntimeConfig = config.getAtlasDbRuntimeConfig();
         URL localServer = new URL("https://localhost:1234");
 
-        Function<Namespace, Path> backupFolderFactory = _unused -> Paths.get("var/data/backup");
+        Path backupFolder = Paths.get("/var/data/backup");
+        Files.createDirectories(backupFolder);
+        Function<Namespace, Path> backupFolderFactory = _unused -> backupFolder;
         Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
         ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
