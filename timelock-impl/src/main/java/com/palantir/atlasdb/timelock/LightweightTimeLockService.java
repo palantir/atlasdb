@@ -24,13 +24,10 @@ import java.util.Set;
 
 // Only the methods necessary for AtlasBackup/RestoreService
 public interface LightweightTimeLockService {
-    // TimestampService
     long getFreshTimestamp();
 
-    // Managed timestamp service
     void fastForwardTimestamp(long currentTimestamp);
 
-    // AsyncTimelockService
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
     ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens);
