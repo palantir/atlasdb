@@ -23,11 +23,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.backup.AtlasBackupService;
+import com.palantir.atlasdb.backup.AtlasRestoreResource;
+import com.palantir.atlasdb.backup.AtlasRestoreService;
 import com.palantir.atlasdb.backup.AuthHeaderValidator;
 import com.palantir.atlasdb.backup.DelegatingBackupTimeLockServiceView;
 import com.palantir.atlasdb.backup.ExternalBackupPersister;
 import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
+import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -51,6 +54,7 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timestamp.SimpleEteTimestampResource;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
@@ -144,13 +148,35 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
         Function<String, BackupTimeLockServiceView> timelockServices =
                 _unused -> createLightweightTimeLockService(txManager);
-        AtlasBackupClient atlasBackupClient = AtlasBackupResource.jersey(
-                new AuthHeaderValidator(() -> Optional.of(authHeader.getBearerToken())),
-                RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer)),
-                timelockServices);
+        AuthHeaderValidator authHeaderValidator =
+                new AuthHeaderValidator(() -> Optional.of(authHeader.getBearerToken()));
+        RedirectRetryTargeter redirectRetryTargeter =
+                RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer));
+        AtlasBackupClient atlasBackupClient =
+                AtlasBackupResource.jersey(authHeaderValidator, redirectRetryTargeter, timelockServices);
+        AtlasRestoreClient atlasRestoreClient =
+                AtlasRestoreResource.jersey(authHeaderValidator, redirectRetryTargeter, timelockServices);
+        TimeLockManagementService timeLockManagementService = getTimeLockManagementService();
+
         AtlasBackupService atlasBackupService =
                 AtlasBackupService.create(authHeader, atlasBackupClient, backupFolderFactory, keyValueServiceFactory);
-        environment.jersey().register(new SimpleBackupAndRestoreResource(atlasBackupService, externalBackupPersister));
+        AtlasRestoreService atlasRestoreService = AtlasRestoreService.create(
+                authHeader,
+                atlasRestoreClient,
+                timeLockManagementService,
+                externalBackupPersister,
+                _unused -> (com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig)
+                        config.getAtlasDbConfig().keyValueService(),
+                keyValueServiceFactory);
+
+        environment
+                .jersey()
+                .register(new SimpleBackupAndRestoreResource(
+                        atlasBackupService, atlasRestoreService, externalBackupPersister));
+    }
+
+    private TimeLockManagementService getTimeLockManagementService() {
+        return null;
     }
 
     private void ensureTransactionSchemaVersionInstalled(

@@ -23,11 +23,15 @@ import java.util.Set;
 
 public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource {
     private final AtlasBackupService atlasBackupService;
+    private final AtlasRestoreService atlasRestoreService;
     private final ExternalBackupPersister externalBackupPersister;
 
     public SimpleBackupAndRestoreResource(
-            AtlasBackupService atlasBackupService, ExternalBackupPersister externalBackupPersister) {
+            AtlasBackupService atlasBackupService,
+            AtlasRestoreService atlasRestoreService,
+            ExternalBackupPersister externalBackupPersister) {
         this.atlasBackupService = atlasBackupService;
+        this.atlasRestoreService = atlasRestoreService;
         this.externalBackupPersister = externalBackupPersister;
     }
 
@@ -39,6 +43,16 @@ public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource 
     @Override
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
         return atlasBackupService.completeBackup(namespaces);
+    }
+
+    @Override
+    public Set<Namespace> prepareRestore(UniqueBackup uniqueBackup) {
+        return atlasRestoreService.prepareRestore(uniqueBackup.namespaces(), uniqueBackup.backupId());
+    }
+
+    @Override
+    public Set<Namespace> completeRestore(UniqueBackup uniqueBackup) {
+        return atlasRestoreService.completeRestore(uniqueBackup.namespaces(), uniqueBackup.backupId());
     }
 
     @Override

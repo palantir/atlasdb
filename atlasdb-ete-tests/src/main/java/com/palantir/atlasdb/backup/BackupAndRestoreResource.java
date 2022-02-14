@@ -43,6 +43,18 @@ public interface BackupAndRestoreResource {
     Set<Namespace> completeBackup(Set<Namespace> namespaces);
 
     @POST
+    @Path("/prepare-restore")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    Set<Namespace> prepareRestore(UniqueBackup uniqueBackup);
+
+    @POST
+    @Path("/complete-restore")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    Set<Namespace> completeRestore(UniqueBackup uniqueBackup);
+
+    @POST
     @Path("/immutable-ts")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)

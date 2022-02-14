@@ -103,6 +103,20 @@ public class AtlasRestoreService {
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
     }
 
+    public static AtlasRestoreService create(
+            AuthHeader authHeader,
+            AtlasRestoreClient atlasRestoreClient,
+            TimeLockManagementService timeLockManagementService,
+            BackupPersister backupPersister,
+            Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
+            Function<Namespace, KeyValueService> keyValueServiceFactory) {
+        CassandraRepairHelper cassandraRepairHelper =
+                new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
+
+        return new AtlasRestoreService(
+                authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
+    }
+
     /**
      * Disables TimeLock on all nodes for the given namespaces.
      * This will fail if any namespace is already disabled, unless it was disabled with the provided backupId.
