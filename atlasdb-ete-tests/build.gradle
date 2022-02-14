@@ -14,7 +14,6 @@ dependencies {
     compile project(':atlasdb-hikari')
 
     implementation project(':atlasdb-backup')
-    implementation project(':timelock-agent')
     implementation project(':timelock-impl')
     implementation group: 'org.awaitility', name: 'awaitility'
     implementation group: 'com.palantir.tritium', name: 'tritium-lib'
