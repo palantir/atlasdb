@@ -40,7 +40,6 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
-import com.palantir.atlasdb.timelock.LightweightTimeLockService;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
@@ -348,8 +347,6 @@ public class TimeLockAgent {
 
         Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
                 namespace -> namespaces.get(namespace).getTimelockService();
-        Function<String, LightweightTimeLockService> lightweightTimelockServiceGetter =
-                namespace -> namespaces.get(namespace).getTimelockService();
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
 
@@ -374,11 +371,11 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasBackupResource.undertow(
-                            authHeaderValidator, redirectRetryTargeter, lightweightTimelockServiceGetter));
+                            authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasRestoreResource.undertow(
-                            authHeaderValidator, redirectRetryTargeter, lightweightTimelockServiceGetter));
+                            authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     DisabledNamespacesUpdaterResource.undertow(authHeaderValidator, redirectRetryTargeter, namespaces));
@@ -389,10 +386,10 @@ public class TimeLockAgent {
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(AtlasBackupResource.jersey(
-                    authHeaderValidator, redirectRetryTargeter, lightweightTimelockServiceGetter));
+            registrar.accept(
+                    AtlasBackupResource.jersey(authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
-                    authHeaderValidator, redirectRetryTargeter, lightweightTimelockServiceGetter));
+                    authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(
                     DisabledNamespacesUpdaterResource.jersey(authHeaderValidator, redirectRetryTargeter, namespaces));
         }

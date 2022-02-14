@@ -56,14 +56,14 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupResource.class);
 
     private final AuthHeaderValidator authHeaderValidator;
-    private final Function<String, LightweightTimeLockService> timelockServices;
+    private final Function<String, ? extends LightweightTimeLockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
 
     @VisibleForTesting
     AtlasBackupResource(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LightweightTimeLockService> timelockServices) {
+            Function<String, ? extends LightweightTimeLockService> timelockServices) {
         this.authHeaderValidator = authHeaderValidator;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
@@ -72,7 +72,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     public static UndertowService undertow(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LightweightTimeLockService> timelockServices) {
+            Function<String, ? extends LightweightTimeLockService> timelockServices) {
         return AtlasBackupClientEndpoints.of(
                 new AtlasBackupResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
@@ -80,7 +80,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     public static AtlasBackupClient jersey(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LightweightTimeLockService> timelockServices) {
+            Function<String, ? extends LightweightTimeLockService> timelockServices) {
         return new JerseyAtlasBackupClientAdapter(
                 new AtlasBackupResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }

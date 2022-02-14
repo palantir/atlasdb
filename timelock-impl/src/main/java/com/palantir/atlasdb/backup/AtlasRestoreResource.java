@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasRestoreResource.class);
 
-    private final Function<String, LightweightTimeLockService> timelockServices;
+    private final Function<String, ? extends LightweightTimeLockService> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final AuthHeaderValidator authHeaderValidator;
 
@@ -56,7 +56,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     AtlasRestoreResource(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LightweightTimeLockService> timelockServices) {
+            Function<String, ? extends LightweightTimeLockService> timelockServices) {
         this.authHeaderValidator = authHeaderValidator;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
@@ -65,7 +65,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     public static UndertowService undertow(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LightweightTimeLockService> timelockServices) {
+            Function<String, ? extends LightweightTimeLockService> timelockServices) {
         return AtlasRestoreClientEndpoints.of(
                 new AtlasRestoreResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
@@ -73,7 +73,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     public static AtlasRestoreClient jersey(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, LightweightTimeLockService> timelockServices) {
+            Function<String, ? extends LightweightTimeLockService> timelockServices) {
         return new JerseyAtlasRestoreClientAdapter(
                 new AtlasRestoreResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
