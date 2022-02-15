@@ -17,15 +17,18 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.BackupAndRestoreResource;
 import com.palantir.atlasdb.backup.UniqueBackup;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timestamp.EteTimestampResource;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +44,7 @@ public class BackupAndRestoreEteTest {
     private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
     private final BackupAndRestoreResource backupResource =
             EteSetup.createClientToSingleNode(BackupAndRestoreResource.class);
+    private EteTimestampResource timestampClient = EteSetup.createClientToSingleNode(EteTimestampResource.class);
 
     @Ignore
     @Test
@@ -80,16 +84,18 @@ public class BackupAndRestoreEteTest {
         backupResource.prepareBackup(NAMESPACES);
         backupResource.completeBackup(NAMESPACES);
 
+        assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
+
         UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
         Set<Namespace> preparedNamespaces = backupResource.prepareRestore(uniqueBackup);
         assertThat(preparedNamespaces).containsExactly(NAMESPACE);
 
-        // TODO(gs): verify TimeLock is disabled
+        // verify TimeLock is disabled
+        assertThatThrownBy(() -> timestampClient.getFreshTimestamp()).isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
     public void canCompleteRestore() {
-        // TODO(gs): verify TimeLock is re-enabled
         // TODO(gs): test repair?
         addTodo();
         backupResource.prepareBackup(NAMESPACES);
@@ -98,8 +104,14 @@ public class BackupAndRestoreEteTest {
         UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
         backupResource.prepareRestore(uniqueBackup);
 
+        // verify TimeLock is disabled
+        assertThatThrownBy(() -> timestampClient.getFreshTimestamp()).isInstanceOf(SafeIllegalArgumentException.class);
+
         Set<Namespace> completedNamespaces = backupResource.completeRestore(uniqueBackup);
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
+
+        // Verify timelock is re-enabled
+        assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
     }
 
     private void addTodo() {
