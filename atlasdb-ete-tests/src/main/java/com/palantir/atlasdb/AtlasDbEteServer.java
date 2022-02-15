@@ -36,9 +36,15 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfigs;
+import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
+import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -64,12 +70,16 @@ import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -122,7 +132,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
 
-        createAndRegisterBackupAndRestoreResource(config, environment, txManager);
+        createAndRegisterBackupAndRestoreResource(config, environment, txManager, taggedMetrics);
         environment
                 .jersey()
                 .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
@@ -135,7 +145,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     private void createAndRegisterBackupAndRestoreResource(
-            AtlasDbEteConfiguration config, Environment environment, TransactionManager txManager) throws IOException {
+            AtlasDbEteConfiguration config,
+            Environment environment,
+            TransactionManager txManager,
+            TaggedMetricRegistry taggedMetrics)
+            throws IOException {
         AuthHeader authHeader = AuthHeader.valueOf("test-auth");
         Optional<AtlasDbRuntimeConfig> maybeRuntimeConfig = config.getAtlasDbRuntimeConfig();
         URL localServer = new URL("https://localhost:1234");
@@ -147,7 +161,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
         Function<String, BackupTimeLockServiceView> timelockServices =
-                _unused -> createLightweightTimeLockService(txManager);
+                _unused -> createBackupTimeLockServiceView(txManager);
         AuthHeaderValidator authHeaderValidator =
                 new AuthHeaderValidator(() -> Optional.of(authHeader.getBearerToken()));
         RedirectRetryTargeter redirectRetryTargeter =
@@ -156,7 +170,9 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 AtlasBackupResource.jersey(authHeaderValidator, redirectRetryTargeter, timelockServices);
         AtlasRestoreClient atlasRestoreClient =
                 AtlasRestoreResource.jersey(authHeaderValidator, redirectRetryTargeter, timelockServices);
-        TimeLockManagementService timeLockManagementService = getTimeLockManagementService();
+        Refreshable<ServerListConfig> serverListConfig = getServerListConfigForTimeLock(config);
+        TimeLockManagementService timeLockManagementService =
+                getRemoteTimeLockManagementService(serverListConfig, taggedMetrics);
 
         AtlasBackupService atlasBackupService =
                 AtlasBackupService.create(authHeader, atlasBackupClient, backupFolderFactory, keyValueServiceFactory);
@@ -175,9 +191,66 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                         atlasBackupService, atlasRestoreService, externalBackupPersister));
     }
 
-    private TimeLockManagementService getTimeLockManagementService() {
-        return null;
+    // TODO(gs): paraphrased from DefaultLockAndTimestampServiceFactory
+    // TODO(gs): only call if runtime is present
+    private Refreshable<ServerListConfig> getServerListConfigForTimeLock(AtlasDbEteConfiguration eteConfig) {
+        AtlasDbConfig config = eteConfig.getAtlasDbConfig();
+        Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig = eteConfig.getAtlasDbRuntimeConfig();
+        Preconditions.checkState(
+                !remoteTimestampAndLockOrLeaderBlocksPresent(config),
+                "Cannot create raw services from timelock with another source of timestamps/locks configured!");
+        TimeLockClientConfig clientConfig = config.timelock()
+                .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
+        return ServerListConfigs.parseInstallAndRuntimeConfigs(
+                clientConfig, Refreshable.only(atlasDbRuntimeConfig.flatMap(AtlasDbRuntimeConfig::timelockRuntime)));
     }
+
+    // TODO(gs): move to AtlasDbConfig?
+    private static boolean remoteTimestampAndLockOrLeaderBlocksPresent(AtlasDbConfig config) {
+        return (config.timestamp().isPresent() && config.lock().isPresent())
+                || config.leader().isPresent();
+    }
+
+    private TimeLockManagementService getRemoteTimeLockManagementService(
+            Refreshable<ServerListConfig> serverListConfig, TaggedMetricRegistry taggedMetrics) {
+        UserAgent userAgent = UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
+                        Refreshable.only(ServicesConfigBlock.builder().build()))
+                .withUserAgent(userAgent);
+        AtlasDbDialogueServiceProvider dialogueServiceProvider =
+                AtlasDbDialogueServiceProvider.create(serverListConfig, reloadingFactory, userAgent, taggedMetrics);
+        return dialogueServiceProvider.getTimeLockManagementService();
+    }
+
+    //    private TimeLockManagementService getTimeLockManagementService(
+    //            AuthHeaderValidator authHeaderValidator, RedirectRetryTargeter redirectRetryTargeter) {
+    //        // TODO(gs): make this horrible thing compile (finish the wiring) and then see if tests actually pass with
+    // it
+    //        DisabledNamespaces disabledNamespaces = DisabledNamespaces.create(dataSource);
+    //        TimelockNamespaces timelockNamespaces = new TimelockNamespaces(
+    //                MetricsManagers.createForTests(),
+    //                _unused -> {
+    //                    throw new SafeIllegalStateException("not supported for ETEs");
+    //                },
+    //                () -> 1,
+    //                disabledNamespaces);
+    //        AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater =
+    //                AllNodesDisabledNamespacesUpdater.create(ImmutableList.of(), ImmutableMap.of(),
+    // timelockNamespaces);
+    //        ServiceLifecycleController serviceLifecycleController = new ServiceLifecycleController(
+    //                () -> {
+    //                    throw new SafeIllegalStateException("not supported for ETEs");
+    //                },
+    //                PTExecutors.newSingleThreadScheduledExecutor());
+    //
+    //        return TimeLockManagementResource.jersey(
+    //                persistentNamespaceContext,
+    //                timelockNamespaces,
+    //                allNodesDisabledNamespacesUpdater,
+    //                authHeaderValidator,
+    //                redirectRetryTargeter,
+    //                serviceLifecycleController);
+    //    }
 
     private void ensureTransactionSchemaVersionInstalled(
             AtlasDbConfig config, Optional<AtlasDbRuntimeConfig> runtimeConfig, TransactionManager transactionManager) {
@@ -220,7 +293,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
-    private BackupTimeLockServiceView createLightweightTimeLockService(TransactionManager txManager) {
+    private BackupTimeLockServiceView createBackupTimeLockServiceView(TransactionManager txManager) {
         TimelockService timelockService = txManager.getTimelockService();
         TimestampManagementService timestampManagementService = txManager.getTimestampManagementService();
         return new DelegatingBackupTimeLockServiceView(timelockService, timestampManagementService);
