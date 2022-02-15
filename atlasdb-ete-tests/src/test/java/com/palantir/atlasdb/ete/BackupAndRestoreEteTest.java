@@ -26,8 +26,10 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import org.awaitility.Awaitility;
 import org.junit.Test;
 
 public class BackupAndRestoreEteTest {
@@ -41,7 +43,7 @@ public class BackupAndRestoreEteTest {
 
     @Test
     public void canPrepareBackup() {
-        todoClient.addTodo(TODO);
+        addTodo();
         assertThat(backupResource.getStoredImmutableTimestamp(NAMESPACE)).isEmpty();
 
         Set<Namespace> preparedNamespaces = backupResource.prepareBackup(NAMESPACES);
@@ -53,7 +55,7 @@ public class BackupAndRestoreEteTest {
 
     @Test
     public void canCompletePreparedBackup() {
-        todoClient.addTodo(TODO);
+        addTodo();
         backupResource.prepareBackup(NAMESPACES);
 
         Long immutableTimestamp =
@@ -71,7 +73,7 @@ public class BackupAndRestoreEteTest {
 
     @Test
     public void canPrepareRestore() {
-        todoClient.addTodo(TODO);
+        addTodo();
         backupResource.prepareBackup(NAMESPACES);
         backupResource.completeBackup(NAMESPACES);
 
@@ -86,7 +88,7 @@ public class BackupAndRestoreEteTest {
     public void canCompleteRestore() {
         // TODO(gs): verify TimeLock is re-enabled
         // TODO(gs): test repair?
-        todoClient.addTodo(TODO);
+        addTodo();
         backupResource.prepareBackup(NAMESPACES);
         backupResource.completeBackup(NAMESPACES);
 
@@ -95,5 +97,13 @@ public class BackupAndRestoreEteTest {
 
         Set<Namespace> completedNamespaces = backupResource.completeRestore(uniqueBackup);
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
+    }
+
+    private void addTodo() {
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(60L))
+                .ignoreExceptions()
+                .pollInterval(Duration.ofSeconds(1L))
+                .untilAsserted(() -> todoClient.addTodo(TODO));
     }
 }
