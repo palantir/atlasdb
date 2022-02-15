@@ -82,6 +82,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.tokens.auth.AuthHeader;
+import com.palantir.tokens.auth.BearerToken;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
@@ -153,8 +154,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             TransactionManager txManager,
             TaggedMetricRegistry taggedMetrics)
             throws IOException {
-        AuthHeader authHeader = AuthHeader.valueOf("test-auth");
-        Optional<AtlasDbRuntimeConfig> maybeRuntimeConfig = config.getAtlasDbRuntimeConfig();
+        AuthHeader authHeader = AuthHeader.of(BearerToken.valueOf("test-auth"));
         URL localServer = new URL("https://localhost:1234");
 
         Path backupFolder = Paths.get("/var/data/backup");
