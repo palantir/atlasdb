@@ -132,7 +132,10 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
 
-        createAndRegisterBackupAndRestoreResource(config, environment, txManager, taggedMetrics);
+        if (config.getAtlasDbRuntimeConfig().isPresent()) {
+            createAndRegisterBackupAndRestoreResource(config, environment, txManager, taggedMetrics);
+        }
+
         environment
                 .jersey()
                 .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
