@@ -29,7 +29,7 @@ import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.UndertowAtlasRestoreClient;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
-import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.conjure.java.api.errors.ErrorType;
@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasRestoreResource.class);
 
-    private final Function<String, AsyncTimelockService> timelockServices;
+    private final Function<String, ? extends BackupTimeLockServiceView> timelockServices;
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final AuthHeaderValidator authHeaderValidator;
 
@@ -56,7 +56,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     AtlasRestoreResource(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, AsyncTimelockService> timelockServices) {
+            Function<String, ? extends BackupTimeLockServiceView> timelockServices) {
         this.authHeaderValidator = authHeaderValidator;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
@@ -65,7 +65,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     public static UndertowService undertow(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, AsyncTimelockService> timelockServices) {
+            Function<String, ? extends BackupTimeLockServiceView> timelockServices) {
         return AtlasRestoreClientEndpoints.of(
                 new AtlasRestoreResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
@@ -73,7 +73,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
     public static AtlasRestoreClient jersey(
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
-            Function<String, AsyncTimelockService> timelockServices) {
+            Function<String, ? extends BackupTimeLockServiceView> timelockServices) {
         return new JerseyAtlasRestoreClientAdapter(
                 new AtlasRestoreResource(authHeaderValidator, redirectRetryTargeter, timelockServices));
     }
@@ -107,12 +107,12 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private ListenableFuture<Optional<Namespace>> completeRestoreAsync(CompletedBackup completedBackup) {
         Namespace namespace = completedBackup.getNamespace();
-        AsyncTimelockService timelock = timelock(namespace);
+        BackupTimeLockServiceView timelock = timelock(namespace);
         timelock.fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
         return Futures.immediateFuture(Optional.of(namespace));
     }
 
-    private AsyncTimelockService timelock(Namespace namespace) {
+    private BackupTimeLockServiceView timelock(Namespace namespace) {
         return timelockServices.apply(namespace.get());
     }
 

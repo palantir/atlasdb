@@ -21,6 +21,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import io.dropwizard.Configuration;
 import java.util.Optional;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class AtlasDbEteConfiguration extends Configuration {
     private final AtlasDbConfig atlasdb;
     private final Optional<AtlasDbRuntimeConfig> atlasdbRuntime;

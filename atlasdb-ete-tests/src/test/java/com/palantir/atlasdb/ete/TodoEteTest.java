@@ -32,7 +32,7 @@ import org.junit.rules.TestRule;
 public class TodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
-    private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+    private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
