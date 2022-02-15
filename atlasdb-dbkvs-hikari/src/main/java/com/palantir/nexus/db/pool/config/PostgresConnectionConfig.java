@@ -79,7 +79,15 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
-        props.putAll(getConnectionParameters());
+        // As per https://github.com/pgjdbc/pgjdbc/issues/1307, we need to replace ssl: true with sslmode: require
+        // (introduced in https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e)
+        getConnectionParameters().forEach((key, value) -> {
+            if (key.equals("ssl") && value.equals("true")) {
+                props.setProperty("sslmode", "require");
+            } else {
+                props.setProperty(key, value);
+            }
+        });
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());
