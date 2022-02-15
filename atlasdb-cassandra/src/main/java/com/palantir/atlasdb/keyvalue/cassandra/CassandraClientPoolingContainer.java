@@ -226,6 +226,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     @Override
     public void shutdownPooling() {
+        RuntimeException stackTrace = new RuntimeException("I exist to show you the stack trace");
+        log.warn("Shutting down pooling", stackTrace);
         clientPool.close();
     }
 
