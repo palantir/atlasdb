@@ -15,4 +15,3 @@ atlasdb:
       connectionParameters:
         foo: 100
         bar: baz
-      ssl: true
