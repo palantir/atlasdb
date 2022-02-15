@@ -1619,15 +1619,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
-        putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
         getCache().delete(tableRef, cells);
+        putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
-        putInternal(tableRef, values);
         getCache().write(tableRef, values);
+        putInternal(tableRef, values);
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
@@ -2272,6 +2272,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     "Timed out waiting while acquiring commit locks. Timeout was {} ms. "
                             + "First ten required locks were {}.",
                     SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
+                    SafeArg.of("numberOfDescriptors", lockDescriptors.size()),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
@@ -2355,6 +2356,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     "Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
                     SafeArg.of("requestId", request.getRequestId()),
                     SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
+                    SafeArg.of("numberOfDescriptors", lockDescriptors.size()),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
         }

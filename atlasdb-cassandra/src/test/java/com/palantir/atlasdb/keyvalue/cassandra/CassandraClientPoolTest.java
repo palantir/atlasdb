@@ -31,6 +31,7 @@ import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -378,7 +379,7 @@ public class CassandraClientPoolTest {
                 MetricsManagers.createForTests(),
                 config,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
-                deterministicExecutor,
+                InitializeableScheduledExecutorServiceSupplier.createForTests(deterministicExecutor),
                 blacklist,
                 cassandra);
     }

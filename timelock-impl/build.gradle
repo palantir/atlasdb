@@ -4,6 +4,8 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
 dependencies {
+    api project(':timelock-api')
+
     implementation project(":timestamp-impl")
     implementation project(":lock-conjure-api:lock-conjure-api-undertow")
     implementation project(":lock-conjure-api:lock-conjure-api-jersey")

@@ -39,7 +39,7 @@ public class SweepDelayTest {
 
     private final AtomicLong metrics = new AtomicLong();
     private final AtomicInteger sweepBatchSize = new AtomicInteger(SWEEP_BATCH_SIZE);
-    private SweepDelay delay = new SweepDelay(INITIAL_DELAY, metrics::set, sweepBatchSize::get);
+    private SweepDelay delay = new SweepDelay(() -> INITIAL_DELAY, metrics::set, sweepBatchSize::get);
 
     @Test
     public void iterationWithNormalBatchReturnsInitialPause() {
@@ -49,7 +49,7 @@ public class SweepDelayTest {
 
     @Test
     public void configurationBelowMinimumIsSetToMinimum() {
-        SweepDelay negativeDelay = new SweepDelay(-5L, metrics::set, sweepBatchSize::get);
+        SweepDelay negativeDelay = new SweepDelay(() -> -5L, metrics::set, sweepBatchSize::get);
 
         assertThat(negativeDelay.getNextPause(SUCCESS)).isEqualTo(MIN_PAUSE_MILLIS);
         assertThat(metrics).hasValue(MIN_PAUSE_MILLIS);
@@ -57,7 +57,7 @@ public class SweepDelayTest {
 
     @Test
     public void configurationAboveDefaultMaximumIsRespected() {
-        SweepDelay largeDelay = new SweepDelay(2 * DEFAULT_MAX_PAUSE_MILLIS, metrics::set, sweepBatchSize::get);
+        SweepDelay largeDelay = new SweepDelay(() -> 2 * DEFAULT_MAX_PAUSE_MILLIS, metrics::set, sweepBatchSize::get);
 
         assertThat(largeDelay.getNextPause(SUCCESS)).isEqualTo(2 * DEFAULT_MAX_PAUSE_MILLIS);
         assertThat(metrics).hasValue(2 * DEFAULT_MAX_PAUSE_MILLIS);

@@ -32,13 +32,14 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +51,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 
@@ -71,8 +73,9 @@ import org.apache.cassandra.thrift.TokenRange;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
-    private static final ScheduledExecutorService sharedRefreshDaemon =
-            PTExecutors.newScheduledThreadPool(1, new NamedThreadFactory("CassandraClientPoolRefresh", true));
+    private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
+            new InitializeableScheduledExecutorServiceSupplier(
+                    new NamedThreadFactory("CassandraClientPoolRefresh", true));
 
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
@@ -139,14 +142,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
-            ScheduledExecutorService refreshDaemon,
+            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             Blacklist blacklist,
             CassandraService cassandra) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 config,
                 startupChecks,
-                refreshDaemon,
+                initializeableExecutorSupplier,
                 exceptionHandler,
                 blacklist,
                 cassandra,
@@ -187,7 +190,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this(
                 config,
                 startupChecks,
-                sharedRefreshDaemon,
+                SHARED_EXECUTOR_SUPPLIER,
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, blacklist, metrics),
@@ -197,14 +200,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private CassandraClientPoolImpl(
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
-            ScheduledExecutorService refreshDaemon,
+            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraService cassandra,
             CassandraClientPoolMetrics metrics) {
         this.config = config;
         this.startupChecks = startupChecks;
-        this.refreshDaemon = refreshDaemon;
+        initializeableExecutorSupplier.initialize(config.numPoolRefreshingThreads());
+        this.refreshDaemon = initializeableExecutorSupplier.get();
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
@@ -318,10 +322,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         serversToRemove.forEach(cassandra::removePool);
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
+            // Log IP addresses along with hostnames
+            Set<InetAddress> addressesToAdd =
+                    serversToAdd.stream().map(InetSocketAddress::getAddress).collect(Collectors.toSet());
+            Set<InetAddress> addressesToRemove =
+                    serversToRemove.stream().map(InetSocketAddress::getAddress).collect(Collectors.toSet());
+
             log.info(
-                    "Servers to add and remove, inside the if block",
-                    SafeArg.of("serversToAdd", serversToAdd),
-                    SafeArg.of("serversToRemove", serversToRemove));
+                    "Added and removed servers from the client pool",
+                    SafeArg.of("serversAdded", addressesToAdd),
+                    SafeArg.of("serversRemoved", addressesToRemove));
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
         }
@@ -444,8 +454,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         if (blacklist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
             InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getHost();
-            Optional<CassandraClientPoolingContainer> hostPoolCandidate =
-                    cassandra.getRandomGoodHostForPredicate(address -> !req.alreadyTriedOnHost(address));
+            Optional<CassandraClientPoolingContainer> hostPoolCandidate = cassandra.getRandomGoodHostForPredicate(
+                    address -> !req.alreadyTriedOnHost(address), req.getTriedHosts());
             hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
             log.warn(
                     "Randomly redirected a query intended for host {} to {}.",

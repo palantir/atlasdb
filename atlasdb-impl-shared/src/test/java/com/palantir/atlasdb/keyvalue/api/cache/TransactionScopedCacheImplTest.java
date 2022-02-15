@@ -100,17 +100,16 @@ public final class TransactionScopedCacheImplTest {
         cache.write(TABLE, ImmutableMap.of(CELL_3, VALUE_3.value().get()));
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2, CELL_3, CELL_4, CELL_5))
-                .containsExactlyInAnyOrder(CELL_4, CELL_5);
+                .containsExactlyInAnyOrder(CELL_3, CELL_4, CELL_5);
     }
 
     @Test
-    public void deletesCacheResultLocally() {
+    public void deletesDoNotCacheResultLocally() {
         TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         cache.delete(TABLE, ImmutableSet.of(CELL_1));
-        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactly(CELL_2);
-        assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1), TransactionScopedCacheImplTest::remoteRead))
-                .isEmpty();
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactly(CELL_1, CELL_2);
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1)).containsExactly(CELL_1);
     }
 
     @Test

@@ -16,8 +16,12 @@
 
 package com.palantir.atlasdb.backup;
 
+import static com.palantir.conjure.java.api.testing.Assertions.assertThatServiceExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.AdditionalMatchers.not;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
@@ -28,9 +32,12 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.TimelockTestUtils;
+import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.tokens.auth.AuthHeader;
+import com.palantir.tokens.auth.BearerToken;
 import java.net.URL;
 import java.util.List;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -43,7 +50,8 @@ public class AtlasRestoreResourceTest {
     private static final URL REMOTE = TimelockTestUtils.url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER = RedirectRetryTargeter.create(LOCAL, List.of(LOCAL, REMOTE));
 
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("header");
+    private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("bear");
+    private static final AuthHeader AUTH_HEADER = AuthHeader.of(BEARER_TOKEN);
     private static final Namespace NAMESPACE = Namespace.of("test");
     private static final long FAST_FORWARD_TIMESTAMP = 9000L;
 
@@ -53,8 +61,29 @@ public class AtlasRestoreResourceTest {
     @Mock
     private AsyncTimelockService otherTimelock;
 
-    private final AtlasRestoreResource atlasRestoreResource =
-            new AtlasRestoreResource(TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+    @Mock
+    private AuthHeaderValidator authHeaderValidator;
+
+    private AtlasRestoreResource atlasRestoreResource;
+
+    @Before
+    public void setUp() {
+        when(authHeaderValidator.suppliedTokenIsValid(AUTH_HEADER)).thenReturn(true);
+        when(authHeaderValidator.suppliedTokenIsValid(not(eq(AUTH_HEADER)))).thenReturn(false);
+
+        atlasRestoreResource = new AtlasRestoreResource(
+                authHeaderValidator, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);
+    }
+
+    @Test
+    public void throwsIfWrongAuthHeaderIsProvided() {
+        CompletedBackup completedBackup = completedBackup();
+        AuthHeader wrongHeader = AuthHeader.of(BearerToken.valueOf("imposter"));
+        CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
+        assertThatServiceExceptionThrownBy(
+                        () -> AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(wrongHeader, request)))
+                .hasType(ErrorType.PERMISSION_DENIED);
+    }
 
     @Test
     public void completesRestoreSuccessfully() {

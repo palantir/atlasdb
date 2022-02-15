@@ -15,29 +15,23 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.Streams;
-import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
-import org.assertj.core.api.Assertions;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -58,7 +52,8 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH))
+        assertThat(new File(testFolder.getRoot(), TEST_PATH))
+                .content()
                 .contains("import com.google.common.base.Optional")
                 .contains("{@link Optional}")
                 .contains("Optional.absent");
@@ -69,7 +64,8 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH))
+        assertThat(new File(testFolder.getRoot(), TEST_PATH))
+                .content()
                 .contains("import com.google.common.base.Optional")
                 .doesNotContain("import java.util.Optional");
     }
@@ -79,7 +75,8 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH))
+        assertThat(new File(testFolder.getRoot(), TEST_PATH))
+                .content()
                 .doesNotContain("import com.google.common.base.Optional")
                 .contains("import java.util.Optional");
     }
@@ -140,24 +137,16 @@ public class SchemaTest {
         Schema schema = ApiTestSchema.getSchema();
         schema.renderTables(testFolder.getRoot());
 
-        List<String> generatedTestTables = ApiTestSchema.getSchema().getAllTables().stream()
-                .map(entry -> entry.getTableName() + "Table")
-                .collect(Collectors.toList());
+        String schemaName = ApiTestSchema.getSchema().getName();
+        checkIfFilesAreTheSame(schemaName + "TableFactory");
 
-        checkIfFilesAreTheSame(generatedTestTables);
-    }
-
-    @Test
-    public void checkAgainstAccidentalTableV2APIChanges() throws IOException {
-        Schema schema = ApiTestSchema.getSchema();
-        schema.renderTables(testFolder.getRoot());
-
-        List<String> generatedTestTables = ApiTestSchema.getSchema().getTableDefinitions().values().stream()
-                .filter(TableDefinition::hasV2TableEnabled)
-                .map(entry -> entry.getJavaTableName() + SCHEMA_V2_TABLE_NAME)
-                .collect(Collectors.toList());
-
-        checkIfFilesAreTheSame(generatedTestTables);
+        ApiTestSchema.getSchema().getTableDefinitions().forEach((tableRef, tableDefinition) -> {
+            String tableName = Renderers.getClassTableName(tableRef.getTableName(), tableDefinition);
+            checkIfFilesAreTheSame(tableName + "Table");
+            if (tableDefinition.hasV2TableEnabled()) {
+                checkIfFilesAreTheSame(tableName + "V2Table");
+            }
+        });
     }
 
     @Test
@@ -252,36 +241,13 @@ public class SchemaTest {
         assertThat(schema.getLockWatches()).isEmpty();
     }
 
-    private void checkIfFilesAreTheSame(List<String> generatedTestTables) {
-        generatedTestTables.forEach(tableName -> {
-            String generatedFilePath =
-                    String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);
-            File expectedFile = new File(EXPECTED_FILES_FOLDER_PATH, generatedFilePath);
-            File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+    private void checkIfFilesAreTheSame(String generatedFileName) {
+        String generatedFilePath =
+                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedFileName);
+        File expectedFile = new File(EXPECTED_FILES_FOLDER_PATH, generatedFilePath);
+        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
 
-            assertThat(expectedFile.length()).isEqualTo(actualFile.length());
-
-            try (Stream<String> expectedFileStream = java.nio.file.Files.lines(expectedFile.toPath());
-                    Stream<String> actualFileStream = java.nio.file.Files.lines(actualFile.toPath());
-                    Stream<Boolean> zipped = correspondingLinesMatchOrAreHashes(expectedFileStream, actualFileStream)) {
-
-                assertThat(zipped).allMatch(elem -> elem);
-            } catch (IOException e) {
-                Assertions.fail("Exception on stream creation", e);
-            }
-        });
-    }
-
-    private static Stream<Boolean> correspondingLinesMatchOrAreHashes(
-            Stream<String> expectedFileStream, Stream<String> actualFileStream) {
-        return Streams.zip(
-                expectedFileStream,
-                actualFileStream,
-                (first, second) -> first.equals(second) || (first.contains(CLASS_HASH) && second.contains(CLASS_HASH)));
-    }
-
-    private String readFileIntoString(File baseDir, String path) throws IOException {
-        return new String(Files.toByteArray(new File(baseDir, path)), StandardCharsets.UTF_8);
+        assertThat(expectedFile).hasSameTextualContentAs(actualFile);
     }
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})

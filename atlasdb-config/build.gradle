@@ -12,7 +12,6 @@ dependencies {
     implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
     implementation group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
     implementation group: 'com.palantir.refreshable', name: 'refreshable'
-    implementation group: 'com.palantir.remoting2', name: 'error-handling' // needed for backwards compatibility
     implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
     implementation (group: 'com.palantir.tritium', name: 'tritium-lib') {
         exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')

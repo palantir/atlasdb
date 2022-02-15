@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: The lock watch cache no longer attempts to cache writes - instead,
+    these will read from the maps tracked within the transaction (with similar performance
+    but more consistent behaviour around concurrent writes).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5871

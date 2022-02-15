@@ -17,7 +17,6 @@ dependencies {
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation project(':commons-annotations')
 
-
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 }

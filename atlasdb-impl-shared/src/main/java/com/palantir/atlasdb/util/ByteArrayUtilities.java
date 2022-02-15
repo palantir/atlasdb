@@ -76,7 +76,10 @@ public final class ByteArrayUtilities {
                     .map(RowResult::getColumns)
                     .orElseGet(ImmutableSortedMap::of);
 
-            return areByteMapsEqual(firstColumns, secondColumns);
+            boolean mapsEqual = areByteMapsEqual(firstColumns, secondColumns);
+            if (!mapsEqual) {
+                return false;
+            }
         }
         return true;
     }

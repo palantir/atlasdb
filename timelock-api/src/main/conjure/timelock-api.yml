@@ -4,6 +4,10 @@ types:
       base-type: any
       external:
         java: com.palantir.lock.v2.LeaderTime
+    Namespace:
+      base-type: string
+      external:
+        java: com.palantir.atlasdb.timelock.api.Namespace
     NanoTime:
       base-type: safelong
       external:
@@ -114,8 +118,6 @@ types:
       LockWatchRequest:
         fields:
           references: set<LockWatchReference>
-      Namespace:
-        alias: string
       LeaderTimes:
         fields:
           leaderTimes: map<Namespace, LeaderTime>

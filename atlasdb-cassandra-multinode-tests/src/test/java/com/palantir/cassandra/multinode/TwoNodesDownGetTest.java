@@ -52,6 +52,7 @@ public class TwoNodesDownGetTest extends AbstractDegradedClusterTest {
     }
 
     @Test
+    @SuppressWarnings("ReturnValueIgnored") // Assertion for test purposes
     public void getRangeThrows() {
         RangeRequest range = RangeRequest.builder().endRowExclusive(SECOND_ROW).build();
         ClosableIterator<RowResult<Value>> resultIterator = getTestKvs().getRange(TEST_TABLE, range, Long.MAX_VALUE);

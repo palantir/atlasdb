@@ -31,7 +31,13 @@ import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
+import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.Set;
@@ -40,7 +46,9 @@ import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -49,12 +57,16 @@ public class AtlasRestoreServiceTest {
     private static final Namespace NO_BACKUP = Namespace.of("no-backup");
     private static final Namespace FAILING_NAMESPACE = Namespace.of("failing");
     private static final long BACKUP_START_TIMESTAMP = 2L;
+    private static final String BACKUP_ID = "backup-19890526215242";
 
     @Mock
     private AuthHeader authHeader;
 
     @Mock
     private AtlasRestoreClientBlocking atlasRestoreClient;
+
+    @Mock
+    private TimeLockManagementServiceBlocking timeLockManagementService;
 
     @Mock
     private CassandraRepairHelper cassandraRepairHelper;
@@ -65,8 +77,8 @@ public class AtlasRestoreServiceTest {
     @Before
     public void setup() {
         backupPersister = new InMemoryBackupPersister();
-        atlasRestoreService =
-                new AtlasRestoreService(authHeader, atlasRestoreClient, backupPersister, cassandraRepairHelper);
+        atlasRestoreService = new AtlasRestoreService(
+                authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
 
         storeCompletedBackup(WITH_BACKUP);
         storeCompletedBackup(FAILING_NAMESPACE);
@@ -83,9 +95,36 @@ public class AtlasRestoreServiceTest {
     }
 
     @Test
-    public void repairsOnlyWhenBackupPresent() {
+    public void prepareReturnsOnlyCompletedBackups() {
+        DisableNamespacesResponse successfulDisable =
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(BACKUP_ID));
+        DisableNamespacesRequest request = DisableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
+        when(timeLockManagementService.disableTimelock(authHeader, request)).thenReturn(successfulDisable);
+
+        Set<Namespace> disabledNamespaces =
+                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), BACKUP_ID);
+        assertThat(disabledNamespaces).containsExactly(WITH_BACKUP);
+    }
+
+    @Test
+    public void prepareBackupFailsIfDisableFails() {
+        DisableNamespacesResponse failedDisable = DisableNamespacesResponse.unsuccessful(
+                UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(WITH_BACKUP), ImmutableSet.of()));
+        DisableNamespacesRequest request = DisableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
+        when(timeLockManagementService.disableTimelock(authHeader, request)).thenReturn(failedDisable);
+
+        Set<Namespace> disabledNamespaces =
+                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), BACKUP_ID);
+        assertThat(disabledNamespaces).isEmpty();
+    }
+
+    @Test
+    public void repairsOnlyWhenBackupPresentAndDisableSuccessful() {
         BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
-        atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+
+        Set<Namespace> repairedNamespaces =
+                atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+        assertThat(repairedNamespaces).containsExactly(WITH_BACKUP);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
         verify(cassandraRepairHelper).repairTransactionsTables(eq(WITH_BACKUP), anyList(), eq(doNothingConsumer));
@@ -94,11 +133,34 @@ public class AtlasRestoreServiceTest {
     }
 
     @Test
+    public void completesRestoreAfterFastForwardingTimestamp() {
+        Set<Namespace> namespaces = ImmutableSet.of(WITH_BACKUP);
+        Set<CompletedBackup> completedBackups = namespaces.stream()
+                .map(backupPersister::getCompletedBackup)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+
+        CompleteRestoreRequest completeRequest = CompleteRestoreRequest.of(completedBackups);
+        when(atlasRestoreClient.completeRestore(authHeader, completeRequest))
+                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
+
+        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, BACKUP_ID);
+
+        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(namespaces, BACKUP_ID);
+        assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
+
+        InOrder inOrder = Mockito.inOrder(atlasRestoreClient, timeLockManagementService);
+        inOrder.verify(atlasRestoreClient).completeRestore(authHeader, completeRequest);
+        inOrder.verify(timeLockManagementService).reenableTimelock(authHeader, reenableRequest);
+    }
+
+    @Test
     public void completeRestoreDoesNotRunNamespacesWithoutCompletedBackup() {
-        Set<Namespace> namespaces = atlasRestoreService.completeRestore(ImmutableSet.of(NO_BACKUP));
+        Set<Namespace> namespaces = atlasRestoreService.completeRestore(ImmutableSet.of(NO_BACKUP), BACKUP_ID);
 
         assertThat(namespaces).isEmpty();
         verifyNoInteractions(atlasRestoreClient);
+        verifyNoInteractions(timeLockManagementService);
     }
 
     @Test
@@ -113,8 +175,12 @@ public class AtlasRestoreServiceTest {
         when(atlasRestoreClient.completeRestore(authHeader, request))
                 .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
 
-        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(namespaces);
+        ReenableNamespacesRequest reenableRequest =
+                ReenableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
+
+        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(namespaces, BACKUP_ID);
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
         verify(atlasRestoreClient).completeRestore(authHeader, request);
+        verify(timeLockManagementService).reenableTimelock(authHeader, reenableRequest);
     }
 }

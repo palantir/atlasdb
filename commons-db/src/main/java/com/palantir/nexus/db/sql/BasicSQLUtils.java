@@ -15,6 +15,7 @@
  */
 package com.palantir.nexus.db.sql;
 
+import com.palantir.common.concurrent.ThreadNames;
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
@@ -293,7 +294,8 @@ public class BasicSQLUtils {
         T result = null;
         final String oldName = Thread.currentThread().getName();
         final String currentTimestamp = DateTimeFormat.forPattern("HH:mm:ss").print(System.currentTimeMillis());
-        Thread.currentThread().setName(oldName + " blocking on " + threadString + " started at " + currentTimestamp);
+        ThreadNames.setThreadName(
+                Thread.currentThread(), oldName + " blocking on " + threadString + " started at " + currentTimestamp);
         try {
             long startTime = System.currentTimeMillis();
             while (true) {
@@ -308,7 +310,7 @@ public class BasicSQLUtils {
                 }
             }
         } finally {
-            Thread.currentThread().setName(oldName);
+            ThreadNames.setThreadName(Thread.currentThread(), oldName);
             if (interrupted) {
                 Thread.currentThread().interrupt();
             }
@@ -316,6 +318,7 @@ public class BasicSQLUtils {
         return result;
     }
 
+    @SuppressWarnings("ReadReturnValueIgnored") // Read is from a byte array input stream; will read everything
     public static void toStringSqlArgs(final StringBuilder sb, Object[] args) {
         if (args instanceof Object[][]) {
             // then we're doing a batch query

@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.palantir.common.concurrent.PTExecutors;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -102,7 +101,7 @@ public class CachedComposedSupplierTest {
     }
 
     @Test
-    public void appliesFunctionExactlyOncePerSuppliedValueChange() throws InterruptedException, ExecutionException {
+    public void appliesFunctionExactlyOncePerSuppliedValueChange() throws InterruptedException {
         testSupplier = new CachedComposedSupplier<>(this::countingFunction, this::increasingNumber);
         ExecutorService executorService = PTExecutors.newFixedThreadPool(16);
         for (int i = 0; i < 100_000; i++) {
@@ -116,7 +115,8 @@ public class CachedComposedSupplierTest {
     }
 
     @Test
-    public void recomputesIfSupplierHasNotUpdatedForTooLong() throws InterruptedException {
+    @SuppressWarnings("ReturnValueIgnored") // Test relating to properties of a Supplier
+    public void recomputesIfSupplierHasNotUpdatedForTooLong() {
         AtomicLong clockCounter = new AtomicLong();
         testSupplier = new CachedComposedSupplier<>(this::countingFunction, this::constantNumber, 5, clockCounter::get);
         for (int i = 0; i < 25; i++) {

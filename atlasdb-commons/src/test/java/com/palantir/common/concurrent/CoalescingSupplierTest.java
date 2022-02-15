@@ -105,6 +105,7 @@ public class CoalescingSupplierTest {
     }
 
     @Test
+    @SuppressWarnings("ReturnValueIgnored") // Test relating to properties of a Supplier
     public void doesNotBatchSerialRequests() {
         supplier.get();
         supplier.get();
@@ -188,6 +189,7 @@ public class CoalescingSupplierTest {
         }
     }
 
+    @SuppressWarnings("ReturnValueIgnored") // Test relating to properties of a Supplier
     private AsyncTasks getConcurrently(int count) {
         return AsyncTasks.runInParallel(supplier::get, count);
     }

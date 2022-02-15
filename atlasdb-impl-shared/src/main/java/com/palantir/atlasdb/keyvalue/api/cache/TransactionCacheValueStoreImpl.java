@@ -24,6 +24,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionCacheValueStoreImpl.LocalCacheEntry.Status;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -49,9 +51,9 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public void cacheRemoteWrite(TableReference table, Cell cell, CacheValue value) {
+    public void recordRemoteWrite(TableReference table, Cell cell) {
         CellReference cellReference = CellReference.of(table, cell);
-        cacheRemoteWriteInternal(cellReference, value);
+        recordRemoteWriteInternal(cellReference);
     }
 
     @Override
@@ -69,8 +71,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         if (snapshot.isWatched(table)) {
             emptyCells.stream()
                     .map(cell -> CellReference.of(table, cell))
-                    .filter(snapshot::isUnlocked)
-                    .forEach(cell -> localUpdates.put(cell, LocalCacheEntry.read(CacheValue.empty())));
+                    .forEach(cell -> cacheRemoteReadInternal(cell, CacheValue.empty()));
         }
     }
 
@@ -82,10 +83,10 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         localUpdates.forEach((cell, cacheEntry) -> {
             switch (cacheEntry.status()) {
                 case READ:
-                    newStore.cacheRemoteReadInternal(cell, cacheEntry.value());
+                    newStore.cacheRemoteReadInternal(cell, getReadValue(cacheEntry.value()));
                     break;
                 case WRITE:
-                    newStore.cacheRemoteWriteInternal(cell, cacheEntry.value());
+                    newStore.recordRemoteWriteInternal(cell);
                     break;
                 case HIT:
                 default:
@@ -98,18 +99,20 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
 
     @Override
     public Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells) {
-        Map<Cell, CacheValue> locallyCachedValues = getLocallyCachedValues(table, cells);
+        Set<Cell> locallyWrittenCells = getLocallyWrittenCells(table, cells);
+        Set<Cell> cacheableCells = Sets.difference(cells, locallyWrittenCells);
+
+        Map<Cell, CacheValue> locallyCachedReads = getLocallyCachedReads(table, cacheableCells);
 
         // Filter out which values have not been read yet
-        Set<Cell> remainingCells = Sets.difference(cells, locallyCachedValues.keySet());
+        Set<Cell> remainingCells = Sets.difference(cacheableCells, locallyCachedReads.keySet());
 
         // Read values from the snapshot. For the hits, mark as hit in the local map.
         Map<Cell, CacheValue> snapshotCachedValues = getSnapshotValues(table, remainingCells);
-        snapshotCachedValues.forEach(
-                (cell, value) -> localUpdates.put(CellReference.of(table, cell), LocalCacheEntry.hit(value)));
+        snapshotCachedValues.forEach((cell, value) -> cacheHitInternal(table, cell, value));
 
         return ImmutableMap.<Cell, CacheValue>builder()
-                .putAll(locallyCachedValues)
+                .putAll(locallyCachedReads)
                 .putAll(snapshotCachedValues)
                 .build();
     }
@@ -119,6 +122,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         return KeyedStream.stream(localUpdates)
                 .filter(entry -> entry.status().equals(Status.READ))
                 .map(LocalCacheEntry::value)
+                .map(TransactionCacheValueStoreImpl::getReadValue)
                 .collectToMap();
     }
 
@@ -130,23 +134,49 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .collect(Collectors.toSet());
     }
 
-    private Map<Cell, CacheValue> getLocallyCachedValues(TableReference table, Set<Cell> cells) {
+    private void cacheHitInternal(TableReference table, Cell cell, CacheValue value) {
+        localUpdates.compute(CellReference.of(table, cell), (_unused, previousValue) -> {
+            if (previousValue != null) {
+                throw new SafeIllegalStateException(
+                        "Should not be attempting to record hits for keys that have been written to or read from the"
+                                + " KVS",
+                        UnsafeArg.of("table", table),
+                        UnsafeArg.of("cell", cell),
+                        UnsafeArg.of("previousValue", previousValue));
+            } else {
+                return LocalCacheEntry.hit(value);
+            }
+        });
+    }
+
+    private Map<Cell, CacheValue> getLocallyCachedReads(TableReference table, Set<Cell> cells) {
         return KeyedStream.of(cells)
                 .map(cell -> localUpdates.get(CellReference.of(table, cell)))
                 .filter(Objects::nonNull)
+                .filter(value -> !value.status().equals(Status.WRITE))
                 .map(LocalCacheEntry::value)
+                .map(TransactionCacheValueStoreImpl::getReadValue)
                 .collectToMap();
     }
 
-    private void cacheRemoteWriteInternal(CellReference cellReference, CacheValue value) {
-        if (snapshot.isWatched(cellReference.tableRef()) && snapshot.isUnlocked(cellReference)) {
-            localUpdates.put(cellReference, LocalCacheEntry.write(value));
+    private Set<Cell> getLocallyWrittenCells(TableReference table, Set<Cell> cells) {
+        return KeyedStream.of(cells)
+                .map(cell -> localUpdates.get(CellReference.of(table, cell)))
+                .filter(Objects::nonNull)
+                .filter(value -> value.status().equals(Status.WRITE))
+                .keys()
+                .collect(Collectors.toSet());
+    }
+
+    private void recordRemoteWriteInternal(CellReference cellReference) {
+        if (snapshot.isUnlocked(cellReference)) {
+            localUpdates.put(cellReference, LocalCacheEntry.write());
         }
     }
 
     private void cacheRemoteReadInternal(CellReference cell, CacheValue value) {
         if (snapshot.isUnlocked(cell)) {
-            localUpdates.put(cell, LocalCacheEntry.read(value));
+            localUpdates.putIfAbsent(cell, LocalCacheEntry.read(value));
         }
     }
 
@@ -160,11 +190,16 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .collectToMap();
     }
 
+    private static CacheValue getReadValue(Optional<CacheValue> cacheValue) {
+        return cacheValue.orElseThrow(() -> new SafeIllegalStateException("Reads must have a cache value present"));
+    }
+
     @Value.Immutable
-    public interface LocalCacheEntry {
+    interface LocalCacheEntry {
+
         Status status();
 
-        CacheValue value();
+        Optional<CacheValue> value();
 
         static LocalCacheEntry read(CacheValue value) {
             return ImmutableLocalCacheEntry.builder()
@@ -173,11 +208,8 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                     .build();
         }
 
-        static LocalCacheEntry write(CacheValue value) {
-            return ImmutableLocalCacheEntry.builder()
-                    .status(Status.WRITE)
-                    .value(value)
-                    .build();
+        static LocalCacheEntry write() {
+            return ImmutableLocalCacheEntry.builder().status(Status.WRITE).build();
         }
 
         static LocalCacheEntry hit(CacheValue value) {
