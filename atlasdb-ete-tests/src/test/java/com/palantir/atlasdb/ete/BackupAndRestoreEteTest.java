@@ -80,7 +80,7 @@ public class BackupAndRestoreEteTest {
 
     @Test
     public void canPrepareRestore() {
-        addTodo();
+        //        addTodo();
         backupResource.prepareBackup(NAMESPACES);
         backupResource.completeBackup(NAMESPACES);
 
@@ -97,7 +97,7 @@ public class BackupAndRestoreEteTest {
     @Test
     public void canCompleteRestore() {
         // TODO(gs): test repair?
-        addTodo();
+        //        addTodo();
         backupResource.prepareBackup(NAMESPACES);
         backupResource.completeBackup(NAMESPACES);
 
