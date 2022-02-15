@@ -1,7 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  implementation project(':atlasdb-commons')
+  api project(':atlasdb-commons')
   implementation project(':commons-annotations')
 
   implementation 'com.google.guava:guava'
