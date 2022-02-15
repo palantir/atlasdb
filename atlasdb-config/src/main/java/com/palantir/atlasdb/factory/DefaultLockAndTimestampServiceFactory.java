@@ -23,7 +23,6 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -76,7 +75,6 @@ import com.palantir.lock.v2.DefaultNamespacedTimelockRpcClient;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -233,7 +231,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             AtlasDbConfig config, AtlasDbRuntimeConfig initialRuntimeConfig) {
         // Note: The other direction (timelock install config without a runtime block) should be maintained for
         // backwards compatibility.
-        if (remoteTimestampAndLockOrLeaderBlocksPresent(config)
+        if (config.remoteTimestampAndLockOrLeaderBlocksPresent()
                 && initialRuntimeConfig.timelockRuntime().isPresent()) {
             throw new SafeIllegalStateException("Found a service configured not to use timelock, with a timelock"
                     + " block in the runtime config! This is unexpected. If you wish to use non-timelock services,"
@@ -285,13 +283,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
 
     static Refreshable<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config, Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        Preconditions.checkState(
-                !remoteTimestampAndLockOrLeaderBlocksPresent(config),
-                "Cannot create raw services from timelock with another source of timestamps/locks configured!");
-        TimeLockClientConfig clientConfig = config.timelock()
-                .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
-        return ServerListConfigs.parseInstallAndRuntimeConfigs(
-                clientConfig, runtimeConfigSupplier.map(AtlasDbRuntimeConfig::timelockRuntime));
+        return ServerListConfigs.getTimeLockServersFromAtlasDbConfig(config, runtimeConfigSupplier);
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(
