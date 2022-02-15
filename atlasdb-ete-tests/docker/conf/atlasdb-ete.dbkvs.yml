@@ -21,6 +21,8 @@ atlasdb:
       dbName: atlas
       dbLogin: palantir
       dbPassword: palantir
+      connectionParameters:
+        sslmode: disable
 
   leader:
     quorumSize: 2

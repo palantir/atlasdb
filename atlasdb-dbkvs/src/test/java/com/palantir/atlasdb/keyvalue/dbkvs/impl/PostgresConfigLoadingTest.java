@@ -69,6 +69,8 @@ public class PostgresConfigLoadingTest {
 
         assertThat(props.getProperty("foo")).isEqualTo("100");
         assertThat(props.getProperty("bar")).isEqualTo("baz");
+        assertThat(props.getProperty("sslmode")).isEqualTo("require");
+        assertThat(props).doesNotContainKey("ssl");
     }
 
     @Test

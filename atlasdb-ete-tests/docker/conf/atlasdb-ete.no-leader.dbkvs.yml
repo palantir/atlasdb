@@ -21,3 +21,5 @@ atlasdb:
       dbName: atlasete
       dbLogin: palantir
       dbPassword: palantir
+      connectionParameters:
+        sslmode: disable
