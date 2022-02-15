@@ -51,6 +51,7 @@ dependencies {
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.conjure.java.api:ssl-config'
+    testImplementation 'com.palantir.conjure.java.api:test-utils'
     testImplementation 'com.palantir.conjure.java.runtime:keystores'
     testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
     testImplementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'

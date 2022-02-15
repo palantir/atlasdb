@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.ete;
 
+import static com.palantir.conjure.java.api.testing.Assertions.assertThatRemoteExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.BackupAndRestoreResource;
@@ -44,7 +44,7 @@ public class BackupAndRestoreEteTest {
     private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
     private final BackupAndRestoreResource backupResource =
             EteSetup.createClientToSingleNode(BackupAndRestoreResource.class);
-    private EteTimestampResource timestampClient = EteSetup.createClientToSingleNode(EteTimestampResource.class);
+    private final EteTimestampResource timestampClient = EteSetup.createClientToSingleNode(EteTimestampResource.class);
 
     @Ignore
     @Test
@@ -91,7 +91,8 @@ public class BackupAndRestoreEteTest {
         assertThat(preparedNamespaces).containsExactly(NAMESPACE);
 
         // verify TimeLock is disabled
-        assertThatThrownBy(() -> timestampClient.getFreshTimestamp()).isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
+                .hasCauseInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
@@ -105,7 +106,8 @@ public class BackupAndRestoreEteTest {
         backupResource.prepareRestore(uniqueBackup);
 
         // verify TimeLock is disabled
-        assertThatThrownBy(() -> timestampClient.getFreshTimestamp()).isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
+                .hasCauseInstanceOf(SafeIllegalArgumentException.class);
 
         Set<Namespace> completedNamespaces = backupResource.completeRestore(uniqueBackup);
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
