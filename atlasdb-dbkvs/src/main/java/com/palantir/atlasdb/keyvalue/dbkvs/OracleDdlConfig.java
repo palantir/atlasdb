@@ -83,14 +83,14 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Default
     public boolean longIdentifierNamesSupported() {
-        return true;
+        return false;
     }
 
     @Value.Derived
     public OracleIdentifierLengthLimits identifierLengthLimits() {
         return longIdentifierNamesSupported()
-                ? OracleIdentifierLengthLimits.ORACLE_12_2
-                : OracleIdentifierLengthLimits.LEGACY_PRE_ORACLE_12_2;
+                ? OracleIdentifierLengthLimitOptions.ORACLE_12_2
+                : OracleIdentifierLengthLimitOptions.LEGACY_PRE_ORACLE_12_2;
     }
 
     @Value.Default
@@ -118,10 +118,6 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Check
     protected final void checkOracleConfig() {
-        Preconditions.checkState(
-                !(longIdentifierNamesSupported() && useTableMapping()),
-                "If long identifier names are supported, table mapping is not allowed");
-
         Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
         Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
         Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");

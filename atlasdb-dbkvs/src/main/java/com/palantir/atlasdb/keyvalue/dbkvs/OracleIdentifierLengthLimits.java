@@ -26,20 +26,6 @@ import org.immutables.value.Value;
  */
 @Value.Immutable
 public interface OracleIdentifierLengthLimits {
-    // This sequencing of dependencies may look strange, but is necessary to avoid breaking back-compat with users of
-    // the Oracle constants in AtlasDbConstants.
-    OracleIdentifierLengthLimits LEGACY_PRE_ORACLE_12_2 = ImmutableOracleIdentifierLengthLimits.builder()
-            .identifierLengthLimit(AtlasDbConstants.ORACLE_PRE_12_2_NAME_LENGTH_LIMIT)
-            .tablePrefixLengthLimit(AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH)
-            .overflowTablePrefixLengthLimit(AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH)
-            .build();
-
-    OracleIdentifierLengthLimits ORACLE_12_2 = ImmutableOracleIdentifierLengthLimits.builder()
-            .identifierLengthLimit(AtlasDbConstants.ORACLE_12_2_NAME_LENGTH_LIMIT)
-            .tablePrefixLengthLimit(48)
-            .overflowTablePrefixLengthLimit(48)
-            .build();
-
     int identifierLengthLimit();
 
     int tablePrefixLengthLimit();
