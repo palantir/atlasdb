@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Test;
 
 public class BackupAndRestoreEteTest {
@@ -44,6 +45,11 @@ public class BackupAndRestoreEteTest {
     private final BackupAndRestoreResource backupResource =
             EteSetup.createClientToSingleNode(BackupAndRestoreResource.class);
     private final EteTimestampResource timestampClient = EteSetup.createClientToSingleNode(EteTimestampResource.class);
+
+    @After
+    public void cleanUp() {
+        todoClient.truncate();
+    }
 
     @Test
     public void canPrepareBackup() {
@@ -112,7 +118,7 @@ public class BackupAndRestoreEteTest {
         todoClient.addTodo(todo3);
 
         // sanity check
-        assertThat(todoClient.getTodoList()).containsExactly(TODO, todo2, todo3);
+        assertThat(todoClient.getTodoList()).containsExactlyInAnyOrder(TODO, todo2, todo3);
 
         UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
         backupResource.prepareRestore(uniqueBackup);
