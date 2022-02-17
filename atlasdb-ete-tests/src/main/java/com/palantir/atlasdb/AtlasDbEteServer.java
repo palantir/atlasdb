@@ -175,7 +175,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 getRemoteTimeLockManagementService(serverListConfig, taggedMetrics);
 
         AtlasBackupService atlasBackupService =
-                AtlasBackupService.create(authHeader, atlasBackupClient, backupFolderFactory, keyValueServiceFactory);
+                AtlasBackupService.createForTests(authHeader, atlasBackupClient, txManager, backupFolderFactory);
         AtlasRestoreService atlasRestoreService = AtlasRestoreService.create(
                 authHeader,
                 atlasRestoreClient,

@@ -28,6 +28,7 @@ import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
@@ -75,20 +76,22 @@ public final class AtlasBackupService {
                 reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName));
 
         BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
+        KvsRunner kvsRunner = KvsRunner.create(keyValueServiceFactory);
         CoordinationServiceRecorder coordinationServiceRecorder =
-                new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
+                new CoordinationServiceRecorder(kvsRunner, backupPersister);
 
         return new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
     }
 
-    public static AtlasBackupService create(
+    public static AtlasBackupService createForTests(
             AuthHeader authHeader,
             AtlasBackupClient atlasBackupClient,
-            Function<Namespace, Path> backupFolderFactory,
-            Function<Namespace, KeyValueService> keyValueServiceFactory) {
+            TransactionManager transactionManager,
+            Function<Namespace, Path> backupFolderFactory) {
         BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
+        KvsRunner kvsRunner = KvsRunner.create(transactionManager);
         CoordinationServiceRecorder coordinationServiceRecorder =
-                new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
+                new CoordinationServiceRecorder(kvsRunner, backupPersister);
 
         return new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
     }

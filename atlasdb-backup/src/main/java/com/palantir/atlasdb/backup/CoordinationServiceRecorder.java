@@ -31,17 +31,15 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
-import java.util.function.Function;
 
 final class CoordinationServiceRecorder {
     private static final SafeLogger log = SafeLoggerFactory.get(CoordinationServiceRecorder.class);
 
-    private final Function<Namespace, KeyValueService> keyValueServiceFactory;
     private final BackupPersister backupPersister;
+    private final KvsRunner kvsRunner;
 
-    CoordinationServiceRecorder(
-            Function<Namespace, KeyValueService> keyValueServiceFactory, BackupPersister backupPersister) {
-        this.keyValueServiceFactory = keyValueServiceFactory;
+    CoordinationServiceRecorder(KvsRunner kvsRunner, BackupPersister backupPersister) {
+        this.kvsRunner = kvsRunner;
         this.backupPersister = backupPersister;
     }
 
@@ -60,10 +58,10 @@ final class CoordinationServiceRecorder {
     }
 
     private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, long timestamp) {
-        // TODO(gs): in ETE tests we DO NOT want to close the KVS, because the KVS is shared between tests
-        //  probably should be fixed by creating a new KVS?
-        //        try (KeyValueService kvs = keyValueServiceFactory.apply(namespace)) {
-        KeyValueService kvs = keyValueServiceFactory.apply(namespace);
+        return kvsRunner.run(namespace, kvs -> getInternalSchemaMetadataState(kvs, timestamp));
+    }
+
+    private Optional<InternalSchemaMetadataState> getInternalSchemaMetadataState(KeyValueService kvs, long timestamp) {
         if (!kvs.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
             return Optional.empty();
         }
