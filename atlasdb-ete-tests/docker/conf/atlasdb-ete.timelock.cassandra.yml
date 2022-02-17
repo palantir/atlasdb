@@ -12,6 +12,7 @@ server:
 atlasdb:
   keyValueService:
     type: cassandra
+    keyspace: atlasete
     servers:
       type: cqlCapable
       thriftHosts:
