@@ -240,11 +240,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         }
     }
 
-    private static boolean remoteTimestampAndLockOrLeaderBlocksPresent(AtlasDbConfig config) {
-        return (config.timestamp().isPresent() && config.lock().isPresent())
-                || config.leader().isPresent();
-    }
-
     private static LockAndTimestampServices createRawServicesFromTimeLock(
             MetricsManager metricsManager,
             AtlasDbConfig config,
