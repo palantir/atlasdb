@@ -55,6 +55,6 @@ public final class TimeLockResource {
 
     @Path("/timestamp-management")
     public TimestampManagementService getTimestampManagementService(@Safe @PathParam("namespace") String namespace) {
-        return namespaces.get(namespace).getTimestampManagementService();
+        return namespaces.getIgnoringDisabled(namespace).getTimestampManagementService();
     }
 }
