@@ -167,7 +167,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Path backupFolder = Paths.get("/var/data/backup");
         Files.createDirectories(backupFolder);
         Function<Namespace, Path> backupFolderFactory = _unused -> backupFolder;
-        Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
         ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
         Function<String, BackupTimeLockServiceView> timelockServices =
@@ -186,14 +185,14 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
         AtlasBackupService atlasBackupService =
                 AtlasBackupService.createForTests(authHeader, atlasBackupClient, txManager, backupFolderFactory);
-        AtlasRestoreService atlasRestoreService = AtlasRestoreService.create(
+        AtlasRestoreService atlasRestoreService = AtlasRestoreService.createForTests(
                 authHeader,
                 atlasRestoreClient,
                 timeLockManagementService,
                 externalBackupPersister,
+                txManager,
                 _unused -> (com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig)
-                        config.getAtlasDbConfig().keyValueService(),
-                keyValueServiceFactory);
+                        config.getAtlasDbConfig().keyValueService());
 
         environment
                 .jersey()

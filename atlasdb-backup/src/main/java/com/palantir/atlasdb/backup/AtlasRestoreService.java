@@ -40,6 +40,7 @@ import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -97,21 +98,21 @@ public class AtlasRestoreService {
         TimeLockManagementService timeLockManagementService = new DialogueAdaptingTimeLockManagementService(
                 reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName));
         CassandraRepairHelper cassandraRepairHelper =
-                new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
+                new CassandraRepairHelper(KvsRunner.create(keyValueServiceFactory), keyValueServiceConfigFactory);
 
         return new AtlasRestoreService(
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
     }
 
-    public static AtlasRestoreService create(
+    public static AtlasRestoreService createForTests(
             AuthHeader authHeader,
             AtlasRestoreClient atlasRestoreClient,
             TimeLockManagementService timeLockManagementService,
             BackupPersister backupPersister,
-            Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
-            Function<Namespace, KeyValueService> keyValueServiceFactory) {
+            TransactionManager transactionManager,
+            Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
         CassandraRepairHelper cassandraRepairHelper =
-                new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
+                new CassandraRepairHelper(KvsRunner.create(transactionManager), keyValueServiceConfigFactory);
 
         return new AtlasRestoreService(
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
