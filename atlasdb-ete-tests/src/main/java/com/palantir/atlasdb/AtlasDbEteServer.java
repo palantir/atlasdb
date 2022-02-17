@@ -150,7 +150,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         boolean isCassandra = CassandraKeyValueServiceConfig.TYPE.equals(
                 config.getAtlasDbConfig().keyValueService().type());
         boolean hasTimelock = config.getAtlasDbRuntimeConfig()
-                .map(AtlasDbRuntimeConfig::timelockRuntime)
+                .flatMap(AtlasDbRuntimeConfig::timelockRuntime)
                 .isPresent();
         return isCassandra && hasTimelock;
     }
@@ -191,7 +191,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 timeLockManagementService,
                 externalBackupPersister,
                 txManager,
-                _unused -> (com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig)
+                _unused -> (CassandraKeyValueServiceConfig)
                         config.getAtlasDbConfig().keyValueService());
 
         environment
