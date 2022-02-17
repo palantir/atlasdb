@@ -53,11 +53,13 @@ public interface OracleIdentifierLengthLimits {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(tablePrefixLengthLimit() < tableNameLengthLimit(),
+        Preconditions.checkState(
+                tablePrefixLengthLimit() < tableNameLengthLimit(),
                 "Table prefix length limit must be shorter than the table name length limit",
                 SafeArg.of("tablePrefixLengthLimit", tablePrefixLengthLimit()),
                 SafeArg.of("tableNameLengthLimit", tableNameLengthLimit()));
-        Preconditions.checkState(overflowTablePrefixLengthLimit() < tableNameLengthLimit(),
+        Preconditions.checkState(
+                overflowTablePrefixLengthLimit() < tableNameLengthLimit(),
                 "Overflow table prefix length limit must be shorter than the table name length limit",
                 SafeArg.of("overflowTablePrefixLengthLimit", overflowTablePrefixLengthLimit()),
                 SafeArg.of("tableNameLengthLimit", tableNameLengthLimit()));

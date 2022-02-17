@@ -118,7 +118,8 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Check
     protected final void checkOracleConfig() {
-        Preconditions.checkState(!(longIdentifierNamesSupported() && useTableMapping()),
+        Preconditions.checkState(
+                !(longIdentifierNamesSupported() && useTableMapping()),
                 "If long identifier names are supported, table mapping is not allowed");
 
         Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
@@ -134,12 +135,16 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     private void checkTablePrefixLengthLimits() {
-        Preconditions.checkState(tablePrefix().length() <= identifierLengthLimits().tablePrefixLengthLimit(),
+        Preconditions.checkState(
+                tablePrefix().length() <= identifierLengthLimits().tablePrefixLengthLimit(),
                 "Oracle 'tablePrefix' exceeds the length limit.",
                 SafeArg.of("tablePrefixLengthLimit", identifierLengthLimits().tablePrefixLengthLimit()));
-        Preconditions.checkState(overflowTablePrefix().length() <= identifierLengthLimits().overflowTablePrefixLengthLimit(),
+        Preconditions.checkState(
+                overflowTablePrefix().length() <= identifierLengthLimits().overflowTablePrefixLengthLimit(),
                 "Oracle 'overflowTablePrefix' exceeds the length limit.",
-                SafeArg.of("overflowTablePrefixLengthLimit", identifierLengthLimits().overflowTablePrefixLengthLimit()));
+                SafeArg.of(
+                        "overflowTablePrefixLengthLimit",
+                        identifierLengthLimits().overflowTablePrefixLengthLimit()));
     }
 
     @Override
