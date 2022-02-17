@@ -35,8 +35,8 @@ import java.util.Optional;
 final class CoordinationServiceRecorder {
     private static final SafeLogger log = SafeLoggerFactory.get(CoordinationServiceRecorder.class);
 
-    private final BackupPersister backupPersister;
     private final KvsRunner kvsRunner;
+    private final BackupPersister backupPersister;
 
     CoordinationServiceRecorder(KvsRunner kvsRunner, BackupPersister backupPersister) {
         this.kvsRunner = kvsRunner;

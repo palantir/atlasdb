@@ -89,12 +89,12 @@ public class BackupAndRestoreEteTest {
 
         // verify TimeLock is disabled
         assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
-                .isGeneratedFromErrorType(ErrorType.INTERNAL); // TODO(gs): should this actually happen?
+                .isGeneratedFromErrorType(ErrorType.INTERNAL);
 
         Set<Namespace> completedNamespaces = backupResource.completeRestore(uniqueBackup);
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
 
-        // Verify timelock is re-enabled
+        // verify TimeLock is re-enabled
         assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
     }
 
