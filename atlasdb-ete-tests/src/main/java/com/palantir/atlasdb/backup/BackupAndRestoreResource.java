@@ -49,6 +49,11 @@ public interface BackupAndRestoreResource {
     Set<Namespace> prepareRestore(UniqueBackup uniqueBackup);
 
     @POST
+    @Path("/repair-atlas-tables")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void repairAtlasTables(Set<Namespace> namespaces);
+
+    @POST
     @Path("/complete-restore")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)

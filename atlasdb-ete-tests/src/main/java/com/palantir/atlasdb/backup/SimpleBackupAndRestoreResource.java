@@ -50,6 +50,12 @@ public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource 
         return atlasRestoreService.prepareRestore(uniqueBackup.namespaces(), uniqueBackup.backupId());
     }
 
+    // WARNING: Does not restore Cassandra data!
+    @Override
+    public void repairAtlasTables(Set<Namespace> namespaces) {
+        atlasRestoreService.repairInternalTables(namespaces, (_unused1, _unused_2) -> {});
+    }
+
     @Override
     public Set<Namespace> completeRestore(UniqueBackup uniqueBackup) {
         return atlasRestoreService.completeRestore(uniqueBackup.namespaces(), uniqueBackup.backupId());

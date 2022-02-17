@@ -98,6 +98,30 @@ public class BackupAndRestoreEteTest {
         assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
     }
 
+    @Test
+    public void dataAddedAfterPrepareBackupIsInvalidatedByRestore() {
+        todoClient.addTodo(TODO);
+
+        backupResource.prepareBackup(NAMESPACES);
+
+        ImmutableTodo todo2 = ImmutableTodo.of("more stuff to do");
+        todoClient.addTodo(todo2);
+        backupResource.completeBackup(NAMESPACES);
+
+        ImmutableTodo todo3 = ImmutableTodo.of("even more stuff to do");
+        todoClient.addTodo(todo3);
+
+        // sanity check
+        assertThat(todoClient.getTodoList()).containsExactly(TODO, todo2, todo3);
+
+        UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
+        backupResource.prepareRestore(uniqueBackup);
+        backupResource.repairAtlasTables(NAMESPACES);
+        backupResource.completeRestore(uniqueBackup);
+
+        assertThat(todoClient.getTodoList()).containsExactly(TODO);
+    }
+
     private void addTodo() {
         Awaitility.await()
                 .atMost(Duration.ofSeconds(60L))
