@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Fixed an issue where the AtlasRestoreClient would be unable to perform
+    necessary operations on timelock (fast forwarding the timestamp) during the restore
+    process.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5911
