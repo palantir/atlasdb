@@ -28,7 +28,7 @@ import com.palantir.atlasdb.timestamp.EteTimestampResource;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.conjure.java.api.errors.ErrorType;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
@@ -92,7 +92,7 @@ public class BackupAndRestoreEteTest {
 
         // verify TimeLock is disabled
         assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
-                .hasCauseInstanceOf(SafeIllegalArgumentException.class);
+                .isGeneratedFromErrorType(ErrorType.INVALID_ARGUMENT);
 
         Set<Namespace> completedNamespaces = backupResource.completeRestore(uniqueBackup);
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
