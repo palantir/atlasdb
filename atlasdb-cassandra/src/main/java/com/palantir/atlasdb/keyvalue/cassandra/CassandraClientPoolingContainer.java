@@ -28,7 +28,6 @@ import com.palantir.common.concurrent.ThreadNames;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
@@ -227,8 +226,6 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     @Override
     public void shutdownPooling() {
-        SafeRuntimeException stackTrace = new SafeRuntimeException("I exist to show you the stack trace");
-        log.warn("Shutting down pooling", stackTrace);
         clientPool.close();
     }
 
