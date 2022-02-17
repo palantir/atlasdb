@@ -32,6 +32,7 @@ import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.blob.BlobSchema;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -130,7 +131,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
 
-        if (config.getAtlasDbRuntimeConfig().isPresent()) {
+        if (shouldSetUpBackupAndRestoreResource(config)) {
             createAndRegisterBackupAndRestoreResource(config, environment, txManager, taggedMetrics);
         }
 
@@ -143,6 +144,15 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
+    }
+
+    private boolean shouldSetUpBackupAndRestoreResource(AtlasDbEteConfiguration config) {
+        boolean isCassandra = CassandraKeyValueServiceConfig.TYPE.equals(
+                config.getAtlasDbConfig().keyValueService().type());
+        boolean hasTimelock = config.getAtlasDbRuntimeConfig()
+                .map(AtlasDbRuntimeConfig::timelockRuntime)
+                .isPresent();
+        return isCassandra && hasTimelock;
     }
 
     private void createAndRegisterBackupAndRestoreResource(
