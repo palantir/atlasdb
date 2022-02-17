@@ -33,7 +33,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import org.awaitility.Awaitility;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class BackupAndRestoreEteTest {
@@ -46,7 +45,6 @@ public class BackupAndRestoreEteTest {
             EteSetup.createClientToSingleNode(BackupAndRestoreResource.class);
     private final EteTimestampResource timestampClient = EteSetup.createClientToSingleNode(EteTimestampResource.class);
 
-    @Ignore
     @Test
     public void canPrepareBackup() {
         addTodo();
@@ -59,7 +57,6 @@ public class BackupAndRestoreEteTest {
         assertThat(backupResource.getStoredImmutableTimestamp(NAMESPACE)).isNotEmpty();
     }
 
-    @Ignore
     @Test
     public void canCompletePreparedBackup() {
         addTodo();
@@ -80,7 +77,7 @@ public class BackupAndRestoreEteTest {
 
     @Test
     public void canPrepareAndCompleteRestore() {
-        //        addTodo();
+        addTodo();
         backupResource.prepareBackup(NAMESPACES);
         backupResource.completeBackup(NAMESPACES);
 
