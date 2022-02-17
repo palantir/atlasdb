@@ -79,7 +79,7 @@ public class BackupAndRestoreEteTest {
     }
 
     @Test
-    public void canPrepareRestore() {
+    public void canPrepareAndCompleteRestore() {
         //        addTodo();
         backupResource.prepareBackup(NAMESPACES);
         backupResource.completeBackup(NAMESPACES);
@@ -89,21 +89,6 @@ public class BackupAndRestoreEteTest {
         UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
         Set<Namespace> preparedNamespaces = backupResource.prepareRestore(uniqueBackup);
         assertThat(preparedNamespaces).containsExactly(NAMESPACE);
-
-        // verify TimeLock is disabled
-        assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
-                .hasCauseInstanceOf(SafeIllegalArgumentException.class);
-    }
-
-    @Test
-    public void canCompleteRestore() {
-        // TODO(gs): test repair?
-        //        addTodo();
-        backupResource.prepareBackup(NAMESPACES);
-        backupResource.completeBackup(NAMESPACES);
-
-        UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
-        backupResource.prepareRestore(uniqueBackup);
 
         // verify TimeLock is disabled
         assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)

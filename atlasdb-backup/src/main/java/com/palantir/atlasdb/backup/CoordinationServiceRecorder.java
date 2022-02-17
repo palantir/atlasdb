@@ -60,15 +60,17 @@ final class CoordinationServiceRecorder {
     }
 
     private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, long timestamp) {
-        try (KeyValueService kvs = keyValueServiceFactory.apply(namespace)) {
-            if (!kvs.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
-                return Optional.empty();
-            }
-            CoordinationService<InternalSchemaMetadata> coordination =
-                    CoordinationServices.createDefault(kvs, () -> timestamp, false);
-
-            return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(coordination, timestamp)));
+        // TODO(gs): in ETE tests we DO NOT want to close the KVS, because the KVS is shared between tests
+        //  probably should be fixed by creating a new KVS?
+        //        try (KeyValueService kvs = keyValueServiceFactory.apply(namespace)) {
+        KeyValueService kvs = keyValueServiceFactory.apply(namespace);
+        if (!kvs.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
+            return Optional.empty();
         }
+        CoordinationService<InternalSchemaMetadata> coordination =
+                CoordinationServices.createDefault(kvs, () -> timestamp, false);
+
+        return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(coordination, timestamp)));
     }
 
     private ValueAndBound<InternalSchemaMetadata> getValidMetadata(
