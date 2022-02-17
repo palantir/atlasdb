@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.NativeOracleJdbcHandler;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -81,6 +82,18 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     @Value.Default
+    public boolean longIdentifierNamesSupported() {
+        return true;
+    }
+
+    @Value.Derived
+    public OracleIdentifierLengthLimits identifierLengthLimits() {
+        return longIdentifierNamesSupported()
+                ? OracleIdentifierLengthLimits.ORACLE_12_2
+                : OracleIdentifierLengthLimits.LEGACY_PRE_ORACLE_12_2;
+    }
+
+    @Value.Default
     @Override
     public String tablePrefix() {
         return "a_";
@@ -105,22 +118,28 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Check
     protected final void checkOracleConfig() {
+        Preconditions.checkState(!(longIdentifierNamesSupported() && useTableMapping()),
+                "If long identifier names are supported, table mapping is not allowed");
+
         Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
         Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
         Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
         Preconditions.checkState(tablePrefix().endsWith("_"), "Oracle 'tablePrefix' must end with an underscore.");
-        com.google.common.base.Preconditions.checkState(
-                tablePrefix().length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
-                "Oracle 'tablePrefix' cannot be more than %s characters long.",
-                AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
         Preconditions.checkState(
                 !overflowTablePrefix().startsWith("_"), "Oracle 'overflowTablePrefix' cannot begin with underscore.");
         Preconditions.checkState(
                 overflowTablePrefix().endsWith("_"), "Oracle 'overflowTablePrefix' must end with an underscore.");
-        com.google.common.base.Preconditions.checkState(
-                overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
-                "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
-                AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);
+
+        checkTablePrefixLengthLimits();
+    }
+
+    private void checkTablePrefixLengthLimits() {
+        Preconditions.checkState(tablePrefix().length() <= identifierLengthLimits().tablePrefixLengthLimit(),
+                "Oracle 'tablePrefix' exceeds the length limit.",
+                SafeArg.of("tablePrefixLengthLimit", identifierLengthLimits().tablePrefixLengthLimit()));
+        Preconditions.checkState(overflowTablePrefix().length() <= identifierLengthLimits().overflowTablePrefixLengthLimit(),
+                "Oracle 'overflowTablePrefix' exceeds the length limit.",
+                SafeArg.of("overflowTablePrefixLengthLimit", identifierLengthLimits().overflowTablePrefixLengthLimit()));
     }
 
     @Override
