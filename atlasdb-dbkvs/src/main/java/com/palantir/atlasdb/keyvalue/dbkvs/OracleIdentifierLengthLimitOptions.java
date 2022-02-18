@@ -28,11 +28,12 @@ public final class OracleIdentifierLengthLimitOptions {
             .overflowTablePrefixLengthLimit(AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH)
             .build();
 
-    // 48 is a bit random, but should be adequate
+    // In AtlasDB-Proxy, a user's physical namespace can be at most 48 characters.
+    // We want to have a bit of scope to add a bit more tracking data, hence 48 + 8
     static final OracleIdentifierLengthLimits ORACLE_12_2 = ImmutableOracleIdentifierLengthLimits.builder()
             .identifierLengthLimit(AtlasDbConstants.ORACLE_12_2_NAME_LENGTH_LIMIT)
-            .tablePrefixLengthLimit(48)
-            .overflowTablePrefixLengthLimit(48)
+            .tablePrefixLengthLimit(48 + 8)
+            .overflowTablePrefixLengthLimit(48 + 8)
             .build();
 
     private OracleIdentifierLengthLimitOptions() {
