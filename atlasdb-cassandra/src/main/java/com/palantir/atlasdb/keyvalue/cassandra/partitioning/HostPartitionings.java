@@ -19,12 +19,15 @@ package com.palantir.atlasdb.keyvalue.cassandra.partitioning;
 import com.google.common.collect.Multimap;
 import com.palantir.common.streams.KeyedStream;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -36,42 +39,78 @@ public class HostPartitionings {
     }
 
     public static void main(String[] args) {
-        assignHostsToShards(32, 32);
+        assignHostsToShards(24, 128);
     }
 
     // assume rf 3
     public static Multimap<Integer, Integer> assignHostsToShards(int numHosts, int numShards) {
-        Map<Integer, Set<Integer>> blocklist = KeyedStream.of(
-                        IntStream.range(0, numShards - 2).boxed())
-                .map(_ignore -> IntStream.range(0, 20)
-                        .mapToObj(_ingore -> RANDOM.nextInt(numHosts))
-                        .collect(Collectors.toSet()))
-                .collectToMap();
         List<List<Integer>> hostPermutations = generatePartitions(3, numHosts);
-        Map<Integer, List<List<Integer>>> proposedSolution = new HashMap<>();
-        for (List<Integer> permutation : hostPermutations) {
-            int nextShard = RANDOM.nextInt(numShards);
-            while (!tryAdd(blocklist, permutation, nextShard)) {
-                nextShard = RANDOM.nextInt(numShards);
-            }
-            proposedSolution
-                    .computeIfAbsent(nextShard, _ignore -> new ArrayList<>())
-                    .add(permutation);
-        }
+        int halfHosts = numHosts / 2;
+        int halfShards = numShards / 2;
+        for (int i = 0; i < 1000; i++) {
+            int numberOfNonJunkShards = RANDOM.nextInt(numShards - 1 - halfShards) + halfShards;
+            int numberOfBlocklistedHostsInNonJunkShards = RANDOM.nextInt(numHosts - 3 - halfHosts) + halfHosts;
+            Map<Integer, Set<Integer>> blocklist = KeyedStream.of(
+                            IntStream.range(0, numberOfNonJunkShards).boxed())
+                    .map(crap -> getSetOfHosts(numHosts, numberOfBlocklistedHostsInNonJunkShards))
+                    .collectToMap();
+            Map<Integer, List<List<Integer>>> proposedSolution = new HashMap<>();
+            IntStream.range(0, numShards).forEach(shard -> proposedSolution.put(shard, new ArrayList<>()));
+            for (List<Integer> permutation : hostPermutations) {
+                List<Entry<Integer, Integer>> sizeToShard = proposedSolution.entrySet().stream()
+                        .map(entry -> Map.entry(entry.getValue().size(), entry.getKey()))
+                        .collect(Collectors.toList());
+                sizeToShard.sort(Comparator.comparing((Function<Entry<Integer, Integer>, Integer>) Entry::getKey)
+                        .thenComparing(Entry::getValue));
 
-        Map<Integer, Set<Integer>> coolStuff = KeyedStream.stream(proposedSolution)
-                .map(list -> list.stream().flatMap(List::stream).collect(Collectors.toSet()))
-                .collectToMap();
-        Map<Integer, Integer> objectStream = coolStuff.entrySet().stream()
-                .flatMap(entry -> entry.getValue().stream().map(host -> Map.entry(host, entry.getKey())))
-                .collect(Collectors.groupingBy(
-                        Entry::getKey, Collectors.collectingAndThen(Collectors.toList(), list -> list.stream()
-                                .map(Map.Entry::getValue)
-                                .collect(Collectors.toSet())
-                                .size())));
-        System.out.println(objectStream);
-        System.out.println(KeyedStream.stream(proposedSolution).map(List::size).collectToMap());
+                int nextShard = sizeToShard.stream()
+                        .filter(shard -> tryAdd(blocklist, permutation, shard.getValue()))
+                        .findFirst()
+                        .get()
+                        .getValue();
+                proposedSolution
+                        .computeIfAbsent(nextShard, _ignore -> new ArrayList<>())
+                        .add(permutation);
+            }
+
+            Map<Integer, Set<Integer>> coolStuff = KeyedStream.stream(proposedSolution)
+                    .map(list -> list.stream().flatMap(List::stream).collect(Collectors.toSet()))
+                    .collectToMap();
+            Map<Integer, Integer> hostToShards = coolStuff.entrySet().stream()
+                    .flatMap(entry -> entry.getValue().stream().map(host -> Map.entry(host, entry.getKey())))
+                    .collect(Collectors.groupingBy(
+                            Entry::getKey, Collectors.collectingAndThen(Collectors.toList(), list -> list.stream()
+                                    .map(Map.Entry::getValue)
+                                    .collect(Collectors.toSet())
+                                    .size())));
+            Optional<Integer> maxKilledShards = hostToShards.values().stream().max(Comparator.naturalOrder());
+            Map<Integer, Integer> shardToNumPermutations =
+                    KeyedStream.stream(proposedSolution).map(List::size).collectToMap();
+            int minPermutations = shardToNumPermutations.values().stream()
+                    .min(Comparator.naturalOrder())
+                    .get();
+            int maxPermutations = shardToNumPermutations.values().stream()
+                    .max(Comparator.naturalOrder())
+                    .get();
+            if (maxKilledShards.map(shards -> shards > numShards * 2 / 3).orElse(true)
+                    || (maxPermutations > 3 * minPermutations)) {
+                continue;
+            }
+            System.out.println("Nonjunk shards " + numberOfNonJunkShards);
+            System.out.println("Blocklisted hosts per shard " + numberOfBlocklistedHostsInNonJunkShards);
+            System.out.println("Max shards for host " + maxKilledShards);
+            System.out.println("Min assigned permutations" + minPermutations);
+            System.out.println("Max assigned permutations" + maxPermutations);
+        }
         return null;
+    }
+
+    private static Set<Integer> getSetOfHosts(int numHosts, int numberBlocklisted) {
+        Set<Integer> jank = IntStream.range(0, numHosts).boxed().collect(Collectors.toSet());
+        while (jank.size() > numberBlocklisted) {
+            jank.remove(RANDOM.nextInt(numHosts));
+        }
+        return jank;
     }
 
     private static boolean tryAdd(Map<Integer, Set<Integer>> blocklist, List<Integer> permutation, int proposedShard) {
