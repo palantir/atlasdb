@@ -14,6 +14,8 @@ dependencies {
     implementation project(':lock-impl')
     implementation project(':leader-election-impl')
 
+    implementation project(':atlasdb-backup')
+    implementation project(':timelock-impl')
     implementation group: 'org.awaitility', name: 'awaitility'
     implementation group: 'com.palantir.tritium', name: 'tritium-lib'
     implementation group: 'io.dropwizard', name: 'dropwizard-core'
@@ -26,6 +28,7 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'

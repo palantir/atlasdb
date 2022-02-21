@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix internal wiring of AtlasBackupService and AtlasRestoreService
+  links:
+  - https://github.com/palantir/atlasdb/pull/5906

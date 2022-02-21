@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
@@ -24,9 +25,11 @@ import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.refreshable.Refreshable;
@@ -41,7 +44,7 @@ import java.util.stream.Collectors;
 
 public final class AtlasBackupService {
     private final AuthHeader authHeader;
-    private final AtlasBackupClientBlocking atlasBackupClientBlocking;
+    private final AtlasBackupClient atlasBackupClient;
     private final CoordinationServiceRecorder coordinationServiceRecorder;
     private final BackupPersister backupPersister;
     private final Map<Namespace, InProgressBackupToken> inProgressBackups;
@@ -49,11 +52,11 @@ public final class AtlasBackupService {
     @VisibleForTesting
     AtlasBackupService(
             AuthHeader authHeader,
-            AtlasBackupClientBlocking atlasBackupClientBlocking,
+            AtlasBackupClient atlasBackupClient,
             CoordinationServiceRecorder coordinationServiceRecorder,
             BackupPersister backupPersister) {
         this.authHeader = authHeader;
-        this.atlasBackupClientBlocking = atlasBackupClientBlocking;
+        this.atlasBackupClient = atlasBackupClient;
         this.coordinationServiceRecorder = coordinationServiceRecorder;
         this.backupPersister = backupPersister;
         this.inProgressBackups = new ConcurrentHashMap<>();
@@ -65,21 +68,34 @@ public final class AtlasBackupService {
             String serviceName,
             Function<Namespace, Path> backupFolderFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
-        ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
-        AtlasBackupClientBlocking atlasBackupClientBlocking =
-                reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName);
+        ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
+                .withUserAgent(UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT));
+
+        AtlasBackupClient atlasBackupClient = new DialogueAdaptingAtlasBackupClient(
+                reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName));
 
         BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
         CoordinationServiceRecorder coordinationServiceRecorder =
                 new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
 
-        return new AtlasBackupService(
-                authHeader, atlasBackupClientBlocking, coordinationServiceRecorder, backupPersister);
+        return new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
+    }
+
+    public static AtlasBackupService create(
+            AuthHeader authHeader,
+            AtlasBackupClient atlasBackupClient,
+            Function<Namespace, Path> backupFolderFactory,
+            Function<Namespace, KeyValueService> keyValueServiceFactory) {
+        BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
+        CoordinationServiceRecorder coordinationServiceRecorder =
+                new CoordinationServiceRecorder(keyValueServiceFactory, backupPersister);
+
+        return new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
     }
 
     public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {
         PrepareBackupRequest request = PrepareBackupRequest.of(namespaces);
-        PrepareBackupResponse response = atlasBackupClientBlocking.prepareBackup(authHeader, request);
+        PrepareBackupResponse response = atlasBackupClient.prepareBackup(authHeader, request);
 
         return response.getSuccessful().stream()
                 .peek(this::storeBackupToken)
@@ -98,7 +114,7 @@ public final class AtlasBackupService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
-        CompleteBackupResponse response = atlasBackupClientBlocking.completeBackup(authHeader, request);
+        CompleteBackupResponse response = atlasBackupClient.completeBackup(authHeader, request);
 
         return response.getSuccessfulBackups().stream()
                 .peek(coordinationServiceRecorder::storeFastForwardState)
