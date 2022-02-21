@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -93,9 +94,9 @@ public class SweepBatchAccumulatorTest {
             assertThat(batch.lastSweptTimestamp()).isEqualTo(PROGRESS_TIMESTAMP + 288);
         });
         assertThat(batchWithPartitionInfo.finePartitions())
-                .containsExactlyInAnyOrder(
+                .containsExactlyInAnyOrderElementsOf(ImmutableSet.of(
                         SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
-                        SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 288));
+                        SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 288)));
     }
 
     @Test
@@ -110,9 +111,9 @@ public class SweepBatchAccumulatorTest {
             assertThat(batch.lastSweptTimestamp()).isEqualTo(PROGRESS_TIMESTAMP + 288);
         });
         assertThat(batchWithPartitionInfo.finePartitions())
-                .containsExactlyInAnyOrder(
+                .containsExactlyInAnyOrderElementsOf(ImmutableSet.of(
                         SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
-                        SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 288));
+                        SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 288)));
     }
 
     @Test
