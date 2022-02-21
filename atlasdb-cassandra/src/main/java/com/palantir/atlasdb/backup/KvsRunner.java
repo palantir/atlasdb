@@ -29,6 +29,6 @@ public interface KvsRunner {
     }
 
     static KvsRunner create(TransactionManager txnManager) {
-        return new TransactionManagerKvsRunner(txnManager);
+        return new NonClosingKvsRunner(txnManager);
     }
 }

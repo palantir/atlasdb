@@ -34,7 +34,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -76,11 +75,16 @@ public final class TimelockNamespaces {
     }
 
     public TimeLockServices get(String namespace) {
+        Preconditions.checkArgument(
+                disabledNamespaces.isEnabled(Namespace.of(namespace)),
+                "Cannot create a client for namespace because the namespace has been explicitly disabled.",
+                SafeArg.of("namespace", namespace));
+
         return services.computeIfAbsent(namespace, this::createNewClient);
     }
 
     public TimeLockServices getIgnoringDisabled(String namespace) {
-        return Optional.ofNullable(services.get(namespace)).orElseGet(() -> createNewClient(namespace, true));
+        return services.computeIfAbsent(namespace, ns -> createNewClient(ns, true));
     }
 
     public Set<Client> getActiveClients() {

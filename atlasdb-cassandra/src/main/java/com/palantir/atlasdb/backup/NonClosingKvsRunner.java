@@ -21,10 +21,10 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.function.Function;
 
-final class TransactionManagerKvsRunner implements KvsRunner {
+final class NonClosingKvsRunner implements KvsRunner {
     private final TransactionManager txnManager;
 
-    TransactionManagerKvsRunner(TransactionManager txnManager) {
+    NonClosingKvsRunner(TransactionManager txnManager) {
         this.txnManager = txnManager;
     }
 
