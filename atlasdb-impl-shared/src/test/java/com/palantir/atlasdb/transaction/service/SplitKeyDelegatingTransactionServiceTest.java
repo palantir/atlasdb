@@ -109,7 +109,8 @@ public class SplitKeyDelegatingTransactionServiceTest {
     @Test
     public void getMultipleDelegatesRequestsToGetMultipleOnDelegates() {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 2L));
-        assertThat(delegatingTransactionService.get(ImmutableList.of(1L))).isEqualTo(ImmutableMap.of(1L, 2L));
+        assertThat(delegatingTransactionService.get(ImmutableList.of(1L)))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1L, 2L));
         verifyDelegateHadMultigetCalledWith(delegate1, 1L);
     }
 
@@ -118,7 +119,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
         when(delegate2.get(any())).thenReturn(ImmutableMap.of(12L, 28L, 32L, 38L));
         assertThat(delegatingTransactionService.get(ImmutableList.of(1L, 12L, 32L, 41L)))
-                .isEqualTo(ImmutableMap.of(1L, 8L, 12L, 28L, 32L, 38L, 41L, 48L));
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1L, 8L, 12L, 28L, 32L, 38L, 41L, 48L));
         verifyDelegateHadMultigetCalledWith(delegate1, 1L, 41L);
         verifyDelegateHadMultigetCalledWith(delegate2, 12L, 32L);
     }
@@ -143,7 +144,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
 
         assertThat(lastDigitFiveImpliesUnknownTransactionService.get(ImmutableList.of(1L, 5L, 35L, 41L)))
-                .isEqualTo(ImmutableMap.of(1L, 8L, 41L, 48L));
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1L, 8L, 41L, 48L));
         verifyDelegateHadMultigetCalledWith(delegate1, 1L, 41L);
     }
 

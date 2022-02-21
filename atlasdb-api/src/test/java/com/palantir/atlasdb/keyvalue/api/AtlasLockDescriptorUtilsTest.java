@@ -83,7 +83,7 @@ public class AtlasLockDescriptorUtilsTest {
                 Cell.create(new byte[] {1, 0, 2}, new byte[] {3, 0, 4, 5, 6}),
                 Cell.create(new byte[] {1, 0, 2, 0, 3}, new byte[] {4, 5, 6}));
 
-        assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).isEqualTo(expected);
+        assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).containsExactlyElementsOf(expected);
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor))
                 .contains(CellReference.of(TABLE, Cell.create(ROW_WITH_ZEROS, NO_ZERO_COL)));
     }
@@ -97,7 +97,7 @@ public class AtlasLockDescriptorUtilsTest {
                 Cell.create(new byte[] {1, 2, 3, 0, 4}, new byte[] {0, 5, 6}),
                 Cell.create(new byte[] {1, 2, 3, 0, 4, 0}, new byte[] {5, 6}));
 
-        assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).isEqualTo(expected);
+        assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).containsExactlyElementsOf(expected);
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor))
                 .contains(CellReference.of(TABLE, Cell.create(NO_ZERO_ROW, COL_WITH_ZEROS)));
     }
@@ -110,7 +110,7 @@ public class AtlasLockDescriptorUtilsTest {
                 Cell.create(new byte[] {4, 5, 6}, new byte[] {0, 4, 5, 6}),
                 Cell.create(new byte[] {4, 5, 6, 0}, new byte[] {4, 5, 6}));
 
-        assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).isEqualTo(expected);
+        assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).containsExactlyElementsOf(expected);
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor))
                 .contains(CellReference.of(TABLE, Cell.create(END_WITH_ZERO, NO_ZERO_COL)));
     }

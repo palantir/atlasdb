@@ -37,7 +37,7 @@ public class CandidateGroupingIteratorTest {
     @Test
     public void singleCellInOnePage() {
         assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "x", 20L)))))
-                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", false, 10L, 20L))));
+                .containsExactly(ImmutableList.of(candidate("a", "x", false, 10L, 20L)));
     }
 
     @Test
@@ -45,30 +45,29 @@ public class CandidateGroupingIteratorTest {
         assertThat(group(ImmutableList.of(
                         ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "x", 20L)),
                         ImmutableList.of(cellTs("a", "x", 30L)))))
-                .isEqualTo(ImmutableList.of(
-                        ImmutableList.of(), ImmutableList.of(candidate("a", "x", false, 10L, 20L, 30L))));
+                .containsExactly(ImmutableList.of(), ImmutableList.of(candidate("a", "x", false, 10L, 20L, 30L)));
     }
 
     @Test
     public void severalCellsInSinglePage() {
         assertThat(group(ImmutableList.of(
                         ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "y", 10L), cellTs("b", "y", 10L)))))
-                .isEqualTo(ImmutableList.of(ImmutableList.of(
+                .containsExactly(ImmutableList.of(
                         candidate("a", "x", false, 10L),
                         candidate("a", "y", false, 10L),
-                        candidate("b", "y", false, 10L))));
+                        candidate("b", "y", false, 10L)));
     }
 
     @Test
     public void latestValueEmpty() {
         assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L, false), cellTs("a", "x", 20L, true)))))
-                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", true, 10L, 20L))));
+                .containsExactly(ImmutableList.of(candidate("a", "x", true, 10L, 20L)));
     }
 
     @Test
     public void nonLatestValueEmpty() {
         assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L, true), cellTs("a", "x", 20L, false)))))
-                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", false, 10L, 20L))));
+                .containsExactly(ImmutableList.of(candidate("a", "x", false, 10L, 20L)));
     }
 
     @Test

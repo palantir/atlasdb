@@ -83,7 +83,7 @@ public class TestScrubQueueMigrationCommand {
                 scrubStore.getBatchingVisitableScrubQueue(
                         Long.MAX_VALUE, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY);
         assertThat(Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable)))
-                .isEqualTo(ImmutableSortedMap.of(
+                .containsExactlyInAnyOrderEntriesOf(ImmutableSortedMap.of(
                         10L, ImmutableMultimap.of(foo, cell1, bar, cell1),
                         20L, ImmutableMultimap.of(baz, cell1),
                         30L, ImmutableMultimap.of(foo, cell2),

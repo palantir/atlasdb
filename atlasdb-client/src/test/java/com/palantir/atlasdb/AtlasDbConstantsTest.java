@@ -27,6 +27,6 @@ public class AtlasDbConstantsTest {
         assertThat(Sets.union(
                         AtlasDbConstants.NON_SERIAL_CONSISTENCY_ATOMIC_TABLES,
                         AtlasDbConstants.SERIAL_CONSISTENCY_ATOMIC_TABLES))
-                .isEqualTo(AtlasDbConstants.ATOMIC_TABLES);
+                .containsExactlyInAnyOrderElementsOf(AtlasDbConstants.ATOMIC_TABLES);
     }
 }

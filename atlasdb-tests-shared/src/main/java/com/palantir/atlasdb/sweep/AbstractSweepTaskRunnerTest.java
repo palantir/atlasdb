@@ -23,7 +23,6 @@ import static org.mockito.Mockito.doAnswer;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -87,7 +86,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                 PtBytes.EMPTY_BYTE_ARRAY,
                 SweepTaskRunner.RunType.FULL);
         assertThat(results).isEqualTo(SweepResults.createEmptySweepResult(Optional.empty()));
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(50L, 75L, 100L, 125L, 150L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L, 75L, 100L, 125L, 150L);
     }
 
     @Test(timeout = 50000)
@@ -117,7 +116,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         List<List<Cell>> sweptCells = sweptCellsAndSweepResults.getLhSide();
 
         assertThat(sweptCells).hasSize(1);
-        assertThat(sweptCells.get(0)).isEqualTo(SMALL_LIST_OF_CELLS);
+        assertThat(sweptCells.get(0)).containsExactlyElementsOf(SMALL_LIST_OF_CELLS);
     }
 
     @Test(timeout = 50000)
@@ -181,7 +180,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(results.getStaleValuesDeleted()).isEqualTo(1);
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(2);
         assertThat(getFromDefaultColumn("foo", 750)).isEqualTo("bar");
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(50L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L);
     }
 
     @Test(timeout = 50000)
@@ -197,7 +196,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
         assertThat(getFromDefaultColumn("foo", 200)).isEqualTo("buzz");
         assertThat(getFromDefaultColumn("foo", 124)).isNull();
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(125L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(125L);
     }
 
     @Test(timeout = 50000)
@@ -213,7 +212,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
         assertThat(getFromDefaultColumn("foo", 200)).isEqualTo("buzz");
         assertThat(getFromDefaultColumn("foo", 124)).isEmpty();
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 125L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 125L);
     }
 
     @Test(timeout = 50000)
@@ -225,7 +224,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(results.getStaleValuesDeleted()).isEqualTo(1);
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(2);
         assertThat(getFromDefaultColumn("foo", 750)).isEqualTo("bar");
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(50L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L);
     }
 
     @Test(timeout = 50000)
@@ -268,7 +267,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         // but we don't delete it on the first pass due to the later uncommitted value. below we sweep again and make
         // sure it's deleted
         assertThat(getFromDefaultColumn("foo", 200)).isEmpty();
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(125L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(125L);
 
         results = completeSweep(175).get();
         assertThat(results.getStaleValuesDeleted()).isEqualTo(1);
@@ -289,7 +288,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(results.getStaleValuesDeleted()).isEqualTo(4);
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
         assertThat(getFromDefaultColumn("foo", 200)).isEqualTo("foo");
-        assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(125L));
+        assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(125L);
     }
 
     @Test

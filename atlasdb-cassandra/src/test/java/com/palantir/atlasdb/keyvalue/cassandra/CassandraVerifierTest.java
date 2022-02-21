@@ -169,7 +169,7 @@ public class CassandraVerifierTest {
         when(config.replicationFactor()).thenReturn(3);
 
         KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, config);
-        assertThat(ksDef.strategy_options).isEqualTo(ImmutableMap.of(DC_1, "3", DC_2, "3"));
+        assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(DC_1, "3", DC_2, "3"));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class CassandraVerifierTest {
 
         ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
         assertThat(ksDef.strategy_class).isEqualTo(CassandraConstants.NETWORK_STRATEGY);
-        assertThat(ksDef.strategy_options).isEqualTo(ImmutableMap.of(DC_1, "1"));
+        assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(DC_1, "1"));
     }
 
     @Test
@@ -222,7 +222,7 @@ public class CassandraVerifierTest {
 
         ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
         assertThat(ksDef.strategy_class).isEqualTo(CassandraConstants.SIMPLE_STRATEGY);
-        assertThat(ksDef.strategy_options).isEqualTo(strategyOptions);
+        assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(strategyOptions);
     }
 
     @Test
@@ -239,7 +239,7 @@ public class CassandraVerifierTest {
         ksDef.setStrategy_options(strategyOptions);
 
         ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
-        assertThat(ksDef.strategy_options).isEqualTo(strategyOptions);
+        assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(strategyOptions);
     }
 
     @Test

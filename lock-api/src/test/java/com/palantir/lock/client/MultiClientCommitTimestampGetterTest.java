@@ -169,7 +169,7 @@ public class MultiClientCommitTimestampGetterTest {
                         elem -> elem.argument().namespace(),
                         Collectors.mapping(elem -> Futures.getUnchecked(elem.result()), toList())));
 
-        assertThat(partitionedResponseMap.keySet()).isEqualTo(expectedResponseMap.keySet());
+        assertThat(partitionedResponseMap.keySet()).containsExactlyInAnyOrderElementsOf(expectedResponseMap.keySet());
         assertCorrectnessOfCompletedRequests(expectedResponseMap, partitionedResponseMap);
     }
 

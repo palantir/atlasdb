@@ -124,10 +124,10 @@ public class TestSweepCommand {
 
             assertThat(get(kvs, TABLE_ONE, "foo", ts5)).isEqualTo("baz");
             assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts3))).isEqualTo(deletedValue("bar"));
-            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts1), ts3));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts1), ts3);
             assertThat(get(kvs, TABLE_TWO, "foo", ts5)).isEqualTo("taz");
             assertThat(get(kvs, TABLE_TWO, "foo", mid(ts3, ts4))).isEqualTo("tar");
-            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).isEqualTo(ImmutableSet.of(ts2, ts4));
+            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).containsExactlyInAnyOrder(ts2, ts4);
         }
     }
 
@@ -168,13 +168,13 @@ public class TestSweepCommand {
 
             assertThat(get(kvs, TABLE_ONE, "foo", ts7)).isEqualTo("baz");
             assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts2))).isEqualTo(deletedValue("bar"));
-            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts1), ts4));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts1), ts4);
             assertThat(get(kvs, TABLE_TWO, "foo", ts7)).isEqualTo("taz");
             assertThat(get(kvs, TABLE_TWO, "foo", mid(ts4, ts6))).isEqualTo(deletedValue("tar"));
-            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts2), ts6));
+            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts2), ts6);
             assertThat(get(kvs, TABLE_THREE, "foo", ts7)).isEqualTo("jaz");
             assertThat(get(kvs, TABLE_THREE, "foo", mid(ts3, ts5))).isEqualTo("jar");
-            assertThat(getAllTs(kvs, TABLE_THREE, "foo")).isEqualTo(ImmutableSet.of(ts3, ts5));
+            assertThat(getAllTs(kvs, TABLE_THREE, "foo")).containsExactlyInAnyOrder(ts3, ts5);
         }
     }
 
@@ -200,13 +200,13 @@ public class TestSweepCommand {
 
             assertThat(get(kvs, TABLE_ONE, "foo", ts7)).isEqualTo("baz");
             assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts2))).isEqualTo(deletedValue("bar"));
-            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts1), ts4));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts1), ts4);
             assertThat(get(kvs, TABLE_TWO, "foo", ts7)).isEqualTo("taz");
             assertThat(get(kvs, TABLE_TWO, "foo", mid(ts4, ts6))).isEqualTo(deletedValue("tar"));
-            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts2), ts6));
+            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts2), ts6);
             assertThat(get(kvs, TABLE_THREE, "foo", ts7)).isEqualTo("jaz");
             assertThat(get(kvs, TABLE_THREE, "foo", mid(ts3, ts5))).isEqualTo(deletedValue("jar"));
-            assertThat(getAllTs(kvs, TABLE_THREE, "foo")).isEqualTo(ImmutableSet.of(deletedTimestamp(ts3), ts5));
+            assertThat(getAllTs(kvs, TABLE_THREE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts3), ts5);
         }
     }
 
@@ -236,8 +236,8 @@ public class TestSweepCommand {
             assertThat(get(kvs, TABLE_ONE, "foo", mid(ts2, ts4))).isEqualTo(deletedValue("biz"));
             assertThat(get(kvs, TABLE_ONE, "boo", mid(ts3, ts5))).isEqualTo("biz");
             assertThat(getAllTs(kvs, TABLE_ONE, "foo"))
-                    .isEqualTo(ImmutableSet.of(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4));
-            assertThat(getAllTs(kvs, TABLE_ONE, "boo")).isEqualTo(ImmutableSet.of(ts3));
+                    .containsExactlyInAnyOrder(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4);
+            assertThat(getAllTs(kvs, TABLE_ONE, "boo")).containsExactlyInAnyOrder(ts3);
         }
     }
 

@@ -60,7 +60,7 @@ public class CassandraTimestampUtilsTest {
         CqlResult mockResult =
                 createMockCqlResult(ImmutableList.of(createMockCqlRow(columnList1), createMockCqlRow(columnList2)));
         assertThat(CassandraTimestampUtils.getValuesFromSelectionResult(mockResult))
-                .isEqualTo(ImmutableMap.of(COLUMN_NAME_1, VALUE_1, COLUMN_NAME_2, VALUE_2));
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(COLUMN_NAME_1, VALUE_1, COLUMN_NAME_2, VALUE_2));
     }
 
     @Test

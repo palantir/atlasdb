@@ -220,7 +220,7 @@ public class PaxosLogHistoryProviderTest {
                 })
                 .collect(Collectors.toSet());
 
-        assertThat(namespaceAndUseCasesWithHistory).isEqualTo(allNamespaceAndUseCases);
+        assertThat(namespaceAndUseCasesWithHistory).containsExactlyInAnyOrderElementsOf(allNamespaceAndUseCases);
     }
 
     // utils

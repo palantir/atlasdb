@@ -112,7 +112,7 @@ public class HeldLocksCollectionTest {
                 .refresh(ImmutableSet.of(unlockableRequest, nonUnlockableRequest))
                 .value();
 
-        assertThat(actual).isEqualTo(expected);
+        assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
     }
 
     @Test
@@ -123,7 +123,7 @@ public class HeldLocksCollectionTest {
         Set<LockToken> expected = ImmutableSet.of(refreshableRequest);
         Set<LockToken> actual = heldLocksCollection.unlock(ImmutableSet.of(refreshableRequest, nonRefreshableRequest));
 
-        assertThat(actual).isEqualTo(expected);
+        assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
     }
 
     @Test

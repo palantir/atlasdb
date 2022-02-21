@@ -821,9 +821,9 @@ public abstract class AbstractKeyValueServiceTest {
                                     .build()));
 
             if (reverse) {
-                assertThat(results).isEqualTo(Lists.reverse(expected));
+                assertThat(results).containsExactlyElementsOf(Lists.reverse(expected));
             } else {
-                assertThat(results).isEqualTo(expected);
+                assertThat(results).containsExactlyElementsOf(expected);
             }
         }
     }
@@ -856,7 +856,7 @@ public abstract class AbstractKeyValueServiceTest {
                             .put(PtBytes.toBytes("c1"), Value.create(PtBytes.toBytes("a"), TEST_TIMESTAMP))
                             .put(last, Value.create(PtBytes.toBytes("b"), TEST_TIMESTAMP))
                             .build()));
-            assertThat(results).isEqualTo(expected);
+            assertThat(results).containsExactlyElementsOf(expected);
         }
     }
 
@@ -913,7 +913,7 @@ public abstract class AbstractKeyValueServiceTest {
                 keyValueService.getRange(TEST_TABLE, request, TEST_TIMESTAMP + 1)) {
             List<RowResult<Value>> results = ImmutableList.copyOf(iter);
             assertThat(results)
-                    .isEqualTo(getExpectedResultForRangePagingWithColumnSelectionTest(
+                    .containsExactlyElementsOf(getExpectedResultForRangePagingWithColumnSelectionTest(
                             numRows, numColsInSelection, reverse));
         }
     }

@@ -138,7 +138,7 @@ public class TestKvsMigrationCommand {
                 }
                 Map<Cell, byte[]> expected = expectedBuilder.build();
                 Map<Cell, byte[]> result = t.get(table, expected.keySet());
-                assertThat(result.keySet()).isEqualTo(expected.keySet());
+                assertThat(result.keySet()).containsExactlyInAnyOrderElementsOf(expected.keySet());
                 for (Map.Entry<Cell, byte[]> e : result.entrySet()) {
                     assertThat(e.getValue()).isEqualTo(expected.get(e.getKey()));
                 }
