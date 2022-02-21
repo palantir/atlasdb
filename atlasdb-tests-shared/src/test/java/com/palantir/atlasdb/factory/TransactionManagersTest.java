@@ -802,6 +802,7 @@ public class TransactionManagersTest {
     private void setUpRemoteTimestampAndLockBlocksInConfig() {
         when(config.timestamp()).thenReturn(Optional.of(rawRemoteServerConfig));
         when(config.lock()).thenReturn(Optional.of(rawRemoteServerConfig));
+        when(config.remoteTimestampAndLockOrLeaderBlocksPresent()).thenReturn(true);
     }
 
     private void setUpLeaderBlockInConfig() throws IOException {
@@ -814,6 +815,7 @@ public class TransactionManagersTest {
                         .quorumSize(1)
                         .sslConfiguration(SSL_CONFIGURATION)
                         .build()));
+        when(config.remoteTimestampAndLockOrLeaderBlocksPresent()).thenReturn(true);
     }
 
     private LockAndTimestampServices getLockAndTimestampServices() {

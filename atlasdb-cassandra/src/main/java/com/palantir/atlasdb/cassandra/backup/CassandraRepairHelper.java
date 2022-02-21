@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -52,14 +53,13 @@ public class CassandraRepairHelper {
             Sets.union(ImmutableSet.of(AtlasDbConstants.COORDINATION_TABLE), TargetedSweepTables.REPAIR_ON_RESTORE);
 
     private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
-    private final Function<Namespace, KeyValueService> keyValueServiceFactory;
     private final LoadingCache<Namespace, CqlCluster> cqlClusters;
+    private final KvsRunner kvsRunner;
 
     public CassandraRepairHelper(
-            Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
-            Function<Namespace, KeyValueService> keyValueServiceFactory) {
+            KvsRunner kvsRunner, Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
+        this.kvsRunner = kvsRunner;
         this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
-        this.keyValueServiceFactory = keyValueServiceFactory;
 
         this.cqlClusters = Caffeine.newBuilder()
                 .maximumSize(100)
@@ -83,11 +83,16 @@ public class CassandraRepairHelper {
     }
 
     public void repairInternalTables(Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {
-        KeyValueService kvs = keyValueServiceFactory.apply(namespace);
+        kvsRunner.run(namespace, kvs -> repairInternalTables(kvs, namespace, repairTable));
+    }
+
+    public Void repairInternalTables(
+            KeyValueService kvs, Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {
         CqlCluster cqlCluster = cqlClusters.get(namespace);
         KeyedStream.of(getTableNamesToRepair(kvs))
                 .map(tableName -> getRangesToRepair(cqlCluster, namespace, tableName))
                 .forEach(repairTable);
+        return null;
     }
 
     private static Stream<String> getTableNamesToRepair(KeyValueService kvs) {
