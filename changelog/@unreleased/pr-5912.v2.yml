@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: AtlasDB no longer throws `CheckAndSetException` out of transactional
+    gets. This could happen for Transactions3 users, because gets may require a user
+    to touch a value atomically, and if this touch fails then the aforementioned exception
+    will be thrown.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5912
