@@ -34,6 +34,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -79,7 +80,7 @@ public final class TimelockNamespaces {
     }
 
     public TimeLockServices getIgnoringDisabled(String namespace) {
-        return services.computeIfAbsent(namespace, ns -> createNewClient(ns, true));
+        return Optional.ofNullable(services.get(namespace)).orElseGet(() -> createNewClient(namespace, true));
     }
 
     public Set<Client> getActiveClients() {
