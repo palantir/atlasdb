@@ -47,6 +47,7 @@ dependencies {
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
+    implementation project(':timelock-api')
 
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
