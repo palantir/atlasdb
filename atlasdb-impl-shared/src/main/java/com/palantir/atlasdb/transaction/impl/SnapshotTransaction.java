@@ -59,6 +59,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -2486,14 +2487,32 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             Long singleTs = startTimestamps.iterator().next();
-            return Futures.transform(
+            ListenableFuture<Map<Long, Long>> singleTimestampFuture = Futures.transform(
                     asyncTransactionService.getAsync(singleTs),
                     commitTsOrNull ->
                             commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull),
                     MoreExecutors.directExecutor());
+            return catchingCheckAndSetExceptionAndRethrowing(singleTimestampFuture, "Loading a commit timestamp");
         } else {
-            return asyncTransactionService.getAsync(startTimestamps);
+            return catchingCheckAndSetExceptionAndRethrowing(
+                    asyncTransactionService.getAsync(startTimestamps), "Loading commit timestamps");
         }
+    }
+
+    private static <T> ListenableFuture<T> catchingCheckAndSetExceptionAndRethrowing(
+            ListenableFuture<T> baseCall, String failedOperation) {
+        return Futures.catchingAsync(
+                baseCall,
+                CheckAndSetException.class,
+                baseException -> {
+                    TransactionFailedRetriableException exceptionToThrow =
+                            new TransactionFailedRetriableException(failedOperation);
+                    if (baseException != null) {
+                        exceptionToThrow.addSuppressed(baseException);
+                    }
+                    return Futures.immediateFailedFuture(exceptionToThrow);
+                },
+                MoreExecutors.directExecutor());
     }
 
     /**
