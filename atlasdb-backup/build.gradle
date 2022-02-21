@@ -5,6 +5,7 @@ dependencies {
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-impl-shared')
+    implementation project(':commons-annotations')
     implementation project(':timelock-api:timelock-api-objects')
     implementation project(':atlasdb-coordination-impl')
 
