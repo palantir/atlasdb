@@ -29,6 +29,7 @@ dependencies {
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java.api:errors'
     implementation 'com.palantir.conjure.java:conjure-lib'
+    implementation 'com.palantir.conjure.java:conjure-undertow-annotations'
     implementation 'com.palantir.conjure.java:conjure-undertow-lib'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.sls.versions:sls-versions'
@@ -83,6 +84,7 @@ dependencies {
     testImplementation project(':timelock-api:timelock-api-objects')
     testImplementation project(':timestamp-api')
 
+    annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
     annotationProcessor group: 'org.immutables', name: 'value'

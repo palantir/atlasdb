@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import org.junit.Test;
 
-public class ProtocolAwareExceptionMapperTest {
+public class ProtocolAwarenessTest {
     private static final UserAgent USER_AGENT_1 = createBaseUserAgent("Bond", "0.0.7");
     private static final UserAgent USER_AGENT_2 = createBaseUserAgent("Smith", "1.2.3");
 
@@ -36,41 +36,41 @@ public class ProtocolAwareExceptionMapperTest {
 
     @Test
     public void detectsAtlasDbHttpClientAgent() {
-        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(
+        assertThat(ProtocolAwareness.parseProtocolVersionFromUserAgentHeader(
                         ImmutableList.of(FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
                 .contains(HTTP_PROTOCOL_VERSION);
     }
 
     @Test
     public void returnsEmptyIfNoRelevantAgentsFound() {
-        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(
+        assertThat(ProtocolAwareness.parseProtocolVersionFromUserAgentHeader(
                         ImmutableList.of(UserAgents.format(USER_AGENT_1.addAgent(AGENT_1)))))
                 .isEmpty();
     }
 
     @Test
     public void returnsEmptyIfNoUserAgentsArePresent() {
-        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(ImmutableList.of()))
+        assertThat(ProtocolAwareness.parseProtocolVersionFromUserAgentHeader(ImmutableList.of()))
                 .isEmpty();
     }
 
     @Test
     public void returnsEmptyIfUserAgentStringCannotBeParsed() {
-        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(
+        assertThat(ProtocolAwareness.parseProtocolVersionFromUserAgentHeader(
                         ImmutableList.of("I don't know what a user agent is!")))
                 .isEmpty();
     }
 
     @Test
     public void detectsAtlasDbHttpClientAgentInPresenceOfUnparseableHeaders() {
-        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(ImmutableList.of(
+        assertThat(ProtocolAwareness.parseProtocolVersionFromUserAgentHeader(ImmutableList.of(
                         "Ich weiß nicht, was ein 'User-Agent' bedeutet", FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
                 .contains(HTTP_PROTOCOL_VERSION);
     }
 
     @Test
     public void detectsAtlasDbHttpClientAgentOnAnyPresentUserAgentHeader() {
-        assertThat(ProtocolAwareExceptionMapper.parseProtocolVersionFromUserAgentHeader(ImmutableList.of(
+        assertThat(ProtocolAwareness.parseProtocolVersionFromUserAgentHeader(ImmutableList.of(
                         UserAgents.format(USER_AGENT_2.addAgent(AGENT_1)), FORMATTED_USER_AGENT_WITH_HTTP_CLIENT)))
                 .contains(HTTP_PROTOCOL_VERSION);
     }

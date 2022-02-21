@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.atlasdb.metrics.Timed;
+import com.palantir.conjure.java.undertow.annotations.Handle;
+import com.palantir.conjure.java.undertow.annotations.HttpMethod;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
@@ -48,7 +50,12 @@ public class LeaderAcceptorResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Timed
-    public PaxosPromise prepare(@PathParam("seq") long seq, PaxosProposalId pid) {
+    @Handle(
+            method = HttpMethod.POST,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE
+                    + "/acceptor/prepare/{seq}")
+    public PaxosPromise prepare(@PathParam("seq") @Handle.PathParam long seq, @Handle.Body PaxosProposalId pid) {
         return acceptor.prepare(seq, pid);
     }
 
@@ -56,13 +63,24 @@ public class LeaderAcceptorResource {
     @Path("accept/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public BooleanPaxosResponse accept(@PathParam("seq") long seq, PaxosProposal proposal) {
+    @Handle(
+            method = HttpMethod.POST,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE
+                    + "/acceptor/accept/{seq}")
+    public BooleanPaxosResponse accept(
+            @PathParam("seq") @Handle.PathParam long seq, @Handle.Body PaxosProposal proposal) {
         return acceptor.accept(seq, proposal);
     }
 
     @POST // This is marked as a POST because we cannot accept stale or cached results for this method.
     @Path("latest-sequence-prepared-or-accepted")
     @Produces(MediaType.APPLICATION_JSON)
+    @Handle(
+            method = HttpMethod.POST,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE
+                    + "/acceptor/latest-sequence-prepared-or-accepted")
     public long getLatestSequencePreparedOrAccepted() {
         return acceptor.getLatestSequencePreparedOrAccepted();
     }
