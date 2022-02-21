@@ -2,6 +2,7 @@ apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
 dependencies {
+    api project(":commons-executors-api")
     implementation project(":commons-annotations")
 
     implementation "com.palantir.tracing:tracing"
