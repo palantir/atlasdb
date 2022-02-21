@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.partitioning;
 
-import com.google.common.collect.Multimap;
 import com.palantir.common.streams.KeyedStream;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,114 +32,148 @@ import java.util.stream.IntStream;
 
 public class HostPartitionings {
     private static final Random RANDOM = new Random(0);
+    private static final int ITERATIONS = 1000;
+    private static final int RF = 3;
 
     private HostPartitionings() {
         // lol
     }
 
     public static void main(String[] args) {
-        assignHostsToShards(24, 128);
+        partitionHosts(24, 64);
     }
 
     // assume rf 3
-    public static Multimap<Integer, Integer> assignHostsToShards(int numHosts, int numShards) {
-        List<List<Integer>> hostPermutations = generatePartitions(3, numHosts);
+    public static void partitionHosts(int numHosts, int numShards) {
+        List<List<CassandraHost>> cassHostPerms = generateCassandraHostPermutations(numHosts);
+
+        for (int i = 0; i < ITERATIONS; i++) {
+            calculateDistribution(numHosts, numShards, cassHostPerms);
+        }
+    }
+
+    private static void calculateDistribution(int numHosts, int numShards, List<List<CassandraHost>> hostPermutations) {
+
         int halfHosts = numHosts / 2;
         int halfShards = numShards / 2;
-        for (int i = 0; i < 1000; i++) {
-            int numberOfNonJunkShards = RANDOM.nextInt(numShards - 1 - halfShards) + halfShards;
-            int numberOfBlocklistedHostsInNonJunkShards = RANDOM.nextInt(numHosts - 3 - halfHosts) + halfHosts;
-            Map<Integer, Set<Integer>> blocklist = KeyedStream.of(
-                            IntStream.range(0, numberOfNonJunkShards).boxed())
-                    .map(crap -> getSetOfHosts(numHosts, numberOfBlocklistedHostsInNonJunkShards))
-                    .collectToMap();
-            Map<Integer, List<List<Integer>>> proposedSolution = new HashMap<>();
-            IntStream.range(0, numShards).forEach(shard -> proposedSolution.put(shard, new ArrayList<>()));
-            for (List<Integer> permutation : hostPermutations) {
-                List<Entry<Integer, Integer>> sizeToShard = proposedSolution.entrySet().stream()
-                        .map(entry -> Map.entry(entry.getValue().size(), entry.getKey()))
-                        .collect(Collectors.toList());
-                sizeToShard.sort(Comparator.comparing((Function<Entry<Integer, Integer>, Integer>) Entry::getKey)
-                        .thenComparing(Entry::getValue));
+        int numberOfPartitionAbidingShards = RANDOM.nextInt(numShards - 1 - halfShards) + halfShards;
+        int numberOfHostsBlocklistedByPartitionAbidingShards = RANDOM.nextInt(numHosts - 3 - halfHosts) + halfHosts;
 
-                int nextShard = sizeToShard.stream()
-                        .filter(shard -> tryAdd(blocklist, permutation, shard.getValue()))
-                        .findFirst()
-                        .get()
-                        .getValue();
-                proposedSolution
-                        .computeIfAbsent(nextShard, _ignore -> new ArrayList<>())
-                        .add(permutation);
-            }
+        List<SweepShard> partitionAbidingShards = generatepartitionAbidingShards(numberOfPartitionAbidingShards);
 
-            Map<Integer, Set<Integer>> coolStuff = KeyedStream.stream(proposedSolution)
-                    .map(list -> list.stream().flatMap(List::stream).collect(Collectors.toSet()))
-                    .collectToMap();
-            Map<Integer, Integer> hostToShards = coolStuff.entrySet().stream()
-                    .flatMap(entry -> entry.getValue().stream().map(host -> Map.entry(host, entry.getKey())))
-                    .collect(Collectors.groupingBy(
-                            Entry::getKey, Collectors.collectingAndThen(Collectors.toList(), list -> list.stream()
-                                    .map(Map.Entry::getValue)
-                                    .collect(Collectors.toSet())
-                                    .size())));
-            Optional<Integer> maxKilledShards = hostToShards.values().stream().max(Comparator.naturalOrder());
-            Map<Integer, Integer> shardToNumPermutations =
-                    KeyedStream.stream(proposedSolution).map(List::size).collectToMap();
-            int minPermutations = shardToNumPermutations.values().stream()
-                    .min(Comparator.naturalOrder())
-                    .get();
-            int maxPermutations = shardToNumPermutations.values().stream()
-                    .max(Comparator.naturalOrder())
-                    .get();
-            if (maxKilledShards.map(shards -> shards > numShards * 2 / 3).orElse(true)
-                    || (maxPermutations > 3 * minPermutations)) {
-                continue;
-            }
-            System.out.println("Nonjunk shards " + numberOfNonJunkShards);
-            System.out.println("Blocklisted hosts per shard " + numberOfBlocklistedHostsInNonJunkShards);
-            System.out.println("Max shards for host " + maxKilledShards);
-            System.out.println("Min assigned permutations" + minPermutations);
-            System.out.println("Max assigned permutations" + maxPermutations);
-        }
-        return null;
-    }
+        Map<SweepShard, Set<CassandraHost>> blocklistedHosts = KeyedStream.of(partitionAbidingShards)
+                .map(crap -> Utils.getSetOfBlockListedHosts(numHosts, numberOfHostsBlocklistedByPartitionAbidingShards))
+                .collectToMap();
 
-    private static Set<Integer> getSetOfHosts(int numHosts, int numberBlocklisted) {
-        Set<Integer> jank = IntStream.range(0, numHosts).boxed().collect(Collectors.toSet());
-        while (jank.size() > numberBlocklisted) {
-            jank.remove(RANDOM.nextInt(numHosts));
-        }
-        return jank;
-    }
+        Map<SweepShard, List<List<CassandraHost>>> proposedSolution = new HashMap<>();
 
-    private static boolean tryAdd(Map<Integer, Set<Integer>> blocklist, List<Integer> permutation, int proposedShard) {
-        return permutation.stream()
-                .noneMatch(num -> blocklist.containsKey(proposedShard)
-                        && blocklist.get(proposedShard).contains(num));
-    }
+        IntStream.range(0, numShards)
+                .forEach(shard -> proposedSolution.put(ImmutableSweepShard.of(shard), new ArrayList<>()));
 
-    private static List<List<Integer>> generatePartitions(int rf, int hosts) {
-        List<List<Integer>> tt = new ArrayList<>();
-        tt.add(new ArrayList<>());
-        List<List<Integer>> allPerms = partitionGenerator(hosts, rf, 0, tt);
-        return allPerms.stream().filter(x -> x.size() == rf).collect(Collectors.toList());
-    }
-
-    private static List<List<Integer>> partitionGenerator(int num, int rf, int idx, List<List<Integer>> answer) {
-        if (idx == num) {
-            return answer;
+        for (List<CassandraHost> permutation : hostPermutations) {
+            assignPermutationToShard(blocklistedHosts, proposedSolution, permutation);
         }
 
-        int size = answer.size();
+        Map<SweepShard, Set<CassandraHost>> hostsAssignedToShards = KeyedStream.stream(proposedSolution)
+                .map(list -> list.stream().flatMap(List::stream).collect(Collectors.toSet()))
+                .collectToMap();
 
-        for (int i = 0; i < size; i++) {
-            List<Integer> temp = new ArrayList<>(answer.get(i));
-            if (temp.size() < rf) {
-                temp.add(idx);
-                answer.add(temp);
-            }
+        Map<CassandraHost, Integer> numShardsAffectedByHost = hostsAssignedToShards.entrySet().stream()
+                .flatMap(entry -> entry.getValue().stream().map(host -> Map.entry(host, entry.getKey())))
+                .collect(Collectors.groupingBy(
+                        Entry::getKey, Collectors.collectingAndThen(Collectors.toList(), list -> list.stream()
+                                .map(Entry::getValue)
+                                .collect(Collectors.toSet())
+                                .size())));
+        printOutcome(
+                numShards,
+                numberOfPartitionAbidingShards,
+                numberOfHostsBlocklistedByPartitionAbidingShards,
+                proposedSolution,
+                numShardsAffectedByHost);
+    }
+
+    private static void assignPermutationToShard(
+            Map<SweepShard, Set<CassandraHost>> blocklistedHosts,
+            Map<SweepShard, List<List<CassandraHost>>> proposedSolution,
+            List<CassandraHost> permutation) {
+        List<Map.Entry<Integer, SweepShard>> assignedPermutationsCount = proposedSolution.entrySet().stream()
+                .map(entry -> Map.entry(entry.getValue().size(), entry.getKey()))
+                .collect(Collectors.toList());
+
+        assignedPermutationsCount.sort(
+                Comparator.comparing((Function<Entry<Integer, SweepShard>, Integer>) Entry::getKey)
+                        .thenComparing(e -> e.getValue().id()));
+
+        SweepShard nextViableShard = assignedPermutationsCount.stream()
+                .filter(shard -> Utils.canAddPermutation(
+                        blocklistedHosts, permutation, shard.getValue().id()))
+                .findFirst()
+                .get()
+                .getValue();
+
+        proposedSolution
+                .computeIfAbsent(nextViableShard, _ignore -> new ArrayList<>())
+                .add(permutation);
+    }
+
+    private static List<SweepShard> generatepartitionAbidingShards(int numberOfPartitionAbidingShards) {
+        return IntStream.range(0, numberOfPartitionAbidingShards)
+                .boxed()
+                .map(ImmutableSweepShard::of)
+                .collect(Collectors.toList());
+    }
+
+    private static void printOutcome(
+            int numShards,
+            int numberOfNonJunkShards,
+            int numberOfBlocklistedHostsInNonJunkShards,
+            Map<SweepShard, List<List<CassandraHost>>> proposedSolution,
+            Map<CassandraHost, Integer> hostToShards) {
+
+        Optional<Integer> maxShardsKilled = hostToShards.values().stream().max(Comparator.naturalOrder());
+
+        // all permutations accepted by a shard
+        Map<SweepShard, Integer> shardToNumAcceptedPermutations =
+                KeyedStream.stream(proposedSolution).map(List::size).collectToMap();
+
+        int minPermutations = shardToNumAcceptedPermutations.values().stream()
+                .min(Comparator.naturalOrder())
+                .get();
+        int maxPermutations = shardToNumAcceptedPermutations.values().stream()
+                .max(Comparator.naturalOrder())
+                .get();
+
+        if (isBadDistribution(numShards, maxShardsKilled, minPermutations, maxPermutations)) {
+            return;
         }
 
-        return partitionGenerator(num, rf, idx + 1, answer);
+        // Print out acceptable distributions
+        System.out.println("Nonjunk shards " + numberOfNonJunkShards);
+        System.out.println("Blocklisted hosts per shard " + numberOfBlocklistedHostsInNonJunkShards);
+        System.out.println("Max number of shards killed by loss of host " + maxShardsKilled);
+        System.out.println("Min assigned permutations" + minPermutations);
+        System.out.println("Max assigned permutations" + maxPermutations);
+        System.out.println();
+    }
+
+    private static boolean isBadDistribution(
+            int numShards, Optional<Integer> maxShardsKilled, int minPermutations, int maxPermutations) {
+        return maxShardsKilled
+                        .map(shardsKilled -> shardsKilled > numShards * 2 / 3)
+                        .orElse(true)
+                || (maxPermutations > 3 * minPermutations);
+    }
+
+    private static List<List<CassandraHost>> generateCassandraHostPermutations(int numHosts) {
+        List<List<Integer>> hostPermutations = PermutationGenerator.generatePartitions(RF, numHosts);
+        List<List<CassandraHost>> cassHostPerms = hostPermutations.stream()
+                .map(perm -> {
+                    List<CassandraHost> hosts =
+                            perm.stream().map(ImmutableCassandraHost::of).collect(Collectors.toList());
+                    return hosts;
+                })
+                .collect(Collectors.toList());
+        return cassHostPerms;
     }
 }
