@@ -1,7 +1,8 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    api project(":commons-annotations")
+    api project(":commons-executors-api")
+    implementation project(":commons-annotations")
     implementation project(":commons-executors")
 
     implementation (group: 'io.dropwizard.metrics', name: 'metrics-core') {
