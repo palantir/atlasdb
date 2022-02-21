@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
+import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
@@ -37,7 +37,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.Set;
@@ -63,10 +63,10 @@ public class AtlasRestoreServiceTest {
     private AuthHeader authHeader;
 
     @Mock
-    private AtlasRestoreClientBlocking atlasRestoreClient;
+    private AtlasRestoreClient atlasRestoreClient;
 
     @Mock
-    private TimeLockManagementServiceBlocking timeLockManagementService;
+    private TimeLockManagementService timeLockManagementService;
 
     @Mock
     private CassandraRepairHelper cassandraRepairHelper;

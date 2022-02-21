@@ -21,7 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
+import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
@@ -49,7 +49,7 @@ public class AtlasBackupServiceTest {
     private AuthHeader authHeader;
 
     @Mock
-    private AtlasBackupClientBlocking atlasBackupClient;
+    private AtlasBackupClient atlasBackupClient;
 
     @Mock
     private CoordinationServiceRecorder coordinationServiceRecorder;

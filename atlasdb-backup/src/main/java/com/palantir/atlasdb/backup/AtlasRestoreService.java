@@ -20,6 +20,7 @@ import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
@@ -28,6 +29,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
+import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
@@ -36,10 +38,12 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
+import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -60,20 +64,20 @@ public class AtlasRestoreService {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasRestoreService.class);
 
     private final AuthHeader authHeader;
-    private final AtlasRestoreClientBlocking atlasRestoreClientBlocking;
-    private final TimeLockManagementServiceBlocking timeLockManagementService;
+    private final AtlasRestoreClient atlasRestoreClient;
+    private final TimeLockManagementService timeLockManagementService;
     private final BackupPersister backupPersister;
     private final CassandraRepairHelper cassandraRepairHelper;
 
     @VisibleForTesting
     AtlasRestoreService(
             AuthHeader authHeader,
-            AtlasRestoreClientBlocking atlasRestoreClientBlocking,
-            TimeLockManagementServiceBlocking timeLockManagementService,
+            AtlasRestoreClient atlasRestoreClient,
+            TimeLockManagementService timeLockManagementService,
             BackupPersister backupPersister,
             CassandraRepairHelper cassandraRepairHelper) {
         this.authHeader = authHeader;
-        this.atlasRestoreClientBlocking = atlasRestoreClientBlocking;
+        this.atlasRestoreClient = atlasRestoreClient;
         this.timeLockManagementService = timeLockManagementService;
         this.backupPersister = backupPersister;
         this.cassandraRepairHelper = cassandraRepairHelper;
@@ -86,20 +90,17 @@ public class AtlasRestoreService {
             BackupPersister backupPersister,
             Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
-        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock);
-        AtlasRestoreClientBlocking atlasRestoreClientBlocking =
-                reloadingFactory.get(AtlasRestoreClientBlocking.class, serviceName);
-        TimeLockManagementServiceBlocking timeLockManagementService =
-                reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName);
-
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
+                .withUserAgent(UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT));
+        AtlasRestoreClient atlasRestoreClient = new DialogueAdaptingAtlasRestoreClient(
+                reloadingFactory.get(AtlasRestoreClientBlocking.class, serviceName));
+        TimeLockManagementService timeLockManagementService = new DialogueAdaptingTimeLockManagementService(
+                reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName));
         CassandraRepairHelper cassandraRepairHelper =
                 new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
+
         return new AtlasRestoreService(
-                authHeader,
-                atlasRestoreClientBlocking,
-                timeLockManagementService,
-                backupPersister,
-                cassandraRepairHelper);
+                authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
     }
 
     /**
@@ -192,7 +193,7 @@ public class AtlasRestoreService {
 
         // Fast forward timestamps
         CompleteRestoreResponse response =
-                atlasRestoreClientBlocking.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
+                atlasRestoreClient.completeRestore(authHeader, CompleteRestoreRequest.of(completedBackups));
         Set<Namespace> successfulNamespaces = response.getSuccessfulNamespaces();
         Set<Namespace> failedNamespaces = Sets.difference(namespaces, successfulNamespaces);
         if (!failedNamespaces.isEmpty()) {
