@@ -229,7 +229,7 @@ public class ThriftObjectSizeUtilsTest {
         long expectedSize = EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE + NULL_SIZE + TEST_NAME_BYTES_SIZE;
 
         assertThat(ThriftObjectSizeUtils.getSizeOfMutationPerTable(batchMutateMap))
-                .isEqualTo(ImmutableMap.of(TEST_NAME, expectedSize));
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(TEST_NAME, expectedSize));
     }
 
     @Test

@@ -141,7 +141,7 @@ public class WeightedHostsTest {
             numTimesSelected.put(host, numTimesSelected.get(host) + 1);
         }
 
-        assertThat(numTimesSelected).isEqualTo(hostsToWeight);
+        assertThat(numTimesSelected).containsExactlyInAnyOrderEntriesOf(hostsToWeight);
     }
 
     private static CassandraClientPoolingContainer createMockClientPoolingContainerWithUtilization(int utilization) {

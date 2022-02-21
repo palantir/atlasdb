@@ -98,7 +98,7 @@ public class ProfilingCassandraClientTest {
                         ImmutableList.of(byteBuffer),
                         new SlicePredicate(),
                         ConsistencyLevel.QUORUM))
-                .isEqualTo(resultMap);
+                .containsExactlyInAnyOrderEntriesOf(resultMap);
 
         verify(delegate)
                 .multiget_slice(

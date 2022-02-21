@@ -199,7 +199,7 @@ public class TracingKeyValueServiceTest {
 
         Map<Cell, Value> result = kvs.get(TABLE_REF, cells);
 
-        assertThat(result).isEqualTo(expectedResult);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(expectedResult);
         checkSpan("atlasdb-kvs.get", ImmutableMap.of("table", "{table}", "cells", "1"));
         verify(delegate).get(TABLE_REF, cells);
         verifyNoMoreInteractions(delegate);
@@ -241,7 +241,7 @@ public class TracingKeyValueServiceTest {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result =
                 kvs.getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
 
-        assertThat(result).isEqualTo(expectedResult);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(expectedResult);
         checkSpan("atlasdb-kvs.getFirstBatchForRanges", ImmutableMap.of("table", "{table}", "ranges", "1", "ts", "2"));
         verify(delegate).getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
@@ -279,7 +279,7 @@ public class TracingKeyValueServiceTest {
 
         Map<TableReference, byte[]> result = kvs.getMetadataForTables();
 
-        assertThat(result).isEqualTo(expectedResult);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(expectedResult);
         checkSpan("atlasdb-kvs.getMetadataForTables");
         verify(delegate).getMetadataForTables();
         verifyNoMoreInteractions(delegate);
@@ -294,7 +294,7 @@ public class TracingKeyValueServiceTest {
 
         Map<Cell, Value> result = kvs.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
 
-        assertThat(result).isEqualTo(expectedResult);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(expectedResult);
         checkSpan("atlasdb-kvs.getRows", ImmutableMap.of("table", "{table}", "rows", "1", "ts", "2"));
         verify(delegate).getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
         verifyNoMoreInteractions(delegate);
@@ -310,7 +310,7 @@ public class TracingKeyValueServiceTest {
 
         Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
 
-        assertThat(result).isEqualTo(expectedResult);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(expectedResult);
         checkSpan("atlasdb-kvs.getRowsColumnRange", ImmutableMap.of("table", "{table}", "rows", "1", "ts", "2"));
         verify(delegate).getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
         verifyNoMoreInteractions(delegate);

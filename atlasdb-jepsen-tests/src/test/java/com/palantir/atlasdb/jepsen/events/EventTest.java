@@ -246,7 +246,7 @@ public class EventTest {
                 Keyword.intern("time"), SOME_TIME,
                 Keyword.intern("value"), "bar");
 
-        assertThat(Event.toKeywordMap(infoEvent)).isEqualTo(expected);
+        assertThat(Event.toKeywordMap(infoEvent)).containsExactlyInAnyOrderEntriesOf(expected);
     }
 
     @Test
@@ -267,6 +267,6 @@ public class EventTest {
                 Keyword.intern("time"),
                 SOME_TIME);
 
-        assertThat(Event.toKeywordMap(infoEvent)).isEqualTo(expected);
+        assertThat(Event.toKeywordMap(infoEvent)).containsExactlyInAnyOrderEntriesOf(expected);
     }
 }

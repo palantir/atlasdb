@@ -73,7 +73,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     public void canPutAndGetMultiple() throws ExecutionException, InterruptedException {
         ImmutableMap<Long, Long> inputs = ImmutableMap.of(1L, 2L, 3L, 4L, 7L, 8L);
         pueTable.putUnlessExistsMultiple(inputs);
-        assertThat(pueTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get()).isEqualTo(inputs);
+        assertThat(pueTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get()).containsExactlyInAnyOrderEntriesOf(inputs);
     }
 
     @Test
