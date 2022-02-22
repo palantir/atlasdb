@@ -292,7 +292,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolConfig.setNumTestsPerEvictionRun(-(int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
         poolConfig.setTestWhileIdle(true);
 
-        poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
+        poolConfig.setJmxNamePrefix(host.getHostString());
         poolConfig.setEvictionPolicy(new DefaultEvictionPolicy<>());
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         pool.setSwallowedExceptionListener(exception -> log.info("Swallowed exception within object pool", exception));

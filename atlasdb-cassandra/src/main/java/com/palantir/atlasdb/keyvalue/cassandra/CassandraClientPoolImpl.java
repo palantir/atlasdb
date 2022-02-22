@@ -535,7 +535,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     .filter(entry -> entry.getValue().size() == 1)
                     .forEach(entry -> {
                         // We've checked above that entry.getValue() has one element, so we never NPE here.
-                        String hostString = CassandraLogHelper.host(Iterables.getFirst(entry.getValue(), null));
+                        CassandraLogHelper.HostAndIpAddress hostString =
+                                CassandraLogHelper.host(Iterables.getFirst(entry.getValue(), null));
                         log.error(
                                 "Host: {} disagrees with the other nodes about the ring state.",
                                 SafeArg.of("host", hostString));
