@@ -33,13 +33,13 @@ public final class Utils {
                 .collect(Collectors.toSet());
 
         while (allHosts.size() > numberBlocklisted) {
-            allHosts.remove(RANDOM.nextInt(numHosts));
+            allHosts.remove(ImmutableCassandraHost.of(RANDOM.nextInt(numHosts)));
         }
         return allHosts;
     }
 
     static boolean canAddPermutation(
-            Map<SweepShard, Set<CassandraHost>> blocklist, List<CassandraHost> permutation, int proposedShard) {
+            Map<SweepShard, Set<CassandraHost>> blocklist, List<CassandraHost> permutation, SweepShard proposedShard) {
         return permutation.stream()
                 .noneMatch(num -> blocklist.containsKey(proposedShard)
                         && blocklist.get(proposedShard).contains(num));

@@ -40,7 +40,7 @@ public class HostPartitionings {
     }
 
     public static void main(String[] args) {
-        partitionHosts(24, 64);
+        partitionHosts(24, 128);
     }
 
     // assume rf 3
@@ -53,13 +53,12 @@ public class HostPartitionings {
     }
 
     private static void calculateDistribution(int numHosts, int numShards, List<List<CassandraHost>> hostPermutations) {
-
         int halfHosts = numHosts / 2;
         int halfShards = numShards / 2;
         int numberOfPartitionAbidingShards = RANDOM.nextInt(numShards - 1 - halfShards) + halfShards;
         int numberOfHostsBlocklistedByPartitionAbidingShards = RANDOM.nextInt(numHosts - 3 - halfHosts) + halfHosts;
 
-        List<SweepShard> partitionAbidingShards = generatepartitionAbidingShards(numberOfPartitionAbidingShards);
+        List<SweepShard> partitionAbidingShards = generatePartitionAbidingShards(numberOfPartitionAbidingShards);
 
         Map<SweepShard, Set<CassandraHost>> blocklistedHosts = KeyedStream.of(partitionAbidingShards)
                 .map(crap -> Utils.getSetOfBlockListedHosts(numHosts, numberOfHostsBlocklistedByPartitionAbidingShards))
@@ -107,7 +106,8 @@ public class HostPartitionings {
 
         SweepShard nextViableShard = assignedPermutationsCount.stream()
                 .filter(shard -> Utils.canAddPermutation(
-                        blocklistedHosts, permutation, shard.getValue().id()))
+                        blocklistedHosts, permutation, shard.getValue()
+                ))
                 .findFirst()
                 .get()
                 .getValue();
@@ -117,7 +117,8 @@ public class HostPartitionings {
                 .add(permutation);
     }
 
-    private static List<SweepShard> generatepartitionAbidingShards(int numberOfPartitionAbidingShards) {
+    private static List<SweepShard> generatePartitionAbidingShards(int numberOfPartitionAbidingShards) {
+
         return IntStream.range(0, numberOfPartitionAbidingShards)
                 .boxed()
                 .map(ImmutableSweepShard::of)
@@ -151,9 +152,9 @@ public class HostPartitionings {
         // Print out acceptable distributions
         System.out.println("Nonjunk shards " + numberOfNonJunkShards);
         System.out.println("Blocklisted hosts per shard " + numberOfBlocklistedHostsInNonJunkShards);
-        System.out.println("Max number of shards killed by loss of host " + maxShardsKilled);
-        System.out.println("Min assigned permutations" + minPermutations);
-        System.out.println("Max assigned permutations" + maxPermutations);
+        System.out.println("Max number of shards killed by loss of host " + maxShardsKilled.get());
+        System.out.println("Min assigned permutations " + minPermutations);
+        System.out.println("Max assigned permutations " + maxPermutations);
         System.out.println();
     }
 
