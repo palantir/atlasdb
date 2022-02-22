@@ -345,10 +345,15 @@ public class TimeLockAgent {
 
         registrar.accept(resource);
 
-        Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
-                namespace -> namespaces.get(namespace).getTimelockService();
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
+        Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
+                namespace -> namespaces.get(namespace).getTimelockService();
+
+        // TODO(gs): use BackupTimeLockServiceView?
+        // strictly for restore operations
+        Function<String, AsyncTimelockService> asyncTimelockServiceGetterIgnoringDisabled =
+                namespace -> namespaces.getIgnoringDisabled(namespace).getTimelockService();
 
         AuthHeaderValidator authHeaderValidator = getAuthHeaderValidator();
         RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
@@ -375,7 +380,7 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasRestoreResource.undertow(
-                            authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
+                            authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetterIgnoringDisabled));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     DisabledNamespacesUpdaterResource.undertow(authHeaderValidator, redirectRetryTargeter, namespaces));
@@ -389,7 +394,7 @@ public class TimeLockAgent {
             registrar.accept(
                     AtlasBackupResource.jersey(authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
-                    authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
+                    authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetterIgnoringDisabled));
             registrar.accept(
                     DisabledNamespacesUpdaterResource.jersey(authHeaderValidator, redirectRetryTargeter, namespaces));
         }
