@@ -126,7 +126,9 @@ public final class RequestBatchingTimestampServiceTest {
         DisruptorAutobatcher.DisruptorFuture<TimestampRange> result();
     }
 
-    private static final class MaxTimestampsToGiveTimestampService implements TimestampService {
+    // can't be final as it's mocked in tests
+    @SuppressWarnings({"ClassCanBeStatic", "FinalClass", "InnerClassMayBeStatic"})
+    private class MaxTimestampsToGiveTimestampService implements TimestampService {
         private final AtomicLong counter = new AtomicLong(0);
 
         @Override
