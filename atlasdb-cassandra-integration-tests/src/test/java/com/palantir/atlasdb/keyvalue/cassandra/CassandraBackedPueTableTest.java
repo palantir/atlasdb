@@ -82,6 +82,9 @@ public class CassandraBackedPueTableTest {
                 }
             }
         }
+
+        writeExecutor.shutdownNow();
+        readExecutors.shutdownNow();
     }
 
     private static void assertCommitTimestampAbsentOrEqualToStartTimestamp(Map<Long, Long> result, long ts) {
