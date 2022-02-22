@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -36,9 +37,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -49,6 +50,8 @@ public class CassandraBackedPueTableTest {
             new KvsConsensusForgettingStore(kvs, TransactionConstants.TRANSACTIONS2_TABLE);
     private final PutUnlessExistsTable<Long, Long> pueTable =
             new ResilientCommitTimestampPutUnlessExistsTable(store, TwoPhaseEncodingStrategy.INSTANCE);
+    private final ExecutorService writeExecutor = PTExecutors.newFixedThreadPool(1);
+    private final ExecutorService readExecutors = PTExecutors.newFixedThreadPool(10);
 
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
@@ -60,31 +63,30 @@ public class CassandraBackedPueTableTest {
                 TableMetadata.allDefault().persistToBytes());
     }
 
+    @After
+    public void cleanup() {
+        writeExecutor.shutdownNow();
+        readExecutors.shutdownNow();
+    }
+
     @Test
     public void getDoesNotLeakExceptionsInRaceConditions() throws ExecutionException, InterruptedException {
-        ExecutorService writeExecutor = PTExecutors.newFixedThreadPool(1);
-        ExecutorService readExecutors = PTExecutors.newFixedThreadPool(10);
-
         List<Long> timestamps = LongStream.range(0, 500).mapToObj(x -> x * 100).collect(Collectors.toList());
         Iterable<List<Long>> partitionedStartTimestamps = Lists.partition(timestamps, 20);
         for (List<Long> singlePartition : partitionedStartTimestamps) {
             singlePartition.forEach(
                     timestamp -> writeExecutor.execute(() -> pueTable.putUnlessExists(timestamp, timestamp)));
 
-            List<Future<ListenableFuture<Map<Long, Long>>>> reads = new ArrayList<>();
+            List<ListenableFuture<Map<Long, Long>>> reads = new ArrayList<>();
             for (int i = 0; i < singlePartition.size(); i++) {
-                reads.add(readExecutors.submit(() -> pueTable.get(singlePartition)));
+                reads.add(Futures.transform(pueTable.get(singlePartition), x -> x, readExecutors));
             }
-            for (Future<ListenableFuture<Map<Long, Long>>> oneFuture : reads) {
-                Map<Long, Long> result = oneFuture.get().get();
+            Futures.allAsList(reads).get().forEach(singleResult -> {
                 for (long ts : singlePartition) {
-                    assertCommitTimestampAbsentOrEqualToStartTimestamp(result, ts);
+                    assertCommitTimestampAbsentOrEqualToStartTimestamp(singleResult, ts);
                 }
-            }
+            });
         }
-
-        writeExecutor.shutdownNow();
-        readExecutors.shutdownNow();
     }
 
     private static void assertCommitTimestampAbsentOrEqualToStartTimestamp(Map<Long, Long> result, long ts) {

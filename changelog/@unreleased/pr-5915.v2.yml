@@ -1,6 +1,5 @@
 type: fix
 fix:
-  description: Fixed a race condition in _transactions3 where a race condition could
-    cause reads to throw a CheckAndSetException.
+  description: Fixed a race condition in _transactions3 where reads could throw a CheckAndSetException.
   links:
   - https://github.com/palantir/atlasdb/pull/5915
