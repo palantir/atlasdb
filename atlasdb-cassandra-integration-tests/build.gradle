@@ -45,17 +45,11 @@ dependencies {
     testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
 }
 
-task longTest(type: Test) {
-    include '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
-}
-
 task memorySensitiveTest(type: Test) {
     include '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
 }
 
 test {
-    dependsOn longTest
-    exclude '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
     exclude '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
 }
 
