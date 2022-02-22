@@ -1107,7 +1107,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         .get(row))
                 .transform(Map.Entry::getKey)
                 .immutableCopy());
-        assertThat(cells).isEqualTo(ImmutableList.of(firstCell, secondCell));
+        assertThat(cells).containsExactly(firstCell, secondCell);
     }
 
     @Test
@@ -1144,7 +1144,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 Lists.newArrayList(
                         tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null), 10)),
                 Map.Entry::getKey));
-        assertThat(cells).isEqualTo(ImmutableList.of(firstCell, secondCell));
+        assertThat(cells).containsExactly(firstCell, secondCell);
     }
 
     @Test
@@ -1199,7 +1199,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
                         Ordering.explicit(Lists.transform(shuffledRows, ByteBuffer::wrap)))
                 .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR));
-        Assertions.assertThat(cells).isEqualTo(expectedCells);
+        Assertions.assertThat(cells).containsExactlyElementsOf(expectedCells);
 
         keyValueService.truncateTable(TABLE);
     }

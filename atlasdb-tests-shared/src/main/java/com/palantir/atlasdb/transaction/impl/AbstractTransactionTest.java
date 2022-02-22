@@ -1862,9 +1862,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
-        assertThat(extractStringsFromVisitables(getRangesWithPrefetchingImpl)).isEqualTo(expectedValues);
-        assertThat(extractStringsFromVisitables(getRangesInParallelImpl)).isEqualTo(expectedValues);
-        assertThat(extractStringsFromVisitables(getRangesLazyImpl)).isEqualTo(expectedValues);
+        assertThat(extractStringsFromVisitables(getRangesWithPrefetchingImpl))
+                .containsExactlyElementsOf(expectedValues);
+        assertThat(extractStringsFromVisitables(getRangesInParallelImpl)).containsExactlyElementsOf(expectedValues);
+        assertThat(extractStringsFromVisitables(getRangesLazyImpl)).containsExactlyElementsOf(expectedValues);
     }
 
     private List<String> extractStringsFromVisitables(Iterable<BatchingVisitable<RowResult<byte[]>>> visitables) {

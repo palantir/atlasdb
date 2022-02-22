@@ -90,6 +90,9 @@ allprojects {
             it.substitute it.module('jakarta.el:jakarta.el-api') with it.module('org.glassfish:jakarta.el:3.0.3')
             it.substitute it.module('org.glassfish:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
             it.substitute it.module('org.glassfish.web:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
+
+            // Force errorprone 2.10.0
+            it.substitute it.module('com.google.errorprone:error_prone_annotations') with it.module('com.google.errorprone:error_prone_annotations:2.10.0')
         }
     }
 

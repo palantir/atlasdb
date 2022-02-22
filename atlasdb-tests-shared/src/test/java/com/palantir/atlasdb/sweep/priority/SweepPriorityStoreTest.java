@@ -73,7 +73,7 @@ public class SweepPriorityStoreTest {
             return null;
         });
         assertThat(ImmutableSet.copyOf(txManager.runTaskReadOnly(priorityStore::loadNewPriorities)))
-                .isEqualTo(ImmutableSet.of(priority("foo.bar", 0), priority("qwe.rty", 1)));
+                .containsExactlyInAnyOrder(priority("foo.bar", 0), priority("qwe.rty", 1));
     }
 
     @Test
@@ -86,8 +86,7 @@ public class SweepPriorityStoreTest {
             priorityStore.update(tx, TableReference.createFromFullyQualifiedName("foo.bar"), fullUpdate(1));
             return null;
         });
-        assertThat(txManager.runTaskReadOnly(priorityStore::loadNewPriorities))
-                .isEqualTo(ImmutableList.of(priority("foo.bar", 1)));
+        assertThat(txManager.runTaskReadOnly(priorityStore::loadNewPriorities)).containsExactly(priority("foo.bar", 1));
         // TODO(gbonik): This currently fails because the getTimestamp override hack never worked.
         // We should create a ticket to track this.
         // Assert.assertEquals(
@@ -108,8 +107,7 @@ public class SweepPriorityStoreTest {
             priorityStore.delete(tx, ImmutableList.of(TableReference.createFromFullyQualifiedName("foo.bar")));
             return null;
         });
-        assertThat(txManager.runTaskReadOnly(priorityStore::loadNewPriorities))
-                .isEqualTo(ImmutableList.of(priority("qwe.rty", 1)));
+        assertThat(txManager.runTaskReadOnly(priorityStore::loadNewPriorities)).containsExactly(priority("qwe.rty", 1));
     }
 
     @Test
@@ -128,14 +126,14 @@ public class SweepPriorityStoreTest {
             return null;
         });
         assertThat(txManager.runTaskReadOnly(priorityStore::loadNewPriorities))
-                .isEqualTo(ImmutableList.of(ImmutableSweepPriority.builder()
+                .containsExactly(ImmutableSweepPriority.builder()
                         .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
                         .staleValuesDeleted(555)
                         .cellTsPairsExamined(10)
                         .lastSweepTimeMillis(123)
                         .minimumSweptTimestamp(456)
                         .writeCount(5)
-                        .build()));
+                        .build());
     }
 
     @Test
@@ -150,14 +148,14 @@ public class SweepPriorityStoreTest {
             return null;
         });
         assertThat(txManager.runTaskReadOnly(priorityStore::loadNewPriorities))
-                .isEqualTo(ImmutableList.of(ImmutableSweepPriority.builder()
+                .containsExactly(ImmutableSweepPriority.builder()
                         .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
                         .staleValuesDeleted(1)
                         .cellTsPairsExamined(0)
                         .lastSweepTimeMillis(OptionalLong.empty())
                         .minimumSweptTimestamp(Long.MIN_VALUE)
                         .writeCount(0)
-                        .build()));
+                        .build());
     }
 
     private static UpdateSweepPriority fullUpdate(int increment) {

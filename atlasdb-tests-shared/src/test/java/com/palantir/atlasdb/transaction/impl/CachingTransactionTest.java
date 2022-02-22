@@ -100,8 +100,10 @@ public class CachingTransactionTest {
             }
         });
 
-        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(emptyResults);
-        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(emptyResults);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn))
+                .containsExactlyInAnyOrderEntriesOf(emptyResults);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn))
+                .containsExactlyInAnyOrderEntriesOf(emptyResults);
 
         mockery.assertIsSatisfied();
     }
@@ -136,8 +138,8 @@ public class CachingTransactionTest {
             }
         });
 
-        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(oneResult);
-        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(oneResult);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).containsExactlyInAnyOrderEntriesOf(oneResult);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).containsExactlyInAnyOrderEntriesOf(oneResult);
 
         mockery.assertIsSatisfied();
     }
@@ -165,8 +167,8 @@ public class CachingTransactionTest {
         final Set<Cell> cellSet = ImmutableSet.of(cell);
         mockery.checking(expectationsMapping.get(name).apply(cellSet, cellValueMap));
 
-        assertThat(cachingTransaction.get(table, cellSet)).isEqualTo(cellValueMap);
-        assertThat(cachingTransaction.get(table, cellSet)).isEqualTo(cellValueMap);
+        assertThat(cachingTransaction.get(table, cellSet)).containsExactlyInAnyOrderEntriesOf(cellValueMap);
+        assertThat(cachingTransaction.get(table, cellSet)).containsExactlyInAnyOrderEntriesOf(cellValueMap);
 
         mockery.assertIsSatisfied();
     }

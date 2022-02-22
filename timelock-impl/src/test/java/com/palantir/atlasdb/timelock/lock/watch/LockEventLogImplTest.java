@@ -127,7 +127,7 @@ public class LockEventLogImplTest {
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(-1L);
-        assertThat(snapshot.locked()).isEqualTo(ImmutableSet.of(DESCRIPTOR_2, DESCRIPTOR_3));
+        assertThat(snapshot.locked()).containsExactlyInAnyOrder(DESCRIPTOR_2, DESCRIPTOR_3);
         assertThat(snapshot.lockWatches()).containsExactly(entireTable);
     }
 
@@ -141,7 +141,7 @@ public class LockEventLogImplTest {
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(0L);
-        assertThat(snapshot.locked()).isEqualTo(ImmutableSet.of(DESCRIPTOR_2, DESCRIPTOR_3));
+        assertThat(snapshot.locked()).containsExactlyInAnyOrder(DESCRIPTOR_2, DESCRIPTOR_3);
         assertThat(snapshot.lockWatches()).containsExactly(entireTable);
     }
 
@@ -154,7 +154,7 @@ public class LockEventLogImplTest {
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(-1L);
-        assertThat(snapshot.locked()).isEqualTo(ImmutableSet.of(DESCRIPTOR_2, DESCRIPTOR_3));
+        assertThat(snapshot.locked()).containsExactlyInAnyOrder(DESCRIPTOR_2, DESCRIPTOR_3);
         assertThat(snapshot.lockWatches()).containsExactly(entireTable);
     }
 
@@ -167,7 +167,7 @@ public class LockEventLogImplTest {
 
         LockWatchStateUpdate.Snapshot snapshot = UpdateVisitors.assertSnapshot(update);
         assertThat(snapshot.lastKnownVersion()).isEqualTo(-1L);
-        assertThat(snapshot.locked()).isEqualTo(ImmutableSet.of(DESCRIPTOR_2, DESCRIPTOR_3));
+        assertThat(snapshot.locked()).containsExactlyInAnyOrder(DESCRIPTOR_2, DESCRIPTOR_3);
         assertThat(snapshot.lockWatches()).containsExactly(entireTable);
     }
 

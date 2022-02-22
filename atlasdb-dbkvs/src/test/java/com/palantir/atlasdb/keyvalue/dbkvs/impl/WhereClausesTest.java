@@ -38,7 +38,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?");
-        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
+        assertThat(expectedClauses).containsExactlyElementsOf(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START));
     }
@@ -49,7 +49,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name < ?");
-        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
+        assertThat(expectedClauses).containsExactlyElementsOf(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(END));
     }
@@ -63,7 +63,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?");
-        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
+        assertThat(expectedClauses).containsExactlyElementsOf(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END));
     }
@@ -77,7 +77,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name <= ?", "i.row_name > ?");
-        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
+        assertThat(expectedClauses).containsExactlyElementsOf(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(END, START));
     }
@@ -92,7 +92,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", "i.col_name IN (?)");
-        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
+        assertThat(expectedClauses).containsExactlyElementsOf(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END, COL1));
     }
@@ -107,7 +107,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", "i.col_name IN (?,?,?)");
-        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
+        assertThat(expectedClauses).containsExactlyElementsOf(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END, COL1, COL2, COL3));
     }
@@ -122,7 +122,7 @@ public class WhereClausesTest {
         WhereClauses whereClauses = WhereClauses.create("i", request, extraClause);
 
         List<String> expectedClauses = ImmutableList.of("i.row_name >= ?", "i.row_name < ?", extraClause);
-        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
+        assertThat(expectedClauses).containsExactlyElementsOf(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END));
     }
@@ -138,7 +138,7 @@ public class WhereClausesTest {
 
         List<String> expectedClauses =
                 ImmutableList.of("other.row_name >= ?", "other.row_name < ?", "other.col_name IN (?)");
-        assertThat(expectedClauses).isEqualTo(whereClauses.getClauses());
+        assertThat(expectedClauses).containsExactlyElementsOf(whereClauses.getClauses());
 
         checkWhereArguments(whereClauses, ImmutableList.of(START, END, COL1));
     }

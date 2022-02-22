@@ -61,7 +61,7 @@ public class CassandraServiceTest {
 
         cassandra.setLocalHosts(localHosts);
 
-        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(localHosts);
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).containsExactlyInAnyOrderElementsOf(localHosts);
     }
 
     @Test
@@ -73,7 +73,7 @@ public class CassandraServiceTest {
 
         cassandra.setLocalHosts(localHosts);
 
-        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).containsExactlyInAnyOrderElementsOf(hosts);
     }
 
     @Test
@@ -85,7 +85,7 @@ public class CassandraServiceTest {
 
         cassandra.setLocalHosts(localHosts);
 
-        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).containsExactlyInAnyOrderElementsOf(hosts);
     }
 
     @Test

@@ -63,7 +63,7 @@ public class LockServiceSerDeTest {
         ObjectMapper mapper = new ObjectMapper();
         LockResponse deserializedLockResponse =
                 mapper.readValue(mapper.writeValueAsString(response), LockResponse.class);
-        assertThat(deserializedLockResponse.getLockHolders()).isEqualTo(lockHolders);
+        assertThat(deserializedLockResponse.getLockHolders()).containsExactlyInAnyOrderEntriesOf(lockHolders);
     }
 
     @Test

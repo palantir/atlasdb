@@ -92,7 +92,7 @@ public class HeaderAccessUtilsTest {
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
         assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase()))
-                .isEqualTo(VALUE_2);
+                .containsExactlyElementsOf(VALUE_2);
     }
 
     private static void assertCaseInsensitiveContainsEntry(String key, String value, boolean outcome) {

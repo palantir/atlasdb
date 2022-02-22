@@ -60,7 +60,7 @@ public class JepsenHistoryCheckerTest {
 
         Map<Keyword, Object> expectedResults =
                 ImmutableMap.of(Keyword.intern("valid?"), true, Keyword.intern("errors"), ImmutableList.of());
-        assertThat(results).isEqualTo(expectedResults);
+        assertThat(results).containsExactlyInAnyOrderEntriesOf(expectedResults);
     }
 
     @Test
@@ -71,7 +71,7 @@ public class JepsenHistoryCheckerTest {
 
         Map<Keyword, Object> expectedResults = ImmutableMap.of(
                 Keyword.intern("valid?"), false, Keyword.intern("errors"), ImmutableList.of(INFO_EVENT));
-        assertThat(results).isEqualTo(expectedResults);
+        assertThat(results).containsExactlyInAnyOrderEntriesOf(expectedResults);
     }
 
     @Test
@@ -83,7 +83,7 @@ public class JepsenHistoryCheckerTest {
 
         Map<Keyword, Object> expectedResults = ImmutableMap.of(
                 Keyword.intern("valid?"), false, Keyword.intern("errors"), ImmutableList.of(INFO_EVENT, INVOKE_EVENT));
-        assertThat(results).isEqualTo(expectedResults);
+        assertThat(results).containsExactlyInAnyOrderEntriesOf(expectedResults);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class JepsenHistoryCheckerTest {
 
         Map<Keyword, Object> expectedResults = ImmutableMap.of(
                 Keyword.intern("valid?"), false, Keyword.intern("errors"), ImmutableList.of(INFO_EVENT));
-        assertThat(results).isEqualTo(expectedResults);
+        assertThat(results).containsExactlyInAnyOrderEntriesOf(expectedResults);
     }
 
     @Test
