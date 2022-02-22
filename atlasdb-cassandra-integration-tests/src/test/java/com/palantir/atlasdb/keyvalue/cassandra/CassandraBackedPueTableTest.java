@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.pue.ConsensusForgettingStore;
@@ -51,7 +53,8 @@ public class CassandraBackedPueTableTest {
     private final PutUnlessExistsTable<Long, Long> pueTable =
             new ResilientCommitTimestampPutUnlessExistsTable(store, TwoPhaseEncodingStrategy.INSTANCE);
     private final ExecutorService writeExecutor = PTExecutors.newFixedThreadPool(1);
-    private final ExecutorService readExecutors = PTExecutors.newFixedThreadPool(10);
+    private final ListeningExecutorService readExecutors =
+            MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(10));
 
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
@@ -79,7 +82,10 @@ public class CassandraBackedPueTableTest {
 
             List<ListenableFuture<Map<Long, Long>>> reads = new ArrayList<>();
             for (int i = 0; i < singlePartition.size(); i++) {
-                reads.add(Futures.transform(pueTable.get(singlePartition), x -> x, readExecutors));
+                reads.add(Futures.transform(
+                        readExecutors.submit(() -> pueTable.get(singlePartition)),
+                        Futures::getUnchecked,
+                        MoreExecutors.directExecutor()));
             }
             Futures.allAsList(reads).get().forEach(singleResult -> {
                 for (long ts : singlePartition) {
