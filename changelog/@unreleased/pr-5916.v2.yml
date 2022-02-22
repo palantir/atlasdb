@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: Cassandra connections are no longer removed from the pool as soon as
+    they are no longer present in the token range; instead, they are only removed
+    if they are absent from N consecutive token range refreshes, where N is a configurable
+    value in `CassandraKeyValueServiceConfig`. This is expected to make the most difference
+    when the hosts are changing frequently.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5916
