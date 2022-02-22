@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add logs for debugging internal tests
+  links:
+  - https://github.com/palantir/atlasdb/pull/5914
