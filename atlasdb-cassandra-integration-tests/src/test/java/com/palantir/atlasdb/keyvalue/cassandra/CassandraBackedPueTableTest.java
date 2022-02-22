@@ -82,10 +82,7 @@ public class CassandraBackedPueTableTest {
 
             List<ListenableFuture<Map<Long, Long>>> reads = new ArrayList<>();
             for (int i = 0; i < singlePartition.size(); i++) {
-                reads.add(Futures.transform(
-                        readExecutors.submit(() -> pueTable.get(singlePartition)),
-                        Futures::getUnchecked,
-                        MoreExecutors.directExecutor()));
+                reads.add(Futures.submitAsync(() -> pueTable.get(singlePartition), readExecutors));
             }
             Futures.allAsList(reads).get().forEach(singleResult -> {
                 for (long ts : singlePartition) {
