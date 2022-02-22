@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Allow AtlasRestoreService to communicate with TimeLock even for disabled
+    namespaces.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5914
