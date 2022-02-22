@@ -133,6 +133,7 @@ public class HostPartitionings {
             Map<CassandraHost, Integer> hostToShards) {
 
         Optional<Integer> maxShardsKilled = hostToShards.values().stream().max(Comparator.naturalOrder());
+        Optional<Integer> minShardsKilled = hostToShards.values().stream().min(Comparator.naturalOrder());
 
         // all permutations accepted by a shard
         Map<SweepShard, Integer> shardToNumAcceptedPermutations =
@@ -153,6 +154,7 @@ public class HostPartitionings {
         System.out.println("Nonjunk shards " + numberOfNonJunkShards);
         System.out.println("Blocklisted hosts per shard " + numberOfBlocklistedHostsInNonJunkShards);
         System.out.println("Max number of shards killed by loss of host " + maxShardsKilled.get());
+        System.out.println("Min number of shards killed by loss of host " + minShardsKilled.get());
         System.out.println("Min assigned permutations " + minPermutations);
         System.out.println("Max assigned permutations " + maxPermutations);
         System.out.println();
