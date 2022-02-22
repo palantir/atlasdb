@@ -31,6 +31,7 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Before;
@@ -114,10 +115,18 @@ public final class RequestBatchingTimestampServiceTest {
 
     @SuppressWarnings("immutables:subtype")
     @Value.Immutable
-    interface TestBatchElement extends BatchElement<Integer, TimestampRange> {}
+    interface TestBatchElement extends BatchElement<Integer, TimestampRange> {
+        @Value.Parameter
+        @Nullable
+        @Override
+        Integer argument();
 
-    @SuppressWarnings({"ClassCanBeStatic", "FinalClass"})
-    private class MaxTimestampsToGiveTimestampService implements TimestampService {
+        @Value.Parameter
+        @Override
+        DisruptorAutobatcher.DisruptorFuture<TimestampRange> result();
+    }
+
+    private static final class MaxTimestampsToGiveTimestampService implements TimestampService {
         private final AtomicLong counter = new AtomicLong(0);
 
         @Override

@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Before;
@@ -301,6 +302,15 @@ public class WriteBatchingTransactionServiceTest {
     @SuppressWarnings("immutables:subtype")
     @Value.Immutable
     interface TestTransactionBatchElement extends BatchElement<WriteBatchingTransactionService.TimestampPair, Void> {
+        @Value.Parameter
+        @Nullable
+        @Override
+        WriteBatchingTransactionService.TimestampPair argument();
+
+        @Value.Parameter
+        @Override
+        DisruptorAutobatcher.DisruptorFuture<Void> result();
+
         static TestTransactionBatchElement of(long startTimestamp, long commitTimestamp) {
             return ImmutableTestTransactionBatchElement.builder()
                     .argument(ImmutableTimestampPair.of(startTimestamp, commitTimestamp))
