@@ -18,23 +18,26 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.TokenRange;
+import org.immutables.value.Value;
 
 public final class CassandraLogHelper {
     private CassandraLogHelper() {
         // Utility class.
     }
 
-    public static String host(InetSocketAddress host) {
-        return host.getHostString();
+    public static HostAndIpAddress host(InetSocketAddress host) {
+        return HostAndIpAddress.fromAddress(host);
     }
 
-    static Collection<String> collectionOfHosts(Collection<InetSocketAddress> hosts) {
+    static Collection<HostAndIpAddress> collectionOfHosts(Collection<InetSocketAddress> hosts) {
         return hosts.stream().map(CassandraLogHelper::host).collect(Collectors.toSet());
     }
 
@@ -67,5 +70,19 @@ public final class CassandraLogHelper {
             return "(no upper bound)";
         }
         return range.upperEndpoint().toString();
+    }
+
+    @Value.Immutable
+    interface HostAndIpAddress {
+        String host();
+
+        Optional<String> ipAddress();
+
+        static HostAndIpAddress fromAddress(InetSocketAddress address) {
+            return ImmutableHostAndIpAddress.builder()
+                    .host(address.getHostString())
+                    .ipAddress(Optional.ofNullable(address.getAddress()).map(InetAddress::getHostAddress))
+                    .build();
+        }
     }
 }

@@ -39,10 +39,8 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,7 +49,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 
@@ -116,6 +113,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final ScheduledExecutorService refreshDaemon;
     private final CassandraClientPoolMetrics metrics;
     private final InitializingWrapper wrapper = new InitializingWrapper();
+    private final CassandraPoolReaper reaper;
 
     private ScheduledFuture<?> refreshPoolFuture;
 
@@ -213,6 +211,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
         this.metrics = metrics;
+        this.reaper = new CassandraPoolReaper(config.consecutiveAbsencesBeforePoolRemoval());
     }
 
     private void tryInitialize() {
@@ -311,42 +310,34 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
-        Set<InetSocketAddress> serversToRemove = new HashSet<>();
-        Set<InetSocketAddress> serversToAdd = new HashSet<>();
-
         Set<InetSocketAddress> cachedServers = getCachedServers();
-        serversToAdd.addAll(Sets.difference(desiredServers, cachedServers));
-        serversToRemove.addAll(Sets.difference(cachedServers, desiredServers));
+        Set<InetSocketAddress> serversToAdd = Sets.difference(desiredServers, cachedServers);
+        Set<InetSocketAddress> absentServers = Sets.difference(cachedServers, desiredServers);
+        Set<InetSocketAddress> serversToRemove = reaper.computeServersToRemove(absentServers);
 
         serversToAdd.forEach(cassandra::addPool);
         serversToRemove.forEach(cassandra::removePool);
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
-            // Log IP addresses along with hostnames
-            Set<InetAddress> addressesToAdd =
-                    serversToAdd.stream().map(InetSocketAddress::getAddress).collect(Collectors.toSet());
-            Set<InetAddress> addressesToRemove =
-                    serversToRemove.stream().map(InetSocketAddress::getAddress).collect(Collectors.toSet());
-
-            log.info(
-                    "Added and removed servers from the client pool",
-                    SafeArg.of("serversAdded", addressesToAdd),
-                    SafeArg.of("serversRemoved", addressesToRemove));
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
         }
 
-        logRefreshedHosts(serversToAdd, serversToRemove);
+        logRefreshedHosts(serversToAdd, serversToRemove, absentServers);
     }
 
-    private static void logRefreshedHosts(Set<InetSocketAddress> serversToAdd, Set<InetSocketAddress> serversToRemove) {
+    private static void logRefreshedHosts(
+            Set<InetSocketAddress> serversToAdd,
+            Set<InetSocketAddress> serversToRemove,
+            Set<InetSocketAddress> absentServers) {
         if (serversToRemove.isEmpty() && serversToAdd.isEmpty()) {
             log.debug("No hosts added or removed during Cassandra pool refresh");
         } else {
             log.info(
-                    "Cassandra pool refresh added hosts {}, removed hosts {}.",
+                    "Cassandra pool refresh added hosts {}, removed hosts {}, absentServers {}.",
                     SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
-                    SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)));
+                    SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)),
+                    SafeArg.of("absentServers", CassandraLogHelper.collectionOfHosts(absentServers)));
         }
     }
 
@@ -548,7 +539,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     .filter(entry -> entry.getValue().size() == 1)
                     .forEach(entry -> {
                         // We've checked above that entry.getValue() has one element, so we never NPE here.
-                        String hostString = CassandraLogHelper.host(Iterables.getFirst(entry.getValue(), null));
+                        CassandraLogHelper.HostAndIpAddress hostString =
+                                CassandraLogHelper.host(Iterables.getFirst(entry.getValue(), null));
                         log.error(
                                 "Host: {} disagrees with the other nodes about the ring state.",
                                 SafeArg.of("host", hostString));
