@@ -135,6 +135,10 @@ public class CassandraRepairHelper {
 
     // VisibleForTesting
     public static RangesForRepair getRangesToRepair(CqlCluster cqlCluster, Namespace namespace, String tableName) {
+        log.info(
+                "Getting token ranges for repair",
+                SafeArg.of("namespace", namespace.value()),
+                SafeArg.of("tableName", tableName));
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRanges =
                 getTokenRangesToRepair(cqlCluster, namespace, tableName);
         return RangesForRepair.of(tokenRanges);
