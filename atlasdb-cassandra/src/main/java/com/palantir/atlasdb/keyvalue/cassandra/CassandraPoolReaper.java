@@ -24,13 +24,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class CassandraPoolReaper {
-    private volatile Map<InetSocketAddress, Integer> consecutiveRemovalRequests;
+public final class CassandraPoolReaper {
     private final int requiredConsecutiveRequestsBeforeRemoval;
+    private volatile Map<InetSocketAddress, Integer> consecutiveRemovalRequests;
 
     public CassandraPoolReaper(int requiredConsecutiveRequestsBeforeRemoval) {
-        this.consecutiveRemovalRequests = ImmutableMap.of();
         this.requiredConsecutiveRequestsBeforeRemoval = requiredConsecutiveRequestsBeforeRemoval;
+        this.consecutiveRemovalRequests = ImmutableMap.of();
     }
 
     // The pool reaper is only called by one thread at a time, just that which thread that is may differ.
