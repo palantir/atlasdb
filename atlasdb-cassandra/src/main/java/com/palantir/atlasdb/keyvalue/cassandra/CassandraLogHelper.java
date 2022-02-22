@@ -18,9 +18,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.TokenRange;
@@ -74,12 +76,12 @@ public final class CassandraLogHelper {
     interface HostAndIpAddress {
         String host();
 
-        String ipAddress();
+        Optional<String> ipAddress();
 
         static HostAndIpAddress fromAddress(InetSocketAddress address) {
             return ImmutableHostAndIpAddress.builder()
                     .host(address.getHostString())
-                    .ipAddress(address.getAddress().getHostAddress())
+                    .ipAddress(Optional.ofNullable(address.getAddress()).map(InetAddress::getHostAddress))
                     .build();
         }
     }
