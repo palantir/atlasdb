@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -44,10 +44,10 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class CassandraBackedPueTableTest {
-    private KeyValueService kvs = CASSANDRA.getDefaultKvs();
-    private ConsensusForgettingStore store =
+    private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
+    private final ConsensusForgettingStore store =
             new KvsConsensusForgettingStore(kvs, TransactionConstants.TRANSACTIONS2_TABLE);
-    private PutUnlessExistsTable<Long, Long> pueTable =
+    private final PutUnlessExistsTable<Long, Long> pueTable =
             new ResilientCommitTimestampPutUnlessExistsTable(store, TwoPhaseEncodingStrategy.INSTANCE);
 
     @ClassRule
@@ -66,10 +66,10 @@ public class CassandraBackedPueTableTest {
         ExecutorService readExecutors = PTExecutors.newFixedThreadPool(10);
 
         List<Long> timestamps = LongStream.range(0, 500).mapToObj(x -> x * 100).collect(Collectors.toList());
-        Iterable<List<Long>> partitionedStartTimestamps = Iterables.partition(timestamps, 20);
+        Iterable<List<Long>> partitionedStartTimestamps = Lists.partition(timestamps, 20);
         for (List<Long> singlePartition : partitionedStartTimestamps) {
             singlePartition.forEach(
-                    timestamp -> writeExecutor.submit(() -> pueTable.putUnlessExists(timestamp, timestamp)));
+                    timestamp -> writeExecutor.execute(() -> pueTable.putUnlessExists(timestamp, timestamp)));
 
             List<Future<ListenableFuture<Map<Long, Long>>>> reads = new ArrayList<>();
             for (int i = 0; i < singlePartition.size(); i++) {
