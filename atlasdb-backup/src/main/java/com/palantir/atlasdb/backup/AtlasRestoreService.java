@@ -18,6 +18,7 @@ package com.palantir.atlasdb.backup;
 
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
@@ -118,6 +119,23 @@ public class AtlasRestoreService {
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
     }
 
+    public Optional<Namespace> prepareRestore(Namespace oldNamespace, Namespace newNamespace, String backupId) {
+        Optional<CompletedBackup> completedBackup = backupPersister.getCompletedBackup(oldNamespace);
+        if (completedBackup.isEmpty()) {
+            log.warn(
+                    "No completed backup found for old namespace",
+                    SafeArg.of("oldNamespace", oldNamespace),
+                    SafeArg.of("newNamespace", newNamespace));
+            return Optional.empty();
+        }
+
+        DisableNamespacesRequest request = DisableNamespacesRequest.builder()
+                .namespaces(newNamespace)
+                .lockId(backupId)
+                .build();
+        return disableNamespaces(request).stream().findAny();
+    }
+
     /**
      * Disables TimeLock on all nodes for the given namespaces.
      * This will fail if any namespace is already disabled, unless it was disabled with the provided backupId.
@@ -133,18 +151,22 @@ public class AtlasRestoreService {
         Set<Namespace> namespacesToRestore = completedBackups.keySet();
 
         DisableNamespacesRequest request = DisableNamespacesRequest.of(namespacesToRestore, backupId);
+        return disableNamespaces(request);
+    }
+
+    private Set<Namespace> disableNamespaces(DisableNamespacesRequest request) {
         DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, request);
         return response.accept(new DisableNamespacesResponse.Visitor<>() {
             @Override
             public Set<Namespace> visitSuccessful(SuccessfulDisableNamespacesResponse value) {
-                return namespacesToRestore;
+                return request.getNamespaces();
             }
 
             @Override
             public Set<Namespace> visitUnsuccessful(UnsuccessfulDisableNamespacesResponse value) {
                 log.error(
                         "Failed to disable namespaces prior to restore",
-                        SafeArg.of("namespaces", namespaces),
+                        SafeArg.of("namespaces", request.getNamespaces()),
                         SafeArg.of("response", value));
                 return ImmutableSet.of();
             }
@@ -155,6 +177,21 @@ public class AtlasRestoreService {
                         "Unknown DisableNamespacesResponse", SafeArg.of("unknownType", unknownType));
             }
         });
+    }
+
+    public Optional<Namespace> repairInternalTables(
+            Namespace oldNamespace, Namespace newNamespace, BiConsumer<String, RangesForRepair> repairTable) {
+        Optional<CompletedBackup> completedBackup = backupPersister.getCompletedBackup(oldNamespace);
+        if (completedBackup.isEmpty()) {
+            log.warn(
+                    "No completed backup found for old namespace",
+                    SafeArg.of("oldNamespace", oldNamespace),
+                    SafeArg.of("newNamespace", newNamespace));
+            return Optional.empty();
+        }
+
+        repairTables(repairTable, ImmutableMap.of(newNamespace, completedBackup.get()), ImmutableSet.of(newNamespace));
+        return Optional.of(newNamespace);
     }
 
     /**
@@ -174,6 +211,44 @@ public class AtlasRestoreService {
         Set<Namespace> namespacesToRepair = completedBackups.keySet();
         repairTables(repairTable, completedBackups, namespacesToRepair);
         return namespacesToRepair;
+    }
+
+    public Optional<Namespace> completeRestore(Namespace oldNamespace, Namespace newNamespace, String backupId) {
+        Optional<CompletedBackup> completedBackup = backupPersister.getCompletedBackup(oldNamespace);
+        if (completedBackup.isEmpty()) {
+            log.warn(
+                    "No completed backup found for old namespace",
+                    SafeArg.of("oldNamespace", oldNamespace),
+                    SafeArg.of("newNamespace", newNamespace));
+            return Optional.empty();
+        }
+
+        // mess with backup
+        CompletedBackup backupWithNewNamespace = CompletedBackup.builder()
+                .from(completedBackup.get())
+                .namespace(newNamespace)
+                .build();
+
+        // Fast forward timestamps
+        CompleteRestoreResponse response = atlasRestoreClient.completeRestore(
+                authHeader, CompleteRestoreRequest.of(ImmutableSet.of(backupWithNewNamespace)));
+        Set<Namespace> successfulNamespaces = response.getSuccessfulNamespaces();
+        if (successfulNamespaces.isEmpty()) {
+            log.error(
+                    "Failed to fast-forward timestamp for some namespaces. These will not be re-enabled.",
+                    SafeArg.of("failedNamespaces", successfulNamespaces));
+        }
+
+        // Re-enable timelock
+        timeLockManagementService.reenableTimelock(
+                authHeader, ReenableNamespacesRequest.of(successfulNamespaces, backupId));
+        if (successfulNamespaces.contains(newNamespace)) {
+            log.info(
+                    "Successfully completed restore for all namespaces",
+                    SafeArg.of("namespaces", successfulNamespaces));
+        }
+
+        return successfulNamespaces.stream().findAny();
     }
 
     /**
@@ -245,7 +320,7 @@ public class AtlasRestoreService {
 
     private void repairTransactionsTables(
             Namespace namespace, CompletedBackup completedBackup, BiConsumer<String, RangesForRepair> repairTable) {
-        Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(namespace, completedBackup);
+        Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(completedBackup);
         List<TransactionsTableInteraction> transactionsTableInteractions =
                 TransactionsTableInteraction.getTransactionTableInteractions(
                         coordinationMap, DefaultRetryPolicy.INSTANCE);
@@ -254,9 +329,9 @@ public class AtlasRestoreService {
                 namespace, completedBackup.getBackupStartTimestamp(), transactionsTableInteractions);
     }
 
-    private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(
-            Namespace namespace, CompletedBackup completedBackup) {
-        Optional<InternalSchemaMetadataState> schemaMetadataState = backupPersister.getSchemaMetadata(namespace);
+    private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(CompletedBackup completedBackup) {
+        Optional<InternalSchemaMetadataState> schemaMetadataState =
+                backupPersister.getSchemaMetadata(completedBackup.getNamespace());
 
         long fastForwardTs = completedBackup.getBackupEndTimestamp();
         long immutableTs = completedBackup.getBackupStartTimestamp();
