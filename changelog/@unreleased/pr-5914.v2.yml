@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Support restoring into a renamed keyspace.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5914
