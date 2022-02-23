@@ -34,7 +34,7 @@ jobs:
   test:
     parallelism: 12
     machine:
-      image: ubuntu-2004:202111-02
+      image: ubuntu-2004:202010-01
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
