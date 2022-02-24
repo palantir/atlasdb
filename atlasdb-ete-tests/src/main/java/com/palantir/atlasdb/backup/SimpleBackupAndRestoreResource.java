@@ -47,12 +47,12 @@ public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource 
     }
 
     @Override
-    public Set<Namespace> prepareRestore(RestoreRequest restoreRequest, String backupId) {
+    public Set<Namespace> prepareRestore(String backupId, RestoreRequest restoreRequest) {
         return atlasRestoreService.prepareRestore(ImmutableSet.of(restoreRequest), backupId);
     }
 
     @Override
-    public Set<Namespace> completeRestore(RestoreRequest restoreRequest, String backupId) {
+    public Set<Namespace> completeRestore(String backupId, RestoreRequest restoreRequest) {
         return atlasRestoreService.completeRestore(ImmutableSet.of(restoreRequest), backupId);
     }
 
