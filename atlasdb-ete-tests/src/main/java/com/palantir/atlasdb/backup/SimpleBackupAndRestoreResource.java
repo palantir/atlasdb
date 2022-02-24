@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
@@ -46,13 +47,13 @@ public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource 
     }
 
     @Override
-    public Set<Namespace> prepareRestore(UniqueBackup uniqueBackup) {
-        return atlasRestoreService.prepareRestore(uniqueBackup.namespaces(), uniqueBackup.backupId());
+    public Set<Namespace> prepareRestore(RestoreRequest restoreRequest, String backupId) {
+        return atlasRestoreService.prepareRestore(ImmutableSet.of(restoreRequest), backupId);
     }
 
     @Override
-    public Set<Namespace> completeRestore(UniqueBackup uniqueBackup) {
-        return atlasRestoreService.completeRestore(uniqueBackup.namespaces(), uniqueBackup.backupId());
+    public Set<Namespace> completeRestore(RestoreRequest restoreRequest, String backupId) {
+        return atlasRestoreService.completeRestore(ImmutableSet.of(restoreRequest), backupId);
     }
 
     @Override
