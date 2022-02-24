@@ -26,7 +26,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +40,7 @@ import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 import org.jdbi.v3.sqlobject.transaction.Transaction;
 
+@SuppressWarnings("FinalClass") // mocked in tests
 public class DisabledNamespaces {
     private static final SafeLogger log = SafeLoggerFactory.get(DisabledNamespaces.class);
 
