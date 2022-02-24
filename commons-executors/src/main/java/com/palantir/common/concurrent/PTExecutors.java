@@ -179,6 +179,7 @@ public final class PTExecutors {
                                 .name(name)
                                 .executor(SHARED_EXECUTOR.get())
                                 .maxThreads(maxThreads)
+                                .queueSize(0)
                                 .uncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE)
                                 .build()))
                 // Unhelpful for cached executors
