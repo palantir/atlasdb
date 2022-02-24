@@ -206,8 +206,11 @@ public class AtlasRestoreService {
         }
 
         // Fast forward timestamps
-        CompleteRestoreResponse response = atlasRestoreClient.completeRestore(
-                authHeader, CompleteRestoreRequest.of(ImmutableSet.copyOf(completedBackups.values())));
+        Map<Namespace, CompletedBackup> completeRequest = KeyedStream.stream(completedBackups)
+                .mapKeys(RestoreRequest::newNamespace)
+                .collectToMap();
+        CompleteRestoreResponse response =
+                atlasRestoreClient.completeRestore(authHeader, CompleteRestoreRequest.of(completeRequest));
         Set<Namespace> successfulNamespaces = response.getSuccessfulNamespaces();
         Set<Namespace> failedNamespaces = Sets.difference(namespacesToRestore, successfulNamespaces);
         if (!failedNamespaces.isEmpty()) {

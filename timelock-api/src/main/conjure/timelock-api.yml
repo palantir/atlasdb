@@ -155,7 +155,7 @@ types:
       CompleteRestoreRequest:
         package: com.palantir.atlasdb.backup.api
         fields:
-          completedBackups: set<CompletedBackup>
+          completedBackups: map<Namespace, CompletedBackup>
       CompleteRestoreResponse:
         package: com.palantir.atlasdb.backup.api
         fields:
