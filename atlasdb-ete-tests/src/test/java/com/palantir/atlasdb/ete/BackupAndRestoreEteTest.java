@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.BackupAndRestoreResource;
 import com.palantir.atlasdb.backup.RestoreRequest;
+import com.palantir.atlasdb.backup.RestoreRequestWithId;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
@@ -88,14 +89,16 @@ public class BackupAndRestoreEteTest {
                 .oldNamespace(NAMESPACE)
                 .newNamespace(NAMESPACE)
                 .build();
-        Set<Namespace> preparedNamespaces = backupResource.prepareRestore(backupId, restoreRequest);
+        Set<Namespace> preparedNamespaces =
+                backupResource.prepareRestore(RestoreRequestWithId.of(restoreRequest, backupId));
         assertThat(preparedNamespaces).containsExactly(NAMESPACE);
 
         // verify TimeLock is disabled
         assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
                 .isGeneratedFromErrorType(ErrorType.INTERNAL);
 
-        Set<Namespace> completedNamespaces = backupResource.completeRestore(backupId, restoreRequest);
+        Set<Namespace> completedNamespaces =
+                backupResource.completeRestore(RestoreRequestWithId.of(restoreRequest, backupId));
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
 
         // verify TimeLock is re-enabled

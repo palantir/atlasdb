@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
@@ -47,13 +46,13 @@ public interface BackupAndRestoreResource {
     @Path("/prepare-restore")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<Namespace> prepareRestore(@PathParam("backupId") String backupId, RestoreRequest restoreRequest);
+    Set<Namespace> prepareRestore(RestoreRequestWithId restoreRequestWithId);
 
     @POST
     @Path("/complete-restore")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<Namespace> completeRestore(@PathParam("backupId") String backupId, RestoreRequest restoreRequest);
+    Set<Namespace> completeRestore(RestoreRequestWithId restoreRequestWithId);
 
     @POST
     @Path("/immutable-ts")
