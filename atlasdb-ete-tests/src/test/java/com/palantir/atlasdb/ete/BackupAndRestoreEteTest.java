@@ -88,14 +88,14 @@ public class BackupAndRestoreEteTest {
                 .oldNamespace(NAMESPACE)
                 .newNamespace(NAMESPACE)
                 .build();
-        Set<Namespace> preparedNamespaces = backupResource.prepareRestore(restoreRequest, backupId);
+        Set<Namespace> preparedNamespaces = backupResource.prepareRestore(backupId, restoreRequest);
         assertThat(preparedNamespaces).containsExactly(NAMESPACE);
 
         // verify TimeLock is disabled
         assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
                 .isGeneratedFromErrorType(ErrorType.INTERNAL);
 
-        Set<Namespace> completedNamespaces = backupResource.completeRestore(restoreRequest, backupId);
+        Set<Namespace> completedNamespaces = backupResource.completeRestore(backupId, restoreRequest);
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
 
         // verify TimeLock is re-enabled
