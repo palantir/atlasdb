@@ -20,7 +20,7 @@ import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class HikariClientPoolConnectionManagers {
+public final class HikariClientPoolConnectionManagers {
     private static final ConcurrentMap<ConnectionConfig, HikariCPConnectionManager> SHARED_POOLS =
             new ConcurrentHashMap<>();
 
