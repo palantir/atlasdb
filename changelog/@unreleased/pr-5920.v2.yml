@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: 'Roll back CJR as TimeLock server might be having a hard time with
+    https://github.com/palantir/conjure-java-runtime/pull/2258. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/5920
