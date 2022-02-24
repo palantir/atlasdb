@@ -121,6 +121,6 @@ public class CassandraImitatingConsensusForgettingStoreTest {
         assertThat(numberOfSuccessfulPue).isBetween(30, 70);
         // too lazy to calculate exactly, rough estimates
         assertThat(numberOfNothingPresent).isBetween(5, 40);
-        assertThat(numberOfValuePresentAfterFailure).isBetween(15, 50);
+        assertThat(numberOfValuePresentAfterFailure).isBetween(10, 55);
     }
 }
