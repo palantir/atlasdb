@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
@@ -38,7 +39,9 @@ import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -126,9 +129,10 @@ public class AtlasRestoreServiceTest {
         // complete
         CompletedBackup completedBackup =
                 backupPersister.getCompletedBackup(WITH_BACKUP).orElseThrow();
-        CompleteRestoreRequest completeRestoreRequest = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
+        CompleteRestoreRequest completeRestoreRequest =
+                CompleteRestoreRequest.of(ImmutableMap.of(NO_BACKUP, completedBackup));
         when(atlasRestoreClient.completeRestore(authHeader, completeRestoreRequest))
-                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
+                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(NO_BACKUP)));
         ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(ImmutableSet.of(NO_BACKUP), BACKUP_ID);
 
         Set<Namespace> completedNamespaces =
@@ -179,10 +183,8 @@ public class AtlasRestoreServiceTest {
     @Test
     public void completesRestoreAfterFastForwardingTimestamp() {
         Set<Namespace> namespaces = ImmutableSet.of(WITH_BACKUP);
-        Set<CompletedBackup> completedBackups = namespaces.stream()
-                .map(backupPersister::getCompletedBackup)
-                .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
+        Map<Namespace, CompletedBackup> completedBackups = ImmutableMap.of(
+                WITH_BACKUP, backupPersister.getCompletedBackup(WITH_BACKUP).orElseThrow());
 
         CompleteRestoreRequest completeRequest = CompleteRestoreRequest.of(completedBackups);
         when(atlasRestoreClient.completeRestore(authHeader, completeRequest))
@@ -212,10 +214,10 @@ public class AtlasRestoreServiceTest {
     @Test
     public void completeRestoreReturnsSuccessfulNamespaces() {
         Set<Namespace> namespaces = ImmutableSet.of(WITH_BACKUP, FAILING_NAMESPACE);
-        Set<CompletedBackup> completedBackups = namespaces.stream()
+        Map<Namespace, CompletedBackup> completedBackups = KeyedStream.of(namespaces)
                 .map(backupPersister::getCompletedBackup)
                 .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
+                .collectToMap();
 
         CompleteRestoreRequest request = CompleteRestoreRequest.of(completedBackups);
         when(atlasRestoreClient.completeRestore(authHeader, request))
