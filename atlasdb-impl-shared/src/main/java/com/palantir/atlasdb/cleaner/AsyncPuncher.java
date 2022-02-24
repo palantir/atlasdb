@@ -47,7 +47,7 @@ public final class AsyncPuncher implements Puncher {
         return asyncPuncher;
     }
 
-    private static final ScheduledExecutorService executor =
+    private final ScheduledExecutorService executor =
             PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("puncher", true /* daemon */));
 
     private final Puncher delegate;
@@ -115,5 +115,6 @@ public final class AsyncPuncher implements Puncher {
         if (task != null) {
             task.cancel(false);
         }
+        executor.shutdown();
     }
 }
