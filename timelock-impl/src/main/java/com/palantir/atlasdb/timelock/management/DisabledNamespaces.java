@@ -76,7 +76,7 @@ public class DisabledNamespaces {
     Set<Namespace> disabledNamespaces() {
         return execute(Queries::getAllStates).stream()
                 .map(Namespace::of)
-                .collect(Collectors.toCollection(HashSet::new));
+                .collect(Collectors.toCollection(Sets::newConcurrentHashSet));
     }
 
     public Map<Namespace, String> getNamespacesLockedWithDifferentLockId(
