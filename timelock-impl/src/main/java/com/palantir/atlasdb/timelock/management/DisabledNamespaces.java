@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.management;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -44,6 +45,8 @@ public class DisabledNamespaces {
 
     private final Jdbi jdbi;
 
+    private Set<Namespace> disabledNamespaces;
+
     public DisabledNamespaces(Jdbi jdbi) {
         this.jdbi = jdbi;
     }
@@ -57,17 +60,19 @@ public class DisabledNamespaces {
 
     private void initialize() {
         execute(Queries::createTable);
+        disabledNamespaces = disabledNamespaces();
     }
 
     public boolean isDisabled(Namespace namespace) {
-        return execute(dao -> dao.getState(namespace.get())).isPresent();
+        return disabledNamespaces.contains(namespace);
     }
 
     public boolean isEnabled(Namespace namespace) {
-        return execute(dao -> dao.getState(namespace.get())).isEmpty();
+        return !isDisabled(namespace);
     }
 
-    public Set<Namespace> disabledNamespaces() {
+    @VisibleForTesting
+    Set<Namespace> disabledNamespaces() {
         return execute(Queries::getAllStates).stream().map(Namespace::of).collect(Collectors.toSet());
     }
 
@@ -81,6 +86,7 @@ public class DisabledNamespaces {
         String lockId = request.getLockId();
         SingleNodeUpdateResponse response = execute(dao -> dao.disableAll(namespaces, lockId));
         if (response.isSuccessful()) {
+            disabledNamespaces.addAll(namespaces);
             log.info("Successfully disabled namespaces", SafeArg.of("namespaces", namespaces));
         } else {
             log.error(
@@ -95,10 +101,13 @@ public class DisabledNamespaces {
     public SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
         String lockId = request.getLockId();
         SingleNodeUpdateResponse response = execute(dao -> dao.reEnableAll(request.getNamespaces(), lockId));
-        if (!response.isSuccessful()) {
+        if (response.isSuccessful()) {
+            disabledNamespaces.removeAll(request.getNamespaces());
+        } else {
             Map<Namespace, String> conflictingNamespaces = response.lockedNamespaces();
             Set<Namespace> namespacesWithExpectedLock =
                     Sets.difference(request.getNamespaces(), conflictingNamespaces.keySet());
+            disabledNamespaces.removeAll(namespacesWithExpectedLock);
             log.error(
                     "Failed to re-enable all namespaces, as some were disabled with a different lock ID.",
                     SafeArg.of("reEnabledNamespaces", namespacesWithExpectedLock),
