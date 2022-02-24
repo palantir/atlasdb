@@ -55,6 +55,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     private final ConnectionConfig connConfig;
     private final HikariConfig hikariConfig;
+    private final boolean closeable;
 
     private enum StateType {
         // Base state at construction.  Nothing is set.
@@ -86,6 +87,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
         this.connConfig = Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
         this.hikariConfig = connConfig.getHikariConfig();
+        this.closeable = !connConfig.reuseConnectionPool();
     }
 
     @Override
@@ -232,6 +234,9 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     @Override
     public synchronized void close() {
+        if (!closeable) {
+            return;
+        }
         try {
             switch (state.type) {
                 case ZERO:
