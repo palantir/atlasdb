@@ -313,11 +313,6 @@ public abstract class AtlasDbConfig {
         checkSweepConfigs();
     }
 
-    @Value.Derived
-    public boolean remoteTimestampAndLockOrLeaderBlocksPresent() {
-        return (timestamp().isPresent() && lock().isPresent()) || leader().isPresent();
-    }
-
     private void checkSweepConfigs() {
         if (getSweepBatchSize() != null
                 || getSweepCellBatchSize() != null

@@ -23,27 +23,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.backup.AtlasBackupService;
-import com.palantir.atlasdb.backup.AtlasRestoreResource;
-import com.palantir.atlasdb.backup.AtlasRestoreService;
 import com.palantir.atlasdb.backup.AuthHeaderValidator;
 import com.palantir.atlasdb.backup.DelegatingBackupTimeLockServiceView;
 import com.palantir.atlasdb.backup.ExternalBackupPersister;
 import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
-import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.blob.BlobSchema;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
-import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -59,7 +51,6 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timestamp.SimpleEteTimestampResource;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
@@ -69,18 +60,14 @@ import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
-import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.tokens.auth.AuthHeader;
-import com.palantir.tokens.auth.BearerToken;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
@@ -131,10 +118,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
 
-        if (shouldSetUpBackupAndRestoreResource(config)) {
-            createAndRegisterBackupAndRestoreResource(config, environment, txManager, taggedMetrics);
-        }
-
+        createAndRegisterBackupAndRestoreResource(config, environment, txManager);
         environment
                 .jersey()
                 .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
@@ -146,75 +130,27 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
     }
 
-    private boolean shouldSetUpBackupAndRestoreResource(AtlasDbEteConfiguration config) {
-        boolean isCassandra = CassandraKeyValueServiceConfig.TYPE.equals(
-                config.getAtlasDbConfig().keyValueService().type());
-        boolean hasTimelock = config.getAtlasDbRuntimeConfig()
-                .flatMap(AtlasDbRuntimeConfig::timelockRuntime)
-                .isPresent();
-        return isCassandra && hasTimelock;
-    }
-
     private void createAndRegisterBackupAndRestoreResource(
-            AtlasDbEteConfiguration config,
-            Environment environment,
-            TransactionManager txManager,
-            TaggedMetricRegistry taggedMetrics)
-            throws IOException {
-        AuthHeader authHeader = AuthHeader.of(BearerToken.valueOf("test-auth"));
+            AtlasDbEteConfiguration config, Environment environment, TransactionManager txManager) throws IOException {
+        AuthHeader authHeader = AuthHeader.valueOf("test-auth");
+        Optional<AtlasDbRuntimeConfig> maybeRuntimeConfig = config.getAtlasDbRuntimeConfig();
         URL localServer = new URL("https://localhost:1234");
 
         Path backupFolder = Paths.get("/var/data/backup");
         Files.createDirectories(backupFolder);
         Function<Namespace, Path> backupFolderFactory = _unused -> backupFolder;
+        Function<Namespace, KeyValueService> keyValueServiceFactory = _unused -> txManager.getKeyValueService();
         ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
         Function<String, BackupTimeLockServiceView> timelockServices =
-                _unused -> createBackupTimeLockServiceView(txManager);
-        AuthHeaderValidator authHeaderValidator =
-                new AuthHeaderValidator(() -> Optional.of(authHeader.getBearerToken()));
-        RedirectRetryTargeter redirectRetryTargeter =
-                RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer));
-        AtlasBackupClient atlasBackupClient =
-                AtlasBackupResource.jersey(authHeaderValidator, redirectRetryTargeter, timelockServices);
-        AtlasRestoreClient atlasRestoreClient =
-                AtlasRestoreResource.jersey(authHeaderValidator, redirectRetryTargeter, timelockServices);
-        Refreshable<ServerListConfig> serverListConfig = getServerListConfigForTimeLock(config);
-        TimeLockManagementService timeLockManagementService =
-                getRemoteTimeLockManagementService(serverListConfig, taggedMetrics);
-
+                _unused -> createLightweightTimeLockService(txManager);
+        AtlasBackupClient atlasBackupClient = AtlasBackupResource.jersey(
+                new AuthHeaderValidator(() -> Optional.of(authHeader.getBearerToken())),
+                RedirectRetryTargeter.create(localServer, ImmutableList.of(localServer)),
+                timelockServices);
         AtlasBackupService atlasBackupService =
-                AtlasBackupService.createForTests(authHeader, atlasBackupClient, txManager, backupFolderFactory);
-        AtlasRestoreService atlasRestoreService = AtlasRestoreService.createForTests(
-                authHeader,
-                atlasRestoreClient,
-                timeLockManagementService,
-                externalBackupPersister,
-                txManager,
-                _unused -> (CassandraKeyValueServiceConfig)
-                        config.getAtlasDbConfig().keyValueService());
-
-        environment
-                .jersey()
-                .register(new SimpleBackupAndRestoreResource(
-                        atlasBackupService, atlasRestoreService, externalBackupPersister));
-    }
-
-    private Refreshable<ServerListConfig> getServerListConfigForTimeLock(AtlasDbEteConfiguration eteConfig) {
-        AtlasDbConfig config = eteConfig.getAtlasDbConfig();
-        Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig = eteConfig.getAtlasDbRuntimeConfig();
-        return ServerListConfigs.getTimeLockServersFromAtlasDbConfig(config, atlasDbRuntimeConfig);
-    }
-
-    private TimeLockManagementService getRemoteTimeLockManagementService(
-            Refreshable<ServerListConfig> serverListConfig, TaggedMetricRegistry taggedMetrics) {
-        UserAgent userAgent = UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
-        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
-                        Refreshable.only(ServicesConfigBlock.builder().build()))
-                .withUserAgent(userAgent);
-        AtlasDbDialogueServiceProvider dialogueServiceProvider =
-                AtlasDbDialogueServiceProvider.create(serverListConfig, reloadingFactory, userAgent, taggedMetrics);
-        return dialogueServiceProvider.getTimeLockManagementService();
+                AtlasBackupService.create(authHeader, atlasBackupClient, backupFolderFactory, keyValueServiceFactory);
+        environment.jersey().register(new SimpleBackupAndRestoreResource(atlasBackupService, externalBackupPersister));
     }
 
     private void ensureTransactionSchemaVersionInstalled(
@@ -258,7 +194,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         }
     }
 
-    private BackupTimeLockServiceView createBackupTimeLockServiceView(TransactionManager txManager) {
+    private BackupTimeLockServiceView createLightweightTimeLockService(TransactionManager txManager) {
         TimelockService timelockService = txManager.getTimelockService();
         TimestampManagementService timestampManagementService = txManager.getTimestampManagementService();
         return new DelegatingBackupTimeLockServiceView(timelockService, timestampManagementService);

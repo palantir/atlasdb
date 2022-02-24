@@ -27,7 +27,6 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
@@ -95,8 +94,7 @@ public final class CassandraRepairEteTest {
         kvs.createTable(TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
 
-        KvsRunner kvsRunner = KvsRunner.create(_unused -> kvs);
-        cassandraRepairHelper = new CassandraRepairHelper(kvsRunner, _unused -> config);
+        cassandraRepairHelper = new CassandraRepairHelper(_unused -> config, _unused -> kvs);
         cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         cqlCluster = new CqlCluster(cluster, config);
     }
