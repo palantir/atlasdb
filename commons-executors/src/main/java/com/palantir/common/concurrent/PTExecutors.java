@@ -266,7 +266,7 @@ public final class PTExecutors {
                 PTExecutors.wrap(
                         name,
                         new AtlasRenamingExecutorService(
-                                getViewExecutor(numThreads, numThreads, SHARED_EXECUTOR.get()),
+                                getViewExecutor(numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get()),
                                 AtlasUncaughtExceptionHandler.INSTANCE,
                                 AtlasRenamingExecutorService.threadNameSupplier(name))),
                 name);
