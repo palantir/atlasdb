@@ -83,8 +83,12 @@ public final class TimelockNamespaces {
         return timeLockServices;
     }
 
+    public BackupTimeLockServiceView getForRestore(String namespace) {
+        return getIgnoringDisabled(namespace).getTimelockService();
+    }
+
     public TimeLockServices getIgnoringDisabled(String namespace) {
-        return services.computeIfAbsent(namespace, ns -> createNewClient(ns, true));
+        return services.computeIfAbsent(namespace, this::createNewClient);
     }
 
     public Set<Client> getActiveClients() {
@@ -100,10 +104,6 @@ public final class TimelockNamespaces {
     }
 
     private TimeLockServices createNewClient(String namespace) {
-        return createNewClient(namespace, false);
-    }
-
-    private TimeLockServices createNewClient(String namespace, boolean ignoreDisabled) {
         Preconditions.checkArgument(
                 IS_VALID_NAME.test(namespace), "Invalid namespace", SafeArg.of("namespace", namespace));
         Preconditions.checkArgument(
@@ -111,7 +111,7 @@ public final class TimelockNamespaces {
                 "The client name is reserved for the leader election service, and may not be used.",
                 SafeArg.of("clientName", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
         Preconditions.checkArgument(
-                ignoreDisabled || disabledNamespaces.isEnabled(Namespace.of(namespace)),
+                disabledNamespaces.isEnabled(Namespace.of(namespace)),
                 "Cannot create a client for namespace because the namespace has been explicitly disabled.",
                 SafeArg.of("namespace", namespace));
 

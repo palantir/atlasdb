@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.factory;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.backup.DialogueAdaptingTimeLockManagementService;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.timelock.ImmutableShortAndLongTimeoutServices;
@@ -35,8 +34,6 @@ import com.palantir.atlasdb.http.v2.RetryOnSocketTimeoutExceptionProxy;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
-import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
-import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceBlocking;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -165,12 +162,6 @@ public final class AtlasDbDialogueServiceProvider {
                 taggedMetricRegistry,
                 ConjureLockWatchingServiceBlocking.class,
                 wrapInProxy(ConjureLockWatchingServiceBlocking.class, blockingService));
-    }
-
-    public TimeLockManagementService getTimeLockManagementService() {
-        TimeLockManagementServiceBlocking blockingService =
-                dialogueClientFactory.get(TimeLockManagementServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
-        return new DialogueAdaptingTimeLockManagementService(blockingService);
     }
 
     private <T> T createDialogueProxyWithShortTimeout(Class<T> type) {
