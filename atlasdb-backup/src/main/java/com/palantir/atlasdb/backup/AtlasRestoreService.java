@@ -40,7 +40,6 @@ import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceBlocking;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -98,21 +97,7 @@ public class AtlasRestoreService {
         TimeLockManagementService timeLockManagementService = new DialogueAdaptingTimeLockManagementService(
                 reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName));
         CassandraRepairHelper cassandraRepairHelper =
-                new CassandraRepairHelper(KvsRunner.create(keyValueServiceFactory), keyValueServiceConfigFactory);
-
-        return new AtlasRestoreService(
-                authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
-    }
-
-    public static AtlasRestoreService createForTests(
-            AuthHeader authHeader,
-            AtlasRestoreClient atlasRestoreClient,
-            TimeLockManagementService timeLockManagementService,
-            BackupPersister backupPersister,
-            TransactionManager transactionManager,
-            Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
-        CassandraRepairHelper cassandraRepairHelper =
-                new CassandraRepairHelper(KvsRunner.create(transactionManager), keyValueServiceConfigFactory);
+                new CassandraRepairHelper(keyValueServiceConfigFactory, keyValueServiceFactory);
 
         return new AtlasRestoreService(
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
