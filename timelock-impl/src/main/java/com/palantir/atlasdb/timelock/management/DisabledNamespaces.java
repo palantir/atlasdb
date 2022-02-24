@@ -47,7 +47,7 @@ public class DisabledNamespaces {
 
     private Set<Namespace> disabledNamespaces;
 
-    public DisabledNamespaces(Jdbi jdbi) {
+    private DisabledNamespaces(Jdbi jdbi) {
         this.jdbi = jdbi;
     }
 
