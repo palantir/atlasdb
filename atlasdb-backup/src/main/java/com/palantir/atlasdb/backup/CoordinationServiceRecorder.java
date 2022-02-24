@@ -31,17 +31,15 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
-import java.util.function.Function;
 
 final class CoordinationServiceRecorder {
     private static final SafeLogger log = SafeLoggerFactory.get(CoordinationServiceRecorder.class);
 
-    private final Function<Namespace, KeyValueService> keyValueServiceFactory;
+    private final KvsRunner kvsRunner;
     private final BackupPersister backupPersister;
 
-    CoordinationServiceRecorder(
-            Function<Namespace, KeyValueService> keyValueServiceFactory, BackupPersister backupPersister) {
-        this.keyValueServiceFactory = keyValueServiceFactory;
+    CoordinationServiceRecorder(KvsRunner kvsRunner, BackupPersister backupPersister) {
+        this.kvsRunner = kvsRunner;
         this.backupPersister = backupPersister;
     }
 
@@ -60,15 +58,17 @@ final class CoordinationServiceRecorder {
     }
 
     private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, long timestamp) {
-        try (KeyValueService kvs = keyValueServiceFactory.apply(namespace)) {
-            if (!kvs.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
-                return Optional.empty();
-            }
-            CoordinationService<InternalSchemaMetadata> coordination =
-                    CoordinationServices.createDefault(kvs, () -> timestamp, false);
+        return kvsRunner.run(namespace, kvs -> getInternalSchemaMetadataState(kvs, timestamp));
+    }
 
-            return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(coordination, timestamp)));
+    private Optional<InternalSchemaMetadataState> getInternalSchemaMetadataState(KeyValueService kvs, long timestamp) {
+        if (!kvs.getAllTableNames().contains(AtlasDbConstants.COORDINATION_TABLE)) {
+            return Optional.empty();
         }
+        CoordinationService<InternalSchemaMetadata> coordination =
+                CoordinationServices.createDefault(kvs, () -> timestamp, false);
+
+        return Optional.of(InternalSchemaMetadataState.of(getValidMetadata(coordination, timestamp)));
     }
 
     private ValueAndBound<InternalSchemaMetadata> getValidMetadata(
