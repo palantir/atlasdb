@@ -74,7 +74,13 @@ public abstract class ConnectionConfig {
 
     @Value.Default
     public int getMaxConnections() {
+        // todo (gmaretic): this needs to be bumped if we are reusing the connection pool
         return 256;
+    }
+
+    @Value.Default
+    public boolean reuseConnectionPool() {
+        return false;
     }
 
     /**

@@ -50,6 +50,7 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
     @Override
     @Value.Default
+    // todo(gmaretic): this needs to be appropriately scaled if connections are shared
     public int concurrentGetRangesThreadPoolSize() {
         return Math.max(2 * connection().getMaxConnections() / 3, 1);
     }

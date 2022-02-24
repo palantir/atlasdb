@@ -26,6 +26,7 @@ import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariCPConnectionManager;
+import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
 import com.palantir.nexus.db.sql.SQL;
@@ -65,7 +66,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
             DbKeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             boolean initializeAsync) {
-        HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection());
+        HikariCPConnectionManager connManager = HikariClientPoolConnectionManagers.create(config.connection());
         runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
