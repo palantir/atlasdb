@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
@@ -44,6 +45,8 @@ public abstract class DdlConfig {
         return 64;
     }
 
+    public abstract Optional<Integer> sharedPoolSize();
+
     @Value.Default
     public int fetchBatchSize() {
         return 256;
@@ -63,6 +66,13 @@ public abstract class DdlConfig {
     protected final void check() {
         Preconditions.checkState(
                 metadataTable().getNamespace().isEmptyNamespace(), "'metadataTable' should have empty namespace'");
+    }
+
+    @Value.Check
+    public void checkPoolSize() {
+        Preconditions.checkArgument(
+                sharedPoolSize().map(shared -> shared >= poolSize()).orElse(true),
+                "If set, shared pool size must not be less than pool size.");
     }
 
     public interface Visitor<T> {

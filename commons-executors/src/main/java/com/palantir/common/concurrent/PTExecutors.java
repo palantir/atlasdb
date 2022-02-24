@@ -176,11 +176,7 @@ public final class PTExecutors {
                 .executor(PTExecutors.wrap(
                         name,
                         new AtlasRenamingExecutorService(
-                                ViewExecutor.builder(SHARED_EXECUTOR.get())
-                                        .setMaxSize(Math.min(Short.MAX_VALUE, maxThreads))
-                                        .setQueueLimit(0)
-                                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                                        .build(),
+                                getViewExecutor(maxThreads, 0, SHARED_EXECUTOR.get()),
                                 AtlasUncaughtExceptionHandler.INSTANCE,
                                 AtlasRenamingExecutorService.threadNameSupplier(name))))
                 // Unhelpful for cached executors
@@ -270,14 +266,18 @@ public final class PTExecutors {
                 PTExecutors.wrap(
                         name,
                         new AtlasRenamingExecutorService(
-                                ViewExecutor.builder(SHARED_EXECUTOR.get())
-                                        .setMaxSize(Math.min(numThreads, Short.MAX_VALUE))
-                                        .setQueueLimit(Integer.MAX_VALUE)
-                                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                                        .build(),
+                                getViewExecutor(numThreads, numThreads, SHARED_EXECUTOR.get()),
                                 AtlasUncaughtExceptionHandler.INSTANCE,
                                 AtlasRenamingExecutorService.threadNameSupplier(name))),
                 name);
+    }
+
+    public static ExecutorService getViewExecutor(int numThreads, int queueSize, ExecutorService delegate) {
+        return ViewExecutor.builder(delegate)
+                .setMaxSize(Math.min(numThreads, Short.MAX_VALUE))
+                .setQueueLimit(queueSize)
+                .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
+                .build();
     }
 
     /**
