@@ -26,6 +26,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -73,7 +74,9 @@ public class DisabledNamespaces {
 
     @VisibleForTesting
     Set<Namespace> disabledNamespaces() {
-        return execute(Queries::getAllStates).stream().map(Namespace::of).collect(Collectors.toSet());
+        return execute(Queries::getAllStates).stream()
+                .map(Namespace::of)
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
     public Map<Namespace, String> getNamespacesLockedWithDifferentLockId(
@@ -81,7 +84,7 @@ public class DisabledNamespaces {
         return execute(dao -> dao.getNamespacesWithLockConflict(namespaces, expectedLockId));
     }
 
-    public SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
+    public synchronized SingleNodeUpdateResponse disable(DisableNamespacesRequest request) {
         Set<Namespace> namespaces = request.getNamespaces();
         String lockId = request.getLockId();
         SingleNodeUpdateResponse response = execute(dao -> dao.disableAll(namespaces, lockId));
@@ -98,7 +101,7 @@ public class DisabledNamespaces {
         return response;
     }
 
-    public SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
+    public synchronized SingleNodeUpdateResponse reEnable(ReenableNamespacesRequest request) {
         String lockId = request.getLockId();
         SingleNodeUpdateResponse response = execute(dao -> dao.reEnableAll(request.getNamespaces(), lockId));
         if (response.isSuccessful()) {
