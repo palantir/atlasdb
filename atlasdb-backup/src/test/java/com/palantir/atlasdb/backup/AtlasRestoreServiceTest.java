@@ -95,6 +95,50 @@ public class AtlasRestoreServiceTest {
     }
 
     @Test
+    public void restoresToNewNamespaceCorrectly() {
+        RestoreRequest restoreRequest = RestoreRequest.builder()
+                .oldNamespace(WITH_BACKUP)
+                .newNamespace(NO_BACKUP)
+                .build();
+
+        // prepare
+        DisableNamespacesResponse successfulDisable =
+                DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(BACKUP_ID));
+        DisableNamespacesRequest request = DisableNamespacesRequest.of(ImmutableSet.of(NO_BACKUP), BACKUP_ID);
+        when(timeLockManagementService.disableTimelock(authHeader, request)).thenReturn(successfulDisable);
+
+        Set<Namespace> disabledNamespaces =
+                atlasRestoreService.prepareRestore(ImmutableSet.of(restoreRequest), BACKUP_ID);
+        assertThat(disabledNamespaces).containsExactly(NO_BACKUP);
+
+        // repair
+        BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
+
+        Set<Namespace> repairedNamespaces =
+                atlasRestoreService.repairInternalTables(ImmutableSet.of(restoreRequest), doNothingConsumer);
+        assertThat(repairedNamespaces).containsExactly(NO_BACKUP);
+
+        verify(cassandraRepairHelper).repairInternalTables(NO_BACKUP, doNothingConsumer);
+        verify(cassandraRepairHelper).repairTransactionsTables(eq(NO_BACKUP), anyList(), eq(doNothingConsumer));
+        verify(cassandraRepairHelper).cleanTransactionsTables(eq(NO_BACKUP), eq(BACKUP_START_TIMESTAMP), anyList());
+        verifyNoMoreInteractions(cassandraRepairHelper);
+
+        // complete
+        CompletedBackup completedBackup =
+                backupPersister.getCompletedBackup(WITH_BACKUP).orElseThrow();
+        CompleteRestoreRequest completeRestoreRequest = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
+        when(atlasRestoreClient.completeRestore(authHeader, completeRestoreRequest))
+                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
+        ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(ImmutableSet.of(NO_BACKUP), BACKUP_ID);
+
+        Set<Namespace> completedNamespaces =
+                atlasRestoreService.completeRestore(ImmutableSet.of(restoreRequest), BACKUP_ID);
+        assertThat(completedNamespaces).containsExactly(NO_BACKUP);
+        verify(atlasRestoreClient).completeRestore(authHeader, completeRestoreRequest);
+        verify(timeLockManagementService).reenableTimelock(authHeader, reenableRequest);
+    }
+
+    @Test
     public void prepareReturnsOnlyCompletedBackups() {
         DisableNamespacesResponse successfulDisable =
                 DisableNamespacesResponse.successful(SuccessfulDisableNamespacesResponse.of(BACKUP_ID));
