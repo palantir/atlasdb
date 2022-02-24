@@ -101,8 +101,8 @@ public class AtlasRestoreServiceTest {
         DisableNamespacesRequest request = DisableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
         when(timeLockManagementService.disableTimelock(authHeader, request)).thenReturn(successfulDisable);
 
-        Set<Namespace> disabledNamespaces =
-                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), BACKUP_ID);
+        Set<Namespace> disabledNamespaces = atlasRestoreService.prepareRestore(
+                ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(NO_BACKUP)), BACKUP_ID);
         assertThat(disabledNamespaces).containsExactly(WITH_BACKUP);
     }
 
@@ -113,8 +113,8 @@ public class AtlasRestoreServiceTest {
         DisableNamespacesRequest request = DisableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
         when(timeLockManagementService.disableTimelock(authHeader, request)).thenReturn(failedDisable);
 
-        Set<Namespace> disabledNamespaces =
-                atlasRestoreService.prepareRestore(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), BACKUP_ID);
+        Set<Namespace> disabledNamespaces = atlasRestoreService.prepareRestore(
+                ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(NO_BACKUP)), BACKUP_ID);
         assertThat(disabledNamespaces).isEmpty();
     }
 
@@ -122,8 +122,8 @@ public class AtlasRestoreServiceTest {
     public void repairsOnlyWhenBackupPresentAndDisableSuccessful() {
         BiConsumer<String, RangesForRepair> doNothingConsumer = (_unused1, _unused2) -> {};
 
-        Set<Namespace> repairedNamespaces =
-                atlasRestoreService.repairInternalTables(ImmutableSet.of(WITH_BACKUP, NO_BACKUP), doNothingConsumer);
+        Set<Namespace> repairedNamespaces = atlasRestoreService.repairInternalTables(
+                ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(NO_BACKUP)), doNothingConsumer);
         assertThat(repairedNamespaces).containsExactly(WITH_BACKUP);
 
         verify(cassandraRepairHelper).repairInternalTables(WITH_BACKUP, doNothingConsumer);
@@ -146,7 +146,8 @@ public class AtlasRestoreServiceTest {
 
         ReenableNamespacesRequest reenableRequest = ReenableNamespacesRequest.of(namespaces, BACKUP_ID);
 
-        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(namespaces, BACKUP_ID);
+        Set<Namespace> successfulNamespaces =
+                atlasRestoreService.completeRestore(ImmutableSet.of(restoreRequest(WITH_BACKUP)), BACKUP_ID);
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
 
         InOrder inOrder = Mockito.inOrder(atlasRestoreClient, timeLockManagementService);
@@ -156,7 +157,8 @@ public class AtlasRestoreServiceTest {
 
     @Test
     public void completeRestoreDoesNotRunNamespacesWithoutCompletedBackup() {
-        Set<Namespace> namespaces = atlasRestoreService.completeRestore(ImmutableSet.of(NO_BACKUP), BACKUP_ID);
+        Set<Namespace> namespaces =
+                atlasRestoreService.completeRestore(ImmutableSet.of(restoreRequest(NO_BACKUP)), BACKUP_ID);
 
         assertThat(namespaces).isEmpty();
         verifyNoInteractions(atlasRestoreClient);
@@ -178,9 +180,18 @@ public class AtlasRestoreServiceTest {
         ReenableNamespacesRequest reenableRequest =
                 ReenableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP), BACKUP_ID);
 
-        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(namespaces, BACKUP_ID);
+        Set<RestoreRequest> requests =
+                namespaces.stream().map(this::restoreRequest).collect(Collectors.toSet());
+        Set<Namespace> successfulNamespaces = atlasRestoreService.completeRestore(requests, BACKUP_ID);
         assertThat(successfulNamespaces).containsExactly(WITH_BACKUP);
         verify(atlasRestoreClient).completeRestore(authHeader, request);
         verify(timeLockManagementService).reenableTimelock(authHeader, reenableRequest);
+    }
+
+    private RestoreRequest restoreRequest(Namespace namespace) {
+        return RestoreRequest.builder()
+                .oldNamespace(namespace)
+                .newNamespace(namespace)
+                .build();
     }
 }
