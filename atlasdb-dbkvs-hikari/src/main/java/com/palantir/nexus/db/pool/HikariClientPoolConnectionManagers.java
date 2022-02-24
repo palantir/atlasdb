@@ -30,7 +30,6 @@ public final class HikariClientPoolConnectionManagers {
 
     public static HikariCPConnectionManager create(ConnectionConfig config) {
         if (config.reuseConnectionPool()) {
-            // todo(gmaretic): deal with closing the pool
             return SHARED_POOLS.computeIfAbsent(config, HikariCPConnectionManager::new);
         }
         return new HikariCPConnectionManager(config);
