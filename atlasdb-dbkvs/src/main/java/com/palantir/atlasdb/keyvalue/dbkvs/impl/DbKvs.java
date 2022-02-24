@@ -171,8 +171,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
      * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
     public static DbKvs createNoInit(DdlConfig config, SqlConnectionSupplier connections) {
-        ExecutorService executor =
-                AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize());
+        ExecutorService executor = DbKvsExecutors.createFixedThreadPool("Atlas Relational KVS", config);
         return config.accept(new DdlConfig.Visitor<DbKvs>() {
             @Override
             public DbKvs visit(PostgresDdlConfig postgresDdlConfig) {
