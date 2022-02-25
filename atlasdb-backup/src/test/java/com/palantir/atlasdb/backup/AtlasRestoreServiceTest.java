@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -40,6 +41,7 @@ import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.Optional;
@@ -95,6 +97,27 @@ public class AtlasRestoreServiceTest {
                 .backupEndTimestamp(3L)
                 .build();
         backupPersister.storeCompletedBackup(completedBackup);
+    }
+
+    @Test
+    public void cannotRestoreTwiceToSameNamespace() {
+        Namespace severeData = Namespace.of("severe-data");
+        storeCompletedBackup(severeData);
+
+        Namespace corruption = Namespace.of("corruption");
+        RestoreRequest firstRequest = RestoreRequest.builder()
+                .oldNamespace(WITH_BACKUP)
+                .newNamespace(corruption)
+                .build();
+        RestoreRequest secondRequest = RestoreRequest.builder()
+                .oldNamespace(severeData)
+                .newNamespace(corruption)
+                .build();
+        Set<RestoreRequest> requests = ImmutableSet.of(firstRequest, secondRequest);
+
+        assertThatThrownBy(() -> atlasRestoreService.prepareRestore(requests, BACKUP_ID))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("severe data corruption");
     }
 
     @Test
