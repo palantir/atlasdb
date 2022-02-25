@@ -1,7 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  implementation project(":lock-api")
+  api project(":lock-api")
   implementation project(":atlasdb-commons")
 
   implementation group: 'com.palantir.safe-logging', name: 'safe-logging'

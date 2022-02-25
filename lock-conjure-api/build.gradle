@@ -15,7 +15,7 @@ subprojects {
     apply plugin: 'com.palantir.sls-recommended-dependencies'
 
     dependencies {
-        implementation project(':lock-api-objects')
+        api project(':lock-api-objects')
         implementation 'com.palantir.conjure.java:conjure-lib'
 
         implementation 'com.google.guava:guava'

@@ -2,8 +2,15 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'groovy'
 
 dependencies {
+    api project(':atlasdb-api')
+    api project(':atlasdb-client')
     api project(':atlasdb-service')
     api group: 'commons-cli', name:'commons-cli'
+
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-impl-shared')
+
     implementation 'jline:jline:2.12'
     implementation group: 'org.codehaus.groovy', name: 'groovy'
     implementation group: 'org.codehaus.groovy', name: 'groovy-groovysh'
@@ -16,12 +23,6 @@ dependencies {
     implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
-
-    api project(':atlasdb-api')
-    api project(':atlasdb-client')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-config')
-    implementation project(':atlasdb-impl-shared')
 
     testImplementation 'com.fasterxml.jackson.core:jackson-core'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'

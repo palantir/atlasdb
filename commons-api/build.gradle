@@ -1,7 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  api project(':atlasdb-commons')
+//  api project(':atlasdb-commons')
   implementation project(":commons-executors")
   implementation project(':commons-annotations')
 

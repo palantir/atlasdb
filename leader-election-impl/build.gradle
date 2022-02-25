@@ -6,7 +6,7 @@ license {
 }
 
 dependencies {
-  implementation project(":leader-election-api")
+  api project(":leader-election-api")
   implementation project(":atlasdb-autobatch")
   implementation project(":atlasdb-commons")
 

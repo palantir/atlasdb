@@ -3,6 +3,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
     api project(':atlasdb-api')
+    //Todo(snanda): Exposed for legacy reasons. We can probably get away with making the impl in the future.
     api project(':timestamp-client')
     api project(':atlasdb-conjure')
     implementation project(':atlasdb-impl-shared')

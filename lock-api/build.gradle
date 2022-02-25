@@ -11,13 +11,14 @@ libsDirName = file('build/artifacts')
 dependencies {
     api project(':lock-conjure-api:lock-conjure-api-dialogue')
     api project(':lock-conjure-api:lock-conjure-api-jersey')
+    api project(':lock-api-objects')
     api project(':timelock-api:timelock-api-dialogue')
     api project(':timelock-api:timelock-api-jersey')
     api project(":timestamp-api")
     api project(":timestamp-client")
+
     implementation project(":atlasdb-autobatch")
     implementation project(":atlasdb-commons")
-    implementation project(':lock-api-objects')
     implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
