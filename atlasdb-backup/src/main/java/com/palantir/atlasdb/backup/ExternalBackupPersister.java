@@ -121,6 +121,7 @@ public class ExternalBackupPersister implements BackupPersister {
         } catch (IOException e) {
             log.error(
                     "Failed to store file",
+                    SafeArg.of("path", file.getPath()),
                     SafeArg.of("fileName", file.getName()),
                     SafeArg.of("namespace", namespace),
                     e);
@@ -132,6 +133,7 @@ public class ExternalBackupPersister implements BackupPersister {
         if (!file.exists()) {
             log.info(
                     "Tried to load file, but it did not exist",
+                    SafeArg.of("path", file.getPath()),
                     SafeArg.of("fileName", file.getName()),
                     SafeArg.of("namespace", namespace));
             return Optional.empty();
@@ -141,12 +143,14 @@ public class ExternalBackupPersister implements BackupPersister {
             T state = OBJECT_MAPPER.readValue(file, clazz);
             log.info(
                     "Successfully loaded file",
+                    SafeArg.of("path", file.getPath()),
                     SafeArg.of("fileName", file.getName()),
                     SafeArg.of("namespace", namespace));
             return Optional.of(state);
         } catch (IOException e) {
             log.warn(
                     "Failed to read file",
+                    SafeArg.of("path", file.getPath()),
                     SafeArg.of("fileName", file.getName()),
                     SafeArg.of("namespace", namespace),
                     e);
