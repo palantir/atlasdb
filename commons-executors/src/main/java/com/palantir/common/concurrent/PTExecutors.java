@@ -26,6 +26,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.nylon.threads.NylonExecutor;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -52,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
-import org.jboss.threads.ViewExecutor;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -175,14 +175,13 @@ public final class PTExecutors {
                 .name(name)
                 .executor(PTExecutors.wrap(
                         name,
-                        new AtlasRenamingExecutorService(
-                                ViewExecutor.builder(SHARED_EXECUTOR.get())
-                                        .setMaxSize(Math.min(Short.MAX_VALUE, maxThreads))
-                                        .setQueueLimit(0)
-                                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                                        .build(),
-                                AtlasUncaughtExceptionHandler.INSTANCE,
-                                AtlasRenamingExecutorService.threadNameSupplier(name))))
+                        NylonExecutor.builder()
+                                .name(name)
+                                .executor(SHARED_EXECUTOR.get())
+                                .maxThreads(maxThreads)
+                                .queueSize(0)
+                                .uncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE)
+                                .build()))
                 // Unhelpful for cached executors
                 .reportQueuedDuration(false)
                 .build();
@@ -269,14 +268,12 @@ public final class PTExecutors {
                 SharedTaggedMetricRegistries.getSingleton(),
                 PTExecutors.wrap(
                         name,
-                        new AtlasRenamingExecutorService(
-                                ViewExecutor.builder(SHARED_EXECUTOR.get())
-                                        .setMaxSize(Math.min(numThreads, Short.MAX_VALUE))
-                                        .setQueueLimit(Integer.MAX_VALUE)
-                                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                                        .build(),
-                                AtlasUncaughtExceptionHandler.INSTANCE,
-                                AtlasRenamingExecutorService.threadNameSupplier(name))),
+                        NylonExecutor.builder()
+                                .name(name)
+                                .executor(SHARED_EXECUTOR.get())
+                                .maxThreads(numThreads)
+                                .uncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE)
+                                .build()),
                 name);
     }
 

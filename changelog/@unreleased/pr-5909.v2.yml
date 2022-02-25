@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Replace thread-sharing infrastructure with `nylon-threads`
+  links:
+  - https://github.com/palantir/atlasdb/pull/5909

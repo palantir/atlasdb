@@ -15,7 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-import com.palantir.common.concurrent.ThreadNames;
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
@@ -26,6 +25,7 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SQLConstants;
 import com.palantir.nexus.db.ThreadConfinedProxy;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
+import com.palantir.nylon.threads.ThreadNames;
 import java.io.ByteArrayInputStream;
 import java.sql.Connection;
 import java.sql.SQLException;

@@ -31,6 +31,7 @@ com.palantir.dialogue:* = 3.48.0
 com.palantir.docker.compose:docker-compose-rule* = 1.7.0
 com.palantir.docker.proxy:docker-proxy-rule* = 1.1.1
 com.palantir.goethe:* = 0.6.0
+com.palantir.nylon:* = 0.3.0
 com.palantir.refreshable:refreshable = 2.1.0
 com.palantir.safe-logging:* = 1.21.0
 com.palantir.sls.versions:* = 1.4.0

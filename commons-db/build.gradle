@@ -6,6 +6,7 @@ dependencies {
   compile project(":commons-api")
   compile project(":commons-proxy")
 
+  implementation "com.palantir.nylon:nylon-threads"
   implementation group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils
   implementation group: 'org.apache.commons', name: 'commons-lang3'
   implementation group: 'commons-io', name: 'commons-io'
