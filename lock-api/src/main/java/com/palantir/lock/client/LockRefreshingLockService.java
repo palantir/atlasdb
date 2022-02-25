@@ -43,9 +43,9 @@ import java.util.concurrent.TimeUnit;
 public final class LockRefreshingLockService extends SimplifyingLockService {
     public static final int REFRESH_BATCH_SIZE = 500_000;
     private static final SafeLogger log = SafeLoggerFactory.get(LockRefreshingLockService.class);
-    private static final ScheduledExecutorService executor =
-            PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
 
+    private final ScheduledExecutorService executor =
+            PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
     final LockService delegate;
     final Set<LockRefreshToken> toRefresh;
     final long refreshFrequencyMillis = 5000;
@@ -54,7 +54,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     public static LockRefreshingLockService create(LockService delegate) {
         final LockRefreshingLockService ret = new LockRefreshingLockService(delegate);
-        ret.task = executor.scheduleWithFixedDelay(
+        ret.task = ret.executor.scheduleWithFixedDelay(
                 () -> {
                     long startTime = System.currentTimeMillis();
                     try {
@@ -175,6 +175,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     public void dispose() {
         task.cancel(false);
+        executor.shutdown();
         isClosed = true;
     }
 
