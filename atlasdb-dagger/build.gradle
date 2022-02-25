@@ -3,7 +3,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply from: '../gradle/shared.gradle'
 
 dependencies {
-  compile project(':atlasdb-service')
+  api project(':atlasdb-service')
   implementation group: 'com.google.dagger', name: 'dagger'
 
   implementation 'com.google.errorprone:error_prone_annotations'

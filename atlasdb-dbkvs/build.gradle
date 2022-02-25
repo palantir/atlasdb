@@ -2,13 +2,13 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-api")
-  compile project(":atlasdb-client")
-  compile project(":atlasdb-dbkvs-hikari")
-  compile project(":atlasdb-impl-shared")
-  compile project(':timestamp-impl')
-  compile project(':commons-db')
-  compile project(':commons-api')
+  api project(":atlasdb-api")
+  api project(":atlasdb-client")
+  api project(":atlasdb-dbkvs-hikari")
+  api project(":atlasdb-impl-shared")
+  api project(':timestamp-impl')
+  api project(':commons-db')
+  api project(':commons-api')
   implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
 
   implementation "com.palantir.nylon:nylon-threads"

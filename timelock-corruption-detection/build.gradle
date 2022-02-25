@@ -10,9 +10,9 @@ conjure {
 }
 
 dependencies {
-    compile project(':atlasdb-api')
-    compile project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
-    compile project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
+    api project(':atlasdb-api')
+    api project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
+    api project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
 
     implementation group: 'com.google.guava', name: 'guava'
     implementation group: 'com.github.rholder', name: 'guava-retrying'
@@ -65,8 +65,8 @@ subprojects {
     apply plugin: 'com.palantir.sls-recommended-dependencies'
 
     dependencies {
-        compile project(":leader-election-impl")
-        compile 'com.palantir.conjure.java:conjure-lib'
+        api project(":leader-election-impl")
+        api 'com.palantir.conjure.java:conjure-lib'
     }
     tasks.licenseMain.enabled = false
 }

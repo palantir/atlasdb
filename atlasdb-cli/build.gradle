@@ -2,11 +2,11 @@ apply from: '../gradle/shared.gradle'
 
 
 dependencies {
-    compile project(':atlasdb-cassandra')
-    compile project(path: ':atlasdb-dagger', configuration: 'shadow')
+    api project(':atlasdb-cassandra')
+    api project(path: ':atlasdb-dagger', configuration: 'shadow')
     compileOnly 'com.google.dagger:dagger'
-    compile 'io.airlift:airline'
-    compile 'ch.qos.logback:logback-classic'
+    api 'io.airlift:airline'
+    api 'ch.qos.logback:logback-classic'
 
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'

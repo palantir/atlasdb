@@ -2,7 +2,7 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'groovy'
 
 dependencies {
-    compile project(':atlasdb-service')
+    api project(':atlasdb-service')
     implementation group: 'commons-cli', name:'commons-cli'
     implementation 'jline:jline:2.12'
     implementation group: 'org.codehaus.groovy', name: 'groovy'

@@ -7,8 +7,8 @@ schemas = [
 group = 'com.palantir.atlasdb.examples'
 
 dependencies {
-  compile project(":atlasdb-client")
-  compile project(":examples:profile-client-protobufs")
+  api project(":atlasdb-client")
+  api project(":examples:profile-client-protobufs")
 
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.guava:guava'

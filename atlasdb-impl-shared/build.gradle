@@ -11,14 +11,14 @@ license {
 }
 
 dependencies {
-  compile project(":atlasdb-client")
-  compile project(":atlasdb-commons")
-  compile project(":atlasdb-coordination-impl")
-  compile project(":lock-impl")
-  compile project(":timestamp-api")
-  compile project(":timestamp-client")
+  api project(":atlasdb-client")
+  api project(":atlasdb-commons")
+  api project(":atlasdb-coordination-impl")
+  api project(":lock-impl")
+  api project(":timestamp-api")
+  api project(":timestamp-client")
 
-  compile 'com.github.ben-manes.caffeine:caffeine'
+  api 'com.github.ben-manes.caffeine:caffeine'
   implementation group: 'com.palantir.common', name: 'streams'
   implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server'
   implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'

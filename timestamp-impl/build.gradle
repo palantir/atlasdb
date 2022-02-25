@@ -2,10 +2,10 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile(project(":timestamp-api"))
-  compile(project(":timestamp-client"))
-  compile(project(":atlasdb-commons"))
-  compile(project(":atlasdb-client"))
+  api(project(":timestamp-api"))
+  api(project(":timestamp-client"))
+  api(project(":atlasdb-commons"))
+  api(project(":atlasdb-client"))
 
   implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
 

@@ -2,8 +2,8 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-dbkvs")
-  compile project(":atlasdb-tests-shared")
+  api project(":atlasdb-dbkvs")
+  api project(":atlasdb-tests-shared")
 
   implementation 'com.google.guava:guava'
   implementation 'junit:junit'

@@ -2,9 +2,9 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":timestamp-api")
-  compile project(":atlasdb-autobatch")
-  compile project(":atlasdb-commons")
+  api project(":timestamp-api")
+  api project(":atlasdb-autobatch")
+  api project(":atlasdb-commons")
 
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'

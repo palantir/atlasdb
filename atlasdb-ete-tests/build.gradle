@@ -7,11 +7,11 @@ apply plugin: 'com.palantir.sls-java-service-distribution'
 schemas = ['com.palantir.atlasdb.blob.BlobSchema']
 
 dependencies {
-    compile project(':lock-impl')
-    compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
-    compile project(':atlasdb-ete-test-utils')
-    compile project(':atlasdb-hikari')
+    implementation project(':lock-impl')
+    implementation project(':leader-election-impl')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-ete-test-utils')
+    implementation project(':atlasdb-hikari')
 
     implementation project(':atlasdb-backup')
     implementation project(':timelock-impl')
@@ -70,7 +70,7 @@ dependencies {
     runtimeOnly project(':atlasdb-dbkvs')
     runtimeOnly project(':atlasdb-cassandra')
 
-    compile (group: 'org.apache.thrift', name: 'libthrift') {
+    implementation (group: 'org.apache.thrift', name: 'libthrift') {
         exclude group: 'org.apache.httpcomponents'
     }
 

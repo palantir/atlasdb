@@ -4,8 +4,8 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
 dependencies {
-    compile project(":timelock-impl")
-    compile project(":timelock-corruption-detection")
+    api project(":timelock-impl")
+    api project(":timelock-corruption-detection")
 
     implementation group: 'com.google.guava', name: 'guava'
     implementation group: 'com.palantir.conjure.java.api', name: 'service-config'

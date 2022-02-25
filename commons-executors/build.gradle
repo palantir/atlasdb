@@ -2,8 +2,8 @@ apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
 dependencies {
-    compile project(":commons-executors-api")
-    compile "com.palantir.tracing:tracing"
+    api project(":commons-executors-api")
+    api "com.palantir.tracing:tracing"
     implementation "com.palantir.nylon:nylon-threads"
     implementation "com.palantir.tritium:tritium-metrics"
     implementation "org.jboss.threads:jboss-threads"

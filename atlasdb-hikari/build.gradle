@@ -3,9 +3,9 @@ apply plugin: "org.inferred.processors"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-jdbc")
+  api project(":atlasdb-jdbc")
 
-  compile(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
+  api(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
