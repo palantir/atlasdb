@@ -45,6 +45,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -130,6 +131,11 @@ public class AtlasRestoreService {
     public Set<Namespace> prepareRestore(Set<RestoreRequest> restoreRequests, String backupId) {
         Map<RestoreRequest, CompletedBackup> completedBackups = getCompletedBackups(restoreRequests);
         Set<Namespace> namespacesToRestore = getNamespacesToRestore(completedBackups);
+        Preconditions.checkArgument(
+                namespacesToRestore.size() == completedBackups.size(),
+                "Attempting to restore multiple namespaces into the same namespace! "
+                        + "This will cause severe data corruption.",
+                SafeArg.of("restoreRequests", restoreRequests));
 
         DisableNamespacesRequest request = DisableNamespacesRequest.of(namespacesToRestore, backupId);
         DisableNamespacesResponse response = timeLockManagementService.disableTimelock(authHeader, request);
