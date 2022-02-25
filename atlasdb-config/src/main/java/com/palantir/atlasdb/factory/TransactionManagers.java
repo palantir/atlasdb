@@ -68,6 +68,7 @@ import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.SharedKvsResources;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -245,11 +246,14 @@ public abstract class TransactionManagers {
      * This may be useful for ensuring that connection pools are shared between multiple TransactionManagers in
      * the same JVM.
      * We intend this to be used in exactly one place - do not use this without discussing with the AtlasDB team.
+     * We intend this to be used in exactly one place - do not use this without discussing with the AtlasDB team.
      */
     @Value.Default
     DialogueClients.ReloadingFactory reloadingFactory() {
         return newMinimalDialogueFactory();
     }
+
+    abstract Optional<SharedKvsResources> sharedKvsResources();
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
         return ImmutableTransactionManagers.builder();
@@ -360,6 +364,7 @@ public abstract class TransactionManagers {
                 config().leader(),
                 config().namespace(),
                 Optional.empty(),
+                sharedKvsResources(),
                 config().initializeAsync(),
                 adapter);
         KeyValueServiceConfig mergedKeyValueServiceConfig = atlasFactory.getMergedKeyValueServiceConfig();

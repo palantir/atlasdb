@@ -17,20 +17,26 @@
 package com.palantir.nexus.db.pool;
 
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class HikariClientPoolConnectionManagers {
-    private static final ConcurrentMap<ConnectionConfig, HikariCPConnectionManager> SHARED_POOLS =
-            new ConcurrentHashMap<>();
-
     private HikariClientPoolConnectionManagers() {
         // lolz
     }
 
-    public static HikariCPConnectionManager create(ConnectionConfig config) {
-        if (config.reuseConnectionPool()) {
-            return SHARED_POOLS.computeIfAbsent(config, HikariCPConnectionManager::new);
+    public static HikariCPConnectionManager create(
+            ConnectionConfig config, Optional<AtomicReference<Object>> connectionManagerRegistrar) {
+        if (connectionManagerRegistrar.isPresent()) {
+            AtomicReference<Object> registrar = connectionManagerRegistrar.get();
+            if (registrar.get() == null) {
+                synchronized (registrar) {
+                    if (registrar.get() == null) {
+                        registrar.set(new HikariCPConnectionManager(config));
+                    }
+                }
+            }
+            return (HikariCPConnectionManager) registrar.get();
         }
         return new HikariCPConnectionManager(config);
     }

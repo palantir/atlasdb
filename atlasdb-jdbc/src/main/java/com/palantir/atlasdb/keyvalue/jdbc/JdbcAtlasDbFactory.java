@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SharedKvsResources;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.logsafe.Preconditions;
@@ -63,6 +64,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig>
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
+            Optional<SharedKvsResources> sharedKvsResources,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");

@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SharedKvsResources;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
@@ -70,6 +71,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceCon
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
+            Optional<SharedKvsResources> _sharedKvsResources,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");

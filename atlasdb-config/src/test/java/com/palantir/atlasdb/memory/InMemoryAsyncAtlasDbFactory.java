@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryKvs;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SharedKvsResources;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.refreshable.Refreshable;
@@ -48,6 +49,7 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory<KeyValueServi
             Optional<LeaderConfig> unusedLeaderConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
+            Optional<SharedKvsResources> _sharedKvsResources,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         return AsyncInitializeableInMemoryKvs.createAndStartInit(initializeAsync);

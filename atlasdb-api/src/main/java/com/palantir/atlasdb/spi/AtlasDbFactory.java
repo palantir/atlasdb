@@ -74,6 +74,7 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
+            Optional<SharedKvsResources> sharedKvsResources,
             boolean initializeAsync);
 
     ManagedTimestampService createManagedTimestampService(

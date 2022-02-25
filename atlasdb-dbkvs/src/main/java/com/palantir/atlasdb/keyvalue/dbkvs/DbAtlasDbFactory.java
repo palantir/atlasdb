@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SharedKvsResources;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -65,13 +66,15 @@ public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             LongSupplier unusedLongSupplier,
+            Optional<SharedKvsResources> sharedKvsResources,
             boolean initializeAsync) {
         Preconditions.checkArgument(
                 config instanceof DbKeyValueServiceConfig,
                 "[Unexpected configuration] | DbAtlasDbFactory expects a configuration of type "
                         + "DbKeyValueServiceConfiguration.",
                 SafeArg.of("configurationClass", config.getClass()));
-        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config, runtimeConfig, initializeAsync);
+        return ConnectionManagerAwareDbKvs.create(
+                (DbKeyValueServiceConfig) config, runtimeConfig, sharedKvsResources, initializeAsync);
     }
 
     @Override

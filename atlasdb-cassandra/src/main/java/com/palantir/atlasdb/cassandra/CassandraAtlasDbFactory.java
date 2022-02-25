@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidato
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SharedKvsResources;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.logsafe.Preconditions;
@@ -58,6 +59,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
             Optional<LeaderConfig> unused,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
+            Optional<SharedKvsResources> _sharedKvsResources,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig =
@@ -104,8 +106,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
                         if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
                             log.error(
                                     "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
-                                        + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
-                                        + " CassandraKeyValueServiceRuntimeConfig.",
+                                            + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
+                                            + " CassandraKeyValueServiceRuntimeConfig.",
                                     SafeArg.of("configClass", config.getClass()));
                             return latestValidRuntimeConfig;
                         }

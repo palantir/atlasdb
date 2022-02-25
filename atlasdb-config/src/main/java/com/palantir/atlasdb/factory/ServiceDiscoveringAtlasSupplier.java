@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SharedKvsResources;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -61,6 +62,7 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> tableReferenceOverride,
+            Optional<SharedKvsResources> sharedKvsResources,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
@@ -75,6 +77,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 leaderConfig,
                 namespace,
                 timestampSupplier,
+                sharedKvsResources,
                 initializeAsync));
         timestampService = () -> atlasFactory.createManagedTimestampService(
                 getKeyValueService(), tableReferenceOverride, initializeAsync);
@@ -152,9 +155,9 @@ public class ServiceDiscoveringAtlasSupplier {
         if (!leaderConfig.isPresent()) {
             log.warn(
                     "[timestamp-service-creation] Timestamp service fetched for a second time, and there is no leader"
-                        + " config. This means that you may soon encounter the MultipleRunningTimestampServices error."
-                        + " Thread dumps from both fetches of the timestamp service have been outputted to {}. If you"
-                        + " encounter a MultipleRunningTimestampServices error, please send this file to support.",
+                            + " config. This means that you may soon encounter the MultipleRunningTimestampServices error."
+                            + " Thread dumps from both fetches of the timestamp service have been outputted to {}. If you"
+                            + " encounter a MultipleRunningTimestampServices error, please send this file to support.",
                     UnsafeArg.of("path", path));
         } else {
             log.warn(

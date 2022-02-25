@@ -86,6 +86,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.spi.SharedKvsResources;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -155,12 +156,15 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     public static DbKeyValueService create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
-        return create(config, sqlConnSupplier, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(config, sqlConnSupplier, Optional.empty(), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static DbKeyValueService create(
-            DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier, boolean initializeAsync) {
-        DbKvs dbKvs = createNoInit(config.ddl(), sqlConnSupplier);
+            DbKeyValueServiceConfig config,
+            SqlConnectionSupplier sqlConnSupplier,
+            Optional<SharedKvsResources> sharedKvsResources,
+            boolean initializeAsync) {
+        DbKvs dbKvs = createNoInit(config.ddl(), sqlConnSupplier, sharedKvsResources);
         dbKvs.wrapper.initialize(initializeAsync);
         return dbKvs.wrapper.isInitialized() ? dbKvs : dbKvs.wrapper;
     }
@@ -170,8 +174,12 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
      * be used directly and is exposed to support legacy software.  Instead you should prefer the use of
      * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
-    public static DbKvs createNoInit(DdlConfig config, SqlConnectionSupplier connections) {
-        ExecutorService executor = DbKvsExecutors.createFixedThreadPool("Atlas Relational KVS", config);
+    public static DbKvs createNoInit(
+            DdlConfig config, SqlConnectionSupplier connections, Optional<SharedKvsResources> sharedKvsResources) {
+        ExecutorService executor = sharedKvsResources
+                .map(SharedKvsResources::kvsExecutor)
+                .orElseGet(
+                        () -> AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize()));
         return config.accept(new DdlConfig.Visitor<DbKvs>() {
             @Override
             public DbKvs visit(PostgresDdlConfig postgresDdlConfig) {
