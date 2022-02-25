@@ -11,12 +11,13 @@ license {
 }
 
 dependencies {
+  api project(":timestamp-api")
+  api project(":timestamp-client")
+
   implementation project(":atlasdb-client")
   implementation project(":atlasdb-commons")
   implementation project(":atlasdb-coordination-impl")
   implementation project(":lock-impl")
-  implementation project(":timestamp-api")
-  implementation project(":timestamp-client")
 
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation group: 'com.palantir.common', name: 'streams'
