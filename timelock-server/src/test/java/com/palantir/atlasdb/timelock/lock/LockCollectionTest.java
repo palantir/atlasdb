@@ -49,7 +49,7 @@ public class LockCollectionTest {
         List<AsyncLock> locks1 = lockCollection.getAll(descriptors).get();
         List<AsyncLock> locks2 = lockCollection.getAll(descriptors).get();
 
-        assertThat(locks1).isEqualTo(locks2);
+        assertThat(locks1).containsExactlyElementsOf(locks2);
     }
 
     @Test
@@ -67,7 +67,7 @@ public class LockCollectionTest {
         List<AsyncLock> actualOrder =
                 lockCollection.getAll(ImmutableSet.copyOf(orderedDescriptors)).get();
 
-        assertThat(actualOrder).isEqualTo(expectedOrder);
+        assertThat(actualOrder).containsExactlyElementsOf(expectedOrder);
     }
 
     private static Set<LockDescriptor> descriptors(String... names) {

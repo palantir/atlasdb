@@ -17,13 +17,17 @@
 package com.palantir.atlasdb.pue;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -85,10 +89,22 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 continue;
             }
             // if we reach here, actual is guaranteed to be a staging value
+            try {
+                store.checkAndTouch(cell, actual);
+            } catch (CheckAndSetException e) {
+                PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+                        startTs, Iterables.getOnlyElement(e.getActualValues()));
+                Preconditions.checkState(
+                        kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
+                        "Failed to persist a staging value for commit timestamp because an unexpected value "
+                                + "was found in the KVS",
+                        SafeArg.of("kvsValue", kvsValue),
+                        SafeArg.of("stagingValue", currentValue));
+                continue;
+            }
             checkAndTouch.put(cell, actual);
             resultBuilder.put(startTs, commitTs);
         }
-        store.checkAndTouch(checkAndTouch);
         store.put(KeyedStream.stream(checkAndTouch)
                 .map(encodingStrategy::transformStagingToCommitted)
                 .collectToMap());

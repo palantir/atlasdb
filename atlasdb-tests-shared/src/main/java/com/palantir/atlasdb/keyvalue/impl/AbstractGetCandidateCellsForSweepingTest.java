@@ -69,11 +69,11 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         List<CandidateCellForSweeping> cells =
                 getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 2000L, 2));
         assertThat(cells)
-                .isEqualTo(ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
+                .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(10, 1))
                         .isLatestValueEmpty(false)
                         .sortedTimestamps(ImmutableList.of(1000L, 1001L, 1002L, 1003L, 1004L))
-                        .build()));
+                        .build());
     }
 
     @Test
@@ -221,7 +221,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .batchSizeHint(1)
                 .build());
         assertThat(candidates.stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
-                .isEqualTo(expectedCells);
+                .containsExactlyElementsOf(expectedCells);
     }
 
     protected List<CandidateCellForSweeping> getAllCandidates(CandidateCellForSweepingRequest request) {

@@ -151,7 +151,7 @@ public class MultiClientConjureTimelockResourceTest {
         Set<String> namespaces = ImmutableSet.of("client1", "client2");
         assertThat(Futures.getUnchecked(resource.getCommitTimestampsForClients(
                         AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
-                .isEqualTo(getGetCommitTimestampsResponseMap(namespaces));
+                .containsExactlyInAnyOrderEntriesOf(getGetCommitTimestampsResponseMap(namespaces));
     }
 
     private Map<Namespace, GetCommitTimestampsResponse> getGetCommitTimestampsResponseMap(Set<String> namespaces) {

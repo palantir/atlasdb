@@ -65,7 +65,9 @@ public class BatchingVisitablesTest {
         assertThat(page.getResults())
                 .describedAs("page results had wrong size!")
                 .hasSize(1);
-        assertThat(page.getResults()).describedAs("page.getResults was wrong").isEqualTo(Lists.newArrayList(0L));
+        assertThat(page.getResults())
+                .describedAs("page.getResults was wrong")
+                .containsExactlyElementsOf(Lists.newArrayList(0L));
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
                 .isTrue();
@@ -76,7 +78,7 @@ public class BatchingVisitablesTest {
                 .hasSize(3);
         assertThat(page.getResults())
                 .describedAs("page.getResults was wrong")
-                .isEqualTo(Lists.newArrayList(0L, 1L, 2L));
+                .containsExactlyElementsOf(Lists.newArrayList(0L, 1L, 2L));
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
                 .isTrue();
@@ -87,7 +89,7 @@ public class BatchingVisitablesTest {
                 .hasSize(4);
         assertThat(page.getResults())
                 .describedAs("page.getResults was wrong")
-                .isEqualTo(Lists.newArrayList(0L, 1L, 2L, 3L));
+                .containsExactlyElementsOf(Lists.newArrayList(0L, 1L, 2L, 3L));
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
                 .isFalse();
@@ -98,7 +100,7 @@ public class BatchingVisitablesTest {
                 .hasSize(4);
         assertThat(page.getResults())
                 .describedAs("page.getResults was wrong")
-                .isEqualTo(Lists.newArrayList(0L, 1L, 2L, 3L));
+                .containsExactlyElementsOf(Lists.newArrayList(0L, 1L, 2L, 3L));
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
                 .isFalse();
@@ -255,7 +257,7 @@ public class BatchingVisitablesTest {
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
         assertThat(bv.unique().limit(4).immutableCopy())
                 .describedAs("unexpected result for unique view")
-                .isEqualTo(ImmutableList.of(0L, 1L, 2L, 3L));
+                .containsExactly(0L, 1L, 2L, 3L);
     }
 
     @Test
@@ -263,7 +265,7 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         BatchingVisitableView<Long> limited = BatchingVisitableView.of(visitor).limit(3);
         ImmutableList<Long> copy = limited.immutableCopy();
-        assertThat(copy).describedAs("limit produced unexpected result").isEqualTo(ImmutableList.of(0L, 1L, 2L));
+        assertThat(copy).describedAs("limit produced unexpected result").containsExactly(0L, 1L, 2L);
 
         assertThat(limited.batchAccept(1, AbortingVisitors.alwaysFalse()))
                 .describedAs("alwaysFalse should be false")
@@ -448,7 +450,7 @@ public class BatchingVisitablesTest {
     public void testSkip() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         ImmutableList<Long> copy = BatchingVisitableView.of(visitor).skip(5).immutableCopy();
-        assertThat(copy).describedAs("unexpected list remnants after skipping").isEqualTo(ImmutableList.of(5L, 6L, 7L));
+        assertThat(copy).describedAs("unexpected list remnants after skipping").containsExactly(5L, 6L, 7L);
     }
 
     static class ListVisitor<T> extends AbstractBatchingVisitable<T> {

@@ -151,6 +151,15 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
+     * This sets the number of times a node needs to be detected as absent from the Cassandra ring before its client
+     * pool is removed. Configuring this may be useful for nodes operating in environments where IPs change frequently.
+     */
+    @Value.Default
+    default int consecutiveAbsencesBeforePoolRemoval() {
+        return 10;
+    }
+
+    /**
      * Overrides the behaviour of the host location supplier.
      */
     Optional<HostLocation> overrideHostLocation();

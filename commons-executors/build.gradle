@@ -6,6 +6,7 @@ dependencies {
     implementation project(":commons-annotations")
 
     implementation "com.palantir.tracing:tracing"
+    implementation "com.palantir.nylon:nylon-threads"
     implementation "com.palantir.tritium:tritium-metrics"
     implementation "org.jboss.threads:jboss-threads"
 

@@ -75,6 +75,19 @@ public final class TimelockNamespaces {
     }
 
     public TimeLockServices get(String namespace) {
+        TimeLockServices timeLockServices = services.computeIfAbsent(namespace, this::createNewClient);
+        Preconditions.checkArgument(
+                disabledNamespaces.isEnabled(Namespace.of(namespace)),
+                "Cannot create a client for namespace because the namespace has been explicitly disabled.",
+                SafeArg.of("namespace", namespace));
+        return timeLockServices;
+    }
+
+    public BackupTimeLockServiceView getForRestore(String namespace) {
+        return getIgnoringDisabled(namespace).getTimelockService();
+    }
+
+    public TimeLockServices getIgnoringDisabled(String namespace) {
         return services.computeIfAbsent(namespace, this::createNewClient);
     }
 

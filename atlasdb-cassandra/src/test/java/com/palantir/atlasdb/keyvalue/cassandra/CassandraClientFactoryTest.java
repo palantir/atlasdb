@@ -40,6 +40,7 @@ public class CassandraClientFactoryTest {
                             .username("jeremy")
                             .password("tom")
                             .build())
+                    .consecutiveAbsencesBeforePoolRemoval(1)
                     .build());
 
     private CassandraClient client = mock(CassandraClient.class);

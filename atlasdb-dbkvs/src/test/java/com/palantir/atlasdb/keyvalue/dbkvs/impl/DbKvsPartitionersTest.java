@@ -41,12 +41,12 @@ public class DbKvsPartitionersTest {
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
 
         assertThat(partitioned)
-                .isEqualTo(ImmutableList.of(
+                .containsExactly(
                         ImmutableMap.of(0, 5),
                         ImmutableMap.of(
                                 1, 1,
                                 2, 2,
-                                3, 2)));
+                                3, 2));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class DbKvsPartitionersTest {
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
 
         assertThat(partitioned)
-                .isEqualTo(ImmutableList.of(
+                .containsExactly(
                         ImmutableMap.of(
                                 0, 3,
                                 3, 2),
@@ -67,7 +67,7 @@ public class DbKvsPartitionersTest {
                                 3, 1,
                                 1, 3,
                                 4, 1),
-                        ImmutableMap.of(4, 2)));
+                        ImmutableMap.of(4, 2));
     }
 
     @Test
@@ -78,11 +78,11 @@ public class DbKvsPartitionersTest {
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
         assertThat(partitioned).hasSize(20);
         assertThat(partitioned.get(0))
-                .isEqualTo(ImmutableMap.of(
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         0, 1,
                         1, 4));
         for (int i = 1; i < 20; i++) {
-            assertThat(partitioned.get(i)).isEqualTo(ImmutableMap.of(1, 5));
+            assertThat(partitioned.get(i)).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1, 5));
         }
     }
 
@@ -121,7 +121,7 @@ public class DbKvsPartitionersTest {
                 totalCountsAfterPartitioning.put(entry.getKey(), prevCount + entry.getValue());
             }
         }
-        assertThat(totalCountsAfterPartitioning).isEqualTo(originalCounts);
+        assertThat(totalCountsAfterPartitioning).containsExactlyInAnyOrderEntriesOf(originalCounts);
     }
 
     private void assertOrderingInPartitionsMatchesOriginal(
@@ -135,6 +135,6 @@ public class DbKvsPartitionersTest {
                 }
             }
         }
-        assertThat(partitionedOrder).isEqualTo(originalOrder);
+        assertThat(partitionedOrder).containsExactlyElementsOf(originalOrder);
     }
 }

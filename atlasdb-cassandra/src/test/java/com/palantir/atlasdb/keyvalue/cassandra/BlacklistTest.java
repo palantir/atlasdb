@@ -48,6 +48,7 @@ public class BlacklistTest {
                     .password("b")
                     .build())
             .replicationFactor(1)
+            .consecutiveAbsencesBeforePoolRemoval(1)
             .unresponsiveHostBackoffTimeSeconds(1)
             .build();
 

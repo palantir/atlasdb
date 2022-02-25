@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.util;
 
-import com.palantir.common.concurrent.ThreadNames;
+import com.palantir.nylon.threads.ThreadNames;
 
 /**
  * Whenever this runnable is run, for the duration of the call we will have a new thread name.

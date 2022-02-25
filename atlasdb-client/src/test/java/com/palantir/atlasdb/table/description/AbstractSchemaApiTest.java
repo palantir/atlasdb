@@ -141,7 +141,9 @@ public abstract class AbstractSchemaApiTest {
 
         Map<String, Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(TEST_ROW_KEY, TEST_ROW_KEY2));
 
-        assertThat(result).isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_LONG, TEST_ROW_KEY2, TEST_VALUE_LONG2));
+        assertThat(result)
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_LONG, TEST_ROW_KEY2, TEST_VALUE_LONG2));
         ArgumentCaptor<Iterable<byte[]>> argument = ArgumentCaptor.forClass(Iterable.class);
         verify(transaction, times(1)).getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
@@ -173,7 +175,8 @@ public abstract class AbstractSchemaApiTest {
         Map<String, StringValue> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
 
         assertThat(result)
-                .isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));
         verify(transaction, times(1)).getRange(tableRef, expectedRange);
     }
 
@@ -201,7 +204,8 @@ public abstract class AbstractSchemaApiTest {
                 getRangeSecondColumnOnlyFirstTwoResults(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
 
         assertThat(result)
-                .isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));
         verify(transaction, times(1)).getRange(tableRef, expectedRange);
     }
 

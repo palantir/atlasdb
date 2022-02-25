@@ -18,7 +18,6 @@ package com.palantir.example.profile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.InMemoryLockAndTimestampServiceFactory;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -154,7 +153,7 @@ public class ProfileStoreTest {
         final UUID userId = storeUser();
         runWithRetry(store -> {
             Set<UUID> usersWithBirthday = store.getUsersWithBirthday(USER.getBirthEpochDay());
-            assertThat(usersWithBirthday).isEqualTo(ImmutableSet.of(userId));
+            assertThat(usersWithBirthday).containsExactlyInAnyOrder(userId);
             return userId;
         });
     }

@@ -94,7 +94,7 @@ public class SweepBatchAccumulatorTest {
             assertThat(batch.lastSweptTimestamp()).isEqualTo(PROGRESS_TIMESTAMP + 288);
         });
         assertThat(batchWithPartitionInfo.finePartitions())
-                .isEqualTo(ImmutableSet.of(
+                .containsExactlyInAnyOrderElementsOf(ImmutableSet.of(
                         SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
                         SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 288)));
     }
@@ -111,7 +111,7 @@ public class SweepBatchAccumulatorTest {
             assertThat(batch.lastSweptTimestamp()).isEqualTo(PROGRESS_TIMESTAMP + 288);
         });
         assertThat(batchWithPartitionInfo.finePartitions())
-                .isEqualTo(ImmutableSet.of(
+                .containsExactlyInAnyOrderElementsOf(ImmutableSet.of(
                         SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
                         SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 288)));
     }
@@ -127,7 +127,7 @@ public class SweepBatchAccumulatorTest {
         SweepBatchWithPartitionInfo batchWithPartitionInfo = accumulator.toSweepBatch();
         assertThat(batchWithPartitionInfo.finePartitions())
                 .hasSize(2)
-                .isEqualTo(ImmutableSet.of(SweepQueueUtils.tsPartitionFine(WRITE_INFO_1.timestamp()), 1L));
+                .containsExactlyInAnyOrder(SweepQueueUtils.tsPartitionFine(WRITE_INFO_1.timestamp()), 1L);
     }
 
     @Test
@@ -149,10 +149,10 @@ public class SweepBatchAccumulatorTest {
 
         // Both must still be present here!
         assertThat(batchWithPartitionInfo.finePartitions())
-                .isEqualTo(ImmutableSet.of(
+                .containsExactlyInAnyOrder(
                         SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
                         SweepQueueUtils.tsPartitionFine(
-                                PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.minTsForFinePartition(1))));
+                                PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.minTsForFinePartition(1)));
     }
 
     @Test
@@ -173,10 +173,10 @@ public class SweepBatchAccumulatorTest {
         });
 
         assertThat(batchWithPartitionInfo.finePartitions())
-                .isEqualTo(ImmutableSet.of(
+                .containsExactlyInAnyOrder(
                         SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
                         SweepQueueUtils.tsPartitionFine(
-                                PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.minTsForFinePartition(9))));
+                                PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.minTsForFinePartition(9)));
     }
 
     @Test

@@ -298,7 +298,7 @@ public class EncodingUtilsTest {
 
             List<Object> result = EncodingUtils.fromBytes(b, types);
 
-            assertThat(result).isEqualTo(components);
+            assertThat(result).containsExactlyElementsOf(components);
         }
     }
 }
