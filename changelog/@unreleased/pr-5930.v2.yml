@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Support for long identifiers in Oracle KVS may be configured. This
+    is only allowed for users that don't use table mapping.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5930
