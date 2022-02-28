@@ -25,7 +25,7 @@ task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
 check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
 
 dependencies {
-    compile project(':atlasdb-config')
+    implementation project(':atlasdb-config')
 
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'

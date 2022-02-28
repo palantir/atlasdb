@@ -38,8 +38,8 @@ artifacts {
 }
 
 dependencies {
-  api project(":atlasdb-commons")
   api project(":atlasdb-api")
+  api project(":atlasdb-commons")
   api project(":atlasdb-client-protobufs")
 
   api group: "com.google.code.findbugs", name: "jsr305"

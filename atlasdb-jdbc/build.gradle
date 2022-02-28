@@ -3,11 +3,11 @@ apply plugin: "org.inferred.processors"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(":atlasdb-api")
-  compile project(":atlasdb-client")
-  compile project(":timestamp-impl")
+  api project(":atlasdb-api")
+  api project(":atlasdb-client")
+  implementation project(":timestamp-impl")
 
-  compile "org.jooq:jooq:3.6.4"
+  implementation "org.jooq:jooq:3.6.4"
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'

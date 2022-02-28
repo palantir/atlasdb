@@ -5,13 +5,14 @@ apply from: "../gradle/non-client-dist.gradle"
 apply plugin: 'com.palantir.sls-java-service-distribution'
 
 schemas = ['com.palantir.atlasdb.blob.BlobSchema']
-
 dependencies {
-    compile project(':lock-impl')
-    compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
-    compile project(':atlasdb-ete-test-utils')
-    compile project(':atlasdb-hikari')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-coordination-impl')
+    implementation project(':atlasdb-ete-test-utils')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-hikari')
+    implementation project(':lock-impl')
+    implementation project(':leader-election-impl')
 
     implementation project(':atlasdb-backup')
     implementation project(':atlasdb-cassandra')
@@ -47,6 +48,7 @@ dependencies {
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
+    implementation project(':timelock-api:timelock-api-undertow')
 
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
@@ -64,6 +66,7 @@ dependencies {
     testImplementation project(':atlasdb-cassandra')
     testImplementation project(':atlasdb-cassandra').sourceSets.test.output
     testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-remoting-api')
     testImplementation project(':atlasdb-tests-shared')
     testImplementation project(':lock-api-objects')
@@ -72,7 +75,7 @@ dependencies {
     runtimeOnly project(':atlasdb-dbkvs')
     runtimeOnly project(':atlasdb-cassandra')
 
-    compile (group: 'org.apache.thrift', name: 'libthrift') {
+    implementation (group: 'org.apache.thrift', name: 'libthrift') {
         exclude group: 'org.apache.httpcomponents'
     }
 

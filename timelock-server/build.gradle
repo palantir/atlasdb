@@ -40,7 +40,9 @@ check.dependsOn suiteTest
 check.dependsOn stressTest
 
 dependencies {
-    compile project(":timelock-agent")
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-client')
+    implementation project(":timelock-agent")
 
     implementation group: 'io.dropwizard', name: 'dropwizard-core'
     implementation group: 'io.dropwizard', name: 'dropwizard-http2'
@@ -71,8 +73,6 @@ dependencies {
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation 'org.eclipse.jetty:jetty-util'
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-client')
 
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'

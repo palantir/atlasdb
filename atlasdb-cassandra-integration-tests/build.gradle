@@ -16,6 +16,7 @@ dependencies {
     testImplementation project(':atlasdb-commons')
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':timestamp-api')
+    testImplementation project(':commons-executors')
 
     testImplementation project(":atlasdb-cassandra")
     testImplementation project(":atlasdb-cli")
