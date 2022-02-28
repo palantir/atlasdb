@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[RC] ABR 18 + 20'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5925

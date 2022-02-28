@@ -155,7 +155,11 @@ types:
       CompleteRestoreRequest:
         package: com.palantir.atlasdb.backup.api
         fields:
-          completedBackups: set<CompletedBackup>
+          completedBackups:
+            type: map<Namespace, CompletedBackup>
+            docs: |
+              Mapping from the namespace being restored into, to the backup we're restoring.
+              Note that the namespace might not be the same as the namespace originally backed up.
       CompleteRestoreResponse:
         package: com.palantir.atlasdb.backup.api
         fields:

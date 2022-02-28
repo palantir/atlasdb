@@ -6,10 +6,14 @@ dependencies {
     implementation project(':atlasdb-config')
     implementation project(':timelock-api:timelock-api-objects')
 
+    implementation 'org.immutables:value'
+    implementation 'org.immutables:value::annotations'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
 
     testImplementation 'org.mockito:mockito-core'
     testCompile group: 'commons-codec', name: 'commons-codec', version: '1.15'
+
+    annotationProcessor group: 'org.immutables', name: 'value'
 }

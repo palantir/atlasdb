@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: |-
+    The AtlasRestoreService now supports restoring to a different namespace than the one that was backed up.
+    It is the responsibility of the user to ensure that the data (including Atlas tables) is copied over correctly during the restore.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5925

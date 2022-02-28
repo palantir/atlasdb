@@ -22,6 +22,7 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
@@ -56,6 +57,15 @@ final class TokenRangeFetcher {
         String keyspaceName = config.getKeyspaceOrThrow();
         KeyspaceMetadata keyspace = cqlMetadata.getKeyspaceMetadata(keyspaceName);
         TableMetadata tableMetadata = keyspace.getTable(tableName);
+
+        if (tableMetadata == null) {
+            log.error(
+                    "Could not find metadata for table that is supposed to exist",
+                    SafeArg.of("keyspace", keyspaceName),
+                    SafeArg.of("tableName", tableName));
+            return ImmutableMap.of();
+        }
+
         Set<LightweightOppToken> partitionTokens = getPartitionTokens(tableMetadata);
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode = ClusterMetadataUtils.getTokenMapping(
                 CassandraServersConfigs.getCqlHosts(config), cqlMetadata, keyspaceName, partitionTokens);

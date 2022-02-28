@@ -105,6 +105,16 @@ public class TimelockNamespacesTest {
     }
 
     @Test
+    public void canGetIgnoringDisabledWithoutFillingCache() {
+        when(disabledNamespaces.isEnabled(Namespace.of(CLIENT_A))).thenReturn(false);
+
+        TimeLockServices servicesIgnoringDisabled = namespaces.getIgnoringDisabled(CLIENT_A);
+        assertThat(servicesIgnoringDisabled).isEqualTo(servicesA);
+
+        assertThatThrownBy(() -> namespaces.get(CLIENT_A)).isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
     public void doesNotCreateNewClientsAfterMaximumNumberHasBeenReached() {
         createMaximumNumberOfClients();
 

@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
@@ -79,7 +79,7 @@ public class AtlasRestoreResourceTest {
     public void throwsIfWrongAuthHeaderIsProvided() {
         CompletedBackup completedBackup = completedBackup();
         AuthHeader wrongHeader = AuthHeader.of(BearerToken.valueOf("imposter"));
-        CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableSet.of(completedBackup));
+        CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableMap.of(NAMESPACE, completedBackup));
         assertThatServiceExceptionThrownBy(
                         () -> AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(wrongHeader, request)))
                 .hasType(ErrorType.PERMISSION_DENIED);
@@ -87,12 +87,13 @@ public class AtlasRestoreResourceTest {
 
     @Test
     public void completesRestoreSuccessfully() {
+        Namespace newNamespace = Namespace.of("newNamespace");
         CompletedBackup completedBackup = completedBackup();
         CompleteRestoreResponse response = AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(
-                AUTH_HEADER, CompleteRestoreRequest.of(ImmutableSet.of(completedBackup))));
+                AUTH_HEADER, CompleteRestoreRequest.of(ImmutableMap.of(newNamespace, completedBackup))));
 
-        assertThat(response.getSuccessfulNamespaces()).containsExactly(NAMESPACE);
-        verify(mockTimelock).fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
+        assertThat(response.getSuccessfulNamespaces()).containsExactly(newNamespace);
+        verify(otherTimelock).fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
     }
 
     private static CompletedBackup completedBackup() {
