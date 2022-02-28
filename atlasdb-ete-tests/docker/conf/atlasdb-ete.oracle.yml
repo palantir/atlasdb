@@ -14,8 +14,8 @@ atlasdb:
     type: relational
     ddl:
       longIdentifierNamesSupported: true
-      tablePrefix: supercalifragilisticexpialidocious5678901234567_
-      overflowTablePrefix: pneumonoultramicroscopicsilicovolcanoconiosis67_
+      tablePrefix: "supercalifragilisticexpialidocious5678901234567_"
+      overflowTablePrefix: "pneumonoultramicroscopicsilicovolcanoconiosis67_"
       type: oracle
       overflowMigrationState: FINISHED
       jdbcHandler:
