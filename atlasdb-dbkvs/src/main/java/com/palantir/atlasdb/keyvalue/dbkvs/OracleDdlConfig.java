@@ -129,7 +129,8 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
         checkTablePrefixLengthLimits();
 
-        Preconditions.checkState(!(useTableMapping() && longIdentifierNamesSupported()),
+        Preconditions.checkState(
+                !(useTableMapping() && longIdentifierNamesSupported()),
                 "The table mapper does not support long identifier names yet. Please contact the AtlasDB team if you "
                         + "wish to use these features in conjunction.");
     }
