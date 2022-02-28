@@ -65,6 +65,7 @@ public class InMemoryAtlasDbFactoryTest {
                 Optional.empty(),
                 Optional.empty(),
                 null,
+                Optional.empty(),
                 initializeAsync);
     }
 }

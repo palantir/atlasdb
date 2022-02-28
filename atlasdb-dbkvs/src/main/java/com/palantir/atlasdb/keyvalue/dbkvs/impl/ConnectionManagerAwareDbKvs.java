@@ -70,22 +70,24 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<SharedKvsResources> sharedKvsResources,
             boolean initializeAsync) {
-        Optional<AtomicReference<HikariCPConnectionManager>> maybeSharedRegistrar =
-                sharedKvsResources.flatMap(SharedKvsResources::specificSharedKvsResources)
-                        .map(resources -> {
-                            Preconditions.checkState(
-                                    resources instanceof RelationalSharedKvsResources,
-                                    "Unexpected shared KVS resources type detected.");
-                            return ((RelationalSharedKvsResources) resources).sharedConnectionManager();
-                        });
+        Optional<AtomicReference<HikariCPConnectionManager>> maybeSharedRegistrar = sharedKvsResources
+                .flatMap(SharedKvsResources::specificSharedKvsResources)
+                .map(resources -> {
+                    Preconditions.checkState(
+                            resources instanceof RelationalSharedKvsResources,
+                            "Unexpected shared KVS resources type detected.");
+                    return ((RelationalSharedKvsResources) resources).sharedConnectionManager();
+                });
 
-        HikariCPConnectionManager connManager = HikariClientPoolConnectionManagers.create(
-                config.connection(), maybeSharedRegistrar);
+        HikariCPConnectionManager connManager =
+                HikariClientPoolConnectionManagers.create(config.connection(), maybeSharedRegistrar);
         runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
         return new ConnectionManagerAwareDbKvs(
-                DbKvs.create(config, sqlConnSupplier, initializeAsync), connManager, sqlConnSupplier);
+                DbKvs.create(config, sqlConnSupplier, sharedKvsResources, initializeAsync),
+                connManager,
+                sqlConnSupplier);
     }
 
     private static void updateConnManagerConfig(

@@ -155,9 +155,9 @@ public class ServiceDiscoveringAtlasSupplier {
         if (!leaderConfig.isPresent()) {
             log.warn(
                     "[timestamp-service-creation] Timestamp service fetched for a second time, and there is no leader"
-                            + " config. This means that you may soon encounter the MultipleRunningTimestampServices error."
-                            + " Thread dumps from both fetches of the timestamp service have been outputted to {}. If you"
-                            + " encounter a MultipleRunningTimestampServices error, please send this file to support.",
+                        + " config. This means that you may soon encounter the MultipleRunningTimestampServices error."
+                        + " Thread dumps from both fetches of the timestamp service have been outputted to {}. If you"
+                        + " encounter a MultipleRunningTimestampServices error, please send this file to support.",
                     UnsafeArg.of("path", path));
         } else {
             log.warn(
