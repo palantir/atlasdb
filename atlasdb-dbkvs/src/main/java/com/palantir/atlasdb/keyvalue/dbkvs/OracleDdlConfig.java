@@ -128,6 +128,10 @@ public abstract class OracleDdlConfig extends DdlConfig {
                 overflowTablePrefix().endsWith("_"), "Oracle 'overflowTablePrefix' must end with an underscore.");
 
         checkTablePrefixLengthLimits();
+
+        Preconditions.checkState(!(useTableMapping() && longIdentifierNamesSupported()),
+                "The table mapper does not support long identifier names yet. Please contact the AtlasDB team if you "
+                        + "wish to use these features in conjunction.");
     }
 
     private void checkTablePrefixLengthLimits() {
