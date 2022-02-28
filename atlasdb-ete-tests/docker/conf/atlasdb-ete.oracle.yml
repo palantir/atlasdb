@@ -20,6 +20,7 @@ atlasdb:
       overflowMigrationState: FINISHED
       jdbcHandler:
         type: oracle
+      useTableMapping: false
     connection:
       type: oracle
       host: oracle
