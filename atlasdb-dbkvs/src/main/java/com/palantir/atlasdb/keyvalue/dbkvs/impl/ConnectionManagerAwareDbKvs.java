@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.spi.SharedKvsResources;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -36,6 +37,7 @@ import com.palantir.nexus.db.sql.SqlConnectionHelper;
 import com.palantir.refreshable.Refreshable;
 import java.sql.Connection;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 // This class should be removed and replaced by DbKvs when InDbTimestampStore depends directly on DbKvs
@@ -68,8 +70,17 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<SharedKvsResources> sharedKvsResources,
             boolean initializeAsync) {
+        Optional<AtomicReference<HikariCPConnectionManager>> maybeSharedRegistrar =
+                sharedKvsResources.flatMap(SharedKvsResources::specificSharedKvsResources)
+                        .map(resources -> {
+                            Preconditions.checkState(
+                                    resources instanceof RelationalSharedKvsResources,
+                                    "Unexpected shared KVS resources type detected.");
+                            return ((RelationalSharedKvsResources) resources).sharedConnectionManager();
+                        });
+
         HikariCPConnectionManager connManager = HikariClientPoolConnectionManagers.create(
-                config.connection(), sharedKvsResources.flatMap(SharedKvsResources::hikariClientPoolManagerRegistrar));
+                config.connection(), maybeSharedRegistrar);
         runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);

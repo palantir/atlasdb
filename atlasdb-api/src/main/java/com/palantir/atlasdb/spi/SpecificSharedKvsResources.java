@@ -16,19 +16,6 @@
 
 package com.palantir.atlasdb.spi;
 
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface SharedKvsResources {
-    /**
-     * If present, it will be used to store and reuse a shared hikari client pool manager. This should only be set when
-     * used for DbKvs.
-     */
-    Optional<SpecificSharedKvsResources> specificSharedKvsResources();
-
-    ExecutorService kvsExecutor();
-
-    ExecutorService getRangesExecutor();
+public interface SpecificSharedKvsResources {
+    // Marker interface
 }

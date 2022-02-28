@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.spi;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
+import com.palantir.atlasdb.spi.SpecificSharedKvsResources;
+import com.palantir.nexus.db.pool.HikariCPConnectionManager;
+import java.util.concurrent.atomic.AtomicReference;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface SharedKvsResources {
-    /**
-     * If present, it will be used to store and reuse a shared hikari client pool manager. This should only be set when
-     * used for DbKvs.
-     */
-    Optional<SpecificSharedKvsResources> specificSharedKvsResources();
-
-    ExecutorService kvsExecutor();
-
-    ExecutorService getRangesExecutor();
+public interface RelationalSharedKvsResources extends SpecificSharedKvsResources {
+    AtomicReference<HikariCPConnectionManager> sharedConnectionManager();
 }

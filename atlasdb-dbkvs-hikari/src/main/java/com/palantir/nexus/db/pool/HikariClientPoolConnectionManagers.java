@@ -22,13 +22,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public final class HikariClientPoolConnectionManagers {
     private HikariClientPoolConnectionManagers() {
-        // lolz
+        // factory
     }
 
     public static HikariCPConnectionManager create(
-            ConnectionConfig config, Optional<AtomicReference<Object>> connectionManagerRegistrar) {
+            ConnectionConfig config, Optional<AtomicReference<HikariCPConnectionManager>> connectionManagerRegistrar) {
         if (connectionManagerRegistrar.isPresent()) {
-            AtomicReference<Object> registrar = connectionManagerRegistrar.get();
+            AtomicReference<HikariCPConnectionManager> registrar = connectionManagerRegistrar.get();
             if (registrar.get() == null) {
                 synchronized (registrar) {
                     if (registrar.get() == null) {
@@ -36,7 +36,7 @@ public final class HikariClientPoolConnectionManagers {
                     }
                 }
             }
-            return (HikariCPConnectionManager) registrar.get();
+            return registrar.get();
         }
         return new HikariCPConnectionManager(config);
     }
