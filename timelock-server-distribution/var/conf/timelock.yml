@@ -12,6 +12,7 @@ runtime:
     local-server: "localhost:8421"
     enableNonstandardAndPossiblyDangerousTopology: true
   paxos:
+  permitted-backup-token: "test-auth"
 
 server:
   applicationConnectors:

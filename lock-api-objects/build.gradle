@@ -4,9 +4,9 @@ apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
 dependencies {
-    compile project(":atlasdb-commons")
-    compile project(":timestamp-api")
-    compile project(":timestamp-client")
+    api project(":timestamp-api")
+    api project(":timestamp-client")
+    implementation project(":atlasdb-commons")
     implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'

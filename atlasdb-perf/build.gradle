@@ -16,10 +16,10 @@ configurations.all {
 }
 
 dependencies {
-    compile project(':atlasdb-api')
-    compile project(':atlasdb-dagger')
-    compile project(':atlasdb-dbkvs')
-    compile project(':atlasdb-cassandra')
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-dagger')
+    implementation project(':atlasdb-dbkvs')
+    implementation project(':atlasdb-cassandra')
 
     implementation group: 'io.airlift', name: 'airline', version: '0.7'
     implementation group: 'org.reflections', name: 'reflections', version: '0.9.10'
