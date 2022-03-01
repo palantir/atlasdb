@@ -40,7 +40,7 @@ public final class GetRangesExecutors {
     public static ExecutorService createGetRangesExecutor(
             int numThreads, String prefix, Optional<Integer> sharedExecutorThreads) {
         String name = prefix + "-get-ranges";
-        return wrap(SharedFixedExecutors.getOrCreateMaybeShared(name, numThreads, sharedExecutorThreads));
+        return wrap(SharedFixedExecutors.createOrGetShared(name, numThreads, sharedExecutorThreads));
     }
 
     private static ExecutorService wrap(ExecutorService executor) {

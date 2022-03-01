@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import java.util.Optional;
@@ -52,8 +53,10 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
     @Override
     @Value.Default
-    // todo(gmaretic): this needs to be appropriately scaled if connections are shared
     public int concurrentGetRangesThreadPoolSize() {
+        if (sharedResourcesConfig().map(SharedResourcesConfig::shareConnection).orElse(false)) {
+            return Math.max(connection().getMaxConnections() / 15, 1);
+        }
         return Math.max(2 * connection().getMaxConnections() / 3, 1);
     }
 
@@ -64,7 +67,17 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
                         config.sharedKvsExecutorSize() >= ddl().poolSize(),
                         "If set, shared kvs pool size must not be less than individual pool size.",
                         SafeArg.of("shared", config.sharedKvsExecutorSize()),
-                        SafeArg.of("indiviual", ddl().poolSize())));
+                        SafeArg.of("individual", ddl().poolSize())));
+    }
+
+    @Value.Check
+    public void checkGetRangesPoolSizes() {
+        sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
+                        "If set, shared get ranges pool size must not be less than individual pool size.",
+                        SafeArg.of("shared", config.sharedGetRangesPoolSize()),
+                        SafeArg.of("individual", concurrentGetRangesThreadPoolSize())));
     }
 
     @Value.Check

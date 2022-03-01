@@ -32,8 +32,7 @@ public final class SharedFixedExecutors {
         return SHARED.computeIfAbsent(threadName, name -> PTExecutors.newFixedThreadPool(poolSize, name));
     }
 
-    public static ExecutorService getOrCreateMaybeShared(
-            String threadName, int poolSize, Optional<Integer> sharedThreads) {
+    public static ExecutorService createOrGetShared(String threadName, int poolSize, Optional<Integer> sharedThreads) {
         if (sharedThreads.isPresent()) {
             ExecutorService sharedExecutor = getOrCreate(threadName, poolSize);
             return PTExecutors.getViewExecutor(poolSize, Integer.MAX_VALUE, sharedExecutor);

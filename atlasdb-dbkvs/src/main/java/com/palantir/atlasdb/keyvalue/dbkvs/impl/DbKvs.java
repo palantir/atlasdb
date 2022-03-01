@@ -176,7 +176,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             DdlConfig config,
             SqlConnectionSupplier connections,
             Optional<SharedResourcesConfig> sharedResourcesConfig) {
-        ExecutorService executor = SharedFixedExecutors.getOrCreateMaybeShared(
+        ExecutorService executor = SharedFixedExecutors.createOrGetShared(
                 "Atlas Relational KVS",
                 config.poolSize(),
                 sharedResourcesConfig.map(SharedResourcesConfig::sharedKvsExecutorSize));

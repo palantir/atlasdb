@@ -39,8 +39,6 @@ public abstract class DdlConfig {
 
     @Value.Default
     public int poolSize() {
-        // todo (gmaretic): this should not be 64 if we are creating O(100) kvs instances as we could easily starve
-        // the shared cached threadpool
         return 64;
     }
 
