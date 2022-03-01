@@ -17,18 +17,19 @@ buildscript {
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.17.0'
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.10.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:7.13.0'
+        classpath 'gradle.plugin.com.github.johnrengelman:shadow:7.1.2'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.16.1'
         classpath 'gradle.plugin.org.inferred:gradle-processors:3.6.0'
     }
 }
 
 plugins {
-    id 'com.github.johnrengelman.shadow' version '6.1.0'
     id 'com.palantir.consistent-versions' version '2.5.0'
     id 'org.unbroken-dome.test-sets' version '4.0.0'
     id 'com.google.protobuf' version '0.8.17'
 }
 
+apply plugin: 'java'
 apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.git-version'
 apply plugin: 'com.palantir.external-publish'

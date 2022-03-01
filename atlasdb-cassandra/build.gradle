@@ -1,11 +1,11 @@
-apply plugin: 'com.github.johnrengelman.shadow'
-
 apply from: "../gradle/shared.gradle"
+apply plugin: 'java-library'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 configurations {
   explicitShadow
   shadow.extendsFrom(explicitShadow)
-  compile.extendsFrom(explicitShadow)
+  implementation.extendsFrom(explicitShadow)
 }
 
 dependencies {
@@ -40,17 +40,6 @@ dependencies {
 
   explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
 
-  testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
-  testImplementation project(":atlasdb-config")
-  testImplementation group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.awaitility', name: 'awaitility'
-  testImplementation group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
-  testImplementation(group: 'org.jmock', name: 'jmock') {
-      exclude group: 'org.hamcrest'
-  }
-
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
@@ -80,15 +69,30 @@ dependencies {
   testImplementation 'com.palantir.conjure.java.api:service-config'
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'com.palantir.safe-logging:preconditions'
+  testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation 'com.palantir.tritium:tritium-registry'
   testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'jakarta.xml.bind:jakarta.xml.bind-api'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.apache.thrift:libthrift'
-  testImplementation 'com.palantir.tracing:tracing-api'
-  testImplementation 'jakarta.xml.bind:jakarta.xml.bind-api'
+  testImplementation group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
+  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation group: 'org.awaitility', name: 'awaitility'
+  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
+  testImplementation project(":atlasdb-config")
+  testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')
   testImplementation project(':commons-executors')
+  testImplementation(group: 'org.jmock', name: 'jmock') {
+    exclude group: 'org.hamcrest'
+  }
+  testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+    exclude group: 'commons-logging'
+    exclude module: 'junit'
+    exclude group: 'org.apache.httpcomponents'
+  }
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
