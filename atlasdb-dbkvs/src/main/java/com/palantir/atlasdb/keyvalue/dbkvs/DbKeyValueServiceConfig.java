@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.LocalConnectionConfig;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
@@ -54,10 +55,11 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     @Override
     @Value.Default
     public int concurrentGetRangesThreadPoolSize() {
-        if (sharedResourcesConfig().map(SharedResourcesConfig::shareConnection).orElse(false)) {
-            return Math.max(connection().getMaxConnections() / 15, 1);
-        }
-        return Math.max(2 * connection().getMaxConnections() / 3, 1);
+        int poolSize = sharedResourcesConfig()
+                .map(SharedResourcesConfig::connectionConfig)
+                .map(LocalConnectionConfig::poolSize)
+                .orElseGet(() -> connection().getMaxConnections());
+        return Math.max(2 * poolSize / 3, 1);
     }
 
     @Value.Check
@@ -71,13 +73,23 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     }
 
     @Value.Check
-    public void checkGetRangesPoolSizes() {
+    public void checkGetRangesPoolSize() {
         sharedResourcesConfig()
                 .ifPresent(config -> checkArgument(
                         config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
                         "If set, shared get ranges pool size must not be less than individual pool size.",
                         SafeArg.of("shared", config.sharedGetRangesPoolSize()),
                         SafeArg.of("individual", concurrentGetRangesThreadPoolSize())));
+    }
+
+    @Value.Check
+    public void checkConnectionPoolSize() {
+        sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.connectionConfig().poolSize() <= connection().getMaxConnections(),
+                        "If set, local connection pool size must not be greater than total max connections.",
+                        SafeArg.of("local", config.connectionConfig().poolSize()),
+                        SafeArg.of("total", connection().getMaxConnections())));
     }
 
     @Value.Check

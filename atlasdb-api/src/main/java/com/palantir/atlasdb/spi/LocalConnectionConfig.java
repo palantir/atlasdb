@@ -19,10 +19,8 @@ package com.palantir.atlasdb.spi;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface SharedResourcesConfig {
-    int sharedGetRangesPoolSize();
+public interface LocalConnectionConfig {
+    int poolSize();
 
-    int sharedKvsExecutorSize();
-
-    LocalConnectionConfig connectionConfig();
+    int acquireFromSharedPoolTimeoutInSeconds();
 }

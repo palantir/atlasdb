@@ -28,15 +28,12 @@ public final class HikariClientPoolConnectionManagers {
         // lolz
     }
 
-    public static HikariCPConnectionManager create(ConnectionConfig config, boolean shared) {
-        if (shared) {
-            return SHARED_POOLS.computeIfAbsent(config, cf -> new HikariCPConnectionManager(cf) {
-                @Override
-                public void close() {
-                    // do not close
-                }
-            });
-        }
+    public static ConnectionManager create(ConnectionConfig config) {
         return new HikariCPConnectionManager(config);
+    }
+
+    public static ConnectionManager createShared(ConnectionConfig config, int localPoolSize, int timeout) {
+        HikariCPConnectionManager sharedPool = SHARED_POOLS.computeIfAbsent(config, HikariCPConnectionManager::new);
+        return new HikariClientPoolConnectionManagerView(sharedPool, localPoolSize, timeout);
     }
 }

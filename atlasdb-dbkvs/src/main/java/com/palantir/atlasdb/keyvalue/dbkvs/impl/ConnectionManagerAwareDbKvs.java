@@ -22,11 +22,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.spi.SharedResourcesConfig;
+import com.palantir.atlasdb.spi.LocalConnectionConfig;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
-import com.palantir.nexus.db.pool.HikariCPConnectionManager;
 import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
@@ -67,11 +66,17 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
             DbKeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             boolean initializeAsync) {
-        HikariCPConnectionManager connManager = HikariClientPoolConnectionManagers.create(
-                config.connection(),
-                config.sharedResourcesConfig()
-                        .map(SharedResourcesConfig::shareConnection)
-                        .orElse(false));
+        ConnectionManager connManager;
+        if (config.sharedResourcesConfig().isPresent()) {
+            LocalConnectionConfig localConnectionConfig =
+                    config.sharedResourcesConfig().get().connectionConfig();
+            connManager = HikariClientPoolConnectionManagers.createShared(
+                    config.connection(),
+                    localConnectionConfig.poolSize(),
+                    localConnectionConfig.acquireFromSharedPoolTimeoutInSeconds());
+        } else {
+            connManager = HikariClientPoolConnectionManagers.create(config.connection());
+        }
         runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
@@ -80,7 +85,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
     }
 
     private static void updateConnManagerConfig(
-            HikariCPConnectionManager connManager,
+            ConnectionManager connManager,
             DbKeyValueServiceConfig config,
             Optional<KeyValueServiceRuntimeConfig> runtimeConfig) {
         if (runtimeConfig.isPresent() && runtimeConfig.get() instanceof DbKeyValueServiceRuntimeConfig) {
