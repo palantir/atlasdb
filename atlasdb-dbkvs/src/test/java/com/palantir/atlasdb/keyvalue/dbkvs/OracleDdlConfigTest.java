@@ -98,6 +98,20 @@ public class OracleDdlConfigTest {
     }
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored") // We're interested in whether this throws an exception or not!
+    public void tableMappingAndLongNameSupportNotAllowedTogether() {
+        assertThatThrownBy(() -> ImmutableOracleDdlConfig.builder()
+                        .tablePrefix(getPrefixWithLength(5))
+                        .overflowTablePrefix(getPrefixWithLength(4))
+                        .overflowMigrationState(OverflowMigrationState.FINISHED)
+                        .longIdentifierNamesSupported(true)
+                        .useTableMapping(true)
+                        .build())
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("The table mapper does not support long identifier names");
+    }
+
+    @Test
     public void excessivelyLongPrefixesStillDisallowedEvenWithLongNameSupport() {
         assertThatThrownBy(() -> createLongNameSupportingOracleConfigWithPrefixes(
                         getPrefixWithLength(57), getPrefixWithLength(14)))
@@ -128,6 +142,7 @@ public class OracleDdlConfigTest {
                 .overflowTablePrefix(overflowTablePrefix)
                 .overflowMigrationState(OverflowMigrationState.FINISHED)
                 .longIdentifierNamesSupported(longIdentifierNamesSupported)
+                .useTableMapping(false)
                 .build();
     }
 
