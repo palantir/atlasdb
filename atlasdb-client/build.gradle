@@ -95,7 +95,7 @@ dependencies {
   testImplementation group: 'org.assertj', name: 'assertj-core'
   testImplementation group: 'org.awaitility', name: 'awaitility'
 
-  integrationInputCompile project(":atlasdb-client")
+  integrationInputImplementation project(":atlasdb-client")
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
