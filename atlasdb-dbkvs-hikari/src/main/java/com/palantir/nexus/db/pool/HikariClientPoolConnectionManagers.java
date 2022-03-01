@@ -28,9 +28,14 @@ public final class HikariClientPoolConnectionManagers {
         // lolz
     }
 
-    public static HikariCPConnectionManager create(ConnectionConfig config) {
-        if (config.reuseConnectionPool()) {
-            return SHARED_POOLS.computeIfAbsent(config, HikariCPConnectionManager::new);
+    public static HikariCPConnectionManager create(ConnectionConfig config, boolean shared) {
+        if (shared) {
+            return SHARED_POOLS.computeIfAbsent(config, cf -> new HikariCPConnectionManager(cf) {
+                @Override
+                public void close() {
+                    // do not close
+                }
+            });
         }
         return new HikariCPConnectionManager(config);
     }

@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -66,7 +67,11 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
             DbKeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             boolean initializeAsync) {
-        HikariCPConnectionManager connManager = HikariClientPoolConnectionManagers.create(config.connection());
+        HikariCPConnectionManager connManager = HikariClientPoolConnectionManagers.create(
+                config.connection(),
+                config.sharedResourcesConfig()
+                        .map(SharedResourcesConfig::shareConnection)
+                        .orElse(false));
         runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);

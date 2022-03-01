@@ -41,6 +41,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.v2.TimelockService;
 import dagger.Module;
 import dagger.Provides;
+import java.util.Optional;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -114,6 +115,7 @@ public class TestTransactionManagerModule {
                 true,
                 () -> config.atlasDbRuntimeConfig().transaction(),
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
     }
 }

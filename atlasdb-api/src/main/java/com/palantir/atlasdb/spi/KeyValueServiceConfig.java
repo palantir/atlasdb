@@ -15,9 +15,13 @@
  */
 package com.palantir.atlasdb.spi;
 
+import static com.palantir.logsafe.Preconditions.checkArgument;
+
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 /**
  * Marker interface for various AtlasDb KeyValueService config objects.
@@ -33,11 +37,23 @@ public interface KeyValueServiceConfig {
      */
     int concurrentGetRangesThreadPoolSize();
 
+    Optional<SharedResourcesConfig> sharedResourcesConfig();
+
     /**
      * The maximum number of threads from the pool of {@link #concurrentGetRangesThreadPoolSize()} to use
      * for a single getRanges request when the user does not explicitly provide a value.
      */
     default int defaultGetRangesConcurrency() {
         return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
+    }
+
+    @Value.Check
+    default void checkGetRangesPoolSizes() {
+        sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
+                        "If set, shared get ranges pool size must not be less than individual pool size.",
+                        SafeArg.of("shared", config.sharedGetRangesPoolSize()),
+                        SafeArg.of("indiviual", concurrentGetRangesThreadPoolSize())));
     }
 }

@@ -68,6 +68,7 @@ import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -508,7 +509,10 @@ public abstract class TransactionManagers {
                         validateLocksOnReads(),
                         transactionConfigSupplier,
                         conflictTracer,
-                        metricsFilterEvaluationContext()),
+                        metricsFilterEvaluationContext(),
+                        mergedKeyValueServiceConfig
+                                .sharedResourcesConfig()
+                                .map(SharedResourcesConfig::sharedGetRangesPoolSize)),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);

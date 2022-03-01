@@ -15,13 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.logsafe.Preconditions.checkArgument;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -56,11 +58,21 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     }
 
     @Value.Check
+    public void checkKvsPoolSize() {
+        sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.sharedKvsExecutorSize() >= ddl().poolSize(),
+                        "If set, shared kvs pool size must not be less than individual pool size.",
+                        SafeArg.of("shared", config.sharedKvsExecutorSize()),
+                        SafeArg.of("indiviual", ddl().poolSize())));
+    }
+
+    @Value.Check
     protected final void check() {
-        Preconditions.checkArgument(
+        checkArgument(
                 ddl().type().equals(connection().type()),
-                "ddl config (%s) and connection config (%s) must be for the same physical store",
-                ddl().type(),
-                connection().type());
+                "ddl config and connection config must be for the same physical store",
+                SafeArg.of("ddl", ddl().type()),
+                SafeArg.of("connection", connection().type()));
     }
 }
