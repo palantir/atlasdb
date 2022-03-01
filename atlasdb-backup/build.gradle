@@ -25,7 +25,7 @@ dependencies {
     implementation project(':timestamp-impl')
 
     testImplementation 'org.mockito:mockito-core'
-    testImplementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
+    testImplementation 'commons-codec:commons-codec'
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
 }
