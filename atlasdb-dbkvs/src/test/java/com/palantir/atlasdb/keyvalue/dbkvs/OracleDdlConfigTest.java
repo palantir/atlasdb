@@ -45,8 +45,7 @@ public class OracleDdlConfigTest {
         assertThatThrownBy(() -> createLegacyCompatibleOracleConfigWithPrefixes("a", ACCEPTED_OVERFLOW_PREFIX))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("'tablePrefix' must end with an underscore or a dollar sign");
-        assertThatCode(() ->
-                createLegacyCompatibleOracleConfigWithPrefixes("a$", ACCEPTED_OVERFLOW_PREFIX))
+        assertThatCode(() -> createLegacyCompatibleOracleConfigWithPrefixes("a$", ACCEPTED_OVERFLOW_PREFIX))
                 .doesNotThrowAnyException();
     }
 
@@ -62,8 +61,7 @@ public class OracleDdlConfigTest {
         assertThatThrownBy(() -> createLegacyCompatibleOracleConfigWithPrefixes(ACCEPTED_PREFIX, "ao"))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("'overflowTablePrefix' must end with an underscore or a dollar sign");
-        assertThatCode(() ->
-                createLegacyCompatibleOracleConfigWithPrefixes(ACCEPTED_PREFIX, "b$"))
+        assertThatCode(() -> createLegacyCompatibleOracleConfigWithPrefixes(ACCEPTED_PREFIX, "b$"))
                 .doesNotThrowAnyException();
     }
 

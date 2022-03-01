@@ -128,13 +128,14 @@ public abstract class OracleDdlConfig extends DdlConfig {
         Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
         Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
         Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
-        Preconditions.checkState(tablePrefix().endsWith("_") || tablePrefix().endsWith("$"), "Oracle 'tablePrefix' "
-                + "must end with an underscore or a dollar sign.");
+        Preconditions.checkState(
+                tablePrefix().endsWith("_") || tablePrefix().endsWith("$"),
+                "Oracle 'tablePrefix' " + "must end with an underscore or a dollar sign.");
         Preconditions.checkState(
                 !overflowTablePrefix().startsWith("_"), "Oracle 'overflowTablePrefix' cannot begin with underscore.");
         Preconditions.checkState(
-                overflowTablePrefix().endsWith("_") || overflowTablePrefix().endsWith("$"), "Oracle "
-                        + "'overflowTablePrefix' must end with an underscore or a dollar sign.");
+                overflowTablePrefix().endsWith("_") || overflowTablePrefix().endsWith("$"),
+                "Oracle " + "'overflowTablePrefix' must end with an underscore or a dollar sign.");
 
         checkTablePrefixLengthLimits();
 
