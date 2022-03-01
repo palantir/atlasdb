@@ -48,7 +48,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
 
     /**
      * @deprecated This method does not support live reloading the DB password. Use
-     * {@link #create(DbKeyValueServiceConfig, Refreshable, boolean)} instead.
+     * {@link #create(DbKeyValueServiceConfig, Refreshable, Optional, boolean)} instead.
      */
     @Deprecated
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config) {
@@ -57,7 +57,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
 
     /**
      * @deprecated This method does not support live reloading the DB password. Use
-     * {@link #create(DbKeyValueServiceConfig, Refreshable, boolean)} instead.
+     * {@link #create(DbKeyValueServiceConfig, Refreshable, Optional, boolean)} instead.
      */
     @Deprecated
     @SuppressWarnings("InlineMeSuggester")
