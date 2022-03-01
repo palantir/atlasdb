@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -108,8 +109,14 @@ public abstract class OracleDdlConfig extends DdlConfig {
     @Value.Default
     @JsonIgnore
     public boolean useTableMapping() {
-        return true;
+        return forceTableMapping().orElse(true);
     }
+
+    /**
+     * This should only be used for AtlasDB Proxy in specialized contexts.
+     */
+    @JsonProperty("forceTableMappingIAmOnThePersistenceTeamAndKnowWhatIAmDoing")
+    public abstract Optional<Boolean> forceTableMapping();
 
     @Override
     public final String type() {

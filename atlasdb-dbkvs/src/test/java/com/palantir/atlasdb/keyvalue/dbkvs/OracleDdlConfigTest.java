@@ -20,9 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Test;
 
 public class OracleDdlConfigTest {
@@ -123,6 +125,28 @@ public class OracleDdlConfigTest {
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("'overflowTablePrefix' exceeds the length limit")
                 .hasMessageContaining("56");
+    }
+
+    @Test
+    public void tableMappingIsByDefaultOn() {
+        assertThat(ImmutableOracleDdlConfig.builder()
+                        .overflowMigrationState(OverflowMigrationState.FINISHED)
+                        .build()
+                        .useTableMapping())
+                .isTrue();
+    }
+
+    @Test
+    public void canSetTableMappingExplicitly() {
+        List<Boolean> values = ImmutableList.of(false, true);
+        for (boolean value : values) {
+            assertThat(ImmutableOracleDdlConfig.builder()
+                            .overflowMigrationState(OverflowMigrationState.FINISHED)
+                            .forceTableMapping(value)
+                            .build()
+                            .useTableMapping())
+                    .isEqualTo(value);
+        }
     }
 
     private static OracleDdlConfig createLegacyCompatibleOracleConfigWithPrefixes(
