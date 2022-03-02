@@ -318,13 +318,7 @@ public abstract class BasicSQL {
                 }
             } catch (Exception e) {
                 // if we throw, we need to clean up any blobs we have already made
-                for (BlobHandler cleanupBlob : toClean) {
-                    try {
-                        cleanupBlob.freeTemporary();
-                    } catch (Exception e1) {
-                        SqlLoggers.LOGGER.error("failed to free temp blob", e1); // $NON-NLS-1$
-                    }
-                }
+                cleanupBlobs(toClean);
                 BasicSQLUtils.throwUncheckedIfSQLException(e);
                 throw Throwables.throwUncheckedException(e);
             }
@@ -337,6 +331,9 @@ public abstract class BasicSQL {
         final Collection<BlobHandler> toCleanup;
 
         static PreparedStatement create(PreparedStatement ps, Collection<BlobHandler> toCleanup) {
+            if (toCleanup.isEmpty()) {
+                return ps; // no temporary BLOBs to clean up on close
+            }
             return (PreparedStatement) Proxy.newProxyInstance(
                     PreparedStatement.class.getClassLoader(),
                     new Class<?>[] {PreparedStatement.class},
@@ -353,18 +350,24 @@ public abstract class BasicSQL {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if (method.getName().equals("close")) { // $NON-NLS-1$
-                for (BlobHandler cleanup : toCleanup) {
-                    try {
-                        cleanup.freeTemporary();
-                    } catch (Exception e) {
-                        SqlLoggers.LOGGER.error("failed to free temp blob", e); // $NON-NLS-1$
-                    }
-                }
+                cleanupBlobs(this.toCleanup);
             }
             try {
                 return method.invoke(ps, args);
             } catch (InvocationTargetException e) {
                 throw e.getCause();
+            }
+        }
+    }
+
+    private static void cleanupBlobs(Collection<BlobHandler> toCleanup) {
+        if (!toCleanup.isEmpty()) {
+            for (BlobHandler cleanup : toCleanup) {
+                try {
+                    cleanup.freeTemporary();
+                } catch (Exception e) {
+                    SqlLoggers.LOGGER.error("failed to free temp blob", e); // $NON-NLS-1$
+                }
             }
         }
     }
@@ -870,13 +873,7 @@ public abstract class BasicSQL {
                     } finally {
                         closeSilently(ps);
                         timerKey.stop();
-                        for (BlobHandler cleanup : cleanups) {
-                            try {
-                                cleanup.freeTemporary();
-                            } catch (Exception e) {
-                                SqlLoggers.LOGGER.error("failed to free temp blob", e); // $NON-NLS-1$
-                            }
-                        }
+                        cleanupBlobs(cleanups);
                     }
                     return null;
                 },
@@ -945,13 +942,7 @@ public abstract class BasicSQL {
                     } finally {
                         closeSilently(ps);
                         timerKey.stop();
-                        for (BlobHandler cleanup : cleanups) {
-                            try {
-                                cleanup.freeTemporary();
-                            } catch (Exception e) {
-                                SqlLoggers.LOGGER.error("failed to free temp blob", e); // $NON-NLS-1$
-                            }
-                        }
+                        cleanupBlobs(cleanups);
                     }
                     if (inserted == null || inserted.length != vs.length) {
                         assert false;
