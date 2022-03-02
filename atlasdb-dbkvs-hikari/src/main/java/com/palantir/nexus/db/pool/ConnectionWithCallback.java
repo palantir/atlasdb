@@ -17,21 +17,32 @@
 package com.palantir.nexus.db.pool;
 
 import com.google.common.reflect.Reflection;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ConnectionWithCallback {
     private ConnectionWithCallback() {
-        // sdfgj
+        // why
     }
 
+    /**
+     * Returns a proxy that delegates all calls, and calls the callback exactly once immediately after the
+     * {@link Connection#close()} method is called.
+     */
     @SuppressWarnings("ProxyNonConstantType")
     public static Connection wrap(Connection delegate, Runnable callback) {
+        AtomicBoolean runCallback = new AtomicBoolean(true);
         return Reflection.newProxy(Connection.class, (proxy, method, args) -> {
             try {
                 return method.invoke(delegate, args);
+            } catch (InvocationTargetException e) {
+                throw e.getCause();
             } finally {
                 if (method.getName().equals("close")) {
-                    callback.run();
+                    if (runCallback.compareAndExchange(true, false)) {
+                        callback.run();
+                    }
                 }
             }
         });

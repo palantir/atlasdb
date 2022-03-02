@@ -23,7 +23,14 @@ import java.sql.SQLException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-public class HikariClientPoolConnectionManagerView implements ConnectionManager {
+/**
+ * This is an implementation {@link ConnectionManager} that delegates to a shared underlying
+ * {@link HikariCPConnectionManager}, but only allows a fixed number of connections to be given out at any given time.
+ * Closing the borrowed connection allows for borrowing a new connection.
+ * Since the underlying connection manager is shared, the {@link #close()} and {@link #closeUnchecked()} methods are
+ * no-ops.
+ */
+public class HikariClientPoolConnectionManagerView extends BaseConnectionManager {
     private final HikariCPConnectionManager sharedManager;
     private final Semaphore semaphore;
     private final int timeout;
@@ -56,34 +63,8 @@ public class HikariClientPoolConnectionManagerView implements ConnectionManager 
     }
 
     @Override
-    public Connection getConnectionUnchecked() {
-        try {
-            if (semaphore.tryAcquire(timeout, TimeUnit.SECONDS)) {
-                Connection connection;
-                try {
-                    connection = sharedManager.getConnectionUnchecked();
-                } catch (RuntimeException e) {
-                    semaphore.release();
-                    throw e;
-                }
-                return ConnectionWithCallback.wrap(connection, semaphore::release);
-            } else {
-                throw new SafeRuntimeException("timed out waiting to acquire connection");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new SafeRuntimeException("interrupted waiting for a shared connection", e);
-        }
-    }
-
-    @Override
     public void close() throws SQLException {
-        // ignore
-    }
-
-    @Override
-    public void closeUnchecked() {
-        // ignore
+        // do not close shared manager
     }
 
     @Override
@@ -93,12 +74,7 @@ public class HikariClientPoolConnectionManagerView implements ConnectionManager 
 
     @Override
     public void init() throws SQLException {
-        // no
-    }
-
-    @Override
-    public void initUnchecked() {
-        // no
+        sharedManager.init();
     }
 
     @Override

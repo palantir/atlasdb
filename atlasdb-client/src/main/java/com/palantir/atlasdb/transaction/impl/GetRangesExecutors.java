@@ -40,10 +40,10 @@ public final class GetRangesExecutors {
     public static ExecutorService createGetRangesExecutor(
             int numThreads, String prefix, Optional<Integer> sharedExecutorThreads) {
         String name = prefix + "-get-ranges";
-        return wrap(SharedFixedExecutors.createOrGetShared(name, numThreads, sharedExecutorThreads));
+        return wrapWithSizeMonitoring(SharedFixedExecutors.createOrGetShared(name, numThreads, sharedExecutorThreads));
     }
 
-    private static ExecutorService wrap(ExecutorService executor) {
+    private static ExecutorService wrapWithSizeMonitoring(ExecutorService executor) {
         return new AbstractExecutorService() {
             private final RateLimitedLogger warningLogger = new RateLimitedLogger(log, 1);
             private final AtomicInteger queueSizeEstimate = new AtomicInteger();
@@ -86,7 +86,7 @@ public final class GetRangesExecutors {
                 int currentSize = queueSizeEstimate.getAndIncrement();
                 if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD) {
                     warningLogger.log(logger -> logger.warn(
-                            "You have {} pending getRanges tasks. Please sanity check both your level "
+                            "You have many pending getRanges tasks. Please sanity check both your level "
                                     + "of concurrency and size of batched range requests. If necessary you can "
                                     + "increase the value of concurrentGetRangesThreadPoolSize to allow for a larger "
                                     + "thread pool.",
