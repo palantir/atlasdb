@@ -46,6 +46,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampManagementService;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -263,7 +264,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp())

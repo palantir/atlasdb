@@ -19,6 +19,7 @@ import static com.palantir.logsafe.Preconditions.checkArgument;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -114,6 +115,11 @@ public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueSer
                 .get()
                 .map(_runtime -> poolSize() * servers().numberOfThriftHosts())
                 .orElseGet(config::concurrentGetRangesThreadPoolSize);
+    }
+
+    @Override
+    public Optional<SharedResourcesConfig> sharedResourcesConfig() {
+        return config.sharedResourcesConfig();
     }
 
     @Override

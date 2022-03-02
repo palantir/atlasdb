@@ -86,12 +86,14 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.concurrent.SharedFixedExecutors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -160,7 +162,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
 
     public static DbKeyValueService create(
             DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier, boolean initializeAsync) {
-        DbKvs dbKvs = createNoInit(config.ddl(), sqlConnSupplier);
+        DbKvs dbKvs = createNoInit(config.ddl(), sqlConnSupplier, config.sharedResourcesConfig());
         dbKvs.wrapper.initialize(initializeAsync);
         return dbKvs.wrapper.isInitialized() ? dbKvs : dbKvs.wrapper;
     }
@@ -170,10 +172,15 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
      * be used directly and is exposed to support legacy software.  Instead you should prefer the use of
      * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
-    public static DbKvs createNoInit(DdlConfig config, SqlConnectionSupplier connections) {
-        ExecutorService executor =
-                AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize());
-        return config.accept(new DdlConfig.Visitor<DbKvs>() {
+    public static DbKvs createNoInit(
+            DdlConfig config,
+            SqlConnectionSupplier connections,
+            Optional<SharedResourcesConfig> sharedResourcesConfig) {
+        ExecutorService executor = SharedFixedExecutors.createOrGetShared(
+                "Atlas Relational KVS",
+                config.poolSize(),
+                sharedResourcesConfig.map(SharedResourcesConfig::sharedKvsExecutorSize));
+        return config.accept(new DdlConfig.Visitor<>() {
             @Override
             public DbKvs visit(PostgresDdlConfig postgresDdlConfig) {
                 return createPostgres(executor, postgresDdlConfig, connections);

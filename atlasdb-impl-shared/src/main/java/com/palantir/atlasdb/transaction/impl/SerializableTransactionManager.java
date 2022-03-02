@@ -240,7 +240,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
+            Optional<Integer> sharedGetRangesPoolSize) {
 
         return create(
                 metricsManager,
@@ -268,7 +269,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 true,
                 conflictTracer,
-                metricsFilterEvaluationContext);
+                metricsFilterEvaluationContext,
+                sharedGetRangesPoolSize);
     }
 
     public static TransactionManager create(
@@ -294,7 +296,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
+            Optional<Integer> sharedGetRangesPoolSize) {
 
         return create(
                 metricsManager,
@@ -321,7 +324,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                metricsFilterEvaluationContext);
+                metricsFilterEvaluationContext,
+                sharedGetRangesPoolSize);
     }
 
     public static TransactionManager create(
@@ -348,7 +352,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
+            Optional<Integer> sharedGetRangesPoolSize) {
         return create(
                 metricsManager,
                 keyValueService,
@@ -374,7 +379,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 false,
                 conflictTracer,
-                metricsFilterEvaluationContext);
+                metricsFilterEvaluationContext,
+                sharedGetRangesPoolSize);
     }
 
     private static TransactionManager create(
@@ -402,7 +408,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<TransactionConfig> transactionConfig,
             boolean shouldInstrument,
             ConflictTracer conflictTracer,
-            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
+            Optional<Integer> sharedGetRangesPoolSize) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -424,7 +431,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                metricsFilterEvaluationContext);
+                metricsFilterEvaluationContext,
+                sharedGetRangesPoolSize);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -476,7 +484,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
     }
 
     public SerializableTransactionManager(
@@ -500,7 +509,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
+            Optional<Integer> sharedGetRangesPoolSize) {
         super(
                 metricsManager,
                 keyValueService,
@@ -522,7 +532,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                metricsFilterEvaluationContext);
+                metricsFilterEvaluationContext,
+                sharedGetRangesPoolSize);
         this.conflictTracer = conflictTracer;
     }
 

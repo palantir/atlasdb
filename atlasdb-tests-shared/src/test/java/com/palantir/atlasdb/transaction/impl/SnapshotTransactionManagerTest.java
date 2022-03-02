@@ -54,6 +54,7 @@ import com.palantir.timestamp.ManagedTimestampService;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.Before;
@@ -104,7 +105,8 @@ public class SnapshotTransactionManagerTest {
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
     }
 
     @Test
@@ -159,7 +161,8 @@ public class SnapshotTransactionManagerTest {
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
         newTransactionManager.close(); // should not throw
     }
 
@@ -288,6 +291,7 @@ public class SnapshotTransactionManagerTest {
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
                         .build(),
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
     }
 }

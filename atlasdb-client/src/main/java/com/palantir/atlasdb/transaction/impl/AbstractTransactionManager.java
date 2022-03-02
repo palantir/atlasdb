@@ -24,22 +24,11 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.util.RateLimitedLogger;
-import java.util.List;
-import java.util.concurrent.AbstractExecutorService;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
-    private static final SafeLogger log = SafeLoggerFactory.get(AbstractTransactionManager.class);
-    private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
-
     final TimestampCache timestampValidationReadCache;
     private volatile boolean closed = false;
 
@@ -91,61 +80,9 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         timestampValidationReadCache.clear();
     }
 
-    @SuppressWarnings("DangerousThreadPoolExecutorUsage")
-    ExecutorService createGetRangesExecutor(int numThreads) {
-        ExecutorService executor = PTExecutors.newFixedThreadPool(
-                numThreads, AbstractTransactionManager.this.getClass().getSimpleName() + "-get-ranges");
-
-        return new AbstractExecutorService() {
-            private final RateLimitedLogger warningLogger = new RateLimitedLogger(log, 1);
-            private final AtomicInteger queueSizeEstimate = new AtomicInteger();
-
-            @Override
-            public void shutdown() {
-                executor.shutdown();
-            }
-
-            @Override
-            public List<Runnable> shutdownNow() {
-                return executor.shutdownNow();
-            }
-
-            @Override
-            public boolean isShutdown() {
-                return executor.isShutdown();
-            }
-
-            @Override
-            public boolean isTerminated() {
-                return executor.isTerminated();
-            }
-
-            @Override
-            public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-                return executor.awaitTermination(timeout, unit);
-            }
-
-            @Override
-            public void execute(Runnable command) {
-                sanityCheckAndIncrementQueueSize();
-                executor.execute(() -> {
-                    queueSizeEstimate.getAndDecrement();
-                    command.run();
-                });
-            }
-
-            private void sanityCheckAndIncrementQueueSize() {
-                int currentSize = queueSizeEstimate.getAndIncrement();
-                if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD) {
-                    warningLogger.log(logger -> logger.warn(
-                            "You have {} pending getRanges tasks. Please sanity check both your level "
-                                    + "of concurrency and size of batched range requests. If necessary you can "
-                                    + "increase the value of concurrentGetRangesThreadPoolSize to allow for a larger "
-                                    + "thread pool.",
-                            SafeArg.of("currentSize", currentSize)));
-                }
-            }
-        };
+    ExecutorService createGetRangesExecutor(int numThreads, Optional<Integer> sharedExecutorSize) {
+        return GetRangesExecutors.createGetRangesExecutor(
+                numThreads, AbstractTransactionManager.this.getClass().getSimpleName(), sharedExecutorSize);
     }
 
     @Override
