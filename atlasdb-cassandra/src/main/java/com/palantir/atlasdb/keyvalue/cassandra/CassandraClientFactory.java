@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
@@ -31,13 +32,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.util.HashMap;
-import java.util.Map;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import org.apache.cassandra.thrift.AuthenticationRequest;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -51,6 +45,14 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientFactory.class);
@@ -75,7 +77,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @Override
     public CassandraClient create() {
         try {
-            return instrumentClient(getRawClientWithKeyspace(addr, config));
+            return instrumentClient(getRawClientWithKeyspace());
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -96,19 +98,17 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return client;
     }
 
-    private Cassandra.Client getRawClientWithKeyspace(
-            InetSocketAddress inetSocketAddress, CassandraKeyValueServiceConfig kvsConfig) throws TException {
-        Client ret = getRawClient(inetSocketAddress, kvsConfig, sslSocketFactory);
+    private Cassandra.Client getRawClientWithKeyspace() throws TException {
+        Client ret = getRawClientWithTimedCreation();
         try {
-            ret.set_keyspace(kvsConfig.getKeyspaceOrThrow());
+            ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug(
                     "Created new client for {}/{}{}{}",
-                    SafeArg.of("address", CassandraLogHelper.host(inetSocketAddress)),
-                    UnsafeArg.of("keyspace", kvsConfig.getKeyspaceOrThrow()),
-                    SafeArg.of("usingSsl", kvsConfig.usingSsl() ? " over SSL" : ""),
+                    SafeArg.of("address", CassandraLogHelper.host(addr)),
+                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
+                    SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
                     UnsafeArg.of(
-                            "usernameConfig",
-                            " as user " + kvsConfig.credentials().username()));
+                            "usernameConfig", " as user " + config.credentials().username()));
             return ret;
         } catch (TException e) {
             ret.getOutputProtocol().getTransport().close();
@@ -126,6 +126,13 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 .map(sslSocketFactoryCache::get)
                 // This path should never be hit in production code, since we expect SSL is configured explicitly.
                 .orElseGet(() -> (SSLSocketFactory) SSLSocketFactory.getDefault());
+    }
+
+    private Cassandra.Client getRawClientWithTimedCreation() throws TException {
+        Timer clientCreation = metricsManager.registerOrGetTimer(CassandraClientFactory.class, "clientCreation");
+        try (Timer.Context unused = clientCreation.time()) {
+            return getRawClient(addr, config, sslSocketFactory);
+        }
     }
 
     private static Cassandra.Client getRawClient(
