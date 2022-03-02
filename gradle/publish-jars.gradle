@@ -5,10 +5,6 @@ apply plugin: 'com.palantir.external-publish-jar'
 publishing {
     publications {
         maven(MavenPublication) {
-            artifact(testJarForPublishing) {
-                classifier 'tests'
-            }
-
             // This interfaces between Shadow and Nebula
             def hasShadowConfiguration = project.configurations.findByName('shadow') != null
             if (hasShadowConfiguration) {
