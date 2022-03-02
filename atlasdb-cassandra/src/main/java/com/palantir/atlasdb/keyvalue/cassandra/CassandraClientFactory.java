@@ -32,6 +32,13 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.util.HashMap;
+import java.util.Map;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import org.apache.cassandra.thrift.AuthenticationRequest;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -45,14 +52,6 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientFactory.class);
@@ -140,15 +139,13 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             throws TException {
         TSocket thriftSocket = new TSocket(addr.getHostString(), addr.getPort(), config.socketTimeoutMillis());
         thriftSocket.open();
-        try {
-            thriftSocket.getSocket().setKeepAlive(true);
-            thriftSocket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis());
-        } catch (SocketException e) {
-            log.error(
-                    "Couldn't set socket keep alive for host {}",
-                    SafeArg.of("address", CassandraLogHelper.host(addr)),
-                    e);
-        }
+        setSocketOptions(
+                thriftSocket,
+                socket -> {
+                    socket.getSocket().setKeepAlive(true);
+                    socket.getSocket().setSoTimeout(config.initialSocketQueryTimeoutMillis());
+                },
+                addr);
 
         if (config.usingSsl()) {
             boolean success = false;
@@ -172,6 +169,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
         try {
             login(client, config.credentials());
+            setSocketOptions(
+                    thriftSocket, socket -> socket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis()), addr);
         } catch (TException e) {
             client.getOutputProtocol().getTransport().close();
             log.error("Exception thrown attempting to authenticate with config provided credentials", e);
@@ -248,5 +247,19 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         public Exception getCause() {
             return (Exception) super.getCause();
         }
+    }
+
+    private static void setSocketOptions(TSocket thriftSocket, SocketConsumer consumer, InetSocketAddress addr) {
+        try {
+            consumer.accept(thriftSocket);
+        } catch (SocketException e) {
+            log.error(
+                    "Couldn't set socket options for host {}", SafeArg.of("address", CassandraLogHelper.host(addr)), e);
+        }
+    }
+
+    @FunctionalInterface
+    private interface SocketConsumer {
+        void accept(TSocket value) throws SocketException;
     }
 }
