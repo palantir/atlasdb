@@ -173,15 +173,7 @@ public final class PTExecutors {
         return MetricRegistries.executor()
                 .registry(SharedTaggedMetricRegistries.getSingleton())
                 .name(name)
-                .executor(PTExecutors.wrap(
-                        name,
-                        NylonExecutor.builder()
-                                .name(name)
-                                .executor(SHARED_EXECUTOR.get())
-                                .maxThreads(maxThreads)
-                                .queueSize(0)
-                                .uncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                                .build()))
+                .executor(PTExecutors.wrap(name, getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
                 // Unhelpful for cached executors
                 .reportQueuedDuration(false)
                 .build();
@@ -266,15 +258,19 @@ public final class PTExecutors {
     public static ExecutorService newFixedThreadPool(int numThreads, String name) {
         return MetricRegistries.instrument(
                 SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(
-                        name,
-                        NylonExecutor.builder()
-                                .name(name)
-                                .executor(SHARED_EXECUTOR.get())
-                                .maxThreads(numThreads)
-                                .uncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                                .build()),
+                PTExecutors.wrap(name, getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
                 name);
+    }
+
+    public static ExecutorService getViewExecutor(
+            String name, int numThreads, int queueSize, ExecutorService delegate) {
+        return NylonExecutor.builder()
+                .name(name)
+                .executor(delegate)
+                .maxThreads(numThreads)
+                .queueSize(queueSize)
+                .uncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE)
+                .build();
     }
 
     /**

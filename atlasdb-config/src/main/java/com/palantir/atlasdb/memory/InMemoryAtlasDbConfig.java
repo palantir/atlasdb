@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -41,6 +42,11 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     @Value.Default
     public int concurrentGetRangesThreadPoolSize() {
         return 64;
+    }
+
+    @Override
+    public Optional<SharedResourcesConfig> sharedResourcesConfig() {
+        return Optional.empty();
     }
 
     @Override

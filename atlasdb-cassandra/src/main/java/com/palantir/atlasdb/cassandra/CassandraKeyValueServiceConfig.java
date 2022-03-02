@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import static com.palantir.logsafe.Preconditions.checkArgument;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -31,6 +33,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
@@ -398,5 +401,15 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Value.Default
     default int numPoolRefreshingThreads() {
         return 1;
+    }
+
+    @Value.Check
+    default void checkGetRangesPoolSizes() {
+        sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
+                        "If set, shared get ranges pool size must not be less than individual pool size.",
+                        SafeArg.of("shared", config.sharedGetRangesPoolSize()),
+                        SafeArg.of("individual", concurrentGetRangesThreadPoolSize())));
     }
 }

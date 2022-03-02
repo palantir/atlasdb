@@ -48,6 +48,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -293,7 +294,8 @@ public class SerializableTransactionManagerTest {
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
     }
 
     private void nothingInitialized() {
