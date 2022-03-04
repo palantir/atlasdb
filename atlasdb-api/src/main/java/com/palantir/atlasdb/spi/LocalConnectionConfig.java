@@ -16,9 +16,11 @@
 
 package com.palantir.atlasdb.spi;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@JsonDeserialize(as = ImmutableLocalConnectionConfig.class)
 public interface LocalConnectionConfig {
     int poolSize();
 
