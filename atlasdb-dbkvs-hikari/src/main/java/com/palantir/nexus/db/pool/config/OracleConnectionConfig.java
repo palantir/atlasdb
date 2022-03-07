@@ -78,6 +78,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
                         namespaceOverride(),
                         getSid(),
                         serviceNameConfiguration().map(ServiceNameConfiguration::namespaceOverride))
+                .filter(Optional::isPresent)
                 .findFirst()
                 .orElseThrow(() -> new SafeIllegalStateException("Could not determine namespace for Oracle config"));
     }
