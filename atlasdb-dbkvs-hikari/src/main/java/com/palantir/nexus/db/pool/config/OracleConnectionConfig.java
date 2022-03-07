@@ -68,7 +68,6 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     }
 
     @Override
-    @Value.Default
     public Optional<String> namespace() {
         if (getSid().isPresent()) {
             return getSid();
