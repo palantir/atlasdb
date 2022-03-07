@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: Users may now explicitly override the `namespace` of an Oracle connection
+    configuration, which is usually the mechanism by which an individual AtlasDB user
+    identifies itself (e.g. to timelock and possibly to the underlying key-value-service).
+    This was previously automatically assumed to be the `sid` of the Oracle database;
+    however, that is not actually the way an individual AtlasDB user identifies itself.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5942
