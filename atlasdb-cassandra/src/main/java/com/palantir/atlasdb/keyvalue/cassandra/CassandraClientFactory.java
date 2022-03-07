@@ -76,7 +76,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @Override
     public CassandraClient create() {
         try {
-            return instrumentClient(getRawClientWithKeyspace());
+            return instrumentClient(getRawClientWithKeyspaceSet());
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -97,7 +97,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return client;
     }
 
-    private Cassandra.Client getRawClientWithKeyspace() throws TException {
+    private Cassandra.Client getRawClientWithKeyspaceSet() throws TException {
         Client ret = getRawClientWithTimedCreation();
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
@@ -129,7 +129,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     private Cassandra.Client getRawClientWithTimedCreation() throws TException {
         Timer clientCreation = metricsManager.registerOrGetTimer(CassandraClientFactory.class, "clientCreation");
-        try (Timer.Context unused = clientCreation.time()) {
+        try (Timer.Context timer = clientCreation.time()) {
             return getRawClient(addr, config, sslSocketFactory);
         }
     }

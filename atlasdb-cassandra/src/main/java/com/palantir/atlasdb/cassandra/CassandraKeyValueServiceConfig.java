@@ -329,7 +329,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * When a Cassandra node is down or acting malignantly, it is plausible that we succeed in creating a socket but
      * subsequently do not read anything, and thus are at the mercy of the {@link #socketQueryTimeoutMillis()}. This is
      * particularly problematic on the creation of transaction managers and client pools in general: we can end up in
-     * a state where a query to a bad host blocks us for up to 126 seconds with default settings (due to retrying three
+     * a state where a query to a bad host blocks us for up to 186 seconds with default settings (due to retrying three
      * times on the first node).
      *
      * This initial timeout actually affects the creation of the clients themselves, and is only set for the call to
