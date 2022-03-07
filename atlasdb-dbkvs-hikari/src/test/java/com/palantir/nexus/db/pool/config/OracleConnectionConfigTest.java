@@ -26,6 +26,7 @@ import com.palantir.nexus.db.pool.config.OracleConnectionConfig.ServiceNameConfi
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import org.junit.Test;
 
@@ -36,6 +37,7 @@ public class OracleConnectionConfigTest {
     private static final int PORT = 42;
     private static final MaskedValue PASSWORD = ImmutableMaskedValue.of("password");
     private static final String SID = "sid";
+    private static final Optional<String> NAMESPACE = Optional.of("namespace");
     private static final ServiceNameConfiguration SERVICE_NAME_CONFIGURATION = new ServiceNameConfiguration.Builder()
             .serviceName("serviceName")
             .namespaceOverride("namespaceOverride")
@@ -72,17 +74,30 @@ public class OracleConnectionConfigTest {
     }
 
     @Test
-    public void namespaceIsSidIfPresent() {
+    public void namespaceDefaultsToSidIfPresent() {
         OracleConnectionConfig connectionConfig = getBaseBuilder().sid(SID).build();
         assertThat(connectionConfig.namespace()).contains(SID);
     }
 
     @Test
-    public void namespaceIsNamespaceOverrideIfServiceNameConfigurationSpecified() {
+    public void namespaceDefaultsToNamespaceOverrideIfServiceNameConfigurationSpecified() {
         OracleConnectionConfig connectionConfig = getBaseBuilder()
                 .serviceNameConfiguration(SERVICE_NAME_CONFIGURATION)
                 .build();
         assertThat(connectionConfig.namespace()).contains(SERVICE_NAME_CONFIGURATION.namespaceOverride());
+    }
+
+    @Test
+    public void namespaceCanBeManuallyOverridden() {
+        OracleConnectionConfig sidBasedConfig =
+                getBaseBuilder().sid(SID).namespace(NAMESPACE).build();
+        assertThat(sidBasedConfig.namespace()).isEqualTo(NAMESPACE);
+
+        OracleConnectionConfig serviceNameConfigurationBasedConfig = getBaseBuilder()
+                .serviceNameConfiguration(SERVICE_NAME_CONFIGURATION)
+                .namespace(NAMESPACE)
+                .build();
+        assertThat(serviceNameConfigurationBasedConfig.namespace()).isEqualTo(NAMESPACE);
     }
 
     @Test

@@ -15,7 +15,6 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -69,8 +68,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     }
 
     @Override
-    @Value.Derived
-    @JsonIgnore
+    @Value.Default
     public Optional<String> namespace() {
         if (getSid().isPresent()) {
             return getSid();
