@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: encrypted-config-value 4.0.0
+  links:
+  - https://github.com/palantir/atlasdb/pull/5939
