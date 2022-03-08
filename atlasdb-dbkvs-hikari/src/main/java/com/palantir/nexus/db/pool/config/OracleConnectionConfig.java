@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
@@ -31,7 +30,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
@@ -74,16 +72,11 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Value.Derived
     @JsonIgnore
     public Optional<String> namespace() {
-        return Stream.of(
-                        namespaceOverride(),
-                        getSid(),
-                        serviceNameConfiguration().map(ServiceNameConfiguration::namespaceOverride))
-                .filter(Optional::isPresent)
-                .findFirst()
-                .orElseThrow(() -> new SafeIllegalStateException("Could not determine namespace for Oracle config"));
+        if (getSid().isPresent()) {
+            return getSid();
+        }
+        return serviceNameConfiguration().map(ServiceNameConfiguration::namespaceOverride);
     }
-
-    public abstract Optional<String> namespaceOverride();
 
     @Override
     @Value.Default

@@ -73,30 +73,17 @@ public class OracleConnectionConfigTest {
     }
 
     @Test
-    public void namespaceDefaultsToSidIfPresent() {
+    public void namespaceIsSidIfPresent() {
         OracleConnectionConfig connectionConfig = getBaseBuilder().sid(SID).build();
         assertThat(connectionConfig.namespace()).contains(SID);
     }
 
     @Test
-    public void namespaceDefaultsToNamespaceOverrideIfServiceNameConfigurationSpecified() {
+    public void namespaceIsNamespaceOverrideIfServiceNameConfigurationSpecified() {
         OracleConnectionConfig connectionConfig = getBaseBuilder()
                 .serviceNameConfiguration(SERVICE_NAME_CONFIGURATION)
                 .build();
         assertThat(connectionConfig.namespace()).contains(SERVICE_NAME_CONFIGURATION.namespaceOverride());
-    }
-
-    @Test
-    public void namespaceManualOverrideTakesPrecedence() {
-        OracleConnectionConfig sidBasedConfig =
-                getBaseBuilder().sid(SID).namespaceOverride(NAMESPACE).build();
-        assertThat(sidBasedConfig.namespace()).contains(NAMESPACE);
-
-        OracleConnectionConfig serviceNameConfigurationBasedConfig = getBaseBuilder()
-                .serviceNameConfiguration(SERVICE_NAME_CONFIGURATION)
-                .namespaceOverride(NAMESPACE)
-                .build();
-        assertThat(serviceNameConfigurationBasedConfig.namespace()).contains(NAMESPACE);
     }
 
     @Test
