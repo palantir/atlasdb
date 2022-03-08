@@ -63,6 +63,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final CassandraKeyValueServiceConfig config;
     private final SSLSocketFactory sslSocketFactory;
     private final TimedRunner timedRunner;
+    private final TSocketFactory tSocketFactory;
 
     public CassandraClientFactory(
             MetricsManager metricsManager, InetSocketAddress addr, CassandraKeyValueServiceConfig config) {
@@ -71,6 +72,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionClose());
+        this.tSocketFactory = new InstrumentedSocket.Factory(
+                metricsManager.registerOrGetCounter(CassandraClientFactory.class, "bytesRead"),
+                metricsManager.registerOrGetCounter(CassandraClientFactory.class, "bytesWritten"));
     }
 
     @Override
@@ -117,7 +121,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     static CassandraClient getClientInternal(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
             throws TException {
-        return new CassandraClientImpl(getRawClient(addr, config, createSslSocketFactory(config)));
+        return new CassandraClientImpl(
+                getRawClient(addr, config, createSslSocketFactory(config), TSocketFactory.Default.INSTANCE));
     }
 
     private static SSLSocketFactory createSslSocketFactory(CassandraKeyValueServiceConfig config) {
@@ -130,14 +135,18 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private Cassandra.Client getRawClientWithTimedCreation() throws TException {
         Timer clientCreation = metricsManager.registerOrGetTimer(CassandraClientFactory.class, "clientCreation");
         try (Timer.Context timer = clientCreation.time()) {
-            return getRawClient(addr, config, sslSocketFactory);
+            return getRawClient(addr, config, sslSocketFactory, tSocketFactory);
         }
     }
 
     private static Cassandra.Client getRawClient(
-            InetSocketAddress addr, CassandraKeyValueServiceConfig config, SSLSocketFactory sslSocketFactory)
+            InetSocketAddress addr,
+            CassandraKeyValueServiceConfig config,
+            SSLSocketFactory sslSocketFactory,
+            TSocketFactory tSocketFactory)
             throws TException {
-        TSocket thriftSocket = new TSocket(addr.getHostString(), addr.getPort(), config.socketTimeoutMillis());
+        TSocket thriftSocket =
+                tSocketFactory.create(addr.getHostString(), addr.getPort(), config.socketTimeoutMillis());
         thriftSocket.open();
         setSocketOptions(
                 thriftSocket,
@@ -152,7 +161,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             try {
                 SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
                         thriftSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
-                thriftSocket = new TSocket(socket);
+                thriftSocket = tSocketFactory.create(socket);
                 success = true;
             } catch (IOException e) {
                 throw new TTransportException(e);
