@@ -72,7 +72,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionClose());
-        this.tSocketFactory = new InstrumentedSocket.Factory(
+        this.tSocketFactory = new InstrumentedTSocket.Factory(
                 metricsManager.registerOrGetCounter(CassandraClientFactory.class, "bytesRead"),
                 metricsManager.registerOrGetCounter(CassandraClientFactory.class, "bytesWritten"));
     }

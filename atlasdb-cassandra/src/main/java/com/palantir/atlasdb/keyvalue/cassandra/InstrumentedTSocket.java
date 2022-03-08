@@ -24,19 +24,20 @@ import org.apache.thrift.transport.TTransportException;
 /**
  * A simple wrapping implementation of TSocket which on all reads, marks the number of bytes read in counters.
  * This extends TSocket because TSocket has simple read methods rather than needing to override methods in e.g.
- * InputStream or . It uses Counter as opposed to Meter because Counter is designed to be extremely low overhead.
+ * InputStream or OutputStream. It ignores the 'buffer' related methods because the superclasses do not set it and it's
+ * optional functionality.
  */
-public final class InstrumentedSocket extends TSocket {
+public final class InstrumentedTSocket extends TSocket {
     private final Counter bytesRead;
     private final Counter bytesWritten;
 
-    private InstrumentedSocket(Socket socket, Counter bytesRead, Counter bytesWritten) throws TTransportException {
+    private InstrumentedTSocket(Socket socket, Counter bytesRead, Counter bytesWritten) throws TTransportException {
         super(socket);
         this.bytesRead = bytesRead;
         this.bytesWritten = bytesWritten;
     }
 
-    private InstrumentedSocket(String host, int port, int timeout, Counter bytesRead, Counter bytesWritten) {
+    private InstrumentedTSocket(String host, int port, int timeout, Counter bytesRead, Counter bytesWritten) {
         super(host, port, timeout);
         this.bytesRead = bytesRead;
         this.bytesWritten = bytesWritten;
@@ -79,12 +80,12 @@ public final class InstrumentedSocket extends TSocket {
 
         @Override
         public TSocket create(Socket socket) throws TTransportException {
-            return new InstrumentedSocket(socket, bytesRead, bytesWritten);
+            return new InstrumentedTSocket(socket, bytesRead, bytesWritten);
         }
 
         @Override
         public TSocket create(String host, int port, int timeout) {
-            return new InstrumentedSocket(host, port, timeout, bytesRead, bytesWritten);
+            return new InstrumentedTSocket(host, port, timeout, bytesRead, bytesWritten);
         }
     }
 }
