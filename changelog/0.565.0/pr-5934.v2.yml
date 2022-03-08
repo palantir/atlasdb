@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Cassandra clients are now created with a different `socketQueryTimeout`
+    initially (where the default is 5 seconds). This is changed back to the original
+    timeout (62 seconds default) once the first `login` call has completed successfully
+    for that connection.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5934
