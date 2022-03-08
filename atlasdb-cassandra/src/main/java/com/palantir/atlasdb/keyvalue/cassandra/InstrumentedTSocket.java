@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.codahale.metrics.Counter;
+import com.palantir.atlasdb.util.MetricsManager;
 import java.net.Socket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
@@ -73,9 +74,9 @@ public final class InstrumentedTSocket extends TSocket {
         private final Counter bytesRead;
         private final Counter bytesWritten;
 
-        public Factory(Counter bytesRead, Counter bytesWritten) {
-            this.bytesRead = bytesRead;
-            this.bytesWritten = bytesWritten;
+        public Factory(MetricsManager metrics) {
+            this.bytesRead = metrics.registerOrGetCounter(InstrumentedTSocket.class, "bytesRead");
+            this.bytesWritten = metrics.registerOrGetCounter(InstrumentedTSocket.class, "bytesWritten");
         }
 
         @Override
