@@ -33,6 +33,7 @@ A minimal AtlasDB configuration for running against postgres will look like :
   atlasdb:
     keyValueService:
       type: relational
+      namespace: myAppAtlas # must be unique per product
       ddl:
         type: postgres
       connection:
