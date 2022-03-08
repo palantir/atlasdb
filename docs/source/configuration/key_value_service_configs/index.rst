@@ -11,6 +11,7 @@ The configurations for supported key value services can be found below.
    :titlesonly:
 
    cassandra_key_value_service_config
+   db_key_value_services_config
    postgres_key_value_service_config
    oracle_key_value_service_config
 
