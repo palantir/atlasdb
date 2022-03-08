@@ -91,6 +91,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             // if we reach here, actual is guaranteed to be a staging value
             try {
                 store.checkAndTouch(cell, actual);
+                checkAndTouch.put(cell, actual);
             } catch (CheckAndSetException e) {
                 PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
                         startTs, Iterables.getOnlyElement(e.getActualValues()));
@@ -100,10 +101,11 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                                 + "was found in the KVS",
                         SafeArg.of("kvsValue", kvsValue),
                         SafeArg.of("stagingValue", currentValue));
-                continue;
+            } finally {
+                // If we got here after catching CheckAndSetException, then some other thread committed this
+                // transaction, and we must therefore return the commit timestamp.
+                resultBuilder.put(startTs, commitTs);
             }
-            checkAndTouch.put(cell, actual);
-            resultBuilder.put(startTs, commitTs);
         }
         store.put(KeyedStream.stream(checkAndTouch)
                 .map(encodingStrategy::transformStagingToCommitted)
