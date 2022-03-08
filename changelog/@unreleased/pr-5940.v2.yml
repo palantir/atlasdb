@@ -1,6 +1,8 @@
 type: fix
 fix:
-  description: Fixed a race condition where if a transaction was just committed by
-    another thread, we may return null values from TransactionService.get.
+  description: 'Fixed a race condition where if a transaction was just committed by
+    another thread, users would receive null values from TransactionService.get. This
+    caused users to observe that a completed transaction was still running, but did
+    not lead to any correctness issue. '
   links:
   - https://github.com/palantir/atlasdb/pull/5940
