@@ -1,5 +1,4 @@
 apply from: "../gradle/shared.gradle"
-apply plugin: 'java-library'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 configurations {
