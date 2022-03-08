@@ -23,10 +23,10 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
 
 /**
- * A simple wrapping implementation of TSocket which on all reads, marks the number of bytes read in counters.
- * This extends TSocket because TSocket has simple read methods rather than needing to override methods in e.g.
- * InputStream or OutputStream. It ignores the 'buffer' related methods because the superclasses do not set it and it's
- * optional functionality.
+ * A simple wrapping implementation of TSocket which on all reads/writes, marks the number of bytes read/written in
+ * counters. This extends TSocket because TSocket has simple read methods rather than needing to override methods in
+ * e.g. InputStream or OutputStream. It ignores the 'buffer' related methods because the superclasses do not set it
+ * and it's optional functionality.
  */
 public final class InstrumentedTSocket extends TSocket {
     private final Counter bytesRead;
