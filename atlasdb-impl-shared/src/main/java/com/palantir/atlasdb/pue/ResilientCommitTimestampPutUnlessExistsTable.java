@@ -102,6 +102,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                         SafeArg.of("kvsValue", kvsValue),
                         SafeArg.of("stagingValue", currentValue));
             } finally {
+                // If we got here after catching CheckAndSetException, then some other thread committed this
+                // transaction, and we must therefore return the commit timestamp.
                 resultBuilder.put(startTs, commitTs);
             }
         }
