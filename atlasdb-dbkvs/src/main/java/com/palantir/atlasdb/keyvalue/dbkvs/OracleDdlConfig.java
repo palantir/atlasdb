@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -26,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.NativeOracleJdbcHandler;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -81,6 +83,18 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     @Value.Default
+    public boolean longIdentifierNamesSupported() {
+        return false;
+    }
+
+    @Value.Derived
+    public OracleIdentifierLengthLimits identifierLengthLimits() {
+        return longIdentifierNamesSupported()
+                ? OracleIdentifierLengthLimitOptions.ORACLE_12_2
+                : OracleIdentifierLengthLimitOptions.LEGACY_PRE_ORACLE_12_2;
+    }
+
+    @Value.Default
     @Override
     public String tablePrefix() {
         return "a_";
@@ -95,8 +109,14 @@ public abstract class OracleDdlConfig extends DdlConfig {
     @Value.Default
     @JsonIgnore
     public boolean useTableMapping() {
-        return true;
+        return forceTableMapping().orElse(true);
     }
+
+    /**
+     * This should only be used for AtlasDB Proxy in specialized contexts.
+     */
+    @JsonProperty("forceTableMappingIAmOnThePersistenceTeamAndKnowWhatIAmDoing")
+    public abstract Optional<Boolean> forceTableMapping();
 
     @Override
     public final String type() {
@@ -108,19 +128,34 @@ public abstract class OracleDdlConfig extends DdlConfig {
         Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
         Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
         Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
-        Preconditions.checkState(tablePrefix().endsWith("_"), "Oracle 'tablePrefix' must end with an underscore.");
-        com.google.common.base.Preconditions.checkState(
-                tablePrefix().length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
-                "Oracle 'tablePrefix' cannot be more than %s characters long.",
-                AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
+        Preconditions.checkState(
+                tablePrefix().endsWith("_") || tablePrefix().endsWith("$"),
+                "Oracle 'tablePrefix' " + "must end with an underscore or a dollar sign.");
         Preconditions.checkState(
                 !overflowTablePrefix().startsWith("_"), "Oracle 'overflowTablePrefix' cannot begin with underscore.");
         Preconditions.checkState(
-                overflowTablePrefix().endsWith("_"), "Oracle 'overflowTablePrefix' must end with an underscore.");
-        com.google.common.base.Preconditions.checkState(
-                overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
-                "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
-                AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);
+                overflowTablePrefix().endsWith("_") || overflowTablePrefix().endsWith("$"),
+                "Oracle " + "'overflowTablePrefix' must end with an underscore or a dollar sign.");
+
+        checkTablePrefixLengthLimits();
+
+        Preconditions.checkState(
+                !(useTableMapping() && longIdentifierNamesSupported()),
+                "The table mapper does not support long identifier names yet. Please contact the AtlasDB team if you "
+                        + "wish to use these features in conjunction.");
+    }
+
+    private void checkTablePrefixLengthLimits() {
+        Preconditions.checkState(
+                tablePrefix().length() <= identifierLengthLimits().tablePrefixLengthLimit(),
+                "Oracle 'tablePrefix' exceeds the length limit.",
+                SafeArg.of("tablePrefixLengthLimit", identifierLengthLimits().tablePrefixLengthLimit()));
+        Preconditions.checkState(
+                overflowTablePrefix().length() <= identifierLengthLimits().overflowTablePrefixLengthLimit(),
+                "Oracle 'overflowTablePrefix' exceeds the length limit.",
+                SafeArg.of(
+                        "overflowTablePrefixLengthLimit",
+                        identifierLengthLimits().overflowTablePrefixLengthLimit()));
     }
 
     @Override

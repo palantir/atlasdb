@@ -2,7 +2,9 @@
 apply from: '../gradle/shared.gradle'
 
 dependencies {
-  compile project(':commons-db')
+  implementation project(':atlasdb-commons')
+  implementation project(':commons-db')
+  implementation project(':commons-executors')
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   implementation group: 'io.dropwizard.metrics', name: 'metrics-core'
 
@@ -18,8 +20,8 @@ dependencies {
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.postgresql:postgresql'
   implementation 'org.slf4j:slf4j-api'
-  implementation project(':atlasdb-commons')
 
+  testImplementation group: 'org.mockito', name: 'mockito-core'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'
 

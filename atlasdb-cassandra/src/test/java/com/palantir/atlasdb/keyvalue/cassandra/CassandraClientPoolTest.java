@@ -452,6 +452,7 @@ public class CassandraClientPoolTest {
                         .build());
         when(config.timeoutOnConnectionClose()).thenReturn(Duration.ofSeconds(10));
         when(config.timeoutOnConnectionBorrow()).thenReturn(HumanReadableDuration.minutes(10));
+        when(config.consecutiveAbsencesBeforePoolRemoval()).thenReturn(1);
 
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),

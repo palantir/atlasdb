@@ -21,7 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.BackupAndRestoreResource;
-import com.palantir.atlasdb.backup.UniqueBackup;
+import com.palantir.atlasdb.backup.RestoreRequest;
+import com.palantir.atlasdb.backup.RestoreRequestWithId;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
@@ -83,15 +84,21 @@ public class BackupAndRestoreEteTest {
 
         assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
 
-        UniqueBackup uniqueBackup = UniqueBackup.of(NAMESPACES, "backupId");
-        Set<Namespace> preparedNamespaces = backupResource.prepareRestore(uniqueBackup);
+        String backupId = "backupId";
+        RestoreRequest restoreRequest = RestoreRequest.builder()
+                .oldNamespace(NAMESPACE)
+                .newNamespace(NAMESPACE)
+                .build();
+        Set<Namespace> preparedNamespaces =
+                backupResource.prepareRestore(RestoreRequestWithId.of(restoreRequest, backupId));
         assertThat(preparedNamespaces).containsExactly(NAMESPACE);
 
         // verify TimeLock is disabled
         assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
                 .isGeneratedFromErrorType(ErrorType.INTERNAL);
 
-        Set<Namespace> completedNamespaces = backupResource.completeRestore(uniqueBackup);
+        Set<Namespace> completedNamespaces =
+                backupResource.completeRestore(RestoreRequestWithId.of(restoreRequest, backupId));
         assertThat(completedNamespaces).containsExactly(NAMESPACE);
 
         // verify TimeLock is re-enabled

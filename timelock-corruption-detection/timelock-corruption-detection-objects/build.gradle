@@ -4,4 +4,5 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation project(':leader-election-api')
+    implementation project(':atlasdb-commons')
 }

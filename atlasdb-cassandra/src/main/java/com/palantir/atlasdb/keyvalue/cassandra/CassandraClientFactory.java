@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
@@ -62,6 +63,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final CassandraKeyValueServiceConfig config;
     private final SSLSocketFactory sslSocketFactory;
     private final TimedRunner timedRunner;
+    private final TSocketFactory tSocketFactory;
 
     public CassandraClientFactory(
             MetricsManager metricsManager, InetSocketAddress addr, CassandraKeyValueServiceConfig config) {
@@ -70,12 +72,13 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionClose());
+        this.tSocketFactory = new InstrumentedTSocket.Factory(metricsManager);
     }
 
     @Override
     public CassandraClient create() {
         try {
-            return instrumentClient(getRawClientWithKeyspace(addr, config));
+            return instrumentClient(getRawClientWithKeyspaceSet());
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -96,19 +99,17 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return client;
     }
 
-    private Cassandra.Client getRawClientWithKeyspace(
-            InetSocketAddress inetSocketAddress, CassandraKeyValueServiceConfig kvsConfig) throws TException {
-        Client ret = getRawClient(inetSocketAddress, kvsConfig, sslSocketFactory);
+    private Cassandra.Client getRawClientWithKeyspaceSet() throws TException {
+        Client ret = getRawClientWithTimedCreation();
         try {
-            ret.set_keyspace(kvsConfig.getKeyspaceOrThrow());
+            ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug(
                     "Created new client for {}/{}{}{}",
-                    SafeArg.of("address", CassandraLogHelper.host(inetSocketAddress)),
-                    UnsafeArg.of("keyspace", kvsConfig.getKeyspaceOrThrow()),
-                    SafeArg.of("usingSsl", kvsConfig.usingSsl() ? " over SSL" : ""),
+                    SafeArg.of("address", CassandraLogHelper.host(addr)),
+                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
+                    SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
                     UnsafeArg.of(
-                            "usernameConfig",
-                            " as user " + kvsConfig.credentials().username()));
+                            "usernameConfig", " as user " + config.credentials().username()));
             return ret;
         } catch (TException e) {
             ret.getOutputProtocol().getTransport().close();
@@ -118,7 +119,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     static CassandraClient getClientInternal(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
             throws TException {
-        return new CassandraClientImpl(getRawClient(addr, config, createSslSocketFactory(config)));
+        return new CassandraClientImpl(
+                getRawClient(addr, config, createSslSocketFactory(config), TSocketFactory.Default.INSTANCE));
     }
 
     private static SSLSocketFactory createSslSocketFactory(CassandraKeyValueServiceConfig config) {
@@ -128,27 +130,36 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 .orElseGet(() -> (SSLSocketFactory) SSLSocketFactory.getDefault());
     }
 
-    private static Cassandra.Client getRawClient(
-            InetSocketAddress addr, CassandraKeyValueServiceConfig config, SSLSocketFactory sslSocketFactory)
-            throws TException {
-        TSocket thriftSocket = new TSocket(addr.getHostString(), addr.getPort(), config.socketTimeoutMillis());
-        thriftSocket.open();
-        try {
-            thriftSocket.getSocket().setKeepAlive(true);
-            thriftSocket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis());
-        } catch (SocketException e) {
-            log.error(
-                    "Couldn't set socket keep alive for host {}",
-                    SafeArg.of("address", CassandraLogHelper.host(addr)),
-                    e);
+    private Cassandra.Client getRawClientWithTimedCreation() throws TException {
+        Timer clientCreation = metricsManager.registerOrGetTimer(CassandraClientFactory.class, "clientCreation");
+        try (Timer.Context timer = clientCreation.time()) {
+            return getRawClient(addr, config, sslSocketFactory, tSocketFactory);
         }
+    }
+
+    private static Cassandra.Client getRawClient(
+            InetSocketAddress addr,
+            CassandraKeyValueServiceConfig config,
+            SSLSocketFactory sslSocketFactory,
+            TSocketFactory tSocketFactory)
+            throws TException {
+        TSocket thriftSocket =
+                tSocketFactory.create(addr.getHostString(), addr.getPort(), config.socketTimeoutMillis());
+        thriftSocket.open();
+        setSocketOptions(
+                thriftSocket,
+                socket -> {
+                    socket.getSocket().setKeepAlive(true);
+                    socket.getSocket().setSoTimeout(config.initialSocketQueryTimeoutMillis());
+                },
+                addr);
 
         if (config.usingSsl()) {
             boolean success = false;
             try {
                 SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
                         thriftSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
-                thriftSocket = new TSocket(socket);
+                thriftSocket = tSocketFactory.create(socket);
                 success = true;
             } catch (IOException e) {
                 throw new TTransportException(e);
@@ -165,6 +176,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
         try {
             login(client, config.credentials());
+            setSocketOptions(
+                    thriftSocket, socket -> socket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis()), addr);
         } catch (TException e) {
             client.getOutputProtocol().getTransport().close();
             log.error("Exception thrown attempting to authenticate with config provided credentials", e);
@@ -241,5 +254,19 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         public Exception getCause() {
             return (Exception) super.getCause();
         }
+    }
+
+    private static void setSocketOptions(TSocket thriftSocket, SocketConsumer consumer, InetSocketAddress addr) {
+        try {
+            consumer.accept(thriftSocket);
+        } catch (SocketException e) {
+            log.error(
+                    "Couldn't set socket options for host {}", SafeArg.of("address", CassandraLogHelper.host(addr)), e);
+        }
+    }
+
+    @FunctionalInterface
+    private interface SocketConsumer {
+        void accept(TSocket value) throws SocketException;
     }
 }

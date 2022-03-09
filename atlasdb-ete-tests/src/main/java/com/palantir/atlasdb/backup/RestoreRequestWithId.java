@@ -18,21 +18,19 @@ package com.palantir.atlasdb.backup;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.timelock.api.Namespace;
-import java.util.Set;
 import org.immutables.value.Value;
 
-@JsonSerialize(as = ImmutableUniqueBackup.class)
-@JsonDeserialize(as = ImmutableUniqueBackup.class)
+@JsonSerialize(as = ImmutableRestoreRequestWithId.class)
+@JsonDeserialize(as = ImmutableRestoreRequestWithId.class)
 @Value.Immutable
-public interface UniqueBackup {
-    Set<Namespace> namespaces();
+public interface RestoreRequestWithId {
+    RestoreRequest restoreRequest();
 
     String backupId();
 
-    static UniqueBackup of(Set<Namespace> namespaces, String backupId) {
-        return ImmutableUniqueBackup.builder()
-                .namespaces(namespaces)
+    static RestoreRequestWithId of(RestoreRequest restoreRequest, String backupId) {
+        return ImmutableRestoreRequestWithId.builder()
+                .restoreRequest(restoreRequest)
                 .backupId(backupId)
                 .build();
     }

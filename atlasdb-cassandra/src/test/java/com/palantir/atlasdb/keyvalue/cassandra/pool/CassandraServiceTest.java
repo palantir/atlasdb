@@ -280,6 +280,7 @@ public class CassandraServiceTest {
                         .addAllThriftHosts(servers)
                         .build())
                 .localHostWeighting(weighting)
+                .consecutiveAbsencesBeforePoolRemoval(1)
                 .build();
 
         blacklist = new Blacklist(config);

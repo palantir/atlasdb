@@ -33,6 +33,8 @@ public interface KeyValueServiceConfig {
      */
     int concurrentGetRangesThreadPoolSize();
 
+    Optional<SharedResourcesConfig> sharedResourcesConfig();
+
     /**
      * The maximum number of threads from the pool of {@link #concurrentGetRangesThreadPoolSize()} to use
      * for a single getRanges request when the user does not explicitly provide a value.

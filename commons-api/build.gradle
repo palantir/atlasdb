@@ -1,9 +1,10 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile project(':atlasdb-commons')
-  compile project(':commons-annotations')
+  api project(':atlasdb-commons')
+  implementation project(":commons-executors")
+  implementation project(':commons-annotations')
 
+  implementation "com.palantir.nylon:nylon-threads"
   implementation 'com.google.guava:guava'
-
 }

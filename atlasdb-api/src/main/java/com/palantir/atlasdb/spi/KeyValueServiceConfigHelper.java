@@ -30,4 +30,9 @@ public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig {
     default int concurrentGetRangesThreadPoolSize() {
         return 4;
     }
+
+    @Override
+    default Optional<SharedResourcesConfig> sharedResourcesConfig() {
+        return Optional.empty();
+    }
 }

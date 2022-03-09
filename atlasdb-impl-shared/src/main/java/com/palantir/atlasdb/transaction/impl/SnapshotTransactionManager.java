@@ -129,7 +129,8 @@ import javax.validation.constraints.NotNull;
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
+            Optional<Integer> sharedGetRangesPoolSize) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
@@ -146,7 +147,7 @@ import javax.validation.constraints.NotNull;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
-        this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
+        this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize, sharedGetRangesPoolSize);
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;

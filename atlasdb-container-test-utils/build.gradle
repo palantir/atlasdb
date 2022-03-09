@@ -2,10 +2,10 @@
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
 dependencies {
-    compile project(':atlasdb-api')
-    compile project(':atlasdb-cassandra')
-    compile project(':atlasdb-tests-shared')
-    compile project(":flake-rule")
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-cassandra')
+    implementation project(':atlasdb-tests-shared')
+    implementation project(":flake-rule")
 
     implementation group: 'com.google.guava', name: 'guava'
     implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'

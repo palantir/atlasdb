@@ -33,6 +33,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
@@ -106,6 +107,10 @@ public final class CassandraKeyValueServices {
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
         } while (System.currentTimeMillis() < start + schemaMutationTimeMillis);
+
+        log.warn(
+                "Cassandra cluster failed to reach agreement on schema versions within the timeout",
+                SafeArg.of("schemaMutationTimeMillis", schemaMutationTimeMillis));
 
         StringBuilder schemaVersions = new StringBuilder();
         for (Map.Entry<String, List<String>> version : versions.entrySet()) {

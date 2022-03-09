@@ -1,7 +1,7 @@
 apply from: '../gradle/shared.gradle'
 
 dependencies {
-  compile project(':commons-executors')
+  implementation project(':commons-executors')
 
   implementation group: 'com.palantir.refreshable', name: 'refreshable'
   implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
