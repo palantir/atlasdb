@@ -345,8 +345,6 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             // This exception gets thrown by HikariCP and is useless outside of ConnectionManagers.
             RuntimeException e2 = new RuntimeException(ExceptionUtils.getMessage(e), e.getCause());
             e2.setStackTrace(e.getStackTrace());
-            System.err.println("{4.8}");
-            e.printStackTrace(System.err);
             throw e2;
         }
         return dataSourcePool;

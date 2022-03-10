@@ -99,7 +99,6 @@ public final class DbKvsOracleTestSuite {
                 .host(oracleAddress.getHostString())
                 .port(oracleAddress.getPort())
                 .build();
-        System.err.println("{3}" + connectionConfig);
 
         return ImmutableDbKeyValueServiceConfig.builder()
                 .connection(connectionConfig)
@@ -167,10 +166,7 @@ public final class DbKvsOracleTestSuite {
         return () -> {
             try (ConnectionManagerAwareDbKvs kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
                     Connection conn = kvs.getConnectionManager().getConnection()) {
-                System.err.println(System.currentTimeMillis());
-                boolean ok = conn.isValid(5);
-                System.err.println("conn " + ok);
-                return ok;
+                return conn.isValid(5);
             } catch (Exception e) {
                 return false;
             }
