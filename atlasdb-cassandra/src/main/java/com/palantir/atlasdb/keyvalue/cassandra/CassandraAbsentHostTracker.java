@@ -21,33 +21,36 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.GuardedBy;
 import org.immutables.value.Value;
 
 public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
 
     private final int absenceLimit;
-    private final ConcurrentMap<InetSocketAddress, PoolAndCount> absentHosts;
+
+    @GuardedBy("this")
+    private final Map<InetSocketAddress, PoolAndCount> absentHosts;
 
     public CassandraAbsentHostTracker(int absenceLimit) {
         this.absenceLimit = absenceLimit;
-        this.absentHosts = new ConcurrentHashMap<>();
+        this.absentHosts = new HashMap<>();
     }
 
-    public Optional<CassandraClientPoolingContainer> returnPool(InetSocketAddress host) {
+    public synchronized Optional<CassandraClientPoolingContainer> returnPool(InetSocketAddress host) {
         return Optional.ofNullable(absentHosts.remove(host)).map(PoolAndCount::container);
     }
 
-    public void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
+    public synchronized void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
         absentHosts.putIfAbsent(host, PoolAndCount.of(pool));
     }
 
-    public Set<InetSocketAddress> incrementAbsenceAndRemove() {
+    public synchronized Set<InetSocketAddress> incrementAbsenceAndRemove() {
         return cleanupAbsentHosts(ImmutableSet.copyOf(absentHosts.keySet()));
     }
 
@@ -64,8 +67,7 @@ public final class CassandraAbsentHostTracker {
     }
 
     private Optional<InetSocketAddress> removeIfAbsenceThresholdReached(InetSocketAddress inetSocketAddress) {
-        Optional<PoolAndCount> maybePoolAndCount = Optional.ofNullable(absentHosts.get(inetSocketAddress));
-        return maybePoolAndCount.map(poolAndCount -> {
+        return Optional.ofNullable(absentHosts.get(inetSocketAddress)).map(poolAndCount -> {
             if (poolAndCount.timesAbsent() > absenceLimit) {
                 shutdownClientPool(
                         inetSocketAddress, absentHosts.remove(inetSocketAddress).container());
