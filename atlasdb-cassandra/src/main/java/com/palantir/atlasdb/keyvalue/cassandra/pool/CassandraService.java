@@ -17,26 +17,12 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableRangeMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Interner;
-import com.google.common.collect.Interners;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
-import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
-import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.keyvalue.cassandra.*;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -49,18 +35,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -444,9 +419,21 @@ public class CassandraService implements AutoCloseable {
 
     public void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        currentPools.put(
+        addPoolInternal(
                 server,
                 new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber, poolMetrics));
+    }
+
+    public void returnOrCreatePool(InetSocketAddress server, Optional<CassandraClientPoolingContainer> container) {
+        if (container.isPresent()) {
+            addPoolInternal(server, container.get());
+        } else {
+            addPool(server);
+        }
+    }
+
+    private void addPoolInternal(InetSocketAddress server, CassandraClientPoolingContainer container) {
+        currentPools.put(server, container);
     }
 
     /**
@@ -454,17 +441,10 @@ public class CassandraService implements AutoCloseable {
      * remain alive until they are returned to the pool, whereby they are destroyed immediately. Threads waiting on the
      * pool will be interrupted.
      */
-    public void removePool(InetSocketAddress removedServerAddress) {
+    public CassandraClientPoolingContainer removePool(InetSocketAddress removedServerAddress) {
         blacklist.remove(removedServerAddress);
         CassandraClientPoolingContainer removedContainer = currentPools.remove(removedServerAddress);
-        try {
-            removedContainer.shutdownPooling();
-        } catch (Exception e) {
-            log.warn(
-                    "While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
-                    SafeArg.of("removedServerAddress", CassandraLogHelper.host(removedServerAddress)),
-                    e);
-        }
+        return removedContainer;
     }
 
     public void cacheInitialCassandraHosts() {

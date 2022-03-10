@@ -16,13 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.RangeMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -34,17 +28,14 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -113,7 +104,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final ScheduledExecutorService refreshDaemon;
     private final CassandraClientPoolMetrics metrics;
     private final InitializingWrapper wrapper = new InitializingWrapper();
-    private final CassandraPoolReaper reaper;
+    private final CassandraAbsentHostTracker absentHostTracker;
 
     private ScheduledFuture<?> refreshPoolFuture;
 
@@ -211,7 +202,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
         this.metrics = metrics;
-        this.reaper = new CassandraPoolReaper(config.consecutiveAbsencesBeforePoolRemoval());
+        this.absentHostTracker = new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval());
     }
 
     private void tryInitialize() {
@@ -312,25 +303,28 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
         Set<InetSocketAddress> cachedServers = getCachedServers();
         Set<InetSocketAddress> serversToAdd = Sets.difference(desiredServers, cachedServers);
-        Set<InetSocketAddress> absentServers = Sets.difference(cachedServers, desiredServers);
-        Set<InetSocketAddress> serversToRemove = reaper.computeServersToRemove(absentServers);
+        Set<InetSocketAddress> serversToRemove = Sets.difference(cachedServers, desiredServers);
 
-        serversToAdd.forEach(cassandra::addPool);
-        serversToRemove.forEach(cassandra::removePool);
+        serversToAdd.forEach(
+                server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPoolIfPresent(server)));
+        Map<InetSocketAddress, CassandraClientPoolingContainer> containersToRemove =
+                KeyedStream.of(serversToRemove).map(cassandra::removePool).collectToMap();
+        containersToRemove.forEach(absentHostTracker::trackPoolToRemove);
+        Set<InetSocketAddress> absentServers = absentHostTracker.removeRepeatedlyAbsentServers();
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
         }
 
-        logRefreshedHosts(serversToAdd, serversToRemove, absentServers);
+        logRefreshedHosts(serversToAdd, absentServers, serversToRemove);
     }
 
     private static void logRefreshedHosts(
             Set<InetSocketAddress> serversToAdd,
             Set<InetSocketAddress> serversToRemove,
             Set<InetSocketAddress> absentServers) {
-        if (serversToRemove.isEmpty() && serversToAdd.isEmpty()) {
+        if (serversToRemove.isEmpty() && serversToAdd.isEmpty() && absentServers.isEmpty()) {
             log.debug("No hosts added or removed during Cassandra pool refresh");
         } else {
             log.info(
