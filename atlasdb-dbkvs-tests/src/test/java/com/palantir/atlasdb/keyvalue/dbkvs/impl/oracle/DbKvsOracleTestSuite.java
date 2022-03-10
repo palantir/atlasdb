@@ -92,8 +92,10 @@ public final class DbKvsOracleTestSuite {
 
     public static DbKeyValueServiceConfig getKvsConfig() {
         DockerPort port = docker.containers().container("oracle").port(ORACLE_PORT_NUMBER);
+        System.err.println("{1}");
 
         InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved(port.getIp(), port.getExternalPort());
+        System.err.println("{2}" + oracleAddress);
 
         ConnectionConfig connectionConfig = new OracleConnectionConfig.Builder()
                 .dbLogin("palantir")
@@ -102,6 +104,7 @@ public final class DbKvsOracleTestSuite {
                 .host(oracleAddress.getHostString())
                 .port(oracleAddress.getPort())
                 .build();
+        System.err.println("{3}" + connectionConfig);
 
         return ImmutableDbKeyValueServiceConfig.builder()
                 .connection(connectionConfig)

@@ -80,8 +80,11 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
         runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
-        return new ConnectionManagerAwareDbKvs(
+        System.err.println("{4}");
+        ConnectionManagerAwareDbKvs connectionManagerAwareDbKvs = new ConnectionManagerAwareDbKvs(
                 DbKvs.create(config, sqlConnSupplier, initializeAsync), connManager, sqlConnSupplier);
+        System.err.println("{5}");
+        return connectionManagerAwareDbKvs;
     }
 
     private static void updateConnManagerConfig(
