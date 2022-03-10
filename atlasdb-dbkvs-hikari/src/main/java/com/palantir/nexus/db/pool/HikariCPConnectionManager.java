@@ -301,12 +301,9 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
         try {
             try {
-                System.err.println("{4.5}" + hikariConfig);
                 dataSourcePool = new HikariDataSource(hikariConfig);
             } catch (IllegalArgumentException e) {
                 // allow multiple pools on same JVM (they need unique names / endpoints)
-                System.err.println("{4.7}");
-                e.printStackTrace(System.err);
                 if (e.getMessage().contains("A metric named")) {
                     String poolName = connConfig.getConnectionPoolName();
 

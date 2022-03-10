@@ -27,8 +27,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
@@ -62,8 +60,7 @@ import org.junit.runners.Suite.SuiteClasses;
     OracleEmbeddedDbTimestampBoundStoreTest.class
 })
 public final class DbKvsOracleTestSuite {
-    private static final SafeLogger log = SafeLoggerFactory.get(DbKvsOracleTestSuite.class);
-
+    private static final String LOCALHOST = "0.0.0.0";
     private static final int ORACLE_PORT_NUMBER = 1521;
 
     private DbKvsOracleTestSuite() {
@@ -92,13 +89,8 @@ public final class DbKvsOracleTestSuite {
 
     public static DbKeyValueServiceConfig getKvsConfig() {
         DockerPort port = docker.containers().container("oracle").port(ORACLE_PORT_NUMBER);
-        System.err.println("{1}");
 
-        // Localhost
-        InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved("0.0.0.0", port.getExternalPort());
-        System.err.println("{2}" + oracleAddress);
-        System.err.println("{2a}" + oracleAddress.getHostString());
-        System.err.println("{2b}" + oracleAddress.getPort());
+        InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved(LOCALHOST, port.getExternalPort());
 
         ConnectionConfig connectionConfig = new OracleConnectionConfig.Builder()
                 .dbLogin("palantir")
@@ -180,9 +172,6 @@ public final class DbKvsOracleTestSuite {
                 System.err.println("conn " + ok);
                 return ok;
             } catch (Exception e) {
-                System.err.println(System.currentTimeMillis());
-                System.err.println("Exception when creating a db connection");
-                e.printStackTrace(System.err);
                 return false;
             }
         };
