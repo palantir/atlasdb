@@ -94,7 +94,8 @@ public final class DbKvsOracleTestSuite {
         DockerPort port = docker.containers().container("oracle").port(ORACLE_PORT_NUMBER);
         System.err.println("{1}");
 
-        InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved(port.getIp(), port.getExternalPort());
+        // Localhost
+        InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved("0.0.0.0", port.getExternalPort());
         System.err.println("{2}" + oracleAddress);
         System.err.println("{2a}" + oracleAddress.getHostString());
         System.err.println("{2b}" + oracleAddress.getPort());
