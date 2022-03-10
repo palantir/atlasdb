@@ -27,6 +27,8 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
@@ -60,6 +62,8 @@ import org.junit.runners.Suite.SuiteClasses;
     OracleEmbeddedDbTimestampBoundStoreTest.class
 })
 public final class DbKvsOracleTestSuite {
+    private static final SafeLogger log = SafeLoggerFactory.get(DbKvsOracleTestSuite.class);
+
     private static final int ORACLE_PORT_NUMBER = 1521;
 
     private DbKvsOracleTestSuite() {
@@ -167,6 +171,7 @@ public final class DbKvsOracleTestSuite {
                     Connection conn = kvs.getConnectionManager().getConnection()) {
                 return conn.isValid(5);
             } catch (Exception e) {
+                log.warn("Exception when creating a db connection", e);
                 return false;
             }
         };
