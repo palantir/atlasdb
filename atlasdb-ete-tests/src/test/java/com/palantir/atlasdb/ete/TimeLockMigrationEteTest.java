@@ -181,7 +181,14 @@ public class TimeLockMigrationEteTest {
         log.info("zzzz THIRTEEN");
 
         // Do this explicitly to avoid mountains of log spam
-        CLIENT_ORCHESTRATION_RULE.stopAtlasClient();
+        waitUntil(() -> {
+            try {
+                CLIENT_ORCHESTRATION_RULE.stopAtlasClient();
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        });
         log.info("zzzz FOURTEEN");
     }
 
