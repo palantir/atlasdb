@@ -97,7 +97,13 @@ public class CassandraClientPoolTest {
         doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
                 .when(cassandra)
                 .addPool(any());
-        doAnswer(invocation -> poolServers.remove(getInvocationAddress(invocation)))
+        doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
+                .when(cassandra)
+                .returnOrCreatePool(any(), any());
+        doAnswer(invocation -> {
+                    poolServers.remove(getInvocationAddress(invocation));
+                    return mock(CassandraClientPoolingContainer.class);
+                })
                 .when(cassandra)
                 .removePool(any());
         doAnswer(invocation -> poolServers.stream()

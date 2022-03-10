@@ -64,15 +64,13 @@ public final class CassandraAbsentHostTracker {
     }
 
     private Optional<InetSocketAddress> removeIfAbsenceThresholdReached(InetSocketAddress inetSocketAddress) {
-        return Optional.ofNullable(absentHosts.get(inetSocketAddress)).map(poolAndCount -> {
-            if (poolAndCount.timesAbsent() <= absenceLimit) {
-                return null;
-            } else {
-                PoolAndCount removedServer = absentHosts.remove(inetSocketAddress);
-                shutdownClientPoolForHost(inetSocketAddress, removedServer.container());
-                return inetSocketAddress;
-            }
-        });
+        if (absentHosts.get(inetSocketAddress).timesAbsent() <= absenceLimit) {
+            return Optional.empty();
+        } else {
+            PoolAndCount removedServer = absentHosts.remove(inetSocketAddress);
+            shutdownClientPoolForHost(inetSocketAddress, removedServer.container());
+            return Optional.of(inetSocketAddress);
+        }
     }
 
     private void shutdownClientPoolForHost(
