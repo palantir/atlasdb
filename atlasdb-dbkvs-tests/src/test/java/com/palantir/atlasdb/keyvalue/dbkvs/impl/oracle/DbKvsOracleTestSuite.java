@@ -171,7 +171,8 @@ public final class DbKvsOracleTestSuite {
                     Connection conn = kvs.getConnectionManager().getConnection()) {
                 return conn.isValid(5);
             } catch (Exception e) {
-                log.warn("Exception when creating a db connection", e);
+                System.err.println("Exception when creating a db connection");
+                e.printStackTrace(System.err);
                 return false;
             }
         };
