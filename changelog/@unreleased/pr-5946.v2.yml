@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Hosts that are absent from the token ranges after a refresh will now
+    be removed immediately, but the pooling containers will be kept around for up
+    to 10 further refreshes, only being removed if absent for that long.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5946
