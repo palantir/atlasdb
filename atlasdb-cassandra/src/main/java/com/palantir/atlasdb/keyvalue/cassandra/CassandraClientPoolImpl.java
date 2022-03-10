@@ -310,7 +310,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         cassandra.debugLogStateOfPool();
     }
 
-    private void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
+    @VisibleForTesting
+    void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
         Set<InetSocketAddress> cachedServers = getCachedServers();
         Set<InetSocketAddress> serversToAdd = Sets.difference(desiredServers, cachedServers);
         Set<InetSocketAddress> absentServers = Sets.difference(cachedServers, desiredServers);

@@ -26,15 +26,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.GuardedBy;
 import org.immutables.value.Value;
 
 public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
 
     private final int absenceLimit;
-
-    @GuardedBy("this")
     private final Map<InetSocketAddress, PoolAndCount> absentHosts;
 
     public CassandraAbsentHostTracker(int absenceLimit) {
@@ -68,18 +65,18 @@ public final class CassandraAbsentHostTracker {
 
     private Optional<InetSocketAddress> removeIfAbsenceThresholdReached(InetSocketAddress inetSocketAddress) {
         return Optional.ofNullable(absentHosts.get(inetSocketAddress)).map(poolAndCount -> {
-            if (poolAndCount.timesAbsent() > absenceLimit) {
-                shutdownClientPool(
-                        inetSocketAddress, absentHosts.remove(inetSocketAddress).container());
-                return inetSocketAddress;
+            if (poolAndCount.timesAbsent() <= absenceLimit) {
+                return null;
             }
-            return null;
+            shutdownClientPoolForHost(inetSocketAddress);
+            return inetSocketAddress;
         });
     }
 
-    private void shutdownClientPool(InetSocketAddress inetSocketAddress, CassandraClientPoolingContainer container) {
+    private void shutdownClientPoolForHost(InetSocketAddress inetSocketAddress) {
         try {
-            container.shutdownPooling();
+            Optional.ofNullable(absentHosts.remove(inetSocketAddress))
+                    .ifPresent(pool -> pool.container().shutdownPooling());
         } catch (Exception e) {
             log.warn(
                     "While removing a host ({}) from the pool, we were unable to gently cleanup" + " resources.",

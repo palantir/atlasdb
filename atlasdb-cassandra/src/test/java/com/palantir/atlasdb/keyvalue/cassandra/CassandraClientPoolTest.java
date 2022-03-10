@@ -110,6 +110,12 @@ public class CassandraClientPoolTest {
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
     }
 
+    @Test
+    public void shutsDownHostsToRemove() {
+        clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
+    }
+
     private void assertThatMetricsArePresent(ImmutableSet<String> poolNames) {
         assertThat(taggedMetricRegistry.getMetrics().keySet())
                 .containsAll(poolNames.stream().map(this::getPoolMetricName).collect(Collectors.toSet()));
