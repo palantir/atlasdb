@@ -88,11 +88,6 @@ public class CassandraAbsentHostTrackerTest {
         verifyNoInteractions(container3);
     }
 
-    private void verifyPoolShutdown(CassandraClientPoolingContainer container2) {
-        verify(container2).shutdownPooling();
-        verifyNoMoreInteractions(container2);
-    }
-
     @Test
     public void alwaysRecommendsServersToBeRemovedIfConfiguredWithLimitOne() {
         CassandraAbsentHostTracker oneShotHostTracker = new CassandraAbsentHostTracker(1);
@@ -100,5 +95,10 @@ public class CassandraAbsentHostTrackerTest {
         Set<InetSocketAddress> removedHosts = oneShotHostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(ADDRESS_1);
         verifyPoolShutdown(container1);
+    }
+
+    private void verifyPoolShutdown(CassandraClientPoolingContainer container) {
+        verify(container).shutdownPooling();
+        verifyNoMoreInteractions(container);
     }
 }

@@ -44,7 +44,7 @@ public final class CassandraAbsentHostTracker {
     }
 
     public synchronized void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
-        absentHosts.putIfAbsent(host, PoolAndCount.of(pool));
+        absentHosts.putIfAbsent(host, PoolAndCount.withIncrementedCount(pool));
     }
 
     public synchronized Set<InetSocketAddress> incrementAbsenceAndRemove() {
@@ -67,16 +67,18 @@ public final class CassandraAbsentHostTracker {
         return Optional.ofNullable(absentHosts.get(inetSocketAddress)).map(poolAndCount -> {
             if (poolAndCount.timesAbsent() <= absenceLimit) {
                 return null;
+            } else {
+                PoolAndCount removedServer = absentHosts.remove(inetSocketAddress);
+                shutdownClientPoolForHost(inetSocketAddress, removedServer.container());
+                return inetSocketAddress;
             }
-            shutdownClientPoolForHost(inetSocketAddress);
-            return inetSocketAddress;
         });
     }
 
-    private void shutdownClientPoolForHost(InetSocketAddress inetSocketAddress) {
+    private void shutdownClientPoolForHost(
+            InetSocketAddress inetSocketAddress, CassandraClientPoolingContainer container) {
         try {
-            Optional.ofNullable(absentHosts.remove(inetSocketAddress))
-                    .ifPresent(pool -> pool.container().shutdownPooling());
+            container.shutdownPooling();
         } catch (Exception e) {
             log.warn(
                     "While removing a host ({}) from the pool, we were unable to gently cleanup" + " resources.",
@@ -91,7 +93,7 @@ public final class CassandraAbsentHostTracker {
 
         int timesAbsent();
 
-        static PoolAndCount of(CassandraClientPoolingContainer pool) {
+        static PoolAndCount withIncrementedCount(CassandraClientPoolingContainer pool) {
             return ImmutablePoolAndCount.builder()
                     .container(pool)
                     .timesAbsent(1)
