@@ -16,69 +16,78 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
+
     private final int requiredConsecutiveRequestsBeforeRemoval;
-    private volatile Map<InetSocketAddress, PoolAndCount> absentHosts;
+    private ConcurrentHashMap<InetSocketAddress, PoolAndCount> absentHosts;
 
     public CassandraAbsentHostTracker(int requiredConsecutiveRequestsBeforeRemoval) {
         this.requiredConsecutiveRequestsBeforeRemoval = requiredConsecutiveRequestsBeforeRemoval;
-        absentHosts = ImmutableMap.of();
+        absentHosts = new ConcurrentHashMap<>();
     }
 
-    @SuppressWarnings("NonAtomicVolatileUpdate")
-    Optional<CassandraClientPoolingContainer> returnPoolIfPresent(InetSocketAddress host) {
-        Optional<PoolAndCount> pool = Optional.ofNullable(absentHosts.get(host));
-        absentHosts =
-                KeyedStream.stream(absentHosts).filterKeys(h -> !h.equals(host)).collectToMap();
-        return pool.map(PoolAndCount::container);
+    Optional<CassandraClientPoolingContainer> getPool(InetSocketAddress host) {
+        return Optional.ofNullable(absentHosts.remove(host)).map(PoolAndCount::container);
     }
 
-    @SuppressWarnings("NonAtomicVolatileUpdate")
-    void trackPoolToRemove(InetSocketAddress host, CassandraClientPoolingContainer pool) {
-        absentHosts = ImmutableMap.<InetSocketAddress, PoolAndCount>builder()
-                .putAll(absentHosts)
-                .put(host, PoolAndCount.of(pool))
-                .build();
+    void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
+        absentHosts.computeIfAbsent(host, _host -> PoolAndCount.of(pool));
     }
 
-    @SuppressWarnings("NonAtomicVolatileUpdate")
-    Set<InetSocketAddress> removeRepeatedlyAbsentServers() {
-        Set<InetSocketAddress> removedServers = new HashSet<>();
-        absentHosts = KeyedStream.stream(absentHosts)
-                .map(PoolAndCount::incrementCount)
-                .filterEntries((host, pool) -> {
-                    if (pool.timesAbsent() >= requiredConsecutiveRequestsBeforeRemoval) {
-                        try {
-                            pool.container().shutdownPooling();
-                            removedServers.add(host);
-                        } catch (Exception e) {
-                            log.warn(
-                                    "While removing a host ({}) from the pool, we were unable to gently cleanup"
-                                            + " resources.",
-                                    SafeArg.of("removedServerAddress", CassandraLogHelper.host(host)),
-                                    e);
-                        }
-                        return false;
-                    } else {
-                        return true;
-                    }
-                })
-                .collectToMap();
+    // This is not thread safe. This works off a snapshot of keys and will miss any new updates made to the map while
+    // the increment is happening
+    void incrementRound() {
+        absentHosts.keySet().forEach(this::incrementAbsenceCountIfPresent);
+    }
 
-        return removedServers;
+    Set<InetSocketAddress> removeRepeatedlyAbsentHosts() {
+        return cleanupAbsentHosts(new HashSet<>(absentHosts.keySet()));
+    }
+
+    private Set<InetSocketAddress> cleanupAbsentHosts(HashSet<InetSocketAddress> absentHostsSnapshot) {
+        return absentHostsSnapshot.stream()
+                .map(this::removeIfAbsenceThresholdReached)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+    }
+
+    private void incrementAbsenceCountIfPresent(InetSocketAddress host) {
+        absentHosts.computeIfPresent(host, (_host, poolAndCount) -> poolAndCount.incrementCount());
+    }
+
+    private Optional<InetSocketAddress> removeIfAbsenceThresholdReached(InetSocketAddress inetSocketAddress) {
+        Optional<PoolAndCount> maybePoolAndCount = Optional.ofNullable(absentHosts.get(inetSocketAddress));
+        return maybePoolAndCount.map(poolAndCount -> {
+            if (poolAndCount.timesAbsent() > requiredConsecutiveRequestsBeforeRemoval) {
+                shutdownClientPool(
+                        inetSocketAddress, absentHosts.remove(inetSocketAddress).container());
+                return inetSocketAddress;
+            }
+            return null;
+        });
+    }
+
+    private void shutdownClientPool(InetSocketAddress inetSocketAddress, CassandraClientPoolingContainer container) {
+        try {
+            container.shutdownPooling();
+        } catch (Exception e) {
+            log.warn(
+                    "While removing a host ({}) from the pool, we were unable to gently cleanup" + " resources.",
+                    SafeArg.of("removedServerAddress", CassandraLogHelper.host(inetSocketAddress)),
+                    e);
+        }
     }
 
     @Value.Immutable

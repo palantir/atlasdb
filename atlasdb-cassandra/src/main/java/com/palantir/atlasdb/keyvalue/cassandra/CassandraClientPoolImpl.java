@@ -305,12 +305,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<InetSocketAddress> serversToAdd = Sets.difference(desiredServers, cachedServers);
         Set<InetSocketAddress> serversToRemove = Sets.difference(cachedServers, desiredServers);
 
-        serversToAdd.forEach(
-                server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPoolIfPresent(server)));
+        serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.getPool(server)));
         Map<InetSocketAddress, CassandraClientPoolingContainer> containersToRemove =
                 KeyedStream.of(serversToRemove).map(cassandra::removePool).collectToMap();
-        containersToRemove.forEach(absentHostTracker::trackPoolToRemove);
-        Set<InetSocketAddress> absentServers = absentHostTracker.removeRepeatedlyAbsentServers();
+        containersToRemove.forEach(absentHostTracker::trackAbsentHost);
+        Set<InetSocketAddress> absentServers = absentHostTracker.removeRepeatedlyAbsentHosts();
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
