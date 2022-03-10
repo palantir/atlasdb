@@ -31,11 +31,11 @@ import org.immutables.value.Value;
 public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
 
-    private final int requiredConsecutiveRequestsBeforeRemoval;
+    private final int absenceLimit;
     private final ConcurrentMap<InetSocketAddress, PoolAndCount> absentHosts;
 
-    public CassandraAbsentHostTracker(int requiredConsecutiveRequestsBeforeRemoval) {
-        this.requiredConsecutiveRequestsBeforeRemoval = requiredConsecutiveRequestsBeforeRemoval;
+    public CassandraAbsentHostTracker(int absenceLimit) {
+        this.absenceLimit = absenceLimit;
         this.absentHosts = new ConcurrentHashMap<>();
     }
 
@@ -47,7 +47,7 @@ public final class CassandraAbsentHostTracker {
         absentHosts.putIfAbsent(host, PoolAndCount.of(pool));
     }
 
-    public Set<InetSocketAddress> incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts() {
+    public Set<InetSocketAddress> incrementAbsenceAndRemove() {
         return cleanupAbsentHosts(ImmutableSet.copyOf(absentHosts.keySet()));
     }
 
@@ -66,7 +66,7 @@ public final class CassandraAbsentHostTracker {
     private Optional<InetSocketAddress> removeIfAbsenceThresholdReached(InetSocketAddress inetSocketAddress) {
         Optional<PoolAndCount> maybePoolAndCount = Optional.ofNullable(absentHosts.get(inetSocketAddress));
         return maybePoolAndCount.map(poolAndCount -> {
-            if (poolAndCount.timesAbsent() > requiredConsecutiveRequestsBeforeRemoval) {
+            if (poolAndCount.timesAbsent() > absenceLimit) {
                 shutdownClientPool(
                         inetSocketAddress, absentHosts.remove(inetSocketAddress).container());
                 return inetSocketAddress;

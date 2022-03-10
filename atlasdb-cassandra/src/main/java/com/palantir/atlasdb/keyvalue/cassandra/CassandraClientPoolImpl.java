@@ -313,33 +313,34 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
         Set<InetSocketAddress> cachedServers = getCachedServers();
         Set<InetSocketAddress> serversToAdd = Sets.difference(desiredServers, cachedServers);
-        Set<InetSocketAddress> serversToRemove = Sets.difference(cachedServers, desiredServers);
+        Set<InetSocketAddress> absentServers = Sets.difference(cachedServers, desiredServers);
 
         serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
-        Map<InetSocketAddress, CassandraClientPoolingContainer> containersToRemove =
-                KeyedStream.of(serversToRemove).map(cassandra::removePool).collectToMap();
-        containersToRemove.forEach(absentHostTracker::trackAbsentHost);
-        Set<InetSocketAddress> absentServers = absentHostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        Map<InetSocketAddress, CassandraClientPoolingContainer> containersForAbsentHosts =
+                KeyedStream.of(absentServers).map(cassandra::removePool).collectToMap();
+        containersForAbsentHosts.forEach(absentHostTracker::trackAbsentHost);
 
-        if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
+        Set<InetSocketAddress> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
+
+        if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
         }
 
-        logRefreshedHosts(serversToAdd, absentServers, serversToRemove);
+        logRefreshedHosts(serversToAdd, serversToShutdown, absentServers);
     }
 
     private static void logRefreshedHosts(
             Set<InetSocketAddress> serversToAdd,
-            Set<InetSocketAddress> serversToRemove,
+            Set<InetSocketAddress> serversToShutdown,
             Set<InetSocketAddress> absentServers) {
-        if (serversToRemove.isEmpty() && serversToAdd.isEmpty() && absentServers.isEmpty()) {
+        if (serversToShutdown.isEmpty() && serversToAdd.isEmpty() && absentServers.isEmpty()) {
             log.debug("No hosts added or removed during Cassandra pool refresh");
         } else {
             log.info(
                     "Cassandra pool refresh added hosts {}, removed hosts {}, absentServers {}.",
                     SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
-                    SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)),
+                    SafeArg.of("serversToShutdown", CassandraLogHelper.collectionOfHosts(serversToShutdown)),
                     SafeArg.of("absentServers", CassandraLogHelper.collectionOfHosts(absentServers)));
         }
     }

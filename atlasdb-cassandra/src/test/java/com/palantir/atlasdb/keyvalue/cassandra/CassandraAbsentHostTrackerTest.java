@@ -59,11 +59,11 @@ public class CassandraAbsentHostTrackerTest {
         verifyNoInteractions(container1);
 
         IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 1).forEach(_u -> {
-            Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+            Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceAndRemove();
             assertThat(removedHosts).isEmpty();
             verifyNoInteractions(container1);
         });
-        Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(ADDRESS_1);
         verifyPoolShutdown(container1);
     }
@@ -74,14 +74,14 @@ public class CassandraAbsentHostTrackerTest {
         hostTracker.trackAbsentHost(ADDRESS_2, container2);
 
         // increment absence round for addresses 1 and 2.
-        hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        hostTracker.incrementAbsenceAndRemove();
 
         hostTracker.trackAbsentHost(ADDRESS_3, container3);
 
         IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 2).forEach(_u -> {
-            hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+            hostTracker.incrementAbsenceAndRemove();
         });
-        Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(ADDRESS_1, ADDRESS_2);
         verifyPoolShutdown(container1);
         verifyPoolShutdown(container2);
@@ -97,7 +97,7 @@ public class CassandraAbsentHostTrackerTest {
     public void alwaysRecommendsServersToBeRemovedIfConfiguredWithLimitOne() {
         CassandraAbsentHostTracker oneShotHostTracker = new CassandraAbsentHostTracker(1);
         oneShotHostTracker.trackAbsentHost(ADDRESS_1, container1);
-        Set<InetSocketAddress> removedHosts = oneShotHostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        Set<InetSocketAddress> removedHosts = oneShotHostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(ADDRESS_1);
         verifyPoolShutdown(container1);
     }
