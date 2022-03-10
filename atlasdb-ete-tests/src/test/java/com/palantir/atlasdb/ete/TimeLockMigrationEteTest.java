@@ -28,6 +28,8 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampService;
 import java.io.File;
 import java.nio.file.Paths;
@@ -47,6 +49,8 @@ import org.junit.rules.TemporaryFolder;
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".
 public class TimeLockMigrationEteTest {
+    private static final SafeLogger log = SafeLoggerFactory.get(TimeLockMigrationEteTest.class);
+
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
 
@@ -130,41 +134,55 @@ public class TimeLockMigrationEteTest {
         TimestampService timestampClient = createEteClientFor(TimestampService.class);
         TodoResource todoClient = createEteClientFor(TodoResource.class);
 
+        log.info("zzzz ONE");
         todoClient.addTodo(TODO);
+        log.info("zzzz TWO");
         softAssertions
                 .assertThat(todoClient.getTodoList())
                 .as("contains one todo pre-migration")
                 .contains(TODO);
 
+        log.info("zzzz THREE");
         long embeddedTimestamp = timestampClient.getFreshTimestamp();
+        log.info("zzzz FOUR");
         softAssertions
                 .assertThat(embeddedTimestamp)
                 .as("can get a timestamp before migration")
                 .isNotNull();
+        log.info("zzzz FIVE");
 
         upgradeAtlasClientToTimelock();
 
+        log.info("zzzz SIX");
         assertTimeLockGivesHigherTimestampThan(embeddedTimestamp);
 
+        log.info("zzzz SEVEN");
         softAssertions
                 .assertThat(todoClient.getTodoList())
                 .as("can still read todo after migration to TimeLock")
                 .contains(TODO);
 
+        log.info("zzzz EIGHT");
         todoClient.addTodo(TODO_2);
+        log.info("zzzz NINE");
         softAssertions
                 .assertThat(todoClient.getTodoList())
                 .as("can add a new todo using TimeLock")
                 .contains(TODO, TODO_2);
 
+        log.info("zzzz TEN");
         assertNoLongerExposesEmbeddedTimestampService();
+        log.info("zzzz ELEVEN");
 
         downgradeAtlasClientFromTimelockWithoutMigration();
+        log.info("zzzz TWELVE");
 
         assertCanNeitherReadNorWrite();
+        log.info("zzzz THIRTEEN");
 
         // Do this explicitly to avoid mountains of log spam
         CLIENT_ORCHESTRATION_RULE.stopAtlasClient();
+        log.info("zzzz FOURTEEN");
     }
 
     private void upgradeAtlasClientToTimelock() {
