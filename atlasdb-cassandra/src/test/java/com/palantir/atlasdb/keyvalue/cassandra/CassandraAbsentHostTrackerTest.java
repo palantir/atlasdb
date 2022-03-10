@@ -16,8 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.collect.ImmutableSet;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+
 import java.net.InetSocketAddress;
+import java.util.Set;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class CassandraAbsentHostTrackerTest {
@@ -30,63 +37,68 @@ public class CassandraAbsentHostTrackerTest {
     private final CassandraAbsentHostTracker hostTracker =
             new CassandraAbsentHostTracker(REQUIRED_CONSECUTIVE_REQUESTS);
 
+    private CassandraClientPoolingContainer container1 = mock(CassandraClientPoolingContainer.class);
+    private CassandraClientPoolingContainer container2 = mock(CassandraClientPoolingContainer.class);
+    private CassandraClientPoolingContainer container3 = mock(CassandraClientPoolingContainer.class);
+
+    @Test
+    public void returnEmptyIfNothingThePool() {
+        assertThat(hostTracker.returnPool(ADDRESS_1)).isEmpty();
+    }
+
+    @Test
+    public void returnPoolIfPresent() {
+        hostTracker.trackAbsentHost(ADDRESS_1, container1);
+        assertThat(hostTracker.returnPool(ADDRESS_1)).hasValue(container1);
+        assertThat(hostTracker.returnPool(ADDRESS_1)).isEmpty();
+    }
+
     @Test
     public void removesServerAfterConsecutiveRequests() {
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .containsExactly(ADDRESS_1);
+        hostTracker.trackAbsentHost(ADDRESS_1, container1);
+        verifyNoInteractions(container1);
+
+        IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 1).forEach(_u -> {
+            Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+            assertThat(removedHosts).isEmpty();
+            verifyNoInteractions(container1);
+        });
+        Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        assertThat(removedHosts).containsExactly(ADDRESS_1);
+        verifyPoolShutdown(container1);
     }
 
     @Test
-    public void doesNotRemoveServerIfNotConsecutivelyRequested() {
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_2)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .as("address 1 was not part of the previous request")
-                .isEmpty();
+    public void onlyRemoveRelevantHosts() {
+        hostTracker.trackAbsentHost(ADDRESS_1, container1);
+        hostTracker.trackAbsentHost(ADDRESS_2, container2);
+
+        // increment absence round for addresses 1 and 2.
+        hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+
+        hostTracker.trackAbsentHost(ADDRESS_3, container3);
+
+        IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 2).forEach(_u -> {
+            hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        });
+        Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        assertThat(removedHosts).containsExactly(ADDRESS_1, ADDRESS_2);
+        verifyPoolShutdown(container1);
+        verifyPoolShutdown(container2);
+        verifyNoInteractions(container3);
     }
 
-    @Test
-    public void onlyRemovesConsecutivelyPresentServers() {
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1, ADDRESS_2)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1, ADDRESS_2, ADDRESS_3)))
-                .containsExactly(ADDRESS_1);
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_2, ADDRESS_3)))
-                .containsExactly(ADDRESS_2);
-    }
-
-    @Test
-    public void continuesToRecommendServerForRemovalIfRepeatedlyRequested() {
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .isEmpty();
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .containsExactly(ADDRESS_1);
-        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .containsExactly(ADDRESS_1);
+    private void verifyPoolShutdown(CassandraClientPoolingContainer container2) {
+        verify(container2).shutdownPooling();
+        verifyNoMoreInteractions(container2);
     }
 
     @Test
     public void alwaysRecommendsServersToBeRemovedIfConfiguredWithLimitOne() {
-        CassandraPoolReaper oneShotReaper = new CassandraPoolReaper(1);
-
-        assertThat(oneShotReaper.computeServersToRemove(ImmutableSet.of())).isEmpty();
-        assertThat(oneShotReaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
-                .containsExactly(ADDRESS_1);
-        assertThat(oneShotReaper.computeServersToRemove(ImmutableSet.of(ADDRESS_2, ADDRESS_3)))
-                .containsExactly(ADDRESS_2, ADDRESS_3);
-        assertThat(oneShotReaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1, ADDRESS_2, ADDRESS_3)))
-                .containsExactly(ADDRESS_1, ADDRESS_2, ADDRESS_3);
+        CassandraAbsentHostTracker oneShotHostTracker = new CassandraAbsentHostTracker(1);
+        oneShotHostTracker.trackAbsentHost(ADDRESS_1, container1);
+        Set<InetSocketAddress> removedHosts = oneShotHostTracker.incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts();
+        assertThat(removedHosts).containsExactly(ADDRESS_1);
+        verifyPoolShutdown(container1);
     }
 }

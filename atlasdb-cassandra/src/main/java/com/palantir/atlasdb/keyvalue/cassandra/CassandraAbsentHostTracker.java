@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,12 +47,12 @@ public final class CassandraAbsentHostTracker {
         absentHosts.putIfAbsent(host, PoolAndCount.of(pool));
     }
 
-    public Set<InetSocketAddress> removeRepeatedlyAbsentHosts() {
-        return cleanupAbsentHosts(new HashSet<>(absentHosts.keySet()));
+    public Set<InetSocketAddress> incrementAbsenceRoundAndRemoveRepeatedlyAbsentHosts() {
+        return cleanupAbsentHosts(ImmutableSet.copyOf(absentHosts.keySet()));
     }
 
     private Set<InetSocketAddress> cleanupAbsentHosts(Set<InetSocketAddress> absentHostsSnapshot) {
-        absentHosts.keySet().forEach(this::incrementAbsenceCountIfPresent);
+        absentHostsSnapshot.forEach(this::incrementAbsenceCountIfPresent);
         return absentHostsSnapshot.stream()
                 .map(this::removeIfAbsenceThresholdReached)
                 .flatMap(Optional::stream)
