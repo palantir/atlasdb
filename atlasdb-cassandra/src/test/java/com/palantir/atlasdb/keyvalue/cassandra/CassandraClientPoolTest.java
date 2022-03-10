@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
@@ -44,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
@@ -106,12 +109,6 @@ public class CassandraClientPoolTest {
 
     @Test
     public void cassandraPoolMetricsMustBeRegisteredForThreePools() {
-        clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
-    }
-
-    @Test
-    public void shutsDownHostsToRemove() {
         clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
     }
@@ -371,6 +368,20 @@ public class CassandraClientPoolTest {
         assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
     }
 
+    @Test
+    public void shutsDownHostsBeyondAbsenceTolerance() {
+        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
+        Map<InetSocketAddress, CassandraClientPoolingContainer> currentPoolSnapshot =
+                cassandraClientPool.getCurrentPools();
+        assertThat(currentPoolSnapshot.keySet()).containsExactly(HOST_1);
+        CassandraClientPoolingContainer container1 = currentPoolSnapshot.get(HOST_1);
+        verifyNoInteractions(container1);
+
+        cassandraClientPool.setServersInPoolTo(ImmutableSet.of(HOST_3));
+        assertThat(cassandraClientPool.getCurrentPools().keySet()).containsExactly(HOST_3);
+        verify(container1).shutdownPooling();
+    }
+
     private InetSocketAddress getInvocationAddress(InvocationOnMock invocation) {
         return invocation.getArgument(0);
     }
@@ -429,7 +440,7 @@ public class CassandraClientPoolTest {
 
     private void verifyNumberOfAttemptsOnHost(
             InetSocketAddress host, CassandraClientPool cassandraClientPool, int numAttempts) {
-        Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
+        verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
                 .runWithPooledResource(
                         Mockito.<FunctionCheckedException<CassandraClient, Object, RuntimeException>>any());
     }
