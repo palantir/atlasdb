@@ -169,10 +169,12 @@ public final class DbKvsOracleTestSuite {
         return () -> {
             try (ConnectionManagerAwareDbKvs kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
                     Connection conn = kvs.getConnectionManager().getConnection()) {
+                System.err.println(System.currentTimeMillis());
                 boolean ok = conn.isValid(5);
                 System.err.println("conn " + ok);
                 return ok;
             } catch (Exception e) {
+                System.err.println(System.currentTimeMillis());
                 System.err.println("Exception when creating a db connection");
                 e.printStackTrace(System.err);
                 return false;
