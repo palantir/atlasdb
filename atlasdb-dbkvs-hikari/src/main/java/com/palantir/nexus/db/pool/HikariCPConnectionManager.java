@@ -301,7 +301,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
         try {
             try {
-                System.err.println("{4.5}" + hikariConfig)
+                System.err.println("{4.5}" + hikariConfig);
                 dataSourcePool = new HikariDataSource(hikariConfig);
             } catch (IllegalArgumentException e) {
                 // allow multiple pools on same JVM (they need unique names / endpoints)
