@@ -16,55 +16,65 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.google.common.collect.ImmutableSet;
 import java.net.InetSocketAddress;
 import org.junit.Test;
 
-public class CassandraPoolReaperTest {
+public class CassandraAbsentHostTrackerTest {
     private static final InetSocketAddress ADDRESS_1 = new InetSocketAddress(1);
     private static final InetSocketAddress ADDRESS_2 = new InetSocketAddress(2);
     private static final InetSocketAddress ADDRESS_3 = new InetSocketAddress(3);
 
     private static final int REQUIRED_CONSECUTIVE_REQUESTS = 3;
 
-    private final CassandraPoolReaper reaper = new CassandraPoolReaper(REQUIRED_CONSECUTIVE_REQUESTS);
+    private final CassandraAbsentHostTracker hostTracker =
+            new CassandraAbsentHostTracker(REQUIRED_CONSECUTIVE_REQUESTS);
 
     @Test
     public void removesServerAfterConsecutiveRequests() {
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).containsExactly(ADDRESS_1);
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .isEmpty();
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .isEmpty();
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .containsExactly(ADDRESS_1);
     }
 
     @Test
     public void doesNotRemoveServerIfNotConsecutivelyRequested() {
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_2))).isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .isEmpty();
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .isEmpty();
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_2)))
+                .isEmpty();
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
                 .as("address 1 was not part of the previous request")
                 .isEmpty();
     }
 
     @Test
     public void onlyRemovesConsecutivelyPresentServers() {
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1, ADDRESS_2)))
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
                 .isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1, ADDRESS_2, ADDRESS_3)))
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1, ADDRESS_2)))
+                .isEmpty();
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1, ADDRESS_2, ADDRESS_3)))
                 .containsExactly(ADDRESS_1);
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_2, ADDRESS_3)))
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_2, ADDRESS_3)))
                 .containsExactly(ADDRESS_2);
     }
 
     @Test
     public void continuesToRecommendServerForRemovalIfRepeatedlyRequested() {
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).isEmpty();
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).containsExactly(ADDRESS_1);
-        assertThat(reaper.computeServersToRemove(ImmutableSet.of(ADDRESS_1))).containsExactly(ADDRESS_1);
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .isEmpty();
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .isEmpty();
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .containsExactly(ADDRESS_1);
+        assertThat(hostTracker.computeServersToRemove(ImmutableSet.of(ADDRESS_1)))
+                .containsExactly(ADDRESS_1);
     }
 
     @Test

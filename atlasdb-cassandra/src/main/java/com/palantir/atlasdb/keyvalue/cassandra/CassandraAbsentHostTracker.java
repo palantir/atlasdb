@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -31,32 +32,27 @@ public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
 
     private final int requiredConsecutiveRequestsBeforeRemoval;
-    private ConcurrentHashMap<InetSocketAddress, PoolAndCount> absentHosts;
+    private final ConcurrentMap<InetSocketAddress, PoolAndCount> absentHosts;
 
     public CassandraAbsentHostTracker(int requiredConsecutiveRequestsBeforeRemoval) {
         this.requiredConsecutiveRequestsBeforeRemoval = requiredConsecutiveRequestsBeforeRemoval;
-        absentHosts = new ConcurrentHashMap<>();
+        this.absentHosts = new ConcurrentHashMap<>();
     }
 
-    Optional<CassandraClientPoolingContainer> getPool(InetSocketAddress host) {
+    public Optional<CassandraClientPoolingContainer> returnPool(InetSocketAddress host) {
         return Optional.ofNullable(absentHosts.remove(host)).map(PoolAndCount::container);
     }
 
-    void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
-        absentHosts.computeIfAbsent(host, _host -> PoolAndCount.of(pool));
+    public void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
+        absentHosts.putIfAbsent(host, PoolAndCount.of(pool));
     }
 
-    // This is not thread safe. This works off a snapshot of keys and will miss any new updates made to the map while
-    // the increment is happening
-    void incrementRound() {
-        absentHosts.keySet().forEach(this::incrementAbsenceCountIfPresent);
-    }
-
-    Set<InetSocketAddress> removeRepeatedlyAbsentHosts() {
+    public Set<InetSocketAddress> removeRepeatedlyAbsentHosts() {
         return cleanupAbsentHosts(new HashSet<>(absentHosts.keySet()));
     }
 
-    private Set<InetSocketAddress> cleanupAbsentHosts(HashSet<InetSocketAddress> absentHostsSnapshot) {
+    private Set<InetSocketAddress> cleanupAbsentHosts(Set<InetSocketAddress> absentHostsSnapshot) {
+        absentHosts.keySet().forEach(this::incrementAbsenceCountIfPresent);
         return absentHostsSnapshot.stream()
                 .map(this::removeIfAbsenceThresholdReached)
                 .flatMap(Optional::stream)
