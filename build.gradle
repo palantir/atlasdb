@@ -33,6 +33,7 @@ apply plugin: 'java'
 apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.git-version'
 apply plugin: 'com.palantir.external-publish'
+apply plugin: 'com.palantir.baseline-java-versions'
 
 apply from: 'gradle/versions.gradle'
 
