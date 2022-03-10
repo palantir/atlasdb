@@ -96,6 +96,8 @@ public final class DbKvsOracleTestSuite {
 
         InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved(port.getIp(), port.getExternalPort());
         System.err.println("{2}" + oracleAddress);
+        System.err.println("{2a}" + oracleAddress.getHostString());
+        System.err.println("{2b}" + oracleAddress.getPort());
 
         ConnectionConfig connectionConfig = new OracleConnectionConfig.Builder()
                 .dbLogin("palantir")
