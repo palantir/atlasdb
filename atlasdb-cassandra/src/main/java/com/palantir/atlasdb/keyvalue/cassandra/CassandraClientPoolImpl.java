@@ -303,7 +303,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         if (config.autoRefreshNodes()) {
             Set<InetSocketAddress> desiredServers = cassandra.refreshTokenRangesAndGetServers();
-            log.warn("New desired list of hosts", SafeArg.of("desiredServers", desiredServers));
+            log.warn("New desired list of hosts: {}", SafeArg.of("desiredServers", desiredServers));
             setServersInPoolTo(desiredServers);
         } else {
             setServersInPoolTo(resolvedConfigAddresses);
