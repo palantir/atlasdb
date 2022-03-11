@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -25,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public final class CassandraAbsentHostTracker {
@@ -52,7 +52,7 @@ public final class CassandraAbsentHostTracker {
         return absentHosts.keySet().stream()
                 .map(this::removeIfAbsenceThresholdReached)
                 .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
     public synchronized void shutDown() {

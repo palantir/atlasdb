@@ -314,8 +314,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
         Set<InetSocketAddress> cachedServers = getCachedServers();
-        Set<InetSocketAddress> serversToAdd = Sets.difference(desiredServers, cachedServers);
-        Set<InetSocketAddress> absentServers = Sets.difference(cachedServers, desiredServers);
+        Set<InetSocketAddress> serversToAdd = ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
+        Set<InetSocketAddress> absentServers = ImmutableSet.copyOf(Sets.difference(cachedServers, desiredServers));
 
         serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
         Map<InetSocketAddress, CassandraClientPoolingContainer> containersForAbsentHosts =
