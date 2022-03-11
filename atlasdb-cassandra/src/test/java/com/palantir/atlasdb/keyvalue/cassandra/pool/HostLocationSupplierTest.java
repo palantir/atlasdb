@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.junit.Test;
