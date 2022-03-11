@@ -17,26 +17,12 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableRangeMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Interner;
-import com.google.common.collect.Interners;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
-import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
-import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.keyvalue.cassandra.*;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -49,18 +35,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -222,6 +197,7 @@ public class CassandraService implements AutoCloseable {
         Optional<HostLocation> myLocation = myLocationSupplier.get();
 
         if (!myLocation.isPresent()) {
+            log.info("no override location present");
             return ImmutableSet.of();
         }
 
@@ -235,6 +211,8 @@ public class CassandraService implements AutoCloseable {
 
         if (newLocalHosts.isEmpty()) {
             log.warn("No local hosts found");
+        } else {
+            log.info("local hosts: {}", SafeArg.of("newLocalHosts", newLocalHosts));
         }
 
         return newLocalHosts;
