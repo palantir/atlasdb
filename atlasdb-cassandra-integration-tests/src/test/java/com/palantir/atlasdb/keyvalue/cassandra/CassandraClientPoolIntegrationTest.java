@@ -23,6 +23,9 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Set;
@@ -31,6 +34,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class CassandraClientPoolIntegrationTest {
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolIntegrationTest.class);
+
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
@@ -50,11 +55,26 @@ public class CassandraClientPoolIntegrationTest {
         HostLocation localLocation = HostLocation.of("dc1", "rack1");
         HostLocation remoteLocation = HostLocation.of("dc1", "rack4");
 
-        assertThat(getLocalHostsUsingLocation(localLocation)).isNotEmpty();
-        assertThat(getLocalHostsUsingLocation(remoteLocation)).isEmpty();
+        CassandraClientPoolImpl localClientPool = createClientPoolWithLocation(localLocation);
+        log.info(
+                "pool info for local {} {}",
+                SafeArg.of("currentPools", localClientPool.getCurrentPools()),
+                SafeArg.of("localHosts", localClientPool.getLocalHosts()));
+        CassandraClientPoolImpl remoteClientPool = createClientPoolWithLocation(remoteLocation);
+        log.info(
+                "pool info for remote {} {}",
+                SafeArg.of("currentPools", remoteClientPool.getCurrentPools()),
+                SafeArg.of("localHosts", remoteClientPool.getLocalHosts()));
+
+        assertThat(getLocalHostsUsingLocation(localClientPool)).isNotEmpty();
+        assertThat(getLocalHostsUsingLocation(remoteClientPool)).isEmpty();
     }
 
-    private Set<InetSocketAddress> getLocalHostsUsingLocation(HostLocation hostLocation) {
+    private Set<InetSocketAddress> getLocalHostsUsingLocation(CassandraClientPoolImpl clientPool) {
+        return clientPool.getLocalHosts();
+    }
+
+    private CassandraClientPoolImpl createClientPoolWithLocation(HostLocation hostLocation) {
         CassandraKeyValueServiceConfig configHostWithLocation = ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(CASSANDRA.getConfig())
                 .overrideHostLocation(Optional.of(hostLocation))
@@ -62,7 +82,6 @@ public class CassandraClientPoolIntegrationTest {
 
         CassandraClientPoolImpl clientPoolWithLocation = CassandraClientPoolImpl.createImplForTest(
                 metricsManager, configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
-
-        return clientPoolWithLocation.getLocalHosts();
+        return clientPoolWithLocation;
     }
 }
