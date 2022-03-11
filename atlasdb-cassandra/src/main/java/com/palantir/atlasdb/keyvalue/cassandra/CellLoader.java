@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
@@ -43,6 +41,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -180,7 +179,9 @@ final class CellLoader {
                             Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = queryRunner.multiget_multislice(
                                     kvsMethodName, client, tableRef, query, consistency);
                             Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults =
-                                    Maps.transformValues(results, lists -> Lists.newArrayList(Iterables.concat(lists)));
+                                    Maps.transformValues(results, lists -> lists.stream()
+                                            .flatMap(Collection::stream)
+                                            .collect(Collectors.toList()));
                             visitor.visit(aggregatedResults);
                             return null;
                         }
