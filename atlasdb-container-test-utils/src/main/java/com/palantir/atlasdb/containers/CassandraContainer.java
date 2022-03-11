@@ -57,7 +57,7 @@ public class CassandraContainer extends Container {
     private final String name;
 
     public CassandraContainer() {
-        this("/docker-compose-cassandra2.yml", CONTAINER_NAME);
+        this("/docker-compose-cassandra.yml", CONTAINER_NAME);
     }
 
     private CassandraContainer(String dockerComposeFile, String name) {
@@ -84,7 +84,7 @@ public class CassandraContainer extends Container {
     }
 
     public static CassandraContainer throwawayContainer() {
-        return new CassandraContainer("/docker-compose-cassandra.yml", THROWAWAY_CONTAINER_NAME);
+        return new CassandraContainer("/docker-compose-cassandra2.yml", THROWAWAY_CONTAINER_NAME);
     }
 
     @Override
