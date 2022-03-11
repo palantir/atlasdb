@@ -301,7 +301,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config.servers().accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
 
         if (config.autoRefreshNodes()) {
-            setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
+            Set<InetSocketAddress> desiredServers = cassandra.refreshTokenRangesAndGetServers();
+            log.warn(
+                    "New desired list of hosts: {}",
+                    SafeArg.of("desiredServers", desiredServers),
+                    new RuntimeException("created for stack trace"));
+            setServersInPoolTo(desiredServers);
         } else {
             setServersInPoolTo(resolvedConfigAddresses);
         }
@@ -317,7 +322,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         serversToAdd.forEach(cassandra::addPool);
         serversToRemove.forEach(cassandra::removePool);
-
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
