@@ -134,6 +134,7 @@ public class CassandraService implements AutoCloseable {
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
             localHosts = refreshLocalHosts(tokenRanges);
+            log.warn("localHosts list has been refreshed: {}", SafeArg.of("localHosts", localHosts));
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -221,6 +222,7 @@ public class CassandraService implements AutoCloseable {
         Optional<HostLocation> myLocation = myLocationSupplier.get();
 
         if (!myLocation.isPresent()) {
+            log.info("no override location present");
             return ImmutableSet.of();
         }
 
@@ -234,6 +236,8 @@ public class CassandraService implements AutoCloseable {
 
         if (newLocalHosts.isEmpty()) {
             log.warn("No local hosts found");
+        } else {
+            log.info("local hosts: {}", SafeArg.of("newLocalHosts", newLocalHosts));
         }
 
         return newLocalHosts;

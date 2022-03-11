@@ -1,3 +1,5 @@
+
+   
 /*
  * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
@@ -18,10 +20,14 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
+    private static final SafeLogger log = SafeLoggerFactory.get(HostLocationSupplier.class);
     private static final int NUM_RETRIES = 5;
 
     @VisibleForTesting
@@ -50,15 +56,19 @@ final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
     @Override
     public Optional<HostLocation> get() {
+        log.info("override location {}", SafeArg.of("overrideLocation", overrideLocation));
         if (overrideLocation.isPresent()) {
             return overrideLocation;
         }
 
         return snitchSupplier.get().flatMap(snitch -> {
+            log.info("snitch is {}", SafeArg.of("snitch", snitch));
             switch (snitch) {
                 case EC2_SNITCH:
+                    log.info("ec2 {}", SafeArg.of("ec2result", ec2Supplier.get()));
                     return ec2Supplier.get();
                 default:
+                    log.info("empty");
                     return Optional.empty();
             }
         });
