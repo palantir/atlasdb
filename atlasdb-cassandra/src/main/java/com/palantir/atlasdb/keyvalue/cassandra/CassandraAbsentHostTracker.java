@@ -85,7 +85,7 @@ public final class CassandraAbsentHostTracker {
             container.shutdownPooling();
         } catch (Exception e) {
             log.warn(
-                    "While removing a host ({}) from the pool, we were unable to gently cleanup" + " resources.",
+                    "While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
                     SafeArg.of("removedServerAddress", CassandraLogHelper.host(inetSocketAddress)),
                     e);
         }
