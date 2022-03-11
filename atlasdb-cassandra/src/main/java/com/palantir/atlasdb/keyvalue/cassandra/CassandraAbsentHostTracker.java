@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public final class CassandraAbsentHostTracker {
@@ -48,16 +49,20 @@ public final class CassandraAbsentHostTracker {
     }
 
     public synchronized Set<InetSocketAddress> incrementAbsenceAndRemove() {
-        absentHosts.keySet().forEach(this::incrementAbsenceCountIfPresent);
-        return absentHosts.keySet().stream()
-                .map(this::removeIfAbsenceThresholdReached)
-                .flatMap(Optional::stream)
-                .collect(ImmutableSet.toImmutableSet());
+        return cleanupAbsentHosts(ImmutableSet.copyOf(absentHosts.keySet()));
     }
 
     public synchronized void shutDown() {
         KeyedStream.stream(absentHosts).map(PoolAndCount::container).forEach(this::shutdownClientPoolForHost);
         absentHosts.clear();
+    }
+
+    private Set<InetSocketAddress> cleanupAbsentHosts(Set<InetSocketAddress> absentHostsSnapshot) {
+        absentHostsSnapshot.forEach(this::incrementAbsenceCountIfPresent);
+        return absentHostsSnapshot.stream()
+                .map(this::removeIfAbsenceThresholdReached)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
     }
 
     private void incrementAbsenceCountIfPresent(InetSocketAddress host) {
