@@ -44,6 +44,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetAddress;
@@ -137,7 +138,7 @@ public class CassandraService implements AutoCloseable {
             log.warn(
                     "localHosts list has been refreshed: {}",
                     SafeArg.of("localHosts", localHosts),
-                    new RuntimeException("Created for stack trace"));
+                    new SafeRuntimeException("Created for stack trace"));
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -225,7 +226,7 @@ public class CassandraService implements AutoCloseable {
         Optional<HostLocation> myLocation = myLocationSupplier.get();
 
         if (!myLocation.isPresent()) {
-            log.info("no override location present", new RuntimeException("creating for stack trace"));
+            log.info("no override location present", new SafeRuntimeException("creating for stack trace"));
             return ImmutableSet.of();
         }
 
@@ -238,12 +239,12 @@ public class CassandraService implements AutoCloseable {
                 .collect(Collectors.toSet());
 
         if (newLocalHosts.isEmpty()) {
-            log.warn("No local hosts found", new RuntimeException("creating for stack trace"));
+            log.warn("No local hosts found", new SafeRuntimeException("creating for stack trace"));
         } else {
             log.info(
                     "local hosts: {}",
                     SafeArg.of("newLocalHosts", newLocalHosts),
-                    new RuntimeException("creating " + "for stack trace"));
+                    new SafeRuntimeException("creating " + "for stack trace"));
         }
 
         return newLocalHosts;

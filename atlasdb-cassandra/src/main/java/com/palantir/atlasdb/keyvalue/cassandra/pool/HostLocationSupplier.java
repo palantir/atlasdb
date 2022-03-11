@@ -35,6 +35,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
@@ -74,12 +75,12 @@ final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
             log.info(
                     "override location {}",
                     SafeArg.of("overrideLocation", overrideLocation),
-                    new RuntimeException("For stack trace"));
+                    new SafeRuntimeException("For stack trace"));
             return overrideLocation;
         }
 
         return snitchSupplier.get().flatMap(snitch -> {
-            log.info("snitch is {}", SafeArg.of("snitch", snitch), new RuntimeException("For stack trace"));
+            log.info("snitch is {}", SafeArg.of("snitch", snitch), new SafeRuntimeException("For stack trace"));
             switch (snitch) {
                 case EC2_SNITCH:
                     log.info("ec2 {}", SafeArg.of("ec2result", ec2Supplier.get()));

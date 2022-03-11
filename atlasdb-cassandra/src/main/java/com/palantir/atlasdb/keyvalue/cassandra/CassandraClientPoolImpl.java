@@ -37,6 +37,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
@@ -305,7 +306,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             log.warn(
                     "New desired list of hosts: {}",
                     SafeArg.of("desiredServers", desiredServers),
-                    new RuntimeException("created for stack trace"));
+                    new SafeRuntimeException("created for stack trace"));
             setServersInPoolTo(desiredServers);
         } else {
             setServersInPoolTo(resolvedConfigAddresses);
