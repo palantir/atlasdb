@@ -41,9 +41,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.TokenRange;
-
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +51,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.TokenRange;
 
 /**
  * Feature breakdown:
