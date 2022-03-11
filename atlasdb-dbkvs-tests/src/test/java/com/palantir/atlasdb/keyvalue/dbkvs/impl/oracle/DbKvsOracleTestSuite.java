@@ -60,6 +60,7 @@ import org.junit.runners.Suite.SuiteClasses;
     OracleEmbeddedDbTimestampBoundStoreTest.class
 })
 public final class DbKvsOracleTestSuite {
+    private static final String LOCALHOST = "0.0.0.0";
     private static final int ORACLE_PORT_NUMBER = 1521;
 
     private DbKvsOracleTestSuite() {
@@ -89,7 +90,7 @@ public final class DbKvsOracleTestSuite {
     public static DbKeyValueServiceConfig getKvsConfig() {
         DockerPort port = docker.containers().container("oracle").port(ORACLE_PORT_NUMBER);
 
-        InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved(port.getIp(), port.getExternalPort());
+        InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved(LOCALHOST, port.getExternalPort());
 
         ConnectionConfig connectionConfig = new OracleConnectionConfig.Builder()
                 .dbLogin("palantir")
