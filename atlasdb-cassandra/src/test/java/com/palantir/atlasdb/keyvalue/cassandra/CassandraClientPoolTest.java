@@ -384,6 +384,8 @@ public class CassandraClientPoolTest {
         verifyNoInteractions(container1);
 
         cassandraClientPool.setServersInPoolTo(ImmutableSet.of(HOST_3));
+        // The refresh will mark absence of host1 beyond limit of tolerance
+        cassandraClientPool.setServersInPoolTo(ImmutableSet.of(HOST_3));
         assertThat(cassandraClientPool.getCurrentPools().keySet()).containsExactly(HOST_3);
         verify(container1).shutdownPooling();
     }
