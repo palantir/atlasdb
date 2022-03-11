@@ -41,6 +41,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.TokenRange;
+
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
@@ -51,8 +54,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.TokenRange;
 
 /**
  * Feature breakdown:
@@ -331,6 +332,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         log.warn("Incrementing absence count: {}", SafeArg.of("absentServers", absentServers));
         Set<InetSocketAddress> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
+        log.info(
+                "Cassandra pool information that we have: {}, removed hosts {}, absentServers {}.",
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
+                SafeArg.of("serversToShutdown", CassandraLogHelper.collectionOfHosts(serversToShutdown)),
+                SafeArg.of("absentServers", CassandraLogHelper.collectionOfHosts(absentServers)));
         if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
