@@ -77,7 +77,7 @@ public class CassandraContainer extends Container {
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
                 .replicationFactor(1)
-                .consecutiveAbsencesBeforePoolRemoval(1)
+                .consecutiveAbsencesBeforePoolRemoval(0)
                 .build();
         this.dockerComposeFile = dockerComposeFile;
         this.name = name;

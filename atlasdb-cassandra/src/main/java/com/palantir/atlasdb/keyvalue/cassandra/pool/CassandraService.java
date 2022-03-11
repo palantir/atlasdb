@@ -444,9 +444,21 @@ public class CassandraService implements AutoCloseable {
 
     public void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        currentPools.put(
+        addPoolInternal(
                 server,
                 new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber, poolMetrics));
+    }
+
+    public void returnOrCreatePool(InetSocketAddress server, Optional<CassandraClientPoolingContainer> container) {
+        if (container.isPresent()) {
+            addPoolInternal(server, container.get());
+        } else {
+            addPool(server);
+        }
+    }
+
+    private void addPoolInternal(InetSocketAddress server, CassandraClientPoolingContainer container) {
+        currentPools.put(server, container);
     }
 
     /**
@@ -454,17 +466,10 @@ public class CassandraService implements AutoCloseable {
      * remain alive until they are returned to the pool, whereby they are destroyed immediately. Threads waiting on the
      * pool will be interrupted.
      */
-    public void removePool(InetSocketAddress removedServerAddress) {
+    public CassandraClientPoolingContainer removePool(InetSocketAddress removedServerAddress) {
         blacklist.remove(removedServerAddress);
         CassandraClientPoolingContainer removedContainer = currentPools.remove(removedServerAddress);
-        try {
-            removedContainer.shutdownPooling();
-        } catch (Exception e) {
-            log.warn(
-                    "While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
-                    SafeArg.of("removedServerAddress", CassandraLogHelper.host(removedServerAddress)),
-                    e);
-        }
+        return removedContainer;
     }
 
     public void cacheInitialCassandraHosts() {
