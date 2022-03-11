@@ -304,7 +304,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         if (config.autoRefreshNodes()) {
             Set<InetSocketAddress> desiredServers = cassandra.refreshTokenRangesAndGetServers();
-            log.warn("New desired list of hosts: {}", SafeArg.of("desiredServers", desiredServers));
+            log.warn(
+                    "New desired list of hosts: {}",
+                    SafeArg.of("desiredServers", desiredServers),
+                    new RuntimeException("created for stack trace"));
             setServersInPoolTo(desiredServers);
         } else {
             setServersInPoolTo(resolvedConfigAddresses);
@@ -324,7 +327,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 KeyedStream.of(absentServers).map(cassandra::removePool).collectToMap();
         containersForAbsentHosts.forEach(absentHostTracker::trackAbsentHost);
 
-        log.warn("Incrementing absence count");
+        log.warn("Incrementing absence count: {}", SafeArg.of("absentServers", absentServers));
         Set<InetSocketAddress> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
         if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes

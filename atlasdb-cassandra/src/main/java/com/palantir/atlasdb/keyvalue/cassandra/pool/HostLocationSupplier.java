@@ -54,13 +54,16 @@ final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
     @Override
     public Optional<HostLocation> get() {
-        log.info("override location {}", SafeArg.of("overrideLocation", overrideLocation));
         if (overrideLocation.isPresent()) {
+            log.info(
+                    "override location {}",
+                    SafeArg.of("overrideLocation", overrideLocation),
+                    new RuntimeException("For stack trace"));
             return overrideLocation;
         }
 
         return snitchSupplier.get().flatMap(snitch -> {
-            log.info("snitch is {}", SafeArg.of("snitch", snitch));
+            log.info("snitch is {}", SafeArg.of("snitch", snitch), new RuntimeException("For stack trace"));
             switch (snitch) {
                 case EC2_SNITCH:
                     log.info("ec2 {}", SafeArg.of("ec2result", ec2Supplier.get()));
