@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -49,20 +48,16 @@ public final class CassandraAbsentHostTracker {
     }
 
     public synchronized Set<InetSocketAddress> incrementAbsenceAndRemove() {
-        return cleanupAbsentHosts(ImmutableSet.copyOf(absentHosts.keySet()));
+        absentHosts.keySet().forEach(this::incrementAbsenceCountIfPresent);
+        return absentHosts.keySet().stream()
+                .map(this::removeIfAbsenceThresholdReached)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
     }
 
     public synchronized void shutDown() {
         KeyedStream.stream(absentHosts).map(PoolAndCount::container).forEach(this::shutdownClientPoolForHost);
         absentHosts.clear();
-    }
-
-    private Set<InetSocketAddress> cleanupAbsentHosts(Set<InetSocketAddress> absentHostsSnapshot) {
-        absentHostsSnapshot.forEach(this::incrementAbsenceCountIfPresent);
-        return absentHostsSnapshot.stream()
-                .map(this::removeIfAbsenceThresholdReached)
-                .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
     }
 
     private void incrementAbsenceCountIfPresent(InetSocketAddress host) {
