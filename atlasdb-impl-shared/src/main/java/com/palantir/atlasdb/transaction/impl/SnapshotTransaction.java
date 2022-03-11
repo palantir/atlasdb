@@ -38,7 +38,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.SetMultimap;
@@ -164,7 +163,6 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -2181,42 +2179,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        try {
-            runTaskOnDeleteExecutor(kvs -> deleteCells(kvs, tableRef, keysToDelete));
-        } catch (RejectedExecutionException rejected) {
-            log.info(
-                    "Could not delete keys {} for table {}, because the delete executor's queue was full."
-                            + " Sweep should eventually clean these values.",
-                    UnsafeArg.of("keysToDelete", keysToDelete),
-                    LoggingArgs.tableRef(tableRef),
-                    rejected);
-        }
         return true;
-    }
-
-    private static void deleteCells(
-            KeyValueService keyValueService, TableReference tableRef, Map<Cell, Long> keysToDelete) {
-        try {
-            log.debug(
-                    "For table: {} we are deleting values of an uncommitted transaction: {}",
-                    LoggingArgs.tableRef(tableRef),
-                    UnsafeArg.of("keysToDelete", keysToDelete));
-            keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
-        } catch (RuntimeException e) {
-            final String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are"
-                    + " running. Delete has stronger consistency semantics than read/write and must talk to all nodes"
-                    + " instead of just talking to a quorum of nodes. "
-                    + "Failed to delete keys for table: {} from an uncommitted transaction; "
-                    + " sweep should eventually clean these values.";
-            if (log.isDebugEnabled()) {
-                log.warn(
-                        msg + " The keys that failed to be deleted during rollback were {}",
-                        LoggingArgs.tableRef(tableRef),
-                        UnsafeArg.of("keysToDelete", keysToDelete));
-            } else {
-                log.warn(msg, LoggingArgs.tableRef(tableRef), e);
-            }
-        }
     }
 
     /**
