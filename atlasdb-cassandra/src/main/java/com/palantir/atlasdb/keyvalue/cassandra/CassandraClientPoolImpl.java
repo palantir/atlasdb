@@ -264,6 +264,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 .getPools()
                 .forEach((address, cassandraClientPoolingContainer) ->
                         cassandraClientPoolingContainer.shutdownPooling());
+        absentHostTracker.shutDown();
     }
 
     /**

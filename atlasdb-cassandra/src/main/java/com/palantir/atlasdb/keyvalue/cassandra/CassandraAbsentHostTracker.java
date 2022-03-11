@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -49,6 +50,11 @@ public final class CassandraAbsentHostTracker {
 
     public synchronized Set<InetSocketAddress> incrementAbsenceAndRemove() {
         return cleanupAbsentHosts(ImmutableSet.copyOf(absentHosts.keySet()));
+    }
+
+    public synchronized void shutDown() {
+        KeyedStream.stream(absentHosts).map(PoolAndCount::container).forEach(this::shutdownClientPoolForHost);
+        absentHosts.clear();
     }
 
     private Set<InetSocketAddress> cleanupAbsentHosts(Set<InetSocketAddress> absentHostsSnapshot) {
