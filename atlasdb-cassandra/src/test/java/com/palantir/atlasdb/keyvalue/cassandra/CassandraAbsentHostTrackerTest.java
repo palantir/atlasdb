@@ -58,7 +58,7 @@ public class CassandraAbsentHostTrackerTest {
         hostTracker.trackAbsentHost(ADDRESS_1, container1);
         verifyNoInteractions(container1);
 
-        IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 1).forEach(_u -> {
+        IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS).forEach(_u -> {
             Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceAndRemove();
             assertThat(removedHosts).isEmpty();
             verifyNoInteractions(container1);
@@ -78,9 +78,7 @@ public class CassandraAbsentHostTrackerTest {
 
         hostTracker.trackAbsentHost(ADDRESS_3, container3);
 
-        IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 2).forEach(_u -> {
-            hostTracker.incrementAbsenceAndRemove();
-        });
+        IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 1).forEach(_u -> hostTracker.incrementAbsenceAndRemove());
         Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(ADDRESS_1, ADDRESS_2);
         verifyPoolShutdown(container1);
@@ -90,7 +88,7 @@ public class CassandraAbsentHostTrackerTest {
 
     @Test
     public void alwaysRecommendsServersToBeRemovedIfConfiguredWithLimitOne() {
-        CassandraAbsentHostTracker oneShotHostTracker = new CassandraAbsentHostTracker(1);
+        CassandraAbsentHostTracker oneShotHostTracker = new CassandraAbsentHostTracker(0);
         oneShotHostTracker.trackAbsentHost(ADDRESS_1, container1);
         Set<InetSocketAddress> removedHosts = oneShotHostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(ADDRESS_1);

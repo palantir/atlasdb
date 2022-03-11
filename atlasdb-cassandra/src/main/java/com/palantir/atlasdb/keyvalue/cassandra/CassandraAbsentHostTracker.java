@@ -45,7 +45,7 @@ public final class CassandraAbsentHostTracker {
     }
 
     public synchronized void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
-        absentHosts.putIfAbsent(host, PoolAndCount.withIncrementedCount(pool));
+        absentHosts.putIfAbsent(host, PoolAndCount.of(pool));
     }
 
     public synchronized Set<InetSocketAddress> incrementAbsenceAndRemove() {
@@ -97,10 +97,10 @@ public final class CassandraAbsentHostTracker {
 
         int timesAbsent();
 
-        static PoolAndCount withIncrementedCount(CassandraClientPoolingContainer pool) {
+        static PoolAndCount of(CassandraClientPoolingContainer pool) {
             return ImmutablePoolAndCount.builder()
                     .container(pool)
-                    .timesAbsent(1)
+                    .timesAbsent(0)
                     .build();
         }
 
