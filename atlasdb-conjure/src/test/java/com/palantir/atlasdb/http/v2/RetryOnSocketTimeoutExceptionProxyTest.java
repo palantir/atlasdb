@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.function.BinaryOperator;
@@ -65,14 +66,14 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
 
     @Test
     public void oneFailure() {
-        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        RuntimeException socketTimeoutException = new SafeRuntimeException(new SocketTimeoutException());
         when(binaryOperator.apply(1, 2)).thenThrow(socketTimeoutException).thenReturn(3);
         assertThat(proxy.apply(1, 2)).isEqualTo(3);
     }
 
     @Test
     public void twoFailures() {
-        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        RuntimeException socketTimeoutException = new SafeRuntimeException(new SocketTimeoutException());
         when(binaryOperator.apply(1, 2))
                 .thenThrow(socketTimeoutException)
                 .thenThrow(socketTimeoutException)
@@ -82,7 +83,7 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
 
     @Test
     public void fourFailures() {
-        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        RuntimeException socketTimeoutException = new SafeRuntimeException(new SocketTimeoutException());
         when(binaryOperator.apply(1, 2))
                 .thenThrow(socketTimeoutException)
                 .thenThrow(socketTimeoutException)
@@ -94,7 +95,7 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
 
     @Test
     public void sixFailures() {
-        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        RuntimeException socketTimeoutException = new SafeRuntimeException(new SocketTimeoutException());
         when(binaryOperator.apply(1, 2))
                 .thenThrow(socketTimeoutException)
                 .thenThrow(socketTimeoutException)
@@ -109,7 +110,7 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
 
     @Test
     public void differentFailure() {
-        RuntimeException socketException = new RuntimeException(new SocketException());
+        RuntimeException socketException = new SafeRuntimeException(new SocketException());
         when(binaryOperator.apply(1, 2)).thenThrow(socketException).thenReturn(3);
         assertThatThrownBy(() -> proxy.apply(1, 2)).isEqualTo(socketException);
     }

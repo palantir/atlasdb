@@ -69,7 +69,7 @@ public final class HostLocationSupplierTest {
     @Test
     public void shouldReturnEmptyLocationFromEC2LocationSupplierException() {
         Supplier<HostLocation> badEc2Supplier = () -> {
-            throw new RuntimeException();
+            throw new SafeRuntimeException();
         };
 
         Supplier<Optional<HostLocation>> hostLocationSupplier = new HostLocationSupplier(
