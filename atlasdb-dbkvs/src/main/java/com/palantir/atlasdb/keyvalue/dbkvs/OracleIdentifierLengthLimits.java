@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -25,6 +27,8 @@ import org.immutables.value.Value;
  * Tracks length limits on tables and identifier names within Oracle.
  */
 @Value.Immutable
+@JsonDeserialize(as = ImmutableOracleIdentifierLengthLimits.class)
+@JsonSerialize(as = ImmutableOracleIdentifierLengthLimits.class)
 public interface OracleIdentifierLengthLimits {
     int identifierLengthLimit();
 
