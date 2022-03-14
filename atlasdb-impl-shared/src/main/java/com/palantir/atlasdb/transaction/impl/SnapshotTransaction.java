@@ -2187,7 +2187,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             log.info(
                     "Could not delete keys {} for table {}, because the delete executor's queue was full."
                             + " Sweep should eventually clean these values.",
-                    UnsafeArg.of("keysToDelete", keysToDelete),
+                    SafeArg.of("numKeysToDelete", keysToDelete.size()),
                     LoggingArgs.tableRef(tableRef),
                     rejected);
         }
