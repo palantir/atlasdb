@@ -149,5 +149,3 @@ distribution {
     defaultJvmOpts '-Xmx768M'
 }
 
-sourceCompatibility = 11
-targetCompatibility = 11

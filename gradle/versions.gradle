@@ -30,3 +30,7 @@ ext.libVersions =
     ant: '1.9.4',
     postgresql: '42.2.25'
 ]
+
+javaVersions {
+    libraryTarget = 11
+}
