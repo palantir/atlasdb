@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: shutdown executors
+  links:
+  - https://github.com/palantir/atlasdb/pull/5962
