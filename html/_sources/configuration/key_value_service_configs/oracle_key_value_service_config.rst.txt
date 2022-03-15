@@ -46,6 +46,7 @@ A minimal AtlasDB configuration for running against Oracle will look like the be
           sid: palantir
           dbLogin: palantir
           dbPassword: palpal
+        namespace: myAppAtlas # must be unique per product
 
       leader:
         # This should be at least half the number of nodes in your cluster
@@ -69,9 +70,10 @@ For more details on the leader block, see :ref:`Leader Configuration <leader-con
 Configuration Parameters
 ========================
 
-The Oracle Configuration has 2 major blocks:
+The Oracle Configuration has 2 major blocks.
 
-The DDL Config Block:
+DDL parameters
+--------------
 
 .. list-table::
     :widths: 5 40 15

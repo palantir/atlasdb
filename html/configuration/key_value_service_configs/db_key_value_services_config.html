@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Key Value Service Configurations &mdash; OSS AtlasDB develop documentation</title>
+  <title>DB KVS Shared Configuration &mdash; OSS AtlasDB develop documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
@@ -20,8 +20,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Cassandra KVS Configuration" href="cassandra_key_value_service_config.html" />
-    <link rel="prev" title="Configuration" href="../index.html" /> 
+    <link rel="next" title="DB KVS (Postgres) Configuration" href="postgres_key_value_service_config.html" />
+    <link rel="prev" title="Cassandra KVS Configuration" href="cassandra_key_value_service_config.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,9 +47,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../transactions/index.html">Transactions</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Configuration</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Key Value Service Configurations</a><ul>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Key Value Service Configurations</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="cassandra_key_value_service_config.html">Cassandra KVS Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="db_key_value_services_config.html">DB KVS Shared Configuration</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">DB KVS Shared Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="postgres_key_value_service_config.html">DB KVS (Postgres) Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="oracle_key_value_service_config.html">DB KVS (Oracle - beta) Configuration</a></li>
 </ul>
@@ -87,9 +87,10 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../index.html">Configuration</a> &raquo;</li>
-      <li>Key Value Service Configurations</li>
+          <li><a href="index.html">Key Value Service Configurations</a> &raquo;</li>
+      <li>DB KVS Shared Configuration</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/key_value_service_configs/index.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/key_value_service_configs/db_key_value_services_config.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -97,43 +98,29 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="key-value-service-configurations">
-<span id="key-value-service-configs"></span><h1>Key Value Service Configurations<a class="headerlink" href="#key-value-service-configurations" title="Permalink to this headline"></a></h1>
-<p>The configurations for supported key value services can be found below.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="cassandra_key_value_service_config.html">Cassandra KVS Configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="db_key_value_services_config.html">DB KVS Shared Configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="postgres_key_value_service_config.html">DB KVS (Postgres) Configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="oracle_key_value_service_config.html">DB KVS (Oracle - beta) Configuration</a></li>
-</ul>
+  <section id="db-kvs-shared-configuration">
+<span id="db-key-value-services-config"></span><h1>DB KVS Shared Configuration<a class="headerlink" href="#db-kvs-shared-configuration" title="Permalink to this headline"></a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Please read the documentation for configuration of the specific flavour of DbKVS (Oracle or Postgres) that you are
+using as well. This document discusses concepts that are shared across the relational key-value-service
+configurations that we support.</p>
 </div>
-<section id="global-parameters">
-<h2>Global Parameters<a class="headerlink" href="#global-parameters" title="Permalink to this headline"></a></h2>
-<table class="colwidths-given docutils align-default">
-<colgroup>
-<col style="width: 18%" />
-<col style="width: 73%" />
-<col style="width: 9%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Property</p></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Default</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>concurrentGetRangesThreadPoolSize</p></td>
-<td><p>The size of the thread pool used for running concurrent range requests.</p></td>
-<td><p>KVS-specific</p></td>
-</tr>
-<tr class="row-odd"><td><p>defaultGetRangesConcurrency</p></td>
-<td><p>The maximum number of threads from the pool specified by <code class="docutils literal notranslate"><span class="pre">concurrentGetRangesThreadPoolSize</span></code> to use
-for a single <code class="docutils literal notranslate"><span class="pre">getRanges</span></code> request when the user does not explicitly provide a value.</p></td>
-<td><p>8</p></td>
-</tr>
-</tbody>
-</table>
+<section id="namespaces">
+<h2>Namespaces<a class="headerlink" href="#namespaces" title="Permalink to this headline"></a></h2>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Changing the namespace of an individual service, or explicitly specifying the namespace of a service that previously
+did not have namespace overrides without taking suitable mitigating measures may result in
+<strong>SEVERE DATA CORRUPTION</strong>! Please contact the AtlasDB team before attempting such a migration.</p>
+</div>
+<p><em>Namespaces</em> are a mechanism by which an AtlasDB application using a relational KVS may identify itself to TimeLock.
+This can be useful in situations where a DB instance is shared between services. This should be a unique value per
+user service, and must not be changed without a migration.</p>
+<p>By default, this is determined by the connection configuration. In Oracle this is determined from either the <code class="docutils literal notranslate"><span class="pre">sid</span></code>
+or the <code class="docutils literal notranslate"><span class="pre">serviceNameConfiguration</span></code>; in Postgres, this is determined from the <code class="docutils literal notranslate"><span class="pre">dbName</span></code>. However, in cases where a
+single application needs to be responsible for multiple AtlasDB instances connecting to the same Oracle instance under
+the same user, setting <code class="docutils literal notranslate"><span class="pre">namespace</span></code> accordingly allows for interactions with TimeLock to be handled properly.</p>
 </section>
 </section>
 
@@ -141,8 +128,8 @@ for a single <code class="docutils literal notranslate"><span class="pre">getRan
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../index.html" class="btn btn-neutral float-left" title="Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cassandra_key_value_service_config.html" class="btn btn-neutral float-right" title="Cassandra KVS Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cassandra_key_value_service_config.html" class="btn btn-neutral float-left" title="Cassandra KVS Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="postgres_key_value_service_config.html" class="btn btn-neutral float-right" title="DB KVS (Postgres) Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

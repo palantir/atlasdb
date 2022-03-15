@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="DB KVS (Oracle - beta) Configuration" href="oracle_key_value_service_config.html" />
-    <link rel="prev" title="Cassandra KVS Configuration" href="cassandra_key_value_service_config.html" /> 
+    <link rel="prev" title="DB KVS Shared Configuration" href="db_key_value_services_config.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,6 +49,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Configuration</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">Key Value Service Configurations</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="cassandra_key_value_service_config.html">Cassandra KVS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="db_key_value_services_config.html">DB KVS Shared Configuration</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">DB KVS (Postgres) Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="oracle_key_value_service_config.html">DB KVS (Oracle - beta) Configuration</a></li>
 </ul>
@@ -120,6 +121,7 @@
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">relational</span><span class="w"></span>
+<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myAppAtlas</span><span class="w"> </span><span class="c1"># must be unique per product</span><span class="w"></span>
 <span class="w">    </span><span class="nt">ddl</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres</span><span class="w"></span>
 <span class="w">    </span><span class="nt">connection</span><span class="p">:</span><span class="w"></span>
@@ -230,7 +232,7 @@ An example is shown below; for full documentation on which parameters are availa
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="cassandra_key_value_service_config.html" class="btn btn-neutral float-left" title="Cassandra KVS Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="db_key_value_services_config.html" class="btn btn-neutral float-left" title="DB KVS Shared Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="oracle_key_value_service_config.html" class="btn btn-neutral float-right" title="DB KVS (Oracle - beta) Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -49,6 +49,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Configuration</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">Key Value Service Configurations</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="cassandra_key_value_service_config.html">Cassandra KVS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="db_key_value_services_config.html">DB KVS Shared Configuration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="postgres_key_value_service_config.html">DB KVS (Postgres) Configuration</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">DB KVS (Oracle - beta) Configuration</a></li>
 </ul>
@@ -131,6 +132,7 @@ runtime dependency. In gradle this looks like:</p>
 <span class="w">      </span><span class="nt">sid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir</span><span class="w"></span>
 <span class="w">      </span><span class="nt">dbLogin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir</span><span class="w"></span>
 <span class="w">      </span><span class="nt">dbPassword</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palpal</span><span class="w"></span>
+<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myAppAtlas</span><span class="w"> </span><span class="c1"># must be unique per product</span><span class="w"></span>
 
 <span class="w">  </span><span class="nt">leader</span><span class="p">:</span><span class="w"></span>
 <span class="w">    </span><span class="c1"># This should be at least half the number of nodes in your cluster</span><span class="w"></span>
@@ -152,8 +154,9 @@ runtime dependency. In gradle this looks like:</p>
 </section>
 <section id="configuration-parameters">
 <span id="oracle-config-params"></span><h2>Configuration Parameters<a class="headerlink" href="#configuration-parameters" title="Permalink to this headline"></a></h2>
-<p>The Oracle Configuration has 2 major blocks:</p>
-<p>The DDL Config Block:</p>
+<p>The Oracle Configuration has 2 major blocks.</p>
+<section id="ddl-parameters">
+<h3>DDL parameters<a class="headerlink" href="#ddl-parameters" title="Permalink to this headline"></a></h3>
 <table class="colwidths-given docutils align-default">
 <colgroup>
 <col style="width: 8%" />
@@ -204,6 +207,7 @@ defaults to 1000.</p></td>
 </tr>
 </tbody>
 </table>
+</section>
 <section id="connection-parameters">
 <h3>Connection parameters<a class="headerlink" href="#connection-parameters" title="Permalink to this headline"></a></h3>
 <p>If you would like to customize the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
