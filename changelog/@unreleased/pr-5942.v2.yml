@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: Users may now explicitly override the `namespace` of a DB key value
+    service configuration, which is usually the mechanism by which an individual AtlasDB
+    user identifies itself (e.g. to timelock and possibly to the underlying key-value-service).
+    This was previously automatically assumed to be the `sid` of the Oracle database
+    or `dbname` of the Postgres database; however, that is not actually the way an
+    individual AtlasDB user identifies itself in practice.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5942
