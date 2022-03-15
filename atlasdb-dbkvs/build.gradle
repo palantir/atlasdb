@@ -32,6 +32,7 @@ dependencies {
   implementation project(':timestamp-api')
 
   testImplementation 'com.google.guava:guava'
+  testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
   testImplementation 'com.palantir.safe-logging:safe-logging'
   testImplementation 'com.zaxxer:HikariCP'
   testImplementation 'org.slf4j:slf4j-api'

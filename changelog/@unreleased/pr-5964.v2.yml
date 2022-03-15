@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: |-
+    Serialization of `identifierLengthLimits` as part of serializing an `OracleDdlConfig` no longer happens.
+    Note that this doesn't affect config _deserialization_, which covers most (non-timelock) AtlasDB users.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5964
