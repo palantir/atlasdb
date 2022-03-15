@@ -20,8 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Collections;
 import java.util.List;
@@ -153,6 +156,25 @@ public class OracleDdlConfigTest {
         }
     }
 
+    @Test
+    public void serializedFormDoesNotIncludeLengthLimits() throws JsonProcessingException {
+        JsonMapper jsonMapper = ObjectMappers.newServerJsonMapper();
+
+        OracleDdlConfig config = createLongNameSupportingOracleConfigWithPrefixes(
+                getPrefixWithLength(8), getPrefixWithLength(15));
+        String json = jsonMapper.writeValueAsString(config);
+        assertThat(json).doesNotContain("identifierLengthLimits");
+    }
+
+    @Test
+    public void serializeAndDeserializeIsNoOp() throws JsonProcessingException {
+        JsonMapper jsonMapper = ObjectMappers.newServerJsonMapper();
+
+        OracleDdlConfig config = createLongNameSupportingOracleConfigWithPrefixes(
+                getPrefixWithLength(44), getPrefixWithLength(33));
+        assertThat(jsonMapper.readValue(jsonMapper.writeValueAsString(config), OracleDdlConfig.class)).isEqualTo(config);
+    }
+
     private static OracleDdlConfig createLegacyCompatibleOracleConfigWithPrefixes(
             String tablePrefix, String overflowTablePrefix) {
         return createOracleDdlConfig(tablePrefix, overflowTablePrefix, false);
@@ -170,7 +192,7 @@ public class OracleDdlConfigTest {
                 .overflowTablePrefix(overflowTablePrefix)
                 .overflowMigrationState(OverflowMigrationState.FINISHED)
                 .longIdentifierNamesSupported(longIdentifierNamesSupported)
-                .useTableMapping(false)
+                .forceTableMapping(false)
                 .build();
     }
 
