@@ -88,8 +88,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
         this.connConfig = Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
         this.hikariConfig = connConfig.getHikariConfig();
-        hikariConfig.setPoolName(
-                hikariConfig.getPoolName() + "-" + uniquePoolId.incrementAndGet());
+        hikariConfig.setPoolName(hikariConfig.getPoolName() + "-" + uniquePoolId.incrementAndGet());
     }
 
     @Override
