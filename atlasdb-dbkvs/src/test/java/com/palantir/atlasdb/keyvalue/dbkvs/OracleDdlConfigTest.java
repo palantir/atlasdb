@@ -160,19 +160,19 @@ public class OracleDdlConfigTest {
     public void serializedFormDoesNotIncludeLengthLimits() throws JsonProcessingException {
         JsonMapper jsonMapper = ObjectMappers.newServerJsonMapper();
 
-        OracleDdlConfig config = createLongNameSupportingOracleConfigWithPrefixes(
-                getPrefixWithLength(8), getPrefixWithLength(15));
-        String json = jsonMapper.writeValueAsString(config);
-        assertThat(json).doesNotContain("identifierLengthLimits");
+        OracleDdlConfig config =
+                createLongNameSupportingOracleConfigWithPrefixes(getPrefixWithLength(8), getPrefixWithLength(15));
+        assertThat(jsonMapper.writeValueAsString(config)).doesNotContain("identifierLengthLimits");
     }
 
     @Test
     public void serializeAndDeserializeIsNoOp() throws JsonProcessingException {
         JsonMapper jsonMapper = ObjectMappers.newServerJsonMapper();
 
-        OracleDdlConfig config = createLongNameSupportingOracleConfigWithPrefixes(
-                getPrefixWithLength(44), getPrefixWithLength(33));
-        assertThat(jsonMapper.readValue(jsonMapper.writeValueAsString(config), OracleDdlConfig.class)).isEqualTo(config);
+        OracleDdlConfig config =
+                createLongNameSupportingOracleConfigWithPrefixes(getPrefixWithLength(44), getPrefixWithLength(33));
+        assertThat(jsonMapper.readValue(jsonMapper.writeValueAsString(config), OracleDdlConfig.class))
+                .isEqualTo(config);
     }
 
     private static OracleDdlConfig createLegacyCompatibleOracleConfigWithPrefixes(
