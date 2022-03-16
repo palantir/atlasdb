@@ -33,7 +33,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,16 +58,18 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             Caffeine.newBuilder().weakValues().build(SslSocketFactories::createSslSocketFactory);
 
     private final MetricsManager metricsManager;
-    private final InetSocketAddress addr;
+    private final CassandraNodeIdentifier nodeIdentifier;
     private final CassandraKeyValueServiceConfig config;
     private final SSLSocketFactory sslSocketFactory;
     private final TimedRunner timedRunner;
     private final TSocketFactory tSocketFactory;
 
     public CassandraClientFactory(
-            MetricsManager metricsManager, InetSocketAddress addr, CassandraKeyValueServiceConfig config) {
+            MetricsManager metricsManager,
+            CassandraNodeIdentifier nodeIdentifier,
+            CassandraKeyValueServiceConfig config) {
         this.metricsManager = metricsManager;
-        this.addr = addr;
+        this.nodeIdentifier = nodeIdentifier;
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionClose());
@@ -80,7 +81,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         try {
             return instrumentClient(getRawClientWithKeyspaceSet());
         } catch (Exception e) {
-            String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
+            String message =
+                    String.format("Failed to construct client for %s/%s", nodeIdentifier, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
                 message += " over SSL";
             }
@@ -105,7 +107,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug(
                     "Created new client for {}/{}{}{}",
-                    SafeArg.of("address", CassandraLogHelper.host(addr)),
+                    SafeArg.of("address", CassandraLogHelper.host(nodeIdentifier)),
                     UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
                     SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
                     UnsafeArg.of(
@@ -117,7 +119,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
     }
 
-    static CassandraClient getClientInternal(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+    static CassandraClient getClientInternal(CassandraNodeIdentifier addr, CassandraKeyValueServiceConfig config)
             throws TException {
         return new CassandraClientImpl(
                 getRawClient(addr, config, createSslSocketFactory(config), TSocketFactory.Default.INSTANCE));
@@ -133,18 +135,20 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private Cassandra.Client getRawClientWithTimedCreation() throws TException {
         Timer clientCreation = metricsManager.registerOrGetTimer(CassandraClientFactory.class, "clientCreation");
         try (Timer.Context timer = clientCreation.time()) {
-            return getRawClient(addr, config, sslSocketFactory, tSocketFactory);
+            return getRawClient(nodeIdentifier, config, sslSocketFactory, tSocketFactory);
         }
     }
 
     private static Cassandra.Client getRawClient(
-            InetSocketAddress addr,
+            CassandraNodeIdentifier cassandraNodeIdentifier,
             CassandraKeyValueServiceConfig config,
             SSLSocketFactory sslSocketFactory,
             TSocketFactory tSocketFactory)
             throws TException {
-        TSocket thriftSocket =
-                tSocketFactory.create(addr.getHostString(), addr.getPort(), config.socketTimeoutMillis());
+        TSocket thriftSocket = tSocketFactory.create(
+                cassandraNodeIdentifier.getHostString(),
+                cassandraNodeIdentifier.getPort(),
+                config.socketTimeoutMillis());
         thriftSocket.open();
         setSocketOptions(
                 thriftSocket,
@@ -152,13 +156,16 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     socket.getSocket().setKeepAlive(true);
                     socket.getSocket().setSoTimeout(config.initialSocketQueryTimeoutMillis());
                 },
-                addr);
+                cassandraNodeIdentifier);
 
         if (config.usingSsl()) {
             boolean success = false;
             try {
                 SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
-                        thriftSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
+                        thriftSocket.getSocket(),
+                        cassandraNodeIdentifier.getHostString(),
+                        cassandraNodeIdentifier.getPort(),
+                        true);
                 thriftSocket = tSocketFactory.create(socket);
                 success = true;
             } catch (IOException e) {
@@ -177,7 +184,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         try {
             login(client, config.credentials());
             setSocketOptions(
-                    thriftSocket, socket -> socket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis()), addr);
+                    thriftSocket,
+                    socket -> socket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis()),
+                    cassandraNodeIdentifier);
         } catch (TException e) {
             client.getOutputProtocol().getTransport().close();
             log.error("Exception thrown attempting to authenticate with config provided credentials", e);
@@ -202,7 +211,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             log.info(
                     "Failed when attempting to validate a Cassandra client in the Cassandra client pool."
                             + " Defensively believing that this object is NOT valid.",
-                    SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)),
+                    SafeArg.of("cassandraClient", CassandraLogHelper.host(nodeIdentifier)),
                     t);
             return false;
         }
@@ -219,7 +228,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             log.debug(
                     "Attempting to close transport for client {} of host {}",
                     UnsafeArg.of("client", client),
-                    SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
+                    SafeArg.of("cassandraClient", CassandraLogHelper.host(nodeIdentifier)));
         }
         try {
             TaskContext<Void> taskContext =
@@ -230,7 +239,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 log.debug(
                         "Failed to close transport for client {} of host {}",
                         UnsafeArg.of("client", client),
-                        SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)),
+                        SafeArg.of("cassandraClient", CassandraLogHelper.host(nodeIdentifier)),
                         t);
             }
             throw new SafeRuntimeException("Threw while attempting to close transport for client", t);
@@ -239,7 +248,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             log.debug(
                     "Closed transport for client {} of host {}",
                     UnsafeArg.of("client", client),
-                    SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
+                    SafeArg.of("cassandraClient", CassandraLogHelper.host(nodeIdentifier)));
         }
     }
 
@@ -256,7 +265,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
     }
 
-    private static void setSocketOptions(TSocket thriftSocket, SocketConsumer consumer, InetSocketAddress addr) {
+    private static void setSocketOptions(TSocket thriftSocket, SocketConsumer consumer, CassandraNodeIdentifier addr) {
         try {
             consumer.accept(thriftSocket);
         } catch (SocketException e) {

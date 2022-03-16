@@ -27,15 +27,15 @@ import java.util.Set;
 import java.util.stream.IntStream;
 import org.junit.Test;
 
-public class CassandraAbsentHostTrackerTest {
+public class CassandraAbsentNodeTrackerTest {
     private static final InetSocketAddress ADDRESS_1 = new InetSocketAddress(1);
     private static final InetSocketAddress ADDRESS_2 = new InetSocketAddress(2);
     private static final InetSocketAddress ADDRESS_3 = new InetSocketAddress(3);
 
     private static final int REQUIRED_CONSECUTIVE_REQUESTS = 3;
 
-    private final CassandraAbsentHostTracker hostTracker =
-            new CassandraAbsentHostTracker(REQUIRED_CONSECUTIVE_REQUESTS);
+    private final CassandraAbsentNodeTracker hostTracker =
+            new CassandraAbsentNodeTracker(REQUIRED_CONSECUTIVE_REQUESTS);
 
     private CassandraClientPoolingContainer container1 = mock(CassandraClientPoolingContainer.class);
     private CassandraClientPoolingContainer container2 = mock(CassandraClientPoolingContainer.class);
@@ -88,7 +88,7 @@ public class CassandraAbsentHostTrackerTest {
 
     @Test
     public void alwaysRecommendsServersToBeRemovedIfConfiguredWithLimitOne() {
-        CassandraAbsentHostTracker oneShotHostTracker = new CassandraAbsentHostTracker(0);
+        CassandraAbsentNodeTracker oneShotHostTracker = new CassandraAbsentNodeTracker(0);
         oneShotHostTracker.trackAbsentHost(ADDRESS_1, container1);
         Set<InetSocketAddress> removedHosts = oneShotHostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(ADDRESS_1);

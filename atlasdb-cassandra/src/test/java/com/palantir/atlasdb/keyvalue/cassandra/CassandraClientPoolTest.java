@@ -236,7 +236,8 @@ public class CassandraClientPoolTest {
                 .getCurrentPools()
                 .values()
                 .forEach(pool -> setConditionalTimeoutFailureForHost(
-                        pool, container -> container.getHost().equals(downHost.get())));
+                        pool,
+                        container -> container.getCassandraNodeIdentifier().equals(downHost.get())));
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
         assertThat(blacklist.contains(HOST_1)).isTrue();
@@ -429,7 +430,7 @@ public class CassandraClientPoolTest {
 
         void inPool(CassandraClientPool cassandraClientPool) {
             CassandraClientPoolingContainer container = mock(CassandraClientPoolingContainer.class);
-            when(container.getHost()).thenReturn(address);
+            when(container.getCassandraNodeIdentifier()).thenReturn(address);
             try {
                 OngoingStubbing<Object> stubbing = when(container.runWithPooledResource(
                         Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()));
@@ -496,7 +497,7 @@ public class CassandraClientPoolTest {
     private CassandraClientPoolingContainer getMockPoolingContainerForHost(
             InetSocketAddress address, Optional<Exception> maybeFailureMode) {
         CassandraClientPoolingContainer poolingContainer = mock(CassandraClientPoolingContainer.class);
-        when(poolingContainer.getHost()).thenReturn(address);
+        when(poolingContainer.getCassandraNodeIdentifier()).thenReturn(address);
         maybeFailureMode.ifPresent(e -> setFailureModeForHost(poolingContainer, e));
         return poolingContainer;
     }

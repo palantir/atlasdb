@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,21 +25,21 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
-    private final InetSocketAddress preferredHost;
+    private final CassandraNodeIdentifier cassandraNodeIdentifier;
     private final FunctionCheckedException<CassandraClient, V, K> fn;
 
     private boolean shouldGiveUpOnPreferredHost = false;
-    private Map<InetSocketAddress, Integer> triedHosts = new ConcurrentHashMap<>();
+    private Map<CassandraNodeIdentifier, Integer> triedHosts = new ConcurrentHashMap<>();
     private List<Exception> encounteredExceptions = new ArrayList<>();
 
     public RetryableCassandraRequest(
-            InetSocketAddress preferredHost, FunctionCheckedException<CassandraClient, V, K> fn) {
-        this.preferredHost = preferredHost;
+            CassandraNodeIdentifier cassandraNodeIdentifier, FunctionCheckedException<CassandraClient, V, K> fn) {
+        this.cassandraNodeIdentifier = cassandraNodeIdentifier;
         this.fn = fn;
     }
 
-    public InetSocketAddress getPreferredHost() {
-        return preferredHost;
+    public CassandraNodeIdentifier getCassandraNodeIdentifier() {
+        return cassandraNodeIdentifier;
     }
 
     public FunctionCheckedException<CassandraClient, V, K> getFunction() {
@@ -51,8 +50,8 @@ public class RetryableCassandraRequest<V, K extends Exception> {
         return triedHosts.values().stream().mapToInt(Number::intValue).sum();
     }
 
-    public int getNumberOfAttemptsOnHost(InetSocketAddress host) {
-        return triedHosts.getOrDefault(host, 0);
+    public int getNumberOfAttemptsOnHost(CassandraNodeIdentifier cassandraNodeIdentifier) {
+        return triedHosts.getOrDefault(cassandraNodeIdentifier, 0);
     }
 
     public boolean shouldGiveUpOnPreferredHost() {
@@ -63,15 +62,15 @@ public class RetryableCassandraRequest<V, K extends Exception> {
         shouldGiveUpOnPreferredHost = true;
     }
 
-    public boolean alreadyTriedOnHost(InetSocketAddress address) {
-        return triedHosts.containsKey(address);
+    public boolean alreadyTriedOnHost(CassandraNodeIdentifier cassandraNodeIdentifier) {
+        return triedHosts.containsKey(cassandraNodeIdentifier);
     }
 
-    public void triedOnHost(InetSocketAddress host) {
-        triedHosts.merge(host, 1, (old, ignore) -> old + 1);
+    public void triedOnHost(CassandraNodeIdentifier cassandraNodeIdentifier) {
+        triedHosts.merge(cassandraNodeIdentifier, 1, (old, ignore) -> old + 1);
     }
 
-    public Set<InetSocketAddress> getTriedHosts() {
+    public Set<CassandraNodeIdentifier> getTriedNodes() {
         return triedHosts.keySet();
     }
 

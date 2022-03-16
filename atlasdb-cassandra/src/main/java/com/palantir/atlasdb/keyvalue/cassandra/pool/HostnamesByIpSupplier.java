@@ -80,6 +80,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
                             SafeArg.of("table", HOSTNAMES_BY_IP_TABLE))
                     .build();
 
+            // it would be okay if multiple ips mapped to one host then
             return client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.LOCAL_ONE).getRows().stream()
                     .collect(ImmutableMap.toImmutableMap(
                             row -> getNamedColumnValue(row, IP_COLUMN),

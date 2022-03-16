@@ -37,7 +37,11 @@ public final class CassandraLogHelper {
         return HostAndIpAddress.fromAddress(host);
     }
 
-    static Collection<HostAndIpAddress> collectionOfHosts(Collection<InetSocketAddress> hosts) {
+    public static HostAndIpAddress host(CassandraNodeIdentifier nodeIdentifier) {
+        return HostAndIpAddress.fromAddress(nodeIdentifier);
+    }
+
+    static Collection<HostAndIpAddress> collectionOfHosts(Collection<CassandraNodeIdentifier> hosts) {
         return hosts.stream().map(CassandraLogHelper::host).collect(Collectors.toSet());
     }
 
@@ -48,7 +52,7 @@ public final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    public static List<String> tokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
+    public static List<String> tokenMap(RangeMap<LightweightOppToken, List<CassandraNodeIdentifier>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format(
                         "range from %s to %s is on host %s",
@@ -82,6 +86,14 @@ public final class CassandraLogHelper {
             return ImmutableHostAndIpAddress.builder()
                     .host(address.getHostString())
                     .ipAddress(Optional.ofNullable(address.getAddress()).map(InetAddress::getHostAddress))
+                    .build();
+        }
+
+        static HostAndIpAddress fromAddress(CassandraNodeIdentifier nodeIdentifier) {
+            return ImmutableHostAndIpAddress.builder()
+                    .host(nodeIdentifier.getHostName()) // todo(snanda) hostString
+                    .ipAddress(Optional.ofNullable(nodeIdentifier.getLastUsedIpAddress())
+                            .map(InetAddress::getHostAddress))
                     .build();
         }
     }

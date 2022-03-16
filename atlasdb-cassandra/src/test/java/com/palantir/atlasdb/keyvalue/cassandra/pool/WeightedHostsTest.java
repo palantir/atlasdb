@@ -134,7 +134,7 @@ public class WeightedHostsTest {
         // Exhaustively test all indexes
         Map<InetSocketAddress, Integer> numTimesSelected = new HashMap<>();
         for (int index = 0; index < weightedHosts.hosts.lastKey(); index++) {
-            InetSocketAddress host = weightedHosts.getRandomHostInternal(index);
+            InetSocketAddress host = weightedHosts.getRandomNodeIdentifierInternal(index);
             if (!numTimesSelected.containsKey(host)) {
                 numTimesSelected.put(host, 0);
             }

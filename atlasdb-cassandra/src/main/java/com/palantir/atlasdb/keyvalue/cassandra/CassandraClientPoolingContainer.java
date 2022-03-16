@@ -36,7 +36,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -56,7 +55,7 @@ import org.apache.thrift.transport.TTransportException;
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolingContainer.class);
 
-    private final InetSocketAddress host;
+    private final CassandraNodeIdentifier cassandraNodeIdentifier;
     private final CassandraKeyValueServiceConfig config;
     private final MetricsManager metricsManager;
     private final AtomicLong count = new AtomicLong();
@@ -68,12 +67,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
-            InetSocketAddress host,
+            CassandraNodeIdentifier cassandraNodeIdentifier,
             CassandraKeyValueServiceConfig config,
             int poolNumber,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
-        this.host = host;
+        this.cassandraNodeIdentifier = cassandraNodeIdentifier;
         this.config = config;
         this.poolNumber = poolNumber;
         this.poolMetrics = poolMetrics;
@@ -81,8 +80,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
     }
 
-    public InetSocketAddress getHost() {
-        return host;
+    public CassandraNodeIdentifier getCassandraNodeIdentifier() {
+        return cassandraNodeIdentifier;
     }
 
     /**
@@ -112,14 +111,17 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         ThreadNames.setThreadName(
                 Thread.currentThread(),
                 origName
-                        + " calling cassandra host " + host
+                        + " calling cassandra host " + cassandraNodeIdentifier
                         + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
                         + " - " + count.getAndIncrement());
         try {
             openRequests.getAndIncrement();
             return runWithGoodResource(fn);
         } catch (Throwable t) {
-            log.warn("Error occurred talking to host '{}'", SafeArg.of("host", CassandraLogHelper.host(host)), t);
+            log.warn(
+                    "Error occurred talking to host '{}'",
+                    SafeArg.of("host", CassandraLogHelper.host(cassandraNodeIdentifier)),
+                    t);
             if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
                 log.warn(
                         "Extra information about exhausted pool",
@@ -160,7 +162,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 log.warn(
                         "Not reusing resource due to {} of host {}",
                         UnsafeArg.of("exception", e.toString()),
-                        SafeArg.of("host", CassandraLogHelper.host(host)),
+                        SafeArg.of("host", CassandraLogHelper.host(cassandraNodeIdentifier)),
                         e);
                 shouldReuse = false;
             }
@@ -174,8 +176,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             if (resource != null) {
                 if (shouldReuse) {
                     log.debug(
-                            "Returning resource to pool of host {}", SafeArg.of("host", CassandraLogHelper.host(host)));
-                    eagerlyCleanupReadBuffersFromIdleConnection(resource, host);
+                            "Returning resource to pool of host {}",
+                            SafeArg.of("host", CassandraLogHelper.host(cassandraNodeIdentifier)));
+                    eagerlyCleanupReadBuffersFromIdleConnection(resource, cassandraNodeIdentifier);
                     clientPool.returnObject(resource);
                 } else {
                     invalidateQuietly(resource);
@@ -187,7 +190,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     }
 
     private static void eagerlyCleanupReadBuffersFromIdleConnection(
-            CassandraClient idleClient, InetSocketAddress host) {
+            CassandraClient idleClient, CassandraNodeIdentifier nodeIdentifier) {
         // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
         try {
             TTransport transport = idleClient.getInputProtocol().getTransport();
@@ -198,10 +201,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 byte[] underlyingBuffer = memoryInputTransport.getBuffer();
                 if (underlyingBuffer != null && memoryInputTransport.getBytesRemainingInBuffer() == 0) {
                     log.debug(
-                            "During {} check-in, cleaned up a read buffer of {} bytes of host {}",
+                            "During {} check-in, cleaned up a read buffer of {} bytes of nodeIdentifier {}",
                             UnsafeArg.of("pool", idleClient),
                             SafeArg.of("bufferLength", underlyingBuffer.length),
-                            SafeArg.of("host", CassandraLogHelper.host(host)));
+                            SafeArg.of("nodeIdentifier", CassandraLogHelper.host(nodeIdentifier)));
                     memoryInputTransport.reset(PtBytes.EMPTY_BYTE_ARRAY);
                 }
             }
@@ -216,7 +219,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void invalidateQuietly(CassandraClient resource) {
         try {
-            log.debug("Discarding resource of host {}", SafeArg.of("host", CassandraLogHelper.host(host)));
+            log.debug(
+                    "Discarding resource of host {}",
+                    SafeArg.of("host", CassandraLogHelper.host(cassandraNodeIdentifier)));
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
             log.warn("Attempted to invalidate a non-reusable Cassandra resource, but failed to due an exception", e);
@@ -232,7 +237,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(getClass())
-                .add("host", this.host)
+                .add("host", this.cassandraNodeIdentifier)
                 .add("keyspace", config.getKeyspaceOrThrow())
                 .add("usingSsl", config.usingSsl())
                 .add(
@@ -266,7 +271,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      *       while still keeping a minimum number of idle connections around for fast borrows.
      */
     private GenericObjectPool<CassandraClient> createClientPool() {
-        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(metricsManager, host, config);
+        CassandraClientFactory cassandraClientFactory =
+                new CassandraClientFactory(metricsManager, cassandraNodeIdentifier, config);
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
         poolConfig.setMinIdle(config.poolSize());
@@ -292,14 +298,15 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolConfig.setNumTestsPerEvictionRun(-(int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
         poolConfig.setTestWhileIdle(true);
 
-        poolConfig.setJmxNamePrefix(host.getHostString());
+        // todo(snanda): what is the significance of this | test and see :)
+        poolConfig.setJmxNamePrefix(cassandraNodeIdentifier.getHostName());
         poolConfig.setEvictionPolicy(new DefaultEvictionPolicy<>());
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         pool.setSwallowedExceptionListener(exception -> log.info("Swallowed exception within object pool", exception));
         registerMetrics(pool);
         log.info(
                 "Creating a Cassandra client pool for {} with the configuration {}",
-                SafeArg.of("host", host),
+                SafeArg.of("host", cassandraNodeIdentifier),
                 SafeArg.of("poolConfig", poolConfig));
         return pool;
     }

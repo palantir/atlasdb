@@ -21,7 +21,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -29,26 +28,26 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
-public final class CassandraAbsentHostTracker {
-    private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
+public final class CassandraAbsentNodeTracker {
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentNodeTracker.class);
 
     private final int absenceLimit;
-    private final Map<InetSocketAddress, PoolAndCount> absentHosts;
+    private final Map<CassandraNodeIdentifier, PoolAndCount> absentHosts;
 
-    public CassandraAbsentHostTracker(int absenceLimit) {
+    public CassandraAbsentNodeTracker(int absenceLimit) {
         this.absenceLimit = absenceLimit;
         this.absentHosts = new HashMap<>();
     }
 
-    public synchronized Optional<CassandraClientPoolingContainer> returnPool(InetSocketAddress host) {
-        return Optional.ofNullable(absentHosts.remove(host)).map(PoolAndCount::container);
+    public synchronized Optional<CassandraClientPoolingContainer> returnPool(CassandraNodeIdentifier nodeIdentifier) {
+        return Optional.ofNullable(absentHosts.remove(nodeIdentifier)).map(PoolAndCount::container);
     }
 
-    public synchronized void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
-        absentHosts.putIfAbsent(host, PoolAndCount.of(pool));
+    public synchronized void trackAbsentHost(CassandraNodeIdentifier node, CassandraClientPoolingContainer pool) {
+        absentHosts.putIfAbsent(node, PoolAndCount.of(pool));
     }
 
-    public synchronized Set<InetSocketAddress> incrementAbsenceAndRemove() {
+    public synchronized Set<CassandraNodeIdentifier> incrementAbsenceAndRemove() {
         return cleanupAbsentHosts(ImmutableSet.copyOf(absentHosts.keySet()));
     }
 
@@ -57,30 +56,30 @@ public final class CassandraAbsentHostTracker {
         absentHosts.clear();
     }
 
-    private Set<InetSocketAddress> cleanupAbsentHosts(Set<InetSocketAddress> absentHostsSnapshot) {
-        absentHostsSnapshot.forEach(this::incrementAbsenceCountIfPresent);
-        return absentHostsSnapshot.stream()
+    private Set<CassandraNodeIdentifier> cleanupAbsentHosts(Set<CassandraNodeIdentifier> absentNodes) {
+        absentNodes.forEach(this::incrementAbsenceCountIfPresent);
+        return absentNodes.stream()
                 .map(this::removeIfAbsenceThresholdReached)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
     }
 
-    private void incrementAbsenceCountIfPresent(InetSocketAddress host) {
-        absentHosts.computeIfPresent(host, (_host, poolAndCount) -> poolAndCount.incrementCount());
+    private void incrementAbsenceCountIfPresent(CassandraNodeIdentifier nodeIdentifier) {
+        absentHosts.computeIfPresent(nodeIdentifier, (_host, poolAndCount) -> poolAndCount.incrementCount());
     }
 
-    private Optional<InetSocketAddress> removeIfAbsenceThresholdReached(InetSocketAddress inetSocketAddress) {
-        if (absentHosts.get(inetSocketAddress).timesAbsent() <= absenceLimit) {
+    private Optional<CassandraNodeIdentifier> removeIfAbsenceThresholdReached(CassandraNodeIdentifier nodeIdentifier) {
+        if (absentHosts.get(nodeIdentifier).timesAbsent() <= absenceLimit) {
             return Optional.empty();
         } else {
-            PoolAndCount removedServer = absentHosts.remove(inetSocketAddress);
-            shutdownClientPoolForHost(inetSocketAddress, removedServer.container());
-            return Optional.of(inetSocketAddress);
+            PoolAndCount removedServer = absentHosts.remove(nodeIdentifier);
+            shutdownClientPoolForHost(nodeIdentifier, removedServer.container());
+            return Optional.of(nodeIdentifier);
         }
     }
 
     private void shutdownClientPoolForHost(
-            InetSocketAddress inetSocketAddress, CassandraClientPoolingContainer container) {
+            CassandraNodeIdentifier inetSocketAddress, CassandraClientPoolingContainer container) {
         try {
             container.shutdownPooling();
         } catch (Exception e) {
