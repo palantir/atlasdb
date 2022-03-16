@@ -247,15 +247,6 @@ public final class ColumnValueDescription {
                 + "com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
     }
 
-    private Message.Builder createBuilder(ClassLoader classLoader) {
-        try {
-            Method method = getImportClass(classLoader).getMethod("newBuilder");
-            return (Message.Builder) method.invoke(null);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
-
     public Class<?> getImportClass() {
         return getImportClass(Thread.currentThread().getContextClassLoader());
     }
