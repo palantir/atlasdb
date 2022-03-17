@@ -72,6 +72,14 @@ public final class CassandraLogHelper {
         return range.upperEndpoint().toString();
     }
 
+    public static Set<String> tokenRangeHashes(Set<TokenRange> tokenRanges) {
+        return tokenRanges.stream()
+                .map(range -> String.format(
+                        "(%d, %d)",
+                        range.getStart_token().hashCode(), range.getEnd_token().hashCode()))
+                .collect(Collectors.toSet());
+    }
+
     @Value.Immutable
     interface HostAndIpAddress {
         String host();
