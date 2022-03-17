@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Have a mechanism for understanding roughly how many token ranges there
+    was disagreement on (if any) in a safe-visible way.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5967
