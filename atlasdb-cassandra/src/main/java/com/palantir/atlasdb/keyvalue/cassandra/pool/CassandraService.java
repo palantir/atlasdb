@@ -444,7 +444,7 @@ public class CassandraService implements AutoCloseable {
             log.trace("Current ring view is: {}."
                             + " Current host blacklist is {}.",
                     SafeArg.of("tokenMap", getRingViewDescription()),
-                    SafeArg.of("blacklistedHostsCount", blacklist.size()));
+                    SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
         }
         return getRandomGoodHost().getHost();
     }
