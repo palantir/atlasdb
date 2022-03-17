@@ -437,7 +437,7 @@ public class CassandraService implements AutoCloseable {
                         + " Falling back to choosing a random live node."
                         + " Current host blacklist is {}."
                         + " Current state logged at TRACE",
-                SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
+                SafeArg.of("blacklistedHostsCount", blacklist.size()));
         log.trace("Current ring view is: {}.", SafeArg.of("tokenMap", getRingViewDescription()));
         return getRandomGoodHost().getHost();
     }
