@@ -39,80 +39,96 @@ public class TokenRangeResolutionTest {
 
     @Test
     public void zeroViewsAreConsistent() {
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(ImmutableSet.of())).isTrue();
+        assertThat(TokenRangeResolution.viewsAreConsistent(ImmutableSet.of())).isTrue();
     }
 
     @Test
     public void completelyAgreeingViewsAreConsistent() {
-        Set<Set<TokenRange>> singleNodeRingView = ImmutableSet.of(ImmutableSet.of(createRange(TOKEN_1, TOKEN_2)));
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(singleNodeRingView)).isTrue();
+        assertThat(TokenRangeResolution.viewsAreConsistent(
+                        ImmutableSet.of(ImmutableSet.of(createRange(TOKEN_1, TOKEN_2)))))
+                .isTrue();
     }
 
     @Test
     public void viewsWithDifferentRangesDoNotHaveConsistentTokens() {
-        Set<TokenRange> firstNodeRingView = ImmutableSet.of(createRange(TOKEN_1, TOKEN_2), createRange(TOKEN_3,
-                TOKEN_4));
-        Set<TokenRange> secondNodeRingView = ImmutableSet.of(createRange(TOKEN_1, TOKEN_2), createRange(TOKEN_4,
-                TOKEN_5));
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(
-                ImmutableSet.of(firstNodeRingView, secondNodeRingView))).isFalse();
+        Set<TokenRange> firstNodeRingView =
+                ImmutableSet.of(createRange(TOKEN_1, TOKEN_2), createRange(TOKEN_3, TOKEN_4));
+        Set<TokenRange> secondNodeRingView =
+                ImmutableSet.of(createRange(TOKEN_1, TOKEN_2), createRange(TOKEN_4, TOKEN_5));
+        assertThat(TokenRangeResolution.viewsAreConsistent(ImmutableSet.of(firstNodeRingView, secondNodeRingView)))
+                .isFalse();
     }
 
     @Test
-    public void viewsWithSameSingleRangeButDifferentEndpointsAreConsistent() {
+    public void viewsAssociatedWithDifferentNumberOfEndpointsAreNotConsistent() {
+        Set<TokenRange> firstNodeRingView = ImmutableSet.of(createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_1));
+        Set<TokenRange> secondNodeRingView =
+                ImmutableSet.of(new TokenRange(TOKEN_1, TOKEN_2, ImmutableList.of(ENDPOINT_1, ENDPOINT_2)));
+        assertThat(TokenRangeResolution.viewsAreConsistent(ImmutableSet.of(firstNodeRingView, secondNodeRingView)))
+                .isFalse();
+    }
+
+    @Test
+    public void viewsWithSameSingleRangeAndSameNumberOfButDifferentEndpointsAreConsistent() {
         Set<TokenRange> firstNodeRingView = ImmutableSet.of(createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_1));
         Set<TokenRange> secondNodeRingView = ImmutableSet.of(createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_2));
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(
-                ImmutableSet.of(firstNodeRingView, secondNodeRingView))).isTrue();
+        assertThat(TokenRangeResolution.viewsAreConsistent(ImmutableSet.of(firstNodeRingView, secondNodeRingView)))
+                .isTrue();
     }
 
     @Test
     public void viewsWithMissingRangesDoNotHaveConsistentTokens() {
         Set<TokenRange> firstNodeRingView = ImmutableSet.of(createRange(TOKEN_1, TOKEN_2));
-        Set<TokenRange> secondNodeRingView = ImmutableSet.of(createRange(TOKEN_1, TOKEN_2), createRange(TOKEN_2,
-                TOKEN_3));
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(
-                ImmutableSet.of(firstNodeRingView, secondNodeRingView))).isFalse();
+        Set<TokenRange> secondNodeRingView =
+                ImmutableSet.of(createRange(TOKEN_1, TOKEN_2), createRange(TOKEN_2, TOKEN_3));
+        assertThat(TokenRangeResolution.viewsAreConsistent(ImmutableSet.of(firstNodeRingView, secondNodeRingView)))
+                .isFalse();
     }
 
     @Test
     public void consistencyAcrossMultipleRanges() {
-        Set<TokenRange> firstNodeRingView = ImmutableSet.of(createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_1),
+        Set<TokenRange> firstNodeRingView = ImmutableSet.of(
+                createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_1),
                 createRangeWithEndpoint(TOKEN_3, TOKEN_4, ENDPOINT_2));
-        Set<TokenRange> secondNodeRingView = ImmutableSet.of(createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_3),
+        Set<TokenRange> secondNodeRingView = ImmutableSet.of(
+                createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_3),
                 createRangeWithEndpoint(TOKEN_3, TOKEN_4, ENDPOINT_4));
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(
-                ImmutableSet.of(firstNodeRingView, secondNodeRingView))).isTrue();
+        assertThat(TokenRangeResolution.viewsAreConsistent(ImmutableSet.of(firstNodeRingView, secondNodeRingView)))
+                .isTrue();
     }
 
     @Test
     public void oneInconsistentViewSufficesForViewsToBeInconsistent() {
-        Set<TokenRange> firstNodeRingView = ImmutableSet.of(createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_1),
+        Set<TokenRange> firstNodeRingView = ImmutableSet.of(
+                createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_1),
                 createRangeWithEndpoint(TOKEN_3, TOKEN_4, ENDPOINT_2));
-        Set<TokenRange> secondNodeRingView = ImmutableSet.of(createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_3),
+        Set<TokenRange> secondNodeRingView = ImmutableSet.of(
+                createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_3),
                 createRangeWithEndpoint(TOKEN_3, TOKEN_4, ENDPOINT_4));
-        Set<TokenRange> thirdNodeRingView = ImmutableSet.of(createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_3),
-                createRangeWithEndpoint(TOKEN_4, TOKEN_5, ENDPOINT_1));
+        Set<TokenRange> thirdNodeRingView = ImmutableSet.of(
+                createRangeWithEndpoint(TOKEN_1, TOKEN_2, ENDPOINT_3),
+                new TokenRange(TOKEN_3, TOKEN_4, ImmutableList.of(ENDPOINT_2, ENDPOINT_4)));
 
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(
-                ImmutableSet.of(firstNodeRingView, secondNodeRingView, thirdNodeRingView))).isFalse();
+        assertThat(TokenRangeResolution.viewsAreConsistent(
+                        ImmutableSet.of(firstNodeRingView, secondNodeRingView, thirdNodeRingView)))
+                .isFalse();
     }
 
     @Test
     public void multipleViewsCanAllBeConsistent() {
-        Set<Set<TokenRange>> tokenRanges = ImmutableList.of(ENDPOINT_1, ENDPOINT_2, ENDPOINT_3, ENDPOINT_4)
-                .stream().map(endpoint -> createRangeWithEndpoint(TOKEN_1, TOKEN_2, endpoint))
+        Set<Set<TokenRange>> tokenRanges = ImmutableList.of(ENDPOINT_1, ENDPOINT_2, ENDPOINT_3, ENDPOINT_4).stream()
+                .map(endpoint -> createRangeWithEndpoint(TOKEN_1, TOKEN_2, endpoint))
                 .map(ImmutableSet::of)
                 .collect(Collectors.toSet());
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(tokenRanges)).isTrue();
+        assertThat(TokenRangeResolution.viewsAreConsistent(tokenRanges)).isTrue();
     }
 
     @Test
     public void startEndTokenOrderingIsSignificant() {
         Set<TokenRange> firstNodeRingView = ImmutableSet.of(createRange(TOKEN_1, TOKEN_2));
         Set<TokenRange> secondNodeRingView = ImmutableSet.of(createRange(TOKEN_2, TOKEN_1));
-        assertThat(TokenRangeResolution.viewsHaveConsistentTokens(
-                ImmutableSet.of(firstNodeRingView, secondNodeRingView))).isFalse();
+        assertThat(TokenRangeResolution.viewsAreConsistent(ImmutableSet.of(firstNodeRingView, secondNodeRingView)))
+                .isFalse();
     }
 
     private static TokenRange createRange(String startToken, String endToken) {

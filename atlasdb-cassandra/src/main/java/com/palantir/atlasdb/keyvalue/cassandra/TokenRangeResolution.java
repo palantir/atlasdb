@@ -28,17 +28,19 @@ public final class TokenRangeResolution {
     private static final SafeLogger log = SafeLoggerFactory.get(TokenRangeResolution.class);
 
     private TokenRangeResolution() {
-        // constructor
+        // utility
     }
 
-    public static boolean viewsHaveConsistentTokens(Set<Set<TokenRange>> tokenRangeViews) {
+    public static boolean viewsAreConsistent(Set<Set<TokenRange>> tokenRangeViews) {
         if (tokenRangeViews.size() <= 1) {
             log.trace("<= 1 distinct views of token ranges were provided, so these must have consistent endpoints.");
             return true;
         }
 
         Set<IdentityAgnosticRanges> distinctIdentityAgnosticRanges = tokenRangeViews.stream()
-                .map(ranges -> ranges.stream().map(IdentityAgnosticRange::fromTokenRange).collect(Collectors.toList()))
+                .map(ranges -> ranges.stream()
+                        .map(IdentityAgnosticRange::fromTokenRange)
+                        .collect(Collectors.toList()))
                 .map(ImmutableIdentityAgnosticRanges::of)
                 .collect(Collectors.toSet());
 
@@ -46,7 +48,7 @@ public final class TokenRangeResolution {
             return false;
         }
         log.info("Although more than 1 distinct view of the token ranges were obtained, these were consistent in their"
-                + " start and end tokens, which we view as acceptable.");
+                + " start and end tokens and in the number of nodes seen as endpoints, which we view as acceptable.");
         return true;
     }
 
@@ -59,12 +61,16 @@ public final class TokenRangeResolution {
     @Value.Immutable
     interface IdentityAgnosticRange {
         String startToken();
+
         String endToken();
+
+        int numEndpoints();
 
         static IdentityAgnosticRange fromTokenRange(TokenRange tokenRange) {
             return ImmutableIdentityAgnosticRange.builder()
                     .startToken(tokenRange.getStart_token())
                     .endToken(tokenRange.getEnd_token())
+                    .numEndpoints(tokenRange.getEndpoints().size())
                     .build();
         }
     }
