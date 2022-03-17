@@ -22,7 +22,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
@@ -71,29 +70,29 @@ class CassandraRequestExceptionHandler {
 
     @SuppressWarnings("unchecked")
     <K extends Exception> void handleExceptionFromRequest(
-            RetryableCassandraRequest<?, K> req, InetSocketAddress hostTried, Exception ex) throws K {
+            RetryableCassandraRequest<?, K> req, CassandraNodeIdentifier nodeTried, Exception ex) throws K {
         if (!isRetryable(ex)) {
             throw (K) ex;
         }
 
         RequestExceptionHandlerStrategy strategy = getStrategy();
 
-        req.triedOnHost(hostTried);
+        req.triedOnHost(nodeTried);
         req.registerException(ex);
         int numberOfAttempts = req.getNumberOfAttempts();
-        int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(hostTried);
+        int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(nodeTried);
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
             throw logAndThrowException(numberOfAttempts, ex, req);
         }
 
         if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
-            blacklist.add(hostTried);
+            blacklist.add(nodeTried);
         }
 
         logNumberOfAttempts(ex, numberOfAttempts);
-        handleBackoff(req, hostTried, ex, strategy);
-        handleRetryOnDifferentHosts(req, hostTried, ex, strategy);
+        handleBackoff(req, nodeTried, ex, strategy);
+        handleRetryOnDifferentHosts(req, nodeTried, ex, strategy);
     }
 
     @VisibleForTesting
@@ -146,7 +145,7 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleBackoff(
             RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
+            CassandraNodeIdentifier hostTried,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
         if (!shouldBackoff(ex, strategy)) {
@@ -175,7 +174,7 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleRetryOnDifferentHosts(
             RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
+            CassandraNodeIdentifier hostTried,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
         if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(hostTried), strategy)) {

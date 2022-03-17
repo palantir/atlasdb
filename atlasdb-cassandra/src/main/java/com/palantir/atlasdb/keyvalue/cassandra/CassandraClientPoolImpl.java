@@ -26,7 +26,6 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -288,7 +287,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
+    RangeMap<LightweightOppToken, List<CassandraNodeIdentifier>> getTokenMap() {
         return cassandra.getTokenMap();
     }
 
@@ -300,8 +299,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getNodeIds());
 
-        Set<InetSocketAddress> resolvedConfigAddresses =
-                config.servers().accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
+        Set<CassandraNodeIdentifier> resolvedConfigAddresses = cassandra.getServersFromConfig();
 
         if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
@@ -341,12 +339,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         //  as absent :)
         desiredServers.forEach(serverToAdd -> {
             String desiredHostName = serverToAdd.getHostName();
-            InetAddress address = serverToAdd.getAddress();
+            InetAddress address = serverToAdd.getLastUsedIpAddress();
 
             CassandraNodeIdentifier currentCassNodeIdentifier =
                     cachedServersByHostName.computeIfAbsent(desiredHostName, _x -> {
                         CassandraNodeIdentifier cassandraNodeIdentifier =
-                                new CassandraNodeIdentifier(desiredHostName, serverToAdd.getPort());
+                                CassandraNodeIdentifier.create(address, serverToAdd.getPort());
                         cassandra.returnOrCreatePool(
                                 cassandraNodeIdentifier, absentHostTracker.returnPool(cassandraNodeIdentifier));
                         didWeMakeAChange.set(true);
@@ -356,7 +354,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             currentCassNodeIdentifier.updateMostRecentIpAddress(address);
         });
 
-        Set<InetSocketAddress> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
+        Set<CassandraNodeIdentifier> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
         if (didWeMakeAChange.get()) { // if we made any changes
             sanityCheckRingConsistency();
@@ -367,9 +365,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private static void logRefreshedHosts(
-            Set<InetSocketAddress> serversToAdd,
-            Set<InetSocketAddress> serversToShutdown,
-            Set<InetSocketAddress> absentServers) {
+            Set<CassandraNodeIdentifier> serversToAdd,
+            Set<CassandraNodeIdentifier> serversToShutdown,
+            Set<CassandraNodeIdentifier> absentServers) {
         if (serversToShutdown.isEmpty() && serversToAdd.isEmpty() && absentServers.isEmpty()) {
             log.debug("No hosts added or removed during Cassandra pool refresh");
         } else {
@@ -386,7 +384,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @Override
-    public InetSocketAddress getRandomHostForKey(byte[] key) {
+    public CassandraNodeIdentifier getRandomHostForKey(byte[] key) {
         return cassandra.getRandomNodeIdentifierForKey(key);
     }
 
@@ -399,8 +397,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             throw new RuntimeException(e);
         }
 
-        Map<InetSocketAddress, Exception> completelyUnresponsiveHosts = new HashMap<>();
-        Map<InetSocketAddress, Exception> aliveButInvalidPartitionerHosts = new HashMap<>();
+        Map<CassandraNodeIdentifier, Exception> completelyUnresponsiveHosts = new HashMap<>();
+        Map<CassandraNodeIdentifier, Exception> aliveButInvalidPartitionerHosts = new HashMap<>();
 
         boolean thisHostResponded = false;
         boolean atLeastOneHostResponded = false;
@@ -460,7 +458,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public <V, K extends Exception> V runWithRetryOnHost(
-            InetSocketAddress specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
+            CassandraNodeIdentifier specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         RetryableCassandraRequest<V, K> req = new RetryableCassandraRequest<>(specifiedHost, fn);
 
         while (true) {
@@ -508,14 +506,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public <V, K extends Exception> V runOnHost(
-            InetSocketAddress specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
+            CassandraNodeIdentifier specifiedHost, FunctionCheckedException<CassandraClient, Void, Exception> fn) throws K {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
         V response = runWithPooledResourceRecordingMetrics(hostPool, fn);
         removeFromBlacklistAfterResponse(specifiedHost);
         return response;
     }
 
-    private void removeFromBlacklistAfterResponse(InetSocketAddress host) {
+    private void removeFromBlacklistAfterResponse(CassandraNodeIdentifier host) {
         if (blacklist.contains(host)) {
             blacklist.remove(host);
             log.info(
@@ -544,17 +542,17 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
     private void sanityCheckRingConsistency() {
-        Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
-        for (InetSocketAddress host : getCachedServers()) {
-            try (CassandraClient client = CassandraClientFactory.getClientInternal(host, config)) {
+        Multimap<Set<TokenRange>, CassandraNodeIdentifier> tokenRangesToHost = HashMultimap.create();
+        for (CassandraNodeIdentifier nodeIdentifier : getCachedServers()) {
+            try (CassandraClient client = CassandraClientFactory.getClientInternal(nodeIdentifier, config)) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {
                     return; // don't care to check for ring consistency when we're not even fully initialized
                 }
-                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
+                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), nodeIdentifier);
             } catch (Exception e) {
-                log.warn("Failed to get ring info from host: {}", SafeArg.of("host", CassandraLogHelper.host(host)), e);
+                log.warn("Failed to get ring info from nodeIdentifier: {}", SafeArg.of("nodeIdentifier", CassandraLogHelper.host(nodeIdentifier)), e);
             }
         }
 
@@ -571,7 +569,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         RuntimeException ex = new SafeIllegalStateException(
-                "Hosts have differing ring descriptions." + " This can lead to inconsistent reads and lost data. ");
+                "Hosts have differing ring descriptions. This can lead to inconsistent reads and lost data. ");
         log.error(
                 "Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
                         + " lose writes. The mapping of token ranges to hosts is:\n{}",

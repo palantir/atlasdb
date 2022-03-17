@@ -45,7 +45,7 @@ public final class CassandraLogHelper {
         return hosts.stream().map(CassandraLogHelper::host).collect(Collectors.toSet());
     }
 
-    static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost) {
+    static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, CassandraNodeIdentifier> tokenRangesToHost) {
         return tokenRangesToHost.entries().stream()
                 .map(entry ->
                         String.format("host %s has range %s", entry.getKey().toString(), host(entry.getValue())))
