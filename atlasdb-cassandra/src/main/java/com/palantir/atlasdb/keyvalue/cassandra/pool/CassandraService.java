@@ -440,10 +440,12 @@ public class CassandraService implements AutoCloseable {
                 SafeArg.of("blacklistedHostsCount", blacklist.size()));
 
         // The following trace can cause high memory pressure
-        log.trace("Current ring view is: {}."
-                        + " Current host blacklist is {}.",
-                SafeArg.of("tokenMap", getRingViewDescription()),
-                SafeArg.of("blacklistedHostsCount", blacklist.size()));
+        if (log.isTraceEnabled()) {
+            log.trace("Current ring view is: {}."
+                            + " Current host blacklist is {}.",
+                    SafeArg.of("tokenMap", getRingViewDescription()),
+                    SafeArg.of("blacklistedHostsCount", blacklist.size()));
+        }
         return getRandomGoodHost().getHost();
     }
 
