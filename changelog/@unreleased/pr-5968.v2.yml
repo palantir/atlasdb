@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: PDS-253486 | Kill log that is causing heavy GC pressure.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5968
