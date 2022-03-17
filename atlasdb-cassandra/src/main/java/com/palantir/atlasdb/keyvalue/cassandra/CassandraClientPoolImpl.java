@@ -531,10 +531,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return;
         }
 
-        if (TokenRangeResolution.rangesAreConsistent(tokenRangesToHost.keySet())) {
+        if (TokenRangeResolution.viewsHaveConsistentTokens(tokenRangesToHost.keySet())) {
             log.info("Although multiple ring descriptions were detected, we believe these to be consistent:"
-                    + " ranges detected were identical, and suggest a cluster of similar size. This may occur when"
-                    + " there are legitimate network routing changes, for instance.");
+                    + " ranges detected were identical. This may occur when there are legitimate network routing"
+                    + " changes, for instance.");
             return;
         }
 

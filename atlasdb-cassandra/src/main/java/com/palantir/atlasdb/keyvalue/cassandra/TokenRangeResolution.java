@@ -21,7 +21,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 import org.immutables.value.Value;
 
@@ -32,12 +31,7 @@ public final class TokenRangeResolution {
         // constructor
     }
 
-    public static boolean rangesAreConsistent(Set<Set<TokenRange>> tokenRangeViews) {
-        return rangesHaveConsistentEndpoints(tokenRangeViews)
-                && rangesHaveConsistentlySizedCluster(tokenRangeViews);
-    }
-
-    public static boolean rangesHaveConsistentEndpoints(Set<Set<TokenRange>> tokenRangeViews) {
+    public static boolean viewsHaveConsistentTokens(Set<Set<TokenRange>> tokenRangeViews) {
         if (tokenRangeViews.size() <= 1) {
             log.trace("<= 1 distinct views of token ranges were provided, so these must have consistent endpoints.");
             return true;
@@ -54,23 +48,6 @@ public final class TokenRangeResolution {
         log.info("Although more than 1 distinct view of the token ranges were obtained, these were consistent in their"
                 + " start and end tokens, which we view as acceptable.");
         return true;
-    }
-
-    public static boolean rangesHaveConsistentlySizedCluster(Set<Set<TokenRange>> tokenRangeViews) {
-        if (tokenRangeViews.size() <= 1) {
-            log.trace("<= 1 distinct views of token ranges were provided, so these must have a consistently sized"
-                    + " cluster.");
-            return true;
-        }
-
-        Set<Set<EndpointDetails>> distinctEndpointDetailsViews = tokenRangeViews.stream()
-                .map(ranges -> ranges.stream().flatMap(r -> r.getEndpoint_details().stream()).collect(Collectors.toSet()))
-                .collect(Collectors.toSet());
-        Set<Integer> endpointDetailsSizes = distinctEndpointDetailsViews.stream()
-                .map(Set::size)
-                .collect(Collectors.toSet());
-
-        return endpointDetailsSizes.size() != 1;
     }
 
     @Value.Immutable
