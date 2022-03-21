@@ -19,11 +19,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Iterator;
@@ -41,7 +41,7 @@ public class Blacklist {
     private final CassandraKeyValueServiceConfig config;
     private final Clock clock;
 
-    private Map<InetSocketAddress, Long> blacklist;
+    private Map<CassandraNodeIdentifier, Long> blacklist;
 
     public Blacklist(CassandraKeyValueServiceConfig config) {
         this(config, Clock.systemUTC());
@@ -54,31 +54,31 @@ public class Blacklist {
         this.clock = clock;
     }
 
-    void checkAndUpdate(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+    void checkAndUpdate(Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> pools) {
         // Check blacklist and re-integrate or continue to wait as necessary
-        Iterator<Entry<InetSocketAddress, Long>> blacklistIterator =
+        Iterator<Entry<CassandraNodeIdentifier, Long>> blacklistIterator =
                 blacklist.entrySet().iterator();
         while (blacklistIterator.hasNext()) {
-            Map.Entry<InetSocketAddress, Long> blacklistedEntry = blacklistIterator.next();
+            Map.Entry<CassandraNodeIdentifier, Long> blacklistedEntry = blacklistIterator.next();
             if (coolOffPeriodExpired(blacklistedEntry)) {
-                InetSocketAddress host = blacklistedEntry.getKey();
-                if (!pools.containsKey(host)) {
+                CassandraNodeIdentifier cassNode = blacklistedEntry.getKey();
+                if (!pools.containsKey(cassNode)) {
                     // Probably the pool changed underneath us
                     blacklistIterator.remove();
                     log.info(
-                            "Removing host {} from the blacklist as it wasn't found in the pool.",
-                            SafeArg.of("host", CassandraLogHelper.host(host)));
-                } else if (isHostHealthy(pools.get(host))) {
+                            "Removing cassNode {} from the blacklist as it wasn't found in the pool.",
+                            SafeArg.of("cassNode", CassandraLogHelper.cassandraHost(cassNode)));
+                } else if (isHostHealthy(pools.get(cassNode))) {
                     blacklistIterator.remove();
                     log.info(
-                            "Added host {} back into the pool after a waiting period and successful health check.",
-                            SafeArg.of("host", CassandraLogHelper.host(host)));
+                            "Added cassNode {} back into the pool after a waiting period and successful health check.",
+                            SafeArg.of("cassNode", CassandraLogHelper.cassandraHost(cassNode)));
                 }
             }
         }
     }
 
-    private boolean coolOffPeriodExpired(Map.Entry<InetSocketAddress, Long> blacklistedEntry) {
+    private boolean coolOffPeriodExpired(Entry<CassandraNodeIdentifier, Long> blacklistedEntry) {
         long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
         return blacklistedEntry.getValue() + backoffTimeMillis < clock.millis();
     }
@@ -92,7 +92,7 @@ public class Blacklist {
             log.info(
                     "We tried to add blacklisted host '{}' back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
-                    SafeArg.of("host", CassandraLogHelper.host(container.getHost())),
+                    SafeArg.of("host", CassandraLogHelper.cassandraHost(container.getCassNode())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
                     UnsafeArg.of("exceptionMessage", e.getMessage()),
                     e);
@@ -100,33 +100,32 @@ public class Blacklist {
         }
     }
 
-    public Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
+    public Set<CassandraNodeIdentifier> filterBlacklistedHostsFrom(Collection<CassandraNodeIdentifier> potentialHosts) {
         return Sets.difference(ImmutableSet.copyOf(potentialHosts), blacklist.keySet());
     }
 
-    boolean contains(InetSocketAddress host) {
+    boolean contains(CassandraNodeIdentifier host) {
         return blacklist.containsKey(host);
     }
 
-    public void add(InetSocketAddress host) {
+    public void add(CassandraNodeIdentifier host) {
         blacklist.put(host, clock.millis());
-        log.info("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
+        log.info("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.cassandraHost(host)));
     }
 
-    void addAll(Set<InetSocketAddress> hosts) {
+    void addAll(Set<CassandraNodeIdentifier> hosts) {
         hosts.forEach(this::add);
     }
 
-    public void remove(InetSocketAddress host) {
+    public void remove(CassandraNodeIdentifier host) {
         blacklist.remove(host);
-        log.info("Remove blacklisted host '{}'", SafeArg.of("removedHost", CassandraLogHelper.host(host)));
     }
 
     void removeAll() {
         blacklist.clear();
     }
 
-    public int size() {
+    int size() {
         return blacklist.size();
     }
 
@@ -138,7 +137,7 @@ public class Blacklist {
         return blacklist.entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format(
                         "host: %s was blacklisted at %s",
-                        CassandraLogHelper.host(blacklistedHostToBlacklistTime.getKey()),
+                        CassandraLogHelper.cassandraHost(blacklistedHostToBlacklistTime.getKey()),
                         blacklistedHostToBlacklistTime.getValue().longValue()))
                 .collect(Collectors.toList());
     }

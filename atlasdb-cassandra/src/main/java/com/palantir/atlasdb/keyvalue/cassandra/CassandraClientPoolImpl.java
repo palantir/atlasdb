@@ -419,7 +419,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        return runWithRetryOnHost(cassandra.getRandomGoodHost().getHost(), fn);
+        return runWithRetryOnHost(cassandra.getRandomGoodHost().getCassNode(), fn);
     }
 
     @Override
@@ -431,16 +431,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             if (log.isTraceEnabled()) {
                 log.trace(
                         "Running function on host {}.",
-                        SafeArg.of("host", CassandraLogHelper.host(req.getPreferredHost())));
+                        SafeArg.of("host", CassandraLogHelper.cassandraHost(req.getPreferredHost())));
             }
             CassandraClientPoolingContainer hostPool = getPreferredHostOrFallBack(req);
 
             try {
                 V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
-                removeFromBlacklistAfterResponse(hostPool.getHost());
+                removeFromBlacklistAfterResponse(hostPool.getCassNode());
                 return response;
             } catch (Exception ex) {
-                exceptionHandler.handleExceptionFromRequest(req, hostPool.getHost(), ex);
+                exceptionHandler.handleExceptionFromRequest(req, hostPool.getCassNode(), ex);
             }
         }
     }
@@ -450,21 +450,21 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getPreferredHost());
 
         if (blacklist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
-            InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getHost();
+            InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getCassNode();
             Optional<CassandraClientPoolingContainer> hostPoolCandidate = cassandra.getRandomGoodHostForPredicate(
                     address -> !req.alreadyTriedOnHost(address), req.getTriedHosts());
             hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
             log.warn(
                     "Randomly redirected a query intended for host {} to {}.",
-                    SafeArg.of("previousHost", CassandraLogHelper.host(previousHost)),
-                    SafeArg.of("randomHost", CassandraLogHelper.host(hostPool.getHost())));
+                    SafeArg.of("previousHost", CassandraLogHelper.cassandraHost(previousHost)),
+                    SafeArg.of("randomHost", CassandraLogHelper.cassandraHost(hostPool.getCassNode())));
         }
         return hostPool;
     }
 
     @Override
     public <V, K extends Exception> V run(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        return runOnHost(cassandra.getRandomGoodHost().getHost(), fn);
+        return runOnHost(cassandra.getRandomGoodHost().getCassNode(), fn);
     }
 
     @Override
@@ -481,7 +481,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             blacklist.remove(host);
             log.info(
                     "Added host {} back into the pool after receiving a successful response",
-                    SafeArg.of("host", CassandraLogHelper.host(host)));
+                    SafeArg.of("host", CassandraLogHelper.cassandraHost(host)));
         }
     }
 
@@ -515,7 +515,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 }
                 tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
-                log.warn("Failed to get ring info from host: {}", SafeArg.of("host", CassandraLogHelper.host(host)), e);
+                log.warn(
+                        "Failed to get ring info from host: {}",
+                        SafeArg.of("host", CassandraLogHelper.cassandraHost(host)),
+                        e);
             }
         }
 
@@ -546,7 +549,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     .forEach(entry -> {
                         // We've checked above that entry.getValue() has one element, so we never NPE here.
                         CassandraLogHelper.HostAndIpAddress hostString =
-                                CassandraLogHelper.host(Iterables.getFirst(entry.getValue(), null));
+                                CassandraLogHelper.cassandraHost(Iterables.getFirst(entry.getValue(), null));
                         log.error(
                                 "Host: {} disagrees with the other nodes about the ring state.",
                                 SafeArg.of("host", hostString));

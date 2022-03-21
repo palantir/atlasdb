@@ -113,7 +113,7 @@ public class CassandraClientPoolMetrics {
     private void updateMetricOnAggregateAndHost(
             CassandraClientPoolingContainer hostPool, Consumer<RequestMetrics> metricsConsumer) {
         metricsConsumer.accept(aggregateRequestMetrics);
-        RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
+        RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getCassNode());
         if (requestMetricsForHost != null) {
             metricsConsumer.accept(requestMetricsForHost);
         }

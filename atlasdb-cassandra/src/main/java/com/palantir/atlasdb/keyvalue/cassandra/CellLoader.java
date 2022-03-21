@@ -173,7 +173,7 @@ final class CellLoader {
                                         LoggingArgs.tableRef(tableRef),
                                         SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                                         SafeArg.of("startTs", startTs),
-                                        SafeArg.of("host", CassandraLogHelper.host(host)));
+                                        SafeArg.of("host", CassandraLogHelper.cassandraHost(host)));
                             }
 
                             Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = queryRunner.multiget_multislice(
@@ -226,7 +226,7 @@ final class CellLoader {
                         + " Note that batches are executed in parallel, which may cause load on both"
                         + " your Atlas client as well as on Cassandra if the number of rows is exceptionally"
                         + " high.\n{}",
-                SafeArg.of("host", CassandraLogHelper.host(host)),
+                SafeArg.of("host", CassandraLogHelper.cassandraHost(host)),
                 LoggingArgs.tableRef(tableRef),
                 SafeArg.of("rows", numRows),
                 SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));

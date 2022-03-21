@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
@@ -37,24 +38,38 @@ public final class CassandraLogHelper {
         return HostAndIpAddress.fromAddress(host);
     }
 
-    static Collection<HostAndIpAddress> collectionOfHosts(Collection<InetSocketAddress> hosts) {
-        return hosts.stream().map(CassandraLogHelper::host).collect(Collectors.toSet());
+    public static HostAndIpAddress cassandraHost(CassandraNodeIdentifier node) {
+        return host(node.cassandraHostAddress());
     }
-
-    static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost) {
-        return tokenRangesToHost.entries().stream()
-                .map(entry ->
-                        String.format("host %s has range %s", entry.getKey().toString(), host(entry.getValue())))
+    // todo(snanda) this does not make sense
+    public static List<HostAndIpAddress> reachableHosts(CassandraNodeIdentifier host) {
+        return host.reachableProxyIps().stream()
+                .map(HostAndIpAddress::fromAddress)
                 .collect(Collectors.toList());
     }
 
-    public static List<String> tokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
+    static Collection<HostAndIpAddress> collectionOfHosts(Collection<CassandraNodeIdentifier> hosts) {
+        return hosts.stream().map(CassandraLogHelper::cassandraHost).collect(Collectors.toSet());
+    }
+
+    static Collection<List<HostAndIpAddress>> collectionOfCassNodes(Collection<CassandraNodeIdentifier> hosts) {
+        return hosts.stream().map(CassandraLogHelper::reachableHosts).collect(Collectors.toSet());
+    }
+
+    static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, CassandraNodeIdentifier> tokenRangesToHost) {
+        return tokenRangesToHost.entries().stream()
+                .map(entry -> String.format(
+                        "host %s has range %s", entry.getKey().toString(), cassandraHost(entry.getValue())))
+                .collect(Collectors.toList());
+    }
+
+    public static List<String> tokenMap(RangeMap<LightweightOppToken, List<CassandraNodeIdentifier>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format(
                         "range from %s to %s is on host %s",
                         getLowerEndpoint(rangeListToHostEntry.getKey()),
                         getUpperEndpoint(rangeListToHostEntry.getKey()),
-                        CassandraLogHelper.collectionOfHosts(rangeListToHostEntry.getValue())))
+                        CassandraLogHelper.collectionOfCassNodes(rangeListToHostEntry.getValue())))
                 .collect(Collectors.toList());
     }
 

@@ -221,7 +221,7 @@ public final class CassandraVerifier {
                             + " It returned exception \"{}\" during the attempt."
                             + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
                             + " See the debug-level log for the stack trace.",
-                    SafeArg.of("host", CassandraLogHelper.host(host)),
+                    SafeArg.of("host", CassandraLogHelper.cassandraHost(host)),
                     UnsafeArg.of("exceptionMessage", exception.toString()));
             log.debug("Specifically, creating the keyspace failed with the following stack trace", exception);
             return false;
@@ -257,7 +257,7 @@ public final class CassandraVerifier {
                         "Encountered an invalid request exception {} when attempting to create a keyspace"
                                 + " on a given Cassandra host {}, but the keyspace doesn't seem to exist yet. This may"
                                 + " cause issues if it recurs persistently, so logging for debugging purposes.",
-                        SafeArg.of("host", CassandraLogHelper.host(host)),
+                        SafeArg.of("host", CassandraLogHelper.cassandraHost(host)),
                         UnsafeArg.of("exceptionMessage", e.toString()));
                 log.debug("Specifically, creating the keyspace failed with the following stack trace", e);
             }

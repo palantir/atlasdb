@@ -158,7 +158,7 @@ class CassandraRequestExceptionHandler {
                 "Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                 UnsafeArg.of("queryString", req.getFunction().toString()),
                 SafeArg.of("sleepDuration", backOffPeriod),
-                SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
+                SafeArg.of("hostName", CassandraLogHelper.cassandraHost(hostTried)));
 
         try {
             Thread.sleep(backOffPeriod);
@@ -181,7 +181,7 @@ class CassandraRequestExceptionHandler {
         if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(hostTried), strategy)) {
             log.info(
                     "Retrying a query intended for host {} on a different host.",
-                    SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
+                    SafeArg.of("hostName", CassandraLogHelper.cassandraHost(hostTried)));
             req.giveUpOnPreferredHost();
         }
     }

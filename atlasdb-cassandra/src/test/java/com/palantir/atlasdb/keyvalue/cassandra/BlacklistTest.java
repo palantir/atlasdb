@@ -66,7 +66,7 @@ public class BlacklistTest {
         when(clock.millis()).thenAnswer(invocation -> time.addAndGet(ONE_SECOND.toMillis() + 1));
         when(badContainer.runWithPooledResource(any(FunctionCheckedException.class)))
                 .thenThrow(new RuntimeException());
-        when(badContainer.getHost()).thenReturn(ADDRESS_1);
+        when(badContainer.getCassNode()).thenReturn(ADDRESS_1);
     }
 
     @Test
