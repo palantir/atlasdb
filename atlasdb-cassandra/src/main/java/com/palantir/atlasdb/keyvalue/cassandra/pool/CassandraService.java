@@ -66,6 +66,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 
@@ -193,8 +194,21 @@ public class CassandraService implements AutoCloseable {
 
     private Set<CassandraNodeIdentifier> gerResolvedNodeIds() {
         Set<InetSocketAddress> inetSocketAddresses = config.servers().accept(new ThriftHostsExtractingVisitor());
-        // return inetSocketAddresses.stream().map(addr -> ImmutableCNI.b);
-        return null;
+        return inetSocketAddresses.stream()
+                .map(addr -> CassandraNodeIdentifier.builder()
+                        .cassandraHostAddress(addr)
+                        .reachableProxyIps(getReachableProxies(addr))
+                        .build())
+                .collect(Collectors.toSet());
+    }
+
+    private List<InetSocketAddress> getReachableProxies(InetSocketAddress addr) {
+        try {
+            // todo(snanda): test
+            return getReachableProxies(addr.getHostString());
+        } catch (UnknownHostException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
     }
 
     private void logHostToDatacenterMapping(Map<CassandraNodeIdentifier, String> hostToDatacentersThisRefresh) {
@@ -273,38 +287,63 @@ public class CassandraService implements AutoCloseable {
 
     @VisibleForTesting
     CassandraNodeIdentifier getAddressForHost(String inputHost) throws UnknownHostException {
+        InetSocketAddress cassHostAddress;
+
         if (config.addressTranslation().containsKey(inputHost)) {
-            return config.addressTranslation().get(inputHost);
+            cassHostAddress = config.addressTranslation().get(inputHost);
+        } else {
+            cassHostAddress = new InetSocketAddress(InetAddress.getByName(inputHost), getKnownPort());
         }
 
-        Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
-        String host = hostnamesByIp.getOrDefault(inputHost, inputHost);
+        Set<CassandraNodeIdentifier> knownNodes = getAllKnownHosts();
 
-        InetAddress resolvedHost = InetAddress.getByName(host);
-        Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), gerResolvedNodeIds());
-
-        for (InetSocketAddress address : allKnownHosts) {
-            if (Objects.equals(address.getAddress(), resolvedHost)) {
-                return address;
+        for (CassandraNodeIdentifier node : knownNodes) {
+            if (Objects.equals(node.cassandraHostAddress().getAddress(), cassHostAddress.getAddress())) {
+                return node;
             }
         }
 
-        Set<Integer> allKnownPorts =
-                allKnownHosts.stream().map(InetSocketAddress::getPort).collect(Collectors.toSet());
+        return CassandraNodeIdentifier.builder()
+                .cassandraHostAddress(cassHostAddress)
+                .reachableProxyIps(getReachableProxies(inputHost))
+                .build();
+    }
+
+    private int getKnownPort() throws UnknownHostException {
+        Set<CassandraNodeIdentifier> allKnownHosts = getAllKnownHosts();
+        Set<Integer> allKnownPorts = allKnownHosts.stream()
+                .map(node -> node.cassandraHostAddress().getPort())
+                .collect(Collectors.toSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
-            return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(allKnownPorts));
+            return Iterables.getOnlyElement(allKnownPorts);
         } else {
-            throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
+            throw new UnknownHostException("No single known port");
         }
     }
 
-    private List<InetSocketAddress> getHostsFor(byte[] key) {
+    private Set<CassandraNodeIdentifier> getAllKnownHosts() {
+        return Sets.union(currentPools.keySet(), gerResolvedNodeIds());
+    }
+
+    // todo(snanda): this needs to be tested
+    private List<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
+        Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
+        String host = hostnamesByIp.getOrDefault(inputHost, inputHost);
+
+        InetAddress[] resolvedHosts = InetAddress.getAllByName(host);
+        int knownPort = getKnownPort();
+        return Stream.of(resolvedHosts)
+                .map(inetAddr -> new InetSocketAddress(inetAddr, knownPort))
+                .collect(Collectors.toList());
+    }
+
+    private List<CassandraNodeIdentifier> getHostsFor(byte[] key) {
         return tokenMap.get(new LightweightOppToken(key));
     }
 
     public Optional<CassandraClientPoolingContainer> getRandomGoodHostForPredicate(
-            Predicate<InetSocketAddress> predicate) {
+            Predicate<CassandraNodeIdentifier> predicate) {
         return getRandomGoodHostForPredicate(predicate, ImmutableSet.of());
     }
 
@@ -312,7 +351,7 @@ public class CassandraService implements AutoCloseable {
             Predicate<CassandraNodeIdentifier> predicate, Set<CassandraNodeIdentifier> triedNodes) {
         Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> pools = currentPools;
 
-        Set<InetSocketAddress> hostsMatchingPredicate =
+        Set<CassandraNodeIdentifier> hostsMatchingPredicate =
                 pools.keySet().stream().filter(predicate).collect(Collectors.toSet());
         Map<String, Long> triedDatacenters = triedNodes.stream()
                 .map(hostToDatacenter::get)
@@ -334,7 +373,7 @@ public class CassandraService implements AutoCloseable {
                     return datacenter == null || !maximallyAttemptedDatacenters.contains(datacenter);
                 })
                 .collect(Collectors.toSet());
-        Set<InetSocketAddress> filteredHosts =
+        Set<CassandraNodeIdentifier> filteredHosts =
                 hostsInPermittedDatacenters.isEmpty() ? hostsMatchingPredicate : hostsInPermittedDatacenters;
 
         if (filteredHosts.isEmpty()) {
@@ -418,8 +457,8 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    public InetSocketAddress getRandomHostForKey(byte[] key) {
-        List<InetSocketAddress> hostsForKey = getHostsFor(key);
+    public CassandraNodeIdentifier getRandomCassandraNodeForKey(byte[] key) {
+        List<CassandraNodeIdentifier> hostsForKey = getHostsFor(key);
 
         if (hostsForKey == null) {
             if (config.autoRefreshNodes()) {
@@ -433,7 +472,7 @@ public class CassandraService implements AutoCloseable {
         Set<CassandraNodeIdentifier> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
 
         if (!liveOwnerHosts.isEmpty()) {
-            Optional<InetSocketAddress> activeHost = getRandomHostByActiveConnections(liveOwnerHosts);
+            Optional<CassandraNodeIdentifier> activeHost = getRandomHostByActiveConnections(liveOwnerHosts);
             if (activeHost.isPresent()) {
                 return activeHost.get();
             }
@@ -445,14 +484,14 @@ public class CassandraService implements AutoCloseable {
                         + " Falling back to choosing a random live node."
                         + " Current host blacklist is {}."
                         + " Current state logged at TRACE",
-                SafeArg.of("blacklistedHostsCount", blacklist.size()));
+                SafeArg.of("blacklistedNodesCount", blacklist.size()));
 
         // The following trace can cause high memory pressure
         if (log.isTraceEnabled()) {
             log.trace(
                     "Current ring view is: {}." + " Current host blacklist is {}.",
                     SafeArg.of("tokenMap", getRingViewDescription()),
-                    SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
+                    SafeArg.of("blacklistedNodes", blacklist.blacklistDetails()));
         }
         return getRandomGoodHost().getCassandraNode();
     }

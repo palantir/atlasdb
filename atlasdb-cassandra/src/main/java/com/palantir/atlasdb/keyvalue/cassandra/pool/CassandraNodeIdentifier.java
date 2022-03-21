@@ -27,4 +27,8 @@ public interface CassandraNodeIdentifier {
 
     @Value.Parameter
     List<InetSocketAddress> reachableProxyIps();
+
+    static ImmutableCassandraNodeIdentifier.Builder builder() {
+        return ImmutableCassandraNodeIdentifier.builder();
+    }
 }

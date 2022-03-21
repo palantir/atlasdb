@@ -22,7 +22,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -41,8 +40,8 @@ public final class CassandraAbsentHostTracker {
         this.absentCassNodes = new HashMap<>();
     }
 
-    public synchronized Optional<CassandraClientPoolingContainer> returnPool(InetSocketAddress host) {
-        return Optional.ofNullable(absentCassNodes.remove(host)).map(PoolAndCount::container);
+    public synchronized Optional<CassandraClientPoolingContainer> returnPool(CassandraNodeIdentifier nodeIdentifier) {
+        return Optional.ofNullable(absentCassNodes.remove(nodeIdentifier)).map(PoolAndCount::container);
     }
 
     public synchronized void trackAbsentCassNode(

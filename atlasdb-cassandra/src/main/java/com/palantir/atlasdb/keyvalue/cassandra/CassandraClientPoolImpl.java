@@ -354,7 +354,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public InetSocketAddress getRandomHostForKey(byte[] key) {
-        return cassandra.getRandomHostForKey(key);
+        return cassandra.getRandomCassandraNodeForKey(key);
     }
 
     @VisibleForTesting
