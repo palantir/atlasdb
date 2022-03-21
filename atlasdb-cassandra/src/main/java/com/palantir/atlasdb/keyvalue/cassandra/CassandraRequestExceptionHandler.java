@@ -81,10 +81,10 @@ class CassandraRequestExceptionHandler {
 
         InetSocketAddress hostTried = nodeIdentifier.proxy();
 
-        req.triedOnHost(hostTried);
+        req.triedOnHost(nodeIdentifier);
         req.registerException(ex);
         int numberOfAttempts = req.getNumberOfAttempts();
-        int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(hostTried);
+        int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(nodeIdentifier);
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
             throw logAndThrowException(numberOfAttempts, ex, req);
@@ -156,7 +156,7 @@ class CassandraRequestExceptionHandler {
             return;
         }
 
-        long backOffPeriod = strategy.getBackoffPeriod(req.getNumberOfAttemptsOnHost(nodeIdentifier.proxy()));
+        long backOffPeriod = strategy.getBackoffPeriod(req.getNumberOfAttemptsOnHost(nodeIdentifier));
         log.info(
                 "Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                 UnsafeArg.of("queryString", req.getFunction().toString()),
@@ -182,7 +182,7 @@ class CassandraRequestExceptionHandler {
             CassandraNodeIdentifier nodeIdentifier,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
-        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(nodeIdentifier.proxy()), strategy)) {
+        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(nodeIdentifier), strategy)) {
             log.info(
                     "Retrying a query intended for host {} on a different host.",
                     SafeArg.of("cassandraHost", CassandraLogHelper.cassandraHost(nodeIdentifier)),

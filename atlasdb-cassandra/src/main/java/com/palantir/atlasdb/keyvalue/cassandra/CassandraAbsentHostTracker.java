@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -45,7 +44,7 @@ public final class CassandraAbsentHostTracker {
         return Optional.ofNullable(absentCassNodes.remove(nodeIdentifier)).map(PoolAndCount::container);
     }
 
-    public synchronized BiConsumer<? super CassandraNodeIdentifier, ? super R> trackAbsentCassNode(
+    public synchronized void trackAbsentCassNode(
             CassandraNodeIdentifier absentNode, CassandraClientPoolingContainer pool) {
         absentCassNodes.putIfAbsent(absentNode, PoolAndCount.of(pool));
     }
