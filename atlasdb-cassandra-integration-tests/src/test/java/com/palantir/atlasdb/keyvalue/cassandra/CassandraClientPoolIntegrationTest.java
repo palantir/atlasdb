@@ -24,11 +24,11 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
-import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -61,20 +61,20 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testTokenMapping() {
-        Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
+        Map<Range<LightweightOppToken>, List<CassandraServer>> mapOfRanges =
                 clientPool.getTokenMap().asMapOfRanges();
         assertThat(mapOfRanges).isNotEmpty();
-        for (Map.Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry : mapOfRanges.entrySet()) {
+        for (Map.Entry<Range<LightweightOppToken>, List<CassandraServer>> entry : mapOfRanges.entrySet()) {
             Range<LightweightOppToken> tokenRange = entry.getKey();
-            List<InetSocketAddress> hosts = entry.getValue();
+            List<CassandraServer> hosts = entry.getValue();
 
-            clientPool.getRandomHostForKey("A".getBytes(StandardCharsets.UTF_8));
+            clientPool.getRandomServerForKey("A".getBytes(StandardCharsets.UTF_8));
 
             if (tokenRange.hasLowerBound()) {
-                assertThat(hosts).contains(clientPool.getRandomHostForKey(tokenRange.lowerEndpoint().bytes));
+                assertThat(hosts).contains(clientPool.getRandomServerForKey(tokenRange.lowerEndpoint().bytes));
             }
             if (tokenRange.hasUpperBound()) {
-                assertThat(hosts).contains(clientPool.getRandomHostForKey(tokenRange.upperEndpoint().bytes));
+                assertThat(hosts).contains(clientPool.getRandomServerForKey(tokenRange.upperEndpoint().bytes));
             }
         }
     }
@@ -88,7 +88,7 @@ public class CassandraClientPoolIntegrationTest {
         assertThat(getLocalHostsUsingLocation(remoteLocation)).isEmpty();
     }
 
-    private Set<InetSocketAddress> getLocalHostsUsingLocation(HostLocation hostLocation) {
+    private Set<CassandraServer> getLocalHostsUsingLocation(HostLocation hostLocation) {
         CassandraKeyValueServiceConfig configHostWithLocation = ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(CASSANDRA.getConfig())
                 .overrideHostLocation(Optional.of(hostLocation))

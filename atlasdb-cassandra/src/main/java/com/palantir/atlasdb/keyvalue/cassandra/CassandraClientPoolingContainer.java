@@ -87,7 +87,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
     }
 
-    public CassandraServer getCassandraNode() {
+    public CassandraServer getCassandraServer() {
         return cassandraServer;
     }
 
@@ -127,7 +127,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         } catch (Throwable t) {
             log.warn(
                     "Error occurred talking to host '{}'",
-                    SafeArg.of("host", CassandraLogHelper.cassandraHost(cassandraServer)),
+                    SafeArg.of("host", CassandraLogHelper.cassandraServer(cassandraServer)),
                     t);
             if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
                 log.warn(
@@ -169,8 +169,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 log.warn(
                         "Not reusing resource due to {} of host {}",
                         UnsafeArg.of("exception", e.toString()),
-                        SafeArg.of("host", CassandraLogHelper.host(proxy)),
-                        SafeArg.of("reachableIps", CassandraLogHelper.host(proxy)),
+                        SafeArg.of("cassandraServer", CassandraLogHelper.cassandraServer(cassandraServer)),
+                        SafeArg.of("proxy", CassandraLogHelper.host(proxy)),
                         e);
                 shouldReuse = false;
             }
@@ -185,9 +185,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 if (shouldReuse) {
                     log.debug(
                             "Returning resource to pool of host {}",
-                            SafeArg.of("host", CassandraLogHelper.host(proxy)),
-                            SafeArg.of("reachableIps", CassandraLogHelper.host(proxy)));
-                    eagerlyCleanupReadBuffersFromIdleConnection(resource, proxy);
+                            SafeArg.of("cassandraServer", CassandraLogHelper.cassandraServer(cassandraServer)),
+                            SafeArg.of("proxy", CassandraLogHelper.host(proxy)));
+                    eagerlyCleanupReadBuffersFromIdleConnection(resource, cassandraServer);
                     clientPool.returnObject(resource);
                 } else {
                     invalidateQuietly(resource);
@@ -199,7 +199,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     }
 
     private static void eagerlyCleanupReadBuffersFromIdleConnection(
-            CassandraClient idleClient, InetSocketAddress proxy) {
+            CassandraClient idleClient, CassandraServer server) {
         // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
         try {
             TTransport transport = idleClient.getInputProtocol().getTransport();
@@ -213,8 +213,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                             "During {} check-in, cleaned up a read buffer of {} bytes of host {}",
                             UnsafeArg.of("pool", idleClient),
                             SafeArg.of("bufferLength", underlyingBuffer.length),
-                            SafeArg.of("host", CassandraLogHelper.host(proxy)),
-                            SafeArg.of("reachableIps", CassandraLogHelper.host(proxy)));
+                            SafeArg.of("cassandraServer", CassandraLogHelper.cassandraServer(server)),
+                            SafeArg.of("proxy", CassandraLogHelper.host(server.proxy())));
                     memoryInputTransport.reset(PtBytes.EMPTY_BYTE_ARRAY);
                 }
             }
@@ -245,7 +245,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(getClass())
-                .add("host", this.proxy)
+                .add("cassandraHost", cassandraServer.cassandraHostAddress())
+                .add("host", proxy)
                 .add("keyspace", config.getKeyspaceOrThrow())
                 .add("usingSsl", config.usingSsl())
                 .add(
@@ -312,7 +313,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         registerMetrics(pool);
         log.info(
                 "Creating a Cassandra client pool for {} with the configuration {}",
-                SafeArg.of("host", proxy),
+                SafeArg.of("cassandraHost", cassandraServer.cassandraHostAddress()),
+                SafeArg.of("proxy", proxy),
                 SafeArg.of("poolConfig", poolConfig));
         return pool;
     }

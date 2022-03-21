@@ -46,8 +46,8 @@ public final class CassandraAbsentHostTracker {
     }
 
     public synchronized void trackAbsentCassandraServer(
-            CassandraServer absentNode, CassandraClientPoolingContainer pool) {
-        absentCassandraServers.putIfAbsent(absentNode, PoolAndCount.of(pool));
+            CassandraServer absentServer, CassandraClientPoolingContainer pool) {
+        absentCassandraServers.putIfAbsent(absentServer, PoolAndCount.of(pool));
     }
 
     public synchronized Set<CassandraServer> incrementAbsenceAndRemove() {
@@ -59,9 +59,9 @@ public final class CassandraAbsentHostTracker {
         absentCassandraServers.clear();
     }
 
-    private Set<CassandraServer> cleanupAbsentServer(Set<CassandraServer> absentNodesSnapshot) {
-        absentNodesSnapshot.forEach(this::incrementAbsenceCountIfPresent);
-        return absentNodesSnapshot.stream()
+    private Set<CassandraServer> cleanupAbsentServer(Set<CassandraServer> absentServersSnapshot) {
+        absentServersSnapshot.forEach(this::incrementAbsenceCountIfPresent);
+        return absentServersSnapshot.stream()
                 .map(this::removeIfAbsenceThresholdReached)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
@@ -88,7 +88,7 @@ public final class CassandraAbsentHostTracker {
         } catch (Exception e) {
             log.warn(
                     "While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
-                    SafeArg.of("removedServerAddress", CassandraLogHelper.cassandraHost(cassandraServer)),
+                    SafeArg.of("removedServerAddress", CassandraLogHelper.cassandraServer(cassandraServer)),
                     e);
         }
     }

@@ -50,8 +50,8 @@ public class RowGetter {
     }
 
     public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
-        CassandraServer host = clientPool.getRandomHostForKey(keyRange.getStart_key());
-        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<>() {
+        CassandraServer host = clientPool.getRandomServerForKey(keyRange.getStart_key());
+        return clientPool.runWithRetryOnServer(host, new FunctionCheckedException<>() {
             @Override
             public List<KeySlice> apply(CassandraClient client) {
                 try {

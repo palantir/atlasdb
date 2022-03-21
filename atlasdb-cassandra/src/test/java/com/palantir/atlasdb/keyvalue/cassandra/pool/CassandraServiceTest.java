@@ -215,12 +215,12 @@ public class CassandraServiceTest {
 
         assertThat(cassandra
                         .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_1))
-                        .map(CassandraClientPoolingContainer::getCassandraNode))
+                        .map(CassandraClientPoolingContainer::getCassandraServer))
                 .as("obeys the predicate even if this host was already tried")
                 .hasValue(SERVER_1);
         assertThat(cassandra
                         .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_3))
-                        .map(CassandraClientPoolingContainer::getCassandraNode))
+                        .map(CassandraClientPoolingContainer::getCassandraServer))
                 .as("obeys the predicate even if another host in this datacenter was already tried")
                 .hasValue(SERVER_1);
     }
@@ -248,7 +248,7 @@ public class CassandraServiceTest {
         return IntStream.range(0, 1_000)
                 .mapToObj(attempt -> cassandra.getRandomGoodHostForPredicate(address -> true, hosts))
                 .flatMap(Optional::stream)
-                .map(CassandraClientPoolingContainer::getCassandraNode)
+                .map(CassandraClientPoolingContainer::getCassandraServer)
                 .collect(Collectors.toSet());
     }
 
@@ -259,7 +259,7 @@ public class CassandraServiceTest {
     @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
     private void assertContainerHasHost(Optional<CassandraClientPoolingContainer> container, CassandraServer host) {
         assertThat(container).isPresent();
-        assertThat(container.get().getCassandraNode()).isEqualTo(host);
+        assertThat(container.get().getCassandraServer()).isEqualTo(host);
     }
 
     private CassandraService clientPoolWithServers(Set<CassandraServer> servers) {

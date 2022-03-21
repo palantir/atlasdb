@@ -139,7 +139,7 @@ public class CassandraClientPoolTest {
     @Test
     public void shouldNotAttemptMoreThanOneConnectionOnSuccess() {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(CASS_NODE_1));
-        cassandraClientPool.runWithRetryOnHost(CASS_NODE_1, noOp());
+        cassandraClientPool.runWithRetryOnServer(CASS_NODE_1, noOp());
         verifyNumberOfAttemptsOnHost(CASS_NODE_1, cassandraClientPool, 1);
     }
 
@@ -244,7 +244,7 @@ public class CassandraClientPoolTest {
                 .getCurrentPools()
                 .values()
                 .forEach(pool -> setConditionalTimeoutFailureForHost(
-                        pool, container -> container.getCassandraNode().equals(downHost.get())));
+                        pool, container -> container.getCassandraServer().equals(downHost.get())));
 
         runNoopWithRetryOnHost(CASS_NODE_1, cassandraClientPool);
         assertThat(blacklist.contains(CASS_NODE_1)).isTrue();
@@ -438,7 +438,7 @@ public class CassandraClientPoolTest {
 
         void inPool(CassandraClientPool cassandraClientPool) {
             CassandraClientPoolingContainer container = mock(CassandraClientPoolingContainer.class);
-            when(container.getCassandraNode()).thenReturn(server);
+            when(container.getCassandraServer()).thenReturn(server);
             try {
                 OngoingStubbing<Object> stubbing = when(container.runWithPooledResource(
                         Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()));
@@ -505,7 +505,7 @@ public class CassandraClientPoolTest {
     private CassandraClientPoolingContainer getMockPoolingContainerForHost(
             CassandraServer address, Optional<Exception> maybeFailureMode) {
         CassandraClientPoolingContainer poolingContainer = mock(CassandraClientPoolingContainer.class);
-        when(poolingContainer.getCassandraNode()).thenReturn(address);
+        when(poolingContainer.getCassandraServer()).thenReturn(address);
         maybeFailureMode.ifPresent(e -> setFailureModeForHost(poolingContainer, e));
         return poolingContainer;
     }
@@ -537,11 +537,11 @@ public class CassandraClientPoolTest {
     }
 
     private void runNoopOnHost(CassandraServer cassandraServer, CassandraClientPool pool) {
-        pool.runOnCassandraNode(cassandraServer, noOp());
+        pool.runOnCassandraServer(cassandraServer, noOp());
     }
 
     private void runNoopWithRetryOnHost(CassandraServer cassandraServer, CassandraClientPool pool) {
-        pool.runWithRetryOnHost(cassandraServer, noOp());
+        pool.runWithRetryOnServer(cassandraServer, noOp());
     }
 
     private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {

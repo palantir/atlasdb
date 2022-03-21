@@ -350,7 +350,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @Override
-    public CassandraServer getRandomHostForKey(byte[] key) {
+    public CassandraServer getRandomServerForKey(byte[] key) {
         return cassandra.getRandomCassandraNodeForKey(key);
     }
 
@@ -370,7 +370,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         for (CassandraServer cassandraServer : getCachedServers()) {
             thisHostResponded = false;
             try {
-                runOnCassandraNode(cassandraServer, CassandraVerifier.healthCheck);
+                runOnCassandraServer(cassandraServer, CassandraVerifier.healthCheck);
                 thisHostResponded = true;
                 atLeastOneHostResponded = true;
             } catch (Exception e) {
@@ -380,7 +380,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
             if (thisHostResponded) {
                 try {
-                    runOnCassandraNode(cassandraServer, getValidatePartitioner());
+                    runOnCassandraServer(cassandraServer, getValidatePartitioner());
                 } catch (Exception e) {
                     aliveButInvalidPartitionerNodes.put(cassandraServer, e);
                 }
@@ -392,9 +392,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             errorBuilderForEntireCluster
                     .append("Performing routine startup checks,")
                     .append(" determined that the following hosts are unreachable for the following reasons: \n");
-            completelyUnresponsiveNodes.forEach((host, exception) -> errorBuilderForEntireCluster.append(String.format(
-                    "\tHost: %s was marked unreachable" + " via exception: %s%n",
-                    host.proxy().getHostString(), exception.toString())));
+            completelyUnresponsiveNodes.forEach(
+                    (cassandraServer, exception) -> errorBuilderForEntireCluster.append(String.format(
+                            "\tServer: %s was marked unreachable via proxy: %s, " + " with exception: %s%n",
+                            cassandraServer.cassandraHostAddress().getHostString(),
+                            cassandraServer.proxy().getHostString(),
+                            exception.toString())));
         }
 
         if (aliveButInvalidPartitionerNodes.size() > 0) {
@@ -405,7 +408,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             aliveButInvalidPartitionerNodes.forEach(
                     (host, exception) -> errorBuilderForEntireCluster.append(String.format(
                             "\tHost: %s was marked as invalid partitioner" + " via exception: %s%n",
-                            host.proxy().getHostString(), exception.toString())));
+                            host.cassandraHostAddress().getHostString(), exception.toString())));
         }
 
         if (atLeastOneHostResponded && aliveButInvalidPartitionerNodes.size() == 0) {
@@ -417,59 +420,59 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        return runWithRetryOnHost(cassandra.getRandomGoodHost().getCassandraNode(), fn);
+        return runWithRetryOnServer(cassandra.getRandomGoodHost().getCassandraServer(), fn);
     }
 
     @Override
-    public <V, K extends Exception> V runWithRetryOnHost(
-            CassandraServer specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        RetryableCassandraRequest<V, K> req = new RetryableCassandraRequest<>(specifiedHost, fn);
+    public <V, K extends Exception> V runWithRetryOnServer(
+            CassandraServer specifiedServer, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
+        RetryableCassandraRequest<V, K> req = new RetryableCassandraRequest<>(specifiedServer, fn);
 
         while (true) {
             if (log.isTraceEnabled()) {
                 log.trace(
                         "Running function on host {}.",
-                        SafeArg.of("host", CassandraLogHelper.cassandraHost(req.getCassandraNode())));
+                        SafeArg.of("host", CassandraLogHelper.cassandraServer(req.getCassandraServer())));
             }
             CassandraClientPoolingContainer hostPool = getPreferredHostOrFallBack(req);
 
             try {
                 V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
-                removeFromBlacklistAfterResponse(hostPool.getCassandraNode());
+                removeFromBlacklistAfterResponse(hostPool.getCassandraServer());
                 return response;
             } catch (Exception ex) {
-                exceptionHandler.handleExceptionFromRequest(req, hostPool.getCassandraNode(), ex);
+                exceptionHandler.handleExceptionFromRequest(req, hostPool.getCassandraServer(), ex);
             }
         }
     }
 
     private <V, K extends Exception> CassandraClientPoolingContainer getPreferredHostOrFallBack(
             RetryableCassandraRequest<V, K> req) {
-        CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getCassandraNode());
+        CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getCassandraServer());
 
-        if (blacklist.contains(req.getCassandraNode()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
-            CassandraServer previousHost = hostPool == null ? req.getCassandraNode() : hostPool.getCassandraNode();
+        if (blacklist.contains(req.getCassandraServer()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
+            CassandraServer previousHost = hostPool == null ? req.getCassandraServer() : hostPool.getCassandraServer();
             Optional<CassandraClientPoolingContainer> hostPoolCandidate = cassandra.getRandomGoodHostForPredicate(
                     address -> !req.alreadyTriedOnHost(address), req.getTriedHosts());
             hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
             log.warn(
                     "Randomly redirected a query intended for host {} to {}.",
-                    SafeArg.of("previousHost", CassandraLogHelper.cassandraHost(previousHost)),
-                    SafeArg.of("randomHost", CassandraLogHelper.cassandraHost(hostPool.getCassandraNode())));
+                    SafeArg.of("previousHost", CassandraLogHelper.cassandraServer(previousHost)),
+                    SafeArg.of("randomHost", CassandraLogHelper.cassandraServer(hostPool.getCassandraServer())));
         }
         return hostPool;
     }
 
     @Override
     public <V, K extends Exception> V run(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        return runOnCassandraNode(cassandra.getRandomGoodHost().getCassandraNode(), fn);
+        return runOnCassandraServer(cassandra.getRandomGoodHost().getCassandraServer(), fn);
     }
 
-    public <V, K extends Exception> V runOnCassandraNode(
-            CassandraServer specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
+    public <V, K extends Exception> V runOnCassandraServer(
+            CassandraServer specifiedServer, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
+        CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedServer);
         V response = runWithPooledResourceRecordingMetrics(hostPool, fn);
-        removeFromBlacklistAfterResponse(specifiedHost);
+        removeFromBlacklistAfterResponse(specifiedServer);
         return response;
     }
 
@@ -478,7 +481,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             blacklist.remove(cassandraServer);
             log.info(
                     "Added cassandraServer {} back into the pool after receiving a successful response",
-                    SafeArg.of("cassandraServer", CassandraLogHelper.cassandraHost(cassandraServer)));
+                    SafeArg.of("cassandraServer", CassandraLogHelper.cassandraServer(cassandraServer)));
         }
     }
 
@@ -514,7 +517,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             } catch (Exception e) {
                 log.warn(
                         "Failed to get ring info from host: {}",
-                        SafeArg.of("host", CassandraLogHelper.cassandraHost(host)),
+                        SafeArg.of("host", CassandraLogHelper.cassandraServer(host)),
                         e);
             }
         }
@@ -536,7 +539,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         log.error(
                 "Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
                         + " lose writes. The mapping of token ranges to hosts is:\n{}",
-                UnsafeArg.of("tokenRangesToHost", CassandraLogHelper.tokenRangesToHost(tokenRangesToHost)),
+                UnsafeArg.of("tokenRangesToHost", CassandraLogHelper.tokenRangesToServer(tokenRangesToHost)),
                 ex);
 
         // provide some easier to grok logging for the two most common cases
@@ -546,7 +549,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     .forEach(entry -> {
                         // We've checked above that entry.getValue() has one element, so we never NPE here.
                         CassandraLogHelper.HostAndIpAddress hostString =
-                                CassandraLogHelper.cassandraHost(Iterables.getFirst(entry.getValue(), null));
+                                CassandraLogHelper.cassandraServer(Iterables.getFirst(entry.getValue(), null));
                         log.error(
                                 "Host: {} disagrees with the other nodes about the ring state.",
                                 SafeArg.of("host", hostString));

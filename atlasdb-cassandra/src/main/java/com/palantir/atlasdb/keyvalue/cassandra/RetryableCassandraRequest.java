@@ -39,7 +39,7 @@ public class RetryableCassandraRequest<V, K extends Exception> {
         this.fn = fn;
     }
 
-    public CassandraServer getCassandraNode() {
+    public CassandraServer getCassandraServer() {
         return cassandraServer;
     }
 

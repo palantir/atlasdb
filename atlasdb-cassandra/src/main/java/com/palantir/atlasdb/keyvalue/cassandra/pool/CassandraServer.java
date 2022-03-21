@@ -26,10 +26,18 @@ public interface CassandraServer {
     @Value.Parameter
     InetSocketAddress cassandraHostAddress();
 
+    /**
+     * We do maintain a list of all IPs but do not create a client pool for each one of these. As of now this list is
+     * unused.
+     * */
     @Value.Auxiliary
     List<InetSocketAddress> reachableProxyIps();
 
-    @Value.Lazy
+    /**
+     * The only proxy that will be used to reach the Cassandra host.
+     * */
+    // Todo(snanda): should we have 3 pools per host?
+    @Value.Derived
     default InetSocketAddress proxy() {
         return reachableProxyIps().get(0);
     }

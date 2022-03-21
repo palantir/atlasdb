@@ -73,7 +73,7 @@ public class BlacklistTest {
         when(clock.millis()).thenAnswer(invocation -> time.addAndGet(ONE_SECOND.toMillis() + 1));
         when(badContainer.runWithPooledResource(any(FunctionCheckedException.class)))
                 .thenThrow(new RuntimeException());
-        when(badContainer.getCassandraNode()).thenReturn(SERVER_1);
+        when(badContainer.getCassandraServer()).thenReturn(SERVER_1);
     }
 
     @Test

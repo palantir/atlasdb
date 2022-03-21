@@ -676,7 +676,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> getForKeyPredicates(
             final CassandraServer host, final TableReference tableRef, List<KeyPredicate> query, final long startTs)
             throws Exception {
-        return clientPool.runWithRetryOnHost(
+        return clientPool.runWithRetryOnServer(
                 host,
                 new FunctionCheckedException<CassandraClient, Map<ByteBuffer, List<ColumnOrSuperColumn>>, Exception>() {
                     @Override
@@ -689,7 +689,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     SafeArg.of("cells", query.size()),
                                     LoggingArgs.tableRef(tableRef),
                                     SafeArg.of("startTs", startTs),
-                                    SafeArg.of("host", CassandraLogHelper.cassandraHost(host)));
+                                    SafeArg.of("host", CassandraLogHelper.cassandraServer(host)));
                         }
 
                         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =
@@ -939,7 +939,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             BatchColumnRangeSelection batchColumnRangeSelection,
             long startTs) {
         try {
-            return clientPool.runWithRetryOnHost(
+            return clientPool.runWithRetryOnServer(
                     host,
                     new FunctionCheckedException<
                             CassandraClient, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
@@ -1002,7 +1002,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                     TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(final byte[] startCol)
                             throws Exception {
-                        return clientPool.runWithRetryOnHost(
+                        return clientPool.runWithRetryOnServer(
                                 host,
                                 new FunctionCheckedException<
                                         CassandraClient,
@@ -1211,7 +1211,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             long timestamp)
             throws Exception {
         final MutationMap mutationMap = convertToMutations(batch, timestamp);
-        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+        return clientPool.runWithRetryOnServer(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
                 return wrappingQueryRunner.batchMutate("multiPut", client, tableRefs, mutationMap, WRITE_CONSISTENCY);
@@ -1996,10 +1996,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int countUnreachableNodes = 0;
-        for (CassandraServer node : clientPool.getCurrentPools().keySet()) {
+        for (CassandraServer server : clientPool.getCurrentPools().keySet()) {
             try {
-                clientPool.runOnCassandraNode(node, CassandraVerifier.healthCheck);
-                if (!partitionerIsValid(node)) {
+                clientPool.runOnCassandraServer(server, CassandraVerifier.healthCheck);
+                if (!partitionerIsValid(server)) {
                     return ClusterAvailabilityStatus.TERMINAL;
                 }
             } catch (Exception e) {
@@ -2011,7 +2011,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private boolean partitionerIsValid(CassandraServer host) {
         try {
-            clientPool.runOnCassandraNode(host, clientPool.getValidatePartitioner());
+            clientPool.runOnCassandraServer(host, clientPool.getValidatePartitioner());
             return true;
         } catch (Exception e) {
             return false;

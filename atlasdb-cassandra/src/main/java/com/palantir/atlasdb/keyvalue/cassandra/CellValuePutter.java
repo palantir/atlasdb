@@ -118,12 +118,12 @@ public class CellValuePutter {
 
     private void putForSingleHost(
             String kvsMethodName,
-            final CassandraServer host,
+            final CassandraServer server,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values,
             Optional<Long> overrideTimestamp)
             throws Exception {
-        clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+        clientPool.runWithRetryOnServer(server, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
                 int mutationBatchCount = config.mutationBatchCount();
@@ -158,7 +158,7 @@ public class CellValuePutter {
 
             @Override
             public String toString() {
-                return "batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", " + Iterables.size(values)
+                return "batch_mutate(" + server + ", " + tableRef.getQualifiedName() + ", " + Iterables.size(values)
                         + " values)";
             }
         });

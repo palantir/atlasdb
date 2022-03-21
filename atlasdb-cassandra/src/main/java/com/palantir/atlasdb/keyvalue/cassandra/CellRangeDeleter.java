@@ -73,7 +73,7 @@ class CellRangeDeleter {
 
     private void deleteAllTimestampsOnSingleHost(
             TableReference tableRef,
-            CassandraServer host,
+            CassandraServer server,
             Map<Cell, TimestampRangeDelete> deletes,
             long rangeTombstoneCassandraTs) {
         if (deletes.isEmpty()) {
@@ -81,7 +81,7 @@ class CellRangeDeleter {
         }
 
         try {
-            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+            clientPool.runWithRetryOnServer(server, new FunctionCheckedException<CassandraClient, Void, Exception>() {
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
@@ -91,7 +91,7 @@ class CellRangeDeleter {
 
                 @Override
                 public String toString() {
-                    return "delete_timestamp_ranges_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
+                    return "delete_timestamp_ranges_batch_mutate(" + server + ", " + tableRef.getQualifiedName() + ", "
                             + deletes.size() + " column timestamp ranges)";
                 }
             });

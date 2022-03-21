@@ -34,22 +34,22 @@ public final class CassandraLogHelper {
         // Utility class.
     }
 
-    public static HostAndIpAddress host(InetSocketAddress host) {
+    static HostAndIpAddress host(InetSocketAddress host) {
         return HostAndIpAddress.fromAddress(host);
     }
 
-    public static HostAndIpAddress cassandraHost(CassandraServer node) {
-        return host(node.cassandraHostAddress());
+    static HostAndIpAddress cassandraServer(CassandraServer cassandraServer) {
+        return host(cassandraServer.cassandraHostAddress());
     }
 
     static Collection<HostAndIpAddress> collectionOfHosts(Collection<CassandraServer> hosts) {
-        return hosts.stream().map(CassandraLogHelper::cassandraHost).collect(Collectors.toSet());
+        return hosts.stream().map(CassandraLogHelper::cassandraServer).collect(Collectors.toSet());
     }
 
-    static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, CassandraServer> tokenRangesToHost) {
+    static List<String> tokenRangesToServer(Multimap<Set<TokenRange>, CassandraServer> tokenRangesToHost) {
         return tokenRangesToHost.entries().stream()
                 .map(entry -> String.format(
-                        "host %s has range %s", entry.getKey().toString(), cassandraHost(entry.getValue())))
+                        "host %s has range %s", entry.getKey().toString(), cassandraServer(entry.getValue())))
                 .collect(Collectors.toList());
     }
 

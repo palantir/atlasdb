@@ -160,7 +160,7 @@ final class CellLoader {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         List<Callable<Void>> tasks = new ArrayList<>();
         for (final List<Cell> partition : batcher.partitionIntoBatches(cells, cassandraServer, tableRef)) {
-            Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
+            Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnServer(
                     cassandraServer, new FunctionCheckedException<CassandraClient, Void, Exception>() {
                         @Override
                         public Void apply(CassandraClient client) throws Exception {
@@ -174,7 +174,8 @@ final class CellLoader {
                                         SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                                         SafeArg.of("startTs", startTs),
                                         SafeArg.of(
-                                                "cassandraServer", CassandraLogHelper.cassandraHost(cassandraServer)));
+                                                "cassandraServer",
+                                                CassandraLogHelper.cassandraServer(cassandraServer)));
                             }
 
                             Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = queryRunner.multiget_multislice(
@@ -228,7 +229,7 @@ final class CellLoader {
                         + " Note that batches are executed in parallel, which may cause load on both"
                         + " your Atlas client as well as on Cassandra if the number of rows is exceptionally"
                         + " high.\n{}",
-                SafeArg.of("cassandraServer", CassandraLogHelper.cassandraHost(cassandraServer)),
+                SafeArg.of("cassandraServer", CassandraLogHelper.cassandraServer(cassandraServer)),
                 LoggingArgs.tableRef(tableRef),
                 SafeArg.of("rows", numRows),
                 SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));

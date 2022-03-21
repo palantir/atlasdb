@@ -66,7 +66,7 @@ class CellDeleter {
             final TableReference tableRef,
             final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
-            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+            clientPool.runWithRetryOnServer(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
                 private int numVersions = 0;
 
                 @Override

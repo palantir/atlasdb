@@ -47,6 +47,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -198,7 +199,7 @@ public final class CassandraRepairEteTest {
 
     @Test
     public void tokenRangesToRepairShouldBeSubsetsOfTokenMap() {
-        Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap = getFullTokenMap();
+        Map<CassandraServer, Set<Range<LightweightOppToken>>> fullTokenMap = getFullTokenMap();
         RangesForRepair rangesToRepair = CassandraRepairHelper.getRangesToRepair(cqlCluster, NAMESPACE, TABLE_1);
 
         KeyedStream.stream(rangesToRepair.tokenMap())
@@ -210,7 +211,7 @@ public final class CassandraRepairEteTest {
     // such that if the thrift range is [5..9] but we don't have data after 7, then the CQL range will be [5..7]
     @SuppressWarnings({"DnsLookup", "ReverseDnsLookup", "UnstableApiUsage"})
     private void assertRangesToRepairAreSubsetsOfRangesFromTokenMap(
-            Map<InetSocketAddress, Set<Range<LightweightOppToken>>> fullTokenMap,
+            Map<CassandraServer, Set<Range<LightweightOppToken>>> fullTokenMap,
             InetSocketAddress address,
             RangeSet<LightweightOppToken> cqlRangesForHost) {
         String hostName = address.getHostName();
@@ -235,7 +236,7 @@ public final class CassandraRepairEteTest {
     }
 
     // This needs to be Set<Range>, not a RangeSet, because we don't want to merge the token ranges for these tests.
-    private Map<InetSocketAddress, Set<Range<LightweightOppToken>>> getFullTokenMap() {
+    private Map<CassandraServer, Set<Range<LightweightOppToken>>> getFullTokenMap() {
         CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
                 config,
@@ -245,9 +246,9 @@ public final class CassandraRepairEteTest {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private Map<InetSocketAddress, Set<Range<LightweightOppToken>>> invert(
-            RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
-        Map<InetSocketAddress, Set<Range<LightweightOppToken>>> invertedMap = new HashMap<>();
+    private Map<CassandraServer, Set<Range<LightweightOppToken>>> invert(
+            RangeMap<LightweightOppToken, List<CassandraServer>> tokenMap) {
+        Map<CassandraServer, Set<Range<LightweightOppToken>>> invertedMap = new HashMap<>();
         tokenMap.asMapOfRanges()
                 .forEach((range, addresses) -> addresses.forEach(address -> {
                     Set<Range<LightweightOppToken>> existingRanges = invertedMap.getOrDefault(address, new HashSet<>());

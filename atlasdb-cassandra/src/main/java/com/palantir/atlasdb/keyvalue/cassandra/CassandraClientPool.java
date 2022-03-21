@@ -24,17 +24,17 @@ import java.util.Map;
 public interface CassandraClientPool {
     FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner();
 
-    <V, K extends Exception> V runOnCassandraNode(
-            CassandraServer specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K;
+    <V, K extends Exception> V runOnCassandraServer(
+            CassandraServer specifiedServer, FunctionCheckedException<CassandraClient, V, K> fn) throws K;
 
     <V, K extends Exception> V run(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
 
-    <V, K extends Exception> V runWithRetryOnHost(
-            CassandraServer specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K;
+    <V, K extends Exception> V runWithRetryOnServer(
+            CassandraServer specifiedServer, FunctionCheckedException<CassandraClient, V, K> fn) throws K;
 
     <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
 
-    CassandraServer getRandomHostForKey(byte[] key);
+    CassandraServer getRandomServerForKey(byte[] key);
 
     Map<CassandraServer, CassandraClientPoolingContainer> getCurrentPools();
 

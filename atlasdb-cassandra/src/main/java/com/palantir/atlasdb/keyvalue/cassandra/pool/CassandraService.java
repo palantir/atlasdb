@@ -295,9 +295,9 @@ public class CassandraService implements AutoCloseable {
 
         Set<CassandraServer> knownNodes = getAllKnownServers();
 
-        for (CassandraServer node : knownNodes) {
-            if (Objects.equals(node.cassandraHostAddress().getAddress(), cassHostAddress.getAddress())) {
-                return node;
+        for (CassandraServer server : knownNodes) {
+            if (Objects.equals(server.cassandraHostAddress().getAddress(), cassHostAddress.getAddress())) {
+                return server;
             }
         }
 
@@ -468,7 +468,7 @@ public class CassandraService implements AutoCloseable {
                         + " However, the mapping of which host contains which data is not available yet."
                         + " We will choose a random host instead.");
             }
-            return getRandomGoodHost().getCassandraNode();
+            return getRandomGoodHost().getCassandraServer();
         }
 
         Set<CassandraServer> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
@@ -495,7 +495,7 @@ public class CassandraService implements AutoCloseable {
                     SafeArg.of("tokenMap", getRingViewDescription()),
                     SafeArg.of("blacklistedNodes", blacklist.blacklistDetails()));
         }
-        return getRandomGoodHost().getCassandraNode();
+        return getRandomGoodHost().getCassandraServer();
     }
 
     public void addPool(CassandraServer server) {

@@ -262,7 +262,7 @@ public class CqlExecutorImpl implements CqlExecutor {
 
             try {
                 CassandraServer hostForRow = getHostForRow(rowHintForHostSelection);
-                CqlPreparedResult preparedResult = clientPool.runWithRetryOnHost(hostForRow, prepareFunction);
+                CqlPreparedResult preparedResult = clientPool.runWithRetryOnServer(hostForRow, prepareFunction);
                 hostsPerPreparedQuery.put(preparedResult.getItemId(), hostForRow);
                 return preparedResult;
             } catch (TException e) {
@@ -282,7 +282,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         }
 
         private CassandraServer getHostForRow(byte[] row) {
-            return clientPool.getRandomHostForKey(row);
+            return clientPool.getRandomServerForKey(row);
         }
 
         private CqlResult executeQueryOnHost(CqlQuery cqlQuery, CassandraServer cassandraServer) {
@@ -293,7 +293,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction,
                 CassandraServer cassandraServer) {
             try {
-                return clientPool.runWithRetryOnHost(cassandraServer, cqlFunction);
+                return clientPool.runWithRetryOnServer(cassandraServer, cqlFunction);
             } catch (RetryLimitReachedException e) {
                 if (consistency.equals(ConsistencyLevel.ALL)) {
                     throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
