@@ -536,12 +536,12 @@ public class CassandraClientPoolTest {
         }
     }
 
-    private void runNoopOnHost(CassandraServer nodeIdentifier, CassandraClientPool pool) {
-        pool.runOnCassandraNode(nodeIdentifier, noOp());
+    private void runNoopOnHost(CassandraServer cassandraServer, CassandraClientPool pool) {
+        pool.runOnCassandraNode(cassandraServer, noOp());
     }
 
-    private void runNoopWithRetryOnHost(CassandraServer nodeIdentifier, CassandraClientPool pool) {
-        pool.runWithRetryOnHost(nodeIdentifier, noOp());
+    private void runNoopWithRetryOnHost(CassandraServer cassandraServer, CassandraClientPool pool) {
+        pool.runWithRetryOnHost(cassandraServer, noOp());
     }
 
     private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {

@@ -61,18 +61,19 @@ public class Blacklist {
         while (blacklistIterator.hasNext()) {
             Map.Entry<CassandraServer, Long> blacklistedEntry = blacklistIterator.next();
             if (coolOffPeriodExpired(blacklistedEntry)) {
-                CassandraServer cassNode = blacklistedEntry.getKey();
-                if (!pools.containsKey(cassNode)) {
+                CassandraServer cassandraServer = blacklistedEntry.getKey();
+                if (!pools.containsKey(cassandraServer)) {
                     // Probably the pool changed underneath us
                     blacklistIterator.remove();
                     log.info(
-                            "Removing cassNode {} from the blacklist as it wasn't found in the pool.",
-                            SafeArg.of("cassNode", CassandraLogHelper.cassandraHost(cassNode)));
-                } else if (isHostHealthy(pools.get(cassNode))) {
+                            "Removing cassandraServer {} from the blacklist as it wasn't found in the pool.",
+                            SafeArg.of("cassandraServer", CassandraLogHelper.cassandraHost(cassandraServer)));
+                } else if (isHostHealthy(pools.get(cassandraServer))) {
                     blacklistIterator.remove();
                     log.info(
-                            "Added cassNode {} back into the pool after a waiting period and successful health check.",
-                            SafeArg.of("cassNode", CassandraLogHelper.cassandraHost(cassNode)));
+                            "Added cassandraServer {} back into the pool after a waiting period and successful health"
+                                    + " check.",
+                            SafeArg.of("cassandraServer", CassandraLogHelper.cassandraHost(cassandraServer)));
                 }
             }
         }

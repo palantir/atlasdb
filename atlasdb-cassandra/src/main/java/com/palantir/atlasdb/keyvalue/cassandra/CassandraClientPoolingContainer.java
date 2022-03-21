@@ -73,13 +73,13 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
-            CassandraServer cassNode,
+            CassandraServer cassandraServer,
             CassandraKeyValueServiceConfig config,
             int poolNumber,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
-        this.cassandraServer = cassNode;
-        this.proxy = cassNode.proxy();
+        this.cassandraServer = cassandraServer;
+        this.proxy = cassandraServer.proxy();
         this.config = config;
         this.poolNumber = poolNumber;
         this.poolMetrics = poolMetrics;

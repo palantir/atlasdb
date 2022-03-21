@@ -53,14 +53,14 @@ public class CassandraAbsentHostTrackerTest {
 
     @Test
     public void returnPoolIfPresent() {
-        hostTracker.trackAbsentCassNode(SERVER_1, container1);
+        hostTracker.trackAbsentCassandraServer(SERVER_1, container1);
         assertThat(hostTracker.returnPool(SERVER_1)).hasValue(container1);
         assertThat(hostTracker.returnPool(SERVER_1)).isEmpty();
     }
 
     @Test
     public void removesServerAfterConsecutiveRequests() {
-        hostTracker.trackAbsentCassNode(SERVER_1, container1);
+        hostTracker.trackAbsentCassandraServer(SERVER_1, container1);
         verifyNoInteractions(container1);
 
         IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS).forEach(_u -> {
@@ -75,13 +75,13 @@ public class CassandraAbsentHostTrackerTest {
 
     @Test
     public void onlyRemoveRelevantHosts() {
-        hostTracker.trackAbsentCassNode(SERVER_1, container1);
-        hostTracker.trackAbsentCassNode(SERVER_2, container2);
+        hostTracker.trackAbsentCassandraServer(SERVER_1, container1);
+        hostTracker.trackAbsentCassandraServer(SERVER_2, container2);
 
         // increment absence round for addresses 1 and 2.
         hostTracker.incrementAbsenceAndRemove();
 
-        hostTracker.trackAbsentCassNode(SERVER_3, container3);
+        hostTracker.trackAbsentCassandraServer(SERVER_3, container3);
 
         IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 1).forEach(_u -> hostTracker.incrementAbsenceAndRemove());
         Set<CassandraServer> removedHosts = hostTracker.incrementAbsenceAndRemove();
@@ -94,7 +94,7 @@ public class CassandraAbsentHostTrackerTest {
     @Test
     public void alwaysRecommendsServersToBeRemovedIfConfiguredWithLimitOne() {
         CassandraAbsentHostTracker oneShotHostTracker = new CassandraAbsentHostTracker(0);
-        oneShotHostTracker.trackAbsentCassNode(SERVER_1, container1);
+        oneShotHostTracker.trackAbsentCassandraServer(SERVER_1, container1);
         Set<CassandraServer> removedHosts = oneShotHostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(SERVER_1);
         verifyPoolShutdown(container1);

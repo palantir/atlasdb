@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
-    private final CassandraServer nodeIdentifier;
+    private final CassandraServer cassandraServer;
     private final FunctionCheckedException<CassandraClient, V, K> fn;
 
     private boolean shouldGiveUpOnPreferredHost = false;
@@ -34,13 +34,13 @@ public class RetryableCassandraRequest<V, K extends Exception> {
     private List<Exception> encounteredExceptions = new ArrayList<>();
 
     public RetryableCassandraRequest(
-            CassandraServer nodeIdentifier, FunctionCheckedException<CassandraClient, V, K> fn) {
-        this.nodeIdentifier = nodeIdentifier;
+            CassandraServer cassandraServer, FunctionCheckedException<CassandraClient, V, K> fn) {
+        this.cassandraServer = cassandraServer;
         this.fn = fn;
     }
 
     public CassandraServer getCassandraNode() {
-        return nodeIdentifier;
+        return cassandraServer;
     }
 
     public FunctionCheckedException<CassandraClient, V, K> getFunction() {

@@ -318,7 +318,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
         Map<CassandraServer, CassandraClientPoolingContainer> containersForAbsentHosts =
                 KeyedStream.of(absentServers).map(cassandra::removePool).collectToMap();
-        containersForAbsentHosts.forEach(absentHostTracker::trackAbsentCassNode);
+        containersForAbsentHosts.forEach(absentHostTracker::trackAbsentCassandraServer);
 
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
@@ -367,22 +367,22 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Map<CassandraServer, Exception> aliveButInvalidPartitionerNodes = new HashMap<>();
         boolean thisHostResponded = false;
         boolean atLeastOneHostResponded = false;
-        for (CassandraServer cassNodeIdentifier : getCachedServers()) {
+        for (CassandraServer cassandraServer : getCachedServers()) {
             thisHostResponded = false;
             try {
-                runOnCassandraNode(cassNodeIdentifier, CassandraVerifier.healthCheck);
+                runOnCassandraNode(cassandraServer, CassandraVerifier.healthCheck);
                 thisHostResponded = true;
                 atLeastOneHostResponded = true;
             } catch (Exception e) {
-                completelyUnresponsiveNodes.put(cassNodeIdentifier, e);
-                blacklist.add(cassNodeIdentifier);
+                completelyUnresponsiveNodes.put(cassandraServer, e);
+                blacklist.add(cassandraServer);
             }
 
             if (thisHostResponded) {
                 try {
-                    runOnCassandraNode(cassNodeIdentifier, getValidatePartitioner());
+                    runOnCassandraNode(cassandraServer, getValidatePartitioner());
                 } catch (Exception e) {
-                    aliveButInvalidPartitionerNodes.put(cassNodeIdentifier, e);
+                    aliveButInvalidPartitionerNodes.put(cassandraServer, e);
                 }
             }
         }
@@ -477,8 +477,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (blacklist.contains(cassandraServer)) {
             blacklist.remove(cassandraServer);
             log.info(
-                    "Added cassandraNodeIdentifier {} back into the pool after receiving a successful response",
-                    SafeArg.of("cassandraNodeIdentifier", CassandraLogHelper.cassandraHost(cassandraServer)));
+                    "Added cassandraServer {} back into the pool after receiving a successful response",
+                    SafeArg.of("cassandraServer", CassandraLogHelper.cassandraHost(cassandraServer)));
         }
     }
 

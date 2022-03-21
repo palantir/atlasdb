@@ -214,10 +214,8 @@ public class CassandraService implements AutoCloseable {
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
         if (log.isDebugEnabled()) {
             Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
-                    .mapKeys(cassandraNodeIdentifier -> cassandraNodeIdentifier
-                            .cassandraHostAddress()
-                            .getAddress()
-                            .getHostAddress())
+                    .mapKeys(
+                            server -> server.cassandraHostAddress().getAddress().getHostAddress())
                     .collectToMap();
             log.debug(
                     "Logging host -> datacenter mapping following a refresh",
