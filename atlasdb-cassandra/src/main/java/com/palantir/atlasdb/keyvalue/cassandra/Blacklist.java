@@ -78,7 +78,7 @@ public class Blacklist {
         }
     }
 
-    private boolean coolOffPeriodExpired(Entry<CassandraNodeIdentifier, Long> blacklistedEntry) {
+    private boolean coolOffPeriodExpired(Map.Entry<CassandraNodeIdentifier, Long> blacklistedEntry) {
         long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
         return blacklistedEntry.getValue() + backoffTimeMillis < clock.millis();
     }
@@ -125,7 +125,7 @@ public class Blacklist {
         blacklist.clear();
     }
 
-    int size() {
+    public int size() {
         return blacklist.size();
     }
 

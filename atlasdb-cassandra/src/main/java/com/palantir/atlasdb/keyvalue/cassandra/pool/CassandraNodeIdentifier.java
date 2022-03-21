@@ -22,7 +22,6 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CassandraNodeIdentifier {
-
     @Value.Parameter
     InetSocketAddress cassandraHostAddress();
 

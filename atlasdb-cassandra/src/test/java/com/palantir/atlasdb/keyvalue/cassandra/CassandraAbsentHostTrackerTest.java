@@ -48,14 +48,14 @@ public class CassandraAbsentHostTrackerTest {
 
     @Test
     public void returnPoolIfPresent() {
-        hostTracker.trackAbsentHost(ADDRESS_1, container1);
+        hostTracker.trackAbsentCassNode(ADDRESS_1, container1);
         assertThat(hostTracker.returnPool(ADDRESS_1)).hasValue(container1);
         assertThat(hostTracker.returnPool(ADDRESS_1)).isEmpty();
     }
 
     @Test
     public void removesServerAfterConsecutiveRequests() {
-        hostTracker.trackAbsentHost(ADDRESS_1, container1);
+        hostTracker.trackAbsentCassNode(ADDRESS_1, container1);
         verifyNoInteractions(container1);
 
         IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS).forEach(_u -> {
@@ -70,13 +70,13 @@ public class CassandraAbsentHostTrackerTest {
 
     @Test
     public void onlyRemoveRelevantHosts() {
-        hostTracker.trackAbsentHost(ADDRESS_1, container1);
-        hostTracker.trackAbsentHost(ADDRESS_2, container2);
+        hostTracker.trackAbsentCassNode(ADDRESS_1, container1);
+        hostTracker.trackAbsentCassNode(ADDRESS_2, container2);
 
         // increment absence round for addresses 1 and 2.
         hostTracker.incrementAbsenceAndRemove();
 
-        hostTracker.trackAbsentHost(ADDRESS_3, container3);
+        hostTracker.trackAbsentCassNode(ADDRESS_3, container3);
 
         IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 1).forEach(_u -> hostTracker.incrementAbsenceAndRemove());
         Set<InetSocketAddress> removedHosts = hostTracker.incrementAbsenceAndRemove();
@@ -89,7 +89,7 @@ public class CassandraAbsentHostTrackerTest {
     @Test
     public void alwaysRecommendsServersToBeRemovedIfConfiguredWithLimitOne() {
         CassandraAbsentHostTracker oneShotHostTracker = new CassandraAbsentHostTracker(0);
-        oneShotHostTracker.trackAbsentHost(ADDRESS_1, container1);
+        oneShotHostTracker.trackAbsentCassNode(ADDRESS_1, container1);
         Set<InetSocketAddress> removedHosts = oneShotHostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(ADDRESS_1);
         verifyPoolShutdown(container1);

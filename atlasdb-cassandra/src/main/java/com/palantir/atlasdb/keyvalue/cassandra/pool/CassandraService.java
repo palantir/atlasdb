@@ -309,12 +309,12 @@ public class CassandraService implements AutoCloseable {
     }
 
     public Optional<CassandraClientPoolingContainer> getRandomGoodHostForPredicate(
-            Predicate<InetSocketAddress> predicate, Set<InetSocketAddress> triedHosts) {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
+            Predicate<CassandraNodeIdentifier> predicate, Set<CassandraNodeIdentifier> triedNodes) {
+        Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> pools = currentPools;
 
         Set<InetSocketAddress> hostsMatchingPredicate =
                 pools.keySet().stream().filter(predicate).collect(Collectors.toSet());
-        Map<String, Long> triedDatacenters = triedHosts.stream()
+        Map<String, Long> triedDatacenters = triedNodes.stream()
                 .map(hostToDatacenter::get)
                 .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
@@ -328,7 +328,7 @@ public class CassandraService implements AutoCloseable {
                 .keys()
                 .collect(Collectors.toSet());
 
-        Set<InetSocketAddress> hostsInPermittedDatacenters = hostsMatchingPredicate.stream()
+        Set<CassandraNodeIdentifier> hostsInPermittedDatacenters = hostsMatchingPredicate.stream()
                 .filter(pool -> {
                     String datacenter = hostToDatacenter.get(pool);
                     return datacenter == null || !maximallyAttemptedDatacenters.contains(datacenter);
@@ -342,14 +342,14 @@ public class CassandraService implements AutoCloseable {
             return Optional.empty();
         }
 
-        Set<InetSocketAddress> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
+        Set<CassandraNodeIdentifier> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
         if (livingHosts.isEmpty()) {
             log.info("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
             livingHosts = filteredHosts;
         }
 
-        Optional<InetSocketAddress> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
+        Optional<CassandraNodeIdentifier> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
         return randomLivingHost.map(pools::get);
     }
 
@@ -483,7 +483,7 @@ public class CassandraService implements AutoCloseable {
      * remain alive until they are returned to the pool, whereby they are destroyed immediately. Threads waiting on the
      * pool will be interrupted.
      */
-    public CassandraClientPoolingContainer removePool(InetSocketAddress removedServerAddress) {
+    public CassandraClientPoolingContainer removePool(CassandraNodeIdentifier removedServerAddress) {
         blacklist.remove(removedServerAddress);
         CassandraClientPoolingContainer removedContainer = currentPools.remove(removedServerAddress);
         return removedContainer;

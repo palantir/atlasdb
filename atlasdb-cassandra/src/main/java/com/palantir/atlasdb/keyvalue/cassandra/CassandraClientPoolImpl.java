@@ -29,6 +29,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -287,12 +288,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
+    RangeMap<LightweightOppToken, List<CassandraNodeIdentifier>> getTokenMap() {
         return cassandra.getTokenMap();
     }
 
     @VisibleForTesting
-    Set<InetSocketAddress> getLocalHosts() {
+    Set<CassandraNodeIdentifier> getLocalHosts() {
         return cassandra.getLocalHosts();
     }
 
@@ -320,7 +321,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
         Map<InetSocketAddress, CassandraClientPoolingContainer> containersForAbsentHosts =
                 KeyedStream.of(absentServers).map(cassandra::removePool).collectToMap();
-        containersForAbsentHosts.forEach(absentHostTracker::trackAbsentHost);
+        containersForAbsentHosts.forEach(absentHostTracker::trackAbsentCassNode);
 
         Set<InetSocketAddress> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
