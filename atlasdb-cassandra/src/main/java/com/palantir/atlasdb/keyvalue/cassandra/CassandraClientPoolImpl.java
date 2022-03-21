@@ -420,7 +420,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        return runWithRetryOnHost(cassandra.getRandomGoodHost().getCassNode(), fn);
+        return runWithRetryOnHost(cassandra.getRandomGoodHost().getCassandraNode(), fn);
     }
 
     @Override
@@ -438,10 +438,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
             try {
                 V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
-                removeFromBlacklistAfterResponse(hostPool.getCassNode());
+                removeFromBlacklistAfterResponse(hostPool.getCassandraNode());
                 return response;
             } catch (Exception ex) {
-                exceptionHandler.handleExceptionFromRequest(req, hostPool.getCassNode(), ex);
+                exceptionHandler.handleExceptionFromRequest(req, hostPool.getCassandraNode(), ex);
             }
         }
     }
@@ -451,21 +451,21 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getPreferredHost());
 
         if (blacklist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
-            InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getCassNode();
+            InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getCassandraNode();
             Optional<CassandraClientPoolingContainer> hostPoolCandidate = cassandra.getRandomGoodHostForPredicate(
                     address -> !req.alreadyTriedOnHost(address), req.getTriedHosts());
             hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
             log.warn(
                     "Randomly redirected a query intended for host {} to {}.",
                     SafeArg.of("previousHost", CassandraLogHelper.cassandraHost(previousHost)),
-                    SafeArg.of("randomHost", CassandraLogHelper.cassandraHost(hostPool.getCassNode())));
+                    SafeArg.of("randomHost", CassandraLogHelper.cassandraHost(hostPool.getCassandraNode())));
         }
         return hostPool;
     }
 
     @Override
     public <V, K extends Exception> V run(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        return runOnHost(cassandra.getRandomGoodHost().getCassNode(), fn);
+        return runOnHost(cassandra.getRandomGoodHost().getCassandraNode(), fn);
     }
 
     @Override

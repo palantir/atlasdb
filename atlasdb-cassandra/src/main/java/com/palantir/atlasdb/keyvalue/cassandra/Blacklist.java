@@ -92,7 +92,7 @@ public class Blacklist {
             log.info(
                     "We tried to add blacklisted host '{}' back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
-                    SafeArg.of("host", CassandraLogHelper.cassandraHost(container.getCassNode())),
+                    SafeArg.of("host", CassandraLogHelper.cassandraHost(container.getCassandraNode())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
                     UnsafeArg.of("exceptionMessage", e.getMessage()),
                     e);

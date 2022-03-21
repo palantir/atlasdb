@@ -22,7 +22,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import io.netty.handler.stream.ChunkedNioFile;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +45,8 @@ public final class CassandraAbsentHostTracker {
         return Optional.ofNullable(absentCassNodes.remove(host)).map(PoolAndCount::container);
     }
 
-    public synchronized void trackAbsentCassNode(CassandraNodeIdentifier absentNode, CassandraClientPoolingContainer pool) {
+    public synchronized void trackAbsentCassNode(
+            CassandraNodeIdentifier absentNode, CassandraClientPoolingContainer pool) {
         absentCassNodes.putIfAbsent(absentNode, PoolAndCount.of(pool));
     }
 
