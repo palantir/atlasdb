@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -71,12 +72,14 @@ class CassandraRequestExceptionHandler {
 
     @SuppressWarnings("unchecked")
     <K extends Exception> void handleExceptionFromRequest(
-            RetryableCassandraRequest<?, K> req, InetSocketAddress hostTried, Exception ex) throws K {
+            RetryableCassandraRequest<?, K> req, CassandraNodeIdentifier nodeIdentifier, Exception ex) throws K {
         if (!isRetryable(ex)) {
             throw (K) ex;
         }
 
         RequestExceptionHandlerStrategy strategy = getStrategy();
+
+        InetSocketAddress hostTried = nodeIdentifier.proxy();
 
         req.triedOnHost(hostTried);
         req.registerException(ex);
@@ -88,12 +91,12 @@ class CassandraRequestExceptionHandler {
         }
 
         if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
-            blacklist.add(hostTried);
+            blacklist.add(nodeIdentifier);
         }
 
         logNumberOfAttempts(ex, numberOfAttempts);
-        handleBackoff(req, hostTried, ex, strategy);
-        handleRetryOnDifferentHosts(req, hostTried, ex, strategy);
+        handleBackoff(req, nodeIdentifier, ex, strategy);
+        handleRetryOnDifferentHosts(req, nodeIdentifier, ex, strategy);
     }
 
     @VisibleForTesting
@@ -146,19 +149,20 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleBackoff(
             RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
+            CassandraNodeIdentifier nodeIdentifier,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
         if (!shouldBackoff(ex, strategy)) {
             return;
         }
 
-        long backOffPeriod = strategy.getBackoffPeriod(req.getNumberOfAttemptsOnHost(hostTried));
+        long backOffPeriod = strategy.getBackoffPeriod(req.getNumberOfAttemptsOnHost(nodeIdentifier.proxy()));
         log.info(
                 "Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                 UnsafeArg.of("queryString", req.getFunction().toString()),
                 SafeArg.of("sleepDuration", backOffPeriod),
-                SafeArg.of("hostName", CassandraLogHelper.cassandraHost(hostTried)));
+                SafeArg.of("cassandraHost", CassandraLogHelper.cassandraHost(nodeIdentifier)),
+                SafeArg.of("proxy", CassandraLogHelper.host(nodeIdentifier.proxy())));
 
         try {
             Thread.sleep(backOffPeriod);
@@ -175,13 +179,14 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleRetryOnDifferentHosts(
             RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
+            CassandraNodeIdentifier nodeIdentifier,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
-        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(hostTried), strategy)) {
+        if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(nodeIdentifier.proxy()), strategy)) {
             log.info(
                     "Retrying a query intended for host {} on a different host.",
-                    SafeArg.of("hostName", CassandraLogHelper.cassandraHost(hostTried)));
+                    SafeArg.of("cassandraHost", CassandraLogHelper.cassandraHost(nodeIdentifier)),
+                    SafeArg.of("proxy", CassandraLogHelper.host(nodeIdentifier.proxy())));
             req.giveUpOnPreferredHost();
         }
     }

@@ -68,6 +68,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
@@ -1996,10 +1997,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int countUnreachableNodes = 0;
-        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
+        for (CassandraNodeIdentifier node : clientPool.getCurrentPools().keySet()) {
             try {
-                clientPool.runOnHost(host, CassandraVerifier.healthCheck);
-                if (!partitionerIsValid(host)) {
+                clientPool.runOnCassandraNode(node, CassandraVerifier.healthCheck);
+                if (!partitionerIsValid(node)) {
                     return ClusterAvailabilityStatus.TERMINAL;
                 }
             } catch (Exception e) {
@@ -2009,9 +2010,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return getNodeAvailabilityStatus(countUnreachableNodes);
     }
 
-    private boolean partitionerIsValid(InetSocketAddress host) {
+    private boolean partitionerIsValid(CassandraNodeIdentifier host) {
         try {
-            clientPool.runOnHost(host, clientPool.getValidatePartitioner());
+            clientPool.runOnCassandraNode(host, clientPool.getValidatePartitioner());
             return true;
         } catch (Exception e) {
             return false;

@@ -528,7 +528,7 @@ public class CassandraClientPoolTest {
     }
 
     private void runNoopOnHost(InetSocketAddress host, CassandraClientPool pool) {
-        pool.runOnHost(host, noOp());
+        pool.runOnCassandraNode(host, noOp());
     }
 
     private void runNoopWithRetryOnHost(InetSocketAddress host, CassandraClientPool pool) {

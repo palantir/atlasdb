@@ -41,19 +41,9 @@ public final class CassandraLogHelper {
     public static HostAndIpAddress cassandraHost(CassandraNodeIdentifier node) {
         return host(node.cassandraHostAddress());
     }
-    // todo(snanda) this does not make sense
-    public static List<HostAndIpAddress> reachableHosts(CassandraNodeIdentifier host) {
-        return host.reachableProxyIps().stream()
-                .map(HostAndIpAddress::fromAddress)
-                .collect(Collectors.toList());
-    }
 
     static Collection<HostAndIpAddress> collectionOfHosts(Collection<CassandraNodeIdentifier> hosts) {
         return hosts.stream().map(CassandraLogHelper::cassandraHost).collect(Collectors.toSet());
-    }
-
-    static Collection<List<HostAndIpAddress>> collectionOfCassNodes(Collection<CassandraNodeIdentifier> hosts) {
-        return hosts.stream().map(CassandraLogHelper::reachableHosts).collect(Collectors.toSet());
     }
 
     static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, CassandraNodeIdentifier> tokenRangesToHost) {
@@ -69,7 +59,7 @@ public final class CassandraLogHelper {
                         "range from %s to %s is on host %s",
                         getLowerEndpoint(rangeListToHostEntry.getKey()),
                         getUpperEndpoint(rangeListToHostEntry.getKey()),
-                        CassandraLogHelper.collectionOfCassNodes(rangeListToHostEntry.getValue())))
+                        CassandraLogHelper.collectionOfHosts(rangeListToHostEntry.getValue())))
                 .collect(Collectors.toList());
     }
 

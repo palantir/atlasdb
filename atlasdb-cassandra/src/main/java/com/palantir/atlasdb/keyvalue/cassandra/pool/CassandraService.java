@@ -192,7 +192,7 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    private Set<CassandraNodeIdentifier> gerResolvedNodeIds() {
+    public Set<CassandraNodeIdentifier> gerResolvedNodeIds() {
         Set<InetSocketAddress> inetSocketAddresses = config.servers().accept(new ThriftHostsExtractingVisitor());
         return inetSocketAddresses.stream()
                 .map(addr -> CassandraNodeIdentifier.builder()
@@ -524,8 +524,7 @@ public class CassandraService implements AutoCloseable {
      */
     public CassandraClientPoolingContainer removePool(CassandraNodeIdentifier removedServerAddress) {
         blacklist.remove(removedServerAddress);
-        CassandraClientPoolingContainer removedContainer = currentPools.remove(removedServerAddress);
-        return removedContainer;
+        return currentPools.remove(removedServerAddress);
     }
 
     public void cacheInitialCassandraHosts() {
