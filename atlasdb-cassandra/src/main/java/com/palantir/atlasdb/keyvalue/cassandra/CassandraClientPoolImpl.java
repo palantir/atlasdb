@@ -28,7 +28,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -281,24 +281,24 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @Override
-    public Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> getCurrentPools() {
+    public Map<CassandraServer, CassandraClientPoolingContainer> getCurrentPools() {
         return cassandra.getPools();
     }
 
     @VisibleForTesting
-    RangeMap<LightweightOppToken, List<CassandraNodeIdentifier>> getTokenMap() {
+    RangeMap<LightweightOppToken, List<CassandraServer>> getTokenMap() {
         return cassandra.getTokenMap();
     }
 
     @VisibleForTesting
-    Set<CassandraNodeIdentifier> getLocalHosts() {
+    Set<CassandraServer> getLocalHosts() {
         return cassandra.getLocalHosts();
     }
 
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
-        Set<CassandraNodeIdentifier> resolvedConfigAddresses = cassandra.gerResolvedNodeIds();
+        Set<CassandraServer> resolvedConfigAddresses = cassandra.getInitialServerList();
 
         if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
@@ -310,18 +310,17 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    void setServersInPoolTo(Set<CassandraNodeIdentifier> desiredServers) {
-        Set<CassandraNodeIdentifier> cachedServers = getCachedServers();
-        Set<CassandraNodeIdentifier> serversToAdd = ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
-        Set<CassandraNodeIdentifier> absentServers =
-                ImmutableSet.copyOf(Sets.difference(cachedServers, desiredServers));
+    void setServersInPoolTo(Set<CassandraServer> desiredServers) {
+        Set<CassandraServer> cachedServers = getCachedServers();
+        Set<CassandraServer> serversToAdd = ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
+        Set<CassandraServer> absentServers = ImmutableSet.copyOf(Sets.difference(cachedServers, desiredServers));
 
         serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
-        Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> containersForAbsentHosts =
+        Map<CassandraServer, CassandraClientPoolingContainer> containersForAbsentHosts =
                 KeyedStream.of(absentServers).map(cassandra::removePool).collectToMap();
         containersForAbsentHosts.forEach(absentHostTracker::trackAbsentCassNode);
 
-        Set<CassandraNodeIdentifier> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
+        Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
         if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
@@ -332,9 +331,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private static void logRefreshedHosts(
-            Set<CassandraNodeIdentifier> serversToAdd,
-            Set<CassandraNodeIdentifier> serversToShutdown,
-            Set<CassandraNodeIdentifier> absentServers) {
+            Set<CassandraServer> serversToAdd,
+            Set<CassandraServer> serversToShutdown,
+            Set<CassandraServer> absentServers) {
         if (serversToShutdown.isEmpty() && serversToAdd.isEmpty() && absentServers.isEmpty()) {
             log.debug("No hosts added or removed during Cassandra pool refresh");
         } else {
@@ -346,12 +345,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private Set<CassandraNodeIdentifier> getCachedServers() {
+    private Set<CassandraServer> getCachedServers() {
         return cassandra.getPools().keySet();
     }
 
     @Override
-    public CassandraNodeIdentifier getRandomHostForKey(byte[] key) {
+    public CassandraServer getRandomHostForKey(byte[] key) {
         return cassandra.getRandomCassandraNodeForKey(key);
     }
 
@@ -364,11 +363,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             throw new RuntimeException(e);
         }
 
-        Map<CassandraNodeIdentifier, Exception> completelyUnresponsiveNodes = new HashMap<>();
-        Map<CassandraNodeIdentifier, Exception> aliveButInvalidPartitionerNodes = new HashMap<>();
+        Map<CassandraServer, Exception> completelyUnresponsiveNodes = new HashMap<>();
+        Map<CassandraServer, Exception> aliveButInvalidPartitionerNodes = new HashMap<>();
         boolean thisHostResponded = false;
         boolean atLeastOneHostResponded = false;
-        for (CassandraNodeIdentifier cassNodeIdentifier : getCachedServers()) {
+        for (CassandraServer cassNodeIdentifier : getCachedServers()) {
             thisHostResponded = false;
             try {
                 runOnCassandraNode(cassNodeIdentifier, CassandraVerifier.healthCheck);
@@ -423,7 +422,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public <V, K extends Exception> V runWithRetryOnHost(
-            CassandraNodeIdentifier specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
+            CassandraServer specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         RetryableCassandraRequest<V, K> req = new RetryableCassandraRequest<>(specifiedHost, fn);
 
         while (true) {
@@ -449,8 +448,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getCassandraNode());
 
         if (blacklist.contains(req.getCassandraNode()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
-            CassandraNodeIdentifier previousHost =
-                    hostPool == null ? req.getCassandraNode() : hostPool.getCassandraNode();
+            CassandraServer previousHost = hostPool == null ? req.getCassandraNode() : hostPool.getCassandraNode();
             Optional<CassandraClientPoolingContainer> hostPoolCandidate = cassandra.getRandomGoodHostForPredicate(
                     address -> !req.alreadyTriedOnHost(address), req.getTriedHosts());
             hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
@@ -468,19 +466,19 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     public <V, K extends Exception> V runOnCassandraNode(
-            CassandraNodeIdentifier specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
+            CassandraServer specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
         V response = runWithPooledResourceRecordingMetrics(hostPool, fn);
         removeFromBlacklistAfterResponse(specifiedHost);
         return response;
     }
 
-    private void removeFromBlacklistAfterResponse(CassandraNodeIdentifier cassandraNodeIdentifier) {
-        if (blacklist.contains(cassandraNodeIdentifier)) {
-            blacklist.remove(cassandraNodeIdentifier);
+    private void removeFromBlacklistAfterResponse(CassandraServer cassandraServer) {
+        if (blacklist.contains(cassandraServer)) {
+            blacklist.remove(cassandraServer);
             log.info(
                     "Added cassandraNodeIdentifier {} back into the pool after receiving a successful response",
-                    SafeArg.of("cassandraNodeIdentifier", CassandraLogHelper.cassandraHost(cassandraNodeIdentifier)));
+                    SafeArg.of("cassandraNodeIdentifier", CassandraLogHelper.cassandraHost(cassandraServer)));
         }
     }
 
@@ -504,9 +502,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
     private void sanityCheckRingConsistency() {
-        Multimap<Set<TokenRange>, CassandraNodeIdentifier> tokenRangesToHost = HashMultimap.create();
-        for (CassandraNodeIdentifier host : getCachedServers()) {
-            try (CassandraClient client = CassandraClientFactory.getClientInternal(host, config)) {
+        Multimap<Set<TokenRange>, CassandraServer> tokenRangesToHost = HashMultimap.create();
+        for (CassandraServer host : getCachedServers()) {
+            try (CassandraClient client = CassandraClientFactory.getClientInternal(host.proxy(), config)) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {

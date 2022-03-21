@@ -22,14 +22,14 @@ import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface CassandraNodeIdentifier {
+public interface CassandraServer {
     @Value.Parameter
     InetSocketAddress cassandraHostAddress();
 
-    @Value.Parameter
+    @Value.Auxiliary
     List<InetSocketAddress> reachableProxyIps();
 
-    @Value.Derived
+    @Value.Lazy
     default InetSocketAddress proxy() {
         return reachableProxyIps().get(0);
     }
@@ -39,7 +39,14 @@ public interface CassandraNodeIdentifier {
         Preconditions.checkState(reachableProxyIps().size() > 0, "Must have at least one reachable IP.");
     }
 
-    static ImmutableCassandraNodeIdentifier.Builder builder() {
-        return ImmutableCassandraNodeIdentifier.builder();
+    static CassandraServer from(InetSocketAddress addr) {
+        return CassandraServer.builder()
+                .cassandraHostAddress(addr)
+                .addReachableProxyIps(addr)
+                .build();
+    }
+
+    static ImmutableCassandraServer.Builder builder() {
+        return ImmutableCassandraServer.builder();
     }
 }

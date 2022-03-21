@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -72,7 +72,7 @@ class CassandraRequestExceptionHandler {
 
     @SuppressWarnings("unchecked")
     <K extends Exception> void handleExceptionFromRequest(
-            RetryableCassandraRequest<?, K> req, CassandraNodeIdentifier nodeIdentifier, Exception ex) throws K {
+            RetryableCassandraRequest<?, K> req, CassandraServer nodeIdentifier, Exception ex) throws K {
         if (!isRetryable(ex)) {
             throw (K) ex;
         }
@@ -149,7 +149,7 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleBackoff(
             RetryableCassandraRequest<?, K> req,
-            CassandraNodeIdentifier nodeIdentifier,
+            CassandraServer nodeIdentifier,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
         if (!shouldBackoff(ex, strategy)) {
@@ -179,7 +179,7 @@ class CassandraRequestExceptionHandler {
 
     private <K extends Exception> void handleRetryOnDifferentHosts(
             RetryableCassandraRequest<?, K> req,
-            CassandraNodeIdentifier nodeIdentifier,
+            CassandraServer nodeIdentifier,
             Exception ex,
             RequestExceptionHandlerStrategy strategy) {
         if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(nodeIdentifier), strategy)) {

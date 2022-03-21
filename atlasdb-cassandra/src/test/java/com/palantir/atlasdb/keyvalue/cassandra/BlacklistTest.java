@@ -26,6 +26,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import java.net.InetSocketAddress;
 import java.time.Clock;
@@ -39,10 +40,16 @@ public class BlacklistTest {
     private static final InetSocketAddress ADDRESS_2 = InetSocketAddress.createUnresolved("SW1A2AA", 1234);
     private static final InetSocketAddress ADDRESS_3 = InetSocketAddress.createUnresolved("SE17PB", 12345);
 
+    private static final CassandraServer SERVER_1 = CassandraServer.from(ADDRESS_1);
+    private static final CassandraServer SERVER_2 = CassandraServer.from(ADDRESS_2);
+    private static final CassandraServer SERVER_3 = CassandraServer.from(ADDRESS_3);
+
     private static final Duration ONE_SECOND = Duration.ofSeconds(1);
 
     private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .servers(ImmutableDefaultConfig.builder().addThriftHosts(ADDRESS_1).build())
+            .servers(ImmutableDefaultConfig.builder()
+                    .addThriftHosts(SERVER_1.proxy())
+                    .build())
             .credentials(ImmutableCassandraCredentialsConfig.builder()
                     .username("a")
                     .password("b")
@@ -66,60 +73,60 @@ public class BlacklistTest {
         when(clock.millis()).thenAnswer(invocation -> time.addAndGet(ONE_SECOND.toMillis() + 1));
         when(badContainer.runWithPooledResource(any(FunctionCheckedException.class)))
                 .thenThrow(new RuntimeException());
-        when(badContainer.getCassandraNode()).thenReturn(ADDRESS_1);
+        when(badContainer.getCassandraNode()).thenReturn(SERVER_1);
     }
 
     @Test
     public void canAddHostToBlacklist() {
-        blacklist.add(ADDRESS_1);
+        blacklist.add(SERVER_1);
 
-        assertThat(blacklist.contains(ADDRESS_1)).isTrue();
-        assertThat(blacklist.contains(ADDRESS_2)).isFalse();
+        assertThat(blacklist.contains(SERVER_1)).isTrue();
+        assertThat(blacklist.contains(SERVER_2)).isFalse();
     }
 
     @Test
     public void doesNotRemoveHostFromBlacklistIfTimeHasNotElapsedYet() {
         when(clock.millis()).thenReturn(42L);
 
-        blacklist.add(ADDRESS_1);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
+        blacklist.add(SERVER_1);
+        blacklist.checkAndUpdate(ImmutableMap.of(SERVER_1, goodContainer));
 
-        assertThat(blacklist.contains(ADDRESS_1)).isTrue();
+        assertThat(blacklist.contains(SERVER_1)).isTrue();
     }
 
     @Test
     public void doesNotRemoveHostFromBlacklistIfTimeHasElapsedAndNodeUnhealthy() {
-        blacklist.add(ADDRESS_1);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, badContainer));
+        blacklist.add(SERVER_1);
+        blacklist.checkAndUpdate(ImmutableMap.of(SERVER_1, badContainer));
 
-        assertThat(blacklist.contains(ADDRESS_1)).isTrue();
+        assertThat(blacklist.contains(SERVER_1)).isTrue();
     }
 
     @Test
     public void removesHostFromBlacklistIfTimeHasElapsedAndNodeHealthy() {
-        blacklist.add(ADDRESS_1);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
+        blacklist.add(SERVER_1);
+        blacklist.checkAndUpdate(ImmutableMap.of(SERVER_1, goodContainer));
 
-        assertThat(blacklist.contains(ADDRESS_1)).isFalse();
+        assertThat(blacklist.contains(SERVER_1)).isFalse();
     }
 
     @Test
     public void removesHostsFromBlacklistIfUnknown() {
-        blacklist.add(ADDRESS_2);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
+        blacklist.add(SERVER_2);
+        blacklist.checkAndUpdate(ImmutableMap.of(SERVER_1, goodContainer));
 
-        assertThat(blacklist.contains(ADDRESS_2)).isFalse();
+        assertThat(blacklist.contains(SERVER_2)).isFalse();
     }
 
     @Test
     public void handlesDifferentStatusUpdatesAsBatch() {
-        blacklist.add(ADDRESS_1);
-        blacklist.add(ADDRESS_2);
-        blacklist.add(ADDRESS_3);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer, ADDRESS_2, badContainer));
+        blacklist.add(SERVER_1);
+        blacklist.add(SERVER_2);
+        blacklist.add(SERVER_3);
+        blacklist.checkAndUpdate(ImmutableMap.of(SERVER_1, goodContainer, SERVER_2, badContainer));
 
-        assertThat(blacklist.contains(ADDRESS_1)).isFalse();
-        assertThat(blacklist.contains(ADDRESS_2)).isTrue();
-        assertThat(blacklist.contains(ADDRESS_3)).isFalse();
+        assertThat(blacklist.contains(SERVER_1)).isFalse();
+        assertThat(blacklist.contains(SERVER_2)).isTrue();
+        assertThat(blacklist.contains(SERVER_3)).isFalse();
     }
 }

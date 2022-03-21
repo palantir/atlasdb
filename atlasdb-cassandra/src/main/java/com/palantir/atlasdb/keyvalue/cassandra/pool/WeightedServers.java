@@ -24,19 +24,19 @@ import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Weights hosts inversely by the number of active connections. {@link #getRandomNodeIdentifier()} should then be used to
+ * Weights hosts inversely by the number of active connections. {@link #getRandomServer()} should then be used to
  * pick a random host
  */
-public final class WeightedHosts {
-    final NavigableMap<Integer, CassandraNodeIdentifier> hosts;
+public final class WeightedServers {
+    final NavigableMap<Integer, CassandraServer> hosts;
 
-    private WeightedHosts(NavigableMap<Integer, CassandraNodeIdentifier> hosts) {
+    private WeightedServers(NavigableMap<Integer, CassandraServer> hosts) {
         this.hosts = hosts;
     }
 
-    public static WeightedHosts create(Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> pools) {
+    public static WeightedServers create(Map<CassandraServer, CassandraClientPoolingContainer> pools) {
         Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
-        return new WeightedHosts(buildHostsWeightedByActiveConnections(pools));
+        return new WeightedServers(buildHostsWeightedByActiveConnections(pools));
     }
 
     /**
@@ -48,20 +48,20 @@ public final class WeightedHosts {
      * Every weight is guaranteed to be non-zero in size. That is, every key is guaranteed to be at least one larger
      * than the previous key.
      */
-    private static NavigableMap<Integer, CassandraNodeIdentifier> buildHostsWeightedByActiveConnections(
-            Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> pools) {
+    private static NavigableMap<Integer, CassandraServer> buildHostsWeightedByActiveConnections(
+            Map<CassandraServer, CassandraClientPoolingContainer> pools) {
 
-        Map<CassandraNodeIdentifier, Integer> openRequestsByHost = Maps.newHashMapWithExpectedSize(pools.size());
+        Map<CassandraServer, Integer> openRequestsByHost = Maps.newHashMapWithExpectedSize(pools.size());
         int totalOpenRequests = 0;
-        for (Map.Entry<CassandraNodeIdentifier, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
+        for (Map.Entry<CassandraServer, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
             int openRequests = Math.max(poolEntry.getValue().getOpenRequests(), 0);
             openRequestsByHost.put(poolEntry.getKey(), openRequests);
             totalOpenRequests += openRequests;
         }
 
         int lowerBoundInclusive = 0;
-        NavigableMap<Integer, CassandraNodeIdentifier> weightedHosts = new TreeMap<>();
-        for (Map.Entry<CassandraNodeIdentifier, Integer> entry : openRequestsByHost.entrySet()) {
+        NavigableMap<Integer, CassandraServer> weightedHosts = new TreeMap<>();
+        for (Map.Entry<CassandraServer, Integer> entry : openRequestsByHost.entrySet()) {
             // We want the weight to be inversely proportional to the number of open requests so that we pick
             // less-active hosts. We add 1 to make sure that all ranges are non-empty
             int weight = totalOpenRequests - entry.getValue() + 1;
@@ -71,13 +71,13 @@ public final class WeightedHosts {
         return weightedHosts;
     }
 
-    public CassandraNodeIdentifier getRandomNodeIdentifier() {
+    public CassandraServer getRandomServer() {
         int index = ThreadLocalRandom.current().nextInt(hosts.lastKey());
-        return getRandomNodeIdentifierInternal(index);
+        return getRandomServerInternal(index);
     }
 
     // This basically exists for testing
-    CassandraNodeIdentifier getRandomNodeIdentifierInternal(int index) {
+    CassandraServer getRandomServerInternal(int index) {
         return hosts.higherEntry(index).getValue();
     }
 }

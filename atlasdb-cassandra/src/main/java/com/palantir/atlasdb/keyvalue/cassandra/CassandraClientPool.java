@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.processors.AutoDelegate;
 import java.util.Map;
@@ -25,18 +25,18 @@ public interface CassandraClientPool {
     FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner();
 
     <V, K extends Exception> V runOnCassandraNode(
-            CassandraNodeIdentifier specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K;
+            CassandraServer specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K;
 
     <V, K extends Exception> V run(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
 
     <V, K extends Exception> V runWithRetryOnHost(
-            CassandraNodeIdentifier specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K;
+            CassandraServer specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K;
 
     <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
 
-    CassandraNodeIdentifier getRandomHostForKey(byte[] key);
+    CassandraServer getRandomHostForKey(byte[] key);
 
-    Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> getCurrentPools();
+    Map<CassandraServer, CassandraClientPoolingContainer> getCurrentPools();
 
     void shutdown();
 }

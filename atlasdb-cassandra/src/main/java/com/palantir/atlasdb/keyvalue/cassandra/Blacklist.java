@@ -19,7 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -41,7 +41,7 @@ public class Blacklist {
     private final CassandraKeyValueServiceConfig config;
     private final Clock clock;
 
-    private Map<CassandraNodeIdentifier, Long> blacklist;
+    private Map<CassandraServer, Long> blacklist;
 
     public Blacklist(CassandraKeyValueServiceConfig config) {
         this(config, Clock.systemUTC());
@@ -54,14 +54,14 @@ public class Blacklist {
         this.clock = clock;
     }
 
-    void checkAndUpdate(Map<CassandraNodeIdentifier, CassandraClientPoolingContainer> pools) {
+    void checkAndUpdate(Map<CassandraServer, CassandraClientPoolingContainer> pools) {
         // Check blacklist and re-integrate or continue to wait as necessary
-        Iterator<Entry<CassandraNodeIdentifier, Long>> blacklistIterator =
+        Iterator<Entry<CassandraServer, Long>> blacklistIterator =
                 blacklist.entrySet().iterator();
         while (blacklistIterator.hasNext()) {
-            Map.Entry<CassandraNodeIdentifier, Long> blacklistedEntry = blacklistIterator.next();
+            Map.Entry<CassandraServer, Long> blacklistedEntry = blacklistIterator.next();
             if (coolOffPeriodExpired(blacklistedEntry)) {
-                CassandraNodeIdentifier cassNode = blacklistedEntry.getKey();
+                CassandraServer cassNode = blacklistedEntry.getKey();
                 if (!pools.containsKey(cassNode)) {
                     // Probably the pool changed underneath us
                     blacklistIterator.remove();
@@ -78,7 +78,7 @@ public class Blacklist {
         }
     }
 
-    private boolean coolOffPeriodExpired(Map.Entry<CassandraNodeIdentifier, Long> blacklistedEntry) {
+    private boolean coolOffPeriodExpired(Map.Entry<CassandraServer, Long> blacklistedEntry) {
         long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
         return blacklistedEntry.getValue() + backoffTimeMillis < clock.millis();
     }
@@ -100,24 +100,24 @@ public class Blacklist {
         }
     }
 
-    public Set<CassandraNodeIdentifier> filterBlacklistedHostsFrom(Collection<CassandraNodeIdentifier> potentialHosts) {
+    public Set<CassandraServer> filterBlacklistedHostsFrom(Collection<CassandraServer> potentialHosts) {
         return Sets.difference(ImmutableSet.copyOf(potentialHosts), blacklist.keySet());
     }
 
-    boolean contains(CassandraNodeIdentifier host) {
+    boolean contains(CassandraServer host) {
         return blacklist.containsKey(host);
     }
 
-    public void add(CassandraNodeIdentifier host) {
+    public void add(CassandraServer host) {
         blacklist.put(host, clock.millis());
         log.info("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.cassandraHost(host)));
     }
 
-    void addAll(Set<CassandraNodeIdentifier> hosts) {
+    void addAll(Set<CassandraServer> hosts) {
         hosts.forEach(this::add);
     }
 
-    public void remove(CassandraNodeIdentifier host) {
+    public void remove(CassandraServer host) {
         blacklist.remove(host);
     }
 

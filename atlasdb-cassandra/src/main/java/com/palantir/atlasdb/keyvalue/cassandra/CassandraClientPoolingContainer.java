@@ -22,7 +22,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevelMetric;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraNodeIdentifier;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
@@ -57,7 +57,7 @@ import org.apache.thrift.transport.TTransportException;
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolingContainer.class);
 
-    private final CassandraNodeIdentifier cassandraNodeIdentifier;
+    private final CassandraServer cassandraServer;
 
     // todo(snanda): randomly pick one of the proxy Ips to create client pool
     private final InetSocketAddress proxy;
@@ -73,12 +73,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
-            CassandraNodeIdentifier cassNode,
+            CassandraServer cassNode,
             CassandraKeyValueServiceConfig config,
             int poolNumber,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
-        this.cassandraNodeIdentifier = cassNode;
+        this.cassandraServer = cassNode;
         this.proxy = cassNode.proxy();
         this.config = config;
         this.poolNumber = poolNumber;
@@ -87,8 +87,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
     }
 
-    public CassandraNodeIdentifier getCassandraNode() {
-        return cassandraNodeIdentifier;
+    public CassandraServer getCassandraNode() {
+        return cassandraServer;
     }
 
     /**
@@ -127,7 +127,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         } catch (Throwable t) {
             log.warn(
                     "Error occurred talking to host '{}'",
-                    SafeArg.of("host", CassandraLogHelper.cassandraHost(cassandraNodeIdentifier)),
+                    SafeArg.of("host", CassandraLogHelper.cassandraHost(cassandraServer)),
                     t);
             if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
                 log.warn(

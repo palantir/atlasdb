@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,6 +54,7 @@ public class CellLoadingBatcherTest {
             .build();
 
     private static final InetSocketAddress ADDRESS = new InetSocketAddress(42);
+    private static final CassandraServer SERVER = CassandraServer.from(ADDRESS);
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("a.b");
     private static final int SEED = 1;
 
@@ -93,7 +95,7 @@ public class CellLoadingBatcherTest {
         List<List<Cell>> batches = partitionUsingMockCallback(rowRange(2 * SINGLE_QUERY_LIMIT, 0));
         assertBatchContentsMatch(
                 batches, rowRange(0, SINGLE_QUERY_LIMIT, 0), rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 0));
-        verify(rebatchingCallback).consume(ADDRESS, TABLE_REFERENCE, 2 * SINGLE_QUERY_LIMIT);
+        verify(rebatchingCallback).consume(SERVER, TABLE_REFERENCE, 2 * SINGLE_QUERY_LIMIT);
     }
 
     @Test
@@ -127,7 +129,7 @@ public class CellLoadingBatcherTest {
                 rowRange(0, SINGLE_QUERY_LIMIT, 1),
                 rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 1),
                 columnRange(0, 2, 2 + CROSS_COLUMN_LIMIT));
-        verify(rebatchingCallback).consume(ADDRESS, TABLE_REFERENCE, 2 * SINGLE_QUERY_LIMIT);
+        verify(rebatchingCallback).consume(SERVER, TABLE_REFERENCE, 2 * SINGLE_QUERY_LIMIT);
     }
 
     @Test
@@ -137,7 +139,7 @@ public class CellLoadingBatcherTest {
         updateConfig(config, 2 * CROSS_COLUMN_LIMIT, SINGLE_QUERY_LIMIT);
 
         List<List<Cell>> largerBatches = reloadingBatcher.partitionIntoBatches(
-                columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT), ADDRESS, TABLE_REFERENCE);
+                columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT), SERVER, TABLE_REFERENCE);
         assertBatchContentsMatch(largerBatches, columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT));
         verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
     }
@@ -157,7 +159,7 @@ public class CellLoadingBatcherTest {
         updateConfig(config, CROSS_COLUMN_LIMIT, 2 * SINGLE_QUERY_LIMIT);
 
         List<List<Cell>> largerBatches =
-                reloadingBatcher.partitionIntoBatches(rowRange(2 * SINGLE_QUERY_LIMIT, 0), ADDRESS, TABLE_REFERENCE);
+                reloadingBatcher.partitionIntoBatches(rowRange(2 * SINGLE_QUERY_LIMIT, 0), SERVER, TABLE_REFERENCE);
         assertBatchContentsMatch(largerBatches, rowRange(2 * SINGLE_QUERY_LIMIT, 0));
         verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
     }
@@ -183,7 +185,7 @@ public class CellLoadingBatcherTest {
     }
 
     private List<List<Cell>> partitionUsingMockCallback(List<Cell> cells) {
-        return batcher.partitionIntoBatches(cells, ADDRESS, TABLE_REFERENCE);
+        return batcher.partitionIntoBatches(cells, SERVER, TABLE_REFERENCE);
     }
 
     private static boolean batchIsSingleColumnOrSatisfiesCrossColumnLimit(List<Cell> batch) {
