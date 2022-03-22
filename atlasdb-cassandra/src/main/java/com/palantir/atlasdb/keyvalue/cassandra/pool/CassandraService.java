@@ -211,7 +211,7 @@ public class CassandraService implements AutoCloseable {
         try {
             return getReachableProxies(addr.getHostString());
         } catch (UnknownHostException e) {
-            log.error("Could not find reachable proxy for address", SafeArg.of("addr", addr.toString()));
+            log.error("Could not find reachable proxy for address", SafeArg.of("addr", addr.toString()), e);
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
@@ -312,7 +312,7 @@ public class CassandraService implements AutoCloseable {
     private int getKnownPort() throws UnknownHostException {
         Set<InetSocketAddress> allKnownHosts = getAllKnownHosts();
         Set<Integer> allKnownPorts =
-                allKnownHosts.stream().map(node -> node.getPort()).collect(Collectors.toSet());
+                allKnownHosts.stream().map(InetSocketAddress::getPort).collect(Collectors.toSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
             return Iterables.getOnlyElement(allKnownPorts);

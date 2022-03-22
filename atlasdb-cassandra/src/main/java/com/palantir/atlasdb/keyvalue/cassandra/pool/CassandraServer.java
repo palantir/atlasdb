@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import com.google.common.base.Preconditions;
 import java.net.InetSocketAddress;
 import java.util.List;
 import org.immutables.value.Value;
@@ -46,7 +45,8 @@ public interface CassandraServer {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(reachableProxyIps().size() > 0, "Must have at least one reachable IP.");
+        com.palantir.logsafe.Preconditions.checkState(reachableProxyIps().size() > 0, "Must "
+                + "have at least one reachable IP.");
     }
 
     static CassandraServer from(InetSocketAddress addr) {

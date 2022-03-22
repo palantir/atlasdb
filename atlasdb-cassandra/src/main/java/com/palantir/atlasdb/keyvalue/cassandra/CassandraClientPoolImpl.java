@@ -468,6 +468,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return runOnCassandraServer(cassandra.getRandomGoodHost().getCassandraServer(), fn);
     }
 
+    @Override
     public <V, K extends Exception> V runOnCassandraServer(
             CassandraServer specifiedServer, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedServer);
