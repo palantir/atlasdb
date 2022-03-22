@@ -74,7 +74,8 @@ public final class CassandraLogHelper {
 
     public static List<String> tokenRangeHashes(Set<TokenRange> tokenRanges) {
         return tokenRanges.stream()
-                .map(range -> "(" + range.getStart_token().hashCode() + ", " + range.getEnd_token().hashCode() + ")")
+                .map(range -> "(" + range.getStart_token().hashCode() + ", "
+                        + range.getEnd_token().hashCode() + ")")
                 .collect(Collectors.toList());
     }
 
