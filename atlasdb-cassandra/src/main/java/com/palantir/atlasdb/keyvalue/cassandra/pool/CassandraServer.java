@@ -35,9 +35,11 @@ public interface CassandraServer {
 
     /**
      * The only proxy that will be used to reach the Cassandra host.
+     *
+     * We are making the assumption here that the list of IPs for a host will be consistent.
+     * In case this does not happen, we will black list this host as it will not be reachable using the proxy.
      * */
-    // Todo(snanda): should we have 3 pools per host?
-    @Value.Derived
+    @Value.Lazy
     default InetSocketAddress proxy() {
         return reachableProxyIps().get(0);
     }

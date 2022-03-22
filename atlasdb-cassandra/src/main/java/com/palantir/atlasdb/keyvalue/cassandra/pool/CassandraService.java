@@ -194,16 +194,21 @@ public class CassandraService implements AutoCloseable {
     public Set<CassandraServer> getInitialServerList() {
         Set<InetSocketAddress> inetSocketAddresses = config.servers().accept(new ThriftHostsExtractingVisitor());
         return inetSocketAddresses.stream()
-                .map(addr -> CassandraServer.builder()
-                        .cassandraHostAddress(addr)
-                        .reachableProxyIps(getReachableProxies(addr))
-                        .build())
+                .map(this::getCassandraServer)
                 .collect(Collectors.toSet());
+    }
+
+    private CassandraServer getCassandraServer(
+            InetSocketAddress cassandraHost) {
+        List<InetSocketAddress> reachableProxies = getReachableProxies(cassandraHost);
+        return CassandraServer.builder()
+                .cassandraHostAddress(cassandraHost)
+                .reachableProxyIps(reachableProxies)
+                .build();
     }
 
     private List<InetSocketAddress> getReachableProxies(InetSocketAddress addr) {
         try {
-            // todo(snanda): test
             return getReachableProxies(addr.getHostString());
         } catch (UnknownHostException e) {
             log.error("Could not find reachable proxy for address", SafeArg.of("addr", addr.toString()));
@@ -301,10 +306,7 @@ public class CassandraService implements AutoCloseable {
             }
         }
 
-        return CassandraServer.builder()
-                .cassandraHostAddress(cassHostAddress)
-                .reachableProxyIps(getReachableProxies(inputHost))
-                .build();
+        return getCassandraServer(cassHostAddress);
     }
 
     private int getKnownPort() throws UnknownHostException {
