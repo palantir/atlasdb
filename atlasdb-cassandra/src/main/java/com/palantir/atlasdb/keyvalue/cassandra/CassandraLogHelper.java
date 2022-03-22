@@ -48,8 +48,8 @@ public final class CassandraLogHelper {
 
     static List<String> tokenRangesToServer(Multimap<Set<TokenRange>, CassandraServer> tokenRangesToHost) {
         return tokenRangesToHost.entries().stream()
-                .map(entry -> String.format(
-                        "host %s has range %s", entry.getKey().toString(), cassandraServer(entry.getValue())))
+                .map(entry -> "host " + cassandraServer(entry.getValue()) + " has range "
+                        + entry.getKey().toString())
                 .collect(Collectors.toList());
     }
 
