@@ -252,6 +252,7 @@ public final class ValueStreamMetadataTable implements
      *     label: LABEL_REQUIRED
      *     type: TYPE_BYTES
      *   }
+     *   
      * }
      * </pre>
      */
@@ -537,7 +538,7 @@ public final class ValueStreamMetadataTable implements
     }
 
     private static Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             ValueStreamMetadataRow row = ValueStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -705,5 +706,5 @@ public final class ValueStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "GTHsibXmo9ZZoXc8cmKpCQ==";
+    static String __CLASS_HASH = "tK2+58/7MXwY7HM0IxhM4A==";
 }

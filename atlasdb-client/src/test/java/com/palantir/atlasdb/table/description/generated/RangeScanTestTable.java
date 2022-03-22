@@ -513,7 +513,7 @@ public final class RangeScanTestTable implements
     }
 
     private static Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -743,5 +743,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Kk820OBu61QOpf2Klq3yTQ==";
+    static String __CLASS_HASH = "1Mzob0NCW7nhDUIDDCSj9w==";
 }
