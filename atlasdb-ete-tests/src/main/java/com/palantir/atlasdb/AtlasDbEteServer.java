@@ -89,6 +89,7 @@ import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
+import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.jetty.HttpConnectorFactory;
 import io.dropwizard.jetty.HttpsConnectorFactory;
 import io.dropwizard.server.DefaultServerFactory;
@@ -104,6 +105,7 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
+@SuppressWarnings("ShutdownHook")
 public class AtlasDbEteServer {
     public static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 300;
 
@@ -118,8 +120,9 @@ public class AtlasDbEteServer {
         Preconditions.checkArgument("server".equals(args[0]), "Expected arg 'server'", SafeArg.of("args", args));
         String configString = Files.readString(Path.of(args[1]));
         configString = new EnvironmentVariableSubstitutor().replace(configString);
-        AtlasDbEteConfiguration configuration =
-                ObjectMappers.newClientJsonMapper().readValue(configString, AtlasDbEteConfiguration.class);
+        AtlasDbEteConfiguration configuration = ObjectMappers.newClientJsonMapper()
+                .setSubtypeResolver(new DiscoverableSubtypeResolver())
+                .readValue(configString, AtlasDbEteConfiguration.class);
         new AtlasDbEteServer().run(configuration);
     }
 
