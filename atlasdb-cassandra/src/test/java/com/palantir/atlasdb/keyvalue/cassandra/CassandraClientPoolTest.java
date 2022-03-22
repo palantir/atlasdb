@@ -354,7 +354,7 @@ public class CassandraClientPoolTest {
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
         when(config.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
-                        .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy())
+                        .addThriftHosts(CASS_SERVER_1.cassandraHostAddress(), CASS_SERVER_2.cassandraHostAddress())
                         .build());
         when(config.autoRefreshNodes()).thenReturn(false);
 
@@ -371,7 +371,7 @@ public class CassandraClientPoolTest {
     public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
         when(config.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
-                        .addThriftHosts(HOST_1, HOST_2)
+                        .addThriftHosts(CASS_SERVER_1.cassandraHostAddress(), CASS_SERVER_2.cassandraHostAddress())
                         .build());
         when(config.autoRefreshNodes()).thenReturn(false);
 
