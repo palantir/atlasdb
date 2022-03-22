@@ -112,7 +112,7 @@ public class Blacklist {
     public void add(CassandraServer cassandraServer) {
         blacklist.put(cassandraServer, clock.millis());
         log.info(
-                "Blacklisted cassandraServer '{}'",
+                "Blacklisted cassandra host '{}' with proxy '{}'",
                 SafeArg.of("badHost", CassandraLogHelper.cassandraServer(cassandraServer)),
                 SafeArg.of("proxy", CassandraLogHelper.host(cassandraServer.proxy())));
     }
@@ -124,7 +124,7 @@ public class Blacklist {
     public void remove(CassandraServer host) {
         blacklist.remove(host);
         log.info(
-                "Remove blacklisted host '{}'",
+                "Remove blacklisted host '{}' with proxy '{}'",
                 SafeArg.of("badHost", CassandraLogHelper.cassandraServer(host)),
                 SafeArg.of("proxy", CassandraLogHelper.host(host.proxy())));
     }
