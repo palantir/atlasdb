@@ -48,14 +48,14 @@ public class CassandraAbsentHostTrackerTest {
 
     @Test
     public void returnEmptyIfNothingThePool() {
-        assertThat(hostTracker.returnPool(SERVER_1)).isEmpty();
+        assertThat(hostTracker.returnPoolsForCassandraHost(SERVER_1)).isEmpty();
     }
 
     @Test
     public void returnPoolIfPresent() {
         hostTracker.trackAbsentCassandraServer(SERVER_1, container1);
-        assertThat(hostTracker.returnPool(SERVER_1)).hasValue(container1);
-        assertThat(hostTracker.returnPool(SERVER_1)).isEmpty();
+        assertThat(hostTracker.returnPoolsForCassandraHost(SERVER_1)).hasValue(container1);
+        assertThat(hostTracker.returnPoolsForCassandraHost(SERVER_1)).isEmpty();
     }
 
     @Test

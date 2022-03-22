@@ -144,7 +144,9 @@ public class Blacklist {
     public List<String> blacklistDetails() {
         return blacklist.entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format(
-                        "host: %s was blacklisted at %s",
+                        "proxy: %s for host: %s was blacklisted at %s",
+                        CassandraLogHelper.host(
+                                blacklistedHostToBlacklistTime.getKey().proxy()),
                         CassandraLogHelper.cassandraServer(blacklistedHostToBlacklistTime.getKey()),
                         blacklistedHostToBlacklistTime.getValue().longValue()))
                 .collect(Collectors.toList());

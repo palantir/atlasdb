@@ -40,7 +40,8 @@ public final class CassandraAbsentHostTracker {
         this.absentCassandraServers = new HashMap<>();
     }
 
-    public synchronized Optional<CassandraClientPoolingContainer> returnPool(CassandraServer cassandraServer) {
+    public synchronized Optional<CassandraClientPoolingContainer> returnPoolsForCassandraHost(
+            CassandraServer cassandraServer) {
         return Optional.ofNullable(absentCassandraServers.remove(cassandraServer))
                 .map(PoolAndCount::container);
     }

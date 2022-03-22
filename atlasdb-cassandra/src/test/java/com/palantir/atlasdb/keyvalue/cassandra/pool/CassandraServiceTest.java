@@ -97,7 +97,7 @@ public class CassandraServiceTest {
     public void shouldReturnAddressForSingleHostInPool() throws UnknownHostException {
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(SERVER_1));
 
-        CassandraServer resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
+        CassandraServer resolvedHost = cassandra.getReachableServersForHost(HOSTNAME_1);
 
         assertThat(resolvedHost.proxy().getHostString()).isEqualTo(HOSTNAME_1);
         assertThat(resolvedHost.proxy().getPort()).isEqualTo(DEFAULT_PORT);
@@ -107,7 +107,7 @@ public class CassandraServiceTest {
     public void shouldReturnAddressForSingleServer() throws UnknownHostException {
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(SERVER_1));
 
-        CassandraServer resolvedHost = cassandra.getAddressForHost(HOSTNAME_1);
+        CassandraServer resolvedHost = cassandra.getReachableServersForHost(HOSTNAME_1);
 
         assertThat(resolvedHost.proxy().getHostString()).isEqualTo(HOSTNAME_1);
         assertThat(resolvedHost.proxy().getPort()).isEqualTo(DEFAULT_PORT);
@@ -117,7 +117,7 @@ public class CassandraServiceTest {
     public void shouldUseCommonPortIfThereIsOnlyOneAndNoAddressMatches() throws UnknownHostException {
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(SERVER_1, SERVER_2));
 
-        CassandraServer resolvedHost = cassandra.getAddressForHost(HOSTNAME_3);
+        CassandraServer resolvedHost = cassandra.getReachableServersForHost(HOSTNAME_3);
 
         assertThat(resolvedHost.proxy().getHostString()).isEqualTo(HOSTNAME_3);
         assertThat(resolvedHost.proxy().getPort()).isEqualTo(DEFAULT_PORT);
@@ -129,7 +129,8 @@ public class CassandraServiceTest {
 
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(SERVER_1, server2));
 
-        assertThatThrownBy(() -> cassandra.getAddressForHost(HOSTNAME_3)).isInstanceOf(UnknownHostException.class);
+        assertThatThrownBy(() -> cassandra.getReachableServersForHost(HOSTNAME_3))
+                .isInstanceOf(UnknownHostException.class);
     }
 
     @Test

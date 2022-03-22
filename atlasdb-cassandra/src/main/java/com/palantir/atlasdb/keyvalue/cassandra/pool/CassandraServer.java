@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import java.net.InetSocketAddress;
-import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -26,34 +25,13 @@ public interface CassandraServer {
     InetSocketAddress cassandraHostAddress();
 
     /**
-     * We do maintain a list of all IPs but do not create a client pool for each one of these. As of now this list is
-     * unused.
+     * The proxy that will be used to reach the Cassandra host.
      * */
-    @Value.Auxiliary
-    List<InetSocketAddress> reachableProxyIps();
-
-    /**
-     * The only proxy that will be used to reach the Cassandra host.
-     *
-     * We are making the assumption here that the list of IPs for a host will be consistent.
-     * In case this does not happen, we will black list this host as it will not be reachable using the proxy.
-     * */
-    @Value.Lazy
-    default InetSocketAddress proxy() {
-        return reachableProxyIps().get(0);
-    }
-
-    @Value.Check
-    default void check() {
-        com.palantir.logsafe.Preconditions.checkState(
-                reachableProxyIps().size() > 0, "Must have at least one reachable IP.");
-    }
+    @Value.Parameter
+    InetSocketAddress proxy();
 
     static CassandraServer from(InetSocketAddress addr) {
-        return CassandraServer.builder()
-                .cassandraHostAddress(addr)
-                .addReachableProxyIps(addr)
-                .build();
+        return CassandraServer.builder().cassandraHostAddress(addr).proxy(addr).build();
     }
 
     static ImmutableCassandraServer.Builder builder() {

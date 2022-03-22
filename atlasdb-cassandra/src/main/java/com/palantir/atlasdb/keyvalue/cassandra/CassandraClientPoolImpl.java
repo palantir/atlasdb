@@ -40,6 +40,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 
@@ -312,22 +314,42 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     void setServersInPoolTo(Set<CassandraServer> desiredServers) {
         Set<CassandraServer> cachedServers = getCachedServers();
-        Set<CassandraServer> serversToAdd = ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
-        Set<CassandraServer> absentServers = ImmutableSet.copyOf(Sets.difference(cachedServers, desiredServers));
+        Set<InetSocketAddress> absentCassandraHosts = ImmutableSet.copyOf(
+                Sets.difference(getCassandraHosts(cachedServers), getCassandraHosts(desiredServers)));
 
-        serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
-        Map<CassandraServer, CassandraClientPoolingContainer> containersForAbsentHosts =
-                KeyedStream.of(absentServers).map(cassandra::removePool).collectToMap();
-        containersForAbsentHosts.forEach(absentHostTracker::trackAbsentCassandraServer);
+        /**
+         * Add all desired servers that are not already a part of the cachedPool.
+         * */
+        Set<CassandraServer> newCassandraServers = ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
+        newCassandraServers.forEach(
+                server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPoolsForCassandraHost(server)));
+
+        /**
+         * Only mark absent all cassandra proxies for absent cassandra hosts - this is good because we will be able
+         * to evict up to 3 pools w/o waiting for blacklisting logic to kick in.
+         *
+         * This also means we are relying on the blacklisting logic for eviction in cases where proxy list has changed.
+         * */
+        Map<CassandraServer, CassandraClientPoolingContainer> containerForAbsentServers = KeyedStream.of(cachedServers)
+                .filter(server -> absentCassandraHosts.contains(server.cassandraHostAddress()))
+                .map(cassandra::removePool)
+                .collectToMap();
+        containerForAbsentServers.forEach(absentHostTracker::trackAbsentCassandraServer);
 
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
-        if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
+        if (!(newCassandraServers.isEmpty() && containerForAbsentServers.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
         }
 
-        logRefreshedHosts(serversToAdd, serversToShutdown, absentServers);
+        logRefreshedHosts(newCassandraServers, serversToShutdown, containerForAbsentServers.keySet());
+    }
+
+    private Set<InetSocketAddress> getCassandraHosts(Set<CassandraServer> desiredServers) {
+        return desiredServers.stream()
+                .map(CassandraServer::cassandraHostAddress)
+                .collect(Collectors.toSet());
     }
 
     private static void logRefreshedHosts(
