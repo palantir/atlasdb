@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.exception.PalantirRuntimeException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
@@ -128,9 +127,9 @@ public class CassandraServiceTest {
     public void shouldThrowIfPortsAreNotTheSameAddressDoesNotMatch() {
         CassandraServer server2 = CassandraServer.from(InetSocketAddress.createUnresolved(HOSTNAME_2, OTHER_PORT));
 
-        assertThatThrownBy(() -> clientPoolWithServers(ImmutableSet.of(SERVER_1, server2)))
-                .isInstanceOf(PalantirRuntimeException.class)
-                .hasMessageContaining("No single known port");
+        CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(SERVER_1, server2));
+
+        assertThatThrownBy(() -> cassandra.getAddressForHost(HOSTNAME_3)).isInstanceOf(UnknownHostException.class);
     }
 
     @Test

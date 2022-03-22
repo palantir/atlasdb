@@ -71,7 +71,6 @@ import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 
 public class CassandraService implements AutoCloseable {
-    // TODO(tboam): keep logging on old class?
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);
     private static final Interner<RangeMap<LightweightOppToken, List<CassandraServer>>> tokensInterner =
             Interners.newWeakInterner();
@@ -203,24 +202,6 @@ public class CassandraService implements AutoCloseable {
                 .build();
     }
 
-    private List<InetSocketAddress> getReachableProxies(InetSocketAddress addr) {
-        try {
-            // todo(snanda): Remove the log if algorithm changes
-            List<InetSocketAddress> reachableProxies = getReachableProxies(addr.getHostString());
-            log.info(
-                    "List of proxies for host",
-                    SafeArg.of("proxies", reachableProxies.toString()),
-                    SafeArg.of("cassandraHost", addr.toString()));
-            return reachableProxies;
-        } catch (UnknownHostException e) {
-            log.error(
-                    "Could not find reachable proxy for address, will try to hit the host directly.",
-                    SafeArg.of("addr", addr.toString()),
-                    e);
-            return ImmutableList.of(addr);
-        }
-    }
-
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
         if (log.isDebugEnabled()) {
             Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
@@ -295,18 +276,23 @@ public class CassandraService implements AutoCloseable {
 
     @VisibleForTesting
     CassandraServer getAddressForHost(String inputHost) throws UnknownHostException {
-        InetSocketAddress cassHostAddress;
-
-        if (config.addressTranslation().containsKey(inputHost)) {
-            cassHostAddress = config.addressTranslation().get(inputHost);
-        } else {
-            cassHostAddress = new InetSocketAddress(InetAddress.getByName(inputHost), getKnownPort());
-        }
+        InetSocketAddress cassHostAddress = config.addressTranslation().containsKey(inputHost)
+                ? config.addressTranslation().get(inputHost)
+                : new InetSocketAddress(InetAddress.getByName(inputHost), getKnownPort());
 
         Set<CassandraServer> knownNodes = getAllKnownServers();
 
         for (CassandraServer server : knownNodes) {
             if (Objects.equals(server.cassandraHostAddress().getAddress(), cassHostAddress.getAddress())) {
+                // todo(snanda): Remove the log if algorithm changes
+                Set<InetSocketAddress> reachableProxies = ImmutableSet.copyOf(getReachableProxies(inputHost));
+                if (!reachableProxies.equals(ImmutableSet.copyOf(server.reachableProxyIps()))) {
+                    log.warn(
+                            "List of proxies has changed",
+                            SafeArg.of("oldProxies", server.reachableProxyIps().toString()),
+                            SafeArg.of("newProxies", reachableProxies.toString()),
+                            SafeArg.of("cassandraHost", inputHost));
+                }
                 return server;
             }
         }
@@ -334,6 +320,18 @@ public class CassandraService implements AutoCloseable {
 
     private Set<CassandraServer> getAllKnownServers() {
         return ImmutableSet.copyOf(Sets.union(currentPools.keySet(), getInitialServerList()));
+    }
+
+    private List<InetSocketAddress> getReachableProxies(InetSocketAddress addr) {
+        try {
+            return getReachableProxies(addr.getHostString());
+        } catch (UnknownHostException e) {
+            log.warn(
+                    "Could not find reachable proxy for address, will try to hit the host directly.",
+                    SafeArg.of("addr", addr.toString()),
+                    e);
+            return ImmutableList.of(addr);
+        }
     }
 
     private List<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {

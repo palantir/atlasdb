@@ -46,7 +46,7 @@ public interface CassandraServer {
     @Value.Check
     default void check() {
         com.palantir.logsafe.Preconditions.checkState(
-                reachableProxyIps().size() > 0, "Must " + "have at least one reachable IP.");
+                reachableProxyIps().size() > 0, "Must have at least one reachable IP.");
     }
 
     static CassandraServer from(InetSocketAddress addr) {

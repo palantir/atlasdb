@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.logsafe.Preconditions;
@@ -76,7 +77,7 @@ public final class WeightedServers {
         return getRandomServerInternal(index);
     }
 
-    // This basically exists for testing
+    @VisibleForTesting
     CassandraServer getRandomServerInternal(int index) {
         return hosts.higherEntry(index).getValue();
     }

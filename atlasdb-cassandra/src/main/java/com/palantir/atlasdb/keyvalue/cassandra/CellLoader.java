@@ -196,7 +196,8 @@ final class CellLoader {
                     });
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
-                    "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + cassandraServer,
+                    "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on "
+                            + cassandraServer.cassandraHostAddress() + " via proxy " + cassandraServer.proxy(),
                     multiGetCallable));
         }
         return tasks;

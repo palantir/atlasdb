@@ -63,7 +63,6 @@ final class HostPartitioner {
             Preconditions.checkState(key.hasArray(), "Expected an array backed buffer");
             Preconditions.checkState(key.arrayOffset() == 0, "Buffer array must have no offset");
             Preconditions.checkState(key.limit() == key.array().length, "Array length must match the limit");
-            // todo(snanda): make this uniform
             CassandraServer host = clientPool.getRandomServerForKey(key.array());
             valuesByHost.putAll(host, partitionedByKey.get(key));
         }
