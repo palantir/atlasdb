@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb;
 
-import com.codahale.metrics.SharedMetricRegistries;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.backup.AtlasBackupResource;
 import com.palantir.atlasdb.backup.AtlasBackupService;
 import com.palantir.atlasdb.backup.AtlasRestoreResource;
@@ -71,24 +71,27 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.conjure.java.serialization.ObjectMappers;
+import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.simple.test.SimpleTestServer;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
+import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
-import io.dropwizard.configuration.SubstitutingSourceProvider;
-import io.dropwizard.jersey.optional.EmptyOptionalException;
-import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
+import io.dropwizard.jetty.HttpConnectorFactory;
+import io.dropwizard.jetty.HttpsConnectorFactory;
+import io.dropwizard.server.DefaultServerFactory;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -96,13 +99,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 
-public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
+public class AtlasDbEteServer {
     public static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 300;
 
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbEteServer.class);
@@ -112,38 +114,52 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final Follower FOLLOWER = CleanupFollower.create(ETE_SCHEMAS);
 
     public static void main(String[] args) throws Exception {
-        new AtlasDbEteServer().run(args);
+        Preconditions.checkArgument(args.length == 2, "Expected arg 'server' and a path to a configuration");
+        Preconditions.checkArgument("server".equals(args[0]), "Expected arg 'server'", SafeArg.of("args", args));
+        String configString = Files.readString(Path.of(args[1]));
+        configString = new EnvironmentVariableSubstitutor().replace(configString);
+        AtlasDbEteConfiguration configuration =
+                ObjectMappers.newClientJsonMapper().readValue(configString, AtlasDbEteConfiguration.class);
+        new AtlasDbEteServer().run(configuration);
     }
 
-    @Override
-    public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
-        bootstrap.setMetricRegistry(SharedMetricRegistries.getOrCreate("AtlasDbTest"));
-        enableEnvironmentVariablesInConfig(bootstrap);
-        bootstrap.getObjectMapper().registerModule(new Jdk8Module());
-    }
+    public void run(AtlasDbEteConfiguration config) throws Exception {
+        DefaultServerFactory serverFactory = (DefaultServerFactory) config.getServerFactory();
+        HttpConnectorFactory connector =
+                (HttpConnectorFactory) Iterables.getOnlyElement(serverFactory.getApplicationConnectors());
+        if (connector instanceof HttpsConnectorFactory) {
+            throw new UnsupportedOperationException("TLS support has not been implemented");
+        }
+        SimpleTestServer.Builder serverBuilder = SimpleTestServer.builder()
+                .contextPath(serverFactory.getApplicationContextPath())
+                .port(connector.getPort());
 
-    @Override
-    public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
+        Consumer<Object> registrar = object -> serverBuilder.jersey(resourceConfig -> resourceConfig.register(object));
+        Consumer<UndertowService> undertowRegistrar = serverBuilder::undertow;
+
         TaggedMetricRegistry taggedMetrics = SharedTaggedMetricRegistries.getSingleton();
-        TransactionManager txManager = tryToCreateTransactionManager(config, environment, taggedMetrics);
+        TransactionManager txManager =
+                tryToCreateTransactionManager(config, registrar, undertowRegistrar, taggedMetrics);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(txManager));
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
 
         if (shouldSetUpBackupAndRestoreResource(config)) {
-            createAndRegisterBackupAndRestoreResource(config, environment, txManager, taggedMetrics);
+            createAndRegisterBackupAndRestoreResource(config, registrar, undertowRegistrar, txManager, taggedMetrics);
         }
 
-        environment
-                .jersey()
-                .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
-        environment.jersey().register(SimpleCoordinationResource.create(txManager));
-        environment.jersey().register(ConjureJerseyFeature.INSTANCE);
-        environment.jersey().register(new NotInitializedExceptionMapper());
-        environment.jersey().register(new SimpleEteTimestampResource(txManager));
-        environment.jersey().register(new SimpleLockResource(txManager));
-        environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
+        serverBuilder.jersey(resourceConfig -> {
+            resourceConfig.register(
+                    new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
+            resourceConfig.register(SimpleCoordinationResource.create(txManager));
+            resourceConfig.register(new NotInitializedExceptionMapper());
+            resourceConfig.register(new SimpleEteTimestampResource(txManager));
+            resourceConfig.register(new SimpleLockResource(txManager));
+        });
+        SimpleTestServer server = serverBuilder.build();
+        Runtime.getRuntime().addShutdownHook(new Thread(server::stop));
+        server.start();
     }
 
     private boolean shouldSetUpBackupAndRestoreResource(AtlasDbEteConfiguration config) {
@@ -157,7 +173,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     private void createAndRegisterBackupAndRestoreResource(
             AtlasDbEteConfiguration config,
-            Environment environment,
+            Consumer<Object> registrar,
+            Consumer<UndertowService> _undertowRegistrar,
             TransactionManager txManager,
             TaggedMetricRegistry taggedMetrics)
             throws IOException {
@@ -194,10 +211,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 _unused -> (CassandraKeyValueServiceConfig)
                         config.getAtlasDbConfig().keyValueService());
 
-        environment
-                .jersey()
-                .register(new SimpleBackupAndRestoreResource(
-                        atlasBackupService, atlasRestoreService, externalBackupPersister));
+        registrar.accept(
+                new SimpleBackupAndRestoreResource(atlasBackupService, atlasRestoreService, externalBackupPersister));
     }
 
     private Refreshable<ServerListConfig> getServerListConfigForTimeLock(AtlasDbEteConfiguration eteConfig) {
@@ -247,14 +262,25 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     private TransactionManager tryToCreateTransactionManager(
-            AtlasDbEteConfiguration config, Environment environment, TaggedMetricRegistry taggedMetricRegistry)
+            AtlasDbEteConfiguration config,
+            Consumer<Object> registrar,
+            Consumer<UndertowService> undertowRegistrar,
+            TaggedMetricRegistry taggedMetricRegistry)
             throws InterruptedException {
         if (config.getAtlasDbConfig().initializeAsync()) {
             return createTransactionManager(
-                    config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment, taggedMetricRegistry);
+                    config.getAtlasDbConfig(),
+                    config.getAtlasDbRuntimeConfig(),
+                    registrar,
+                    undertowRegistrar,
+                    taggedMetricRegistry);
         } else {
             return createTransactionManagerWithRetry(
-                    config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment, taggedMetricRegistry);
+                    config.getAtlasDbConfig(),
+                    config.getAtlasDbRuntimeConfig(),
+                    registrar,
+                    undertowRegistrar,
+                    taggedMetricRegistry);
         }
     }
 
@@ -290,13 +316,15 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private TransactionManager createTransactionManagerWithRetry(
             AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig,
-            Environment environment,
+            Consumer<Object> registrar,
+            Consumer<UndertowService> undertowRegistrar,
             TaggedMetricRegistry taggedMetricRegistry)
             throws InterruptedException {
         Stopwatch sw = Stopwatch.createStarted();
         while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
             try {
-                return createTransactionManager(config, atlasDbRuntimeConfig, environment, taggedMetricRegistry);
+                return createTransactionManager(
+                        config, atlasDbRuntimeConfig, registrar, undertowRegistrar, taggedMetricRegistry);
             } catch (RuntimeException e) {
                 log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
@@ -309,29 +337,20 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private TransactionManager createTransactionManager(
             AtlasDbConfig config,
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional,
-            Environment environment,
+            Consumer<Object> registrar,
+            Consumer<UndertowService> _undertowRegistrar,
             TaggedMetricRegistry taggedMetricRegistry) {
+        MetricRegistry registry = new MetricRegistry();
+        taggedMetricRegistry.addMetrics("registry", "codahale", new DropwizardTaggedMetricSet(registry));
         return TransactionManagers.builder()
                 .config(config)
                 .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-ete-test", "0.0.0")))
-                .globalMetricsRegistry(environment.metrics())
+                .globalMetricsRegistry(registry)
                 .globalTaggedMetricRegistry(taggedMetricRegistry)
-                .registrar(environment.jersey()::register)
+                .registrar(registrar)
                 .addAllSchemas(ETE_SCHEMAS)
                 .runtimeConfigSupplier(() -> atlasDbRuntimeConfigOptional)
                 .build()
                 .serializable();
-    }
-
-    private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
-        bootstrap.setConfigurationSourceProvider(new SubstitutingSourceProvider(
-                bootstrap.getConfigurationSourceProvider(), new EnvironmentVariableSubstitutor()));
-    }
-
-    private static final class EmptyOptionalTo204ExceptionMapper implements ExceptionMapper<EmptyOptionalException> {
-        @Override
-        public Response toResponse(EmptyOptionalException exception) {
-            return Response.noContent().build();
-        }
     }
 }

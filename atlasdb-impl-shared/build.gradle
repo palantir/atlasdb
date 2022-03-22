@@ -57,6 +57,7 @@ dependencies {
   implementation project(':timelock-api:timelock-api-jersey')
   implementation project(':timelock-api:timelock-api-objects')
 
+  testImplementation project(':simple-test-server')
   testImplementation 'com.fasterxml.jackson.core:jackson-core'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
@@ -73,11 +74,6 @@ dependencies {
   testImplementation 'jakarta.ws.rs:jakarta.ws.rs-api'
   testImplementation 'org.eclipse.jetty:jetty-util'
   testImplementation 'org.slf4j:slf4j-api'
-  testImplementation 'io.undertow:undertow-core'
-  testImplementation 'io.undertow:undertow-servlet'
-  testImplementation 'org.glassfish.jersey.media:jersey-media-json-jackson'
-  testImplementation 'com.palantir.conjure.java:conjure-undertow-lib'
-  testImplementation 'com.palantir.conjure.java:conjure-java-undertow-runtime'
   testImplementation project(':atlasdb-api')
   testImplementation project(':atlasdb-autobatch')
   testImplementation project(':atlasdb-client-protobufs')

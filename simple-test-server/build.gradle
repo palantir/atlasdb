@@ -1,0 +1,29 @@
+
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  api 'com.palantir.conjure.java:conjure-undertow-lib'
+  api 'jakarta.ws.rs:jakarta.ws.rs-api'
+
+  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server'
+  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'com.palantir.safe-logging', name: 'preconditions'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-core'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+  implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-optimizations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.conjure.java.api:service-config'
+  implementation 'org.slf4j:slf4j-api'
+  implementation 'io.undertow:undertow-core'
+  implementation 'io.undertow:undertow-servlet'
+  implementation 'org.glassfish.jersey.containers:jersey-container-servlet-core'
+  implementation 'org.glassfish.jersey.core:jersey-common'
+  implementation 'org.glassfish.jersey.core:jersey-server'
+  implementation 'org.glassfish.jersey.media:jersey-media-json-jackson'
+  implementation 'com.palantir.conjure.java:conjure-java-undertow-runtime'
+
+  runtimeOnly group: 'ch.qos.logback', name: 'logback-classic'
+}
