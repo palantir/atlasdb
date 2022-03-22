@@ -123,6 +123,10 @@ public class Blacklist {
 
     public void remove(CassandraServer host) {
         blacklist.remove(host);
+        log.info(
+                "Remove blacklisted host '{}'",
+                SafeArg.of("badHost", CassandraLogHelper.cassandraServer(host)),
+                SafeArg.of("proxy", CassandraLogHelper.host(host.proxy())));
     }
 
     void removeAll() {

@@ -519,6 +519,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 log.warn(
                         "Failed to get ring info from host: {}",
                         SafeArg.of("host", CassandraLogHelper.cassandraServer(host)),
+                        SafeArg.of("proxy", CassandraLogHelper.host(host.proxy())),
                         e);
             }
         }

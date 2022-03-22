@@ -215,9 +215,10 @@ public final class CassandraRepairEteTest {
             InetSocketAddress address,
             RangeSet<LightweightOppToken> cqlRangesForHost) {
         String hostName = address.getHostName();
-        InetSocketAddress thriftAddr = new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT);
-        assertThat(fullTokenMap.get(thriftAddr)).isNotNull();
-        Set<Range<LightweightOppToken>> thriftRanges = fullTokenMap.get(thriftAddr);
+        CassandraServer cassandraServer =
+                CassandraServer.from(new InetSocketAddress(hostName, MultiCassandraUtils.CASSANDRA_THRIFT_PORT));
+        assertThat(fullTokenMap.get(cassandraServer)).isNotNull();
+        Set<Range<LightweightOppToken>> thriftRanges = fullTokenMap.get(cassandraServer);
 
         cqlRangesForHost.asRanges().forEach(range -> assertThat(
                         thriftRanges.stream().anyMatch(containsEntirely(range)))

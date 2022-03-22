@@ -193,26 +193,31 @@ public class CassandraService implements AutoCloseable {
 
     public Set<CassandraServer> getInitialServerList() {
         Set<InetSocketAddress> inetSocketAddresses = config.servers().accept(new ThriftHostsExtractingVisitor());
-        return inetSocketAddresses.stream()
-                .map(this::getCassandraServer)
-                .collect(Collectors.toSet());
+        return inetSocketAddresses.stream().map(this::getCassandraServer).collect(Collectors.toSet());
     }
 
-    private CassandraServer getCassandraServer(
-            InetSocketAddress cassandraHost) {
-        List<InetSocketAddress> reachableProxies = getReachableProxies(cassandraHost);
+    private CassandraServer getCassandraServer(InetSocketAddress cassandraHost) {
         return CassandraServer.builder()
                 .cassandraHostAddress(cassandraHost)
-                .reachableProxyIps(reachableProxies)
+                .reachableProxyIps(getReachableProxies(cassandraHost))
                 .build();
     }
 
     private List<InetSocketAddress> getReachableProxies(InetSocketAddress addr) {
         try {
-            return getReachableProxies(addr.getHostString());
+            // todo(snanda): Remove the log if algorithm changes
+            List<InetSocketAddress> reachableProxies = getReachableProxies(addr.getHostString());
+            log.info(
+                    "List of proxies for host",
+                    SafeArg.of("proxies", reachableProxies.toString()),
+                    SafeArg.of("cassandraHost", addr.toString()));
+            return reachableProxies;
         } catch (UnknownHostException e) {
-            log.error("Could not find reachable proxy for address", SafeArg.of("addr", addr.toString()), e);
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+            log.error(
+                    "Could not find reachable proxy for address, will try to hit the host directly.",
+                    SafeArg.of("addr", addr.toString()),
+                    e);
+            return ImmutableList.of(addr);
         }
     }
 
@@ -331,7 +336,6 @@ public class CassandraService implements AutoCloseable {
         return ImmutableSet.copyOf(Sets.union(currentPools.keySet(), getInitialServerList()));
     }
 
-    // todo(snanda): this needs to be tested
     private List<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
         Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
         String host = hostnamesByIp.getOrDefault(inputHost, inputHost);

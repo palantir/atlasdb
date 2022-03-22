@@ -59,7 +59,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private final CassandraServer cassandraServer;
 
-    // todo(snanda): randomly pick one of the proxy Ips to create client pool
+    /**
+     * We use this proxy to actually talk to the Cassandra host.
+     * */
     private final InetSocketAddress proxy;
 
     private final CassandraKeyValueServiceConfig config;
