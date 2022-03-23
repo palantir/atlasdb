@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
     private final List<TestHashComponentsStreamHashAidxTrigger> triggers;
     private final static String rawTableName = "test_hash_components_stream_hash_aidx";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static TestHashComponentsStreamHashAidxTable of(Transaction t, Namespace namespace) {
         return new TestHashComponentsStreamHashAidxTable(t, namespace, ImmutableList.<TestHashComponentsStreamHashAidxTrigger>of());
@@ -458,17 +459,13 @@ public final class TestHashComponentsStreamHashAidxTable implements
 
     @Override
     public void delete(Iterable<TestHashComponentsStreamHashAidxRow> rows) {
-        Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> toRemove = HashMultimap.create();
         Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> result = getRowsMultimap(rows);
-        for (Entry<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -511,7 +508,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
 
     @Override
     public Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> get(Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -527,7 +524,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
 
     @Override
     public List<TestHashComponentsStreamHashAidxColumnValue> getRowColumns(TestHashComponentsStreamHashAidxRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -549,7 +546,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
 
     @Override
     public Multimap<TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxColumnValue> getRowsMultimap(Iterable<TestHashComponentsStreamHashAidxRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -621,13 +618,13 @@ public final class TestHashComponentsStreamHashAidxTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<TestHashComponentsStreamHashAidxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<TestHashComponentsStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -682,6 +679,7 @@ public final class TestHashComponentsStreamHashAidxTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -739,5 +737,5 @@ public final class TestHashComponentsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "fFP89KmZHZca2wf2ShWGbw==";
+    static String __CLASS_HASH = "gRdPyfDt6LWw+fvatcVAnw==";
 }

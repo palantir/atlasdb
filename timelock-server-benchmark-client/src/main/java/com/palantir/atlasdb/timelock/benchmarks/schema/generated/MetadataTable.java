@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class MetadataTable implements
     private final List<MetadataTrigger> triggers;
     private final static String rawTableName = "Metadata";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(MetadataNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(MetadataNamedColumn.values());
 
     static MetadataTable of(Transaction t, Namespace namespace) {
         return new MetadataTable(t, namespace, ImmutableList.<MetadataTrigger>of());
@@ -470,14 +471,12 @@ public final class MetadataTable implements
 
     @Override
     public void delete(Iterable<MetadataRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("d")));
-        t.delete(tableRef, cells);
+        Multimap<MetadataRow, MetadataNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<MetadataRowResult> getRow(MetadataRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<MetadataRowResult> getRow(MetadataRow row, ColumnSelection columns) {
@@ -492,7 +491,7 @@ public final class MetadataTable implements
 
     @Override
     public List<MetadataRowResult> getRows(Iterable<MetadataRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -507,7 +506,7 @@ public final class MetadataTable implements
 
     @Override
     public List<MetadataNamedColumnValue<?>> getRowColumns(MetadataRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -527,7 +526,7 @@ public final class MetadataTable implements
 
     @Override
     public Multimap<MetadataRow, MetadataNamedColumnValue<?>> getRowsMultimap(Iterable<MetadataRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -591,7 +590,7 @@ public final class MetadataTable implements
 
     private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            return range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allKnownColumns).build();
         }
         return range;
     }
@@ -714,6 +713,7 @@ public final class MetadataTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -771,5 +771,5 @@ public final class MetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "kLiNx/eU/XoEb5MP8ToBvg==";
+    static String __CLASS_HASH = "Ni00XK65wPX+hKD/qGKkig==";
 }

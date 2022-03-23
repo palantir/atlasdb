@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class StreamTestStreamMetadataTable implements
     private final List<StreamTestStreamMetadataTrigger> triggers;
     private final static String rawTableName = "stream_test_stream_metadata";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(StreamTestStreamMetadataNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(StreamTestStreamMetadataNamedColumn.values());
 
     static StreamTestStreamMetadataTable of(Transaction t, Namespace namespace) {
         return new StreamTestStreamMetadataTable(t, namespace, ImmutableList.<StreamTestStreamMetadataTrigger>of());
@@ -467,14 +468,12 @@ public final class StreamTestStreamMetadataTable implements
 
     @Override
     public void delete(Iterable<StreamTestStreamMetadataRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
-        t.delete(tableRef, cells);
+        Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<StreamTestStreamMetadataRowResult> getRow(StreamTestStreamMetadataRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<StreamTestStreamMetadataRowResult> getRow(StreamTestStreamMetadataRow row, ColumnSelection columns) {
@@ -489,7 +488,7 @@ public final class StreamTestStreamMetadataTable implements
 
     @Override
     public List<StreamTestStreamMetadataRowResult> getRows(Iterable<StreamTestStreamMetadataRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -504,7 +503,7 @@ public final class StreamTestStreamMetadataTable implements
 
     @Override
     public List<StreamTestStreamMetadataNamedColumnValue<?>> getRowColumns(StreamTestStreamMetadataRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -524,7 +523,7 @@ public final class StreamTestStreamMetadataTable implements
 
     @Override
     public Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestStreamMetadataRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -588,13 +587,13 @@ public final class StreamTestStreamMetadataTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<StreamTestStreamMetadataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<StreamTestStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -649,6 +648,7 @@ public final class StreamTestStreamMetadataTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -706,5 +706,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qHEdCKPB6VgXJi/ddskRaw==";
+    static String __CLASS_HASH = "uPiinHw2OZI+IR7jF8vjPw==";
 }

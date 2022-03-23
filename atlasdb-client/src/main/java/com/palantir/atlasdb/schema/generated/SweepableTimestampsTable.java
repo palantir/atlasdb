@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class SweepableTimestampsTable implements
     private final List<SweepableTimestampsTrigger> triggers;
     private final static String rawTableName = "sweepableTimestamps";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static SweepableTimestampsTable of(Transaction t, Namespace namespace) {
         return new SweepableTimestampsTable(t, namespace, ImmutableList.<SweepableTimestampsTrigger>of());
@@ -505,17 +506,13 @@ public final class SweepableTimestampsTable implements
 
     @Override
     public void delete(Iterable<SweepableTimestampsRow> rows) {
-        Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> toRemove = HashMultimap.create();
         Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> result = getRowsMultimap(rows);
-        for (Entry<SweepableTimestampsRow, SweepableTimestampsColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -558,7 +555,7 @@ public final class SweepableTimestampsTable implements
 
     @Override
     public Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> get(Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -574,7 +571,7 @@ public final class SweepableTimestampsTable implements
 
     @Override
     public List<SweepableTimestampsColumnValue> getRowColumns(SweepableTimestampsRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -596,7 +593,7 @@ public final class SweepableTimestampsTable implements
 
     @Override
     public Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> getRowsMultimap(Iterable<SweepableTimestampsRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -668,13 +665,13 @@ public final class SweepableTimestampsTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<SweepableTimestampsRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<SweepableTimestampsRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -729,6 +726,7 @@ public final class SweepableTimestampsTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -786,5 +784,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gH5yVvu8VJQMspkIgQi4CA==";
+    static String __CLASS_HASH = "Hc7s1GKN0RQvmQ1kLVHjDw==";
 }

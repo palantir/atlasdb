@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class KvRowsTable implements
     private final List<KvRowsTrigger> triggers;
     private final static String rawTableName = "KvRows";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(KvRowsNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(KvRowsNamedColumn.values());
 
     static KvRowsTable of(Transaction t, Namespace namespace) {
         return new KvRowsTable(t, namespace, ImmutableList.<KvRowsTrigger>of());
@@ -498,14 +499,12 @@ public final class KvRowsTable implements
 
     @Override
     public void delete(Iterable<KvRowsRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("d")));
-        t.delete(tableRef, cells);
+        Multimap<KvRowsRow, KvRowsNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<KvRowsRowResult> getRow(KvRowsRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<KvRowsRowResult> getRow(KvRowsRow row, ColumnSelection columns) {
@@ -520,7 +519,7 @@ public final class KvRowsTable implements
 
     @Override
     public List<KvRowsRowResult> getRows(Iterable<KvRowsRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -535,7 +534,7 @@ public final class KvRowsTable implements
 
     @Override
     public List<KvRowsNamedColumnValue<?>> getRowColumns(KvRowsRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -555,7 +554,7 @@ public final class KvRowsTable implements
 
     @Override
     public Multimap<KvRowsRow, KvRowsNamedColumnValue<?>> getRowsMultimap(Iterable<KvRowsRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -619,7 +618,7 @@ public final class KvRowsTable implements
 
     private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            return range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allKnownColumns).build();
         }
         return range;
     }
@@ -742,6 +741,7 @@ public final class KvRowsTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -799,5 +799,5 @@ public final class KvRowsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "w/ubZQEj31dYSdz4BnjNhA==";
+    static String __CLASS_HASH = "ivB794jB12m++z5abvx0yQ==";
 }

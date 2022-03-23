@@ -1,26 +1,5 @@
 package com.palantir.example.profile.schema.generated;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-
-import javax.annotation.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -66,6 +45,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -84,26 +64,56 @@ import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings({"all", "deprecation"})
-public final class UserPhotosStreamIdxTable implements
-        AtlasDbDynamicMutablePersistentTable<UserPhotosStreamIdxTable.UserPhotosStreamIdxRow,
-                                                UserPhotosStreamIdxTable.UserPhotosStreamIdxColumn,
-                                                UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue,
-                                                UserPhotosStreamIdxTable.UserPhotosStreamIdxRowResult> {
+public final class UserPhotosStreamIdxTable
+        implements AtlasDbDynamicMutablePersistentTable<
+                UserPhotosStreamIdxTable.UserPhotosStreamIdxRow,
+                UserPhotosStreamIdxTable.UserPhotosStreamIdxColumn,
+                UserPhotosStreamIdxTable.UserPhotosStreamIdxColumnValue,
+                UserPhotosStreamIdxTable.UserPhotosStreamIdxRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamIdxTrigger> triggers;
-    private final static String rawTableName = "user_photos_stream_idx";
+    private static final String rawTableName = "user_photos_stream_idx";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private static final ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace) {
         return new UserPhotosStreamIdxTable(t, namespace, ImmutableList.<UserPhotosStreamIdxTrigger>of());
     }
 
-    static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace, UserPhotosStreamIdxTrigger trigger, UserPhotosStreamIdxTrigger... triggers) {
-        return new UserPhotosStreamIdxTable(t, namespace, ImmutableList.<UserPhotosStreamIdxTrigger>builder().add(trigger).add(triggers).build());
+    static UserPhotosStreamIdxTable of(
+            Transaction t,
+            Namespace namespace,
+            UserPhotosStreamIdxTrigger trigger,
+            UserPhotosStreamIdxTrigger... triggers) {
+        return new UserPhotosStreamIdxTable(
+                t,
+                namespace,
+                ImmutableList.<UserPhotosStreamIdxTrigger>builder()
+                        .add(trigger)
+                        .add(triggers)
+                        .build());
     }
 
     static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace, List<UserPhotosStreamIdxTrigger> triggers) {
@@ -191,8 +201,8 @@ public final class UserPhotosStreamIdxTable implements
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("id", id)
-                .toString();
+                    .add("id", id)
+                    .toString();
         }
 
         @Override
@@ -218,9 +228,7 @@ public final class UserPhotosStreamIdxTable implements
 
         @Override
         public int compareTo(UserPhotosStreamIdxRow o) {
-            return ComparisonChain.start()
-                .compare(this.id, o.id)
-                .result();
+            return ComparisonChain.start().compare(this.id, o.id).result();
         }
     }
 
@@ -270,21 +278,22 @@ public final class UserPhotosStreamIdxTable implements
             return EncodingUtils.add(referenceBytes);
         }
 
-        public static final Hydrator<UserPhotosStreamIdxColumn> BYTES_HYDRATOR = new Hydrator<UserPhotosStreamIdxColumn>() {
-            @Override
-            public UserPhotosStreamIdxColumn hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(reference);
-                return new UserPhotosStreamIdxColumn(reference);
-            }
-        };
+        public static final Hydrator<UserPhotosStreamIdxColumn> BYTES_HYDRATOR =
+                new Hydrator<UserPhotosStreamIdxColumn>() {
+                    @Override
+                    public UserPhotosStreamIdxColumn hydrateFromBytes(byte[] __input) {
+                        int __index = 0;
+                        byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
+                        __index += EncodingUtils.sizeOfSizedBytes(reference);
+                        return new UserPhotosStreamIdxColumn(reference);
+                    }
+                };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("reference", reference)
-                .toString();
+                    .add("reference", reference)
+                    .toString();
         }
 
         @Override
@@ -311,13 +320,14 @@ public final class UserPhotosStreamIdxTable implements
         @Override
         public int compareTo(UserPhotosStreamIdxColumn o) {
             return ComparisonChain.start()
-                .compare(this.reference, o.reference, UnsignedBytes.lexicographicalComparator())
-                .result();
+                    .compare(this.reference, o.reference, UnsignedBytes.lexicographicalComparator())
+                    .result();
         }
     }
 
     public interface UserPhotosStreamIdxTrigger {
-        public void putUserPhotosStreamIdx(Multimap<UserPhotosStreamIdxRow, ? extends UserPhotosStreamIdxColumnValue> newRows);
+        public void putUserPhotosStreamIdx(
+                Multimap<UserPhotosStreamIdxRow, ? extends UserPhotosStreamIdxColumnValue> newRows);
     }
 
     /**
@@ -389,9 +399,9 @@ public final class UserPhotosStreamIdxTable implements
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("ColumnName", this.columnName)
-                .add("Value", this.value)
-                .toString();
+                    .add("ColumnName", this.columnName)
+                    .add("Value", this.value)
+                    .toString();
         }
     }
 
@@ -400,8 +410,10 @@ public final class UserPhotosStreamIdxTable implements
         private final ImmutableSet<UserPhotosStreamIdxColumnValue> columnValues;
 
         public static UserPhotosStreamIdxRowResult of(RowResult<byte[]> rowResult) {
-            UserPhotosStreamIdxRow rowName = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
-            Set<UserPhotosStreamIdxColumnValue> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
+            UserPhotosStreamIdxRow rowName =
+                    UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
+            Set<UserPhotosStreamIdxColumnValue> columnValues =
+                    Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
                 Long value = UserPhotosStreamIdxColumnValue.hydrateValue(e.getValue());
@@ -410,7 +422,8 @@ public final class UserPhotosStreamIdxTable implements
             return new UserPhotosStreamIdxRowResult(rowName, ImmutableSet.copyOf(columnValues));
         }
 
-        private UserPhotosStreamIdxRowResult(UserPhotosStreamIdxRow rowName, ImmutableSet<UserPhotosStreamIdxColumnValue> columnValues) {
+        private UserPhotosStreamIdxRowResult(
+                UserPhotosStreamIdxRow rowName, ImmutableSet<UserPhotosStreamIdxColumnValue> columnValues) {
             this.rowName = rowName;
             this.columnValues = columnValues;
         }
@@ -433,7 +446,8 @@ public final class UserPhotosStreamIdxTable implements
             };
         }
 
-        public static Function<UserPhotosStreamIdxRowResult, ImmutableSet<UserPhotosStreamIdxColumnValue>> getColumnValuesFun() {
+        public static Function<UserPhotosStreamIdxRowResult, ImmutableSet<UserPhotosStreamIdxColumnValue>>
+                getColumnValuesFun() {
             return new Function<UserPhotosStreamIdxRowResult, ImmutableSet<UserPhotosStreamIdxColumnValue>>() {
                 @Override
                 public ImmutableSet<UserPhotosStreamIdxColumnValue> apply(UserPhotosStreamIdxRowResult rowResult) {
@@ -445,9 +459,9 @@ public final class UserPhotosStreamIdxTable implements
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("RowName", getRowName())
-                .add("ColumnValues", getColumnValues())
-                .toString();
+                    .add("RowName", getRowName())
+                    .add("ColumnValues", getColumnValues())
+                    .toString();
         }
     }
 
@@ -458,27 +472,27 @@ public final class UserPhotosStreamIdxTable implements
 
     @Override
     public void delete(Iterable<UserPhotosStreamIdxRow> rows) {
-        Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumn> toRemove = HashMultimap.create();
         Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> result = getRowsMultimap(rows);
-        for (Entry<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
     public void put(UserPhotosStreamIdxRow rowName, Iterable<UserPhotosStreamIdxColumnValue> values) {
-        put(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
+        put(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder()
+                .putAll(rowName, values)
+                .build());
     }
 
     @Override
     public void put(UserPhotosStreamIdxRow rowName, UserPhotosStreamIdxColumnValue... values) {
-        put(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
+        put(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder()
+                .putAll(rowName, values)
+                .build());
     }
 
     @Override
@@ -510,14 +524,17 @@ public final class UserPhotosStreamIdxTable implements
     }
 
     @Override
-    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> get(Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> get(
+            Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumn> cells) {
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
-                UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-                UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+                UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(
+                        e.getKey().getRowName());
+                UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(
+                        e.getKey().getColumnName());
                 Long val = UserPhotosStreamIdxColumnValue.hydrateValue(e.getValue());
                 rowMap.put(row, UserPhotosStreamIdxColumnValue.of(col, val));
             }
@@ -527,17 +544,19 @@ public final class UserPhotosStreamIdxTable implements
 
     @Override
     public List<UserPhotosStreamIdxColumnValue> getRowColumns(UserPhotosStreamIdxRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
     public List<UserPhotosStreamIdxColumnValue> getRowColumns(UserPhotosStreamIdxRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult =
+                t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<UserPhotosStreamIdxColumnValue> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<UserPhotosStreamIdxColumnValue> ret =
+                    Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
                 Long val = UserPhotosStreamIdxColumnValue.hydrateValue(e.getValue());
@@ -548,21 +567,25 @@ public final class UserPhotosStreamIdxTable implements
     }
 
     @Override
-    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimap(Iterable<UserPhotosStreamIdxRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimap(
+            Iterable<UserPhotosStreamIdxRow> rows) {
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
-    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimap(Iterable<UserPhotosStreamIdxRow> rows, ColumnSelection columns) {
+    public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimap(
+            Iterable<UserPhotosStreamIdxRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
-    private Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimapInternal(Iterable<UserPhotosStreamIdxRow> rows, ColumnSelection columns) {
+    private Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimapInternal(
+            Iterable<UserPhotosStreamIdxRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+    private static Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowMapFromRowResults(
+            Collection<RowResult<byte[]>> rowResults) {
         Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
@@ -576,27 +599,36 @@ public final class UserPhotosStreamIdxTable implements
     }
 
     @Override
-    public Map<UserPhotosStreamIdxRow, BatchingVisitable<UserPhotosStreamIdxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserPhotosStreamIdxRow, BatchingVisitable<UserPhotosStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+    public Map<UserPhotosStreamIdxRow, BatchingVisitable<UserPhotosStreamIdxColumnValue>> getRowsColumnRange(
+            Iterable<UserPhotosStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+                t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamIdxRow, BatchingVisitable<UserPhotosStreamIdxColumnValue>> transformed =
+                Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<UserPhotosStreamIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                Long val = UserPhotosStreamIdxColumnValue.hydrateValue(result.getValue());
-                return UserPhotosStreamIdxColumnValue.of(col, val);
-            });
+            BatchingVisitable<UserPhotosStreamIdxColumnValue> bv =
+                    BatchingVisitables.transform(e.getValue(), result -> {
+                        UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(
+                                result.getKey().getColumnName());
+                        Long val = UserPhotosStreamIdxColumnValue.hydrateValue(result.getValue());
+                        return UserPhotosStreamIdxColumnValue.of(col, val);
+                    });
             transformed.put(row, bv);
         }
         return transformed;
     }
 
     @Override
-    public Iterator<Map.Entry<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+    public Iterator<Map.Entry<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>> getRowsColumnRange(
+            Iterable<UserPhotosStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results =
+                t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+            UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(
+                    e.getKey().getRowName());
+            UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(
+                    e.getKey().getColumnName());
             Long val = UserPhotosStreamIdxColumnValue.hydrateValue(e.getValue());
             UserPhotosStreamIdxColumnValue colValue = UserPhotosStreamIdxColumnValue.of(col, val);
             return Maps.immutableEntry(row, colValue);
@@ -604,13 +636,17 @@ public final class UserPhotosStreamIdxTable implements
     }
 
     @Override
-    public Map<UserPhotosStreamIdxRow, Iterator<UserPhotosStreamIdxColumnValue>> getRowsColumnRangeIterator(Iterable<UserPhotosStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserPhotosStreamIdxRow, Iterator<UserPhotosStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+    public Map<UserPhotosStreamIdxRow, Iterator<UserPhotosStreamIdxColumnValue>> getRowsColumnRangeIterator(
+            Iterable<UserPhotosStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results =
+                t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamIdxRow, Iterator<UserPhotosStreamIdxColumnValue>> transformed =
+                Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             UserPhotosStreamIdxRow row = UserPhotosStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
             Iterator<UserPhotosStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
-                UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                UserPhotosStreamIdxColumn col = UserPhotosStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(
+                        result.getKey().getColumnName());
                 Long val = UserPhotosStreamIdxColumnValue.hydrateValue(result.getValue());
                 return UserPhotosStreamIdxColumnValue.of(col, val);
             });
@@ -621,36 +657,41 @@ public final class UserPhotosStreamIdxTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<UserPhotosStreamIdxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<UserPhotosStreamIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(optimizeColumnSelection(columns)).build()),
+        return BatchingVisitables.transform(
+                t.getRange(
+                        tableRef,
+                        RangeRequest.builder()
+                                .retainColumns(optimizeColumnSelection(columns))
+                                .build()),
                 new Function<RowResult<byte[]>, UserPhotosStreamIdxRowResult>() {
-            @Override
-            public UserPhotosStreamIdxRowResult apply(RowResult<byte[]> input) {
-                return UserPhotosStreamIdxRowResult.of(input);
-            }
-        });
+                    @Override
+                    public UserPhotosStreamIdxRowResult apply(RowResult<byte[]> input) {
+                        return UserPhotosStreamIdxRowResult.of(input);
+                    }
+                });
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(
+            Map<Cell, byte[]> writes,
+            ConstraintCheckingTransaction transaction,
+            AtlasDbConstraintCheckingMode constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(
+            Map<Cell, byte[]> writes, AtlasDbConstraintCheckingMode constraintCheckingMode) {
         return ImmutableList.of();
     }
 
@@ -682,6 +723,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -739,5 +781,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "FpEa3fs0ZvMZVC8txa0u7w==";
+    static String __CLASS_HASH = "Lrg+5R6SB2zRxGSBr0igxA==";
 }

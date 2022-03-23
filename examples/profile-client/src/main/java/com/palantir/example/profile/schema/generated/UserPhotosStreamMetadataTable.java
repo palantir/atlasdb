@@ -1,26 +1,5 @@
 package com.palantir.example.profile.schema.generated;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-
-import javax.annotation.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -66,6 +45,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -84,35 +64,69 @@ import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings({"all", "deprecation"})
-public final class UserPhotosStreamMetadataTable implements
-        AtlasDbMutablePersistentTable<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
-                                         UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>,
-                                         UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult>,
-        AtlasDbNamedMutableTable<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
-                                    UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>,
-                                    UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult> {
+public final class UserPhotosStreamMetadataTable
+        implements AtlasDbMutablePersistentTable<
+                        UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
+                        UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>,
+                        UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult>,
+                AtlasDbNamedMutableTable<
+                        UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
+                        UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>,
+                        UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamMetadataTrigger> triggers;
-    private final static String rawTableName = "user_photos_stream_metadata";
+    private static final String rawTableName = "user_photos_stream_metadata";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(UserPhotosStreamMetadataNamedColumn.values());
+    private static final ColumnSelection allKnownColumns =
+            getColumnSelection(UserPhotosStreamMetadataNamedColumn.values());
 
     static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace) {
         return new UserPhotosStreamMetadataTable(t, namespace, ImmutableList.<UserPhotosStreamMetadataTrigger>of());
     }
 
-    static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace, UserPhotosStreamMetadataTrigger trigger, UserPhotosStreamMetadataTrigger... triggers) {
-        return new UserPhotosStreamMetadataTable(t, namespace, ImmutableList.<UserPhotosStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
+    static UserPhotosStreamMetadataTable of(
+            Transaction t,
+            Namespace namespace,
+            UserPhotosStreamMetadataTrigger trigger,
+            UserPhotosStreamMetadataTrigger... triggers) {
+        return new UserPhotosStreamMetadataTable(
+                t,
+                namespace,
+                ImmutableList.<UserPhotosStreamMetadataTrigger>builder()
+                        .add(trigger)
+                        .add(triggers)
+                        .build());
     }
 
-    static UserPhotosStreamMetadataTable of(Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
+    static UserPhotosStreamMetadataTable of(
+            Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
         return new UserPhotosStreamMetadataTable(t, namespace, triggers);
     }
 
-    private UserPhotosStreamMetadataTable(Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
+    private UserPhotosStreamMetadataTable(
+            Transaction t, Namespace namespace, List<UserPhotosStreamMetadataTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -141,7 +155,8 @@ public final class UserPhotosStreamMetadataTable implements
      * }
      * </pre>
      */
-    public static final class UserPhotosStreamMetadataRow implements Persistable, Comparable<UserPhotosStreamMetadataRow> {
+    public static final class UserPhotosStreamMetadataRow
+            implements Persistable, Comparable<UserPhotosStreamMetadataRow> {
         private final long id;
 
         public static UserPhotosStreamMetadataRow of(long id) {
@@ -180,21 +195,22 @@ public final class UserPhotosStreamMetadataTable implements
             return EncodingUtils.add(idBytes);
         }
 
-        public static final Hydrator<UserPhotosStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<UserPhotosStreamMetadataRow>() {
-            @Override
-            public UserPhotosStreamMetadataRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return new UserPhotosStreamMetadataRow(id);
-            }
-        };
+        public static final Hydrator<UserPhotosStreamMetadataRow> BYTES_HYDRATOR =
+                new Hydrator<UserPhotosStreamMetadataRow>() {
+                    @Override
+                    public UserPhotosStreamMetadataRow hydrateFromBytes(byte[] __input) {
+                        int __index = 0;
+                        Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                        __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                        return new UserPhotosStreamMetadataRow(id);
+                    }
+                };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("id", id)
-                .toString();
+                    .add("id", id)
+                    .toString();
         }
 
         @Override
@@ -220,13 +236,13 @@ public final class UserPhotosStreamMetadataTable implements
 
         @Override
         public int compareTo(UserPhotosStreamMetadataRow o) {
-            return ComparisonChain.start()
-                .compare(this.id, o.id)
-                .result();
+            return ComparisonChain.start().compare(this.id, o.id).result();
         }
     }
 
-    public interface UserPhotosStreamMetadataNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface UserPhotosStreamMetadataNamedColumnValue<T> extends NamedColumnValue<T> {
+        /* */
+    }
 
     /**
      * <pre>
@@ -252,11 +268,13 @@ public final class UserPhotosStreamMetadataTable implements
      *     label: LABEL_REQUIRED
      *     type: TYPE_BYTES
      *   }
-     *   
+     *
      * }
      * </pre>
      */
-    public static final class Metadata implements UserPhotosStreamMetadataNamedColumnValue<com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> {
+    public static final class Metadata
+            implements UserPhotosStreamMetadataNamedColumnValue<
+                    com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> {
         private final com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value;
 
         public static Metadata of(com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
@@ -308,13 +326,14 @@ public final class UserPhotosStreamMetadataTable implements
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
+                    .add("Value", this.value)
+                    .toString();
         }
     }
 
     public interface UserPhotosStreamMetadataTrigger {
-        public void putUserPhotosStreamMetadata(Multimap<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> newRows);
+        public void putUserPhotosStreamMetadata(
+                Multimap<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> newRows);
     }
 
     public static final class UserPhotosStreamMetadataRowResult implements TypedRowResult {
@@ -364,10 +383,16 @@ public final class UserPhotosStreamMetadataTable implements
             return value.getValue();
         }
 
-        public static Function<UserPhotosStreamMetadataRowResult, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadataFun() {
-            return new Function<UserPhotosStreamMetadataRowResult, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata>() {
+        public static Function<
+                        UserPhotosStreamMetadataRowResult,
+                        com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata>
+                getMetadataFun() {
+            return new Function<
+                    UserPhotosStreamMetadataRowResult,
+                    com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata>() {
                 @Override
-                public com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata apply(UserPhotosStreamMetadataRowResult rowResult) {
+                public com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata apply(
+                        UserPhotosStreamMetadataRowResult rowResult) {
                     return rowResult.getMetadata();
                 }
             };
@@ -376,9 +401,9 @@ public final class UserPhotosStreamMetadataTable implements
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("RowName", getRowName())
-                .add("Metadata", getMetadata())
-                .toString();
+                    .add("RowName", getRowName())
+                    .add("Metadata", getMetadata())
+                    .toString();
         }
     }
 
@@ -410,32 +435,42 @@ public final class UserPhotosStreamMetadataTable implements
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends UserPhotosStreamMetadataNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends UserPhotosStreamMetadataNamedColumnValue<?>>>builder()
-                .put("md", Metadata.BYTES_HYDRATOR)
-                .build();
+    private static final Map<String, Hydrator<? extends UserPhotosStreamMetadataNamedColumnValue<?>>>
+            shortNameToHydrator =
+                    ImmutableMap.<String, Hydrator<? extends UserPhotosStreamMetadataNamedColumnValue<?>>>builder()
+                            .put("md", Metadata.BYTES_HYDRATOR)
+                            .build();
 
-    public Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadatas(Collection<UserPhotosStreamMetadataRow> rows) {
+    public Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata>
+            getMetadatas(Collection<UserPhotosStreamMetadataRow> rows) {
         Map<Cell, UserPhotosStreamMetadataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (UserPhotosStreamMetadataRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret =
+                Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata val = Metadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata val =
+                    Metadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public void putMetadata(UserPhotosStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
+    public void putMetadata(
+            UserPhotosStreamMetadataRow row,
+            com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
         put(ImmutableMultimap.of(row, Metadata.of(value)));
     }
 
-    public void putMetadata(Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
-        Map<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
+    public void putMetadata(
+            Map<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata>
+                    map) {
+        Map<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> toPut =
+                Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<UserPhotosStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata>
+                e : map.entrySet()) {
             toPut.put(e.getKey(), Metadata.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
@@ -467,19 +502,20 @@ public final class UserPhotosStreamMetadataTable implements
 
     @Override
     public void delete(Iterable<UserPhotosStreamMetadataRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
-        t.delete(tableRef, cells);
+        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> result =
+                getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<UserPhotosStreamMetadataRowResult> getRow(UserPhotosStreamMetadataRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
-    public Optional<UserPhotosStreamMetadataRowResult> getRow(UserPhotosStreamMetadataRow row, ColumnSelection columns) {
+    public Optional<UserPhotosStreamMetadataRowResult> getRow(
+            UserPhotosStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult =
+                t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.empty();
         } else {
@@ -489,11 +525,12 @@ public final class UserPhotosStreamMetadataTable implements
 
     @Override
     public List<UserPhotosStreamMetadataRowResult> getRows(Iterable<UserPhotosStreamMetadataRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
-    public List<UserPhotosStreamMetadataRowResult> getRows(Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
+    public List<UserPhotosStreamMetadataRowResult> getRows(
+            Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<UserPhotosStreamMetadataRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
@@ -504,17 +541,20 @@ public final class UserPhotosStreamMetadataTable implements
 
     @Override
     public List<UserPhotosStreamMetadataNamedColumnValue<?>> getRowColumns(UserPhotosStreamMetadataRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
-    public List<UserPhotosStreamMetadataNamedColumnValue<?>> getRowColumns(UserPhotosStreamMetadataRow row, ColumnSelection columns) {
+    public List<UserPhotosStreamMetadataNamedColumnValue<?>> getRowColumns(
+            UserPhotosStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult =
+                t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<UserPhotosStreamMetadataNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<UserPhotosStreamMetadataNamedColumnValue<?>> ret =
+                    Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -523,63 +563,92 @@ public final class UserPhotosStreamMetadataTable implements
     }
 
     @Override
-    public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<UserPhotosStreamMetadataRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+    public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimap(
+            Iterable<UserPhotosStreamMetadataRow> rows) {
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
-    public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
+    public Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimap(
+            Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
-    private Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
+    private Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(
+            Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
+    private static Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>>
+            getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>> rowMap =
+                ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            UserPhotosStreamMetadataRow row =
+                    UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
-                rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
+                rowMap.put(
+                        row,
+                        shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
         }
         return rowMap;
     }
 
     @Override
-    public Map<UserPhotosStreamMetadataRow, BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserPhotosStreamMetadataRow, BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+    public Map<UserPhotosStreamMetadataRow, BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>>>
+            getRowsColumnRange(
+                    Iterable<UserPhotosStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+                t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamMetadataRow, BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>>> transformed =
+                Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
-            });
+            BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>> bv =
+                    BatchingVisitables.transform(e.getValue(), result -> {
+                        return shortNameToHydrator
+                                .get(PtBytes.toString(result.getKey().getColumnName()))
+                                .hydrateFromBytes(result.getValue());
+                    });
             transformed.put(row, bv);
         }
         return transformed;
     }
 
     @Override
-    public Iterator<Map.Entry<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamMetadataRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+    public Iterator<Map.Entry<UserPhotosStreamMetadataRow, UserPhotosStreamMetadataNamedColumnValue<?>>>
+            getRowsColumnRange(
+                    Iterable<UserPhotosStreamMetadataRow> rows,
+                    ColumnRangeSelection columnRangeSelection,
+                    int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results =
+                t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            UserPhotosStreamMetadataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(
+                    e.getKey().getRowName());
+            UserPhotosStreamMetadataNamedColumnValue<?> colValue = shortNameToHydrator
+                    .get(PtBytes.toString(e.getKey().getColumnName()))
+                    .hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
     @Override
-    public Map<UserPhotosStreamMetadataRow, Iterator<UserPhotosStreamMetadataNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<UserPhotosStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserPhotosStreamMetadataRow, Iterator<UserPhotosStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+    public Map<UserPhotosStreamMetadataRow, Iterator<UserPhotosStreamMetadataNamedColumnValue<?>>>
+            getRowsColumnRangeIterator(
+                    Iterable<UserPhotosStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results =
+                t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamMetadataRow, Iterator<UserPhotosStreamMetadataNamedColumnValue<?>>> transformed =
+                Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
             Iterator<UserPhotosStreamMetadataNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
-                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+                return shortNameToHydrator
+                        .get(PtBytes.toString(result.getKey().getColumnName()))
+                        .hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
         }
@@ -588,36 +657,41 @@ public final class UserPhotosStreamMetadataTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<UserPhotosStreamMetadataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<UserPhotosStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
-                .retainColumns(optimizeColumnSelection(columns)).build()),
+        return BatchingVisitables.transform(
+                t.getRange(
+                        tableRef,
+                        RangeRequest.builder()
+                                .retainColumns(optimizeColumnSelection(columns))
+                                .build()),
                 new Function<RowResult<byte[]>, UserPhotosStreamMetadataRowResult>() {
-            @Override
-            public UserPhotosStreamMetadataRowResult apply(RowResult<byte[]> input) {
-                return UserPhotosStreamMetadataRowResult.of(input);
-            }
-        });
+                    @Override
+                    public UserPhotosStreamMetadataRowResult apply(RowResult<byte[]> input) {
+                        return UserPhotosStreamMetadataRowResult.of(input);
+                    }
+                });
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(
+            Map<Cell, byte[]> writes,
+            ConstraintCheckingTransaction transaction,
+            AtlasDbConstraintCheckingMode constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(
+            Map<Cell, byte[]> writes, AtlasDbConstraintCheckingMode constraintCheckingMode) {
         return ImmutableList.of();
     }
 
@@ -649,6 +723,7 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -706,5 +781,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "XV63us7jbRmQA7+aqtfI9g==";
+    static String __CLASS_HASH = "tknvQqY6VqHA/pTirr+Kew==";
 }

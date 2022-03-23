@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class SchemaApiTestTable implements
     private final List<SchemaApiTestTrigger> triggers;
     private final static String rawTableName = "SchemaApiTest";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(SchemaApiTestNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(SchemaApiTestNamedColumn.values());
 
     static SchemaApiTestTable of(Transaction t, Namespace namespace) {
         return new SchemaApiTestTable(t, namespace, ImmutableList.<SchemaApiTestTrigger>of());
@@ -569,15 +570,12 @@ public final class SchemaApiTestTable implements
 
     @Override
     public void delete(Iterable<SchemaApiTestRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 2);
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("d")));
-        t.delete(tableRef, cells);
+        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<SchemaApiTestRowResult> getRow(SchemaApiTestRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<SchemaApiTestRowResult> getRow(SchemaApiTestRow row, ColumnSelection columns) {
@@ -592,7 +590,7 @@ public final class SchemaApiTestTable implements
 
     @Override
     public List<SchemaApiTestRowResult> getRows(Iterable<SchemaApiTestRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -607,7 +605,7 @@ public final class SchemaApiTestTable implements
 
     @Override
     public List<SchemaApiTestNamedColumnValue<?>> getRowColumns(SchemaApiTestRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -627,7 +625,7 @@ public final class SchemaApiTestTable implements
 
     @Override
     public Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> getRowsMultimap(Iterable<SchemaApiTestRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -691,7 +689,7 @@ public final class SchemaApiTestTable implements
 
     private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            return range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allKnownColumns).build();
         }
         return range;
     }
@@ -814,6 +812,7 @@ public final class SchemaApiTestTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -871,5 +870,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Yc3wzX0toIULZ5f1HiKrbw==";
+    static String __CLASS_HASH = "L9lUwHg2UQLlbIcFYboCrg==";
 }

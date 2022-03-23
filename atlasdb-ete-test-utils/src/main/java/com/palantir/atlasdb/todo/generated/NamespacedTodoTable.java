@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class NamespacedTodoTable implements
     private final List<NamespacedTodoTrigger> triggers;
     private final static String rawTableName = "namespacedTodo";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static NamespacedTodoTable of(Transaction t, Namespace namespace) {
         return new NamespacedTodoTable(t, namespace, ImmutableList.<NamespacedTodoTrigger>of());
@@ -458,17 +459,13 @@ public final class NamespacedTodoTable implements
 
     @Override
     public void delete(Iterable<NamespacedTodoRow> rows) {
-        Multimap<NamespacedTodoRow, NamespacedTodoColumn> toRemove = HashMultimap.create();
         Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> result = getRowsMultimap(rows);
-        for (Entry<NamespacedTodoRow, NamespacedTodoColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<NamespacedTodoRow, NamespacedTodoColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -511,7 +508,7 @@ public final class NamespacedTodoTable implements
 
     @Override
     public Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> get(Multimap<NamespacedTodoRow, NamespacedTodoColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -527,7 +524,7 @@ public final class NamespacedTodoTable implements
 
     @Override
     public List<NamespacedTodoColumnValue> getRowColumns(NamespacedTodoRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -549,7 +546,7 @@ public final class NamespacedTodoTable implements
 
     @Override
     public Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> getRowsMultimap(Iterable<NamespacedTodoRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -621,13 +618,13 @@ public final class NamespacedTodoTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<NamespacedTodoRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<NamespacedTodoRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -682,6 +679,7 @@ public final class NamespacedTodoTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -739,5 +737,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "C7WE9160VLtCdDQhpeaP2Q==";
+    static String __CLASS_HASH = "iI+Was/LVvFciYWR+TXLVQ==";
 }

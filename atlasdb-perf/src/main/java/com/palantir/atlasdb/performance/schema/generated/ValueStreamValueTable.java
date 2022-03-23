@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class ValueStreamValueTable implements
     private final List<ValueStreamValueTrigger> triggers;
     private final static String rawTableName = "blob_stream_value";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(ValueStreamValueNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(ValueStreamValueNamedColumn.values());
 
     static ValueStreamValueTable of(Transaction t, Namespace namespace) {
         return new ValueStreamValueTable(t, namespace, ImmutableList.<ValueStreamValueTrigger>of());
@@ -454,14 +455,12 @@ public final class ValueStreamValueTable implements
 
     @Override
     public void delete(Iterable<ValueStreamValueRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        Multimap<ValueStreamValueRow, ValueStreamValueNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<ValueStreamValueRowResult> getRow(ValueStreamValueRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<ValueStreamValueRowResult> getRow(ValueStreamValueRow row, ColumnSelection columns) {
@@ -476,7 +475,7 @@ public final class ValueStreamValueTable implements
 
     @Override
     public List<ValueStreamValueRowResult> getRows(Iterable<ValueStreamValueRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -491,7 +490,7 @@ public final class ValueStreamValueTable implements
 
     @Override
     public List<ValueStreamValueNamedColumnValue<?>> getRowColumns(ValueStreamValueRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -511,7 +510,7 @@ public final class ValueStreamValueTable implements
 
     @Override
     public Multimap<ValueStreamValueRow, ValueStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<ValueStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -575,13 +574,13 @@ public final class ValueStreamValueTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<ValueStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<ValueStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -636,6 +635,7 @@ public final class ValueStreamValueTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -693,5 +693,5 @@ public final class ValueStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "H/sOYQueA4oRsnJrXjq93A==";
+    static String __CLASS_HASH = "c/L6hRIEhNym/ZhAJGDFTA==";
 }
