@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
     private final List<StreamTestMaxMemStreamMetadataTrigger> triggers;
     private final static String rawTableName = "stream_test_max_mem_stream_metadata";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(StreamTestMaxMemStreamMetadataNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(StreamTestMaxMemStreamMetadataNamedColumn.values());
 
     static StreamTestMaxMemStreamMetadataTable of(Transaction t, Namespace namespace) {
         return new StreamTestMaxMemStreamMetadataTable(t, namespace, ImmutableList.<StreamTestMaxMemStreamMetadataTrigger>of());
@@ -467,14 +468,12 @@ public final class StreamTestMaxMemStreamMetadataTable implements
 
     @Override
     public void delete(Iterable<StreamTestMaxMemStreamMetadataRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
-        t.delete(tableRef, cells);
+        Multimap<StreamTestMaxMemStreamMetadataRow, StreamTestMaxMemStreamMetadataNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<StreamTestMaxMemStreamMetadataRowResult> getRow(StreamTestMaxMemStreamMetadataRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<StreamTestMaxMemStreamMetadataRowResult> getRow(StreamTestMaxMemStreamMetadataRow row, ColumnSelection columns) {
@@ -489,7 +488,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
 
     @Override
     public List<StreamTestMaxMemStreamMetadataRowResult> getRows(Iterable<StreamTestMaxMemStreamMetadataRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -504,7 +503,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
 
     @Override
     public List<StreamTestMaxMemStreamMetadataNamedColumnValue<?>> getRowColumns(StreamTestMaxMemStreamMetadataRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -524,7 +523,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
 
     @Override
     public Multimap<StreamTestMaxMemStreamMetadataRow, StreamTestMaxMemStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestMaxMemStreamMetadataRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -588,13 +587,13 @@ public final class StreamTestMaxMemStreamMetadataTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<StreamTestMaxMemStreamMetadataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<StreamTestMaxMemStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -649,6 +648,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -706,5 +706,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lxkBgMs/0YB/yfs9lh69Kw==";
+    static String __CLASS_HASH = "MN7RPU0nf2X8EWMNj7akgw==";
 }

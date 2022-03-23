@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class CompactMetadataTable implements
     private final List<CompactMetadataTrigger> triggers;
     private final static String rawTableName = "metadata";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(CompactMetadataNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(CompactMetadataNamedColumn.values());
 
     static CompactMetadataTable of(Transaction t, Namespace namespace) {
         return new CompactMetadataTable(t, namespace, ImmutableList.<CompactMetadataTrigger>of());
@@ -442,14 +443,12 @@ public final class CompactMetadataTable implements
 
     @Override
     public void delete(Iterable<CompactMetadataRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("t")));
-        t.delete(tableRef, cells);
+        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<CompactMetadataRowResult> getRow(CompactMetadataRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<CompactMetadataRowResult> getRow(CompactMetadataRow row, ColumnSelection columns) {
@@ -464,7 +463,7 @@ public final class CompactMetadataTable implements
 
     @Override
     public List<CompactMetadataRowResult> getRows(Iterable<CompactMetadataRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -479,7 +478,7 @@ public final class CompactMetadataTable implements
 
     @Override
     public List<CompactMetadataNamedColumnValue<?>> getRowColumns(CompactMetadataRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -499,7 +498,7 @@ public final class CompactMetadataTable implements
 
     @Override
     public Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<CompactMetadataRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -563,13 +562,13 @@ public final class CompactMetadataTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<CompactMetadataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<CompactMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -624,6 +623,7 @@ public final class CompactMetadataTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -681,5 +681,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3E7A2G8e28hDNktKg3axyw==";
+    static String __CLASS_HASH = "hHYqkhHs/SaNAX3xxOdxyA==";
 }

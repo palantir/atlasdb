@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class SweepNameToIdTable implements
     private final List<SweepNameToIdTrigger> triggers;
     private final static String rawTableName = "sweepNameToId";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(SweepNameToIdNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(SweepNameToIdNamedColumn.values());
 
     static SweepNameToIdTable of(Transaction t, Namespace namespace) {
         return new SweepNameToIdTable(t, namespace, ImmutableList.<SweepNameToIdTrigger>of());
@@ -456,14 +457,12 @@ public final class SweepNameToIdTable implements
 
     @Override
     public void delete(Iterable<SweepNameToIdRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("i")));
-        t.delete(tableRef, cells);
+        Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<SweepNameToIdRowResult> getRow(SweepNameToIdRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<SweepNameToIdRowResult> getRow(SweepNameToIdRow row, ColumnSelection columns) {
@@ -478,7 +477,7 @@ public final class SweepNameToIdTable implements
 
     @Override
     public List<SweepNameToIdRowResult> getRows(Iterable<SweepNameToIdRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -493,7 +492,7 @@ public final class SweepNameToIdTable implements
 
     @Override
     public List<SweepNameToIdNamedColumnValue<?>> getRowColumns(SweepNameToIdRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -513,7 +512,7 @@ public final class SweepNameToIdTable implements
 
     @Override
     public Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> getRowsMultimap(Iterable<SweepNameToIdRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -577,13 +576,13 @@ public final class SweepNameToIdTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<SweepNameToIdRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<SweepNameToIdRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -638,6 +637,7 @@ public final class SweepNameToIdTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -695,5 +695,5 @@ public final class SweepNameToIdTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "kJLS1HqSwziNrdmAGjYEgQ==";
+    static String __CLASS_HASH = "syT7WaHdsOhQYJI0XuuAwA==";
 }

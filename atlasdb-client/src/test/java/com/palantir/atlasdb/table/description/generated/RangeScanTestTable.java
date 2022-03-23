@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class RangeScanTestTable implements
     private final List<RangeScanTestTrigger> triggers;
     private final static String rawTableName = "rangeScanTest";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(RangeScanTestNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(RangeScanTestNamedColumn.values());
 
     static RangeScanTestTable of(Transaction t, Namespace namespace) {
         return new RangeScanTestTable(t, namespace, ImmutableList.<RangeScanTestTrigger>of());
@@ -442,14 +443,12 @@ public final class RangeScanTestTable implements
 
     @Override
     public void delete(Iterable<RangeScanTestRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
-        t.delete(tableRef, cells);
+        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<RangeScanTestRowResult> getRow(RangeScanTestRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<RangeScanTestRowResult> getRow(RangeScanTestRow row, ColumnSelection columns) {
@@ -464,7 +463,7 @@ public final class RangeScanTestTable implements
 
     @Override
     public List<RangeScanTestRowResult> getRows(Iterable<RangeScanTestRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -479,7 +478,7 @@ public final class RangeScanTestTable implements
 
     @Override
     public List<RangeScanTestNamedColumnValue<?>> getRowColumns(RangeScanTestRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -499,7 +498,7 @@ public final class RangeScanTestTable implements
 
     @Override
     public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<RangeScanTestRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -563,7 +562,7 @@ public final class RangeScanTestTable implements
 
     private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            return range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allKnownColumns).build();
         }
         return range;
     }
@@ -686,6 +685,7 @@ public final class RangeScanTestTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -743,5 +743,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "1Mzob0NCW7nhDUIDDCSj9w==";
+    static String __CLASS_HASH = "MAcUj+iQdblaqNh/xMMkZw==";
 }

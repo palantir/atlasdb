@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class HotspottyDataStreamMetadataTable implements
     private final List<HotspottyDataStreamMetadataTrigger> triggers;
     private final static String rawTableName = "hotspottyData_stream_metadata";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(HotspottyDataStreamMetadataNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(HotspottyDataStreamMetadataNamedColumn.values());
 
     static HotspottyDataStreamMetadataTable of(Transaction t, Namespace namespace) {
         return new HotspottyDataStreamMetadataTable(t, namespace, ImmutableList.<HotspottyDataStreamMetadataTrigger>of());
@@ -467,14 +468,12 @@ public final class HotspottyDataStreamMetadataTable implements
 
     @Override
     public void delete(Iterable<HotspottyDataStreamMetadataRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
-        t.delete(tableRef, cells);
+        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<HotspottyDataStreamMetadataRowResult> getRow(HotspottyDataStreamMetadataRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<HotspottyDataStreamMetadataRowResult> getRow(HotspottyDataStreamMetadataRow row, ColumnSelection columns) {
@@ -489,7 +488,7 @@ public final class HotspottyDataStreamMetadataTable implements
 
     @Override
     public List<HotspottyDataStreamMetadataRowResult> getRows(Iterable<HotspottyDataStreamMetadataRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -504,7 +503,7 @@ public final class HotspottyDataStreamMetadataTable implements
 
     @Override
     public List<HotspottyDataStreamMetadataNamedColumnValue<?>> getRowColumns(HotspottyDataStreamMetadataRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -524,7 +523,7 @@ public final class HotspottyDataStreamMetadataTable implements
 
     @Override
     public Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<HotspottyDataStreamMetadataRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -588,13 +587,13 @@ public final class HotspottyDataStreamMetadataTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<HotspottyDataStreamMetadataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<HotspottyDataStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -649,6 +648,7 @@ public final class HotspottyDataStreamMetadataTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -706,5 +706,5 @@ public final class HotspottyDataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/o0oiRKrpv9bcIlY6oe0Jw==";
+    static String __CLASS_HASH = "+XJebZp5kr0OMj2g/0PmCA==";
 }

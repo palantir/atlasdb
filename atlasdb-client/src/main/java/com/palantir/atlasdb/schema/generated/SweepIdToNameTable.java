@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class SweepIdToNameTable implements
     private final List<SweepIdToNameTrigger> triggers;
     private final static String rawTableName = "sweepIdToName";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static SweepIdToNameTable of(Transaction t, Namespace namespace) {
         return new SweepIdToNameTable(t, namespace, ImmutableList.<SweepIdToNameTrigger>of());
@@ -473,17 +474,13 @@ public final class SweepIdToNameTable implements
 
     @Override
     public void delete(Iterable<SweepIdToNameRow> rows) {
-        Multimap<SweepIdToNameRow, SweepIdToNameColumn> toRemove = HashMultimap.create();
         Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> result = getRowsMultimap(rows);
-        for (Entry<SweepIdToNameRow, SweepIdToNameColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<SweepIdToNameRow, SweepIdToNameColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -526,7 +523,7 @@ public final class SweepIdToNameTable implements
 
     @Override
     public Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> get(Multimap<SweepIdToNameRow, SweepIdToNameColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -542,7 +539,7 @@ public final class SweepIdToNameTable implements
 
     @Override
     public List<SweepIdToNameColumnValue> getRowColumns(SweepIdToNameRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -564,7 +561,7 @@ public final class SweepIdToNameTable implements
 
     @Override
     public Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> getRowsMultimap(Iterable<SweepIdToNameRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -636,13 +633,13 @@ public final class SweepIdToNameTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<SweepIdToNameRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<SweepIdToNameRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -697,6 +694,7 @@ public final class SweepIdToNameTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -754,5 +752,5 @@ public final class SweepIdToNameTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "TCkfqEbhWHCJvC+P6uu7GQ==";
+    static String __CLASS_HASH = "GzAeFG3FUwWY3e/8/LSDXQ==";
 }

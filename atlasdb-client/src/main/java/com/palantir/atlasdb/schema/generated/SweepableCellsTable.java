@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class SweepableCellsTable implements
     private final List<SweepableCellsTrigger> triggers;
     private final static String rawTableName = "sweepableCells";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static SweepableCellsTable of(Transaction t, Namespace namespace) {
         return new SweepableCellsTable(t, namespace, ImmutableList.<SweepableCellsTrigger>of());
@@ -508,17 +509,13 @@ public final class SweepableCellsTable implements
 
     @Override
     public void delete(Iterable<SweepableCellsRow> rows) {
-        Multimap<SweepableCellsRow, SweepableCellsColumn> toRemove = HashMultimap.create();
         Multimap<SweepableCellsRow, SweepableCellsColumnValue> result = getRowsMultimap(rows);
-        for (Entry<SweepableCellsRow, SweepableCellsColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<SweepableCellsRow, SweepableCellsColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -561,7 +558,7 @@ public final class SweepableCellsTable implements
 
     @Override
     public Multimap<SweepableCellsRow, SweepableCellsColumnValue> get(Multimap<SweepableCellsRow, SweepableCellsColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<SweepableCellsRow, SweepableCellsColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -577,7 +574,7 @@ public final class SweepableCellsTable implements
 
     @Override
     public List<SweepableCellsColumnValue> getRowColumns(SweepableCellsRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -599,7 +596,7 @@ public final class SweepableCellsTable implements
 
     @Override
     public Multimap<SweepableCellsRow, SweepableCellsColumnValue> getRowsMultimap(Iterable<SweepableCellsRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -671,13 +668,13 @@ public final class SweepableCellsTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<SweepableCellsRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<SweepableCellsRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -732,6 +729,7 @@ public final class SweepableCellsTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -789,5 +787,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "bhHNMJjv5jVWU5yJZ1BEoA==";
+    static String __CLASS_HASH = "+gY0ZPCjfO18mImI3mU2pA==";
 }

@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class SnapshotsStreamIdxTable implements
     private final List<SnapshotsStreamIdxTrigger> triggers;
     private final static String rawTableName = "snapshots_stream_idx";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static SnapshotsStreamIdxTable of(Transaction t, Namespace namespace) {
         return new SnapshotsStreamIdxTable(t, namespace, ImmutableList.<SnapshotsStreamIdxTrigger>of());
@@ -458,17 +459,13 @@ public final class SnapshotsStreamIdxTable implements
 
     @Override
     public void delete(Iterable<SnapshotsStreamIdxRow> rows) {
-        Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> toRemove = HashMultimap.create();
         Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> result = getRowsMultimap(rows);
-        for (Entry<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -511,7 +508,7 @@ public final class SnapshotsStreamIdxTable implements
 
     @Override
     public Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> get(Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -527,7 +524,7 @@ public final class SnapshotsStreamIdxTable implements
 
     @Override
     public List<SnapshotsStreamIdxColumnValue> getRowColumns(SnapshotsStreamIdxRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -549,7 +546,7 @@ public final class SnapshotsStreamIdxTable implements
 
     @Override
     public Multimap<SnapshotsStreamIdxRow, SnapshotsStreamIdxColumnValue> getRowsMultimap(Iterable<SnapshotsStreamIdxRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -621,13 +618,13 @@ public final class SnapshotsStreamIdxTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<SnapshotsStreamIdxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<SnapshotsStreamIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -682,6 +679,7 @@ public final class SnapshotsStreamIdxTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -739,5 +737,5 @@ public final class SnapshotsStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "aXdjOzIEYiXlsD4TLw7AEg==";
+    static String __CLASS_HASH = "EnyPG7SX0pQFNubpUt2I9g==";
 }

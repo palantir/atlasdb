@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class TableClearsTable implements
     private final List<TableClearsTrigger> triggers;
     private final static String rawTableName = "tableClears";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(TableClearsNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(TableClearsNamedColumn.values());
 
     static TableClearsTable of(Transaction t, Namespace namespace) {
         return new TableClearsTable(t, namespace, ImmutableList.<TableClearsTrigger>of());
@@ -442,14 +443,12 @@ public final class TableClearsTable implements
 
     @Override
     public void delete(Iterable<TableClearsRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("l")));
-        t.delete(tableRef, cells);
+        Multimap<TableClearsRow, TableClearsNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<TableClearsRowResult> getRow(TableClearsRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<TableClearsRowResult> getRow(TableClearsRow row, ColumnSelection columns) {
@@ -464,7 +463,7 @@ public final class TableClearsTable implements
 
     @Override
     public List<TableClearsRowResult> getRows(Iterable<TableClearsRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -479,7 +478,7 @@ public final class TableClearsTable implements
 
     @Override
     public List<TableClearsNamedColumnValue<?>> getRowColumns(TableClearsRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -499,7 +498,7 @@ public final class TableClearsTable implements
 
     @Override
     public Multimap<TableClearsRow, TableClearsNamedColumnValue<?>> getRowsMultimap(Iterable<TableClearsRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -563,13 +562,13 @@ public final class TableClearsTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<TableClearsRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<TableClearsRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -624,6 +623,7 @@ public final class TableClearsTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -681,5 +681,5 @@ public final class TableClearsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7M6FU/3Ys4wUHyxKlBgnYw==";
+    static String __CLASS_HASH = "ipKcT4CjqfOKOVN4G5T3CA==";
 }

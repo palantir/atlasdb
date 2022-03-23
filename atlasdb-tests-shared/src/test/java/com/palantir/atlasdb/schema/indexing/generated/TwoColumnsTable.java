@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class TwoColumnsTable implements
     private final List<TwoColumnsTrigger> triggers;
     private final static String rawTableName = "two_columns";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(TwoColumnsNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(TwoColumnsNamedColumn.values());
 
     static TwoColumnsTable of(Transaction t, Namespace namespace) {
         return new TwoColumnsTable(t, namespace, ImmutableList.<TwoColumnsTrigger>of());
@@ -636,15 +637,11 @@ public final class TwoColumnsTable implements
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> result = getRowsMultimap(rows);
         deleteFooToIdCondIdx(result);
         deleteFooToIdIdx(result);
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 2);
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("b")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("f")));
-        t.delete(tableRef, cells);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row, ColumnSelection columns) {
@@ -659,7 +656,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public List<TwoColumnsRowResult> getRows(Iterable<TwoColumnsRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -674,7 +671,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public List<TwoColumnsNamedColumnValue<?>> getRowColumns(TwoColumnsRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -694,7 +691,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowsMultimap(Iterable<TwoColumnsRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -810,13 +807,13 @@ public final class TwoColumnsTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -854,7 +851,7 @@ public final class TwoColumnsTable implements
         private final List<FooToIdCondIdxTrigger> triggers;
         private final static String rawTableName = "foo_to_id_cond_idx";
         private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
+        private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
         public static FooToIdCondIdxTable of(TwoColumnsTable table) {
             return new FooToIdCondIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<FooToIdCondIdxTrigger>of());
@@ -1273,17 +1270,13 @@ public final class TwoColumnsTable implements
 
         @Override
         public void delete(Iterable<FooToIdCondIdxRow> rows) {
-            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toRemove = HashMultimap.create();
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
+            t.delete(tableRef, ColumnValues.toCells(result));
         }
 
         @Override
         public void delete(Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableRef, Columns.toCells(values));
         }
 
         @Override
@@ -1326,7 +1319,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> get(Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
+            Set<Cell> rawCells = Columns.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -1342,7 +1335,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public List<FooToIdCondIdxColumnValue> getRowColumns(FooToIdCondIdxRow row) {
-            return getRowColumns(row, allColumns);
+            return getRowColumns(row, ColumnSelection.all());
         }
 
         @Override
@@ -1364,7 +1357,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowsMultimap(Iterable<FooToIdCondIdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
+            return getRowsMultimapInternal(rows, ColumnSelection.all());
         }
 
         @Override
@@ -1436,13 +1429,13 @@ public final class TwoColumnsTable implements
 
         private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
             if (columns.allColumnsSelected()) {
-                return allColumns;
+                return allKnownColumns;
             }
             return columns;
         }
 
         public BatchingVisitableView<FooToIdCondIdxRowResult> getAllRowsUnordered() {
-            return getAllRowsUnordered(allColumns);
+            return getAllRowsUnordered(allKnownColumns);
         }
 
         public BatchingVisitableView<FooToIdCondIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -1482,7 +1475,7 @@ public final class TwoColumnsTable implements
         private final List<FooToIdIdxTrigger> triggers;
         private final static String rawTableName = "foo_to_id_idx";
         private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
+        private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
         public static FooToIdIdxTable of(TwoColumnsTable table) {
             return new FooToIdIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<FooToIdIdxTrigger>of());
@@ -1915,17 +1908,13 @@ public final class TwoColumnsTable implements
 
         @Override
         public void delete(Iterable<FooToIdIdxRow> rows) {
-            Multimap<FooToIdIdxRow, FooToIdIdxColumn> toRemove = HashMultimap.create();
             Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<FooToIdIdxRow, FooToIdIdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
+            t.delete(tableRef, ColumnValues.toCells(result));
         }
 
         @Override
         public void delete(Multimap<FooToIdIdxRow, FooToIdIdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableRef, Columns.toCells(values));
         }
 
         @Override
@@ -1968,7 +1957,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> get(Multimap<FooToIdIdxRow, FooToIdIdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
+            Set<Cell> rawCells = Columns.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -1984,7 +1973,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public List<FooToIdIdxColumnValue> getRowColumns(FooToIdIdxRow row) {
-            return getRowColumns(row, allColumns);
+            return getRowColumns(row, ColumnSelection.all());
         }
 
         @Override
@@ -2006,7 +1995,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowsMultimap(Iterable<FooToIdIdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
+            return getRowsMultimapInternal(rows, ColumnSelection.all());
         }
 
         @Override
@@ -2078,13 +2067,13 @@ public final class TwoColumnsTable implements
 
         private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
             if (columns.allColumnsSelected()) {
-                return allColumns;
+                return allKnownColumns;
             }
             return columns;
         }
 
         public BatchingVisitableView<FooToIdIdxRowResult> getAllRowsUnordered() {
-            return getAllRowsUnordered(allColumns);
+            return getAllRowsUnordered(allKnownColumns);
         }
 
         public BatchingVisitableView<FooToIdIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -2141,6 +2130,7 @@ public final class TwoColumnsTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -2198,5 +2188,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "WBRq+UvibY8M0WeF/DkJ8A==";
+    static String __CLASS_HASH = "Ku9arZqIhz1C0evYV92Vqg==";
 }

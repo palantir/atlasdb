@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class DataStreamValueTable implements
     private final List<DataStreamValueTrigger> triggers;
     private final static String rawTableName = "data_stream_value";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(DataStreamValueNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(DataStreamValueNamedColumn.values());
 
     static DataStreamValueTable of(Transaction t, Namespace namespace) {
         return new DataStreamValueTable(t, namespace, ImmutableList.<DataStreamValueTrigger>of());
@@ -469,14 +470,12 @@ public final class DataStreamValueTable implements
 
     @Override
     public void delete(Iterable<DataStreamValueRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<DataStreamValueRowResult> getRow(DataStreamValueRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<DataStreamValueRowResult> getRow(DataStreamValueRow row, ColumnSelection columns) {
@@ -491,7 +490,7 @@ public final class DataStreamValueTable implements
 
     @Override
     public List<DataStreamValueRowResult> getRows(Iterable<DataStreamValueRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -506,7 +505,7 @@ public final class DataStreamValueTable implements
 
     @Override
     public List<DataStreamValueNamedColumnValue<?>> getRowColumns(DataStreamValueRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -526,7 +525,7 @@ public final class DataStreamValueTable implements
 
     @Override
     public Multimap<DataStreamValueRow, DataStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<DataStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -590,13 +589,13 @@ public final class DataStreamValueTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<DataStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<DataStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -651,6 +650,7 @@ public final class DataStreamValueTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -708,5 +708,5 @@ public final class DataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3HkS/oQvfojirEAfdSYjnw==";
+    static String __CLASS_HASH = "gtnIPre21qgpHcBZnBFpEQ==";
 }

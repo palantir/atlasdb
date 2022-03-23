@@ -15,11 +15,8 @@
  */
 package com.palantir.atlasdb.table.generation;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -30,7 +27,6 @@ import com.palantir.common.persist.Persistable.Hydrator;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -51,26 +47,20 @@ public final class ColumnValues {
         return ret;
     }
 
-    public static <T extends Persistable> Map.Entry<Cell, byte[]> toCellValue(T key, ColumnValue<?> value) {
-        Multimap<T, ? extends ColumnValue<?>> singletonMultimap =
-                Multimaps.forMap(Collections.singletonMap(key, value));
-        Map<Cell, byte[]> cellValues = toCellValues(singletonMultimap);
-        return Iterables.getOnlyElement(cellValues.entrySet());
+    public static <T extends Persistable, V extends ColumnValue<?>> Map.Entry<Cell, byte[]> toCellValue(
+            T key, V value) {
+        return Map.entry(Cell.create(key.persistToBytes(), value.persistColumnName()), value.persistValue());
     }
 
-    public static <T extends Persistable, V extends Persistable> Set<Cell> toCells(Multimap<T, V> map) {
+    public static <T extends Persistable, V extends ColumnValue<?>> Set<Cell> toCells(Multimap<T, V> map) {
         Set<Cell> ret = Sets.newHashSetWithExpectedSize(map.size());
         for (Map.Entry<T, Collection<V>> e : map.asMap().entrySet()) {
             byte[] rowName = e.getKey().persistToBytes();
-            for (Persistable val : e.getValue()) {
-                ret.add(Cell.create(rowName, val.persistToBytes()));
+            for (ColumnValue<?> val : e.getValue()) {
+                ret.add(Cell.create(rowName, val.persistColumnName()));
             }
         }
         return ret;
-    }
-
-    public static <T> Function<ColumnValue<T>, T> getValuesFun() {
-        return ColumnValue::getValue;
     }
 
     @SuppressWarnings("unchecked")
