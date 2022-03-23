@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class DataStreamHashAidxTable implements
     private final List<DataStreamHashAidxTrigger> triggers;
     private final static String rawTableName = "data_stream_hash_aidx";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static DataStreamHashAidxTable of(Transaction t, Namespace namespace) {
         return new DataStreamHashAidxTable(t, namespace, ImmutableList.<DataStreamHashAidxTrigger>of());
@@ -458,17 +459,13 @@ public final class DataStreamHashAidxTable implements
 
     @Override
     public void delete(Iterable<DataStreamHashAidxRow> rows) {
-        Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> toRemove = HashMultimap.create();
         Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> result = getRowsMultimap(rows);
-        for (Entry<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -511,7 +508,7 @@ public final class DataStreamHashAidxTable implements
 
     @Override
     public Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> get(Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -527,7 +524,7 @@ public final class DataStreamHashAidxTable implements
 
     @Override
     public List<DataStreamHashAidxColumnValue> getRowColumns(DataStreamHashAidxRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -549,7 +546,7 @@ public final class DataStreamHashAidxTable implements
 
     @Override
     public Multimap<DataStreamHashAidxRow, DataStreamHashAidxColumnValue> getRowsMultimap(Iterable<DataStreamHashAidxRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -621,13 +618,13 @@ public final class DataStreamHashAidxTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<DataStreamHashAidxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<DataStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -682,6 +679,7 @@ public final class DataStreamHashAidxTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -739,5 +737,5 @@ public final class DataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2DA26oucpzo61Q1TGNErzg==";
+    static String __CLASS_HASH = "hEJ3D4gIpHIjMs9cfGMj9A==";
 }

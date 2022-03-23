@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class StreamTestWithHashStreamValueTable implements
     private final List<StreamTestWithHashStreamValueTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_value";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(StreamTestWithHashStreamValueNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(StreamTestWithHashStreamValueNamedColumn.values());
 
     static StreamTestWithHashStreamValueTable of(Transaction t, Namespace namespace) {
         return new StreamTestWithHashStreamValueTable(t, namespace, ImmutableList.<StreamTestWithHashStreamValueTrigger>of());
@@ -468,14 +469,12 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public void delete(Iterable<StreamTestWithHashStreamValueRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row, ColumnSelection columns) {
@@ -490,7 +489,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public List<StreamTestWithHashStreamValueRowResult> getRows(Iterable<StreamTestWithHashStreamValueRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -505,7 +504,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public List<StreamTestWithHashStreamValueNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamValueRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -525,7 +524,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -589,13 +588,13 @@ public final class StreamTestWithHashStreamValueTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -650,6 +649,7 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -707,5 +707,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "NGUTGhSKPyR4n20j6YxzwA==";
+    static String __CLASS_HASH = "MV+boEXh95OD53ATquAD0A==";
 }

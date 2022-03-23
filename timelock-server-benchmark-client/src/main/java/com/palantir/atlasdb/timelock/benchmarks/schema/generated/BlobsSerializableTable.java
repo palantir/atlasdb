@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class BlobsSerializableTable implements
     private final List<BlobsSerializableTrigger> triggers;
     private final static String rawTableName = "BlobsSerializable";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(BlobsSerializableNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(BlobsSerializableNamedColumn.values());
 
     static BlobsSerializableTable of(Transaction t, Namespace namespace) {
         return new BlobsSerializableTable(t, namespace, ImmutableList.<BlobsSerializableTrigger>of());
@@ -442,14 +443,12 @@ public final class BlobsSerializableTable implements
 
     @Override
     public void delete(Iterable<BlobsSerializableRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("d")));
-        t.delete(tableRef, cells);
+        Multimap<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<BlobsSerializableRowResult> getRow(BlobsSerializableRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<BlobsSerializableRowResult> getRow(BlobsSerializableRow row, ColumnSelection columns) {
@@ -464,7 +463,7 @@ public final class BlobsSerializableTable implements
 
     @Override
     public List<BlobsSerializableRowResult> getRows(Iterable<BlobsSerializableRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -479,7 +478,7 @@ public final class BlobsSerializableTable implements
 
     @Override
     public List<BlobsSerializableNamedColumnValue<?>> getRowColumns(BlobsSerializableRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -499,7 +498,7 @@ public final class BlobsSerializableTable implements
 
     @Override
     public Multimap<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>> getRowsMultimap(Iterable<BlobsSerializableRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -563,13 +562,13 @@ public final class BlobsSerializableTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<BlobsSerializableRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<BlobsSerializableRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -624,6 +623,7 @@ public final class BlobsSerializableTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -681,5 +681,5 @@ public final class BlobsSerializableTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/tUuzuVxP4izSsze9aTJKg==";
+    static String __CLASS_HASH = "CXC8lUHkVL6AMSY9Vq59xA==";
 }

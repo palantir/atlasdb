@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class KvDynamicColumnsTable implements
     private final List<KvDynamicColumnsTrigger> triggers;
     private final static String rawTableName = "KvDynamicColumns";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static KvDynamicColumnsTable of(Transaction t, Namespace namespace) {
         return new KvDynamicColumnsTable(t, namespace, ImmutableList.<KvDynamicColumnsTrigger>of());
@@ -486,17 +487,13 @@ public final class KvDynamicColumnsTable implements
 
     @Override
     public void delete(Iterable<KvDynamicColumnsRow> rows) {
-        Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumn> toRemove = HashMultimap.create();
         Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> result = getRowsMultimap(rows);
-        for (Entry<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -539,7 +536,7 @@ public final class KvDynamicColumnsTable implements
 
     @Override
     public Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> get(Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -555,7 +552,7 @@ public final class KvDynamicColumnsTable implements
 
     @Override
     public List<KvDynamicColumnsColumnValue> getRowColumns(KvDynamicColumnsRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -577,7 +574,7 @@ public final class KvDynamicColumnsTable implements
 
     @Override
     public Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> getRowsMultimap(Iterable<KvDynamicColumnsRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -649,7 +646,7 @@ public final class KvDynamicColumnsTable implements
 
     private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            return range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allKnownColumns).build();
         }
         return range;
     }
@@ -776,6 +773,7 @@ public final class KvDynamicColumnsTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -833,5 +831,5 @@ public final class KvDynamicColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "MAcqq4kEhVxlid7qdHnOlA==";
+    static String __CLASS_HASH = "bzFq5+Abe6qDuH1EdhnA3w==";
 }

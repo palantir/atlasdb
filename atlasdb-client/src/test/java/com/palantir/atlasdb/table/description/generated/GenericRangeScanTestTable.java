@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -96,7 +97,7 @@ public final class GenericRangeScanTestTable implements
     private final List<GenericRangeScanTestTrigger> triggers;
     private final static String rawTableName = "genericRangeScanTest";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = ColumnSelection.all();
+    private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
     static GenericRangeScanTestTable of(Transaction t, Namespace namespace) {
         return new GenericRangeScanTestTable(t, namespace, ImmutableList.<GenericRangeScanTestTrigger>of());
@@ -458,17 +459,13 @@ public final class GenericRangeScanTestTable implements
 
     @Override
     public void delete(Iterable<GenericRangeScanTestRow> rows) {
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toRemove = HashMultimap.create();
         Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> result = getRowsMultimap(rows);
-        for (Entry<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> e : result.entries()) {
-            toRemove.put(e.getKey(), e.getValue().getColumnName());
-        }
-        delete(toRemove);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     @Override
     public void delete(Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> values) {
-        t.delete(tableRef, ColumnValues.toCells(values));
+        t.delete(tableRef, Columns.toCells(values));
     }
 
     @Override
@@ -511,7 +508,7 @@ public final class GenericRangeScanTestTable implements
 
     @Override
     public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> get(Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> cells) {
-        Set<Cell> rawCells = ColumnValues.toCells(cells);
+        Set<Cell> rawCells = Columns.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
         Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -527,7 +524,7 @@ public final class GenericRangeScanTestTable implements
 
     @Override
     public List<GenericRangeScanTestColumnValue> getRowColumns(GenericRangeScanTestRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -549,7 +546,7 @@ public final class GenericRangeScanTestTable implements
 
     @Override
     public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getRowsMultimap(Iterable<GenericRangeScanTestRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -621,7 +618,7 @@ public final class GenericRangeScanTestTable implements
 
     private RangeRequest optimizeRangeRequest(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
-            return range.getBuilder().retainColumns(allColumns).build();
+            return range.getBuilder().retainColumns(allKnownColumns).build();
         }
         return range;
     }
@@ -748,6 +745,7 @@ public final class GenericRangeScanTestTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -805,5 +803,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HCLe9Gdg96DKj8mZK+n51A==";
+    static String __CLASS_HASH = "hAjEYcONbvFgkTXpSVvqQA==";
 }

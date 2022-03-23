@@ -169,8 +169,8 @@ public abstract class AbstractSchemaApiTest {
                 .build();
         when(transaction.getRange(tableRef, expectedRange))
                 .thenReturn(BatchingVisitableFromIterable.create(Arrays.asList(
-                        RowResult.of(expectedCell, STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING)),
-                        RowResult.of(anotherExpectedCell, STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING2)))));
+                        RowResult.of(expectedCell, encodeString(TEST_VALUE_STRING)),
+                        RowResult.of(anotherExpectedCell, encodeString(TEST_VALUE_STRING2)))));
 
         Map<String, StringValue> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
 
@@ -194,11 +194,9 @@ public abstract class AbstractSchemaApiTest {
                 .build();
         when(transaction.getRange(tableRef, expectedRange))
                 .thenReturn(BatchingVisitableFromIterable.create(Arrays.asList(
-                        RowResult.of(expectedCell, STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING)),
-                        RowResult.of(anotherExpectedCell, STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING2)),
-                        RowResult.of(
-                                cellToBeDroppedFromResults,
-                                STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING3)))));
+                        RowResult.of(expectedCell, encodeString(TEST_VALUE_STRING)),
+                        RowResult.of(anotherExpectedCell, encodeString(TEST_VALUE_STRING2)),
+                        RowResult.of(cellToBeDroppedFromResults, encodeString(TEST_VALUE_STRING3)))));
 
         Map<String, StringValue> result =
                 getRangeSecondColumnOnlyFirstTwoResults(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
@@ -212,11 +210,19 @@ public abstract class AbstractSchemaApiTest {
     @Test
     public void testDeleteWholeRow() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
+        NavigableMap<byte[], byte[]> columns = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        NavigableMap<byte[], RowResult<byte[]>> resultsMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        columns.put(PtBytes.toBytes(FIRST_COL_SHORT_NAME), encodeLong(TEST_VALUE_LONG));
+        columns.put(PtBytes.toBytes(SECOND_COL_SHORT_NAME), encodeString(TEST_VALUE_STRING));
+        resultsMap.put(PtBytes.toBytes(TEST_ROW_KEY), RowResult.create(PtBytes.toBytes(TEST_ROW_KEY), columns));
+        when(transaction.getRows(eq(tableRef), any(), eq(ColumnSelection.all())))
+                .thenReturn(resultsMap);
 
         deleteWholeRow(transaction, TEST_ROW_KEY);
 
         Cell expectedDeletedFirstCell = getCell(TEST_ROW_KEY, FIRST_COL_SHORT_NAME);
         Cell expectedDeletedSecondCell = getCell(TEST_ROW_KEY, SECOND_COL_SHORT_NAME);
+        //        verify(transaction).getRows(eq(tableRef), any(), eq(ColumnSelection.all()));
         verify(transaction, times(1))
                 .delete(tableRef, ImmutableSet.of(expectedDeletedFirstCell, expectedDeletedSecondCell));
     }
@@ -243,5 +249,9 @@ public abstract class AbstractSchemaApiTest {
 
     protected byte[] encodeLong(Long value) {
         return EncodingUtils.encodeUnsignedVarLong(value);
+    }
+
+    protected byte[] encodeString(StringValue value) {
+        return STRING_VALUE_PERSISTER.persistToBytes(value);
     }
 }

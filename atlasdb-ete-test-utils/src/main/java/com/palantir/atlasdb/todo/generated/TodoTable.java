@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class TodoTable implements
     private final List<TodoTrigger> triggers;
     private final static String rawTableName = "todo";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(TodoNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(TodoNamedColumn.values());
 
     static TodoTable of(Transaction t, Namespace namespace) {
         return new TodoTable(t, namespace, ImmutableList.<TodoTrigger>of());
@@ -442,14 +443,12 @@ public final class TodoTable implements
 
     @Override
     public void delete(Iterable<TodoRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("t")));
-        t.delete(tableRef, cells);
+        Multimap<TodoRow, TodoNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<TodoRowResult> getRow(TodoRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<TodoRowResult> getRow(TodoRow row, ColumnSelection columns) {
@@ -464,7 +463,7 @@ public final class TodoTable implements
 
     @Override
     public List<TodoRowResult> getRows(Iterable<TodoRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -479,7 +478,7 @@ public final class TodoTable implements
 
     @Override
     public List<TodoNamedColumnValue<?>> getRowColumns(TodoRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -499,7 +498,7 @@ public final class TodoTable implements
 
     @Override
     public Multimap<TodoRow, TodoNamedColumnValue<?>> getRowsMultimap(Iterable<TodoRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -563,13 +562,13 @@ public final class TodoTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<TodoRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<TodoRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -624,6 +623,7 @@ public final class TodoTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -681,5 +681,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3r55GHWJy0tMGWUUK/aUMg==";
+    static String __CLASS_HASH = "V0ozbYfGKG3OnqrPveJwMQ==";
 }

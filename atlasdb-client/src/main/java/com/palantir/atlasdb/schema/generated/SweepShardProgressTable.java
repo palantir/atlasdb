@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class SweepShardProgressTable implements
     private final List<SweepShardProgressTrigger> triggers;
     private final static String rawTableName = "sweepProgressPerShard";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(SweepShardProgressNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(SweepShardProgressNamedColumn.values());
 
     static SweepShardProgressTable of(Transaction t, Namespace namespace) {
         return new SweepShardProgressTable(t, namespace, ImmutableList.<SweepShardProgressTrigger>of());
@@ -468,14 +469,12 @@ public final class SweepShardProgressTable implements
 
     @Override
     public void delete(Iterable<SweepShardProgressRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<SweepShardProgressRowResult> getRow(SweepShardProgressRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<SweepShardProgressRowResult> getRow(SweepShardProgressRow row, ColumnSelection columns) {
@@ -490,7 +489,7 @@ public final class SweepShardProgressTable implements
 
     @Override
     public List<SweepShardProgressRowResult> getRows(Iterable<SweepShardProgressRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -505,7 +504,7 @@ public final class SweepShardProgressTable implements
 
     @Override
     public List<SweepShardProgressNamedColumnValue<?>> getRowColumns(SweepShardProgressRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -525,7 +524,7 @@ public final class SweepShardProgressTable implements
 
     @Override
     public Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> getRowsMultimap(Iterable<SweepShardProgressRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -589,13 +588,13 @@ public final class SweepShardProgressTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<SweepShardProgressRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<SweepShardProgressRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -650,6 +649,7 @@ public final class SweepShardProgressTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -707,5 +707,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HqImXbn8vvcJMhrqHKfZ0w==";
+    static String __CLASS_HASH = "wvQ5GnLdGPNfb+svYzuYrA==";
 }

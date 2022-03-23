@@ -72,6 +72,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -375,7 +376,7 @@ public class TableRenderer {
             }
             line("private final TableReference tableRef;");
             line(
-                    "private final static ColumnSelection allColumns = ",
+                    "private final static ColumnSelection allKnownColumns = ",
                     isDynamic ? "ColumnSelection.all();" : "getColumnSelection(" + Column + ".values());");
         }
 
@@ -572,21 +573,15 @@ public class TableRenderer {
             line("@Override");
             line("public void delete(Iterable<", Row, "> rows) {");
             {
-                line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
                 line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
-                line("for (Entry<", Row, ", ", ColumnValue, "> e : result.entries()) {");
-                {
-                    line("toRemove.put(e.getKey(), e.getValue().getColumnName());");
-                }
-                line("}");
-                line("delete(toRemove);");
+                line("t.delete(tableRef, ColumnValues.toCells(result));");
             }
             line("}");
             line();
             line("@Override");
             line("public void delete(Multimap<", Row, ", ", Column, "> values) {");
             {
-                line("t.delete(tableRef, ColumnValues.toCells(values));");
+                line("t.delete(tableRef, Columns.toCells(values));");
             }
             line("}");
         }
@@ -768,7 +763,7 @@ public class TableRenderer {
             line("@Override");
             line("public List<", ColumnValue, "> getRowColumns(", Row, " row) {");
             {
-                line("return getRowColumns(row, allColumns);");
+                line("return getRowColumns(row, ColumnSelection.all());");
             }
             line("}");
             line();
@@ -1200,26 +1195,13 @@ public class TableRenderer {
             line("@Override");
             line("public void delete(Iterable<", Row, "> rows) {");
             {
+                line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
                 if (!cellReferencingIndices.isEmpty()) {
-                    line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
                     for (IndexMetadata index : cellReferencingIndices) {
                         line("delete", Renderers.getIndexTableName(index), "(result);");
                     }
                 }
-
-                SortedSet<NamedColumnDescription> namedColumns = ColumnRenderers.namedColumns(table);
-                line("List<byte[]> rowBytes = Persistables.persistAll(rows);");
-                line(
-                        "Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size()",
-                        ((namedColumns.size() == 1) ? "" : " * " + namedColumns.size()),
-                        ");");
-                for (NamedColumnDescription col : namedColumns) {
-                    line(
-                            "cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes(",
-                            ColumnRenderers.short_name(col),
-                            ")));");
-                }
-                line("t.delete(tableRef, cells);");
+                line("t.delete(tableRef, ColumnValues.toCells(result));");
             }
             line("}");
         }
@@ -1229,7 +1211,7 @@ public class TableRenderer {
             {
                 line("if (range.getColumnNames().isEmpty()) {");
                 {
-                    line("return range.getBuilder().retainColumns(allColumns).build();");
+                    line("return range.getBuilder().retainColumns(allKnownColumns).build();");
                 }
                 line("}");
                 line("return range;");
@@ -1420,7 +1402,7 @@ public class TableRenderer {
             {
                 line("if (columns.allColumnsSelected()) {");
                 {
-                    line("return allColumns;");
+                    line("return allKnownColumns;");
                 }
                 line("}");
                 line("return columns;");
@@ -1431,7 +1413,7 @@ public class TableRenderer {
         private void renderGetAllRowsUnordered() {
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered() {");
             {
-                line("return getAllRowsUnordered(allColumns);");
+                line("return getAllRowsUnordered(allKnownColumns);");
             }
             line("}");
             line();
@@ -1456,7 +1438,7 @@ public class TableRenderer {
         private void renderNamedGetRow() {
             line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row) {");
             {
-                line("return getRow(row, allColumns);");
+                line("return getRow(row, allKnownColumns);");
             }
             line("}");
             line();
@@ -1489,7 +1471,7 @@ public class TableRenderer {
             line("@Override");
             line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows) {");
             {
-                line("return getRows(rows, allColumns);");
+                line("return getRows(rows, allKnownColumns);");
             }
             line("}");
             line();
@@ -1513,7 +1495,7 @@ public class TableRenderer {
             line("@Override");
             line("public Multimap<", Row, ", ", ColumnValue, "> get(Multimap<", Row, ", ", Column, "> cells) {");
             {
-                line("Set<Cell> rawCells = ColumnValues.toCells(cells);");
+                line("Set<Cell> rawCells = Columns.toCells(cells);");
                 line("Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);");
                 line("Multimap<", Row, ", ", ColumnValue, "> rowMap = ArrayListMultimap.create();");
                 line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {");
@@ -1545,7 +1527,7 @@ public class TableRenderer {
             line("@Override");
             line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<", Row, "> rows) {");
             {
-                line("return getRowsMultimapInternal(rows, allColumns);");
+                line("return getRowsMultimapInternal(rows, ColumnSelection.all());");
             }
             line("}");
             line();
@@ -1820,7 +1802,7 @@ public class TableRenderer {
             line("public void addUnlessExists(Set<", Row, "> rows) {");
             {
                 line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef,"
-                        + " Persistables.persistAll(rows), allColumns);");
+                        + " Persistables.persistAll(rows), allKnownColumns);");
                 line(
                         "Map<",
                         Row,
@@ -1905,6 +1887,7 @@ public class TableRenderer {
         BatchingVisitables.class,
         BatchingVisitableView.class,
         IterableView.class,
+        Columns.class,
         ColumnValues.class,
         RowResult.class,
         Persistables.class,

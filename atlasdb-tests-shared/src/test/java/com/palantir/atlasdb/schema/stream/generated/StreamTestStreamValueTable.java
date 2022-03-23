@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class StreamTestStreamValueTable implements
     private final List<StreamTestStreamValueTrigger> triggers;
     private final static String rawTableName = "stream_test_stream_value";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(StreamTestStreamValueNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(StreamTestStreamValueNamedColumn.values());
 
     static StreamTestStreamValueTable of(Transaction t, Namespace namespace) {
         return new StreamTestStreamValueTable(t, namespace, ImmutableList.<StreamTestStreamValueTrigger>of());
@@ -454,14 +455,12 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public void delete(Iterable<StreamTestStreamValueRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<StreamTestStreamValueRowResult> getRow(StreamTestStreamValueRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<StreamTestStreamValueRowResult> getRow(StreamTestStreamValueRow row, ColumnSelection columns) {
@@ -476,7 +475,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public List<StreamTestStreamValueRowResult> getRows(Iterable<StreamTestStreamValueRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -491,7 +490,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public List<StreamTestStreamValueNamedColumnValue<?>> getRowColumns(StreamTestStreamValueRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -511,7 +510,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -575,13 +574,13 @@ public final class StreamTestStreamValueTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<StreamTestStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<StreamTestStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -636,6 +635,7 @@ public final class StreamTestStreamValueTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -693,5 +693,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "KSHVtzVJMr79hZ5W7cejyQ==";
+    static String __CLASS_HASH = "L/JXQQnCl3onwwTlu5GbVQ==";
 }

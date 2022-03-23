@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class AllValueTypesTestTable implements
     private final List<AllValueTypesTestTrigger> triggers;
     private final static String rawTableName = "AllValueTypesTest";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(AllValueTypesTestNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(AllValueTypesTestNamedColumn.values());
 
     static AllValueTypesTestTable of(Transaction t, Namespace namespace) {
         return new AllValueTypesTestTable(t, namespace, ImmutableList.<AllValueTypesTestTrigger>of());
@@ -1882,24 +1883,12 @@ public final class AllValueTypesTestTable implements
 
     @Override
     public void delete(Iterable<AllValueTypesTestRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 11);
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c0")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c1")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c10")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c2")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c3")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c4")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c5")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c6")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c7")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c8")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c9")));
-        t.delete(tableRef, cells);
+        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<AllValueTypesTestRowResult> getRow(AllValueTypesTestRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<AllValueTypesTestRowResult> getRow(AllValueTypesTestRow row, ColumnSelection columns) {
@@ -1914,7 +1903,7 @@ public final class AllValueTypesTestTable implements
 
     @Override
     public List<AllValueTypesTestRowResult> getRows(Iterable<AllValueTypesTestRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -1929,7 +1918,7 @@ public final class AllValueTypesTestTable implements
 
     @Override
     public List<AllValueTypesTestNamedColumnValue<?>> getRowColumns(AllValueTypesTestRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -1949,7 +1938,7 @@ public final class AllValueTypesTestTable implements
 
     @Override
     public Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowsMultimap(Iterable<AllValueTypesTestRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -2013,13 +2002,13 @@ public final class AllValueTypesTestTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<AllValueTypesTestRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<AllValueTypesTestRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -2074,6 +2063,7 @@ public final class AllValueTypesTestTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -2131,5 +2121,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "+z9yTY9fbM1RMcCD3o7Eyg==";
+    static String __CLASS_HASH = "8gMZ7OUOsqc2FFeUgFeIwQ==";
 }

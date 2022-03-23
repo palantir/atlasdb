@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class SnapshotsStreamValueTable implements
     private final List<SnapshotsStreamValueTrigger> triggers;
     private final static String rawTableName = "snapshots_stream_value";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(SnapshotsStreamValueNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(SnapshotsStreamValueNamedColumn.values());
 
     static SnapshotsStreamValueTable of(Transaction t, Namespace namespace) {
         return new SnapshotsStreamValueTable(t, namespace, ImmutableList.<SnapshotsStreamValueTrigger>of());
@@ -454,14 +455,12 @@ public final class SnapshotsStreamValueTable implements
 
     @Override
     public void delete(Iterable<SnapshotsStreamValueRow> rows) {
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        Multimap<SnapshotsStreamValueRow, SnapshotsStreamValueNamedColumnValue<?>> result = getRowsMultimap(rows);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<SnapshotsStreamValueRowResult> getRow(SnapshotsStreamValueRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<SnapshotsStreamValueRowResult> getRow(SnapshotsStreamValueRow row, ColumnSelection columns) {
@@ -476,7 +475,7 @@ public final class SnapshotsStreamValueTable implements
 
     @Override
     public List<SnapshotsStreamValueRowResult> getRows(Iterable<SnapshotsStreamValueRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -491,7 +490,7 @@ public final class SnapshotsStreamValueTable implements
 
     @Override
     public List<SnapshotsStreamValueNamedColumnValue<?>> getRowColumns(SnapshotsStreamValueRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -511,7 +510,7 @@ public final class SnapshotsStreamValueTable implements
 
     @Override
     public Multimap<SnapshotsStreamValueRow, SnapshotsStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<SnapshotsStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -575,13 +574,13 @@ public final class SnapshotsStreamValueTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<SnapshotsStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<SnapshotsStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -636,6 +635,7 @@ public final class SnapshotsStreamValueTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -693,5 +693,5 @@ public final class SnapshotsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Fg+h1vWDxZ35ZtW+XJ9P3g==";
+    static String __CLASS_HASH = "SiLgzJPoSh8ZiSXzVMdvpA==";
 }

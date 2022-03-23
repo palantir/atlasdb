@@ -66,6 +66,7 @@ import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
+import com.palantir.atlasdb.table.generation.Columns;
 import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -98,7 +99,7 @@ public final class DataTable implements
     private final List<DataTrigger> triggers;
     private final static String rawTableName = "data";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(DataNamedColumn.values());
+    private final static ColumnSelection allKnownColumns = getColumnSelection(DataNamedColumn.values());
 
     static DataTable of(Transaction t, Namespace namespace) {
         return new DataTable(t, namespace, ImmutableList.<DataTrigger>of());
@@ -581,14 +582,11 @@ public final class DataTable implements
         deleteIndex2Idx(result);
         deleteIndex3Idx(result);
         deleteIndex4Idx(result);
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
-        t.delete(tableRef, cells);
+        t.delete(tableRef, ColumnValues.toCells(result));
     }
 
     public Optional<DataRowResult> getRow(DataRow row) {
-        return getRow(row, allColumns);
+        return getRow(row, allKnownColumns);
     }
 
     public Optional<DataRowResult> getRow(DataRow row, ColumnSelection columns) {
@@ -603,7 +601,7 @@ public final class DataTable implements
 
     @Override
     public List<DataRowResult> getRows(Iterable<DataRow> rows) {
-        return getRows(rows, allColumns);
+        return getRows(rows, allKnownColumns);
     }
 
     @Override
@@ -618,7 +616,7 @@ public final class DataTable implements
 
     @Override
     public List<DataNamedColumnValue<?>> getRowColumns(DataRow row) {
-        return getRowColumns(row, allColumns);
+        return getRowColumns(row, ColumnSelection.all());
     }
 
     @Override
@@ -638,7 +636,7 @@ public final class DataTable implements
 
     @Override
     public Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimap(Iterable<DataRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
+        return getRowsMultimapInternal(rows, ColumnSelection.all());
     }
 
     @Override
@@ -792,13 +790,13 @@ public final class DataTable implements
 
     private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {
         if (columns.allColumnsSelected()) {
-            return allColumns;
+            return allKnownColumns;
         }
         return columns;
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
+        return getAllRowsUnordered(allKnownColumns);
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -836,7 +834,7 @@ public final class DataTable implements
         private final List<Index1IdxTrigger> triggers;
         private final static String rawTableName = "index1_idx";
         private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
+        private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
         public static Index1IdxTable of(DataTable table) {
             return new Index1IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index1IdxTrigger>of());
@@ -1255,17 +1253,13 @@ public final class DataTable implements
 
         @Override
         public void delete(Iterable<Index1IdxRow> rows) {
-            Multimap<Index1IdxRow, Index1IdxColumn> toRemove = HashMultimap.create();
             Multimap<Index1IdxRow, Index1IdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<Index1IdxRow, Index1IdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
+            t.delete(tableRef, ColumnValues.toCells(result));
         }
 
         @Override
         public void delete(Multimap<Index1IdxRow, Index1IdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableRef, Columns.toCells(values));
         }
 
         @Override
@@ -1308,7 +1302,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index1IdxRow, Index1IdxColumnValue> get(Multimap<Index1IdxRow, Index1IdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
+            Set<Cell> rawCells = Columns.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -1324,7 +1318,7 @@ public final class DataTable implements
 
         @Override
         public List<Index1IdxColumnValue> getRowColumns(Index1IdxRow row) {
-            return getRowColumns(row, allColumns);
+            return getRowColumns(row, ColumnSelection.all());
         }
 
         @Override
@@ -1346,7 +1340,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimap(Iterable<Index1IdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
+            return getRowsMultimapInternal(rows, ColumnSelection.all());
         }
 
         @Override
@@ -1418,7 +1412,7 @@ public final class DataTable implements
 
         private RangeRequest optimizeRangeRequest(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                return range.getBuilder().retainColumns(allColumns).build();
+                return range.getBuilder().retainColumns(allKnownColumns).build();
             }
             return range;
         }
@@ -1530,7 +1524,7 @@ public final class DataTable implements
         private final List<Index2IdxTrigger> triggers;
         private final static String rawTableName = "index2_idx";
         private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
+        private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
         public static Index2IdxTable of(DataTable table) {
             return new Index2IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index2IdxTrigger>of());
@@ -1937,17 +1931,13 @@ public final class DataTable implements
 
         @Override
         public void delete(Iterable<Index2IdxRow> rows) {
-            Multimap<Index2IdxRow, Index2IdxColumn> toRemove = HashMultimap.create();
             Multimap<Index2IdxRow, Index2IdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<Index2IdxRow, Index2IdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
+            t.delete(tableRef, ColumnValues.toCells(result));
         }
 
         @Override
         public void delete(Multimap<Index2IdxRow, Index2IdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableRef, Columns.toCells(values));
         }
 
         @Override
@@ -1990,7 +1980,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index2IdxRow, Index2IdxColumnValue> get(Multimap<Index2IdxRow, Index2IdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
+            Set<Cell> rawCells = Columns.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -2006,7 +1996,7 @@ public final class DataTable implements
 
         @Override
         public List<Index2IdxColumnValue> getRowColumns(Index2IdxRow row) {
-            return getRowColumns(row, allColumns);
+            return getRowColumns(row, ColumnSelection.all());
         }
 
         @Override
@@ -2028,7 +2018,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimap(Iterable<Index2IdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
+            return getRowsMultimapInternal(rows, ColumnSelection.all());
         }
 
         @Override
@@ -2100,7 +2090,7 @@ public final class DataTable implements
 
         private RangeRequest optimizeRangeRequest(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                return range.getBuilder().retainColumns(allColumns).build();
+                return range.getBuilder().retainColumns(allKnownColumns).build();
             }
             return range;
         }
@@ -2212,7 +2202,7 @@ public final class DataTable implements
         private final List<Index3IdxTrigger> triggers;
         private final static String rawTableName = "index3_idx";
         private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
+        private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
         public static Index3IdxTable of(DataTable table) {
             return new Index3IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index3IdxTrigger>of());
@@ -2597,17 +2587,13 @@ public final class DataTable implements
 
         @Override
         public void delete(Iterable<Index3IdxRow> rows) {
-            Multimap<Index3IdxRow, Index3IdxColumn> toRemove = HashMultimap.create();
             Multimap<Index3IdxRow, Index3IdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<Index3IdxRow, Index3IdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
+            t.delete(tableRef, ColumnValues.toCells(result));
         }
 
         @Override
         public void delete(Multimap<Index3IdxRow, Index3IdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableRef, Columns.toCells(values));
         }
 
         @Override
@@ -2650,7 +2636,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index3IdxRow, Index3IdxColumnValue> get(Multimap<Index3IdxRow, Index3IdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
+            Set<Cell> rawCells = Columns.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -2666,7 +2652,7 @@ public final class DataTable implements
 
         @Override
         public List<Index3IdxColumnValue> getRowColumns(Index3IdxRow row) {
-            return getRowColumns(row, allColumns);
+            return getRowColumns(row, ColumnSelection.all());
         }
 
         @Override
@@ -2688,7 +2674,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimap(Iterable<Index3IdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
+            return getRowsMultimapInternal(rows, ColumnSelection.all());
         }
 
         @Override
@@ -2760,7 +2746,7 @@ public final class DataTable implements
 
         private RangeRequest optimizeRangeRequest(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                return range.getBuilder().retainColumns(allColumns).build();
+                return range.getBuilder().retainColumns(allKnownColumns).build();
             }
             return range;
         }
@@ -2872,7 +2858,7 @@ public final class DataTable implements
         private final List<Index4IdxTrigger> triggers;
         private final static String rawTableName = "index4_idx";
         private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
+        private final static ColumnSelection allKnownColumns = ColumnSelection.all();
 
         public static Index4IdxTable of(DataTable table) {
             return new Index4IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index4IdxTrigger>of());
@@ -3279,17 +3265,13 @@ public final class DataTable implements
 
         @Override
         public void delete(Iterable<Index4IdxRow> rows) {
-            Multimap<Index4IdxRow, Index4IdxColumn> toRemove = HashMultimap.create();
             Multimap<Index4IdxRow, Index4IdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<Index4IdxRow, Index4IdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
+            t.delete(tableRef, ColumnValues.toCells(result));
         }
 
         @Override
         public void delete(Multimap<Index4IdxRow, Index4IdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
+            t.delete(tableRef, Columns.toCells(values));
         }
 
         @Override
@@ -3332,7 +3314,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index4IdxRow, Index4IdxColumnValue> get(Multimap<Index4IdxRow, Index4IdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
+            Set<Cell> rawCells = Columns.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
             Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
@@ -3348,7 +3330,7 @@ public final class DataTable implements
 
         @Override
         public List<Index4IdxColumnValue> getRowColumns(Index4IdxRow row) {
-            return getRowColumns(row, allColumns);
+            return getRowColumns(row, ColumnSelection.all());
         }
 
         @Override
@@ -3370,7 +3352,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimap(Iterable<Index4IdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
+            return getRowsMultimapInternal(rows, ColumnSelection.all());
         }
 
         @Override
@@ -3442,7 +3424,7 @@ public final class DataTable implements
 
         private RangeRequest optimizeRangeRequest(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                return range.getBuilder().retainColumns(allColumns).build();
+                return range.getBuilder().retainColumns(allKnownColumns).build();
             }
             return range;
         }
@@ -3571,6 +3553,7 @@ public final class DataTable implements
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
+     * {@link Columns}
      * {@link ComparisonChain}
      * {@link Compression}
      * {@link CompressionUtils}
@@ -3628,5 +3611,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "V+fEgUPMi5Tlt2krZeI6Ow==";
+    static String __CLASS_HASH = "LbzWMhftAmgJan5WDdBO4w==";
 }
