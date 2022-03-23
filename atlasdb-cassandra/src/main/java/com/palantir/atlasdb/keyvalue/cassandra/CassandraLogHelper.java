@@ -22,9 +22,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.cassandra.thrift.TokenRange;
 import org.immutables.value.Value;
 
@@ -43,8 +43,7 @@ public final class CassandraLogHelper {
 
     static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost) {
         return tokenRangesToHost.entries().stream()
-                .map(entry -> "host " + host(entry.getValue()) + " has range "
-                        + entry.getKey().toString())
+                .map(entry -> "host " + host(entry.getValue()) + " has range " + entry.getKey())
                 .collect(Collectors.toList());
     }
 
@@ -74,15 +73,19 @@ public final class CassandraLogHelper {
 
     @Value.Immutable
     interface HostAndIpAddress {
+        @Value.Parameter
         String host();
 
-        Optional<String> ipAddress();
+        @Nullable
+        @Value.Parameter
+        String ipAddress();
 
         static HostAndIpAddress fromAddress(InetSocketAddress address) {
-            return ImmutableHostAndIpAddress.builder()
-                    .host(address.getHostString())
-                    .ipAddress(Optional.ofNullable(address.getAddress()).map(InetAddress::getHostAddress))
-                    .build();
+            InetAddress inetAddress = address.getAddress();
+            if (inetAddress != null) {
+                return ImmutableHostAndIpAddress.of(address.getHostString(), inetAddress.getHostAddress());
+            }
+            return ImmutableHostAndIpAddress.of(address.getHostString(), /* unresolved IP */ null);
         }
     }
 }
