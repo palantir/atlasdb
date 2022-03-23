@@ -541,7 +541,7 @@ public final class KvDynamicColumnsTable implements
     public Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> get(Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> rowMap = HashMultimap.create();
+        Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 KvDynamicColumnsRow row = KvDynamicColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -591,7 +591,7 @@ public final class KvDynamicColumnsTable implements
     }
 
     private static Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> rowMap = HashMultimap.create();
+        Multimap<KvDynamicColumnsRow, KvDynamicColumnsColumnValue> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             KvDynamicColumnsRow row = KvDynamicColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -833,5 +833,5 @@ public final class KvDynamicColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "afiyTnltfesp99pfyrOGSg==";
+    static String __CLASS_HASH = "MAcqq4kEhVxlid7qdHnOlA==";
 }

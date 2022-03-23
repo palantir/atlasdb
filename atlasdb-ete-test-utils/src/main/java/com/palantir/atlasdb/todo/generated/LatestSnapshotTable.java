@@ -513,7 +513,7 @@ public final class LatestSnapshotTable implements
     }
 
     private static Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<LatestSnapshotRow, LatestSnapshotNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             LatestSnapshotRow row = LatestSnapshotRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -681,5 +681,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "uDjDzxHTwUPFE6axOmFPNw==";
+    static String __CLASS_HASH = "u4WTR7OZjIlcogScLbQXcg==";
 }

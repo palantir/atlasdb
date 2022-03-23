@@ -6,13 +6,14 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import java.lang.Override;
 import java.util.List;
 import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class SweepTableFactory {
     private static final Namespace defaultNamespace = Namespace.create("sweep", Namespace.UNCHECKED_NAME);
+
+    private static final SweepTableFactory defaultTableFactory = of(defaultNamespace);
 
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
 
@@ -33,11 +34,11 @@ public final class SweepTableFactory {
     }
 
     public static SweepTableFactory of(Namespace namespace) {
-        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);
+        return of(ImmutableList.of(), namespace);
     }
 
     public static SweepTableFactory of() {
-        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
+        return defaultTableFactory;
     }
 
     public SweepPriorityTable getSweepPriorityTable(

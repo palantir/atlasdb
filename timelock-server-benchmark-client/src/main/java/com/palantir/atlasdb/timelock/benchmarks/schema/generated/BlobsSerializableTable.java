@@ -513,7 +513,7 @@ public final class BlobsSerializableTable implements
     }
 
     private static Multimap<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<BlobsSerializableRow, BlobsSerializableNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             BlobsSerializableRow row = BlobsSerializableRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -681,5 +681,5 @@ public final class BlobsSerializableTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "kEu4r6ZeyQGSln9x7e/bKg==";
+    static String __CLASS_HASH = "/tUuzuVxP4izSsze9aTJKg==";
 }

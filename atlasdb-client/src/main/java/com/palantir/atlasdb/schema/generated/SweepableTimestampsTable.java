@@ -560,7 +560,7 @@ public final class SweepableTimestampsTable implements
     public Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> get(Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> rowMap = HashMultimap.create();
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 SweepableTimestampsRow row = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -610,7 +610,7 @@ public final class SweepableTimestampsTable implements
     }
 
     private static Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> rowMap = HashMultimap.create();
+        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             SweepableTimestampsRow row = SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -786,5 +786,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZldNHckg6Jn99/m/D/IS/w==";
+    static String __CLASS_HASH = "gH5yVvu8VJQMspkIgQi4CA==";
 }
