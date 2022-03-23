@@ -40,6 +40,13 @@ javaVersions {
     runtime = 17
 }
 
+java {
+    toolchain {
+        vendor = JvmVendorSpec.ADOPTOPENJDK
+        implementation = JvmImplementation.J9
+    }
+}
+
 apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
