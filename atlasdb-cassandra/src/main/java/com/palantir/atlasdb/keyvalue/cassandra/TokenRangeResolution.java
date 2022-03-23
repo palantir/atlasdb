@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.TokenRange;
 import org.immutables.value.Value;
 
@@ -37,14 +36,15 @@ public final class TokenRangeResolution {
             return true;
         }
 
-        Set<IdentityAgnosticRanges> distinctIdentityAgnosticRanges = tokenRangeViews.stream()
+        long distinctIdentityAgnosticRanges = tokenRangeViews.stream()
                 .map(ranges -> ranges.stream()
                         .map(IdentityAgnosticRange::fromTokenRange)
-                        .collect(Collectors.toList()))
+                        .collect(ImmutableSet.toImmutableSet()))
                 .map(ImmutableIdentityAgnosticRanges::of)
-                .collect(Collectors.toSet());
+                .distinct()
+                .count();
 
-        if (distinctIdentityAgnosticRanges.size() != 1) {
+        if (distinctIdentityAgnosticRanges != 1) {
             return false;
         }
         log.info("Although more than 1 distinct view of the token ranges were obtained, these were consistent in their"
@@ -55,7 +55,7 @@ public final class TokenRangeResolution {
     @Value.Immutable
     interface IdentityAgnosticRanges {
         @Value.Parameter
-        List<IdentityAgnosticRange> identityAgnosticRanges();
+        ImmutableSet<IdentityAgnosticRange> identityAgnosticRanges();
     }
 
     @Value.Immutable
