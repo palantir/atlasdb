@@ -70,7 +70,7 @@ public final class SweepTestUtils {
                 LockServerOptions.builder().isStandaloneServer(false).build());
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createForTests(kvs);
         Cleaner cleaner = new NoOpCleaner();
         MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
         TransactionManager txManager = SerializableTransactionManager.createForTest(

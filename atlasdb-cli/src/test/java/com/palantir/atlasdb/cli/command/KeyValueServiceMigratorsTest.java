@@ -362,7 +362,7 @@ public class KeyValueServiceMigratorsTest {
                 timeLock.getLockWatchManager(),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                ConflictDetectionManagers.createWithoutWarmingCache(kvs),
+                ConflictDetectionManagers.createForTests(kvs),
                 SweepStrategyManagers.createDefault(kvs),
                 new NoOpCleaner(),
                 16,

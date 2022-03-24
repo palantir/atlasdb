@@ -99,6 +99,8 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManager;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
@@ -436,8 +438,11 @@ public abstract class TransactionManagers {
         TransactionComponents components = createTransactionComponents(
                 closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime);
         TransactionService transactionService = components.transactionService();
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
-        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        // FIX THIS TO NOT DEPEND ON SINGLE THREAD EXECUTOR
+        TableMetadataManager tableMetadataManager = TableMetadataManagers.createAndWarmCache(
+                keyValueService, PTExecutors.newSingleThreadScheduledExecutor());
+        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(tableMetadataManager);
+        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.create(tableMetadataManager);
 
         CleanupFollower follower = CleanupFollower.create(schemas());
 
@@ -496,6 +501,7 @@ public abstract class TransactionManagers {
                         () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                         conflictManager,
                         sweepStrategyManager,
+                        tableMetadataManager,
                         cleaner,
                         () -> areTransactionManagerInitializationPrerequisitesSatisfied(
                                 initializer, lockAndTimestampServices),

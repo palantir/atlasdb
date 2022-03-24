@@ -104,7 +104,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(constraintCheckingMode),
-                ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
+                ConflictDetectionManagers.createForTests(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
                 DefaultTimestampCache.createForTests(),

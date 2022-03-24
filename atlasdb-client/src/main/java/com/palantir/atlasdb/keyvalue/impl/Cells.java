@@ -43,10 +43,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
-import javax.annotation.Nullable;
 
 public final class Cells {
     private static final SafeLogger log = SafeLoggerFactory.get(Cells.class);
@@ -191,22 +191,23 @@ public final class Cells {
     }
 
     public static CellConflict createConflictWithMetadata(
-            @Nullable TableMetadata metadata, Cell cell, long theirStartTs, long theirCommitTs) {
+            Optional<TableMetadata> metadata, Cell cell, long theirStartTs, long theirCommitTs) {
         return new CellConflict(cell, getHumanReadableCellName(metadata, cell), theirStartTs, theirCommitTs);
     }
 
-    private static String getHumanReadableCellName(@Nullable TableMetadata metadata, Cell cell) {
+    private static String getHumanReadableCellName(Optional<TableMetadata> metadata, Cell cell) {
         if (cell == null) {
             return "null";
         }
-        if (metadata == null) {
+        if (metadata.isEmpty()) {
             return cell.toString();
         }
         try {
-            String rowName = metadata.getRowMetadata().renderToJson(cell.getRowName());
+            String rowName = metadata.get().getRowMetadata().renderToJson(cell.getRowName());
             String colName;
-            if (metadata.getColumns().hasDynamicColumns()) {
-                colName = metadata.getColumns()
+            if (metadata.get().getColumns().hasDynamicColumns()) {
+                colName = metadata.get()
+                        .getColumns()
                         .getDynamicColumn()
                         .getColumnNameDesc()
                         .renderToJson(cell.getColumnName());

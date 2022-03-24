@@ -77,7 +77,7 @@ public class TableTasksTest {
         txService = TransactionServices.createRaw(kvs, inMemoryTimeLockRule.getTimestampService(), false);
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
+        ConflictDetectionManager cdm = ConflictDetectionManagers.createForTests(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         metricsManager = MetricsManagers.createForTests();

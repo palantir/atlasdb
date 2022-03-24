@@ -15,83 +15,21 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.google.common.collect.Maps;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.SweepStrategy;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 
 public final class SweepStrategyManagers {
-    private SweepStrategyManagers() {
-        //
-    }
+    private SweepStrategyManagers() {}
 
-    public enum CacheWarming {
-        FULL,
-        NONE,
-        ;
-    }
-
-    public static SweepStrategyManager createDefault(KeyValueService kvs) {
-        return create(kvs, CacheWarming.FULL);
-    }
-
-    public static SweepStrategyManager create(KeyValueService kvs, CacheWarming cacheWarming) {
-        // Wrap in a RecomputingSupplier for its logic to protect against concurrent initialization
-        RecomputingSupplier<LoadingCache<TableReference, SweepStrategy>> sweepStrategySupplierLoadingCache =
-                RecomputingSupplier.create(() -> {
-                    // On a cache miss, load metadata only for the relevant table. Helpful when many dynamic tables.
-                    LoadingCache<TableReference, SweepStrategy> cache = Caffeine.newBuilder()
-                            .expireAfterAccess(Duration.ofDays(1))
-                            .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
-
-                    // Possibly warm the cache.
-                    cache.putAll(getSweepStrategiesForWarmingCache(kvs, cacheWarming));
-
-                    return cache;
-                });
-
-        return new SweepStrategyManager() {
-            @Override
-            public SweepStrategy get(TableReference tableRef) {
-                return sweepStrategySupplierLoadingCache.get().get(tableRef);
-            }
-
-            @Override
-            public void invalidateCaches(Set<TableReference> tableRefs) {
-                sweepStrategySupplierLoadingCache.get().invalidateAll(tableRefs);
-            }
-        };
+    public static SweepStrategyManager create(TableMetadataManager tableMetadataManager) {
+        // THIS IS A CHANGE IN BEHAVIOR - CHECK IF FINE
+        return tableRef -> tableMetadataManager
+                .get(tableRef)
+                .map(tableMetadata -> SweepStrategy.from(tableMetadata.getSweepStrategy()))
+                .orElseGet(() -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
     }
 
     public static SweepStrategyManager completelyConservative() {
         return tableRef -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-    }
-
-    private static Map<TableReference, SweepStrategy> getSweepStrategiesForWarmingCache(
-            KeyValueService kvs, CacheWarming cacheWarming) {
-        switch (cacheWarming) {
-            case FULL:
-                return Maps.transformValues(kvs.getMetadataForTables(), SweepStrategyManagers::getSweepStrategy);
-            case NONE:
-            default:
-                return Collections.emptyMap();
-        }
-    }
-
-    private static SweepStrategy getSweepStrategy(byte[] tableMeta) {
-        if (tableMeta != null && tableMeta.length > 0) {
-            return SweepStrategy.from(
-                    TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
-        } else {
-            return SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-        }
     }
 }

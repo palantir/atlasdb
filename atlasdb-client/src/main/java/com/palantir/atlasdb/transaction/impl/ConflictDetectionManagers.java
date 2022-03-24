@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.concurrent.PTExecutors;
 import java.util.Optional;
 
 public final class ConflictDetectionManagers {
@@ -28,15 +27,12 @@ public final class ConflictDetectionManagers {
         return _tableReference -> Optional.of(ConflictHandler.IGNORE_ALL);
     }
 
-    public static ConflictDetectionManager createWithoutWarmingCache(KeyValueService kvs) {
+    public static ConflictDetectionManager createForTests(KeyValueService kvs) {
         TableMetadataManagers tableMetadataManagers = TableMetadataManagers.createWithoutWarmingCache(kvs);
         return tableReference -> tableMetadataManagers.get(tableReference).map(TableMetadata::getConflictHandler);
     }
 
-    public static ConflictDetectionManager create(KeyValueService kvs) {
-        // FIX THIS - CANNOT USE newSingleThreadedExecutor as will block startup
-        TableMetadataManagers tableMetadataManagers =
-                TableMetadataManagers.createAndWarmCache(kvs, PTExecutors.newSingleThreadExecutor());
-        return tableReference -> tableMetadataManagers.get(tableReference).map(TableMetadata::getConflictHandler);
+    public static ConflictDetectionManager create(TableMetadataManager tableMetadataManager) {
+        return tableReference -> tableMetadataManager.get(tableReference).map(TableMetadata::getConflictHandler);
     }
 }
