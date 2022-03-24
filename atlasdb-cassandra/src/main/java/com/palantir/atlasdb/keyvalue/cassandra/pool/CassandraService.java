@@ -190,10 +190,15 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
+    /**
+     * It is expected that config provides list of servers that are directly reachable and do not require special IP
+     * resolution.
+     * */
     public Set<CassandraServer> getInitialServerList() {
         Set<InetSocketAddress> inetSocketAddresses = getServersFromConfig();
-        Set<CassandraServer> initialList =
-                inetSocketAddresses.stream().map(this::getCassandraServer).collect(Collectors.toSet());
+        Set<CassandraServer> initialList = inetSocketAddresses.stream()
+                .map(cassandraHost -> CassandraServer.from(cassandraHost.getHostString(), cassandraHost))
+                .collect(Collectors.toSet());
 
         log.info("Initial server list appears to be: ", SafeArg.of("initialList", initialList.toString()));
 
@@ -204,13 +209,6 @@ public class CassandraService implements AutoCloseable {
         Set<InetSocketAddress> addresses = config.servers().accept(new ThriftHostsExtractingVisitor());
         log.info("Servers retrieved from config", SafeArg.of("servers", addresses.toString()));
         return addresses;
-    }
-
-    private CassandraServer getCassandraServer(InetSocketAddress cassandraHost) {
-        return CassandraServer.builder()
-                .cassandraHostName(cassandraHost.getHostString())
-                .reachableProxyIps(getReachableProxiesThrowUnchecked(cassandraHost))
-                .build();
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
@@ -344,26 +342,6 @@ public class CassandraService implements AutoCloseable {
 
     private Set<CassandraServer> getAllKnownServers() {
         return ImmutableSet.copyOf(Sets.union(currentPools.keySet(), getInitialServerList()));
-    }
-
-    private List<InetSocketAddress> getReachableProxiesThrowUnchecked(InetSocketAddress addr) {
-        try {
-            String hostAddress = addr.getHostString();
-            List<InetSocketAddress> reachableProxiesThrowUnchecked = getReachableProxiesThrowUnchecked(hostAddress);
-
-            log.info(
-                    "Cassandra host to for which we need to find reachable IPs",
-                    SafeArg.of("hostAddress", hostAddress),
-                    SafeArg.of("proxies", reachableProxiesThrowUnchecked));
-
-            return reachableProxiesThrowUnchecked;
-        } catch (UnknownHostException e) {
-            log.warn(
-                    "Could not find reachable proxy for address, will try to hit the host directly.",
-                    SafeArg.of("addr", addr.toString()),
-                    e);
-            return ImmutableList.of(addr);
-        }
     }
 
     private List<CassandraServer> getHostsFor(byte[] key) {
