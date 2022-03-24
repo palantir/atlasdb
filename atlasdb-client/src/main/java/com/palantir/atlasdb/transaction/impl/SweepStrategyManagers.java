@@ -30,7 +30,7 @@ public final class SweepStrategyManagers {
                 .orElseGet(() -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
     }
 
-    public static SweepStrategyManager createForTests(KeyValueService keyValueService) {
+    public static SweepStrategyManager createWithoutWarmingCache(KeyValueService keyValueService) {
         TableMetadataManager tableMetadataManager = TableMetadataManagers.createWithoutWarmingCache(keyValueService);
         return create(tableMetadataManager);
     }

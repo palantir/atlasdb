@@ -178,8 +178,8 @@ public abstract class TransactionTestSetup {
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
         transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         transactionService = createTransactionService(keyValueService, transactionSchemaManager);
-        conflictDetectionManager = ConflictDetectionManagers.createForTests(keyValueService);
-        sweepStrategyManager = SweepStrategyManagers.createForTests(keyValueService);
+        conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
+        sweepStrategyManager = SweepStrategyManagers.createWithoutWarmingCache(keyValueService);
         tableMetadataManager = TableMetadataManagers.createWithoutWarmingCache(keyValueService);
         txMgr = createAndRegisterManager();
     }

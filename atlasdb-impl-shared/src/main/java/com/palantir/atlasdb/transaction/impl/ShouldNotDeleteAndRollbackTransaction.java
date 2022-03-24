@@ -90,7 +90,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 NoOpCleaner.INSTANCE,
                 () -> startTimeStamp,
                 ConflictDetectionManagers.createWithNoConflictDetection(),
-                SweepStrategyManagers.createForTests(keyValueService),
+                SweepStrategyManagers.createWithoutWarmingCache(keyValueService),
                 TableMetadataManagers.createWithoutWarmingCache(keyValueService),
                 startTimeStamp,
                 Optional.empty(),

@@ -27,7 +27,7 @@ public final class ConflictDetectionManagers {
         return _tableReference -> Optional.of(ConflictHandler.IGNORE_ALL);
     }
 
-    public static ConflictDetectionManager createForTests(KeyValueService kvs) {
+    public static ConflictDetectionManager createWithoutWarmingCache(KeyValueService kvs) {
         TableMetadataManager tableMetadataManager = TableMetadataManagers.createWithoutWarmingCache(kvs);
         return tableReference -> tableMetadataManager.get(tableReference).map(TableMetadata::getConflictHandler);
     }

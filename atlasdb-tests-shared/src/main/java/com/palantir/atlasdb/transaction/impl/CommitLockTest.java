@@ -168,7 +168,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
-                SweepStrategyManagers.createForTests(keyValueService),
+                SweepStrategyManagers.createWithoutWarmingCache(keyValueService),
                 TableMetadataManagers.createWithoutWarmingCache(keyValueService),
                 0L,
                 Optional.empty(),
