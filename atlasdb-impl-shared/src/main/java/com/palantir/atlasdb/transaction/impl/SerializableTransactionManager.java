@@ -506,7 +506,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 startTimestampSupplier,
                 getConflictDetectionManager(),
-                sweepStrategyManager, ,
+                sweepStrategyManager,
+                tableMetadataManager,
                 immutableTimestamp,
                 Optional.of(immutableTsLock),
                 preCommitCondition,
@@ -521,7 +522,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
-                conflictTracer, tableLevelMetricsController);
+                conflictTracer,
+                tableLevelMetricsController);
     }
 
     @VisibleForTesting

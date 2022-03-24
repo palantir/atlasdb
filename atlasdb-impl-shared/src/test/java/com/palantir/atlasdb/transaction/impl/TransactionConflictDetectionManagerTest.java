@@ -21,13 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,23 +39,13 @@ public final class TransactionConflictDetectionManagerTest {
             TableReference.create(Namespace.EMPTY_NAMESPACE, "test_table");
 
     @Mock
-    private CacheLoader<TableReference, Optional<ConflictHandler>> delegate;
+    private ConflictDetectionManager delegate;
 
     private TransactionConflictDetectionManager conflictDetectionManager;
 
     @Before
     public void before() {
-        conflictDetectionManager = new TransactionConflictDetectionManager(new ConflictDetectionManager(delegate) {
-            @Override
-            @Nullable
-            public Optional<ConflictHandler> get(TableReference tableReference) {
-                try {
-                    return delegate.load(tableReference);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
+        conflictDetectionManager = new TransactionConflictDetectionManager(delegate);
     }
 
     @Test
@@ -75,7 +63,7 @@ public final class TransactionConflictDetectionManagerTest {
 
     @Test
     public void testDisableReadWriteConflict_throwsIfCalledAfterTableWasUsed() throws Exception {
-        when(delegate.load(TABLE_REFERENCE)).thenReturn(Optional.of(ConflictHandler.SERIALIZABLE));
+        when(delegate.get(TABLE_REFERENCE)).thenReturn(Optional.of(ConflictHandler.SERIALIZABLE));
         conflictDetectionManager.get(TABLE_REFERENCE);
         assertThatLoggableExceptionThrownBy(() -> conflictDetectionManager.disableReadWriteConflict(TABLE_REFERENCE))
                 .isExactlyInstanceOf(SafeIllegalStateException.class)
@@ -130,7 +118,7 @@ public final class TransactionConflictDetectionManagerTest {
     }
 
     private void whenDisableReadWriteConflict(ConflictHandler initial) throws Exception {
-        when(delegate.load(TABLE_REFERENCE)).thenReturn(Optional.ofNullable(initial));
+        when(delegate.get(TABLE_REFERENCE)).thenReturn(Optional.ofNullable(initial));
         conflictDetectionManager.disableReadWriteConflict(TABLE_REFERENCE);
     }
 }

@@ -241,7 +241,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final AtomicReference<State> state = new AtomicReference<>(State.UNCOMMITTED);
     private final AtomicLong numWriters = new AtomicLong();
     protected final SweepStrategyManager sweepStrategyManager;
-    private final TableMetadataManager tableMetadataManager;
+    protected final TableMetadataManager tableMetadataManager;
     protected final Long transactionReadTimeoutMillis;
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private volatile long commitTsForScrubbing = TransactionConstants.FAILED_COMMIT_TS;

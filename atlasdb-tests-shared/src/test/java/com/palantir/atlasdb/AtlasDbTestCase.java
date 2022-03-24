@@ -34,6 +34,8 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManager;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
@@ -67,6 +69,7 @@ public class AtlasDbTestCase {
     protected TimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
+    protected TableMetadataManager tableMetadataManager;
     protected TestTransactionManager serializableTxManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
@@ -88,6 +91,7 @@ public class AtlasDbTestCase {
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createForTests(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createForTests(keyValueService);
+        tableMetadataManager = TableMetadataManagers.createWithoutWarmingCache(keyValueService);
 
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
         setUpTransactionManagers();
@@ -115,6 +119,7 @@ public class AtlasDbTestCase {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
+                tableMetadataManager,
                 DefaultTimestampCache.createForTests(),
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService());

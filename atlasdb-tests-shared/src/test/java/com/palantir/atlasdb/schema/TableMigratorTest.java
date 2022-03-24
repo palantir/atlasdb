@@ -39,6 +39,8 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManager;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -90,6 +92,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final InMemoryKeyValueService kvs2 = new InMemoryKeyValueService(false);
         final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative();
+        final TableMetadataManager tdm2 = TableMetadataManagers.createWithoutWarmingCache(kvs2);
         final MetricsManager metricsManager = MetricsManagers.createForTests();
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
                 metricsManager,
@@ -99,6 +102,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 transactionService,
                 cdm2,
                 ssm2,
+                tdm2,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
@@ -128,6 +132,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
 
         final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative();
+        final TableMetadataManager verifyTsm = TableMetadataManagers.createWithoutWarmingCache(kvs2);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
@@ -136,6 +141,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 transactionService,
                 verifyCdm,
                 verifySsm,
+                verifyTsm,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());

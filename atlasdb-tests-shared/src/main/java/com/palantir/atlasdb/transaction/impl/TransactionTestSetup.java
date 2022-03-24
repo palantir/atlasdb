@@ -207,6 +207,7 @@ public abstract class TransactionTestSetup {
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
+                tableMetadataManager,
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());

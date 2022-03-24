@@ -72,7 +72,7 @@ public class TableMetadataManagers implements TableMetadataManager {
                     if (metadata == null || metadata.length == 0) {
                         log.debug("Metadata was null for a table."
                                 + " Likely because the table is currently being created."
-                                + " Skipping warming cache for the table.");
+                                + " Skipping warming metadata cache for the table.");
                         return Optional.empty();
                     } else {
                         return Optional.of(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata));
@@ -80,7 +80,7 @@ public class TableMetadataManagers implements TableMetadataManager {
                 }));
             } catch (Throwable t) {
                 log.warn(
-                        "There was a problem with pre-warming the conflict detection cache; if you"
+                        "There was a problem with pre-warming the metadata cache; if you"
                                 + " have unusually high table scale, this might be expected."
                                 + " Performance may be degraded until normal usage adequately warms"
                                 + " the cache.",

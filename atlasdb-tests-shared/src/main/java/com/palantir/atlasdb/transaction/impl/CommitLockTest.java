@@ -168,7 +168,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
-                SweepStrategyManagers.createForTests(keyValueService), ,
+                SweepStrategyManagers.createForTests(keyValueService),
+                TableMetadataManagers.createWithoutWarmingCache(keyValueService),
                 0L,
                 Optional.empty(),
                 preCommitCondition,
@@ -183,7 +184,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 MoreExecutors.newDirectExecutorService(),
                 true,
                 () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP, new SimpleTableLevelMetricsController(metricsManager)) {
+                ConflictTracer.NO_OP,
+                new SimpleTableLevelMetricsController(metricsManager)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

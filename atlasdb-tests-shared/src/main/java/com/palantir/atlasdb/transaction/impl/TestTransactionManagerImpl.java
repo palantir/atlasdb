@@ -67,6 +67,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
+            TableMetadataManager tableMetadataManager,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor) {
@@ -78,6 +79,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 transactionService,
                 conflictDetectionManager,
                 sweepStrategyManager,
+                tableMetadataManager,
                 timestampCache,
                 sweepQueue,
                 deleteExecutor,
@@ -132,6 +134,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
+            TableMetadataManager tableMetadataManager,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
@@ -245,7 +248,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private Map<TableReference, Optional<ConflictHandler>> getConflictHandlerWithOverrides() {
         Map<TableReference, Optional<ConflictHandler>> conflictHandlersWithOverrides = new HashMap<>();
-        conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
+        // FIX THIS
+        //        conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
         conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
         return conflictHandlersWithOverrides;
     }

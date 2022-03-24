@@ -95,6 +95,7 @@ public class SnapshotTransactionManagerTest {
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 null,
                 null,
+                null,
                 cleaner,
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
@@ -148,6 +149,7 @@ public class SnapshotTransactionManagerTest {
                 services.getManagedTimestampService(),
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
+                null,
                 null,
                 null,
                 null,
@@ -277,6 +279,7 @@ public class SnapshotTransactionManagerTest {
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
                 () -> null,
+                null,
                 null,
                 null,
                 cleaner,

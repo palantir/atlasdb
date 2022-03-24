@@ -35,6 +35,8 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManager;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -99,6 +101,12 @@ public class KeyValueServiceModule {
     @Singleton
     public SweepStrategyManager provideSweepStrategyManager(@Named("kvs") KeyValueService kvs) {
         return SweepStrategyManagers.createForTests(kvs);
+    }
+
+    @Provides
+    @Singleton
+    public TableMetadataManager provideTableMetadataManager(@Named("kvs") KeyValueService kvs) {
+        return TableMetadataManagers.createWithoutWarmingCache(kvs);
     }
 
     @Provides

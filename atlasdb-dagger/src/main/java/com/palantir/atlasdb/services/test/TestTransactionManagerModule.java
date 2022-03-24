@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -88,10 +89,10 @@ public class TestTransactionManagerModule {
             ServicesConfig config,
             @Named("kvs") KeyValueService kvs,
             LockAndTimestampServices lts,
-            LockClient lockClient,
             TransactionService transactionService,
             ConflictDetectionManager conflictManager,
             SweepStrategyManager sweepStrategyManager,
+            TableMetadataManager tableMetadataManager,
             Cleaner cleaner) {
         return new SerializableTransactionManager(
                 metricsManager,
@@ -104,7 +105,8 @@ public class TestTransactionManagerModule {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                tableMetadataManager, cleaner,
+                tableMetadataManager,
+                cleaner,
                 new DefaultTimestampCache(metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig()
                         .getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),
