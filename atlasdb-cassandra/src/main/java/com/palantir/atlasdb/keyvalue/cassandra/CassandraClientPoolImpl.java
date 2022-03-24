@@ -532,6 +532,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return;
         }
 
+        if (TokenRangeResolution.viewsAreConsistent(tokenRangesToHost.keySet())) {
+            log.info("Although multiple ring descriptions were detected, we believe these to be consistent:"
+                    + " ranges detected were identical. This may occur when there are legitimate network routing"
+                    + " changes, for instance.");
+            return;
+        }
+
         RuntimeException ex = new SafeIllegalStateException(
                 "Hosts have differing ring descriptions. This can lead to inconsistent reads and lost data.");
         log.error(

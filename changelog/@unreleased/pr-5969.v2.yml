@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: Accept matching token ranges and number of hosts associated with each
+    range as sufficient for having a consistent view of the token ring. Previously,
+    there was a race condition at k8s deployments that meant that we would declare
+    an inconsistent ring when this was not the case.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5969
