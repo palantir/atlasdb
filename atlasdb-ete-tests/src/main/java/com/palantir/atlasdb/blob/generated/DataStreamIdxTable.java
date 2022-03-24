@@ -527,7 +527,7 @@ public final class DataStreamIdxTable implements
     public Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> get(Multimap<DataStreamIdxRow, DataStreamIdxColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> rowMap = HashMultimap.create();
+        Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 DataStreamIdxRow row = DataStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -577,7 +577,7 @@ public final class DataStreamIdxTable implements
     }
 
     private static Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> rowMap = HashMultimap.create();
+        Multimap<DataStreamIdxRow, DataStreamIdxColumnValue> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             DataStreamIdxRow row = DataStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -753,5 +753,5 @@ public final class DataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JelgYU1LGPHdRT6dwB6nNA==";
+    static String __CLASS_HASH = "8Wqohk3F5h9KdHES5oaQFw==";
 }

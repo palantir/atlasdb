@@ -513,7 +513,7 @@ public final class KeyValueTable implements
     }
 
     private static Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             KeyValueRow row = KeyValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -681,5 +681,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "9QB2ElKcwMxo2fUh0a0hww==";
+    static String __CLASS_HASH = "rc94YliIsNRqnXhNTeeQxQ==";
 }

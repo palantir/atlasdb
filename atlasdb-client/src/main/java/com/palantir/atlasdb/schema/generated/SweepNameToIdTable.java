@@ -527,7 +527,7 @@ public final class SweepNameToIdTable implements
     }
 
     private static Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             SweepNameToIdRow row = SweepNameToIdRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -695,5 +695,5 @@ public final class SweepNameToIdTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "26eSHzi0SrHfYPlHdTiJHQ==";
+    static String __CLASS_HASH = "kJLS1HqSwziNrdmAGjYEgQ==";
 }

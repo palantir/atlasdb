@@ -6,13 +6,14 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import java.lang.Override;
 import java.util.List;
 import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class BlobSchemaTableFactory {
     private static final Namespace defaultNamespace = Namespace.create("blob", Namespace.UNCHECKED_NAME);
+
+    private static final BlobSchemaTableFactory defaultTableFactory = of(defaultNamespace);
 
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
 
@@ -34,11 +35,11 @@ public final class BlobSchemaTableFactory {
     }
 
     public static BlobSchemaTableFactory of(Namespace namespace) {
-        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);
+        return of(ImmutableList.of(), namespace);
     }
 
     public static BlobSchemaTableFactory of() {
-        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
+        return defaultTableFactory;
     }
 
     public AuditedDataTable getAuditedDataTable(Transaction t, AuditedDataTable.AuditedDataTrigger... triggers) {

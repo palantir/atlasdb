@@ -528,7 +528,7 @@ public final class SweepIdToNameTable implements
     public Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> get(Multimap<SweepIdToNameRow, SweepIdToNameColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> rowMap = HashMultimap.create();
+        Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 SweepIdToNameRow row = SweepIdToNameRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -578,7 +578,7 @@ public final class SweepIdToNameTable implements
     }
 
     private static Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> rowMap = HashMultimap.create();
+        Multimap<SweepIdToNameRow, SweepIdToNameColumnValue> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             SweepIdToNameRow row = SweepIdToNameRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -754,5 +754,5 @@ public final class SweepIdToNameTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "EOZ88gJXh1tXBjNBFJIO0g==";
+    static String __CLASS_HASH = "TCkfqEbhWHCJvC+P6uu7GQ==";
 }

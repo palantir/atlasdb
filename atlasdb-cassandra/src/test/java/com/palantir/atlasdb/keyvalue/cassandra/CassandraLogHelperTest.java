@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -76,5 +77,28 @@ public class CassandraLogHelperTest {
         List<String> hashes = CassandraLogHelper.tokenRangeHashes(ranges);
         assertThat(hashes).hasSize(numRanges);
         assertThat(ImmutableSet.copyOf(hashes)).hasSizeGreaterThan((int) (0.99 * numRanges));
+    }
+
+    @Test
+    public void unresolvedHost() {
+        assertThat(CassandraLogHelper.host(InetSocketAddress.createUnresolved("localhost", 1234)))
+                .satisfies(hostAndIpAddress -> {
+                    assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
+                    assertThat(hostAndIpAddress.ipAddress()).isNull();
+                })
+                .asString()
+                .isEqualTo("HostAndIpAddress{host=localhost}");
+    }
+
+    @Test
+    @SuppressWarnings("DnsLookup") // we want the DNS lookup to resolve localhost
+    public void resolvedHost() {
+        assertThat(CassandraLogHelper.host(new InetSocketAddress("localhost", 1234)))
+                .satisfies(hostAndIpAddress -> {
+                    assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
+                    assertThat(hostAndIpAddress.ipAddress()).isEqualTo("127.0.0.1");
+                })
+                .asString()
+                .isEqualTo("HostAndIpAddress{host=localhost, ipAddress=127.0.0.1}");
     }
 }

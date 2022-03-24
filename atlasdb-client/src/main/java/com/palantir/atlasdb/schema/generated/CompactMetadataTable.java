@@ -513,7 +513,7 @@ public final class CompactMetadataTable implements
     }
 
     private static Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<CompactMetadataRow, CompactMetadataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             CompactMetadataRow row = CompactMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -681,5 +681,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2gGbOYcqE0bNlw1kWmNLIQ==";
+    static String __CLASS_HASH = "3E7A2G8e28hDNktKg3axyw==";
 }

@@ -569,7 +569,7 @@ public final class KvRowsTable implements
     }
 
     private static Multimap<KvRowsRow, KvRowsNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<KvRowsRow, KvRowsNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<KvRowsRow, KvRowsNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             KvRowsRow row = KvRowsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -799,5 +799,5 @@ public final class KvRowsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qQ8yVU6mlFnS76qaOYTVtg==";
+    static String __CLASS_HASH = "w/ubZQEj31dYSdz4BnjNhA==";
 }

@@ -525,7 +525,7 @@ public final class HotspottyDataStreamValueTable implements
     }
 
     private static Multimap<HotspottyDataStreamValueRow, HotspottyDataStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<HotspottyDataStreamValueRow, HotspottyDataStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<HotspottyDataStreamValueRow, HotspottyDataStreamValueNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             HotspottyDataStreamValueRow row = HotspottyDataStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -693,5 +693,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "WgGV3tTBVKug1Y6FQllJmw==";
+    static String __CLASS_HASH = "92s4qYucKaYQLGes5kWldg==";
 }

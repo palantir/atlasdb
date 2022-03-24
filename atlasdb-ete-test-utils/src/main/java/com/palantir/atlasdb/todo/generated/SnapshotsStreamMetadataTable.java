@@ -252,6 +252,7 @@ public final class SnapshotsStreamMetadataTable implements
      *     label: LABEL_REQUIRED
      *     type: TYPE_BYTES
      *   }
+     *   
      * }
      * </pre>
      */
@@ -537,7 +538,7 @@ public final class SnapshotsStreamMetadataTable implements
     }
 
     private static Multimap<SnapshotsStreamMetadataRow, SnapshotsStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SnapshotsStreamMetadataRow, SnapshotsStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<SnapshotsStreamMetadataRow, SnapshotsStreamMetadataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             SnapshotsStreamMetadataRow row = SnapshotsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -705,5 +706,5 @@ public final class SnapshotsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vXdAdtvwyfLfrzs7QCMkdQ==";
+    static String __CLASS_HASH = "X3JFuJds6clwIRfsF6t4XQ==";
 }
