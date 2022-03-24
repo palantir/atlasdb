@@ -36,7 +36,7 @@ public final class ConflictDetectionManagers {
     public static ConflictDetectionManager create(KeyValueService kvs) {
         // FIX THIS - CANNOT USE newSingleThreadedExecutor as will block startup
         TableMetadataManagers tableMetadataManagers =
-                TableMetadataManagers.create(kvs, true, PTExecutors.newSingleThreadExecutor());
+                TableMetadataManagers.createAndWarmCache(kvs, PTExecutors.newSingleThreadExecutor());
         return tableReference -> tableMetadataManagers.get(tableReference).map(TableMetadata::getConflictHandler);
     }
 }

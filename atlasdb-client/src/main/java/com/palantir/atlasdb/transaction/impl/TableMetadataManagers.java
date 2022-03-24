@@ -56,37 +56,37 @@ public class TableMetadataManagers implements TableMetadataManager {
         return new TableMetadataManagers(kvs);
     }
 
-    public static TableMetadataManagers create(
-            KeyValueService kvs, boolean warmCache, ExecutorService executorService) {
+    public static TableMetadataManagers createAndWarmCache(KeyValueService kvs, ExecutorService executorService) {
         TableMetadataManagers manager = new TableMetadataManagers(kvs);
-
-        if (warmCache) {
-            // kick off an async thread that attempts to fully warm this cache
-            // if it fails (e.g. probably this user has way too many tables), that's okay,
-            // we will be falling back on individually loading in tables as needed.
-            executorService.submit(() -> {
-                try {
-                    manager.cache.putAll(Maps.transformValues(kvs.getMetadataForTables(), metadata -> {
-                        if (metadata == null || metadata.length == 0) {
-                            log.debug("Metadata was null for a table."
-                                    + " Likely because the table is currently being created."
-                                    + " Skipping warming cache for the table.");
-                            return Optional.empty();
-                        } else {
-                            return Optional.of(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata));
-                        }
-                    }));
-                } catch (Throwable t) {
-                    log.warn(
-                            "There was a problem with pre-warming the conflict detection cache; if you"
-                                    + " have unusually high table scale, this might be expected."
-                                    + " Performance may be degraded until normal usage adequately warms"
-                                    + " the cache.",
-                            t);
-                }
-            });
-        }
+        warmCache(kvs, executorService, manager);
         return manager;
+    }
+
+    private static void warmCache(KeyValueService kvs, ExecutorService executorService, TableMetadataManagers manager) {
+        // kick off an async thread that attempts to fully warm this cache
+        // if it fails (e.g. probably this user has way too many tables), that's okay,
+        // we will be falling back on individually loading in tables as needed.
+        executorService.submit(() -> {
+            try {
+                manager.cache.putAll(Maps.transformValues(kvs.getMetadataForTables(), metadata -> {
+                    if (metadata == null || metadata.length == 0) {
+                        log.debug("Metadata was null for a table."
+                                + " Likely because the table is currently being created."
+                                + " Skipping warming cache for the table.");
+                        return Optional.empty();
+                    } else {
+                        return Optional.of(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata));
+                    }
+                }));
+            } catch (Throwable t) {
+                log.warn(
+                        "There was a problem with pre-warming the conflict detection cache; if you"
+                                + " have unusually high table scale, this might be expected."
+                                + " Performance may be degraded until normal usage adequately warms"
+                                + " the cache.",
+                        t);
+            }
+        });
     }
 
     public Optional<TableMetadata> get(TableReference tableRef) {
