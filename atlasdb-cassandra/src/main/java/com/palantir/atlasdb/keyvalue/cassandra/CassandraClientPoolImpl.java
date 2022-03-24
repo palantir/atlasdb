@@ -395,7 +395,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             completelyUnresponsiveNodes.forEach(
                     (cassandraServer, exception) -> errorBuilderForEntireCluster.append(String.format(
                             "\tServer: %s was marked unreachable via proxy: %s, " + " with exception: %s%n",
-                            cassandraServer.cassandraHostAddress().getHostString(),
+                            cassandraServer.cassandraHostName(),
                             cassandraServer.proxy().getHostString(),
                             exception.toString())));
         }
@@ -408,7 +408,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             aliveButInvalidPartitionerNodes.forEach(
                     (host, exception) -> errorBuilderForEntireCluster.append(String.format(
                             "\tHost: %s was marked as invalid partitioner" + " via exception: %s%n",
-                            host.cassandraHostAddress().getHostString(), exception.toString())));
+                            host.cassandraHostName(), exception.toString())));
         }
 
         if (atLeastOneHostResponded && aliveButInvalidPartitionerNodes.size() == 0) {
@@ -430,9 +430,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         while (true) {
             if (log.isTraceEnabled()) {
-                log.trace(
-                        "Running function on host {}.",
-                        SafeArg.of("host", CassandraLogHelper.cassandraServer(req.getCassandraServer())));
+                log.trace("Running function on host {}.", SafeArg.of("server", req.getCassandraServer()));
             }
             CassandraClientPoolingContainer hostPool = getPreferredHostOrFallBack(req);
 
@@ -457,8 +455,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
             log.warn(
                     "Randomly redirected a query intended for host {} to {}.",
-                    SafeArg.of("previousHost", CassandraLogHelper.cassandraServer(previousHost)),
-                    SafeArg.of("randomHost", CassandraLogHelper.cassandraServer(hostPool.getCassandraServer())));
+                    SafeArg.of("previousHost", previousHost),
+                    SafeArg.of("randomHost", hostPool.getCassandraServer()));
         }
         return hostPool;
     }
@@ -482,7 +480,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             blacklist.remove(cassandraServer);
             log.info(
                     "Added cassandraServer {} back into the pool after receiving a successful response",
-                    SafeArg.of("cassandraServer", CassandraLogHelper.cassandraServer(cassandraServer)));
+                    SafeArg.of("cassandraServer", cassandraServer));
         }
     }
 
@@ -518,7 +516,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             } catch (Exception e) {
                 log.warn(
                         "Failed to get ring info from host: {}",
-                        SafeArg.of("host", CassandraLogHelper.cassandraServer(host)),
+                        SafeArg.of("host", host.cassandraHostName()),
                         SafeArg.of("proxy", CassandraLogHelper.host(host.proxy())),
                         e);
             }
@@ -550,11 +548,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     .filter(entry -> entry.getValue().size() == 1)
                     .forEach(entry -> {
                         // We've checked above that entry.getValue() has one element, so we never NPE here.
-                        CassandraLogHelper.HostAndIpAddress hostString =
-                                CassandraLogHelper.cassandraServer(Iterables.getFirst(entry.getValue(), null));
                         log.error(
                                 "Host: {} disagrees with the other nodes about the ring state.",
-                                SafeArg.of("host", hostString));
+                                SafeArg.of("host", Iterables.getFirst(entry.getValue(), null)));
                     });
         }
         if (tokenRangesToHost.keySet().size() == 2) {

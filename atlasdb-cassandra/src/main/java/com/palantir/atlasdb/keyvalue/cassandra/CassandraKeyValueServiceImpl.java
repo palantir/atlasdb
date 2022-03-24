@@ -690,7 +690,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     SafeArg.of("cells", query.size()),
                                     LoggingArgs.tableRef(tableRef),
                                     SafeArg.of("startTs", startTs),
-                                    SafeArg.of("host", CassandraLogHelper.cassandraServer(host)));
+                                    SafeArg.of("host", host));
                         }
 
                         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =

@@ -208,16 +208,15 @@ public class CassandraService implements AutoCloseable {
 
     private CassandraServer getCassandraServer(InetSocketAddress cassandraHost) {
         return CassandraServer.builder()
-                .cassandraHostAddress(cassandraHost)
-                .reachableProxyIps(getReachableProxies(cassandraHost))
+                .cassandraHostName(cassandraHost.getHostString())
+                .reachableProxyIps(getReachableProxiesThrowUnchecked(cassandraHost))
                 .build();
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
         if (log.isDebugEnabled()) {
             Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
-                    .mapKeys(
-                            server -> server.cassandraHostAddress().getAddress().getHostAddress())
+                    .mapKeys(CassandraServer::cassandraHostName)
                     .collectToMap();
             log.debug(
                     "Logging host -> datacenter mapping following a refresh",
@@ -287,28 +286,42 @@ public class CassandraService implements AutoCloseable {
 
     @VisibleForTesting
     CassandraServer getAddressForHost(String inputHost) throws UnknownHostException {
-        InetSocketAddress cassHostAddress = config.addressTranslation().containsKey(inputHost)
-                ? config.addressTranslation().get(inputHost)
-                : new InetSocketAddress(InetAddress.getByName(inputHost), getKnownPort());
+        Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
+        String cassandraHostName = hostnamesByIp.getOrDefault(inputHost, inputHost);
+        List<InetSocketAddress> reachableProxies = getReachableProxiesThrowUnchecked(cassandraHostName);
 
-        Set<CassandraServer> knownNodes = getAllKnownServers();
-
-        for (CassandraServer server : knownNodes) {
-            if (server.cassandraHostAddress().equals(cassHostAddress)) {
+        for (CassandraServer server : getAllKnownServers()) {
+            if (server.cassandraHostName().equals(cassandraHostName)) {
                 // todo(snanda): Remove the log if algorithm changes
-                Set<InetSocketAddress> reachableProxies = ImmutableSet.copyOf(getReachableProxies(inputHost));
                 if (!reachableProxies.equals(ImmutableSet.copyOf(server.reachableProxyIps()))) {
                     log.warn(
                             "List of proxies has changed",
                             SafeArg.of("oldProxies", server.reachableProxyIps().toString()),
                             SafeArg.of("newProxies", reachableProxies.toString()),
-                            SafeArg.of("cassandraHost", inputHost));
+                            SafeArg.of("inputHost", inputHost),
+                            SafeArg.of("resovedCassandraHostName", cassandraHostName));
+                    return server;
                 }
-                return server;
             }
         }
 
-        return getCassandraServer(cassHostAddress);
+        log.info("Got a new cassandra server", SafeArg.of("cassandraHostName", cassandraHostName));
+
+        // todo(snanda): we use the resolved host name to match with init servers
+        return CassandraServer.builder()
+                .cassandraHostName(cassandraHostName)
+                .addAllReachableProxyIps(reachableProxies)
+                .build();
+    }
+
+    private List<InetSocketAddress> getReachableProxiesThrowUnchecked(String inputHost) throws UnknownHostException {
+        InetAddress[] resolvedHosts = InetAddress.getAllByName(inputHost);
+        int knownPort = getKnownPort();
+
+        // It is okay to have reachable proxies that do not have a hostname
+        return Stream.of(resolvedHosts)
+                .map(inetAddr -> new InetSocketAddress(inetAddr, knownPort))
+                .collect(Collectors.toList());
     }
 
     private int getKnownPort() throws UnknownHostException {
@@ -333,16 +346,17 @@ public class CassandraService implements AutoCloseable {
         return ImmutableSet.copyOf(Sets.union(currentPools.keySet(), getInitialServerList()));
     }
 
-    private List<InetSocketAddress> getReachableProxies(InetSocketAddress addr) {
+    private List<InetSocketAddress> getReachableProxiesThrowUnchecked(InetSocketAddress addr) {
         try {
-            String hostAddress =
-                    addr.isUnresolved() ? addr.getHostName() : addr.getAddress().getHostAddress();
+            String hostAddress = addr.getHostString();
+            List<InetSocketAddress> reachableProxiesThrowUnchecked = getReachableProxiesThrowUnchecked(hostAddress);
 
             log.info(
                     "Cassandra host to for which we need to find reachable IPs",
-                    SafeArg.of("hostAddress", hostAddress));
+                    SafeArg.of("hostAddress", hostAddress),
+                    SafeArg.of("proxies", reachableProxiesThrowUnchecked));
 
-            return getReachableProxies(hostAddress);
+            return reachableProxiesThrowUnchecked;
         } catch (UnknownHostException e) {
             log.warn(
                     "Could not find reachable proxy for address, will try to hit the host directly.",
@@ -350,19 +364,6 @@ public class CassandraService implements AutoCloseable {
                     e);
             return ImmutableList.of(addr);
         }
-    }
-
-    private List<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
-        Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
-        String host = hostnamesByIp.getOrDefault(inputHost, inputHost);
-
-        InetAddress[] resolvedHosts = InetAddress.getAllByName(host);
-        int knownPort = getKnownPort();
-
-        // It is okay to have reachable proxies that do not have a hostname
-        return Stream.of(resolvedHosts)
-                .map(inetAddr -> new InetSocketAddress(inetAddr, knownPort))
-                .collect(Collectors.toList());
     }
 
     private List<CassandraServer> getHostsFor(byte[] key) {
@@ -538,6 +539,10 @@ public class CassandraService implements AutoCloseable {
     }
 
     private void addPoolInternal(CassandraServer cassandraServer, CassandraClientPoolingContainer container) {
+        log.info(
+                "Putting server in cached pool",
+                SafeArg.of("cassandraHost", cassandraServer),
+                SafeArg.of("proxy", CassandraLogHelper.host(cassandraServer.proxy())));
         currentPools.put(cassandraServer, container);
     }
 
@@ -555,8 +560,7 @@ public class CassandraService implements AutoCloseable {
         Set<CassandraServer> thriftSocket = getInitialServerList();
 
         cassandraHosts = thriftSocket.stream()
-                .sorted(Comparator.comparing(
-                        nodeId -> nodeId.cassandraHostAddress().toString()))
+                .sorted(Comparator.comparing(CassandraServer::cassandraHostName))
                 .collect(Collectors.toList());
         cassandraHosts.forEach(this::addPool);
     }

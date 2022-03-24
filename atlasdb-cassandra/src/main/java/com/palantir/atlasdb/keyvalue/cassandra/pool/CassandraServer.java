@@ -24,7 +24,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface CassandraServer {
     @Value.Parameter
-    InetSocketAddress cassandraHostAddress();
+    String cassandraHostName();
 
     /**
      * We do maintain a list of all IPs but do not create a client pool for each one of these. As of now this list is
@@ -49,8 +49,12 @@ public interface CassandraServer {
     }
 
     static CassandraServer from(InetSocketAddress addr) {
+        return from(addr.getHostString(), addr);
+    }
+
+    static CassandraServer from(String hostName, InetSocketAddress addr) {
         return CassandraServer.builder()
-                .cassandraHostAddress(addr)
+                .cassandraHostName(hostName)
                 .addReachableProxyIps(addr)
                 .build();
     }

@@ -67,13 +67,13 @@ public class Blacklist {
                     blacklistIterator.remove();
                     log.info(
                             "Removing cassandraServer {} from the blacklist as it wasn't found in the pool.",
-                            SafeArg.of("cassandraServer", CassandraLogHelper.cassandraServer(cassandraServer)));
+                            SafeArg.of("cassandraServer", cassandraServer.cassandraHostName()));
                 } else if (isHostHealthy(pools.get(cassandraServer))) {
                     blacklistIterator.remove();
                     log.info(
                             "Added cassandraServer {} back into the pool after a waiting period and successful health"
                                     + " check.",
-                            SafeArg.of("cassandraServer", CassandraLogHelper.cassandraServer(cassandraServer)));
+                            SafeArg.of("cassandraServer", cassandraServer.cassandraHostName()));
                 }
             }
         }
@@ -93,7 +93,7 @@ public class Blacklist {
             log.info(
                     "We tried to add blacklisted host '{}' back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
-                    SafeArg.of("host", CassandraLogHelper.cassandraServer(container.getCassandraServer())),
+                    SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
                     UnsafeArg.of("exceptionMessage", e.getMessage()),
                     e);
@@ -113,7 +113,7 @@ public class Blacklist {
         blacklist.put(cassandraServer, clock.millis());
         log.info(
                 "Blacklisted cassandra host '{}' with proxy '{}'",
-                SafeArg.of("badHost", CassandraLogHelper.cassandraServer(cassandraServer)),
+                SafeArg.of("badHost", cassandraServer.cassandraHostName()),
                 SafeArg.of("proxy", CassandraLogHelper.host(cassandraServer.proxy())));
     }
 
@@ -125,7 +125,7 @@ public class Blacklist {
         blacklist.remove(host);
         log.info(
                 "Remove blacklisted host '{}' with proxy '{}'",
-                SafeArg.of("badHost", CassandraLogHelper.cassandraServer(host)),
+                SafeArg.of("badHost", host.cassandraHostName()),
                 SafeArg.of("proxy", CassandraLogHelper.host(host.proxy())));
     }
 
@@ -145,7 +145,7 @@ public class Blacklist {
         return blacklist.entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format(
                         "host: %s was blacklisted at %s",
-                        CassandraLogHelper.cassandraServer(blacklistedHostToBlacklistTime.getKey()),
+                        blacklistedHostToBlacklistTime.getKey().cassandraHostName(),
                         blacklistedHostToBlacklistTime.getValue().longValue()))
                 .collect(Collectors.toList());
     }
