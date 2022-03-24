@@ -145,6 +145,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             Supplier<Long> startTimeStamp,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
+            TableMetadataManager tableMetadataManager,
             long immutableTimestamp,
             Optional<LockToken> immutableTsLock,
             PreCommitCondition preCommitCondition,

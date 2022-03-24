@@ -92,13 +92,13 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     public ConflictDetectionManager provideConflictDetectionManager(@Named("kvs") KeyValueService kvs) {
-        return ConflictDetectionManagers.create(kvs);
+        return ConflictDetectionManagers.createForTests(kvs);
     }
 
     @Provides
     @Singleton
     public SweepStrategyManager provideSweepStrategyManager(@Named("kvs") KeyValueService kvs) {
-        return SweepStrategyManagers.createDefault(kvs);
+        return SweepStrategyManagers.createForTests(kvs);
     }
 
     @Provides

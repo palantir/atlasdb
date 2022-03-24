@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 import java.util.Arrays;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -29,20 +28,20 @@ public class DbKvsPostgresTargetedSweepIntegrationTest extends AbstractTargetedS
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
 
-    @Parameterized.Parameters(name = "ssmCacheWarming={0}")
-    public static Iterable<CacheWarming> data() {
-        return Arrays.asList(CacheWarming.values());
+    @Parameterized.Parameters(name = "shouldWarmCache={0}")
+    public static Iterable<Boolean> data() {
+        return Arrays.asList(true, false);
     }
 
-    private final CacheWarming ssmCacheWarming;
+    private final boolean shouldWarmCache;
 
-    public DbKvsPostgresTargetedSweepIntegrationTest(CacheWarming ssmCacheWarming) {
+    public DbKvsPostgresTargetedSweepIntegrationTest(boolean shouldWarmCache) {
         super(TRM, TRM);
-        this.ssmCacheWarming = ssmCacheWarming;
+        this.shouldWarmCache = shouldWarmCache;
     }
 
     @Override
-    protected CacheWarming getSsmCacheWarming() {
-        return ssmCacheWarming;
+    protected boolean shouldWarmCache() {
+        return shouldWarmCache;
     }
 }

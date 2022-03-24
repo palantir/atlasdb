@@ -91,7 +91,7 @@ import javax.validation.constraints.NotNull;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
-    private final TableMetadataManager tableMetadataManager;
+    final TableMetadataManager tableMetadataManager;
     final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;

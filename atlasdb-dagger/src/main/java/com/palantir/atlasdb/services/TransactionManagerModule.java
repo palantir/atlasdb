@@ -104,7 +104,7 @@ public class TransactionManagerModule {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                cleaner,
+                tableMetadataManager, cleaner,
                 new DefaultTimestampCache(metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig()
                         .getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),

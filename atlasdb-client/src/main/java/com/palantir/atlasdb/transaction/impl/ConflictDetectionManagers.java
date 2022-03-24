@@ -28,8 +28,8 @@ public final class ConflictDetectionManagers {
     }
 
     public static ConflictDetectionManager createForTests(KeyValueService kvs) {
-        TableMetadataManagers tableMetadataManagers = TableMetadataManagers.createWithoutWarmingCache(kvs);
-        return tableReference -> tableMetadataManagers.get(tableReference).map(TableMetadata::getConflictHandler);
+        TableMetadataManager tableMetadataManager = TableMetadataManagers.createWithoutWarmingCache(kvs);
+        return tableReference -> tableMetadataManager.get(tableReference).map(TableMetadata::getConflictHandler);
     }
 
     public static ConflictDetectionManager create(TableMetadataManager tableMetadataManager) {

@@ -34,16 +34,11 @@ import com.palantir.atlasdb.table.common.TableTasks.DiffStats;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
@@ -71,14 +66,11 @@ public class TableTasksTest {
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
 
-        LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
         txService = TransactionServices.createRaw(kvs, inMemoryTimeLockRule.getTimestampService(), false);
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createForTests(kvs);
-        SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         metricsManager = MetricsManagers.createForTests();
         txManager = SerializableTransactionManager.createForTest(
@@ -90,8 +82,6 @@ public class TableTasksTest {
                 inMemoryTimeLockRule.getLockWatchManager(),
                 txService,
                 constraints,
-                cdm,
-                ssm,
                 cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

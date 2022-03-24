@@ -52,11 +52,11 @@ public class TableMetadataManagers implements TableMetadataManager {
                 });
     }
 
-    public static TableMetadataManagers createWithoutWarmingCache(KeyValueService kvs) {
+    public static TableMetadataManager createWithoutWarmingCache(KeyValueService kvs) {
         return new TableMetadataManagers(kvs);
     }
 
-    public static TableMetadataManagers createAndWarmCache(KeyValueService kvs, ExecutorService executorService) {
+    public static TableMetadataManager createAndWarmCache(KeyValueService kvs, ExecutorService executorService) {
         TableMetadataManagers manager = new TableMetadataManagers(kvs);
         warmCache(kvs, executorService, manager);
         return manager;

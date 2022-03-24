@@ -35,9 +35,11 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManager;
+import com.palantir.atlasdb.transaction.impl.TableMetadataManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -86,14 +88,17 @@ public abstract class AbstractSweepTest {
         this.tmManager = tmManager;
     }
 
-    protected CacheWarming getSsmCacheWarming() {
-        return CacheWarming.FULL;
+    protected boolean shouldWarmCache() {
+        return true;
     }
 
     @Before
     public void setup() {
         kvs = kvsManager.getDefaultKvs();
-        ssm = SweepStrategyManagers.create(kvs, getSsmCacheWarming());
+        TableMetadataManager tmm = shouldWarmCache()
+                ? TableMetadataManagers.createAndWarmCache(kvs, PTExecutors.newSingleThreadScheduledExecutor())
+                : TableMetadataManagers.createWithoutWarmingCache(kvs);
+        ssm = SweepStrategyManagers.create(tmm);
         txManager = createAndRegisterManager();
         txService = TransactionServices.createRaw(kvs, txManager.getTimestampService(), false);
         SweepTestUtils.setupTables(kvs);
@@ -101,7 +106,7 @@ public abstract class AbstractSweepTest {
 
     protected TransactionManager createAndRegisterManager() {
         TransactionManager manager = SweepTestUtils.setupTxManager(
-                kvs, services.getLegacyTimelockService(), services.getTimestampManagementService(), ssm, txService);
+                kvs, services.getLegacyTimelockService(), services.getTimestampManagementService(), txService);
         tmManager.registerTransactionManager(manager);
         return manager;
     }

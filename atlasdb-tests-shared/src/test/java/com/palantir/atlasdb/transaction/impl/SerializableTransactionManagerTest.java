@@ -44,8 +44,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
 import java.util.Optional;
@@ -269,21 +267,21 @@ public class SerializableTransactionManagerTest {
 
     private TransactionManager getManagerWithCallback(
             boolean initializeAsync, Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
-        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
         return SerializableTransactionManager.create(
                 MetricsManagers.createForTests(),
                 mockKvs,
                 mockTimelockService,
                 NoOpLockWatchManager.create(),
                 mockTimestampManagementService,
-                null, // lockService
+                null, // LockService
                 mock(TransactionService.class),
-                () -> null, // constraintMode
-                null, // conflictDetectionManager
-                null, // sweepStrategyManager
+                () -> null, // AtlasDbConstraintCheckingMode
+                null, // ConflictDetectionManager
+                null, // SweepStrategyManager
+                null, // TableMetadataManager
                 mockCleaner,
                 mockInitializer::isInitialized,
-                false, // allowHiddenTableAccess
+                false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 initializeAsync,
@@ -293,6 +291,7 @@ public class SerializableTransactionManagerTest {
                 executor,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
+                false,
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty());

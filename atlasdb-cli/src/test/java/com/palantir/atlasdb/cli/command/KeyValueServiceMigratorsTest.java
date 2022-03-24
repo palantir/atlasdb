@@ -45,9 +45,7 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -362,8 +360,6 @@ public class KeyValueServiceMigratorsTest {
                 timeLock.getLockWatchManager(),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                ConflictDetectionManagers.createForTests(kvs),
-                SweepStrategyManagers.createDefault(kvs),
                 new NoOpCleaner(),
                 16,
                 4,

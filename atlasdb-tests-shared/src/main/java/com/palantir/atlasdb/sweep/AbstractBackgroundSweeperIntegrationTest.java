@@ -38,8 +38,6 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -90,10 +88,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD,
                 () -> true);
-        SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createV1TransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(
-                kvs, services.getLegacyTimelockService(), services.getTimestampManagementService(), ssm, txService);
+                kvs, services.getLegacyTimelockService(), services.getTimestampManagementService(), txService);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,

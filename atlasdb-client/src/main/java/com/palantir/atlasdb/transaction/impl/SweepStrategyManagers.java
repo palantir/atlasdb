@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 
@@ -27,6 +28,11 @@ public final class SweepStrategyManagers {
                 .get(tableRef)
                 .map(tableMetadata -> SweepStrategy.from(tableMetadata.getSweepStrategy()))
                 .orElseGet(() -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
+    }
+
+    public static SweepStrategyManager createForTests(KeyValueService keyValueService) {
+        TableMetadataManager tableMetadataManager = TableMetadataManagers.createWithoutWarmingCache(keyValueService);
+        return create(tableMetadataManager);
     }
 
     public static SweepStrategyManager completelyConservative() {

@@ -116,6 +116,7 @@ public abstract class TransactionTestSetup {
     protected TransactionService transactionService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
+    protected TableMetadataManager tableMetadataManager;
     protected TransactionManager txMgr;
 
     protected TimestampCache timestampCache;
@@ -178,7 +179,8 @@ public abstract class TransactionTestSetup {
         transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         transactionService = createTransactionService(keyValueService, transactionSchemaManager);
         conflictDetectionManager = ConflictDetectionManagers.createForTests(keyValueService);
-        sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        sweepStrategyManager = SweepStrategyManagers.createForTests(keyValueService);
+        tableMetadataManager = TableMetadataManagers.createWithoutWarmingCache(keyValueService);
         txMgr = createAndRegisterManager();
     }
 

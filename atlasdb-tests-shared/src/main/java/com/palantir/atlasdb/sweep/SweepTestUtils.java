@@ -27,11 +27,7 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
-import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -55,7 +51,6 @@ public final class SweepTestUtils {
                 kvs,
                 timelock.getLegacyTimelockService(),
                 timelock.getTimestampManagementService(),
-                SweepStrategyManagers.createDefault(kvs),
                 TransactionServices.createRaw(kvs, timelock.getTimestampService(), false));
     }
 
@@ -63,14 +58,12 @@ public final class SweepTestUtils {
             KeyValueService kvs,
             TimelockService legacyTimelockService,
             TimestampManagementService tsmService,
-            SweepStrategyManager ssm,
             TransactionService txService) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         LockService lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
-        ConflictDetectionManager cdm = ConflictDetectionManagers.createForTests(kvs);
         Cleaner cleaner = new NoOpCleaner();
         MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
         TransactionManager txManager = SerializableTransactionManager.createForTest(
@@ -82,8 +75,6 @@ public final class SweepTestUtils {
                 NoOpLockWatchManager.create(),
                 txService,
                 constraints,
-                cdm,
-                ssm,
                 cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
