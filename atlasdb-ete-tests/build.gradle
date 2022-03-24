@@ -43,6 +43,7 @@ dependencies {
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
     implementation project(':lock-impl')
+    implementation project(':simple-test-server')
     implementation project(':timelock-api:timelock-api-undertow')
     implementation project(':timelock-impl')
     implementation project(':timestamp-api')

@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.util.DropwizardClientRule;
+import com.palantir.atlasdb.util.ServerRule;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
@@ -56,7 +56,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     private static final SweepResults RESULTS_MORE_TO_SWEEP = SweepResults.createEmptySweepResultWithMoreToSweep();
 
     @Rule
-    public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
+    public ServerRule serverRule = new ServerRule(
             new SweeperServiceImpl(getSpecificTableSweeperService(), sweepBatchConfigSource),
             ConjureJerseyFeature.INSTANCE);
 
@@ -68,7 +68,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         sweeperService = TestJaxRsClientFactory.createJaxRsClientForTest(
                 SweeperService.class,
                 SweeperServiceImplTest.class,
-                dropwizardClientRule.baseUri().toString());
+                serverRule.baseUri().toString());
 
         setupTaskRunner(RESULTS_NO_MORE_TO_SWEEP);
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
