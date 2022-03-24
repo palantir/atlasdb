@@ -20,6 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.TokenRange;
@@ -36,6 +42,8 @@ public class TokenRangeResolutionTest {
     private static final String ENDPOINT_2 = "anne teak";
     private static final String ENDPOINT_3 = "matt tress";
     private static final String ENDPOINT_4 = "tom a. toh";
+
+    private final Random random = new Random(42);
 
     @Test
     public void zeroViewsAreConsistent() {
@@ -129,6 +137,49 @@ public class TokenRangeResolutionTest {
         Set<TokenRange> secondNodeRingView = ImmutableSet.of(createRange(TOKEN_2, TOKEN_1));
         assertThat(TokenRangeResolution.viewsAreConsistent(ImmutableSet.of(firstNodeRingView, secondNodeRingView)))
                 .isFalse();
+    }
+
+    @Test
+    public void mediumClusterEndpointsShuffle() {
+        for (int n = 1; n < 10; n++) {
+            int nodeCount = n * 3;
+            ImmutableSortedSet<TokenRange> baseRing = createTokenRangesForNodes(nodeCount);
+            for (int j = 0; j < 1_000; j++) {
+                Set<Set<TokenRange>> views = createShuffledView(baseRing);
+                assertThat(TokenRangeResolution.viewsAreConsistent(views)).isTrue();
+            }
+        }
+    }
+
+    private Set<Set<TokenRange>> createShuffledView(ImmutableSortedSet<TokenRange> baseRing) {
+        Set<Set<TokenRange>> views = Sets.newHashSetWithExpectedSize(baseRing.size());
+        for (int i = 0; i < baseRing.size(); i++) {
+            views.add(shuffleEndpoints(baseRing, random));
+        }
+        return views;
+    }
+
+    private static ImmutableSortedSet<TokenRange> createTokenRangesForNodes(int nodeCount) {
+        ImmutableSortedSet.Builder<TokenRange> tokenRanges = ImmutableSortedSet.naturalOrder();
+        for (int i = 0; i < nodeCount; i++) {
+            tokenRanges.add(createRangeWithEndpoint("token" + i, "token" + (i + 1), "endpoint" + i));
+        }
+        return tokenRanges.build();
+    }
+
+    private static Set<TokenRange> shuffleEndpoints(Set<TokenRange> ring, Random random) {
+        List<TokenRange> tokenRanges = new ArrayList<>(ring);
+        Collections.shuffle(tokenRanges, random);
+        for (int i = 0; i < tokenRanges.size(); i++) {
+            TokenRange tokenRange = tokenRanges.get(i);
+            tokenRanges.set(
+                    i,
+                    new TokenRange(
+                            tokenRange.getStart_token(),
+                            tokenRange.getEnd_token(),
+                            tokenRanges.get(random.nextInt(tokenRanges.size())).getEndpoints()));
+        }
+        return ImmutableSet.copyOf(tokenRanges);
     }
 
     private static TokenRange createRange(String startToken, String endToken) {
