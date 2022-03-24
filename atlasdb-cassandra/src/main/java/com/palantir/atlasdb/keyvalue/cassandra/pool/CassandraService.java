@@ -290,7 +290,7 @@ public class CassandraService implements AutoCloseable {
 
         for (CassandraServer server : getAllKnownServers()) {
             if (server.cassandraHostName().equals(cassandraHostName)) {
-                //Todo(snanda): Remove the log if algorithm changes
+                // Todo(snanda): Remove the log if algorithm changes
                 if (!ImmutableSet.of(reachableProxies).equals(ImmutableSet.copyOf(server.reachableProxyIps()))) {
                     log.warn(
                             "List of proxies has changed",
