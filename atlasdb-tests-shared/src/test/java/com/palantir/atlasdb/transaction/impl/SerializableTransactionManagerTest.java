@@ -281,7 +281,7 @@ public class SerializableTransactionManagerTest {
                 null, // TableMetadataManager
                 mockCleaner,
                 mockInitializer::isInitialized,
-                false,
+                false, // allowHiddenTableAccess
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 initializeAsync,
@@ -289,9 +289,9 @@ public class SerializableTransactionManagerTest {
                 MultiTableSweepQueueWriter.NO_OP,
                 callBack,
                 executor,
-                true,
+                true, // validateLocksOnReads
                 () -> ImmutableTransactionConfig.builder().build(),
-                false,
+                false, // shouldInstrument
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty());
