@@ -91,6 +91,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 () -> startTimeStamp,
                 ConflictDetectionManagers.createWithNoConflictDetection(),
                 SweepStrategyManagers.createDefault(keyValueService),
+                tableMetadataManager,
                 startTimeStamp,
                 Optional.empty(),
                 PreCommitConditions.NO_OP,

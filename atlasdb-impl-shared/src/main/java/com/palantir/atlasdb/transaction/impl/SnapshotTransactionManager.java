@@ -91,6 +91,7 @@ import javax.validation.constraints.NotNull;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
+    private final TableMetadataManager tableMetadataManager;
     final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;
@@ -119,6 +120,7 @@ import javax.validation.constraints.NotNull;
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
+            TableMetadataManager tableMetadataManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             int concurrentGetRangesThreadPoolSize,
@@ -142,6 +144,7 @@ import javax.validation.constraints.NotNull;
         this.transactionService = transactionService;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
+        this.tableMetadataManager = tableMetadataManager;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
@@ -300,6 +303,7 @@ import javax.validation.constraints.NotNull;
                 startTimestampSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
+                tableMetadataManager,
                 immutableTimestamp,
                 Optional.of(immutableTsLock),
                 condition,
@@ -342,6 +346,7 @@ import javax.validation.constraints.NotNull;
                 getStartTimestampSupplier(),
                 conflictDetectionManager,
                 sweepStrategyManager,
+                tableMetadataManager,
                 immutableTs,
                 Optional.empty(),
                 condition,

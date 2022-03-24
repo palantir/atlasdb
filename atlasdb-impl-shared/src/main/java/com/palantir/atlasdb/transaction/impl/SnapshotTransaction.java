@@ -241,6 +241,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final AtomicReference<State> state = new AtomicReference<>(State.UNCOMMITTED);
     private final AtomicLong numWriters = new AtomicLong();
     protected final SweepStrategyManager sweepStrategyManager;
+    private final TableMetadataManager tableMetadataManager;
     protected final Long transactionReadTimeoutMillis;
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private volatile long commitTsForScrubbing = TransactionConstants.FAILED_COMMIT_TS;
@@ -274,6 +275,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Supplier<Long> startTimestamp,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
+            TableMetadataManager tableMetadataManager,
             long immutableTimestamp,
             Optional<LockToken> immutableTimestampLock,
             PreCommitCondition preCommitCondition,
@@ -303,6 +305,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.startTimestamp = startTimestamp;
         this.conflictDetectionManager = new TransactionConflictDetectionManager(conflictDetectionManager);
         this.sweepStrategyManager = sweepStrategyManager;
+        this.tableMetadataManager = tableMetadataManager;
         this.immutableTimestamp = immutableTimestamp;
         this.immutableTimestampLock = immutableTimestampLock;
         this.preCommitCondition = preCommitCondition;
@@ -2141,10 +2144,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
             if (theirStartTimestamp > getStartTimestamp()) {
                 dominatingWrites.add(Cells.createConflictWithMetadata(
-                        tableMetadata, key, theirStartTimestamp, theirCommitTimestamp));
+                        tableMetadataManager.get(tableRef), key, theirStartTimestamp, theirCommitTimestamp));
             } else if (theirCommitTimestamp > getStartTimestamp()) {
                 spanningWrites.add(Cells.createConflictWithMetadata(
-                        tableMetadata, key, theirStartTimestamp, theirCommitTimestamp));
+                        tableMetadataManager.get(tableRef), key, theirStartTimestamp, theirCommitTimestamp));
             }
         }
 

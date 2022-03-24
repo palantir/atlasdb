@@ -425,6 +425,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         () -> transactionTs,
                         ConflictDetectionManagers.create(keyValueService),
                         SweepStrategyManagers.createDefault(keyValueService),
+                        tableMetadataManager,
                         transactionTs,
                         Optional.empty(),
                         PreCommitConditions.NO_OP,
@@ -2137,6 +2138,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TestConflictDetectionManagers.createWithStaticConflictDetection(
                         ImmutableMap.of(TABLE, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE))),
                 SweepStrategyManagers.createDefault(keyValueService),
+                tableMetadataManager,
                 lockImmutableTimestampResponse.getImmutableTimestamp(),
                 Optional.of(lockImmutableTimestampResponse.getLock()),
                 preCommitCondition,
