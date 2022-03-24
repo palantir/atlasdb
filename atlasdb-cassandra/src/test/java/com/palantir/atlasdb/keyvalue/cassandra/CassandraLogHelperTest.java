@@ -58,7 +58,7 @@ public class CassandraLogHelperTest {
     @Test
     public void tokenRangeHashesAreHumanReadable() {
         assertThat(Iterables.getOnlyElement(CassandraLogHelper.tokenRangeHashes(ImmutableSet.of(TOKEN_RANGE_1_TO_2))))
-                .hasSizeLessThan(1000)
+                .hasSizeLessThan(120)
                 .matches("[-a-zA-Z0-9(), ]+");
     }
 
