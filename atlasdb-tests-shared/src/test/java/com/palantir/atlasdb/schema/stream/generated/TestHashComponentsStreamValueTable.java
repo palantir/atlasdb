@@ -540,7 +540,7 @@ public final class TestHashComponentsStreamValueTable implements
     }
 
     private static Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             TestHashComponentsStreamValueRow row = TestHashComponentsStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -708,5 +708,5 @@ public final class TestHashComponentsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "RGE142O7UD2OKjOspNm8Hw==";
+    static String __CLASS_HASH = "OpgayffWbsYSqzi4fI/Qag==";
 }

@@ -103,13 +103,16 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         Client ret = getRawClientWithTimedCreation();
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
-            log.debug(
-                    "Created new client for {}/{}{}{}",
-                    SafeArg.of("address", CassandraLogHelper.host(addr)),
-                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
-                    SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
-                    UnsafeArg.of(
-                            "usernameConfig", " as user " + config.credentials().username()));
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "Created new client for {}/{}{}{}",
+                        SafeArg.of("address", CassandraLogHelper.host(addr)),
+                        UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
+                        SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
+                        UnsafeArg.of(
+                                "usernameConfig",
+                                " as user " + config.credentials().username()));
+            }
             return ret;
         } catch (TException e) {
             ret.getOutputProtocol().getTransport().close();

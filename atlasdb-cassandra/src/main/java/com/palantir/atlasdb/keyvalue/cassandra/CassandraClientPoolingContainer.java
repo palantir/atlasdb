@@ -182,10 +182,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         } finally {
             if (resource != null) {
                 if (shouldReuse) {
-                    log.debug(
-                            "Returning resource to pool of host {}",
-                            SafeArg.of("cassandraHostname", cassandraServer.cassandraHostName()),
-                            SafeArg.of("proxy", CassandraLogHelper.host(proxy)));
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "Returning resource to pool of host {}",
+                                SafeArg.of("cassandraHostname", cassandraServer.cassandraHostName()),
+                                SafeArg.of("proxy", CassandraLogHelper.host(proxy)));
+                    }
                     eagerlyCleanupReadBuffersFromIdleConnection(resource, cassandraServer);
                     clientPool.returnObject(resource);
                 } else {
@@ -208,12 +210,14 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 TMemoryInputTransport memoryInputTransport = (TMemoryInputTransport) readBuffer.get(transport);
                 byte[] underlyingBuffer = memoryInputTransport.getBuffer();
                 if (underlyingBuffer != null && memoryInputTransport.getBytesRemainingInBuffer() == 0) {
-                    log.debug(
-                            "During {} check-in, cleaned up a read buffer of {} bytes of host {}",
-                            UnsafeArg.of("pool", idleClient),
-                            SafeArg.of("bufferLength", underlyingBuffer.length),
-                            SafeArg.of("cassandraHostname", server.cassandraHostName()),
-                            SafeArg.of("proxy", CassandraLogHelper.host(server.proxy())));
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "During {} check-in, cleaned up a read buffer of {} bytes of host {}",
+                                UnsafeArg.of("pool", idleClient),
+                                SafeArg.of("bufferLength", underlyingBuffer.length),
+                                SafeArg.of("cassandraHostname", server.cassandraHostName()),
+                                SafeArg.of("proxy", CassandraLogHelper.host(server.proxy())));
+                    }
                     memoryInputTransport.reset(PtBytes.EMPTY_BYTE_ARRAY);
                 }
             }
@@ -228,7 +232,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void invalidateQuietly(CassandraClient resource) {
         try {
-            log.debug("Discarding resource of host {}", SafeArg.of("host", CassandraLogHelper.host(proxy)));
+            if (log.isDebugEnabled()) {
+                log.debug("Discarding resource of host {}", SafeArg.of("host", CassandraLogHelper.host(proxy)));
+            }
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
             log.warn("Attempted to invalidate a non-reusable Cassandra resource, but failed to due an exception", e);

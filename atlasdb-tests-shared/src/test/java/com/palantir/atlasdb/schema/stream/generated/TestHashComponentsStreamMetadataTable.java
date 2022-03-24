@@ -266,6 +266,7 @@ public final class TestHashComponentsStreamMetadataTable implements
      *     label: LABEL_REQUIRED
      *     type: TYPE_BYTES
      *   }
+     *   
      * }
      * </pre>
      */
@@ -551,7 +552,7 @@ public final class TestHashComponentsStreamMetadataTable implements
     }
 
     private static Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             TestHashComponentsStreamMetadataRow row = TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -719,5 +720,5 @@ public final class TestHashComponentsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "UicfW27TGG9bWrV+QAqsfg==";
+    static String __CLASS_HASH = "nWGhnxJHTDG9KPTQr9Lp+Q==";
 }

@@ -708,7 +708,7 @@ public final class TwoColumnsTable implements
     }
 
     private static Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             TwoColumnsRow row = TwoColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -1328,7 +1328,7 @@ public final class TwoColumnsTable implements
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> get(Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     FooToIdCondIdxRow row = FooToIdCondIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -1378,7 +1378,7 @@ public final class TwoColumnsTable implements
         }
 
         private static Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 FooToIdCondIdxRow row = FooToIdCondIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -1970,7 +1970,7 @@ public final class TwoColumnsTable implements
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> get(Multimap<FooToIdIdxRow, FooToIdIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     FooToIdIdxRow row = FooToIdIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -2020,7 +2020,7 @@ public final class TwoColumnsTable implements
         }
 
         private static Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 FooToIdIdxRow row = FooToIdIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -2198,5 +2198,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "WaJpH1EGwXSVcsjD1Ik0iQ==";
+    static String __CLASS_HASH = "WBRq+UvibY8M0WeF/DkJ8A==";
 }

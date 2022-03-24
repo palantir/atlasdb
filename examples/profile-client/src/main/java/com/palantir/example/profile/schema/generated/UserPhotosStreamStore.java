@@ -26,9 +26,6 @@ import java.util.function.Supplier;
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -64,6 +61,9 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.Pair;
@@ -79,7 +79,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     public static final String STREAM_FILE_PREFIX = "UserPhotos_stream_";
     public static final String STREAM_FILE_SUFFIX = ".tmp";
 
-    private static final Logger log = LoggerFactory.getLogger(UserPhotosStreamStore.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(UserPhotosStreamStore.class);
 
     private final ProfileTableFactory tables;
 
@@ -121,7 +121,11 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
             touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId());
             tables.getUserPhotosStreamValueTable(t).putValue(row, block);
         } catch (RuntimeException e) {
-            log.error("Error storing block {} for stream id {}", row.getBlockId(), row.getId(), e);
+            log.error(
+                    "Error storing block {} for stream id {}",
+                    SafeArg.of("blockId", row.getBlockId()),
+                    SafeArg.of("id", row.getId()),
+                    e);
             throw e;
         }
     }
@@ -186,10 +190,18 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         try {
             os.write(getBlock(t, row));
         } catch (RuntimeException e) {
-            log.error("Error storing block {} for stream id {}", row.getBlockId(), row.getId(), e);
+            log.error(
+                    "Error storing block {} for stream id {}",
+                    SafeArg.of("blockId", row.getBlockId()),
+                    SafeArg.of("id", row.getId()),
+                    e);
             throw e;
         } catch (IOException e) {
-            log.error("Error writing block {} to file when getting stream id {}", row.getBlockId(), row.getId(), e);
+            log.error(
+                    "Error writing block {} to file when getting stream id {}",
+                    SafeArg.of("blockId", row.getBlockId()),
+                    SafeArg.of("id", row.getId()),
+                    e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks to file when creating stream.", e);
         }
     }
@@ -311,7 +323,9 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
             if (!ByteString.EMPTY.equals(streamHash)) {
                 hash = new Sha256Hash(streamHash.toByteArray());
             } else {
-                log.error("Empty hash for stream {}", streamId);
+                log.error(
+                        "Empty hash for stream {}",
+                        SafeArg.of("id", streamId));
             }
             UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow hashRow = UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow.of(hash);
             UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumn column = UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumn.of(streamId);
@@ -415,8 +429,6 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link Ints}
      * {@link List}
      * {@link Lists}
-     * {@link Logger}
-     * {@link LoggerFactory}
      * {@link Map}
      * {@link Maps}
      * {@link MessageDigest}
@@ -427,6 +439,9 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link Pair}
      * {@link PersistentStreamStore}
      * {@link Preconditions}
+     * {@link SafeArg}
+     * {@link SafeLogger}
+     * {@link SafeLoggerFactory}
      * {@link Set}
      * {@link SetView}
      * {@link Sets}

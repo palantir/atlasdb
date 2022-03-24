@@ -49,6 +49,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 
@@ -534,12 +535,24 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return;
         }
 
+        if (TokenRangeResolution.viewsAreConsistent(tokenRangesToHost.keySet())) {
+            log.info("Although multiple ring descriptions were detected, we believe these to be consistent:"
+                    + " ranges detected were identical. This may occur when there are legitimate network routing"
+                    + " changes, for instance.");
+            return;
+        }
+
         RuntimeException ex = new SafeIllegalStateException(
-                "Hosts have differing ring descriptions." + " This can lead to inconsistent reads and lost data. ");
+                "Hosts have differing ring descriptions. This can lead to inconsistent reads and lost data.");
         log.error(
                 "Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
                         + " lose writes. The mapping of token ranges to hosts is:\n{}",
                 UnsafeArg.of("tokenRangesToHost", CassandraLogHelper.tokenRangesToServer(tokenRangesToHost)),
+                SafeArg.of(
+                        "tokenRangeHashes",
+                        CassandraLogHelper.tokenRangeHashes(tokenRangesToHost.keySet().stream()
+                                .flatMap(Set::stream)
+                                .collect(Collectors.toSet()))),
                 ex);
 
         // provide some easier to grok logging for the two most common cases

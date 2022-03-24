@@ -525,7 +525,7 @@ public final class StreamTestMaxMemStreamValueTable implements
     }
 
     private static Multimap<StreamTestMaxMemStreamValueRow, StreamTestMaxMemStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestMaxMemStreamValueRow, StreamTestMaxMemStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<StreamTestMaxMemStreamValueRow, StreamTestMaxMemStreamValueNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             StreamTestMaxMemStreamValueRow row = StreamTestMaxMemStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -693,5 +693,5 @@ public final class StreamTestMaxMemStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "OF33YFqOoa6rErfIE6Reew==";
+    static String __CLASS_HASH = "HTNTUWJPFzBpXGmV9VxHdQ==";
 }
