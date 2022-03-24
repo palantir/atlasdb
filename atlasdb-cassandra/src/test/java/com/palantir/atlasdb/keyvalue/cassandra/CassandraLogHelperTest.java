@@ -18,10 +18,66 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import org.apache.cassandra.thrift.TokenRange;
 import org.junit.Test;
 
 public class CassandraLogHelperTest {
+    private static final String TOKEN_1 = "i-am-a-token";
+    private static final String TOKEN_2 = "this-is-another-token";
+    private static final String TOKEN_3 = "yet-another-token";
+
+    private static final TokenRange TOKEN_RANGE_1_TO_2 = new TokenRange(TOKEN_1, TOKEN_2, ImmutableList.of());
+    private static final TokenRange TOKEN_RANGE_2_TO_3 = new TokenRange(TOKEN_2, TOKEN_3, ImmutableList.of());
+
+    @Test
+    public void tokenRangeHashesHashesIndividualRanges() {
+        List<String> expectedHashes = ImmutableList.<String>builder()
+                .addAll(CassandraLogHelper.tokenRangeHashes(ImmutableSet.of(TOKEN_RANGE_1_TO_2)))
+                .addAll(CassandraLogHelper.tokenRangeHashes(ImmutableSet.of(TOKEN_RANGE_2_TO_3)))
+                .build();
+        assertThat(CassandraLogHelper.tokenRangeHashes(ImmutableSet.of(TOKEN_RANGE_1_TO_2, TOKEN_RANGE_2_TO_3)))
+                .containsExactlyInAnyOrderElementsOf(expectedHashes);
+    }
+
+    @Test
+    public void tokenRangeHashesDoesNotPublishActualValues() {
+        assertThat(Iterables.getOnlyElement(CassandraLogHelper.tokenRangeHashes(ImmutableSet.of(TOKEN_RANGE_1_TO_2))))
+                .doesNotContain(TOKEN_1)
+                .doesNotContain(TOKEN_2);
+    }
+
+    @Test
+    public void tokenRangeHashesAreHumanReadable() {
+        assertThat(Iterables.getOnlyElement(CassandraLogHelper.tokenRangeHashes(ImmutableSet.of(TOKEN_RANGE_1_TO_2))))
+                .hasSizeLessThan(120)
+                .matches("[-a-zA-Z0-9(), ]+");
+    }
+
+    @Test
+    public void tokenRangeHashesAreMostlyDistinct() {
+        int numRanges = 1000;
+        Set<TokenRange> ranges = IntStream.range(0, numRanges)
+                .mapToObj(_unused -> {
+                    List<String> tokens = Stream.of(UUID.randomUUID(), UUID.randomUUID())
+                            .map(UUID::toString)
+                            .collect(Collectors.toList());
+                    return new TokenRange(tokens.get(0), tokens.get(1), ImmutableList.of());
+                })
+                .collect(Collectors.toSet());
+        List<String> hashes = CassandraLogHelper.tokenRangeHashes(ranges);
+        assertThat(hashes).hasSize(numRanges);
+        assertThat(ImmutableSet.copyOf(hashes)).hasSizeGreaterThan((int) (0.99 * numRanges));
+    }
 
     @Test
     public void unresolvedHost() {
