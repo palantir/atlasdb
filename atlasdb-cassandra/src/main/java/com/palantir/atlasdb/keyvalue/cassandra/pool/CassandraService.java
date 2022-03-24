@@ -133,7 +133,7 @@ public class CassandraService implements AutoCloseable {
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
             localHosts = refreshLocalHosts(tokenRanges);
-
+            log.info("Successfully loaded the token ring");
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
                 EndpointDetails onlyEndpoint = Iterables.getOnlyElement(
@@ -191,8 +191,19 @@ public class CassandraService implements AutoCloseable {
     }
 
     public Set<CassandraServer> getInitialServerList() {
-        Set<InetSocketAddress> inetSocketAddresses = config.servers().accept(new ThriftHostsExtractingVisitor());
-        return inetSocketAddresses.stream().map(this::getCassandraServer).collect(Collectors.toSet());
+        Set<InetSocketAddress> inetSocketAddresses = getServersFromConfig();
+        Set<CassandraServer> initialList =
+                inetSocketAddresses.stream().map(this::getCassandraServer).collect(Collectors.toSet());
+
+        log.info("Initial server list appears to be: ", SafeArg.of("initialList", initialList.toString()));
+
+        return initialList;
+    }
+
+    private Set<InetSocketAddress> getServersFromConfig() {
+        Set<InetSocketAddress> addresses = config.servers().accept(new ThriftHostsExtractingVisitor());
+        log.info("Servers retrieved from config", SafeArg.of("servers", addresses.toString()));
+        return addresses;
     }
 
     private CassandraServer getCassandraServer(InetSocketAddress cassandraHost) {
@@ -283,7 +294,7 @@ public class CassandraService implements AutoCloseable {
         Set<CassandraServer> knownNodes = getAllKnownServers();
 
         for (CassandraServer server : knownNodes) {
-            if (Objects.equals(server.cassandraHostAddress().getAddress(), cassHostAddress.getAddress())) {
+            if (server.cassandraHostAddress().equals(cassHostAddress)) {
                 // todo(snanda): Remove the log if algorithm changes
                 Set<InetSocketAddress> reachableProxies = ImmutableSet.copyOf(getReachableProxies(inputHost));
                 if (!reachableProxies.equals(ImmutableSet.copyOf(server.reachableProxyIps()))) {
@@ -315,7 +326,7 @@ public class CassandraService implements AutoCloseable {
     private Set<InetSocketAddress> getAllKnownHosts() {
         return ImmutableSet.copyOf(Sets.union(
                 currentPools.keySet().stream().map(CassandraServer::proxy).collect(Collectors.toSet()),
-                config.servers().accept(new ThriftHostsExtractingVisitor())));
+                getServersFromConfig()));
     }
 
     private Set<CassandraServer> getAllKnownServers() {
@@ -324,9 +335,13 @@ public class CassandraService implements AutoCloseable {
 
     private List<InetSocketAddress> getReachableProxies(InetSocketAddress addr) {
         try {
-            String hostAddress = addr.isUnresolved()
-                    ? addr.getHostString()
-                    : addr.getAddress().getHostAddress();
+            String hostAddress =
+                    addr.isUnresolved() ? addr.getHostName() : addr.getAddress().getHostAddress();
+
+            log.info(
+                    "Cassandra host to for which we need to find reachable IPs",
+                    SafeArg.of("hostAddress", hostAddress));
+
             return getReachableProxies(hostAddress);
         } catch (UnknownHostException e) {
             log.warn(
@@ -343,6 +358,8 @@ public class CassandraService implements AutoCloseable {
 
         InetAddress[] resolvedHosts = InetAddress.getAllByName(host);
         int knownPort = getKnownPort();
+
+        // It is okay to have reachable proxies that do not have a hostname
         return Stream.of(resolvedHosts)
                 .map(inetAddr -> new InetSocketAddress(inetAddr, knownPort))
                 .collect(Collectors.toList());
