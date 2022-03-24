@@ -324,7 +324,10 @@ public class CassandraService implements AutoCloseable {
 
     private List<InetSocketAddress> getReachableProxies(InetSocketAddress addr) {
         try {
-            return getReachableProxies(addr.getAddress().getHostAddress());
+            String hostAddress = addr.isUnresolved()
+                    ? addr.getHostString()
+                    : addr.getAddress().getHostAddress();
+            return getReachableProxies(hostAddress);
         } catch (UnknownHostException e) {
             log.warn(
                     "Could not find reachable proxy for address, will try to hit the host directly.",
