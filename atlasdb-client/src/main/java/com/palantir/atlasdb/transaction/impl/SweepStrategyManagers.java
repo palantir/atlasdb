@@ -21,11 +21,8 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
@@ -72,21 +69,6 @@ public final class SweepStrategyManagers {
                 sweepStrategySupplierLoadingCache.get().invalidateAll(tableRefs);
             }
         };
-    }
-
-    public static SweepStrategyManager createFromSchema(Schema schema) {
-        return tableRef -> {
-            TableMetadata tableMeta = Preconditions.checkNotNull(
-                    schema.getAllTablesAndIndexMetadata().get(tableRef),
-                    "unknown table",
-                    SafeArg.of("tableRef", tableRef));
-            return SweepStrategy.from(tableMeta.getSweepStrategy());
-        };
-    }
-
-    public static SweepStrategyManager fromMap(final Map<TableReference, SweepStrategy> map) {
-        return tableRef ->
-                Preconditions.checkNotNull(map.get(tableRef), "unknown table", SafeArg.of("tableRef", tableRef));
     }
 
     public static SweepStrategyManager completelyConservative() {

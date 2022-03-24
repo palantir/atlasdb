@@ -30,9 +30,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -193,12 +191,11 @@ public final class Cells {
     }
 
     public static CellConflict createConflictWithMetadata(
-            KeyValueService kv, TableReference tableRef, Cell cell, long theirStartTs, long theirCommitTs) {
-        TableMetadata metadata = KeyValueServices.getTableMetadataSafe(kv, tableRef);
+            @Nullable TableMetadata metadata, Cell cell, long theirStartTs, long theirCommitTs) {
         return new CellConflict(cell, getHumanReadableCellName(metadata, cell), theirStartTs, theirCommitTs);
     }
 
-    public static String getHumanReadableCellName(@Nullable TableMetadata metadata, Cell cell) {
+    private static String getHumanReadableCellName(@Nullable TableMetadata metadata, Cell cell) {
         if (cell == null) {
             return "null";
         }

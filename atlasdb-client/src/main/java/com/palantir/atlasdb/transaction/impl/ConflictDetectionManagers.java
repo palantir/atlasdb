@@ -15,104 +15,28 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.cache.CacheLoader;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import java.util.Optional;
 
 public final class ConflictDetectionManagers {
-    private static final SafeLogger log = SafeLoggerFactory.get(ConflictDetectionManagers.class);
-
     private ConflictDetectionManagers() {}
 
     public static ConflictDetectionManager createWithNoConflictDetection() {
-        return new ConflictDetectionManager(new CacheLoader<>() {
-            @Override
-            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
-                return Optional.of(ConflictHandler.IGNORE_ALL);
-            }
-        });
+        return _tableReference -> Optional.of(ConflictHandler.IGNORE_ALL);
     }
 
-    /**
-     * @deprecated use {@link #create(KeyValueService)} instead. This constructor will be removed in a future release.
-     */
-    @Deprecated
-    @SuppressWarnings("InlineMeSuggester")
-    public static ConflictDetectionManager createDefault(KeyValueService kvs) {
-        return create(kvs);
-    }
-
-    /**
-     * Creates a ConflictDetectionManager without warming the cache.
-     */
     public static ConflictDetectionManager createWithoutWarmingCache(KeyValueService kvs) {
-        return create(kvs, false);
+        TableMetadataManagers tableMetadataManagers = TableMetadataManagers.createWithoutWarmingCache(kvs);
+        return tableReference -> tableMetadataManagers.get(tableReference).map(TableMetadata::getConflictHandler);
     }
 
-    /**
-     * Creates a ConflictDetectionManager and kicks off an asynchronous thread to warm the cache that is used for
-     * conflict detection.
-     */
     public static ConflictDetectionManager create(KeyValueService kvs) {
-        return create(kvs, true);
-    }
-
-    private static ConflictDetectionManager create(KeyValueService kvs, boolean warmCache) {
-        ConflictDetectionManager conflictDetectionManager = new ConflictDetectionManager(new CacheLoader<>() {
-            @Override
-            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
-                byte[] metadata = kvs.getMetadataForTable(tableReference);
-                if (metadata.length == 0) {
-                    log.error(
-                            "Tried to make a transaction over a table that has no metadata: {}.",
-                            LoggingArgs.tableRef("tableReference", tableReference));
-                    return Optional.empty();
-                } else {
-                    return Optional.of(getConflictHandlerFromMetadata(metadata));
-                }
-            }
-        });
-        if (warmCache) {
-            // kick off an async thread that attempts to fully warm this cache
-            // if it fails (e.g. probably this user has way too many tables), that's okay,
-            // we will be falling back on individually loading in tables as needed.
-            new Thread(
-                            () -> {
-                                try {
-                                    conflictDetectionManager.warmCacheWith(
-                                            Maps.transformValues(kvs.getMetadataForTables(), metadata -> {
-                                                if (metadata == null) {
-                                                    log.debug("Metadata was null for a table. likely because the table"
-                                                            + " is currently  being created. Skipping warming"
-                                                            + " cache for the table.");
-                                                    return Optional.empty();
-                                                } else {
-                                                    return Optional.of(getConflictHandlerFromMetadata(metadata));
-                                                }
-                                            }));
-                                } catch (Throwable t) {
-                                    log.warn(
-                                            "There was a problem with pre-warming the conflict detection cache; if you"
-                                                    + " have unusually high table scale, this might be expected."
-                                                    + " Performance may be degraded until normal usage adequately warms"
-                                                    + " the cache.",
-                                            t);
-                                }
-                            },
-                            "ConflictDetectionManager Cache Async Pre-Warm")
-                    .start();
-        }
-        return conflictDetectionManager;
-    }
-
-    private static ConflictHandler getConflictHandlerFromMetadata(byte[] metadata) {
-        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata).getConflictHandler();
+        // FIX THIS - CANNOT USE newSingleThreadedExecutor as will block startup
+        TableMetadataManagers tableMetadataManagers =
+                TableMetadataManagers.create(kvs, true, PTExecutors.newSingleThreadExecutor());
+        return tableReference -> tableMetadataManagers.get(tableReference).map(TableMetadata::getConflictHandler);
     }
 }

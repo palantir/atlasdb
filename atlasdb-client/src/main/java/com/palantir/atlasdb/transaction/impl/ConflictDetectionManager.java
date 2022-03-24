@@ -15,42 +15,10 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import java.util.Map;
 import java.util.Optional;
 
-public class ConflictDetectionManager {
-    private final LoadingCache<TableReference, Optional<ConflictHandler>> cache;
-
-    /**
-     *  This class does not make the mistake of attempting cache invalidation,
-     *  so a table dropped by another instance may still be cached here.
-     *
-     *  This is okay in the case of a simple drop, but a same-name table drop
-     *  and re-addition with a different Conflict Handler
-     *  (where an external atlas instance handles both of these operations)
-     *  will be incorrect. This is an unrealistic workflow
-     *  and I'm fine with just documenting this behavior.
-     *
-     *  (This has always been the behavior of this class; I'm simply calling it out)
-     */
-    public ConflictDetectionManager(CacheLoader<TableReference, Optional<ConflictHandler>> loader) {
-        this.cache = CacheBuilder.newBuilder().maximumSize(100_000).build(loader);
-    }
-
-    public void warmCacheWith(Map<TableReference, Optional<ConflictHandler>> preload) {
-        cache.putAll(preload);
-    }
-
-    public Map<TableReference, Optional<ConflictHandler>> getCachedValues() {
-        return cache.asMap();
-    }
-
-    public Optional<ConflictHandler> get(TableReference tableReference) {
-        return cache.getUnchecked(tableReference);
-    }
+public interface ConflictDetectionManager {
+    Optional<ConflictHandler> get(TableReference tableReference);
 }

@@ -2141,10 +2141,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
             if (theirStartTimestamp > getStartTimestamp()) {
                 dominatingWrites.add(Cells.createConflictWithMetadata(
-                        keyValueService, tableRef, key, theirStartTimestamp, theirCommitTimestamp));
+                        tableMetadata, key, theirStartTimestamp, theirCommitTimestamp));
             } else if (theirCommitTimestamp > getStartTimestamp()) {
                 spanningWrites.add(Cells.createConflictWithMetadata(
-                        keyValueService, tableRef, key, theirStartTimestamp, theirCommitTimestamp));
+                        tableMetadata, key, theirStartTimestamp, theirCommitTimestamp));
             }
         }
 
