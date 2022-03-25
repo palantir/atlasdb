@@ -30,7 +30,7 @@ public final class TestConflictDetectionManagers {
         return new ConflictDetectionManager() {
             @Override
             public Optional<ConflictHandler> get(TableReference tableReference) {
-                return staticMap.getOrDefault(tableReference, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE))
+                return staticMap.getOrDefault(tableReference, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE));
             }
 
             @Override
