@@ -130,7 +130,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void cassandraPoolMetricsMustBeRegisteredForThreePools() {
-        clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+        clientPoolWithInitialProxies(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
     }
 
@@ -160,7 +160,7 @@ public class CassandraClientPoolTest {
         int numHosts = 4;
         List<CassandraServer> serverList = new ArrayList<>();
         for (int i = 0; i < numHosts; i++) {
-            serverList.add(CassandraServer.from(new InetSocketAddress(i)));
+            serverList.add(CassandraServer.from(InetSocketAddress.createUnresolved(Integer.toString(i), i)));
         }
 
         CassandraClientPoolImpl clientPool = throwingClientPoolWithServersInCurrentPool(
@@ -473,8 +473,8 @@ public class CassandraClientPoolTest {
                         Mockito.<FunctionCheckedException<CassandraClient, Object, RuntimeException>>any());
     }
 
-    private CassandraClientPoolImpl clientPoolWithServers(Set<InetSocketAddress> servers) {
-        return clientPoolWith(servers, ImmutableSet.of(), Optional.empty());
+    private CassandraClientPoolImpl clientPoolWithInitialProxies(Set<InetSocketAddress> proxies) {
+        return clientPoolWith(proxies, ImmutableSet.of(), Optional.empty());
     }
 
     private CassandraClientPoolImpl clientPoolWithServersInCurrentPool(Set<CassandraServer> servers) {

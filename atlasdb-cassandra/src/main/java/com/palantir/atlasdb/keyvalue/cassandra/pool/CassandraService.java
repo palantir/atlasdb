@@ -298,7 +298,6 @@ public class CassandraService implements AutoCloseable {
                             SafeArg.of("newProxies", reachableProxies.toString()),
                             SafeArg.of("inputHost", inputHost),
                             SafeArg.of("resovedCassandraHostName", cassandraHostName));
-                    return server;
                 }
             }
         }
@@ -335,9 +334,11 @@ public class CassandraService implements AutoCloseable {
     }
 
     private Set<InetSocketAddress> getAllKnownHosts() {
-        return ImmutableSet.copyOf(Sets.union(
-                currentPools.keySet().stream().map(CassandraServer::proxy).collect(Collectors.toSet()),
-                getServersFromConfig()));
+        return ImmutableSet.copyOf(Sets.union(getProxiesFromCurrentPool(), getServersFromConfig()));
+    }
+
+    private Set<InetSocketAddress> getProxiesFromCurrentPool() {
+        return currentPools.keySet().stream().map(CassandraServer::proxy).collect(Collectors.toSet());
     }
 
     private Set<CassandraServer> getAllKnownServers() {
