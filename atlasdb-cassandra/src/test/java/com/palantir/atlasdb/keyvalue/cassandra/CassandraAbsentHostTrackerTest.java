@@ -85,7 +85,7 @@ public class CassandraAbsentHostTrackerTest {
 
         IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 1).forEach(_u -> hostTracker.incrementAbsenceAndRemove());
         Set<CassandraServer> removedHosts = hostTracker.incrementAbsenceAndRemove();
-        assertThat(removedHosts).containsExactly(SERVER_1, SERVER_2);
+        assertThat(removedHosts).containsExactlyInAnyOrder(SERVER_1, SERVER_2);
         verifyPoolShutdown(container1);
         verifyPoolShutdown(container2);
         verifyNoInteractions(container3);
