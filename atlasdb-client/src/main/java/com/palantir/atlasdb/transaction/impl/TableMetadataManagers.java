@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
-public class TableMetadataManagers implements TableMetadataManager {
+public final class TableMetadataManagers implements TableMetadataManager {
     private static final SafeLogger log = SafeLoggerFactory.get(TableMetadataManagers.class);
 
     private final LoadingCache<TableReference, Optional<TableMetadata>> cache;
@@ -69,6 +69,16 @@ public class TableMetadataManagers implements TableMetadataManager {
         this.cacheWarmerExecutorService = cacheWarmerExecutorService;
     }
 
+    public static TableMetadataManager createWithoutWarmingCache(KeyValueService kvs) {
+        return new TableMetadataManagers(kvs, Optional.empty());
+    }
+
+    public static TableMetadataManager createAndWarmCache(KeyValueService kvs, ExecutorService executorService) {
+        TableMetadataManagers manager = new TableMetadataManagers(kvs, Optional.of(executorService));
+        manager.warmCache();
+        return manager;
+    }
+
     private void warmCache() {
         if (cacheWarmerExecutorService.isEmpty()) {
             return;
@@ -77,7 +87,7 @@ public class TableMetadataManagers implements TableMetadataManager {
         // kick off an async thread that attempts to fully warm this cache
         // if it fails (e.g. probably this user has way too many tables), that's okay,
         // we will be falling back on individually loading in tables as needed.
-        cacheWarmerExecutorService.get().submit(() -> {
+        cacheWarmerExecutorService.get().execute(() -> {
             try {
                 cache.putAll(Maps.transformValues(keyValueService.getMetadataForTables(), metadata -> {
                     if (metadata == null || metadata.length == 0) {
@@ -105,16 +115,7 @@ public class TableMetadataManagers implements TableMetadataManager {
         cacheWarmerExecutorService.ifPresent(ExecutorService::shutdownNow);
     }
 
-    public static TableMetadataManager createWithoutWarmingCache(KeyValueService kvs) {
-        return new TableMetadataManagers(kvs, Optional.empty());
-    }
-
-    public static TableMetadataManager createAndWarmCache(KeyValueService kvs, ExecutorService executorService) {
-        TableMetadataManagers manager = new TableMetadataManagers(kvs, Optional.of(executorService));
-        manager.warmCache();
-        return manager;
-    }
-
+    @Override
     public Optional<TableMetadata> get(TableReference tableRef) {
         return cache.get(tableRef);
     }
