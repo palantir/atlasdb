@@ -17,8 +17,11 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ConflictDetectionManager {
     Optional<ConflictHandler> get(TableReference tableReference);
+
+    Map<TableReference, Optional<ConflictHandler>> asMap();
 }

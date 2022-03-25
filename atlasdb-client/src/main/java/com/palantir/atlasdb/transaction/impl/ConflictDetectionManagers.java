@@ -15,24 +15,56 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.Map;
 import java.util.Optional;
 
 public final class ConflictDetectionManagers {
     private ConflictDetectionManagers() {}
 
     public static ConflictDetectionManager createWithNoConflictDetection() {
-        return _tableReference -> Optional.of(ConflictHandler.IGNORE_ALL);
+        return new ConflictDetectionManager() {
+            @Override
+            public Optional<ConflictHandler> get(TableReference _tableReference) {
+                return Optional.of(ConflictHandler.IGNORE_ALL);
+            }
+
+            @Override
+            public Map<TableReference, Optional<ConflictHandler>> asMap() {
+                return Map.of();
+            }
+        };
     }
 
     public static ConflictDetectionManager createWithoutWarmingCache(KeyValueService kvs) {
-        TableMetadataManager tableMetadataManager = TableMetadataManagers.createWithoutWarmingCache(kvs);
-        return tableReference -> tableMetadataManager.get(tableReference).map(TableMetadata::getConflictHandler);
+        return new ConflictDetectionManagerImpl(TableMetadataManagers.createWithoutWarmingCache(kvs));
     }
 
     public static ConflictDetectionManager create(TableMetadataManager tableMetadataManager) {
-        return tableReference -> tableMetadataManager.get(tableReference).map(TableMetadata::getConflictHandler);
+        return new ConflictDetectionManagerImpl(tableMetadataManager);
+    }
+
+    private static final class ConflictDetectionManagerImpl implements ConflictDetectionManager {
+        private final TableMetadataManager tableMetadataManager;
+
+        private ConflictDetectionManagerImpl(TableMetadataManager tableMetadataManager) {
+            this.tableMetadataManager = tableMetadataManager;
+        }
+
+        @Override
+        public Optional<ConflictHandler> get(TableReference tableReference) {
+            return tableMetadataManager.get(tableReference).map(TableMetadata::getConflictHandler);
+        }
+
+        @Override
+        public Map<TableReference, Optional<ConflictHandler>> asMap() {
+            return Maps.transformValues(
+                    tableMetadataManager.asMap(),
+                    tableMetadata -> tableMetadata.map(TableMetadata::getConflictHandler));
+        }
     }
 }

@@ -248,8 +248,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private Map<TableReference, Optional<ConflictHandler>> getConflictHandlerWithOverrides() {
         Map<TableReference, Optional<ConflictHandler>> conflictHandlersWithOverrides = new HashMap<>();
-        // FIX THIS
-        //        conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
+        conflictHandlersWithOverrides.putAll(conflictDetectionManager.asMap());
         conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
         return conflictHandlersWithOverrides;
     }

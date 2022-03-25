@@ -42,9 +42,11 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.timestamp.TimestampService;
 import dagger.Module;
 import dagger.Provides;
+import java.util.concurrent.Executors;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -93,20 +95,23 @@ public class KeyValueServiceModule {
 
     @Provides
     @Singleton
-    public ConflictDetectionManager provideConflictDetectionManager(@Named("kvs") KeyValueService kvs) {
-        return ConflictDetectionManagers.createWithoutWarmingCache(kvs);
-    }
-
-    @Provides
-    @Singleton
-    public SweepStrategyManager provideSweepStrategyManager(@Named("kvs") KeyValueService kvs) {
-        return SweepStrategyManagers.createWithoutWarmingCache(kvs);
-    }
-
-    @Provides
-    @Singleton
     public TableMetadataManager provideTableMetadataManager(@Named("kvs") KeyValueService kvs) {
-        return TableMetadataManagers.createWithoutWarmingCache(kvs);
+        return TableMetadataManagers.createAndWarmCache(
+                kvs,
+                Executors.newSingleThreadExecutor(
+                        new NamedThreadFactory(KeyValueServiceModule.class + "-table-metadata-manager", true)));
+    }
+
+    @Provides
+    @Singleton
+    public ConflictDetectionManager provideConflictDetectionManager(TableMetadataManager tableMetadataManager) {
+        return ConflictDetectionManagers.create(tableMetadataManager);
+    }
+
+    @Provides
+    @Singleton
+    public SweepStrategyManager provideSweepStrategyManager(TableMetadataManager tableMetadataManager) {
+        return SweepStrategyManagers.create(tableMetadataManager);
     }
 
     @Provides
