@@ -22,6 +22,8 @@ public class TableMetadataManagers implements TableMetadataManager {
     private static final SafeLogger log = SafeLoggerFactory.get(TableMetadataManagers.class);
 
     private final LoadingCache<TableReference, Optional<TableMetadata>> cache;
+    private final KeyValueService keyValueService;
+    private final Optional<ExecutorService> cacheWarmerExecutorService;
 
     /**
      *  This class does not make the mistake of attempting cache invalidation,
@@ -35,12 +37,13 @@ public class TableMetadataManagers implements TableMetadataManager {
      *
      *  (This has always been the behavior of this class; I'm simply calling it out)
      */
-    private TableMetadataManagers(KeyValueService kvs) {
+    private TableMetadataManagers(
+            KeyValueService keyValueService, Optional<ExecutorService> cacheWarmerExecutorService) {
         this.cache = Caffeine.newBuilder()
                 .expireAfterAccess(Duration.ofDays(1))
                 .maximumSize(100_000)
                 .build(tableReference -> {
-                    byte[] metadata = kvs.getMetadataForTable(tableReference);
+                    byte[] metadata = keyValueService.getMetadataForTable(tableReference);
                     if (metadata == null || metadata.length == 0) {
                         log.error(
                                 "Tried to make a transaction over a table that has no metadata: {}.",
@@ -50,25 +53,21 @@ public class TableMetadataManagers implements TableMetadataManager {
                         return Optional.of(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata));
                     }
                 });
+        this.keyValueService = keyValueService;
+        this.cacheWarmerExecutorService = cacheWarmerExecutorService;
     }
 
-    public static TableMetadataManager createWithoutWarmingCache(KeyValueService kvs) {
-        return new TableMetadataManagers(kvs);
-    }
+    private void warmCache() {
+        if (cacheWarmerExecutorService.isEmpty()) {
+            return;
+        }
 
-    public static TableMetadataManager createAndWarmCache(KeyValueService kvs, ExecutorService executorService) {
-        TableMetadataManagers manager = new TableMetadataManagers(kvs);
-        warmCache(kvs, executorService, manager);
-        return manager;
-    }
-
-    private static void warmCache(KeyValueService kvs, ExecutorService executorService, TableMetadataManagers manager) {
         // kick off an async thread that attempts to fully warm this cache
         // if it fails (e.g. probably this user has way too many tables), that's okay,
         // we will be falling back on individually loading in tables as needed.
-        executorService.submit(() -> {
+        cacheWarmerExecutorService.get().submit(() -> {
             try {
-                manager.cache.putAll(Maps.transformValues(kvs.getMetadataForTables(), metadata -> {
+                cache.putAll(Maps.transformValues(keyValueService.getMetadataForTables(), metadata -> {
                     if (metadata == null || metadata.length == 0) {
                         log.debug("Metadata was null for a table."
                                 + " Likely because the table is currently being created."
@@ -87,6 +86,21 @@ public class TableMetadataManagers implements TableMetadataManager {
                         t);
             }
         });
+    }
+
+    @Override
+    public void close() throws Exception {
+        cacheWarmerExecutorService.ifPresent(ExecutorService::shutdownNow);
+    }
+
+    public static TableMetadataManager createWithoutWarmingCache(KeyValueService kvs) {
+        return new TableMetadataManagers(kvs, Optional.empty());
+    }
+
+    public static TableMetadataManager createAndWarmCache(KeyValueService kvs, ExecutorService executorService) {
+        TableMetadataManagers manager = new TableMetadataManagers(kvs, Optional.of(executorService));
+        manager.warmCache();
+        return manager;
     }
 
     public Optional<TableMetadata> get(TableReference tableRef) {

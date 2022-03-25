@@ -9,7 +9,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import java.util.Map;
 import java.util.Optional;
 
-public interface TableMetadataManager {
+public interface TableMetadataManager extends AutoCloseable {
     Optional<TableMetadata> get(TableReference tableReference);
 
     Map<TableReference, Optional<TableMetadata>> asMap();

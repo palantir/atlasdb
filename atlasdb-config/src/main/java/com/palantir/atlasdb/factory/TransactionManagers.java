@@ -438,9 +438,12 @@ public abstract class TransactionManagers {
         TransactionComponents components = createTransactionComponents(
                 closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime);
         TransactionService transactionService = components.transactionService();
-        // FIX THIS TO NOT DEPEND ON SINGLE THREAD EXECUTOR
-        TableMetadataManager tableMetadataManager = TableMetadataManagers.createAndWarmCache(
-                keyValueService, PTExecutors.newSingleThreadScheduledExecutor());
+        TableMetadataManager tableMetadataManager = initializeCloseable(
+                () -> TableMetadataManagers.createAndWarmCache(
+                        keyValueService,
+                        PTExecutors.newSingleThreadScheduledExecutor(
+                                new NamedThreadFactory("TableMetadataManager", true))),
+                closeables);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(tableMetadataManager);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.create(tableMetadataManager);
 
