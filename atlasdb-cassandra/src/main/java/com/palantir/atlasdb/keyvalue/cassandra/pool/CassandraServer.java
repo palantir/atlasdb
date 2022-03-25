@@ -30,6 +30,7 @@ public interface CassandraServer {
      * We do maintain a list of all IPs but do not create a client pool for each one of these. As of now this list is
      * unused.
      * */
+    @Value.Auxiliary
     List<InetSocketAddress> reachableProxyIps();
 
     /**
