@@ -1,0 +1,11 @@
+type: fix
+fix:
+  description: |-
+    [WIP] cache table metadata
+
+    **Goals (and why)**:
+    When a txn did a lot of writes, and it conflicted, we'd poke the kvs for each cell which conflicted on https://github.com/palantir/atlasdb/blob/0.580.0/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/impl/SnapshotTransaction.java#L2142-L2148.
+
+    This PR removes that by caching the table metadata at the top level, and reusing such cache for all other classes which needed it (ConflictDetectionManager and SweepStrategyManager).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5981
