@@ -27,7 +27,16 @@ public final class TestConflictDetectionManagers {
     @VisibleForTesting
     static ConflictDetectionManager createWithStaticConflictDetection(
             Map<TableReference, Optional<ConflictHandler>> staticMap) {
-        return tableReference ->
-                staticMap.getOrDefault(tableReference, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE));
+        return new ConflictDetectionManager() {
+            @Override
+            public Optional<ConflictHandler> get(TableReference tableReference) {
+                return staticMap.getOrDefault(tableReference, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE))
+            }
+
+            @Override
+            public Map<TableReference, Optional<ConflictHandler>> asMap() {
+                return staticMap;
+            }
+        };
     }
 }
