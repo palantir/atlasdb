@@ -40,6 +40,7 @@ import org.immutables.value.Value;
 public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
 
     public static final String TYPE = "cassandra";
+    public static final int REPLICATION_FACTOR_SENTINEL = -1;
 
     @Override
     public String type() {
@@ -135,6 +136,11 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
     @Value.Default
     public CassandraTracingConfig tracing() {
         return ImmutableCassandraTracingConfig.builder().build();
+    }
+
+    @Value.Default
+    public int replicationFactor() {
+        return REPLICATION_FACTOR_SENTINEL;
     }
 
     public static CassandraKeyValueServiceRuntimeConfig getDefault() {

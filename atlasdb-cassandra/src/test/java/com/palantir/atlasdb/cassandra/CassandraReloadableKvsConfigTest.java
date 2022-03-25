@@ -158,6 +158,63 @@ public class CassandraReloadableKvsConfigTest {
         assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(84);
     }
 
+    @Test
+    public void ifInstallReplicationFactorNotSentinel_resolvesToInstallConfig() {
+        CassandraKeyValueServiceConfig config =
+                configBuilder().replicationFactor(2).build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
+                runtimeConfigBuilder().replicationFactor(3).build();
+        CassandraReloadableKvsConfig reloadableKvsConfig =
+                new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
+        assertThat(reloadableKvsConfig.replicationFactor()).isEqualTo(2);
+    }
+
+    @Test
+    public void ifInstallReplicationFactorSentinel_resolvesToRuntimeConfig() {
+        CassandraKeyValueServiceConfig config =
+                configBuilder().replicationFactor(-1).build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
+                runtimeConfigBuilder().replicationFactor(3).build();
+        CassandraReloadableKvsConfig reloadableKvsConfig =
+                new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
+        assertThat(reloadableKvsConfig.replicationFactor()).isEqualTo(3);
+    }
+
+    @Test
+    public void ifInstallAndRuntimeReplicationFactorNegative_failsInitialization() {
+        CassandraKeyValueServiceConfig config =
+                configBuilder().replicationFactor(-2).build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
+                runtimeConfigBuilder().replicationFactor(-3).build();
+
+        assertThatLoggableExceptionThrownBy(
+                        () -> new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig))))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasLogMessage("'replicationFactor' must be set to a non-negative value")
+                .hasNoArgs();
+    }
+
+    @Test
+    public void ifRuntimeReplicationFactorIsModifiedNegative_failsReload() {
+        CassandraKeyValueServiceConfig config =
+                configBuilder().replicationFactor(-1).build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig1 =
+                runtimeConfigBuilder().replicationFactor(3).build();
+
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig2 =
+                runtimeConfigBuilder().replicationFactor(-1).build();
+
+        SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigRefreshable =
+                Refreshable.create(Optional.of(runtimeConfig1));
+
+        CassandraReloadableKvsConfig reloadableKvsConfig =
+                new CassandraReloadableKvsConfig(config, runtimeConfigRefreshable);
+
+        runtimeConfigRefreshable.update(Optional.of(runtimeConfig2));
+
+        assertThat(reloadableKvsConfig.replicationFactor()).isEqualTo(3);
+    }
+
     private ImmutableCassandraKeyValueServiceConfig.Builder configBuilder() {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(SERVERS_1)

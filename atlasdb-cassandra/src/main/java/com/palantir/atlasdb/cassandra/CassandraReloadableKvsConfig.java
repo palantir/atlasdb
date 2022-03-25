@@ -41,6 +41,10 @@ public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueSer
                     servers(config, cassandraRuntimeConfig).numberOfThriftHosts() > 0,
                     "'servers' must have at least one defined host");
 
+            checkArgument(
+                    replicationFactor(config, cassandraRuntimeConfig) >= 0,
+                    "'replicationFactor' must be set to a non-negative value");
+
             return cassandraRuntimeConfig;
         });
     }
@@ -132,5 +136,20 @@ public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueSer
                 .get()
                 .map(_runtime -> Math.min(8, concurrentGetRangesThreadPoolSize() / 2))
                 .orElseGet(config::defaultGetRangesConcurrency);
+    }
+
+    @Override
+    public int replicationFactor() {
+        return replicationFactor(config, runtimeConfigSupplier.get());
+    }
+
+    private static int replicationFactor(
+            CassandraKeyValueServiceConfig config, Optional<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
+        if (config.replicationFactor() != REPLICATION_FACTOR_SENTINEL) {
+            return config.replicationFactor();
+        }
+        return runtimeConfig
+                .map(CassandraKeyValueServiceRuntimeConfig::replicationFactor)
+                .orElseGet(config::replicationFactor);
     }
 }

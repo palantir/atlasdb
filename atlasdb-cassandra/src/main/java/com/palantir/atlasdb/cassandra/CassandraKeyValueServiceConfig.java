@@ -52,6 +52,7 @@ import org.immutables.value.Value;
 public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
+    int REPLICATION_FACTOR_SENTINEL = -1;
 
     /**
      * These are only the initial 'contact points' that will be used in connecting with the cluster. AtlasDB will
@@ -240,7 +241,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory();
 
-    int replicationFactor();
+    @Value.Default
+    default int replicationFactor() {
+        return REPLICATION_FACTOR_SENTINEL;
+    }
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
