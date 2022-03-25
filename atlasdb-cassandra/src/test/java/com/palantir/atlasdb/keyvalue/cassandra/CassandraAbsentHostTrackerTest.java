@@ -29,9 +29,9 @@ import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class CassandraAbsentHostTrackerTest {
-    private static final InetSocketAddress ADDRESS_1 = new InetSocketAddress("1", 1);
-    private static final InetSocketAddress ADDRESS_2 = new InetSocketAddress("2", 2);
-    private static final InetSocketAddress ADDRESS_3 = new InetSocketAddress("3", 3);
+    private static final InetSocketAddress ADDRESS_1 = InetSocketAddress.createUnresolved("1", 1);
+    private static final InetSocketAddress ADDRESS_2 = InetSocketAddress.createUnresolved("2", 2);
+    private static final InetSocketAddress ADDRESS_3 = InetSocketAddress.createUnresolved("3", 3);
 
     private static final CassandraServer SERVER_1 = CassandraServer.from(ADDRESS_1);
     private static final CassandraServer SERVER_2 = CassandraServer.from(ADDRESS_2);
