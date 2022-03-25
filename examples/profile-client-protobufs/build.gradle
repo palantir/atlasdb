@@ -6,7 +6,7 @@ apply plugin: 'com.google.protobuf'
 
 protobuf {
   protoc {
-    artifact = "com.google.protobuf:protoc:${libVersions.protoc}:osx-x86_64"
+    artifact = "com.google.protobuf:protoc:${libVersions.protoc}"
   }
 }
 
