@@ -40,7 +40,7 @@ public interface CassandraServer {
     @Value.Lazy
     default InetSocketAddress proxy() {
         // we know the set of proxies contains at least one element
-        return reachableProxyIps().stream().findFirst().orElseThrow();
+        return reachableProxyIps().stream().findAny().orElseThrow();
     }
 
     @Value.Check
