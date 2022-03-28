@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: When a txn did a lot of writes, and it conflicted, we'd read the kvs
+    for each cell which conflicted.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5983
