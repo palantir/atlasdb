@@ -28,12 +28,8 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
@@ -48,7 +44,6 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
-import javax.annotation.Nullable;
 
 public final class Cells {
     private static final SafeLogger log = SafeLoggerFactory.get(Cells.class);
@@ -192,34 +187,14 @@ public final class Cells {
         return BaseEncoding.base16().lowerCase().encode(name);
     }
 
-    public static CellConflict createConflictWithMetadata(
-            KeyValueService kv, TableReference tableRef, Cell cell, long theirStartTs, long theirCommitTs) {
-        TableMetadata metadata = KeyValueServices.getTableMetadataSafe(kv, tableRef);
-        return new CellConflict(cell, getHumanReadableCellName(metadata, cell), theirStartTs, theirCommitTs);
+    public static CellConflict createConflict(Cell cell, long theirStartTs, long theirCommitTs) {
+        return new CellConflict(cell, getHumanReadableCellName(cell), theirStartTs, theirCommitTs);
     }
 
-    public static String getHumanReadableCellName(@Nullable TableMetadata metadata, Cell cell) {
+    public static String getHumanReadableCellName(Cell cell) {
         if (cell == null) {
             return "null";
         }
-        if (metadata == null) {
-            return cell.toString();
-        }
-        try {
-            String rowName = metadata.getRowMetadata().renderToJson(cell.getRowName());
-            String colName;
-            if (metadata.getColumns().hasDynamicColumns()) {
-                colName = metadata.getColumns()
-                        .getDynamicColumn()
-                        .getColumnNameDesc()
-                        .renderToJson(cell.getColumnName());
-            } else {
-                colName = PtBytes.toString(cell.getColumnName());
-            }
-            return "Cell [rowName=" + rowName + ", columnName=" + colName + "]";
-        } catch (Exception e) {
-            log.warn("Failed to render as json", e);
-            return cell.toString();
-        }
+        return cell.toString();
     }
 }
