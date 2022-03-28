@@ -42,8 +42,7 @@ javaVersions {
 
 java {
     toolchain {
-        vendor = JvmVendorSpec.ADOPTOPENJDK
-        implementation = JvmImplementation.J9
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
