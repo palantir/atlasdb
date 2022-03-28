@@ -44,6 +44,7 @@ javaVersions {
 tasks.withType(Test.class, test -> {
     test.javaLauncher = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.ADOPTOPENJDK
     }
 })
 
