@@ -513,7 +513,7 @@ public final class BlobsTable implements
     }
 
     private static Multimap<BlobsRow, BlobsNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<BlobsRow, BlobsNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<BlobsRow, BlobsNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             BlobsRow row = BlobsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -681,5 +681,5 @@ public final class BlobsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jj/KO9DsTJuZeuYVV0T+HQ==";
+    static String __CLASS_HASH = "f1OGdw5MY7EKfykqIgqEKQ==";
 }

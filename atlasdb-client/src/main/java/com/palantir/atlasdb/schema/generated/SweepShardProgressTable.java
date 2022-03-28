@@ -539,7 +539,7 @@ public final class SweepShardProgressTable implements
     }
 
     private static Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             SweepShardProgressRow row = SweepShardProgressRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -707,5 +707,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "MwcLMbM2Az+ejzNl7pcfKg==";
+    static String __CLASS_HASH = "HqImXbn8vvcJMhrqHKfZ0w==";
 }

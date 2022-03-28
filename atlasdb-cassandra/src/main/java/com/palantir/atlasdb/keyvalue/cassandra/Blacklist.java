@@ -119,13 +119,14 @@ public class Blacklist {
 
     public void remove(InetSocketAddress host) {
         blacklist.remove(host);
+        log.info("Remove blacklisted host '{}'", SafeArg.of("removedHost", CassandraLogHelper.host(host)));
     }
 
     void removeAll() {
         blacklist.clear();
     }
 
-    int size() {
+    public int size() {
         return blacklist.size();
     }
 
