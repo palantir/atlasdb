@@ -77,9 +77,9 @@ public class CassandraClientPoolTest {
     private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT);
 
-    private static final CassandraServer CASS_SERVER_1 = CassandraServer.from(HOST_1);
-    private static final CassandraServer CASS_SERVER_2 = CassandraServer.from(HOST_2);
-    private static final CassandraServer CASS_SERVER_3 = CassandraServer.from(HOST_3);
+    private static final CassandraServer CASS_SERVER_1 = CassandraServer.of(HOST_1);
+    private static final CassandraServer CASS_SERVER_2 = CassandraServer.of(HOST_2);
+    private static final CassandraServer CASS_SERVER_3 = CassandraServer.of(HOST_3);
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
@@ -103,9 +103,7 @@ public class CassandraClientPoolTest {
         doAnswer(invocation -> {
                     Set<InetSocketAddress> inetSocketAddresses =
                             config.servers().accept(new ThriftHostsExtractingVisitor());
-                    return inetSocketAddresses.stream()
-                            .map(CassandraServer::from)
-                            .collect(Collectors.toSet());
+                    return inetSocketAddresses.stream().map(CassandraServer::of).collect(Collectors.toSet());
                 })
                 .when(cassandra)
                 .getInitialServerList();
@@ -215,7 +213,7 @@ public class CassandraClientPoolTest {
     }
 
     private CassandraServer getServerForIndex(int index) {
-        return CassandraServer.from(InetSocketAddress.createUnresolved(Integer.toString(index), index));
+        return CassandraServer.of(InetSocketAddress.createUnresolved(Integer.toString(index), index));
     }
 
     @Test

@@ -31,11 +31,11 @@ public class WeightedServersTest {
     @Test
     public void testWeightedHostsWithUniformActivity() {
         Map<CassandraServer, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                CassandraServer.from(InetSocketAddress.createUnresolved("0", 0)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("0", 0)),
                         createMockClientPoolingContainerWithUtilization(10),
-                CassandraServer.from(InetSocketAddress.createUnresolved("1", 1)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("1", 1)),
                         createMockClientPoolingContainerWithUtilization(10),
-                CassandraServer.from(InetSocketAddress.createUnresolved("2", 2)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("2", 2)),
                         createMockClientPoolingContainerWithUtilization(10));
 
         NavigableMap<Integer, CassandraServer> result = WeightedServers.create(pools).hosts;
@@ -51,11 +51,11 @@ public class WeightedServersTest {
 
     @Test
     public void testWeightedHostsWithLowActivityPool() {
-        CassandraServer lowActivityHost = CassandraServer.from(InetSocketAddress.createUnresolved("2", 2));
+        CassandraServer lowActivityHost = CassandraServer.of(InetSocketAddress.createUnresolved("2", 2));
         Map<CassandraServer, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                CassandraServer.from(InetSocketAddress.createUnresolved("0", 0)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("0", 0)),
                 createMockClientPoolingContainerWithUtilization(10),
-                CassandraServer.from(InetSocketAddress.createUnresolved("1", 1)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("1", 1)),
                 createMockClientPoolingContainerWithUtilization(10),
                 lowActivityHost,
                 createMockClientPoolingContainerWithUtilization(0));
@@ -78,11 +78,11 @@ public class WeightedServersTest {
 
     @Test
     public void testWeightedHostsWithMaxActivityPool() {
-        CassandraServer highActivityHost = CassandraServer.from(InetSocketAddress.createUnresolved("2", 2));
+        CassandraServer highActivityHost = CassandraServer.of(InetSocketAddress.createUnresolved("2", 2));
         Map<CassandraServer, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                CassandraServer.from(InetSocketAddress.createUnresolved("0", 0)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("0", 0)),
                 createMockClientPoolingContainerWithUtilization(5),
-                CassandraServer.from(InetSocketAddress.createUnresolved("1", 1)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("1", 1)),
                 createMockClientPoolingContainerWithUtilization(5),
                 highActivityHost,
                 createMockClientPoolingContainerWithUtilization(20));
@@ -106,11 +106,11 @@ public class WeightedServersTest {
     @Test
     public void testWeightedHostsWithNonZeroWeights() {
         Map<CassandraServer, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                CassandraServer.from(InetSocketAddress.createUnresolved("0", 0)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("0", 0)),
                         createMockClientPoolingContainerWithUtilization(5),
-                CassandraServer.from(InetSocketAddress.createUnresolved("1", 1)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("1", 1)),
                         createMockClientPoolingContainerWithUtilization(10),
-                CassandraServer.from(InetSocketAddress.createUnresolved("2", 2)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("2", 2)),
                         createMockClientPoolingContainerWithUtilization(15));
 
         NavigableMap<Integer, CassandraServer> result = WeightedServers.create(pools).hosts;
@@ -126,11 +126,11 @@ public class WeightedServersTest {
     @Test
     public void testSelectingHostFromWeightedHostsMatchesWeight() {
         Map<CassandraServer, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                CassandraServer.from(InetSocketAddress.createUnresolved("0", 0)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("0", 0)),
                 createMockClientPoolingContainerWithUtilization(5),
-                CassandraServer.from(InetSocketAddress.createUnresolved("2", 1)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("2", 1)),
                 createMockClientPoolingContainerWithUtilization(10),
-                CassandraServer.from(InetSocketAddress.createUnresolved("3", 2)),
+                CassandraServer.of(InetSocketAddress.createUnresolved("3", 2)),
                 createMockClientPoolingContainerWithUtilization(15));
         WeightedServers weightedServers = WeightedServers.create(pools);
         Map<CassandraServer, Integer> hostsToWeight = new HashMap<>();

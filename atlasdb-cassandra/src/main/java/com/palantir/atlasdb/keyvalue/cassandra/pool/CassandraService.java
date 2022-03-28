@@ -197,7 +197,7 @@ public class CassandraService implements AutoCloseable {
     public Set<CassandraServer> getInitialServerList() {
         Set<InetSocketAddress> inetSocketAddresses = getServersFromConfig();
         return inetSocketAddresses.stream()
-                .map(cassandraHost -> CassandraServer.from(cassandraHost.getHostString(), cassandraHost))
+                .map(cassandraHost -> CassandraServer.of(cassandraHost.getHostString(), cassandraHost))
                 .collect(Collectors.toSet());
     }
 
@@ -280,20 +280,17 @@ public class CassandraService implements AutoCloseable {
     CassandraServer getAddressForHost(String inputHost) throws UnknownHostException {
         Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
         String cassandraHostName = hostnamesByIp.getOrDefault(inputHost, inputHost);
-        return CassandraServer.builder()
-                .cassandraHostName(cassandraHostName)
-                .addAllReachableProxyIps(getReachableProxies(cassandraHostName))
-                .build();
+        return CassandraServer.of(cassandraHostName, getReachableProxies(cassandraHostName));
     }
 
-    private List<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
+    private Set<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
         InetAddress[] resolvedHosts = InetAddress.getAllByName(inputHost);
         int knownPort = getKnownPort();
 
         // It is okay to have reachable proxies that do not have a hostname
         return Stream.of(resolvedHosts)
                 .map(inetAddr -> new InetSocketAddress(inetAddr, knownPort))
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     private int getKnownPort() throws UnknownHostException {

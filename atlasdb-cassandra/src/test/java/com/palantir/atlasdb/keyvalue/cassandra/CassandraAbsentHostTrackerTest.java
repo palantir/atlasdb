@@ -33,9 +33,9 @@ public class CassandraAbsentHostTrackerTest {
     private static final InetSocketAddress ADDRESS_2 = InetSocketAddress.createUnresolved("2", 2);
     private static final InetSocketAddress ADDRESS_3 = InetSocketAddress.createUnresolved("3", 3);
 
-    private static final CassandraServer SERVER_1 = CassandraServer.from(ADDRESS_1);
-    private static final CassandraServer SERVER_2 = CassandraServer.from(ADDRESS_2);
-    private static final CassandraServer SERVER_3 = CassandraServer.from(ADDRESS_3);
+    private static final CassandraServer SERVER_1 = CassandraServer.of(ADDRESS_1);
+    private static final CassandraServer SERVER_2 = CassandraServer.of(ADDRESS_2);
+    private static final CassandraServer SERVER_3 = CassandraServer.of(ADDRESS_3);
 
     private static final int REQUIRED_CONSECUTIVE_REQUESTS = 3;
 

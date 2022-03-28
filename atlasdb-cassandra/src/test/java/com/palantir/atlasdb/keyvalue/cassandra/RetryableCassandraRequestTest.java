@@ -30,8 +30,8 @@ public class RetryableCassandraRequestTest {
     private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
 
-    private static final CassandraServer SERVER_1 = CassandraServer.from(HOST_1);
-    private static final CassandraServer SERVER_2 = CassandraServer.from(HOST_2);
+    private static final CassandraServer SERVER_1 = CassandraServer.of(HOST_1);
+    private static final CassandraServer SERVER_2 = CassandraServer.of(HOST_2);
 
     private RetryableCassandraRequest<Void, RuntimeException> request;
 

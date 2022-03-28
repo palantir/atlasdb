@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.Preconditions;
 import java.net.InetSocketAddress;
 import java.util.Set;
@@ -30,6 +31,7 @@ public interface CassandraServer {
      * {@code cassandraHostName()} with {@code reachableProxyIps()} form one reachable Cassandra server.
      * We maintain set of all IPs but do not create a client pool for each one of these.
      * */
+    @Value.Parameter
     Set<InetSocketAddress> reachableProxyIps();
 
     /**
@@ -46,15 +48,16 @@ public interface CassandraServer {
         Preconditions.checkState(reachableProxyIps().size() > 0, "Must have at least one reachable IP.");
     }
 
-    static CassandraServer from(InetSocketAddress addr) {
-        return from(addr.getHostString(), addr);
+    static CassandraServer of(InetSocketAddress addr) {
+        return of(addr.getHostString(), addr);
     }
 
-    static CassandraServer from(String hostName, InetSocketAddress addr) {
-        return CassandraServer.builder()
-                .cassandraHostName(hostName)
-                .addReachableProxyIps(addr)
-                .build();
+    static CassandraServer of(String hostName, InetSocketAddress addr) {
+        return of(hostName, ImmutableSet.of(addr));
+    }
+
+    static CassandraServer of(String hostName, Set<InetSocketAddress> reachableProxies) {
+        return ImmutableCassandraServer.of(hostName, reachableProxies);
     }
 
     static ImmutableCassandraServer.Builder builder() {

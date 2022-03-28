@@ -40,9 +40,9 @@ public class BlacklistTest {
     private static final InetSocketAddress ADDRESS_2 = InetSocketAddress.createUnresolved("SW1A2AA", 1234);
     private static final InetSocketAddress ADDRESS_3 = InetSocketAddress.createUnresolved("SE17PB", 12345);
 
-    private static final CassandraServer SERVER_1 = CassandraServer.from(ADDRESS_1);
-    private static final CassandraServer SERVER_2 = CassandraServer.from(ADDRESS_2);
-    private static final CassandraServer SERVER_3 = CassandraServer.from(ADDRESS_3);
+    private static final CassandraServer SERVER_1 = CassandraServer.of(ADDRESS_1);
+    private static final CassandraServer SERVER_2 = CassandraServer.of(ADDRESS_2);
+    private static final CassandraServer SERVER_3 = CassandraServer.of(ADDRESS_3);
 
     private static final Duration ONE_SECOND = Duration.ofSeconds(1);
 

@@ -44,10 +44,8 @@ public final class CassandraLogHelper {
 
     static List<String> tokenRangesToServer(Multimap<Set<TokenRange>, CassandraServer> tokenRangesToHost) {
         return tokenRangesToHost.entries().stream()
-                .map(entry -> "host " + entry.getValue().cassandraHostName() + " with proxy "
-                        + host(entry.getValue().proxy()) + " "
-                        + "has range "
-                        + entry.getKey())
+                .map(entry ->
+                        "host " + entry.getValue().cassandraHostName() + " with proxy has range " + entry.getKey())
                 .collect(Collectors.toList());
     }
 

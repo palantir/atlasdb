@@ -54,7 +54,7 @@ public class CellLoadingBatcherTest {
             .build();
 
     private static final InetSocketAddress ADDRESS = new InetSocketAddress(42);
-    private static final CassandraServer SERVER = CassandraServer.from(ADDRESS);
+    private static final CassandraServer SERVER = CassandraServer.of(ADDRESS);
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("a.b");
     private static final int SEED = 1;
 

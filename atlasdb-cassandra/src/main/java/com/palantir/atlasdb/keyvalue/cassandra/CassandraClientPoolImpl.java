@@ -299,12 +299,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
-        Set<CassandraServer> resolvedConfigAddresses = cassandra.getInitialServerList();
-
         if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
-            setServersInPoolTo(resolvedConfigAddresses);
+            setServersInPoolTo(cassandra.getInitialServerList());
         }
 
         cassandra.debugLogStateOfPool();
@@ -395,7 +393,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     .append(" determined that the following hosts are unreachable for the following reasons: \n");
             completelyUnresponsiveNodes.forEach(
                     (cassandraServer, exception) -> errorBuilderForEntireCluster.append(String.format(
-                            "\tServer: %s was marked unreachable via proxy: %s, " + " with exception: %s%n",
+                            "\tServer: %s was marked unreachable via proxy: %s, with exception: %s%n",
                             cassandraServer.cassandraHostName(),
                             cassandraServer.proxy().getHostString(),
                             exception.toString())));

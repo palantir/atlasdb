@@ -46,9 +46,9 @@ public class CassandraServiceTest {
     private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT);
 
-    private static final CassandraServer SERVER_1 = CassandraServer.from(HOST_1);
-    private static final CassandraServer SERVER_2 = CassandraServer.from(HOST_2);
-    private static final CassandraServer SERVER_3 = CassandraServer.from(HOST_3);
+    private static final CassandraServer SERVER_1 = CassandraServer.of(HOST_1);
+    private static final CassandraServer SERVER_2 = CassandraServer.of(HOST_2);
+    private static final CassandraServer SERVER_3 = CassandraServer.of(HOST_3);
 
     private static final String DC_1 = "london";
     private static final String DC_2 = "singapore";
@@ -125,7 +125,7 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldThrowIfPortsAreNotTheSameAddressDoesNotMatch() {
-        CassandraServer server2 = CassandraServer.from(InetSocketAddress.createUnresolved(HOSTNAME_2, OTHER_PORT));
+        CassandraServer server2 = CassandraServer.of(InetSocketAddress.createUnresolved(HOSTNAME_2, OTHER_PORT));
 
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(SERVER_1, server2));
 
