@@ -41,11 +41,11 @@ javaVersions {
     runtime = 17
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+tasks.withType(Test.class, test -> {
+    test.javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
     }
-}
+})
 
 apply from: 'gradle/versions.gradle'
 
