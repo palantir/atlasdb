@@ -189,7 +189,7 @@ final class CellLoader {
                         @Override
                         public String toString() {
                             return "multiget_multislice(" + cassandraServer + ", " + colFam + ", " + partition.size()
-                                    + " cells" + ")";
+                                    + " cells)";
                         }
                     });
             tasks.add(AnnotatedCallable.wrapWithThreadName(

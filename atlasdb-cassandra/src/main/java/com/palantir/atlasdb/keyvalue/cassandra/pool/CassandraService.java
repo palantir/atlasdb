@@ -316,10 +316,6 @@ public class CassandraService implements AutoCloseable {
         return currentPools.keySet().stream().map(CassandraServer::proxy).collect(Collectors.toSet());
     }
 
-    private Set<CassandraServer> getAllKnownServers() {
-        return ImmutableSet.copyOf(Sets.union(currentPools.keySet(), getInitialServerList()));
-    }
-
     private List<CassandraServer> getHostsFor(byte[] key) {
         return tokenMap.get(new LightweightOppToken(key));
     }
@@ -493,10 +489,6 @@ public class CassandraService implements AutoCloseable {
     }
 
     private void addPoolInternal(CassandraServer cassandraServer, CassandraClientPoolingContainer container) {
-        log.info(
-                "Putting server in cached pool",
-                SafeArg.of("cassandraHost", cassandraServer),
-                SafeArg.of("proxy", CassandraLogHelper.host(cassandraServer.proxy())));
         currentPools.put(cassandraServer, container);
     }
 
