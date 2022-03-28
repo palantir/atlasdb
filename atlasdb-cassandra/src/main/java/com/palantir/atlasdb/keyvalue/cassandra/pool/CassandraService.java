@@ -133,7 +133,7 @@ public class CassandraService implements AutoCloseable {
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
             localHosts = refreshLocalHosts(tokenRanges);
-            log.info("Successfully loaded the token ring");
+
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
                 EndpointDetails onlyEndpoint = Iterables.getOnlyElement(
@@ -196,19 +196,13 @@ public class CassandraService implements AutoCloseable {
      * */
     public Set<CassandraServer> getInitialServerList() {
         Set<InetSocketAddress> inetSocketAddresses = getServersFromConfig();
-        Set<CassandraServer> initialList = inetSocketAddresses.stream()
+        return inetSocketAddresses.stream()
                 .map(cassandraHost -> CassandraServer.from(cassandraHost.getHostString(), cassandraHost))
                 .collect(Collectors.toSet());
-
-        log.info("Initial server list appears to be: ", SafeArg.of("initialList", initialList.toString()));
-
-        return initialList;
     }
 
     private Set<InetSocketAddress> getServersFromConfig() {
-        Set<InetSocketAddress> addresses = config.servers().accept(new ThriftHostsExtractingVisitor());
-        log.info("Servers retrieved from config", SafeArg.of("servers", addresses.toString()));
-        return addresses;
+        return config.servers().accept(new ThriftHostsExtractingVisitor());
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
@@ -286,28 +280,9 @@ public class CassandraService implements AutoCloseable {
     CassandraServer getAddressForHost(String inputHost) throws UnknownHostException {
         Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
         String cassandraHostName = hostnamesByIp.getOrDefault(inputHost, inputHost);
-        List<InetSocketAddress> reachableProxies = getReachableProxiesThrowUnchecked(cassandraHostName);
-
-        for (CassandraServer server : getAllKnownServers()) {
-            if (server.cassandraHostName().equals(cassandraHostName)) {
-                // Todo(snanda): Remove the log if algorithm changes
-                if (!ImmutableSet.of(reachableProxies).equals(ImmutableSet.copyOf(server.reachableProxyIps()))) {
-                    log.warn(
-                            "List of proxies has changed",
-                            SafeArg.of("oldProxies", server.reachableProxyIps().toString()),
-                            SafeArg.of("newProxies", reachableProxies.toString()),
-                            SafeArg.of("inputHost", inputHost),
-                            SafeArg.of("resovedCassandraHostName", cassandraHostName));
-                }
-            }
-        }
-
-        log.info("Got a new cassandra server", SafeArg.of("cassandraHostName", cassandraHostName));
-
-        // todo(snanda): we use the resolved host name to match with init servers
         return CassandraServer.builder()
                 .cassandraHostName(cassandraHostName)
-                .addAllReachableProxyIps(reachableProxies)
+                .addAllReachableProxyIps(getReachableProxiesThrowUnchecked(cassandraHostName))
                 .build();
     }
 
