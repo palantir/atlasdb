@@ -2140,9 +2140,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             AssertUtils.assertAndLog(
                     log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
             if (theirStartTimestamp > getStartTimestamp()) {
-                dominatingWrites.add(Cells.createConflictWithMetadata(key, theirStartTimestamp, theirCommitTimestamp));
+                dominatingWrites.add(Cells.createConflict(key, theirStartTimestamp, theirCommitTimestamp));
             } else if (theirCommitTimestamp > getStartTimestamp()) {
-                spanningWrites.add(Cells.createConflictWithMetadata(key, theirStartTimestamp, theirCommitTimestamp));
+                spanningWrites.add(Cells.createConflict(key, theirStartTimestamp, theirCommitTimestamp));
             }
         }
 

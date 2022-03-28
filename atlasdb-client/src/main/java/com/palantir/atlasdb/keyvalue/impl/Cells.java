@@ -187,7 +187,7 @@ public final class Cells {
         return BaseEncoding.base16().lowerCase().encode(name);
     }
 
-    public static CellConflict createConflictWithMetadata(Cell cell, long theirStartTs, long theirCommitTs) {
+    public static CellConflict createConflict(Cell cell, long theirStartTs, long theirCommitTs) {
         return new CellConflict(cell, getHumanReadableCellName(cell), theirStartTs, theirCommitTs);
     }
 
