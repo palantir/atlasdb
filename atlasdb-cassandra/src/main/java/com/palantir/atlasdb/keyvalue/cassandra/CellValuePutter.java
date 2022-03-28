@@ -21,6 +21,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
@@ -28,7 +29,6 @@ import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -93,9 +93,9 @@ public class CellValuePutter {
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values,
             Optional<Long> overrideTimestamp) {
-        Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
+        Map<CassandraServer, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
         List<Callable<Void>> tasks = new ArrayList<>(cellsByHost.size());
-        for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
+        for (final Map.Entry<CassandraServer, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas put " + entry.getValue().size() + " cell values to " + tableRef + " on " + entry.getKey(),
@@ -118,12 +118,12 @@ public class CellValuePutter {
 
     private void putForSingleHost(
             String kvsMethodName,
-            final InetSocketAddress host,
+            final CassandraServer server,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values,
             Optional<Long> overrideTimestamp)
             throws Exception {
-        clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+        clientPool.runWithRetryOnServer(server, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
                 int mutationBatchCount = config.mutationBatchCount();
@@ -158,7 +158,7 @@ public class CellValuePutter {
 
             @Override
             public String toString() {
-                return "batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", " + Iterables.size(values)
+                return "batch_mutate(" + server + ", " + tableRef.getQualifiedName() + ", " + Iterables.size(values)
                         + " values)";
             }
         });

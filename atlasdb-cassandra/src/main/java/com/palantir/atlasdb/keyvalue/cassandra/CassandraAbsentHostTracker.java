@@ -17,11 +17,11 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -33,60 +33,62 @@ public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
 
     private final int absenceLimit;
-    private final Map<InetSocketAddress, PoolAndCount> absentHosts;
+    private final Map<CassandraServer, PoolAndCount> absentCassandraServers;
 
     public CassandraAbsentHostTracker(int absenceLimit) {
         this.absenceLimit = absenceLimit;
-        this.absentHosts = new HashMap<>();
+        this.absentCassandraServers = new HashMap<>();
     }
 
-    public synchronized Optional<CassandraClientPoolingContainer> returnPool(InetSocketAddress host) {
-        return Optional.ofNullable(absentHosts.remove(host)).map(PoolAndCount::container);
+    public synchronized Optional<CassandraClientPoolingContainer> returnPool(CassandraServer cassandraServer) {
+        return Optional.ofNullable(absentCassandraServers.remove(cassandraServer))
+                .map(PoolAndCount::container);
     }
 
-    public synchronized void trackAbsentHost(InetSocketAddress host, CassandraClientPoolingContainer pool) {
-        absentHosts.putIfAbsent(host, PoolAndCount.of(pool));
+    public synchronized void trackAbsentCassandraServer(
+            CassandraServer absentServer, CassandraClientPoolingContainer pool) {
+        absentCassandraServers.putIfAbsent(absentServer, PoolAndCount.of(pool));
     }
 
-    public synchronized Set<InetSocketAddress> incrementAbsenceAndRemove() {
-        return cleanupAbsentHosts(ImmutableSet.copyOf(absentHosts.keySet()));
+    public synchronized Set<CassandraServer> incrementAbsenceAndRemove() {
+        return cleanupAbsentServer(ImmutableSet.copyOf(absentCassandraServers.keySet()));
     }
 
     public synchronized void shutDown() {
-        KeyedStream.stream(absentHosts).map(PoolAndCount::container).forEach(this::shutdownClientPoolForHost);
-        absentHosts.clear();
+        KeyedStream.stream(absentCassandraServers).map(PoolAndCount::container).forEach(this::shutdownClientPool);
+        absentCassandraServers.clear();
     }
 
-    private Set<InetSocketAddress> cleanupAbsentHosts(Set<InetSocketAddress> absentHostsSnapshot) {
-        absentHostsSnapshot.forEach(this::incrementAbsenceCountIfPresent);
-        return absentHostsSnapshot.stream()
+    private Set<CassandraServer> cleanupAbsentServer(Set<CassandraServer> absentServersSnapshot) {
+        absentServersSnapshot.forEach(this::incrementAbsenceCountIfPresent);
+        return absentServersSnapshot.stream()
                 .map(this::removeIfAbsenceThresholdReached)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
     }
 
-    private void incrementAbsenceCountIfPresent(InetSocketAddress host) {
-        absentHosts.computeIfPresent(host, (_host, poolAndCount) -> poolAndCount.incrementCount());
+    private void incrementAbsenceCountIfPresent(CassandraServer cassandraServer) {
+        absentCassandraServers.computeIfPresent(
+                cassandraServer, (_host, poolAndCount) -> poolAndCount.incrementCount());
     }
 
-    private Optional<InetSocketAddress> removeIfAbsenceThresholdReached(InetSocketAddress inetSocketAddress) {
-        if (absentHosts.get(inetSocketAddress).timesAbsent() <= absenceLimit) {
+    private Optional<CassandraServer> removeIfAbsenceThresholdReached(CassandraServer cassandraServer) {
+        if (absentCassandraServers.get(cassandraServer).timesAbsent() <= absenceLimit) {
             return Optional.empty();
         } else {
-            PoolAndCount removedServer = absentHosts.remove(inetSocketAddress);
-            shutdownClientPoolForHost(inetSocketAddress, removedServer.container());
-            return Optional.of(inetSocketAddress);
+            PoolAndCount removedServer = absentCassandraServers.remove(cassandraServer);
+            shutdownClientPool(cassandraServer, removedServer.container());
+            return Optional.of(cassandraServer);
         }
     }
 
-    private void shutdownClientPoolForHost(
-            InetSocketAddress inetSocketAddress, CassandraClientPoolingContainer container) {
+    private void shutdownClientPool(CassandraServer cassandraServer, CassandraClientPoolingContainer container) {
         try {
             container.shutdownPooling();
         } catch (Exception e) {
             log.warn(
                     "While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
-                    SafeArg.of("removedServerAddress", CassandraLogHelper.host(inetSocketAddress)),
+                    SafeArg.of("removedServer", cassandraServer),
                     e);
         }
     }

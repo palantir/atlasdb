@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import java.net.InetSocketAddress;
 import org.junit.Before;
@@ -29,11 +30,14 @@ public class RetryableCassandraRequestTest {
     private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
 
+    private static final CassandraServer SERVER_1 = CassandraServer.of(HOST_1);
+    private static final CassandraServer SERVER_2 = CassandraServer.of(HOST_2);
+
     private RetryableCassandraRequest<Void, RuntimeException> request;
 
     @Before
     public void setup() {
-        request = new RetryableCassandraRequest<>(HOST_1, noOp());
+        request = new RetryableCassandraRequest<>(SERVER_1, noOp());
     }
 
     @Test
@@ -43,44 +47,44 @@ public class RetryableCassandraRequestTest {
 
     @Test
     public void numberOfRetriesOnHostShouldBeZeroInitially() {
-        assertNumberOfAttemptsOnHost(0, HOST_1);
-        assertNumberOfAttemptsOnHost(0, HOST_2);
+        assertNumberOfAttemptsOnHost(0, SERVER_1);
+        assertNumberOfAttemptsOnHost(0, SERVER_2);
     }
 
     @Test
     public void shouldIncrementRetries() {
-        request.triedOnHost(HOST_1);
+        request.triedOnHost(SERVER_1);
         assertNumberOfTotalAttempts(1);
-        assertNumberOfAttemptsOnHost(1, HOST_1);
+        assertNumberOfAttemptsOnHost(1, SERVER_1);
 
-        request.triedOnHost(HOST_1);
+        request.triedOnHost(SERVER_1);
         assertNumberOfTotalAttempts(2);
-        assertNumberOfAttemptsOnHost(2, HOST_1);
+        assertNumberOfAttemptsOnHost(2, SERVER_1);
     }
 
     @Test
     public void shouldSeparateRetriesOnDifferentHosts() {
-        request.triedOnHost(HOST_1);
+        request.triedOnHost(SERVER_1);
         assertNumberOfTotalAttempts(1);
-        assertNumberOfAttemptsOnHost(1, HOST_1);
-        assertNumberOfAttemptsOnHost(0, HOST_2);
+        assertNumberOfAttemptsOnHost(1, SERVER_1);
+        assertNumberOfAttemptsOnHost(0, SERVER_2);
 
-        request.triedOnHost(HOST_2);
+        request.triedOnHost(SERVER_2);
         assertNumberOfTotalAttempts(2);
-        assertNumberOfAttemptsOnHost(1, HOST_1);
-        assertNumberOfAttemptsOnHost(1, HOST_2);
+        assertNumberOfAttemptsOnHost(1, SERVER_1);
+        assertNumberOfAttemptsOnHost(1, SERVER_2);
     }
 
     private void assertNumberOfTotalAttempts(int expected) {
         assertThat(request.getNumberOfAttempts()).isEqualTo(expected);
     }
 
-    private void assertNumberOfAttemptsOnHost(int expected, InetSocketAddress host) {
-        assertThat(request.getNumberOfAttemptsOnHost(host)).isEqualTo(expected);
+    private void assertNumberOfAttemptsOnHost(int expected, CassandraServer server) {
+        assertThat(request.getNumberOfAttemptsOnHost(server)).isEqualTo(expected);
     }
 
     private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {
-        return new FunctionCheckedException<CassandraClient, Void, RuntimeException>() {
+        return new FunctionCheckedException<>() {
             @Override
             public Void apply(CassandraClient input) throws RuntimeException {
                 return null;

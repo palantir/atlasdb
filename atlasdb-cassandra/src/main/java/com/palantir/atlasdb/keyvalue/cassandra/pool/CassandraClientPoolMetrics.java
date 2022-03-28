@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +32,7 @@ import java.util.function.Supplier;
 public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;
     private final RequestMetrics aggregateRequestMetrics;
-    private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+    private final Map<CassandraServer, RequestMetrics> metricsByHost = new HashMap<>();
     private final Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> outlierControllers;
 
     // Tracks occurrences of client pool exhaustions.
@@ -113,7 +112,7 @@ public class CassandraClientPoolMetrics {
     private void updateMetricOnAggregateAndHost(
             CassandraClientPoolingContainer hostPool, Consumer<RequestMetrics> metricsConsumer) {
         metricsConsumer.accept(aggregateRequestMetrics);
-        RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
+        RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getCassandraServer());
         if (requestMetricsForHost != null) {
             metricsConsumer.accept(requestMetricsForHost);
         }

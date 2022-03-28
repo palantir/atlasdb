@@ -65,9 +65,11 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.StartupChecks;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
@@ -105,7 +107,6 @@ import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -239,7 +240,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, config, CassandraClientPoolImpl.StartupChecks.RUN, new Blacklist(config));
+                metricsManager, config, StartupChecks.RUN, new Blacklist(config));
 
         return createOrShutdownClientPool(
                 metricsManager,
@@ -590,11 +591,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
 
-        Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
+        Set<Map.Entry<CassandraServer, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
         List<Callable<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
-        for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
+        for (final Map.Entry<CassandraServer, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
@@ -610,7 +611,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> getRowsForSingleHost(
-            final InetSocketAddress host, final TableReference tableRef, final List<byte[]> rows, final long startTs) {
+            final CassandraServer host, final TableReference tableRef, final List<byte[]> rows, final long startTs) {
         try {
             int rowCount = 0;
             final Map<Cell, Value> result = new HashMap<>();
@@ -634,7 +635,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> getAllCellsForRows(
-            final InetSocketAddress host, final TableReference tableRef, final List<byte[]> rows, final long startTs)
+            final CassandraServer host, final TableReference tableRef, final List<byte[]> rows, final long startTs)
             throws Exception {
 
         final ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = LinkedListMultimap.create();
@@ -674,9 +675,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> getForKeyPredicates(
-            final InetSocketAddress host, final TableReference tableRef, List<KeyPredicate> query, final long startTs)
+            final CassandraServer host, final TableReference tableRef, List<KeyPredicate> query, final long startTs)
             throws Exception {
-        return clientPool.runWithRetryOnHost(
+        return clientPool.runWithRetryOnServer(
                 host,
                 new FunctionCheckedException<CassandraClient, Map<ByteBuffer, List<ColumnOrSuperColumn>>, Exception>() {
                     @Override
@@ -689,7 +690,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     SafeArg.of("cells", query.size()),
                                     LoggingArgs.tableRef(tableRef),
                                     SafeArg.of("startTs", startTs),
-                                    SafeArg.of("host", CassandraLogHelper.host(host)));
+                                    SafeArg.of("host", host));
                         }
 
                         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =
@@ -846,11 +847,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
+        Set<Map.Entry<CassandraServer, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = new ArrayList<>(rowsByHost.size());
-        for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
+        for (final Map.Entry<CassandraServer, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas getRowsColumnRange " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
@@ -872,7 +873,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<byte[], RowColumnRangeIterator> getRowsColumnRangeIteratorForSingleHost(
-            InetSocketAddress host,
+            CassandraServer host,
             TableReference tableRef,
             List<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
@@ -933,13 +934,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(
-            InetSocketAddress host,
+            CassandraServer host,
             TableReference tableRef,
             List<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long startTs) {
         try {
-            return clientPool.runWithRetryOnHost(
+            return clientPool.runWithRetryOnServer(
                     host,
                     new FunctionCheckedException<
                             CassandraClient, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
@@ -980,7 +981,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(
-            InetSocketAddress host,
+            CassandraServer host,
             TableReference tableRef,
             byte[] row,
             BatchColumnRangeSelection batchColumnRangeSelection,
@@ -1002,7 +1003,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                     TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(final byte[] startCol)
                             throws Exception {
-                        return clientPool.runWithRetryOnHost(
+                        return clientPool.runWithRetryOnServer(
                                 host,
                                 new FunctionCheckedException<
                                         CassandraClient,
@@ -1167,18 +1168,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 flattened.add(new TableCellAndValue(tableAndValues.getKey(), entry.getKey(), entry.getValue()));
             }
         }
-        Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost =
+        Map<CassandraServer, List<TableCellAndValue>> partitionedByHost =
                 HostPartitioner.partitionByHost(clientPool, flattened, TableCellAndValue::extractRowName);
 
         List<Callable<Void>> callables = new ArrayList<>();
-        for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
+        for (Map.Entry<CassandraServer, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
             callables.addAll(getMultiPutTasksForSingleHost(entry.getKey(), entry.getValue(), timestamp));
         }
         taskRunner.runAllTasksCancelOnFailure(callables);
     }
 
     private List<Callable<Void>> getMultiPutTasksForSingleHost(
-            final InetSocketAddress host, Collection<TableCellAndValue> values, final long timestamp) {
+            final CassandraServer host, Collection<TableCellAndValue> values, final long timestamp) {
         Iterable<List<TableCellAndValue>> partitioned = IterablePartitioner.partitionByCountAndBytes(
                 values,
                 getMultiPutBatchCount(),
@@ -1205,13 +1206,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Void multiPutForSingleHostInternal(
-            final InetSocketAddress host,
+            final CassandraServer host,
             final Set<TableReference> tableRefs,
             final List<TableCellAndValue> batch,
             long timestamp)
             throws Exception {
         final MutationMap mutationMap = convertToMutations(batch, timestamp);
-        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+        return clientPool.runWithRetryOnServer(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
                 return wrappingQueryRunner.batchMutate("multiPut", client, tableRefs, mutationMap, WRITE_CONSISTENCY);
@@ -1996,10 +1997,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int countUnreachableNodes = 0;
-        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
+        for (CassandraServer server : clientPool.getCurrentPools().keySet()) {
             try {
-                clientPool.runOnHost(host, CassandraVerifier.healthCheck);
-                if (!partitionerIsValid(host)) {
+                clientPool.runOnCassandraServer(server, CassandraVerifier.healthCheck);
+                if (!partitionerIsValid(server)) {
                     return ClusterAvailabilityStatus.TERMINAL;
                 }
             } catch (Exception e) {
@@ -2009,9 +2010,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return getNodeAvailabilityStatus(countUnreachableNodes);
     }
 
-    private boolean partitionerIsValid(InetSocketAddress host) {
+    private boolean partitionerIsValid(CassandraServer host) {
         try {
-            clientPool.runOnHost(host, clientPool.getValidatePartitioner());
+            clientPool.runOnCassandraServer(host, clientPool.getValidatePartitioner());
             return true;
         } catch (Exception e) {
             return false;
