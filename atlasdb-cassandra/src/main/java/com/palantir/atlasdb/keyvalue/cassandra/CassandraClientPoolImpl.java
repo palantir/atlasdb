@@ -505,7 +505,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
     private void sanityCheckRingConsistency() {
-        Multimap<Set<TokenRange>, CassandraServer> tokenRangesToHost = HashMultimap.create();
+        Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
         for (CassandraServer host : getCachedServers()) {
             try (CassandraClient client = CassandraClientFactory.getClientInternal(host.proxy(), config)) {
                 try {
@@ -513,7 +513,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 } catch (NotFoundException e) {
                     return; // don't care to check for ring consistency when we're not even fully initialized
                 }
-                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
+                tokenRangesToServer.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
                 log.warn(
                         "Failed to get ring info from host: {}",
@@ -523,7 +523,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             }
         }
 
-        if (tokenRangesToHost.isEmpty()) {
+        if (tokenRangesToServer.isEmpty()) {
             log.warn(
                     "Failed to get ring info for entire Cassandra cluster ({});"
                             + " ring could not be checked for consistency.",
@@ -531,11 +531,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return;
         }
 
-        if (tokenRangesToHost.keySet().size() == 1) { // all nodes agree on a consistent view of the cluster. Good.
+        if (tokenRangesToServer.keySet().size() == 1) { // all nodes agree on a consistent view of the cluster. Good.
             return;
         }
 
-        if (TokenRangeResolution.viewsAreConsistent(tokenRangesToHost.keySet())) {
+        if (TokenRangeResolution.viewsAreConsistent(tokenRangesToServer.keySet())) {
             log.info("Although multiple ring descriptions were detected, we believe these to be consistent:"
                     + " ranges detected were identical. This may occur when there are legitimate network routing"
                     + " changes, for instance.");
@@ -547,17 +547,17 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         log.error(
                 "Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
                         + " lose writes. The mapping of token ranges to hosts is:\n{}",
-                UnsafeArg.of("tokenRangesToHost", CassandraLogHelper.tokenRangesToServer(tokenRangesToHost)),
+                UnsafeArg.of("tokenRangesToServer", CassandraLogHelper.tokenRangesToServer(tokenRangesToServer)),
                 SafeArg.of(
                         "tokenRangeHashes",
-                        CassandraLogHelper.tokenRangeHashes(tokenRangesToHost.keySet().stream()
+                        CassandraLogHelper.tokenRangeHashes(tokenRangesToServer.keySet().stream()
                                 .flatMap(Set::stream)
                                 .collect(Collectors.toSet()))),
                 ex);
 
         // provide some easier to grok logging for the two most common cases
-        if (tokenRangesToHost.size() > 2) {
-            tokenRangesToHost.asMap().entrySet().stream()
+        if (tokenRangesToServer.size() > 2) {
+            tokenRangesToServer.asMap().entrySet().stream()
                     .filter(entry -> entry.getValue().size() == 1)
                     .forEach(entry -> {
                         // We've checked above that entry.getValue() has one element, so we never NPE here.
@@ -566,14 +566,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                                 SafeArg.of("host", Iterables.getFirst(entry.getValue(), null)));
                     });
         }
-        if (tokenRangesToHost.keySet().size() == 2) {
-            ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToHost.keySet());
+        if (tokenRangesToServer.keySet().size() == 2) {
+            ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToServer.keySet());
             Set<TokenRange> set1 = sets.get(0);
             Set<TokenRange> set2 = sets.get(1);
             log.error(
                     "Hosts are split. group1: {} group2: {}",
-                    SafeArg.of("hosts1", CassandraLogHelper.collectionOfHosts(tokenRangesToHost.get(set1))),
-                    SafeArg.of("hosts2", CassandraLogHelper.collectionOfHosts(tokenRangesToHost.get(set2))));
+                    SafeArg.of("hosts1", CassandraLogHelper.collectionOfHosts(tokenRangesToServer.get(set1))),
+                    SafeArg.of("hosts2", CassandraLogHelper.collectionOfHosts(tokenRangesToServer.get(set2))));
         }
 
         CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());

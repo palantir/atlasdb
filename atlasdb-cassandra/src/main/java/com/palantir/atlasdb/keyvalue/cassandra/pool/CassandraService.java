@@ -282,11 +282,11 @@ public class CassandraService implements AutoCloseable {
         String cassandraHostName = hostnamesByIp.getOrDefault(inputHost, inputHost);
         return CassandraServer.builder()
                 .cassandraHostName(cassandraHostName)
-                .addAllReachableProxyIps(getReachableProxiesThrowUnchecked(cassandraHostName))
+                .addAllReachableProxyIps(getReachableProxies(cassandraHostName))
                 .build();
     }
 
-    private List<InetSocketAddress> getReachableProxiesThrowUnchecked(String inputHost) throws UnknownHostException {
+    private List<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
         InetAddress[] resolvedHosts = InetAddress.getAllByName(inputHost);
         int knownPort = getKnownPort();
 

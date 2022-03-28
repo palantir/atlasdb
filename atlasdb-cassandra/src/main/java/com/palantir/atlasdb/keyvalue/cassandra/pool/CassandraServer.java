@@ -28,7 +28,7 @@ public interface CassandraServer {
 
     /**
      * {@code cassandraHostName()} with {@code reachableProxyIps()} form one reachable Cassandra server.
-     * While we maintain set of all IPs but do not create a client pool for each one of these.
+     * We maintain set of all IPs but do not create a client pool for each one of these.
      * */
     Set<InetSocketAddress> reachableProxyIps();
 
@@ -38,7 +38,7 @@ public interface CassandraServer {
     @Value.Lazy
     default InetSocketAddress proxy() {
         // we know the set of proxies contains at least one element
-        return reachableProxyIps().stream().findFirst().get();
+        return reachableProxyIps().stream().findFirst().orElseThrow();
     }
 
     @Value.Check

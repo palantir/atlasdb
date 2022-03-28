@@ -160,7 +160,7 @@ public class CassandraClientPoolTest {
         int numHosts = 4;
         List<CassandraServer> serverList = new ArrayList<>();
         for (int i = 0; i < numHosts; i++) {
-            serverList.add(CassandraServer.from(InetSocketAddress.createUnresolved(Integer.toString(i), i)));
+            serverList.add(getServerForIndex(i));
         }
 
         CassandraClientPoolImpl clientPool = throwingClientPoolWithServersInCurrentPool(
@@ -212,6 +212,10 @@ public class CassandraClientPoolTest {
 
         assertThatThrownBy(() -> runNoopOnHost(CASS_SERVER_1, cassandraClientPool))
                 .isInstanceOf(Exception.class);
+    }
+
+    private CassandraServer getServerForIndex(int index) {
+        return CassandraServer.from(InetSocketAddress.createUnresolved(Integer.toString(index), index));
     }
 
     @Test
