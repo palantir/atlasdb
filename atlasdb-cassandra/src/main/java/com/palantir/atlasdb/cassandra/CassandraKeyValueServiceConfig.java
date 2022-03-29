@@ -52,19 +52,18 @@ import org.immutables.value.Value;
 public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
-    int REPLICATION_FACTOR_SENTINEL = -1;
 
     /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#servers()} to make this
+     * value live-reloadable.
      * These are only the initial 'contact points' that will be used in connecting with the cluster. AtlasDB will
      * subsequently discover additional hosts in the cluster. (This is true for both Thrift and CQL endpoints.)
      *
      * This value, or values derived from it (e.g. the number of Thrift hosts) must ONLY be used on KVS initialization
      * to generate the initial connection(s) to the cluster, or as part of startup checks.
      */
-    @Value.Default
-    default CassandraServersConfig servers() {
-        return ImmutableDefaultConfig.of();
-    }
+    @Deprecated
+    Optional<CassandraServersConfig> servers();
 
     @Value.Default
     default Map<String, InetSocketAddress> addressTranslation() {
@@ -130,11 +129,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * value live-reloadable.
      */
     @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int unresponsiveHostBackoffTimeSeconds() {
-        return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
-    }
+    Optional<Integer> unresponsiveHostBackoffTimeSeconds();
 
     /**
      * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra as data
@@ -241,43 +237,36 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory();
 
-    @Value.Default
-    default int replicationFactor() {
-        return REPLICATION_FACTOR_SENTINEL;
-    }
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#replicationFactor()} to make this value live
+     * reloadable
+     */
+    @Deprecated
+    Optional<Integer> replicationFactor();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
      * live-reloadable.
      */
     @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int mutationBatchCount() {
-        return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
-    }
+    Optional<Integer> mutationBatchCount();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchSizeBytes()} to make this value
      * live-reloadable.
      */
     @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int mutationBatchSizeBytes() {
-        return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
-    }
+    Optional<Integer> mutationBatchSizeBytes();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#fetchBatchCount()} to make this value
      * live-reloadable.
      */
     @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int fetchBatchCount() {
-        return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
-    }
+    Optional<Integer> fetchBatchCount();
 
     @Value.Default
     default boolean ignoreNodeTopologyChecks() {
@@ -376,11 +365,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * live-reloadable.
      */
     @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default Integer sweepReadThreads() {
-        return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
-    }
+    Optional<Integer> sweepReadThreads();
 
     Optional<CassandraJmxCompactionConfig> jmx();
 

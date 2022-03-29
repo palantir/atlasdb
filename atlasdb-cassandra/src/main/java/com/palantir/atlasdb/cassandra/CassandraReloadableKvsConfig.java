@@ -18,40 +18,40 @@ package com.palantir.atlasdb.cassandra;
 import static com.palantir.logsafe.Preconditions.checkArgument;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.refreshable.Refreshable;
+import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
+import org.immutables.value.Value.Default;
 
-public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueServiceConfig {
+public class CassandraReloadableKvsConfig implements MergedCassandraKeyValueServiceConfig {
 
     private final CassandraKeyValueServiceConfig config;
-    private final Supplier<Optional<CassandraKeyValueServiceRuntimeConfig>> runtimeConfigSupplier;
+    private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
 
     public CassandraReloadableKvsConfig(
             CassandraKeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigRefreshable) {
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
         this.config = config;
         this.runtimeConfigSupplier = runtimeConfigRefreshable.map(runtimeConfig -> {
-            Optional<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig =
-                    runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig.class::cast);
-
             checkArgument(
-                    servers(config, cassandraRuntimeConfig).numberOfThriftHosts() > 0,
+                    servers(config, runtimeConfig).numberOfThriftHosts() > 0,
                     "'servers' must have at least one defined host");
 
             checkArgument(
-                    replicationFactor(config, cassandraRuntimeConfig) >= 0,
+                    replicationFactor(config, runtimeConfig).isPresent(),
                     "'replicationFactor' must be set to a non-negative value");
 
-            return cassandraRuntimeConfig;
+            return runtimeConfig;
         });
-    }
-
-    @Override
-    public CassandraKeyValueServiceConfig delegate() {
-        return config;
     }
 
     @Override
@@ -60,65 +60,44 @@ public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueSer
     }
 
     private static CassandraServersConfig servers(
-            CassandraKeyValueServiceConfig config, Optional<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
-        if (config.servers().numberOfThriftHosts() > 0) {
-            return config.servers();
-        }
-
-        return runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::servers).orElseGet(config::servers);
+            CassandraKeyValueServiceConfig config, CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
+        return config.servers().orElseGet(runtimeConfig::servers);
     }
 
     @Override
     public int unresponsiveHostBackoffTimeSeconds() {
-        return runtimeConfigSupplier
-                .get()
-                .map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)
-                .orElseGet(config::unresponsiveHostBackoffTimeSeconds);
+        return config.unresponsiveHostBackoffTimeSeconds().orElseGet(() -> runtimeConfigSupplier.get().unresponsiveHostBackoffTimeSeconds());
     }
 
     @Override
     public int mutationBatchCount() {
-        return runtimeConfigSupplier
-                .get()
-                .map(CassandraKeyValueServiceRuntimeConfig::mutationBatchCount)
-                .orElseGet(config::mutationBatchCount);
+        return config.mutationBatchCount().orElseGet(() -> runtimeConfigSupplier.get().mutationBatchCount());
     }
 
     @Override
     public int mutationBatchSizeBytes() {
-        return runtimeConfigSupplier
-                .get()
-                .map(CassandraKeyValueServiceRuntimeConfig::mutationBatchSizeBytes)
-                .orElseGet(config::mutationBatchSizeBytes);
+        return config.mutationBatchSizeBytes().orElseGet(() -> runtimeConfigSupplier.get().mutationBatchSizeBytes());
     }
 
     @Override
     public int fetchBatchCount() {
-        return runtimeConfigSupplier
-                .get()
-                .map(CassandraKeyValueServiceRuntimeConfig::fetchBatchCount)
-                .orElseGet(config::fetchBatchCount);
+        return config.fetchBatchCount().orElseGet(() -> runtimeConfigSupplier.get().fetchBatchCount());
     }
 
     @Override
-    public Integer sweepReadThreads() {
-        return runtimeConfigSupplier
-                .get()
-                .map(CassandraKeyValueServiceRuntimeConfig::sweepReadThreads)
-                .orElseGet(config::sweepReadThreads);
+    public int sweepReadThreads() {
+        return config.sweepReadThreads().orElseGet(() -> runtimeConfigSupplier.get().sweepReadThreads());
     }
 
+    @Default
     @Override
     public int concurrentGetRangesThreadPoolSize() {
-        if (config.servers().numberOfThriftHosts() > 0) {
+        if (config.servers().isPresent()) {
             return config.concurrentGetRangesThreadPoolSize();
         }
 
         // Use the initial number of thrift hosts as a best guess
-        return runtimeConfigSupplier
-                .get()
-                .map(_runtime -> poolSize() * servers().numberOfThriftHosts())
-                .orElseGet(config::concurrentGetRangesThreadPoolSize);
+        return poolSize() * servers().numberOfThriftHosts();
     }
 
     @Override
@@ -127,29 +106,228 @@ public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueSer
     }
 
     @Override
+    public CassandraCellLoadingConfig cellLoadingConfig() {
+        return runtimeConfigSupplier.get().cellLoadingConfig();
+    }
+
+    @Override
+    public int numberOfRetriesOnSameHost() {
+        return runtimeConfigSupplier.get().numberOfRetriesOnSameHost();
+    }
+
+    @Override
+    public int numberOfRetriesOnAllHosts() {
+        return runtimeConfigSupplier.get().numberOfRetriesOnAllHosts();
+    }
+
+    @Override
+    public int fetchReadLimitPerRow() {
+        return runtimeConfigSupplier.get().fetchReadLimitPerRow();
+    }
+
+    @Override
+    public boolean conservativeRequestExceptionHandler() {
+        return runtimeConfigSupplier.get().conservativeRequestExceptionHandler();
+    }
+
+    @Override
+    public CassandraTracingConfig tracing() {
+        return runtimeConfigSupplier.get().tracing();
+    }
+
+    @Override
     public int defaultGetRangesConcurrency() {
-        if (config.servers().numberOfThriftHosts() > 0) {
+        if (config.servers().isPresent()) {
             return config.defaultGetRangesConcurrency();
         }
 
-        return runtimeConfigSupplier
-                .get()
-                .map(_runtime -> Math.min(8, concurrentGetRangesThreadPoolSize() / 2))
-                .orElseGet(config::defaultGetRangesConcurrency);
+        return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
     }
 
     @Override
     public int replicationFactor() {
-        return replicationFactor(config, runtimeConfigSupplier.get());
+        // Safety: If #replicationFactor would return an optional, then the precondition in the runtimeConfigSupplier
+        // would have thrown, reverting to a previously valid config where an optional would not be thrown.
+        return replicationFactor(config, runtimeConfigSupplier.get()).orElseThrow();
     }
 
-    private static int replicationFactor(
-            CassandraKeyValueServiceConfig config, Optional<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
-        if (config.replicationFactor() != REPLICATION_FACTOR_SENTINEL) {
-            return config.replicationFactor();
-        }
-        return runtimeConfig
-                .map(CassandraKeyValueServiceRuntimeConfig::replicationFactor)
-                .orElseGet(config::replicationFactor);
+    private static Optional<Integer> replicationFactor(
+            CassandraKeyValueServiceConfig config, CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
+        return config.replicationFactor().or(runtimeConfig::replicationFactor);
+    }
+
+    @Override
+    public Map<String, InetSocketAddress> addressTranslation() {
+        return config.addressTranslation();
+    }
+
+    @Override
+    public Optional<String> namespace() {
+        return config.namespace();
+    }
+
+    @Override
+    public int poolSize() {
+        return config.poolSize();
+    }
+
+    @Override
+    public int maxConnectionBurstSize() {
+        return config.maxConnectionBurstSize();
+    }
+
+    @Override
+    public double proportionConnectionsToCheckPerEvictionRun() {
+        return config.proportionConnectionsToCheckPerEvictionRun();
+    }
+
+    @Override
+    public int idleConnectionTimeoutSeconds() {
+        return config.idleConnectionTimeoutSeconds();
+    }
+
+    @Override
+    public int timeBetweenConnectionEvictionRunsSeconds() {
+        return config.timeBetweenConnectionEvictionRunsSeconds();
+    }
+
+    @Override
+    public int poolRefreshIntervalSeconds() {
+        return config.poolRefreshIntervalSeconds();
+    }
+
+    @Override
+    public int gcGraceSeconds() {
+        return config.gcGraceSeconds();
+    }
+
+    @Override
+    public double localHostWeighting() {
+        return config.localHostWeighting();
+    }
+
+    @Override
+    public int consecutiveAbsencesBeforePoolRemoval() {
+        return config.consecutiveAbsencesBeforePoolRemoval();
+    }
+
+    @Override
+    public Optional<HostLocation> overrideHostLocation() {
+        return config.overrideHostLocation();
+    }
+
+    @Override
+    public Duration timeoutOnConnectionClose() {
+        return config.timeoutOnConnectionClose();
+    }
+
+    @Override
+    public HumanReadableDuration timeoutOnConnectionBorrow() {
+        return config.timeoutOnConnectionBorrow();
+    }
+
+    @Override
+    public String getKeyspaceOrThrow() {
+        return config.getKeyspaceOrThrow();
+    }
+
+    @Override
+    public Optional<String> keyspace() {
+        return config.keyspace();
+    }
+
+    @Override
+    public CassandraCredentialsConfig credentials() {
+        return config.credentials();
+    }
+
+    @Override
+    public Optional<SslConfiguration> sslConfiguration() {
+        return config.sslConfiguration();
+    }
+
+    @Override
+    public CassandraAsyncKeyValueServiceFactory asyncKeyValueServiceFactory() {
+        return config.asyncKeyValueServiceFactory();
+    }
+
+    @Override
+    public Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory() {
+        return config.thriftExecutorServiceFactory();
+    }
+
+    @Override
+    public boolean ignoreNodeTopologyChecks() {
+        return config.ignoreNodeTopologyChecks();
+    }
+
+    @Override
+    public boolean ignoreInconsistentRingChecks() {
+        return config.ignoreInconsistentRingChecks();
+    }
+
+    @Override
+    public boolean ignoreDatacenterConfigurationChecks() {
+        return config.ignoreDatacenterConfigurationChecks();
+    }
+
+    @Override
+    public boolean ignorePartitionerChecks() {
+        return config.ignorePartitionerChecks();
+    }
+
+    @Override
+    public boolean autoRefreshNodes() {
+        return config.autoRefreshNodes();
+    }
+
+    @Override
+    public boolean clusterMeetsNormalConsistencyGuarantees() {
+        return config.clusterMeetsNormalConsistencyGuarantees();
+    }
+
+    @Override
+    public int socketTimeoutMillis() {
+        return config.socketTimeoutMillis();
+    }
+
+    @Override
+    public int socketQueryTimeoutMillis() {
+        return config.socketQueryTimeoutMillis();
+    }
+
+    @Override
+    public int initialSocketQueryTimeoutMillis() {
+        return config.initialSocketQueryTimeoutMillis();
+    }
+
+    @Override
+    public int cqlPoolTimeoutMillis() {
+        return config.cqlPoolTimeoutMillis();
+    }
+
+    @Override
+    public int schemaMutationTimeoutMillis() {
+        return config.schemaMutationTimeoutMillis();
+    }
+
+    @Override
+    public int rangesConcurrency() {
+        return config.rangesConcurrency();
+    }
+
+    @Override
+    public Optional<CassandraJmxCompactionConfig> jmx() {
+        return config.jmx();
+    }
+
+    @Override
+    public String type() {
+        return config.type();
+    }
+
+    @Override
+    public Integer timestampsGetterBatchSize() {
+        return config.timestampsGetterBatchSize();
     }
 }
