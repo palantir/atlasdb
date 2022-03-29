@@ -19,9 +19,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -33,11 +31,6 @@ abstract class ForwardingCassandraKeyValueServiceConfig implements CassandraKeyV
     @Override
     public CassandraServersConfig servers() {
         return delegate().servers();
-    }
-
-    @Override
-    public Map<String, InetSocketAddress> addressTranslation() {
-        return delegate().addressTranslation();
     }
 
     @Override
