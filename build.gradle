@@ -24,7 +24,6 @@ buildscript {
 }
 
 plugins {
-    id("java-library")
     id 'com.palantir.consistent-versions' version '2.9.0'
     id 'org.unbroken-dome.test-sets' version '4.0.0'
     id 'com.google.protobuf' version '0.8.18'
@@ -117,13 +116,6 @@ allprojects {
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable'
     }
-
-    tasks.withType(Test.class, test -> {
-        test.javaLauncher = javaToolchains.launcherFor {
-            languageVersion = JavaLanguageVersion.of(17)
-            vendor = JvmVendorSpec.ADOPTOPENJDK
-        }
-    })
 }
 
 subprojects {

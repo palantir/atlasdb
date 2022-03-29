@@ -2,7 +2,7 @@
 
 set -x
 
-BASE_GRADLE_ARGS="--profile --continue"
+BASE_GRADLE_ARGS="--profile --continue -Porg.gradle.java.installations.fromEnv=JAVA_8_HOME,JAVA_11_HOME,JAVA_15_HOME,JAVA_17_HOME,JAVA_HOME"
 
 function checkDocsBuild {
      pyenv install 3.5.4
