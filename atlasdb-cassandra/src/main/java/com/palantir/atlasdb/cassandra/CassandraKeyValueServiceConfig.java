@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cassandra;
 import static com.palantir.logsafe.Preconditions.checkArgument;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -49,6 +50,7 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
 @Value.Immutable
+@JsonIgnoreProperties(ignoreUnknown = true)
 public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
