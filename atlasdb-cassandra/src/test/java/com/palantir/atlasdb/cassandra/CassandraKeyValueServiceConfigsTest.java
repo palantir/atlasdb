@@ -57,11 +57,12 @@ public class CassandraKeyValueServiceConfigsTest {
                     .build();
 
     @Test
-    public void canDeserialize() throws IOException {
+    public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(ImmutableDefaultConfig.builder()
                         .addAllThriftHosts(SERVERS)
                         .build())
+                .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
                 .build();

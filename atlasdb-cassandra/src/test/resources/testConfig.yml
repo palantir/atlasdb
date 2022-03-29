@@ -1,4 +1,6 @@
   type: cassandra
+  addressTranslation:
+    "test": foo:42
   servers:
     - foo:42
   replicationFactor: 1

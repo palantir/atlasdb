@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
@@ -34,8 +35,10 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -60,6 +63,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Value.Default
     default CassandraServersConfig servers() {
         return ImmutableDefaultConfig.of();
+    }
+
+    // Todo(snanda): the field is no longer in use
+    @Value.Default
+    default Map<String, InetSocketAddress> addressTranslation() {
+        return ImmutableMap.of();
     }
 
     @Override
