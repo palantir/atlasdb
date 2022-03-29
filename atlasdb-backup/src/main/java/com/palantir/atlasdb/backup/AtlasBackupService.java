@@ -33,6 +33,9 @@ import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
 import java.nio.file.Path;
@@ -44,6 +47,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class AtlasBackupService {
+    private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupService.class);
+
     private final AuthHeader authHeader;
     private final AtlasBackupClient atlasBackupClient;
     private final CoordinationServiceRecorder coordinationServiceRecorder;
@@ -112,12 +117,22 @@ public final class AtlasBackupService {
     }
 
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
+        log.info("Attempting to complete backup", SafeArg.of("namespaces", namespaces));
+
         Set<InProgressBackupToken> tokens = namespaces.stream()
                 .map(inProgressBackups::remove)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+
+        log.info(
+                "Found this many in progress backups",
+                SafeArg.of("count", inProgressBackups.size()),
+                SafeArg.of("namespaces", inProgressBackups.keySet()));
+
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
         CompleteBackupResponse response = atlasBackupClient.completeBackup(authHeader, request);
+
+        log.info("Complete backup returned this response", SafeArg.of("response", response));
 
         return response.getSuccessfulBackups().stream()
                 .peek(coordinationServiceRecorder::storeFastForwardState)

@@ -44,6 +44,7 @@ final class CoordinationServiceRecorder {
     }
 
     public void storeFastForwardState(CompletedBackup completedBackup) {
+        log.info("Storing fast forward state", SafeArg.of("completedBackup", completedBackup));
         Namespace namespace = completedBackup.getNamespace();
         Optional<InternalSchemaMetadataState> maybeMetadata =
                 fetchSchemaMetadata(namespace, completedBackup.getBackupEndTimestamp());
