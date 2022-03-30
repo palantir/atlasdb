@@ -45,7 +45,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 @AutoService(AtlasDbFactory.class)
-public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadableKvsConfig> {
+public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadableKeyValueServiceConfig> {
     private static SafeLogger log = SafeLoggerFactory.get(CassandraAtlasDbFactory.class);
     private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
@@ -53,7 +53,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
     @Override
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            CassandraReloadableKvsConfig config,
+            CassandraReloadableKeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> unused,
             Optional<String> namespace,
@@ -71,7 +71,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
     }
 
     @Override
-    public CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
+    public CassandraReloadableKeyValueServiceConfig createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
@@ -81,7 +81,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
         CassandraKeyValueServiceConfig configWithNamespace =
                 CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
 
-        return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
+        return new CassandraReloadableKeyValueServiceConfig(configWithNamespace, runtimeConfig);
     }
 
     private static CassandraKeyValueServiceConfig toCassandraConfig(KeyValueServiceConfig config) {

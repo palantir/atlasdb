@@ -48,8 +48,8 @@ public class CassandraReloadableKvsConfigTest {
         CassandraKeyValueServiceConfig config =
                 configBuilder().sweepReadThreads(1).build();
 
-        CassandraReloadableKvsConfig reloadableConfig =
-                new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.empty()));
+        CassandraReloadableKeyValueServiceConfig reloadableConfig =
+                new CassandraReloadableKeyValueServiceConfig(config, Refreshable.only(Optional.empty()));
 
         assertThat(reloadableConfig.sweepReadThreads()).isEqualTo(1);
     }
@@ -61,8 +61,8 @@ public class CassandraReloadableKvsConfigTest {
         CassandraKeyValueServiceRuntimeConfig runtimeConfig =
                 runtimeConfigBuilder().sweepReadThreads(2).build();
 
-        CassandraReloadableKvsConfig reloadableConfig =
-                new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
+        CassandraReloadableKeyValueServiceConfig reloadableConfig =
+                new CassandraReloadableKeyValueServiceConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
 
         assertThat(reloadableConfig.sweepReadThreads()).isEqualTo(2);
     }
@@ -79,8 +79,8 @@ public class CassandraReloadableKvsConfigTest {
         SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigRefreshable =
                 Refreshable.create(Optional.of(runtimeConfig1));
 
-        CassandraReloadableKvsConfig reloadableConfig =
-                new CassandraReloadableKvsConfig(config, runtimeConfigRefreshable);
+        CassandraReloadableKeyValueServiceConfig reloadableConfig =
+                new CassandraReloadableKeyValueServiceConfig(config, runtimeConfigRefreshable);
 
         assertThat(reloadableConfig.sweepReadThreads()).isEqualTo(2);
 
@@ -98,8 +98,8 @@ public class CassandraReloadableKvsConfigTest {
         CassandraKeyValueServiceRuntimeConfig runtimeConfig =
                 runtimeConfigBuilder().servers(SERVERS_2).build();
 
-        CassandraReloadableKvsConfig reloadableConfig =
-                new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
+        CassandraReloadableKeyValueServiceConfig reloadableConfig =
+                new CassandraReloadableKeyValueServiceConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
 
         assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_1);
         assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(42);
@@ -113,8 +113,8 @@ public class CassandraReloadableKvsConfigTest {
         CassandraKeyValueServiceRuntimeConfig runtimeConfig =
                 runtimeConfigBuilder().servers(SERVERS_2).build();
 
-        CassandraReloadableKvsConfig reloadableConfig =
-                new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
+        CassandraReloadableKeyValueServiceConfig reloadableConfig =
+                new CassandraReloadableKeyValueServiceConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
 
         assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_2);
         assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(2);
@@ -129,7 +129,7 @@ public class CassandraReloadableKvsConfigTest {
                 runtimeConfigBuilder().servers(ImmutableDefaultConfig.of()).build();
 
         assertThatLoggableExceptionThrownBy(
-                        () -> new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig))))
+                        () -> new CassandraReloadableKeyValueServiceConfig(config, Refreshable.only(Optional.of(runtimeConfig))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("'servers' must have at least one defined host")
                 .hasNoArgs();
@@ -149,8 +149,8 @@ public class CassandraReloadableKvsConfigTest {
         SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigRefreshable =
                 Refreshable.create(Optional.of(runtimeConfig1));
 
-        CassandraReloadableKvsConfig reloadableConfig =
-                new CassandraReloadableKvsConfig(config, runtimeConfigRefreshable);
+        CassandraReloadableKeyValueServiceConfig reloadableConfig =
+                new CassandraReloadableKeyValueServiceConfig(config, runtimeConfigRefreshable);
 
         runtimeConfigRefreshable.update(Optional.of(runtimeConfig2));
 

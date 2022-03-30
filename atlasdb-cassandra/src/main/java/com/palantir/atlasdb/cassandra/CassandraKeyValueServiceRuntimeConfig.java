@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,131 +13,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.cassandra;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.auto.service.AutoService;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
-import org.immutables.value.Value;
 
-@AutoService(KeyValueServiceRuntimeConfig.class)
-@JsonDeserialize(as = ImmutableCassandraKeyValueServiceRuntimeConfig.class)
-@JsonSerialize(as = ImmutableCassandraKeyValueServiceRuntimeConfig.class)
-@JsonSubTypes({
-    @JsonSubTypes.Type(
-            value = CassandraKeyValueServiceRuntimeConfig.class,
-            name = "CassandraKeyValueServiceRuntimeConfig"), // Deprecated, kept for backwards compatibility
-    @JsonSubTypes.Type(
-            value = CassandraKeyValueServiceRuntimeConfig.class,
-            name = CassandraKeyValueServiceRuntimeConfig.TYPE)
-})
-@Value.Immutable
-public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
+public interface CassandraKeyValueServiceRuntimeConfig extends KeyValueServiceRuntimeConfig {
+    String TYPE = "cassandra";
 
-    public static final String TYPE = "cassandra";
+    String type();
 
-    @Override
-    public String type() {
-        return TYPE;
-    }
+    CassandraServersConfig servers();
 
-    @Value.Default
-    public CassandraServersConfig servers() {
-        return ImmutableDefaultConfig.of();
-    }
-
+    int replicationFactor();
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
      */
-    @Value.Default
-    public int unresponsiveHostBackoffTimeSeconds() {
-        return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
-    }
+    int unresponsiveHostBackoffTimeSeconds();
 
     /**
      * The maximum amount of cells that each thread writes to Cassandra at a time.
      */
-    @Value.Default
-    public int mutationBatchCount() {
-        return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
-    }
+    int mutationBatchCount();
 
     /**
      * The maximum amount of bytes that each thread writes to Cassandra at a time.
      */
-    @Value.Default
-    public int mutationBatchSizeBytes() {
-        return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
-    }
+    int mutationBatchSizeBytes();
 
     /**
      * The maximum number of rows to query for in a single call to the database when loading entire rows.
      */
-    @Value.Default
-    public int fetchBatchCount() {
-        return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
-    }
+    int fetchBatchCount();
 
     /**
      * Limits on query sizes when loading cells from an underlying Cassandra key-value service.
      */
-    @Value.Default
-    public CassandraCellLoadingConfig cellLoadingConfig() {
-        return CassandraCellLoadingConfig.defaultConfig();
-    }
+    CassandraCellLoadingConfig cellLoadingConfig();
 
     /**
      * The number of threads Sweep uses to read values from Cassandra.
      * Each thread fetches values from a distinct row.
      */
-    @Value.Default
-    public Integer sweepReadThreads() {
-        return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
-    }
+    Integer sweepReadThreads();
 
     /**
      * The number of times a call to Cassandra retries a single host.
      */
-    @Value.Default
-    public int numberOfRetriesOnSameHost() {
-        return 3;
-    }
+    int numberOfRetriesOnSameHost();
 
     /**
      * The maximum number of times a call to Cassandra retries.
      */
-    @Value.Default
-    public int numberOfRetriesOnAllHosts() {
-        return 6;
-    }
+    int numberOfRetriesOnAllHosts();
 
-    @Value.Default
-    public int fetchReadLimitPerRow() {
-        return CassandraConstants.DEFAULT_READ_LIMIT_PER_ROW;
-    }
+    int fetchReadLimitPerRow();
 
     /**
      * Setting this value to true will cause us to take a more conservative approach to retrying requests on exceptions.
      */
-    @Value.Default
-    public boolean conservativeRequestExceptionHandler() {
-        return true;
-    }
+    boolean conservativeRequestExceptionHandler();
 
     /**
      * Config that controls which cassandra queries will be traced. The default is nothing is traced.
      */
-    @Value.Default
-    public CassandraTracingConfig tracing() {
-        return ImmutableCassandraTracingConfig.builder().build();
-    }
-
-    public static CassandraKeyValueServiceRuntimeConfig getDefault() {
-        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build();
-    }
+    CassandraTracingConfig tracing();
 }

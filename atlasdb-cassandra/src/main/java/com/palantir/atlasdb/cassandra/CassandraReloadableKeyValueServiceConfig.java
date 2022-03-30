@@ -24,27 +24,24 @@ import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueServiceConfig {
+public class CassandraReloadableKeyValueServiceConfig extends ForwardingCassandraKeyValueServiceConfig {
 
-    private final CassandraKeyValueServiceConfig config;
-    private final Supplier<Optional<CassandraKeyValueServiceRuntimeConfig>> runtimeConfigSupplier;
+    private final CassandraKeyValueServiceConfig installConfig;
+    private final CassandraWireKeyValueServiceRuntimeConfig runtimeConfig;
 
-    public CassandraReloadableKvsConfig(
-            CassandraKeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigRefreshable) {
-        this.config = config;
-        this.runtimeConfigSupplier = runtimeConfigRefreshable.map(runtimeConfig -> {
-            Optional<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig =
-                    runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig.class::cast);
-
-            checkArgument(
-                    servers(config, cassandraRuntimeConfig).numberOfThriftHosts() > 0,
-                    "'servers' must have at least one defined host");
-
-            return cassandraRuntimeConfig;
-        });
+    private CassandraReloadableKeyValueServiceConfig(
+            CassandraKeyValueServiceConfig installConfig,
+            CassandraWireKeyValueServiceRuntimeConfig runtimeConfig) {
+        this.installConfig = config;
+        this.runtimeConfig = runtimeConfig;
     }
 
+    static Refreshable<CassandraReloadableKeyValueServiceConfig> fromConfigs(
+            CassandraKeyValueServiceConfig installConfig,
+            Refreshable<CassandraWireKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
+        return runtimeConfigRefreshable.map(runtimeConfig -> new CassandraReloadableKeyValueServiceConfig(installConfig,
+                runtimeConfig));
+    }
     @Override
     public CassandraKeyValueServiceConfig delegate() {
         return config;
