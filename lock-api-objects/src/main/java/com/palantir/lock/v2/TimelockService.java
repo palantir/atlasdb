@@ -27,7 +27,7 @@ import java.util.stream.IntStream;
 import javax.ws.rs.QueryParam;
 
 @AutoDelegate
-public interface TimelockService extends LockLeaseRefresher<LockToken> {
+public interface TimelockService {
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
      * {@link com.palantir.async.initializer.AsyncInitializer}); other TimelockServices can keep the default
@@ -85,6 +85,8 @@ public interface TimelockService extends LockLeaseRefresher<LockToken> {
     LockResponse lock(LockRequest lockRequest, ClientLockingOptions options);
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
+
+    Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     /**
      * Releases locks associated with the set of {@link LockToken}s provided.
