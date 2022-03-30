@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Add logging for when a Cassandra client pool is cleared of idle connections,
+    and add a metric for number of connections destroyed in total (not just by the
+    evictor).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5985
