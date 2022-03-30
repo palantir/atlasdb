@@ -23,6 +23,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFactory;
@@ -45,7 +46,7 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
 
     @Override
     public Optional<AsyncKeyValueService> constructAsyncKeyValueService(
-            MetricsManager metricsManager, CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+            MetricsManager metricsManager, MergedCassandraKeyValueServiceConfig config, boolean initializeAsync) {
         Optional<CqlClient> cqlClient =
                 cqlClientFactory.constructClient(metricsManager.getTaggedRegistry(), config, initializeAsync);
 

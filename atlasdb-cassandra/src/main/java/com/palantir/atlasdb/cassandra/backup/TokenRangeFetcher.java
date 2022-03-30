@@ -24,8 +24,8 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.logsafe.SafeArg;
@@ -45,9 +45,9 @@ final class TokenRangeFetcher {
 
     private final CqlSession cqlSession;
     private final CqlMetadata cqlMetadata;
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
 
-    public TokenRangeFetcher(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
+    public TokenRangeFetcher(CqlSession cqlSession, MergedCassandraKeyValueServiceConfig config) {
         this.config = config;
         this.cqlSession = cqlSession;
         this.cqlMetadata = cqlSession.getMetadata();

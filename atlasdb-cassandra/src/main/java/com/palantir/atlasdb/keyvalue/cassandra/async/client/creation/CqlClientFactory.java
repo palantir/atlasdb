@@ -16,12 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Optional;
 
 public interface CqlClientFactory {
     Optional<CqlClient> constructClient(
-            TaggedMetricRegistry taggedMetricRegistry, CassandraKeyValueServiceConfig config, boolean initializeAsync);
+            TaggedMetricRegistry taggedMetricRegistry, MergedCassandraKeyValueServiceConfig config,
+            boolean initializeAsync);
 }

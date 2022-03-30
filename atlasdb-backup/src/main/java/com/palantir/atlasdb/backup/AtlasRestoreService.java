@@ -25,7 +25,7 @@ import com.palantir.atlasdb.backup.api.AtlasRestoreClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -89,7 +89,7 @@ public class AtlasRestoreService {
             Refreshable<ServicesConfigBlock> servicesConfigBlock,
             String serviceName,
             BackupPersister backupPersister,
-            Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
+            Function<Namespace, MergedCassandraKeyValueServiceConfig> keyValueServiceConfigFactory,
             Function<Namespace, KeyValueService> keyValueServiceFactory) {
         DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
                 .withUserAgent(UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT));
@@ -110,7 +110,7 @@ public class AtlasRestoreService {
             TimeLockManagementService timeLockManagementService,
             BackupPersister backupPersister,
             TransactionManager transactionManager,
-            Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
+            Function<Namespace, MergedCassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
         CassandraRepairHelper cassandraRepairHelper =
                 new CassandraRepairHelper(KvsRunner.create(transactionManager), keyValueServiceConfigFactory);
 

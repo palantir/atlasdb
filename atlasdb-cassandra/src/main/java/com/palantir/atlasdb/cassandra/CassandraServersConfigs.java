@@ -157,13 +157,13 @@ public final class CassandraServersConfigs {
         }
     }
 
-    public static Set<InetSocketAddress> getCqlHosts(CassandraKeyValueServiceConfig config) {
+    public static Set<InetSocketAddress> getCqlHosts(MergedCassandraKeyValueServiceConfig config) {
         return CassandraServersConfigs.getCqlCapableConfigIfValid(config)
                 .map(CassandraServersConfigs.CqlCapableConfig::cqlHosts)
                 .orElseThrow(() -> new SafeIllegalStateException("Attempting to get CQL hosts with thrift config!"));
     }
 
-    public static Optional<CqlCapableConfig> getCqlCapableConfigIfValid(CassandraKeyValueServiceConfig config) {
+    public static Optional<CqlCapableConfig> getCqlCapableConfigIfValid(MergedCassandraKeyValueServiceConfig config) {
         return config.servers().accept(new Visitor<>() {
             @Override
             public Optional<CqlCapableConfig> visit(DefaultConfig defaultConfig) {

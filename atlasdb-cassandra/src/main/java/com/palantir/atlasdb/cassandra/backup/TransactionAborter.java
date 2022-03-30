@@ -29,7 +29,7 @@ import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntries;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -52,10 +52,10 @@ final class TransactionAborter {
     private static final int RETRY_COUNT = 3;
 
     private final CqlSession cqlSession;
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
     private final Retryer<Boolean> abortRetryer;
 
-    public TransactionAborter(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
+    public TransactionAborter(CqlSession cqlSession, MergedCassandraKeyValueServiceConfig config) {
         this.cqlSession = cqlSession;
         this.config = config;
 

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Cluster;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
@@ -30,15 +30,15 @@ import java.util.Map;
 
 public final class CqlCluster implements Closeable {
     private final Cluster cluster;
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
 
     // VisibleForTesting
-    public CqlCluster(Cluster cluster, CassandraKeyValueServiceConfig config) {
+    public CqlCluster(Cluster cluster, MergedCassandraKeyValueServiceConfig config) {
         this.cluster = cluster;
         this.config = config;
     }
 
-    public static CqlCluster create(CassandraKeyValueServiceConfig config) {
+    public static CqlCluster create(MergedCassandraKeyValueServiceConfig config) {
         Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
         return new CqlCluster(cluster, config);
     }

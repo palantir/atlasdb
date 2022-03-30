@@ -25,9 +25,8 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -110,7 +109,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraRequestExceptionHandler exceptionHandler;
     private final CassandraService cassandra;
 
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
     private final StartupChecks startupChecks;
     private final ScheduledExecutorService refreshDaemon;
     private final CassandraClientPoolMetrics metrics;
@@ -122,7 +121,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             Blacklist blacklist) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
@@ -140,7 +139,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             Blacklist blacklist,
@@ -160,14 +159,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     public static CassandraClientPool create(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            MergedCassandraKeyValueServiceConfig config,
             boolean initializeAsync) {
         Blacklist blacklist = new Blacklist(config);
         CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
-                () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
-                () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
-                () -> runtimeConfig.get().conservativeRequestExceptionHandler(),
+                config::numberOfRetriesOnSameHost,
+                config::numberOfRetriesOnAllHosts,
+                config::conservativeRequestExceptionHandler,
                 blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
@@ -182,7 +180,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private CassandraClientPoolImpl(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
@@ -198,7 +196,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private CassandraClientPoolImpl(
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             CassandraRequestExceptionHandler exceptionHandler,

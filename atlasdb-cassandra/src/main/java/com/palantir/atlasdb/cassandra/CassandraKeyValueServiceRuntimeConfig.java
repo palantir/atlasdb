@@ -23,6 +23,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @AutoService(KeyValueServiceRuntimeConfig.class)
@@ -40,7 +41,6 @@ import org.immutables.value.Value;
 public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
 
     public static final String TYPE = "cassandra";
-    public static final int REPLICATION_FACTOR_SENTINEL = -1;
 
     @Override
     public String type() {
@@ -138,10 +138,7 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return ImmutableCassandraTracingConfig.builder().build();
     }
 
-    @Value.Default
-    public int replicationFactor() {
-        return REPLICATION_FACTOR_SENTINEL;
-    }
+    public abstract Optional<Integer> replicationFactor();
 
     public static CassandraKeyValueServiceRuntimeConfig getDefault() {
         return ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build();

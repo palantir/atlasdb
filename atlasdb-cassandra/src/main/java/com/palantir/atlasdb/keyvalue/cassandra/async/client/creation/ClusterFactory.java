@@ -32,6 +32,7 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import java.net.InetSocketAddress;
@@ -46,12 +47,12 @@ public class ClusterFactory {
         this.cqlClusterBuilderFactory = cqlClusterBuilderFactory;
     }
 
-    public Cluster constructCluster(CassandraKeyValueServiceConfig config) {
+    public Cluster constructCluster(MergedCassandraKeyValueServiceConfig config) {
         Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(config);
         return constructCluster(hosts, config);
     }
 
-    public Cluster constructCluster(Set<InetSocketAddress> servers, CassandraKeyValueServiceConfig config) {
+    public Cluster constructCluster(Set<InetSocketAddress> servers, MergedCassandraKeyValueServiceConfig config) {
         Cluster.Builder clusterBuilder = cqlClusterBuilderFactory
                 .get()
                 .addContactPointsWithPorts(servers)
@@ -73,13 +74,13 @@ public class ClusterFactory {
     }
 
     private static Cluster.Builder withSocketOptions(
-            Cluster.Builder clusterBuilder, CassandraKeyValueServiceConfig config) {
+            Cluster.Builder clusterBuilder, MergedCassandraKeyValueServiceConfig config) {
         return clusterBuilder.withSocketOptions(new SocketOptions()
                 .setConnectTimeoutMillis(config.socketQueryTimeoutMillis())
                 .setReadTimeoutMillis(config.socketQueryTimeoutMillis()));
     }
 
-    private static Cluster.Builder withSslOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
+    private static Cluster.Builder withSslOptions(Cluster.Builder builder, MergedCassandraKeyValueServiceConfig config) {
         if (!config.usingSsl()) {
             return builder;
         }
@@ -93,19 +94,21 @@ public class ClusterFactory {
         return builder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder().build());
     }
 
-    private static Cluster.Builder withPoolingOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
+    private static Cluster.Builder withPoolingOptions(Cluster.Builder builder,
+            MergedCassandraKeyValueServiceConfig config) {
         return builder.withPoolingOptions(new PoolingOptions()
                 .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
                 .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis()));
     }
 
-    private static Cluster.Builder withQueryOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
+    private static Cluster.Builder withQueryOptions(Cluster.Builder builder,
+            MergedCassandraKeyValueServiceConfig config) {
         return builder.withQueryOptions(new QueryOptions().setFetchSize(config.fetchBatchCount()));
     }
 
     private static Cluster.Builder withLoadBalancingPolicy(
-            Cluster.Builder builder, CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
+            Cluster.Builder builder, MergedCassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
         // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
         // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
         //

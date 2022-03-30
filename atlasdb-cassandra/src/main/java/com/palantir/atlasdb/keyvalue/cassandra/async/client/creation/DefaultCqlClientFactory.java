@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 import com.datastax.driver.core.Cluster;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -46,7 +47,8 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
 
     @Override
     public Optional<CqlClient> constructClient(
-            TaggedMetricRegistry taggedMetricRegistry, CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+            TaggedMetricRegistry taggedMetricRegistry, MergedCassandraKeyValueServiceConfig config,
+            boolean initializeAsync) {
         return CassandraServersConfigs.getCqlCapableConfigIfValid(config).map(cqlCapableConfig -> {
             Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
             Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory).constructCluster(servers, config);

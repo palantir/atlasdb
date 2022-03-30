@@ -38,10 +38,9 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.protobuf.ByteString;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -211,7 +210,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final Logger log;
 
     private final MetricsManager metricsManager;
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
 
     private final ReadConsistencyProvider readConsistencyProvider = new ReadConsistencyProvider();
@@ -234,9 +233,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
-    private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
 
-    public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
+    public static CassandraKeyValueService createForTesting(MergedCassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(
                 metricsManager, config, CassandraClientPoolImpl.StartupChecks.RUN, new Blacklist(config));
@@ -244,7 +242,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return createOrShutdownClientPool(
                 metricsManager,
                 config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
                 clientPool,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
@@ -253,25 +250,23 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     public static CassandraKeyValueService create(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
         return create(
                 metricsManager,
                 config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
                 mutationTimestampProvider,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static CassandraKeyValueService create(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             CassandraClientPool clientPool) {
         return createOrShutdownClientPool(
                 metricsManager,
                 config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
                 clientPool,
                 mutationTimestampProvider,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
@@ -280,14 +275,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     public static CassandraKeyValueService create(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            MergedCassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             boolean initializeAsync) {
         return create(
                 metricsManager,
                 config,
-                runtimeConfig,
                 mutationTimestampProvider,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 initializeAsync);
@@ -296,13 +289,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @VisibleForTesting
     static CassandraKeyValueService create(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log) {
         return create(
                 metricsManager,
                 config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
                 mutationTimestampProvider,
                 log,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -311,18 +303,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @VisibleForTesting
     static CassandraKeyValueService create(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            MergedCassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
         CassandraClientPool clientPool =
-                CassandraClientPoolImpl.create(metricsManager, config, runtimeConfigSupplier, initializeAsync);
+                CassandraClientPoolImpl.create(metricsManager, config, initializeAsync);
 
         return createOrShutdownClientPool(
                 metricsManager,
                 config,
-                runtimeConfigSupplier,
                 clientPool,
                 mutationTimestampProvider,
                 log,
@@ -331,8 +321,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static CassandraKeyValueService createOrShutdownClientPool(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            MergedCassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
@@ -341,7 +330,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return createWithCqlClient(
                     metricsManager,
                     config,
-                    runtimeConfigSupplier,
                     clientPool,
                     mutationTimestampProvider,
                     log,
@@ -361,8 +349,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static CassandraKeyValueService createWithCqlClient(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            MergedCassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
@@ -374,7 +361,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return createAndInitialize(
                     metricsManager,
                     config,
-                    runtimeConfigSupplier,
                     clientPool,
                     asyncKeyValueService,
                     mutationTimestampProvider,
@@ -388,8 +374,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static CassandraKeyValueService createAndInitialize(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            MergedCassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             Optional<AsyncKeyValueService> asyncKeyValueService,
             CassandraMutationTimestampProvider mutationTimestampProvider,
@@ -400,7 +385,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 metricsManager,
                 config,
                 asyncKeyValueService,
-                runtimeConfigSupplier,
                 clientPool,
                 mutationTimestampProvider);
         keyValueService.wrapper.initialize(initializeAsync);
@@ -410,9 +394,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private CassandraKeyValueServiceImpl(
             Logger log,
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             Optional<AsyncKeyValueService> asyncKeyValueService,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
         super(createBlockingThreadpool(config, metricsManager));
@@ -423,7 +406,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.asyncKeyValueService = asyncKeyValueService;
         this.mutationTimestampProvider = mutationTimestampProvider;
         this.queryRunner =
-                new TracingQueryRunner(log, () -> runtimeConfigSupplier.get().tracing());
+                new TracingQueryRunner(log, config::tracing);
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
@@ -441,18 +424,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
         this.cassandraTableDropper =
                 new CassandraTableDropper(config, clientPool, tableMetadata, cassandraTableTruncator);
-        this.runtimeConfigSupplier = runtimeConfigSupplier;
     }
 
     private static ExecutorService createBlockingThreadpool(
-            CassandraKeyValueServiceConfig config, MetricsManager metricsManager) {
+            MergedCassandraKeyValueServiceConfig config, MetricsManager metricsManager) {
         return config.thriftExecutorServiceFactory()
                 .orElseGet(() -> instrumentedFixedThreadPoolSupplier(config, metricsManager.getTaggedRegistry()))
                 .get();
     }
 
     private static Supplier<ExecutorService> instrumentedFixedThreadPoolSupplier(
-            CassandraKeyValueServiceConfig config, TaggedMetricRegistry registry) {
+            MergedCassandraKeyValueServiceConfig config, TaggedMetricRegistry registry) {
         return () -> {
             int numberOfThriftHosts = config.servers().numberOfThriftHosts();
             int corePoolSize = config.poolSize() * numberOfThriftHosts;
@@ -642,7 +624,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         List<KeyPredicate> query = rows.stream()
                 .map(row -> keyPredicate(
                         ByteBuffer.wrap(row),
-                        allPredicateWithLimit(runtimeConfigSupplier.get().fetchReadLimitPerRow())))
+                        allPredicateWithLimit(config.fetchReadLimitPerRow())))
                 .collect(Collectors.toList());
 
         while (!query.isEmpty()) {
@@ -722,7 +704,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         return SlicePredicates.create(
                 Range.of(nextLexicographicColumn, Range.UNBOUND_END),
-                Limit.of(runtimeConfigSupplier.get().fetchReadLimitPerRow()));
+                Limit.of(config.fetchReadLimitPerRow()));
     }
 
     private static List<ByteBuffer> wrap(List<byte[]> arrays) {

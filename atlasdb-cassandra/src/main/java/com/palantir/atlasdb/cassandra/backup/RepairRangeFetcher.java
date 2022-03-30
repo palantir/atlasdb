@@ -21,8 +21,8 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.common.streams.KeyedStream;
@@ -42,9 +42,9 @@ final class RepairRangeFetcher {
 
     private final CqlSession cqlSession;
     private final CqlMetadata cqlMetadata;
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
 
-    public RepairRangeFetcher(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
+    public RepairRangeFetcher(CqlSession cqlSession, MergedCassandraKeyValueServiceConfig config) {
         this.cqlSession = cqlSession;
         this.cqlMetadata = cqlSession.getMetadata();
         this.config = config;

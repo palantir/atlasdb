@@ -31,6 +31,7 @@ import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -77,7 +78,7 @@ public class CassandraService implements AutoCloseable {
             Interners.newWeakInterner();
 
     private final MetricsManager metricsManager;
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
     private final Blacklist blacklist;
     private final CassandraClientPoolMetrics poolMetrics;
 
@@ -95,7 +96,7 @@ public class CassandraService implements AutoCloseable {
 
     public CassandraService(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
@@ -111,7 +112,7 @@ public class CassandraService implements AutoCloseable {
 
     public static CassandraService createInitialized(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
         CassandraService cassandraService = new CassandraService(metricsManager, config, blacklist, poolMetrics);

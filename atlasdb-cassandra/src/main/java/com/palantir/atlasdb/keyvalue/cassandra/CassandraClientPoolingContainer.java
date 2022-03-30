@@ -19,6 +19,7 @@ import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevelMetric;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
@@ -57,7 +58,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolingContainer.class);
 
     private final InetSocketAddress host;
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
     private final MetricsManager metricsManager;
     private final AtomicLong count = new AtomicLong();
     private final AtomicInteger openRequests = new AtomicInteger();
@@ -69,7 +70,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
             InetSocketAddress host,
-            CassandraKeyValueServiceConfig config,
+            MergedCassandraKeyValueServiceConfig config,
             int poolNumber,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
@@ -254,8 +255,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     /**
      * Pool size:
-     *    Always keep {@link CassandraKeyValueServiceConfig#poolSize()} connections around, per host. Allow bursting
-     *    up to {@link CassandraKeyValueServiceConfig#maxConnectionBurstSize()} connections per host under load.
+     *    Always keep {@link MergedCassandraKeyValueServiceConfig#poolSize()} connections around, per host. Allow
+     *    bursting
+     *    up to {@link MergedCassandraKeyValueServiceConfig#maxConnectionBurstSize()} connections per host under load.
      *
      * Borrowing from pool:
      *    On borrow, check if the connection is actually open. If it is not,

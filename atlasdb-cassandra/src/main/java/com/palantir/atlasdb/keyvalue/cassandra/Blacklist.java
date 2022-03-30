@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -38,17 +38,17 @@ import java.util.stream.Collectors;
 public class Blacklist {
     private static final SafeLogger log = SafeLoggerFactory.get(Blacklist.class);
 
-    private final CassandraKeyValueServiceConfig config;
+    private final MergedCassandraKeyValueServiceConfig config;
     private final Clock clock;
 
     private Map<InetSocketAddress, Long> blacklist;
 
-    public Blacklist(CassandraKeyValueServiceConfig config) {
+    public Blacklist(MergedCassandraKeyValueServiceConfig config) {
         this(config, Clock.systemUTC());
     }
 
     @VisibleForTesting
-    Blacklist(CassandraKeyValueServiceConfig config, Clock clock) {
+    Blacklist(MergedCassandraKeyValueServiceConfig config, Clock clock) {
         this.config = config;
         this.blacklist = new ConcurrentHashMap<>();
         this.clock = clock;

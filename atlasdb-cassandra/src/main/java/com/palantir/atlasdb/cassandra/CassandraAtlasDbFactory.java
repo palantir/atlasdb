@@ -73,14 +73,15 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
     @Override
     public CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> maybeRuntimeConfig,
             Optional<String> namespace) {
         CassandraKeyValueServiceConfig cassandraConfig = toCassandraConfig(config);
 
         String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
         CassandraKeyValueServiceConfig configWithNamespace =
                 CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
-
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig =
+                preprocessKvsRuntimeConfigRefreshable(maybeRuntimeConfig);
         return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
     }
 
@@ -115,6 +116,23 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
                     })
                     .orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault);
         };
+    }
+
+    Refreshable<CassandraKeyValueServiceRuntimeConfig> preprocessKvsRuntimeConfigRefreshable(
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig
+    ) {
+        return runtimeConfig.map(maybeConfig -> maybeConfig.map(config -> {
+            if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
+                log.error(
+                        "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
+                                + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
+                                + " CassandraKeyValueServiceRuntimeConfig.",
+                        SafeArg.of("configClass", config.getClass()));
+                return latestValidRuntimeConfig;
+            }
+            latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
+            return latestValidRuntimeConfig;
+        }).orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault));
     }
 
     @Override

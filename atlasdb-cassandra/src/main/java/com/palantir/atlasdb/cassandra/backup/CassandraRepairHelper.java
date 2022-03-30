@@ -24,7 +24,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.KvsRunner;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.MergedCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -52,12 +52,13 @@ public class CassandraRepairHelper {
     private static final Set<TableReference> TABLES_TO_REPAIR =
             Sets.union(ImmutableSet.of(AtlasDbConstants.COORDINATION_TABLE), TargetedSweepTables.REPAIR_ON_RESTORE);
 
-    private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
+    private final Function<Namespace, MergedCassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
     private final LoadingCache<Namespace, CqlCluster> cqlClusters;
     private final KvsRunner kvsRunner;
 
     public CassandraRepairHelper(
-            KvsRunner kvsRunner, Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
+            KvsRunner kvsRunner,
+            Function<Namespace, MergedCassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
         this.kvsRunner = kvsRunner;
         this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
 
@@ -78,7 +79,7 @@ public class CassandraRepairHelper {
     }
 
     private CqlCluster getCqlClusterUncached(Namespace namespace) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
+        MergedCassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
         return CqlCluster.create(config);
     }
 
