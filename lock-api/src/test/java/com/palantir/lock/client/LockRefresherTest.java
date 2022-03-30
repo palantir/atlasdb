@@ -25,8 +25,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -45,9 +45,10 @@ public class LockRefresherTest {
     private static final ImmutableSet<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
 
     private final DeterministicScheduler executor = new DeterministicScheduler();
-    private final TimelockService timelock = mock(TimelockService.class);
+    private final LockLeaseRefresher<LockToken> timelock = mock(LockLeaseRefresher.class);
     private final Clock clock = mock(Clock.class);
-    private final LockRefresher refresher = new LockRefresher(executor, timelock, REFRESH_INTERVAL_MILLIS, clock);
+    private final LockRefresher<LockToken> refresher =
+            new LockRefresher<>(executor, timelock, REFRESH_INTERVAL_MILLIS, clock);
 
     @Before
     public void setUp() {
