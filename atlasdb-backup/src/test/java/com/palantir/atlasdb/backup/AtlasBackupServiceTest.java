@@ -56,7 +56,7 @@ public class AtlasBackupServiceTest {
     private CoordinationServiceRecorder coordinationServiceRecorder;
 
     @Mock
-    private LockRefresher lockRefresher;
+    private LockRefresher<InProgressBackupToken> lockRefresher;
 
     private AtlasBackupService atlasBackupService;
     private BackupPersister backupPersister;

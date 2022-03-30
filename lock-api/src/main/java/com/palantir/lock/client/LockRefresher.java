@@ -143,7 +143,7 @@ public class LockRefresher<T> implements AutoCloseable {
                         .build()));
     }
 
-    public void unregisterLocks(Collection<LockToken> tokens) {
+    public void unregisterLocks(Collection<T> tokens) {
         tokens.forEach(tokensToClientContext::remove);
     }
 
