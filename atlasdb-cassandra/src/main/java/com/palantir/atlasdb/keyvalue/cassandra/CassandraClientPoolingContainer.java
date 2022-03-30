@@ -168,7 +168,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 log.warn(
                         "Not reusing resource due to {} of host {}",
                         UnsafeArg.of("exception", e.toString()),
-                        SafeArg.of("cassandraHostname", cassandraServer.cassandraHostName()),
+                        SafeArg.of("cassandraHostName", cassandraServer.cassandraHostName()),
                         SafeArg.of("proxy", CassandraLogHelper.host(proxy)),
                         e);
                 shouldReuse = false;
@@ -176,6 +176,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             if (e instanceof TTransportException
                     && ((TTransportException) e).getType() == TTransportException.END_OF_FILE) {
                 // If we have an end of file this is most likely due to this cassandra node being bounced.
+                log.warn(
+                        "Clearing client pool due to exception",
+                        SafeArg.of("cassandraHostName", cassandraServer.cassandraHostName()),
+                        SafeArg.of("proxy", CassandraLogHelper.host(proxy)),
+                        e);
                 clientPool.clear();
             }
             throw (K) e;
@@ -353,6 +358,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         registerPoolMetric(CassandraClientPoolHostLevelMetric.NUM_ACTIVE, () -> (long) pool.getNumActive());
         registerPoolMetric(CassandraClientPoolHostLevelMetric.CREATED, pool::getCreatedCount);
         registerPoolMetric(CassandraClientPoolHostLevelMetric.DESTROYED_BY_EVICTOR, pool::getDestroyedByEvictorCount);
+        registerPoolMetric(CassandraClientPoolHostLevelMetric.DESTROYED, pool::getDestroyedCount);
     }
 
     private void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge) {
