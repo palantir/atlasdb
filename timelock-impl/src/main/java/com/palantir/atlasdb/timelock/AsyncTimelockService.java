@@ -24,8 +24,6 @@ import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -38,14 +36,11 @@ import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import java.io.Closeable;
 import java.util.Optional;
-import java.util.Set;
 
 public interface AsyncTimelockService
         extends BackupTimeLockServiceView, ManagedTimestampService, LockWatchingService, Closeable {
 
     long currentTimeMillis();
-
-    ListenableFuture<RefreshLockResponseV2> refreshLockLeases(Set<LockToken> tokens);
 
     ListenableFuture<WaitForLocksResponse> waitForLocks(WaitForLocksRequest request);
 
