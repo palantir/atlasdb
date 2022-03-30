@@ -29,18 +29,22 @@ import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
+import com.palantir.atlasdb.backup.api.RefreshBackupRequest;
+import com.palantir.atlasdb.backup.api.RefreshBackupResponse;
 import com.palantir.atlasdb.backup.api.UndertowAtlasBackupClient;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.conjure.java.api.errors.ServiceException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -115,6 +119,45 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
                 .immutableTimestamp(response.getImmutableTimestamp())
                 .backupStartTimestamp(timestamp)
                 .build();
+    }
+
+    @Override
+    public ListenableFuture<RefreshBackupResponse> refreshBackup(AuthHeader authHeader, RefreshBackupRequest request) {
+        return handleExceptions(() -> refreshBackupInternal(authHeader, request));
+    }
+
+    private ListenableFuture<RefreshBackupResponse> refreshBackupInternal(
+            AuthHeader authHeader, RefreshBackupRequest request) {
+        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+            log.error(
+                    "Attempted to complete backup with an invalid auth header. "
+                            + "The provided token must match the configured permitted-backup-token.",
+                    SafeArg.of("request", request));
+            throw new ServiceException(ErrorType.PERMISSION_DENIED);
+        }
+
+        Map<InProgressBackupToken, ListenableFuture<Optional<RefreshLockResponseV2>>> futureMap =
+                request.getTokens().stream().collect(Collectors.toMap(token -> token, this::refreshBackupAsync));
+        ListenableFuture<Map<InProgressBackupToken, RefreshLockResponseV2>> singleFuture =
+                AtlasFutures.allAsMap(futureMap, MoreExecutors.newDirectExecutorService());
+
+        return Futures.transform(singleFuture, this::getRefreshedTokens, MoreExecutors.directExecutor());
+    }
+
+    private RefreshBackupResponse getRefreshedTokens(Map<InProgressBackupToken, RefreshLockResponseV2> responses) {
+        Set<InProgressBackupToken> refreshedTokens = KeyedStream.stream(responses)
+                .filter(response -> !response.refreshedTokens().isEmpty())
+                .keys()
+                .collect(Collectors.toSet());
+        return RefreshBackupResponse.of(refreshedTokens);
+    }
+
+    private ListenableFuture<Optional<RefreshLockResponseV2>> refreshBackupAsync(InProgressBackupToken token) {
+        Namespace namespace = token.getNamespace();
+        return Futures.transform(
+                timelock(namespace).refreshLockLeases(ImmutableSet.of(token.getLockToken())),
+                Optional::of,
+                MoreExecutors.directExecutor());
     }
 
     @Override
@@ -213,6 +256,11 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         @Override
         public PrepareBackupResponse prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
             return unwrap(resource.prepareBackup(authHeader, request));
+        }
+
+        @Override
+        public RefreshBackupResponse refreshBackup(AuthHeader authHeader, RefreshBackupRequest request) {
+            return unwrap(resource.refreshBackup(authHeader, request));
         }
 
         @Override

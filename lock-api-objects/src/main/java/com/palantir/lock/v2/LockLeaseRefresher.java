@@ -18,6 +18,6 @@ package com.palantir.lock.v2;
 
 import java.util.Set;
 
-public interface LockLeaseRefresher {
-    Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
+public interface LockLeaseRefresher<T> {
+    Set<T> refreshLockLeases(Set<T> tokens);
 }

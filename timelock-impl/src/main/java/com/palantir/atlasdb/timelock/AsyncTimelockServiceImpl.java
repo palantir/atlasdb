@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -27,21 +26,16 @@ import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
-import com.palantir.atlasdb.timelock.lock.LockLeaseRefresherV2;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClientAwareManagedTimestampService;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
@@ -61,29 +55,19 @@ import com.palantir.timestamp.TimestampRange;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
-    private static final long REFRESH_INTERVAL_MILLIS = 5_000;
-
     private final AsyncLockService lockService;
     private final LeadershipGuardedClientAwareManagedTimestampService timestampService;
     private final LockLog lockLog;
-    private final LockRefresher lockRefresher;
 
-    // TODO(gs): factor out create method
     public AsyncTimelockServiceImpl(
             AsyncLockService lockService, ManagedTimestampService timestampService, LockLog lockLog) {
         this.lockService = lockService;
         this.timestampService = new LeadershipGuardedClientAwareManagedTimestampService(
                 DelegatingClientAwareManagedTimestampService.createDefault(timestampService));
         this.lockLog = lockLog;
-
-        ScheduledExecutorService refreshExecutor = PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory("asyncTimelockServiceLockRefresher", true));
-        LockLeaseRefresher lockLeaseRefresher = new LockLeaseRefresherV2(lockService);
-        this.lockRefresher = new LockRefresher(refreshExecutor, lockLeaseRefresher, REFRESH_INTERVAL_MILLIS);
     }
 
     @Override
@@ -105,10 +89,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.getRequestId());
-        LockImmutableTimestampResponse response = leasedLockImmutableTimestampResponse.value();
-        lockRefresher.registerLocks(ImmutableSet.of(response.getLock()));
-
-        return response;
+        return leasedLockImmutableTimestampResponse.value();
     }
 
     @Override
@@ -161,7 +142,6 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens) {
-        lockRefresher.unregisterLocks(tokens);
         return Futures.immediateFuture(lockService.unlock(tokens));
     }
 

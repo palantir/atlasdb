@@ -29,6 +29,7 @@ import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
@@ -54,14 +55,17 @@ public class AtlasBackupServiceTest {
     @Mock
     private CoordinationServiceRecorder coordinationServiceRecorder;
 
+    @Mock
+    private LockRefresher lockRefresher;
+
     private AtlasBackupService atlasBackupService;
     private BackupPersister backupPersister;
 
     @Before
     public void setup() {
         backupPersister = new InMemoryBackupPersister();
-        atlasBackupService =
-                new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
+        atlasBackupService = new AtlasBackupService(
+                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher);
     }
 
     @Test
