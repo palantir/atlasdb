@@ -19,8 +19,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -41,25 +41,25 @@ public class LockRefresher implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(LockRefresher.class);
 
     private final ScheduledExecutorService executor;
-    private final TimelockService timelockService;
+    private final LockLeaseRefresher lockLeaseRefresher;
     private final Map<LockToken, ClientLockingContext> tokensToClientContext = new ConcurrentHashMap<>();
     private final Clock clock;
 
     private ScheduledFuture<?> task;
 
     public LockRefresher(
-            ScheduledExecutorService executor, TimelockService timelockService, long refreshIntervalMillis) {
-        this(executor, timelockService, refreshIntervalMillis, Clock.systemUTC());
+            ScheduledExecutorService executor, LockLeaseRefresher lockLeaseRefresher, long refreshIntervalMillis) {
+        this(executor, lockLeaseRefresher, refreshIntervalMillis, Clock.systemUTC());
     }
 
     @VisibleForTesting
     LockRefresher(
             ScheduledExecutorService executor,
-            TimelockService timelockService,
+            LockLeaseRefresher lockLeaseRefresher,
             long refreshIntervalMillis,
             Clock clock) {
         this.executor = executor;
-        this.timelockService = timelockService;
+        this.lockLeaseRefresher = lockLeaseRefresher;
         this.clock = clock;
 
         scheduleRefresh(refreshIntervalMillis);
@@ -77,7 +77,7 @@ public class LockRefresher implements AutoCloseable {
                 return;
             }
 
-            Set<LockToken> successfullyRefreshedTokens = timelockService.refreshLockLeases(toRefresh);
+            Set<LockToken> successfullyRefreshedTokens = lockLeaseRefresher.refreshLockLeases(toRefresh);
             Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
             refreshFailures.forEach(tokensToClientContext::remove);
             if (!refreshFailures.isEmpty()) {

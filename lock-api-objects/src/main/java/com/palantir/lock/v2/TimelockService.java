@@ -27,10 +27,10 @@ import java.util.stream.IntStream;
 import javax.ws.rs.QueryParam;
 
 @AutoDelegate
-public interface TimelockService {
+public interface TimelockService extends LockLeaseRefresher {
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
-     * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default
+     * {@link com.palantir.async.initializer.AsyncInitializer}); other TimelockServices can keep the default
      * implementation, and return true (they're trivially fully initialized).
      *
      * @return true iff the TimelockService has been fully initialized and is ready to use
@@ -85,8 +85,6 @@ public interface TimelockService {
     LockResponse lock(LockRequest lockRequest, ClientLockingOptions options);
 
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
-
-    Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     /**
      * Releases locks associated with the set of {@link LockToken}s provided.
