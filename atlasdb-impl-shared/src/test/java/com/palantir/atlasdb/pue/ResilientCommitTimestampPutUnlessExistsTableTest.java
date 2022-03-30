@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -84,6 +86,29 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         assertThat(pueTable.get(1L).get()).isEqualTo(2L);
         verify(spiedStore).put(anyMap());
+    }
+
+    @Test
+    public void getReturnsStagingValuesThatWereCommittedBySomeoneElse()
+            throws ExecutionException, InterruptedException {
+        TwoPhaseEncodingStrategy strategy = TwoPhaseEncodingStrategy.INSTANCE;
+
+        long startTimestamp = 1L;
+        long commitTimestamp = 2L;
+        Cell timestampAsCell = strategy.encodeStartTimestampAsCell(startTimestamp);
+        byte[] stagingValue =
+                strategy.encodeCommitTimestampAsValue(startTimestamp, PutUnlessExistsValue.staging(commitTimestamp));
+        byte[] committedValue =
+                strategy.encodeCommitTimestampAsValue(startTimestamp, PutUnlessExistsValue.committed(commitTimestamp));
+        spiedStore.putUnlessExists(timestampAsCell, stagingValue);
+
+        List<byte[]> actualValues = ImmutableList.of(committedValue);
+
+        doThrow(new CheckAndSetException("done elsewhere", timestampAsCell, stagingValue, actualValues))
+                .when(spiedStore)
+                .checkAndTouch(timestampAsCell, stagingValue);
+
+        assertThat(pueTable.get(startTimestamp).get()).isEqualTo(commitTimestamp);
     }
 
     @Test

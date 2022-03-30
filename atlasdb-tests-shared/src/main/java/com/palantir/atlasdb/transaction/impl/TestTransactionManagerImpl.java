@@ -116,7 +116,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 true,
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
         this.transactionWrapper = WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
     }
@@ -156,7 +157,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 true,
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault());
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty());
         this.transactionWrapper = transactionWrapper;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }

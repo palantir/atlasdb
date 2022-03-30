@@ -366,6 +366,7 @@ public final class UserProfileTable implements
      *     label: LABEL_REQUIRED
      *     type: TYPE_SINT64
      *   }
+     *   
      * }
      * </pre>
      */
@@ -1016,7 +1017,7 @@ public final class UserProfileTable implements
     }
 
     private static Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -1654,7 +1655,7 @@ public final class UserProfileTable implements
         public Multimap<CookiesIdxRow, CookiesIdxColumnValue> get(Multimap<CookiesIdxRow, CookiesIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -1704,7 +1705,7 @@ public final class UserProfileTable implements
         }
 
         private static Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -2348,7 +2349,7 @@ public final class UserProfileTable implements
         public Multimap<CreatedIdxRow, CreatedIdxColumnValue> get(Multimap<CreatedIdxRow, CreatedIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -2398,7 +2399,7 @@ public final class UserProfileTable implements
         }
 
         private static Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -3042,7 +3043,7 @@ public final class UserProfileTable implements
         public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> get(Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -3092,7 +3093,7 @@ public final class UserProfileTable implements
         }
 
         private static Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -3336,5 +3337,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ElEfEgDtzUQU+6sxJk99mQ==";
+    static String __CLASS_HASH = "XQx5IMlaY1C+fEZFXzLO7Q==";
 }

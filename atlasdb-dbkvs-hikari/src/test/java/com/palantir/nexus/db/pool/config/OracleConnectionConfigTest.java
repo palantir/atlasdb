@@ -36,6 +36,7 @@ public class OracleConnectionConfigTest {
     private static final int PORT = 42;
     private static final MaskedValue PASSWORD = ImmutableMaskedValue.of("password");
     private static final String SID = "sid";
+    private static final String NAMESPACE = "namespace";
     private static final ServiceNameConfiguration SERVICE_NAME_CONFIGURATION = new ServiceNameConfiguration.Builder()
             .serviceName("serviceName")
             .namespaceOverride("namespaceOverride")

@@ -513,7 +513,7 @@ public final class GenericRangeScanTestTable implements
     public Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> get(Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = HashMultimap.create();
+        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 GenericRangeScanTestRow row = GenericRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -563,7 +563,7 @@ public final class GenericRangeScanTestTable implements
     }
 
     private static Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = HashMultimap.create();
+        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             GenericRangeScanTestRow row = GenericRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -805,5 +805,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "MUMDhUC8qX2VcMbAP/ldog==";
+    static String __CLASS_HASH = "HCLe9Gdg96DKj8mZK+n51A==";
 }

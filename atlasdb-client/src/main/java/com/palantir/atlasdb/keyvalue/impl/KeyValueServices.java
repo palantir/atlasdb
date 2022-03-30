@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
@@ -64,19 +63,6 @@ public final class KeyValueServices {
 
     private KeyValueServices() {
         /**/
-    }
-
-    public static TableMetadata getTableMetadataSafe(KeyValueService service, TableReference tableRef) {
-        try {
-            byte[] metadataForTable = service.getMetadataForTable(tableRef);
-            if (metadataForTable == null || metadataForTable.length == 0) {
-                return null;
-            }
-            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataForTable);
-        } catch (Exception e) {
-            log.warn("failed to get metadata for table", e);
-            return null;
-        }
     }
 
     public static void getFirstBatchForRangeUsingGetRange(

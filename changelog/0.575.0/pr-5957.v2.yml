@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Upgrade postgres version from 42.2.25 to 42.3.3.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5957

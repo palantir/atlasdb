@@ -110,7 +110,7 @@ public class LockRefresher implements AutoCloseable {
                         "A lock token has expired on the client, because it has exceeded its tenure: we will stop"
                                 + " refreshing it automatically. Some time may still be required (20 seconds by"
                                 + " default) before the server releases the associated lock grants.",
-                        SafeArg.of("lockToken", candidate.getKey()),
+                        candidate.getKey().toSafeArg("lockToken"),
                         SafeArg.of("expiryDeadline", deadline),
                         SafeArg.of("now", now));
                 candidate.getValue().clientExpiryCallback().run();

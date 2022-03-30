@@ -35,8 +35,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.TimeZone;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -52,6 +52,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(HikariCPConnectionManager.class);
+
+    private static final AtomicLong uniquePoolId = new AtomicLong(0L);
 
     private final ConnectionConfig connConfig;
     private final HikariConfig hikariConfig;
@@ -86,6 +88,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
         this.connConfig = Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
         this.hikariConfig = connConfig.getHikariConfig();
+        hikariConfig.setPoolName(hikariConfig.getPoolName() + "-" + uniquePoolId.incrementAndGet());
     }
 
     @Override
@@ -300,20 +303,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         HikariDataSource dataSourcePool;
 
         try {
-            try {
-                dataSourcePool = new HikariDataSource(hikariConfig);
-            } catch (IllegalArgumentException e) {
-                // allow multiple pools on same JVM (they need unique names / endpoints)
-                if (e.getMessage().contains("A metric named")) {
-                    String poolName = connConfig.getConnectionPoolName();
-
-                    hikariConfig.setPoolName(
-                            poolName + "-" + ThreadLocalRandom.current().nextInt());
-                    dataSourcePool = new HikariDataSource(hikariConfig);
-                } else {
-                    throw e;
-                }
-            }
+            dataSourcePool = new HikariDataSource(hikariConfig);
         } catch (PoolInitializationException e) {
             log.error(
                     "Failed to initialize hikari data source",

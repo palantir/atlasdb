@@ -7,8 +7,8 @@ schemas = [
 group = 'com.palantir.atlasdb.examples'
 
 dependencies {
-  compile project(":atlasdb-client")
-  compile project(":examples:profile-client-protobufs")
+  api project(":atlasdb-client")
+  implementation project(":examples:profile-client-protobufs")
 
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.guava:guava'
@@ -16,10 +16,12 @@ dependencies {
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'jakarta.annotation:jakarta.annotation-api'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-client-protobufs')
   implementation project(':atlasdb-commons')
+
 
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.tritium:tritium-registry'

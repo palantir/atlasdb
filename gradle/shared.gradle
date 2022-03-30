@@ -3,10 +3,10 @@ apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'checkstyle'
 apply plugin: 'com.github.hierynomus.license'
+apply plugin: 'com.palantir.external-publish-jar'
 
 apply from: "${rootDir}/gradle/versions.gradle"
 
-sourceCompatibility = 11
 
 version = rootProject.version
 group = rootProject.group
@@ -89,10 +89,6 @@ afterEvaluate {
 
 tasks.withType(Test) {
     enableAssertions = true
-}
-
-task allCompileDeps(type: DependencyReportTask) {
-    configurations = [project.configurations.getByName("compile")]
 }
 
 ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded.'

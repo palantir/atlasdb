@@ -8,8 +8,8 @@ apply from: "../gradle/non-client-dist.gradle"
 schemas = ['com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema']
 
 dependencies {
-    compile project(":timelock-server")
-    compile (project(":atlasdb-cassandra")) {
+    implementation project(":timelock-server")
+    implementation (project(":atlasdb-cassandra")) {
         exclude group:'com.codahale.metrics'
     }
 

@@ -652,7 +652,7 @@ public final class DataTable implements
     }
 
     private static Multimap<DataRow, DataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<DataRow, DataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<DataRow, DataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -1310,7 +1310,7 @@ public final class DataTable implements
         public Multimap<Index1IdxRow, Index1IdxColumnValue> get(Multimap<Index1IdxRow, Index1IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     Index1IdxRow row = Index1IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -1360,7 +1360,7 @@ public final class DataTable implements
         }
 
         private static Multimap<Index1IdxRow, Index1IdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index1IdxRow, Index1IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 Index1IdxRow row = Index1IdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -1992,7 +1992,7 @@ public final class DataTable implements
         public Multimap<Index2IdxRow, Index2IdxColumnValue> get(Multimap<Index2IdxRow, Index2IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     Index2IdxRow row = Index2IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -2042,7 +2042,7 @@ public final class DataTable implements
         }
 
         private static Multimap<Index2IdxRow, Index2IdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index2IdxRow, Index2IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 Index2IdxRow row = Index2IdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -2652,7 +2652,7 @@ public final class DataTable implements
         public Multimap<Index3IdxRow, Index3IdxColumnValue> get(Multimap<Index3IdxRow, Index3IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     Index3IdxRow row = Index3IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -2702,7 +2702,7 @@ public final class DataTable implements
         }
 
         private static Multimap<Index3IdxRow, Index3IdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index3IdxRow, Index3IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 Index3IdxRow row = Index3IdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -3334,7 +3334,7 @@ public final class DataTable implements
         public Multimap<Index4IdxRow, Index4IdxColumnValue> get(Multimap<Index4IdxRow, Index4IdxColumn> cells) {
             Set<Cell> rawCells = ColumnValues.toCells(cells);
             Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
                 if (e.getValue().length > 0) {
                     Index4IdxRow row = Index4IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -3384,7 +3384,7 @@ public final class DataTable implements
         }
 
         private static Multimap<Index4IdxRow, Index4IdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = HashMultimap.create();
+            Multimap<Index4IdxRow, Index4IdxColumnValue> rowMap = ArrayListMultimap.create();
             for (RowResult<byte[]> result : rowResults) {
                 Index4IdxRow row = Index4IdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
                 for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -3628,5 +3628,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5smQlgPEeoFu1azUh8FBpg==";
+    static String __CLASS_HASH = "V+fEgUPMi5Tlt2krZeI6Ow==";
 }

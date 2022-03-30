@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.util;
 
-import com.palantir.common.concurrent.ThreadNames;
+import com.palantir.nylon.threads.ThreadNames;
 import java.util.concurrent.Callable;
 
 /**

@@ -525,7 +525,7 @@ public final class StreamTestStreamValueTable implements
     }
 
     private static Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             StreamTestStreamValueRow row = StreamTestStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -693,5 +693,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "sVBYOdKwksOUAfQ9jcStlA==";
+    static String __CLASS_HASH = "KSHVtzVJMr79hZ5W7cejyQ==";
 }

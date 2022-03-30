@@ -15,6 +15,7 @@
  */
 package com.palantir.common.concurrent;
 
+import com.palantir.nylon.threads.ThreadNames;
 import java.util.concurrent.Callable;
 
 /**

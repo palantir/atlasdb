@@ -12,6 +12,7 @@ server:
 atlasdb:
   keyValueService:
     type: relational
+    namespace: globeete
     ddl:
       type: postgres
     connection:
@@ -22,7 +23,7 @@ atlasdb:
       dbLogin: palantir
       dbPassword: palantir
 
-  namespace: atlasete
+  namespace: globeete
 
 atlasDbRuntime:
   timelockRuntime:

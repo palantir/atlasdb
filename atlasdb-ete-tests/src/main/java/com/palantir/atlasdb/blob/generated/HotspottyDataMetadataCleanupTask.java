@@ -1,6 +1,11 @@
 package com.palantir.atlasdb.blob.generated;
 
-import com.google.common.collect.Multimap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -9,23 +14,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
-
-    private static final SafeLogger log = SafeLoggerFactory.get(HotspottyDataMetadataCleanupTask.class);
 
     private final BlobSchemaTableFactory tables;
 
@@ -63,9 +54,9 @@ public class HotspottyDataMetadataCleanupTask implements OnCleanupTask {
         Map<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow, Iterator<HotspottyDataStreamIdxTable.HotspottyDataStreamIdxColumnValue>> referenceIteratorByStream
                 = indexTable.getRowsColumnRangeIterator(indexRows,
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-        return KeyedStream.stream(referenceIteratorByStream)
-                .filter(valueIterator -> !valueIterator.hasNext())
-                .keys() // (authorized)
+        return referenceIteratorByStream.entrySet().stream()
+                .filter(entry -> !entry.getValue().hasNext())
+                .map(Map.Entry::getKey)
                 .map(HotspottyDataStreamIdxTable.HotspottyDataStreamIdxRow::getId)
                 .map(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow::of)
                 .collect(Collectors.toSet());

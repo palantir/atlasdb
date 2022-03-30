@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Introduce `CassandraServer` and refactor the Cassandra client pooling
+    logic to use the host name of actual Cassandra server to maintain the state while
+    using one of the proxy api's for making connection to Cassandra server.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5971

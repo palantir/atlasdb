@@ -2,8 +2,8 @@ apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
 dependencies {
-  compile project(":atlasdb-commons")
-  compile project(":leader-election-api-protobufs")
+  implementation project(":atlasdb-commons")
+  implementation project(":leader-election-api-protobufs")
   implementation group: 'org.apache.commons', name: 'commons-lang3'
   implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api'
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'

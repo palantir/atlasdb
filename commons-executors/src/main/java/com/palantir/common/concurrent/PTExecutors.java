@@ -26,6 +26,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.nylon.threads.NylonExecutor;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -52,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
-import org.jboss.threads.ViewExecutor;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -173,16 +173,7 @@ public final class PTExecutors {
         return MetricRegistries.executor()
                 .registry(SharedTaggedMetricRegistries.getSingleton())
                 .name(name)
-                .executor(PTExecutors.wrap(
-                        name,
-                        new AtlasRenamingExecutorService(
-                                ViewExecutor.builder(SHARED_EXECUTOR.get())
-                                        .setMaxSize(Math.min(Short.MAX_VALUE, maxThreads))
-                                        .setQueueLimit(0)
-                                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                                        .build(),
-                                AtlasUncaughtExceptionHandler.INSTANCE,
-                                AtlasRenamingExecutorService.threadNameSupplier(name))))
+                .executor(PTExecutors.wrap(name, getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
                 // Unhelpful for cached executors
                 .reportQueuedDuration(false)
                 .build();
@@ -267,17 +258,19 @@ public final class PTExecutors {
     public static ExecutorService newFixedThreadPool(int numThreads, String name) {
         return MetricRegistries.instrument(
                 SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(
-                        name,
-                        new AtlasRenamingExecutorService(
-                                ViewExecutor.builder(SHARED_EXECUTOR.get())
-                                        .setMaxSize(Math.min(numThreads, Short.MAX_VALUE))
-                                        .setQueueLimit(Integer.MAX_VALUE)
-                                        .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
-                                        .build(),
-                                AtlasUncaughtExceptionHandler.INSTANCE,
-                                AtlasRenamingExecutorService.threadNameSupplier(name))),
+                PTExecutors.wrap(name, getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
                 name);
+    }
+
+    public static ExecutorService getViewExecutor(
+            String name, int numThreads, int queueSize, ExecutorService delegate) {
+        return NylonExecutor.builder()
+                .name(name)
+                .executor(delegate)
+                .maxThreads(numThreads)
+                .queueSize(queueSize)
+                .uncaughtExceptionHandler(AtlasUncaughtExceptionHandler.INSTANCE)
+                .build();
     }
 
     /**

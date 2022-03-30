@@ -2140,11 +2140,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             AssertUtils.assertAndLog(
                     log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
             if (theirStartTimestamp > getStartTimestamp()) {
-                dominatingWrites.add(Cells.createConflictWithMetadata(
-                        keyValueService, tableRef, key, theirStartTimestamp, theirCommitTimestamp));
+                dominatingWrites.add(Cells.createConflict(key, theirStartTimestamp, theirCommitTimestamp));
             } else if (theirCommitTimestamp > getStartTimestamp()) {
-                spanningWrites.add(Cells.createConflictWithMetadata(
-                        keyValueService, tableRef, key, theirStartTimestamp, theirCommitTimestamp));
+                spanningWrites.add(Cells.createConflict(key, theirStartTimestamp, theirCommitTimestamp));
             }
         }
 
@@ -2187,7 +2185,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             log.info(
                     "Could not delete keys {} for table {}, because the delete executor's queue was full."
                             + " Sweep should eventually clean these values.",
-                    UnsafeArg.of("keysToDelete", keysToDelete),
+                    SafeArg.of("numKeysToDelete", keysToDelete.size()),
                     LoggingArgs.tableRef(tableRef),
                     rejected);
         }

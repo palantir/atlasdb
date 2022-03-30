@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Dollar signs are now permitted as a suffix to a table prefix in DbKVS.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5932

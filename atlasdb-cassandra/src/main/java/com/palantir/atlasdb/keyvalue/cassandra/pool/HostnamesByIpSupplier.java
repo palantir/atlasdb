@@ -80,7 +80,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
                             SafeArg.of("table", HOSTNAMES_BY_IP_TABLE))
                     .build();
 
-            return client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.LOCAL_ONE).getRows().stream()
+            return client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.LOCAL_QUORUM).getRows().stream()
                     .collect(ImmutableMap.toImmutableMap(
                             row -> getNamedColumnValue(row, IP_COLUMN),
                             row -> getNamedColumnValue(row, HOSTNAME_COLUMN)));

@@ -15,13 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.logsafe.Preconditions.checkArgument;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.LocalConnectionConfig;
+import com.palantir.atlasdb.spi.SharedResourcesConfig;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -40,8 +45,11 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     @JsonIgnore
     @Value.Derived
     public Optional<String> namespace() {
-        return connection().namespace();
+        return namespaceOverride().or(() -> connection().namespace());
     }
+
+    @JsonProperty("namespace")
+    public abstract Optional<String> namespaceOverride();
 
     @Override
     public final String type() {
@@ -51,15 +59,49 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     @Override
     @Value.Default
     public int concurrentGetRangesThreadPoolSize() {
-        return Math.max(2 * connection().getMaxConnections() / 3, 1);
+        int poolSize = sharedResourcesConfig()
+                .map(SharedResourcesConfig::connectionConfig)
+                .map(LocalConnectionConfig::poolSize)
+                .orElseGet(() -> connection().getMaxConnections());
+        return Math.max(2 * poolSize / 3, 1);
+    }
+
+    @Value.Check
+    public void checkKvsPoolSize() {
+        sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.sharedKvsExecutorSize() >= ddl().poolSize(),
+                        "If set, shared kvs pool size must not be less than individual pool size.",
+                        SafeArg.of("shared", config.sharedKvsExecutorSize()),
+                        SafeArg.of("individual", ddl().poolSize())));
+    }
+
+    @Value.Check
+    public void checkGetRangesPoolSize() {
+        sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
+                        "If set, shared get ranges pool size must not be less than individual pool size.",
+                        SafeArg.of("shared", config.sharedGetRangesPoolSize()),
+                        SafeArg.of("individual", concurrentGetRangesThreadPoolSize())));
+    }
+
+    @Value.Check
+    public void checkConnectionPoolSize() {
+        sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.connectionConfig().poolSize() <= connection().getMaxConnections(),
+                        "If set, local connection pool size must not be greater than total max connections.",
+                        SafeArg.of("local", config.connectionConfig().poolSize()),
+                        SafeArg.of("total", connection().getMaxConnections())));
     }
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkArgument(
+        checkArgument(
                 ddl().type().equals(connection().type()),
-                "ddl config (%s) and connection config (%s) must be for the same physical store",
-                ddl().type(),
-                connection().type());
+                "ddl config and connection config must be for the same physical store",
+                SafeArg.of("ddl", ddl().type()),
+                SafeArg.of("connection", connection().type()));
     }
 }

@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Avoid refetching disabled namespaces on every request.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5922

@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: |-
+    Streamline SQL BLOB cleanup
+
+    Avoid wrapping prepared statements to handle BLOB cleanup when there are
+    no BLOBs that need cleanup. Refactor to reuse BLOB temporary cleanup
+    logic and avoid iterable allocation overhead when no BLOBs are used.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5933
