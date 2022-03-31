@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[Hosts split repro] | Add additional logging.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5987
