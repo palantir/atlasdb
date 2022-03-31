@@ -501,8 +501,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void logTokenRingOnStartup() {
-        Multimap<Set<TokenRange>, CassandraServer>
-                tokenRangesToServer = getTokenRangesFromAllReachableServers();
+        Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = getTokenRangesFromAllReachableServers();
 
         if (tokenRangesToServer == null) {
             log.info("Could not load token ring upon start up!");
@@ -519,8 +518,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
     private void sanityCheckRingConsistency() {
-        Multimap<Set<TokenRange>, CassandraServer>
-                tokenRangesToServer = getTokenRangesFromAllReachableServers();
+        Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = getTokenRangesFromAllReachableServers();
         if (tokenRangesToServer == null) {
             return; // don't care to check for ring consistency when we're not even fully initialized
         }
