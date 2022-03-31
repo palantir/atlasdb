@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.cassandra;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import java.util.Optional;
 
 abstract class ForwardingCassandraKeyValueServiceRuntimeConfig extends CassandraKeyValueServiceRuntimeConfig {
 
@@ -28,12 +27,12 @@ abstract class ForwardingCassandraKeyValueServiceRuntimeConfig extends Cassandra
     }
 
     @Override
-    public Optional<CassandraServersConfig> servers() {
+    public CassandraServersConfig servers() {
         return delegate().servers();
     }
 
     @Override
-    public Optional<Integer> replicationFactor() {
+    public int replicationFactor() {
         return delegate().replicationFactor();
     }
 

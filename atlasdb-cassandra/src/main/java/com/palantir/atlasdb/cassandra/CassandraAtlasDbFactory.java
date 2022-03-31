@@ -42,36 +42,32 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 
 @AutoService(AtlasDbFactory.class)
-public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadableKvsConfig> {
+public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadableKeyValueServiceRuntimeConfig> {
     private static SafeLogger log = SafeLoggerFactory.get(CassandraAtlasDbFactory.class);
-    private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
-            CassandraKeyValueServiceRuntimeConfig.getDefault();
 
     @Override
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            CassandraReloadableKvsConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            KeyValueServiceConfig config,
+            Refreshable<Optional<CassandraReloadableKeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> unused,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
-        Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig =
-                preprocessKvsRuntimeConfig(runtimeConfig);
+
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 toCassandraConfig(config),
-                cassandraRuntimeConfig,
+                preprocessKvsRuntimeConfig(runtimeConfig),
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync);
     }
 
     @Override
-    public CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
+    public Refreshable<Optional<CassandraReloadableKeyValueServiceRuntimeConfig>> createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
@@ -81,7 +77,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
         CassandraKeyValueServiceConfig configWithNamespace =
                 CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
 
-        return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
+        return CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(configWithNamespace,
+                preprocessKvsRuntimeConfig(runtimeConfig)).map(Optional::of);
     }
 
     private static CassandraKeyValueServiceConfig toCassandraConfig(KeyValueServiceConfig config) {
@@ -93,28 +90,11 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
         return (CassandraKeyValueServiceConfig) config;
     }
 
+
     @VisibleForTesting
-    Supplier<CassandraKeyValueServiceRuntimeConfig> preprocessKvsRuntimeConfig(
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
-        return () -> {
-            Optional<KeyValueServiceRuntimeConfig> configOptional = runtimeConfig.get();
-
-            return configOptional
-                    .map(config -> {
-                        if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
-                            log.error(
-                                    "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
-                                        + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
-                                        + " CassandraKeyValueServiceRuntimeConfig.",
-                                    SafeArg.of("configClass", config.getClass()));
-                            return latestValidRuntimeConfig;
-                        }
-
-                        latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
-                        return latestValidRuntimeConfig;
-                    })
-                    .orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault);
-        };
+    Refreshable<CassandraKeyValueServiceRuntimeConfig> preprocessKvsRuntimeConfig(
+            Refreshable<Optional<CassandraKeyValueServiceRuntimeConfig>> runtimeConfig) {
+        return runtimeConfig.map(Optional::orElseThrow);
     }
 
     @Override

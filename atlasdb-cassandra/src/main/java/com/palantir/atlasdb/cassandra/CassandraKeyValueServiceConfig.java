@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import static com.palantir.logsafe.Preconditions.checkArgument;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -33,7 +31,6 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
@@ -54,16 +51,17 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     String TYPE = "cassandra";
 
     /**
+     *
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#servers()}.
+     *
      * These are only the initial 'contact points' that will be used in connecting with the cluster. AtlasDB will
      * subsequently discover additional hosts in the cluster. (This is true for both Thrift and CQL endpoints.)
      *
      * This value, or values derived from it (e.g. the number of Thrift hosts) must ONLY be used on KVS initialization
      * to generate the initial connection(s) to the cluster, or as part of startup checks.
      */
-    @Value.Default
-    default CassandraServersConfig servers() {
-        return ImmutableDefaultConfig.of();
-    }
+    @Deprecated
+    Optional<CassandraServersConfig> servers();
 
     // Todo(snanda): the field is no longer in use
     @Value.Default
@@ -241,7 +239,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory();
 
-    int replicationFactor();
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#replicationFactor()} to make this value
+     * live-reloadable.
+     */
+    @Deprecated
+    Optional<Integer> replicationFactor();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
@@ -386,12 +389,6 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return TYPE;
     }
 
-    @Override
-    @Value.Default
-    default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().numberOfThriftHosts();
-    }
-
     @JsonIgnore
     @Value.Derived
     default boolean usingSsl() {
@@ -417,15 +414,5 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Value.Default
     default int numPoolRefreshingThreads() {
         return 1;
-    }
-
-    @Value.Check
-    default void checkGetRangesPoolSizes() {
-        sharedResourcesConfig()
-                .ifPresent(config -> checkArgument(
-                        config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
-                        "If set, shared get ranges pool size must not be less than individual pool size.",
-                        SafeArg.of("shared", config.sharedGetRangesPoolSize()),
-                        SafeArg.of("individual", concurrentGetRangesThreadPoolSize())));
     }
 }

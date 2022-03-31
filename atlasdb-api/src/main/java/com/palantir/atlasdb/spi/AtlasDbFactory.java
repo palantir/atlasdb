@@ -28,7 +28,7 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
-public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
+public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceRuntimeConfig> {
     SafeLogger log = SafeLoggerFactory.get(AtlasDbFactory.class);
 
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
@@ -46,11 +46,11 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
      * {@link KeyValueServiceConfig#concurrentGetRangesThreadPoolSize()} will be used from the resulting merged
      * config to initialize the transaction manager.
      */
-    default MERGED_CONFIG createMergedKeyValueServiceConfig(
+    default Refreshable<Optional<MERGED_CONFIG>> createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
-        return (MERGED_CONFIG) config;
+        return runtimeConfig.map(maybeRuntimeConfig -> (Optional<MERGED_CONFIG>) maybeRuntimeConfig);
     }
 
     /**
@@ -69,8 +69,8 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
      */
     KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            MERGED_CONFIG config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            KeyValueServiceConfig config,
+            Refreshable<Optional<MERGED_CONFIG>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,

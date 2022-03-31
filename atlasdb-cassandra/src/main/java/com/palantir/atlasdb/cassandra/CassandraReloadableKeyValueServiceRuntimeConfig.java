@@ -19,8 +19,8 @@ import static com.palantir.logsafe.Preconditions.checkArgument;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.spi.DerivedConcurrencyConfig;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
-import java.util.Optional;
 
 public class CassandraReloadableKeyValueServiceRuntimeConfig extends ForwardingCassandraKeyValueServiceRuntimeConfig
         implements DerivedConcurrencyConfig {
@@ -47,45 +47,42 @@ public class CassandraReloadableKeyValueServiceRuntimeConfig extends ForwardingC
     }
 
     @Override
-    public Optional<CassandraServersConfig> servers() {
-        if (installConfig.servers().numberOfThriftHosts() > 0) {
-            return Optional.of(installConfig.servers());
-        }
-        return runtimeConfig.servers();
+    public CassandraServersConfig servers() {
+        return installConfig.servers().orElseGet(runtimeConfig::servers);
     }
 
     @Override
-    public Optional<Integer> replicationFactor() {
-        if (installConfig.replicationFactor() >= 0) {
-            return Optional.of(installConfig.replicationFactor());
-        }
-        return runtimeConfig.replicationFactor();
+    public int replicationFactor() {
+        return installConfig.replicationFactor().orElseGet(runtimeConfig::replicationFactor);
     }
 
     @Override
     public int concurrentGetRangesThreadPoolSize() {
-        if (installConfig.servers().numberOfThriftHosts() > 0) {
-            return installConfig.concurrentGetRangesThreadPoolSize();
-        }
-
-        return installConfig.poolSize() * servers().get().numberOfThriftHosts();
+        return installConfig
+                .concurrentGetRangesThreadPoolSize()
+                .orElseGet(() -> installConfig.poolSize() * servers().numberOfThriftHosts());
     }
 
     @Override
     public int defaultGetRangesConcurrency() {
-        if (installConfig.servers().numberOfThriftHosts() > 0) {
-            return installConfig.defaultGetRangesConcurrency();
-        }
-
-        return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
+        return installConfig
+                .defaultGetRangesConcurrency()
+                .orElseGet(() -> Math.min(8, concurrentGetRangesThreadPoolSize() / 2));
     }
 
     private static CassandraReloadableKeyValueServiceRuntimeConfig validate(
             CassandraReloadableKeyValueServiceRuntimeConfig instance) {
-        checkArgument(instance.servers().isPresent(), "'servers' must have at least one defined host");
+        checkArgument(instance.servers().numberOfThriftHosts() > 0, "'servers' must have at least one defined host");
 
-        checkArgument(
-                instance.replicationFactor().isPresent(), "`replicationFactor` must be set to a non-negative number");
+        checkArgument(instance.replicationFactor() >= 0, "`replicationFactor` must be set to a non-negative number");
+
+        instance.installConfig
+                .sharedResourcesConfig()
+                .ifPresent(config -> checkArgument(
+                        config.sharedGetRangesPoolSize() >= instance.concurrentGetRangesThreadPoolSize(),
+                        "If set, shared get ranges pool size must not be less than individual pool size.",
+                        SafeArg.of("shared", config.sharedGetRangesPoolSize()),
+                        SafeArg.of("individual", instance.concurrentGetRangesThreadPoolSize())));
         return instance;
     }
 }
