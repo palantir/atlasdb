@@ -509,8 +509,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         log.info(
-                "This is the token Range as seen by init Cassandra server pool\n{}",
-                SafeArg.of("tokenRangesToServer", CassandraLogHelper.tokenRangesToServer(tokenRangesToServer)));
+                "Token range as seen at start up time\n{}",
+                UnsafeArg.of("tokenRangesToServer", CassandraLogHelper.tokenRangesToServer(tokenRangesToServer)));
     }
 
     // This method exists to verify a particularly nasty bug where cassandra doesn't have a
