@@ -226,13 +226,13 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
                 () -> CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config,
                         Refreshable.only(runtimeConfig)))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasLogMessage("`replicationFactor` must be set to a non-negative number")
+                .hasLogMessage("'replicationFactor' must be set to a non-negative number")
                 .hasNoArgs();
     }
 
 
     @Test
-    public void ifRuntimeServersIsModifiedNegative_failsReload() {
+    public void ifRuntimeReplicationFactorIsModifiedNegative_failsReload() {
         CassandraKeyValueServiceConfig config = configBuilder()
                 .build();
         CassandraKeyValueServiceRuntimeConfig runtimeConfig1 =
@@ -307,11 +307,12 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config,
                         Refreshable.only(runtimeConfig));
 
-        assertThat(reloadableConfig.get().replicationFactor()).isEqualTo(10 * SERVERS_1.numberOfThriftHosts());
+        assertThat(reloadableConfig.get().defaultGetRangesConcurrency()).isEqualTo(Math.min(8,
+                reloadableConfig.get().concurrentGetRangesThreadPoolSize() / 2));
     }
 
     @Test
-    public void ifInstallSharedGetRangesPoolSizeGreaterThanConcurrentGetRangesThreadPoolSize_failsInitialization() {
+    public void ifInstallSharedGetRangesPoolSizeGreaterThanDerivedConcurrentGetRangesThreadPoolSize_failsInitialization() {
         CassandraKeyValueServiceConfig config = configBuilder()
                 .poolSize(3)
                 .sharedResourcesConfig(ImmutableSharedResourcesConfig.builder().sharedGetRangesPoolSize(8).build())
@@ -329,7 +330,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
 
 
     @Test
-    public void ifInstallSharedGetRangesPoolSizeGreaterThanConcurrentGetRangesThreadPoolSize_failsReload() {
+    public void ifInstallSharedGetRangesPoolSizeGreaterThanDerivedConcurrentGetRangesThreadPoolSize_failsReload() {
         CassandraKeyValueServiceConfig config = configBuilder()
                 .poolSize(3)
                 .sharedResourcesConfig(ImmutableSharedResourcesConfig.builder().sharedGetRangesPoolSize(8).build())

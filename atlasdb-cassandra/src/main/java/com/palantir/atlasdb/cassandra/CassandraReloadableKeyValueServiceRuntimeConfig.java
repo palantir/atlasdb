@@ -74,7 +74,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfig extends ForwardingC
             CassandraReloadableKeyValueServiceRuntimeConfig instance) {
         checkArgument(instance.servers().numberOfThriftHosts() > 0, "'servers' must have at least one defined host");
 
-        checkArgument(instance.replicationFactor() >= 0, "`replicationFactor` must be set to a non-negative number");
+        checkArgument(instance.replicationFactor() >= 0, "'replicationFactor' must be set to a non-negative number");
 
         instance.installConfig
                 .sharedResourcesConfig()
