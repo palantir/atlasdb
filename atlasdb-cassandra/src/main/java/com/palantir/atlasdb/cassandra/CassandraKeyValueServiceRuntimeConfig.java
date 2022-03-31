@@ -23,6 +23,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @AutoService(KeyValueServiceRuntimeConfig.class)
@@ -46,11 +47,9 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return TYPE;
     }
 
-    @Value.Default
-    public CassandraServersConfig servers() {
-        return ImmutableDefaultConfig.of();
-    }
+    public abstract Optional<CassandraServersConfig> servers();
 
+    public abstract Optional<Integer> replicationFactor();
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
      */
