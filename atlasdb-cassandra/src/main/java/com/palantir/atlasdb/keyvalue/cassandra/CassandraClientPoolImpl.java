@@ -238,6 +238,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             runOneTimeStartupChecks();
         }
         refreshPool(); // ensure we've initialized before returning
+        logTokenRingOnStartup();
+
         metrics.registerAggregateMetrics(blacklist::size);
     }
 
@@ -498,27 +500,29 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
+    private void logTokenRingOnStartup() {
+        Multimap<Set<TokenRange>, CassandraServer>
+                tokenRangesToServer = getTokenRangesFromAllReachableServers();
+
+        if (tokenRangesToServer == null) {
+            log.info("Could not load token ring upon start up!");
+            return;
+        }
+
+        log.info(
+                "This is the token Range as seen by init Cassandra server pool\n{}",
+                SafeArg.of("tokenRangesToServer", CassandraLogHelper.tokenRangesToServer(tokenRangesToServer)));
+    }
+
     // This method exists to verify a particularly nasty bug where cassandra doesn't have a
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
     private void sanityCheckRingConsistency() {
-        Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
-        for (CassandraServer host : getCachedServers()) {
-            try (CassandraClient client = CassandraClientFactory.getClientInternal(host.proxy(), config)) {
-                try {
-                    client.describe_keyspace(config.getKeyspaceOrThrow());
-                } catch (NotFoundException e) {
-                    return; // don't care to check for ring consistency when we're not even fully initialized
-                }
-                tokenRangesToServer.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
-            } catch (Exception e) {
-                log.warn(
-                        "Failed to get ring info from host: {}",
-                        SafeArg.of("host", host.cassandraHostName()),
-                        SafeArg.of("proxy", CassandraLogHelper.host(host.proxy())),
-                        e);
-            }
+        Multimap<Set<TokenRange>, CassandraServer>
+                tokenRangesToServer = getTokenRangesFromAllReachableServers();
+        if (tokenRangesToServer == null) {
+            return; // don't care to check for ring consistency when we're not even fully initialized
         }
 
         if (tokenRangesToServer.isEmpty()) {
@@ -575,6 +579,27 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
+    }
+
+    private Multimap<Set<TokenRange>, CassandraServer> getTokenRangesFromAllReachableServers() {
+        Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
+        for (CassandraServer host : getCachedServers()) {
+            try (CassandraClient client = CassandraClientFactory.getClientInternal(host.proxy(), config)) {
+                try {
+                    client.describe_keyspace(config.getKeyspaceOrThrow());
+                } catch (NotFoundException e) {
+                    return null;
+                }
+                tokenRangesToServer.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
+            } catch (Exception e) {
+                log.warn(
+                        "Failed to get ring info from host: {}",
+                        SafeArg.of("host", host.cassandraHostName()),
+                        SafeArg.of("proxy", CassandraLogHelper.host(host.proxy())),
+                        e);
+            }
+        }
+        return tokenRangesToServer;
     }
 
     @Override
