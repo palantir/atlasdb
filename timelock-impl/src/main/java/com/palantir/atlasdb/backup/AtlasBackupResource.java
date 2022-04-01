@@ -95,7 +95,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     private PrepareBackupResponse prepareBackupInternal(AuthHeader authHeader, PrepareBackupRequest request) {
-        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedHeaderMatchesConfig(authHeader)) {
             log.error(
                     "Attempted to prepare backup with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",
@@ -128,7 +128,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
 
     private ListenableFuture<RefreshBackupResponse> refreshBackupInternal(
             AuthHeader authHeader, RefreshBackupRequest request) {
-        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedHeaderMatchesConfig(authHeader)) {
             log.error(
                     "Attempted to complete backup with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",
@@ -169,7 +169,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     @SuppressWarnings("ConstantConditions")
     private ListenableFuture<CompleteBackupResponse> completeBackupInternal(
             AuthHeader authHeader, CompleteBackupRequest request) {
-        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedHeaderMatchesConfig(authHeader)) {
             log.error(
                     "Attempted to complete backup with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",

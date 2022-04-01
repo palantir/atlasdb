@@ -81,8 +81,8 @@ public class AtlasBackupResourceTest {
 
     @Before
     public void setUp() {
-        when(authHeaderValidator.suppliedTokenIsValid(AUTH_HEADER)).thenReturn(true);
-        when(authHeaderValidator.suppliedTokenIsValid(WRONG_AUTH_HEADER)).thenReturn(false);
+        when(authHeaderValidator.suppliedHeaderMatchesConfig(AUTH_HEADER)).thenReturn(true);
+        when(authHeaderValidator.suppliedHeaderMatchesConfig(WRONG_AUTH_HEADER)).thenReturn(false);
     }
 
     @Test
@@ -117,7 +117,7 @@ public class AtlasBackupResourceTest {
 
         assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
                 .isEqualTo(prepareBackupResponseWith(expectedBackupToken));
-        verify(authHeaderValidator).suppliedTokenIsValid(AUTH_HEADER);
+        verify(authHeaderValidator).suppliedHeaderMatchesConfig(AUTH_HEADER);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class AtlasBackupResourceTest {
                         atlasBackupService.refreshBackup(AUTH_HEADER, refreshBackupRequest(inProgressBackupToken))))
                 .isEqualTo(refreshBackupResponseWith(inProgressBackupToken));
 
-        verify(authHeaderValidator).suppliedTokenIsValid(AUTH_HEADER);
+        verify(authHeaderValidator).suppliedHeaderMatchesConfig(AUTH_HEADER);
     }
 
     @Test
@@ -145,7 +145,7 @@ public class AtlasBackupResourceTest {
         assertThat(AtlasFutures.getUnchecked(
                         atlasBackupService.completeBackup(AUTH_HEADER, completeBackupRequest(backupToken))))
                 .isEqualTo(completeBackupResponseWith(expected));
-        verify(authHeaderValidator).suppliedTokenIsValid(AUTH_HEADER);
+        verify(authHeaderValidator).suppliedHeaderMatchesConfig(AUTH_HEADER);
     }
 
     @Test

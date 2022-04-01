@@ -86,7 +86,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
 
     private ListenableFuture<CompleteRestoreResponse> completeRestoreInternal(
             AuthHeader authHeader, CompleteRestoreRequest request) {
-        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedHeaderMatchesConfig(authHeader)) {
             log.error(
                     "Attempted to complete restore with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",
