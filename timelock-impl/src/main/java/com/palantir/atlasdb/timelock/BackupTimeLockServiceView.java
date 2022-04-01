@@ -20,6 +20,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import java.util.Set;
 
 // View containing only the methods necessary for AtlasBackup/RestoreService functionality
@@ -29,6 +30,8 @@ public interface BackupTimeLockServiceView {
     void fastForwardTimestamp(long currentTimestamp);
 
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
+
+    ListenableFuture<RefreshLockResponseV2> refreshLockLeases(Set<LockToken> tokens);
 
     ListenableFuture<Set<LockToken>> unlock(Set<LockToken> tokens);
 }

@@ -28,7 +28,7 @@ public final class AuthHeaderValidator {
         this.permittedToken = permittedToken;
     }
 
-    public boolean suppliedTokenIsValid(AuthHeader suppliedAuthHeader) {
+    public boolean suppliedHeaderMatchesConfig(AuthHeader suppliedAuthHeader) {
         return permittedToken
                 .get()
                 .map(token -> token.equals(suppliedAuthHeader.getBearerToken()))

@@ -16,11 +16,11 @@
 package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -36,30 +36,30 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.immutables.value.Value;
 
-public class LockRefresher implements AutoCloseable {
+public class LockRefresher<T> implements AutoCloseable {
 
     private static final SafeLogger log = SafeLoggerFactory.get(LockRefresher.class);
 
     private final ScheduledExecutorService executor;
-    private final TimelockService timelockService;
-    private final Map<LockToken, ClientLockingContext> tokensToClientContext = new ConcurrentHashMap<>();
+    private final LockLeaseRefresher<T> lockLeaseRefresher;
+    private final Map<T, ClientLockingContext> tokensToClientContext = new ConcurrentHashMap<>();
     private final Clock clock;
 
     private ScheduledFuture<?> task;
 
     public LockRefresher(
-            ScheduledExecutorService executor, TimelockService timelockService, long refreshIntervalMillis) {
-        this(executor, timelockService, refreshIntervalMillis, Clock.systemUTC());
+            ScheduledExecutorService executor, LockLeaseRefresher<T> lockLeaseRefresher, long refreshIntervalMillis) {
+        this(executor, lockLeaseRefresher, refreshIntervalMillis, Clock.systemUTC());
     }
 
     @VisibleForTesting
     LockRefresher(
             ScheduledExecutorService executor,
-            TimelockService timelockService,
+            LockLeaseRefresher<T> lockLeaseRefresher,
             long refreshIntervalMillis,
             Clock clock) {
         this.executor = executor;
-        this.timelockService = timelockService;
+        this.lockLeaseRefresher = lockLeaseRefresher;
         this.clock = clock;
 
         scheduleRefresh(refreshIntervalMillis);
@@ -72,24 +72,20 @@ public class LockRefresher implements AutoCloseable {
 
     private void refreshLocks() {
         try {
-            Set<LockToken> toRefresh = getTokensToRefreshAndExpireStaleTokens();
+            Set<T> toRefresh = getTokensToRefreshAndExpireStaleTokens();
             if (toRefresh.isEmpty()) {
                 return;
             }
 
-            Set<LockToken> successfullyRefreshedTokens = timelockService.refreshLockLeases(toRefresh);
-            Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
+            Set<T> successfullyRefreshedTokens = lockLeaseRefresher.refreshLockLeases(toRefresh);
+            Set<T> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
             refreshFailures.forEach(tokensToClientContext::remove);
             if (!refreshFailures.isEmpty()) {
                 log.info(
                         "Successfully refreshed {}, but failed to refresh {} lock tokens, "
-                                + "most likely because they were lost on the server."
-                                + " The first (up to) 20 of these were {}.",
+                                + "most likely because they were lost on the server.",
                         SafeArg.of("successfullyRefreshed", successfullyRefreshedTokens.size()),
-                        SafeArg.of("numLockTokens", refreshFailures.size()),
-                        SafeArg.of(
-                                "firstFailures",
-                                Iterables.transform(Iterables.limit(refreshFailures, 20), LockToken::getRequestId)));
+                        SafeArg.of("numLockTokens", refreshFailures.size()));
             }
         } catch (Throwable error) {
             log.warn("Error while refreshing locks. Trying again on next iteration", error);
@@ -100,17 +96,17 @@ public class LockRefresher implements AutoCloseable {
     // preserving O(failure) time for removals. However, this is a background task that only runs once in a while,
     // and we need to serialise the entire structure when we refresh anyway, so I would not view the performance
     // differential as significant here.
-    private Set<LockToken> getTokensToRefreshAndExpireStaleTokens() {
+    private Set<T> getTokensToRefreshAndExpireStaleTokens() {
         Instant now = clock.instant();
-        Set<LockToken> tokensToRefresh = new HashSet<>();
-        for (Map.Entry<LockToken, ClientLockingContext> candidate : tokensToClientContext.entrySet()) {
+        Set<T> tokensToRefresh = new HashSet<>();
+        for (Map.Entry<T, ClientLockingContext> candidate : tokensToClientContext.entrySet()) {
             Instant deadline = candidate.getValue().lockRefreshDeadline();
             if (now.isAfter(deadline)) {
                 log.info(
                         "A lock token has expired on the client, because it has exceeded its tenure: we will stop"
                                 + " refreshing it automatically. Some time may still be required (20 seconds by"
                                 + " default) before the server releases the associated lock grants.",
-                        candidate.getKey().toSafeArg("lockToken"),
+                        getSafeArg(candidate.getKey()),
                         SafeArg.of("expiryDeadline", deadline),
                         SafeArg.of("now", now));
                 candidate.getValue().clientExpiryCallback().run();
@@ -123,11 +119,11 @@ public class LockRefresher implements AutoCloseable {
         return tokensToRefresh;
     }
 
-    public void registerLocks(Collection<LockToken> tokens) {
+    public void registerLocks(Collection<T> tokens) {
         registerLocks(tokens, ClientLockingOptions.getDefault());
     }
 
-    public void registerLocks(Collection<LockToken> tokens, ClientLockingOptions lockingOptions) {
+    public void registerLocks(Collection<T> tokens, ClientLockingOptions lockingOptions) {
         tokens.forEach(token -> tokensToClientContext.put(
                 token,
                 ImmutableClientLockingContext.builder()
@@ -139,7 +135,7 @@ public class LockRefresher implements AutoCloseable {
                         .build()));
     }
 
-    public void unregisterLocks(Collection<LockToken> tokens) {
+    public void unregisterLocks(Collection<T> tokens) {
         tokens.forEach(tokensToClientContext::remove);
     }
 
@@ -148,6 +144,14 @@ public class LockRefresher implements AutoCloseable {
         if (task != null) {
             task.cancel(false);
         }
+    }
+
+    private Arg<?> getSafeArg(T key) {
+        if (key instanceof LockToken) {
+            return ((LockToken) key).toSafeArg("lockToken");
+        }
+
+        return SafeArg.of("lockToken", key);
     }
 
     @Value.Immutable
