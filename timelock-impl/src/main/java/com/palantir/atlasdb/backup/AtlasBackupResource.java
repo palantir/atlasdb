@@ -136,12 +136,12 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
 
-        Map<InProgressBackupToken, ListenableFuture<Optional<RefreshLockResponseV2>>> futureMap =
+        Map<InProgressBackupToken, ListenableFuture<Optional<RefreshLockResponseV2>>> refreshResponsesPerToken =
                 request.getTokens().stream().collect(Collectors.toMap(token -> token, this::refreshBackupAsync));
-        ListenableFuture<Map<InProgressBackupToken, RefreshLockResponseV2>> singleFuture =
-                AtlasFutures.allAsMap(futureMap, MoreExecutors.newDirectExecutorService());
+        ListenableFuture<Map<InProgressBackupToken, RefreshLockResponseV2>> collatedRefreshResponse =
+                AtlasFutures.allAsMap(refreshResponsesPerToken, MoreExecutors.newDirectExecutorService());
 
-        return Futures.transform(singleFuture, this::getRefreshedTokens, MoreExecutors.directExecutor());
+        return Futures.transform(collatedRefreshResponse, this::getRefreshedTokens, MoreExecutors.directExecutor());
     }
 
     private ListenableFuture<Optional<RefreshLockResponseV2>> refreshBackupAsync(InProgressBackupToken token) {
@@ -153,11 +153,11 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     private RefreshBackupResponse getRefreshedTokens(Map<InProgressBackupToken, RefreshLockResponseV2> responses) {
-        Set<InProgressBackupToken> refreshedTokens = KeyedStream.stream(responses)
+        Set<InProgressBackupToken> refreshedBackupTokens = KeyedStream.stream(responses)
                 .filter(response -> !response.refreshedTokens().isEmpty())
                 .keys()
                 .collect(Collectors.toSet());
-        return RefreshBackupResponse.of(refreshedTokens);
+        return RefreshBackupResponse.of(refreshedBackupTokens);
     }
 
     @Override
@@ -177,13 +177,13 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
 
-        Map<InProgressBackupToken, ListenableFuture<Optional<CompletedBackup>>> futureMap =
+        Map<InProgressBackupToken, ListenableFuture<Optional<CompletedBackup>>> completedBackupsPerToken =
                 request.getBackupTokens().stream().collect(Collectors.toMap(token -> token, this::completeBackupAsync));
-        ListenableFuture<Map<InProgressBackupToken, CompletedBackup>> singleFuture =
-                AtlasFutures.allAsMap(futureMap, MoreExecutors.newDirectExecutorService());
+        ListenableFuture<Map<InProgressBackupToken, CompletedBackup>> collatedCompletedBackups =
+                AtlasFutures.allAsMap(completedBackupsPerToken, MoreExecutors.newDirectExecutorService());
 
         return Futures.transform(
-                singleFuture,
+                collatedCompletedBackups,
                 map -> CompleteBackupResponse.of(ImmutableSet.copyOf(map.values())),
                 MoreExecutors.directExecutor());
     }
@@ -200,17 +200,20 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     private ListenableFuture<Optional<LockToken>> maybeUnlock(InProgressBackupToken backupToken) {
         return Futures.transform(
                 timelock(backupToken.getNamespace()).unlock(ImmutableSet.of(backupToken.getLockToken())),
-                singletonOrEmptySet -> {
-                    if (singletonOrEmptySet.isEmpty()) {
-                        log.error(
-                                "Failed to unlock namespace while completing backup. "
-                                        + "We lost the immutable timestamp lock, possibly due to a Timelock restart or "
-                                        + "leadership election. Please retry the backup.",
-                                SafeArg.of("namespace", backupToken.getNamespace()));
-                    }
-                    return singletonOrEmptySet.stream().findFirst();
-                },
+                singletonOrEmptySet -> getUnlockedTokenOrLogFailure(backupToken.getNamespace(), singletonOrEmptySet),
                 MoreExecutors.directExecutor());
+    }
+
+    private Optional<LockToken> getUnlockedTokenOrLogFailure(Namespace namespace, Set<LockToken> singletonOrEmptySet) {
+        if (singletonOrEmptySet.isEmpty()) {
+            log.error(
+                    "Failed to unlock namespace while completing backup. "
+                            + "We lost the immutable timestamp lock, possibly due to a Timelock restart or "
+                            + "leadership election. Please retry the backup.",
+                    SafeArg.of("namespace", namespace));
+        }
+
+        return singletonOrEmptySet.stream().findFirst();
     }
 
     private CompletedBackup fetchFastForwardTimestamp(InProgressBackupToken backupToken) {

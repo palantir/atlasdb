@@ -161,7 +161,7 @@ public final class AtlasBackupService {
                     SafeArg.of("numNamespacesWithBackup", tokens.size()),
                     SafeArg.of("numNamespacesWithoutBackup", namespacesWithNoInProgressBackup.size()),
                     SafeArg.of("namespacesWithoutBackup", namespacesWithNoInProgressBackup),
-                    SafeArg.of("namespaces", namespaces));
+                    SafeArg.of("allRequestedNamespaces", namespaces));
         }
 
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
