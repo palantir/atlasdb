@@ -79,6 +79,17 @@ public class AtlasBackupServiceTest {
     }
 
     @Test
+    public void prepareBackupRegistersLockForRefresh() {
+        Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
+        when(atlasBackupClient.prepareBackup(
+                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                .thenReturn(PrepareBackupResponse.of(tokens));
+
+        atlasBackupService.prepareBackup(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
+        verify(lockRefresher).registerLocks(tokens);
+    }
+
+    @Test
     public void completeBackupDoesNotRunUnpreparedNamespaces() {
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of())))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of()));
@@ -102,6 +113,23 @@ public class AtlasBackupServiceTest {
         atlasBackupService.prepareBackup(namespaces);
 
         assertThat(atlasBackupService.completeBackup(namespaces)).containsExactly(NAMESPACE);
+    }
+
+    @Test
+    public void completeBackupUnregistersLocks() {
+        Set<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
+        Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
+                .thenReturn(PrepareBackupResponse.of(tokens));
+
+        CompletedBackup completedBackup = completedBackup();
+        when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(tokens)))
+                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
+
+        atlasBackupService.prepareBackup(oneNamespace);
+        atlasBackupService.completeBackup(oneNamespace);
+
+        verify(lockRefresher).unregisterLocks(tokens);
     }
 
     @Test

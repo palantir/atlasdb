@@ -18,6 +18,7 @@ package com.palantir.atlasdb.backup;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
@@ -144,23 +145,39 @@ public final class AtlasBackupService {
     }
 
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
-        log.info("Attempting to complete backup", SafeArg.of("namespaces", namespaces));
-
         Set<InProgressBackupToken> tokens = namespaces.stream()
                 .map(inProgressBackups::remove)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         lockRefresher.unregisterLocks(tokens);
 
-        log.info(
-                "Found this many in progress backups",
-                SafeArg.of("count", tokens.size()),
-                SafeArg.of("tokens", tokens));
+        Set<Namespace> namespacesWithInProgressBackups =
+                tokens.stream().map(InProgressBackupToken::getNamespace).collect(Collectors.toSet());
+        if (tokens.size() < namespaces.size()) {
+            Set<Namespace> namespacesWithNoInProgressBackup =
+                    Sets.difference(namespaces, namespacesWithInProgressBackups);
+            log.error(
+                    "In progress backups were not found for some namespaces. We will not complete backup for these.",
+                    SafeArg.of("numNamespacesWithBackup", tokens.size()),
+                    SafeArg.of("numNamespacesWithoutBackup", namespacesWithNoInProgressBackup.size()),
+                    SafeArg.of("namespacesWithoutBackup", namespacesWithNoInProgressBackup),
+                    SafeArg.of("namespaces", namespaces));
+        }
 
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
         CompleteBackupResponse response = atlasBackupClient.completeBackup(authHeader, request);
 
-        log.info("Complete backup returned this response", SafeArg.of("response", response));
+        if (response.getSuccessfulBackups().size() < namespacesWithInProgressBackups.size()) {
+            Set<Namespace> successfulNamespaces = response.getSuccessfulBackups().stream()
+                    .map(CompletedBackup::getNamespace)
+                    .collect(Collectors.toSet());
+            Set<Namespace> failedNamespaces = Sets.difference(namespacesWithInProgressBackups, successfulNamespaces);
+            log.error(
+                    "Backup did not complete successfully for all namespaces. Check TimeLock logs to debug.",
+                    SafeArg.of("failedNamespaces", failedNamespaces),
+                    SafeArg.of("successfulNamespaces", successfulNamespaces),
+                    SafeArg.of("namespacesWithoutBackup", namespacesWithInProgressBackups));
+        }
 
         return response.getSuccessfulBackups().stream()
                 .peek(coordinationServiceRecorder::storeFastForwardState)

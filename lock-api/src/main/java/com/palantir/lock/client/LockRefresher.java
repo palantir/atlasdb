@@ -119,14 +119,6 @@ public class LockRefresher<T> implements AutoCloseable {
         return tokensToRefresh;
     }
 
-    private Arg<?> getSafeArg(T key) {
-        if (key instanceof LockToken) {
-            return ((LockToken) key).toSafeArg("lockToken");
-        }
-
-        return SafeArg.of("lockToken", key);
-    }
-
     public void registerLocks(Collection<T> tokens) {
         registerLocks(tokens, ClientLockingOptions.getDefault());
     }
@@ -152,6 +144,14 @@ public class LockRefresher<T> implements AutoCloseable {
         if (task != null) {
             task.cancel(false);
         }
+    }
+
+    private Arg<?> getSafeArg(T key) {
+        if (key instanceof LockToken) {
+            return ((LockToken) key).toSafeArg("lockToken");
+        }
+
+        return SafeArg.of("lockToken", key);
     }
 
     @Value.Immutable

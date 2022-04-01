@@ -31,14 +31,18 @@ import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
+import com.palantir.atlasdb.backup.api.RefreshBackupRequest;
+import com.palantir.atlasdb.backup.api.RefreshBackupResponse;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.conjure.java.api.errors.ErrorType;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
 import java.net.URL;
@@ -89,6 +93,13 @@ public class AtlasBackupResourceTest {
     }
 
     @Test
+    public void refreshBackupThrowsIfAuthHeaderIsWrong() {
+        assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(
+                        atlasBackupService.refreshBackup(WRONG_AUTH_HEADER, refreshBackupRequest(validBackupToken()))))
+                .hasType(ErrorType.PERMISSION_DENIED);
+    }
+
+    @Test
     public void completeBackupThrowsIfAuthHeaderIsWrong() {
         assertThatServiceExceptionThrownBy(() -> AtlasFutures.getUnchecked(atlasBackupService.completeBackup(
                         WRONG_AUTH_HEADER, completeBackupRequest(validBackupToken()))))
@@ -106,6 +117,21 @@ public class AtlasBackupResourceTest {
 
         assertThat(AtlasFutures.getUnchecked(atlasBackupService.prepareBackup(AUTH_HEADER, PREPARE_BACKUP_REQUEST)))
                 .isEqualTo(prepareBackupResponseWith(expectedBackupToken));
+        verify(authHeaderValidator).suppliedTokenIsValid(AUTH_HEADER);
+    }
+
+    @Test
+    public void refreshesBackupSuccessfully() {
+        InProgressBackupToken inProgressBackupToken = validBackupToken();
+
+        Set<LockToken> lockTokens = ImmutableSet.of(inProgressBackupToken.getLockToken());
+        when(mockTimelock.refreshLockLeases(lockTokens))
+                .thenReturn(Futures.immediateFuture(RefreshLockResponseV2.of(lockTokens, mock(Lease.class))));
+
+        assertThat(AtlasFutures.getUnchecked(
+                        atlasBackupService.refreshBackup(AUTH_HEADER, refreshBackupRequest(inProgressBackupToken))))
+                .isEqualTo(refreshBackupResponseWith(inProgressBackupToken));
+
         verify(authHeaderValidator).suppliedTokenIsValid(AUTH_HEADER);
     }
 
@@ -169,6 +195,14 @@ public class AtlasBackupResourceTest {
 
     private static PrepareBackupResponse prepareBackupResponseWith(InProgressBackupToken expected) {
         return PrepareBackupResponse.of(ImmutableSet.of(expected));
+    }
+
+    private static RefreshBackupRequest refreshBackupRequest(InProgressBackupToken... backupTokens) {
+        return RefreshBackupRequest.of(ImmutableSet.copyOf(backupTokens));
+    }
+
+    private RefreshBackupResponse refreshBackupResponseWith(InProgressBackupToken expected) {
+        return RefreshBackupResponse.of(ImmutableSet.of(expected));
     }
 
     private static CompleteBackupRequest completeBackupRequest(InProgressBackupToken... backupTokens) {

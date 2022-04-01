@@ -50,12 +50,13 @@ public class ExternalBackupPersister implements BackupPersister {
 
     @Override
     public void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
-
         File schemaMetadataFile = getSchemaMetadataFile(namespace);
-        log.info(
-                "Storing schema metadata",
-                SafeArg.of("namespace", namespace),
-                SafeArg.of("file", schemaMetadataFile.getPath()));
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Storing schema metadata",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("file", schemaMetadataFile.getPath()));
+        }
         writeToFile(namespace, schemaMetadataFile, internalSchemaMetadataState);
     }
 
@@ -68,7 +69,9 @@ public class ExternalBackupPersister implements BackupPersister {
     public void storeCompletedBackup(CompletedBackup completedBackup) {
         Namespace namespace = completedBackup.getNamespace();
 
-        log.info("Storing completed backup", SafeArg.of("namespace", namespace));
+        if (log.isDebugEnabled()) {
+            log.debug("Storing completed backup", SafeArg.of("namespace", namespace));
+        }
         writeToFile(namespace, getImmutableTimestampFile(namespace), completedBackup.getImmutableTimestamp());
         writeToFile(namespace, getBackupTimestampFile(namespace), completedBackup.getBackupStartTimestamp());
         writeToFile(namespace, getFastForwardTimestampFile(namespace), completedBackup.getBackupEndTimestamp());

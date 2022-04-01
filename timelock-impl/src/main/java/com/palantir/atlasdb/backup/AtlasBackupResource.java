@@ -144,14 +144,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         return Futures.transform(singleFuture, this::getRefreshedTokens, MoreExecutors.directExecutor());
     }
 
-    private RefreshBackupResponse getRefreshedTokens(Map<InProgressBackupToken, RefreshLockResponseV2> responses) {
-        Set<InProgressBackupToken> refreshedTokens = KeyedStream.stream(responses)
-                .filter(response -> !response.refreshedTokens().isEmpty())
-                .keys()
-                .collect(Collectors.toSet());
-        return RefreshBackupResponse.of(refreshedTokens);
-    }
-
     private ListenableFuture<Optional<RefreshLockResponseV2>> refreshBackupAsync(InProgressBackupToken token) {
         Namespace namespace = token.getNamespace();
         return Futures.transform(
@@ -160,16 +152,17 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
                 MoreExecutors.directExecutor());
     }
 
+    private RefreshBackupResponse getRefreshedTokens(Map<InProgressBackupToken, RefreshLockResponseV2> responses) {
+        Set<InProgressBackupToken> refreshedTokens = KeyedStream.stream(responses)
+                .filter(response -> !response.refreshedTokens().isEmpty())
+                .keys()
+                .collect(Collectors.toSet());
+        return RefreshBackupResponse.of(refreshedTokens);
+    }
+
     @Override
     public ListenableFuture<CompleteBackupResponse> completeBackup(
             AuthHeader authHeader, CompleteBackupRequest request) {
-        log.info(
-                "Completing backup for namespaces",
-                SafeArg.of(
-                        "namespaces",
-                        request.getBackupTokens().stream()
-                                .map(InProgressBackupToken::getNamespace)
-                                .collect(Collectors.toSet())));
         return handleExceptions(() -> completeBackupInternal(authHeader, request));
     }
 
@@ -197,7 +190,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
 
     @SuppressWarnings("ConstantConditions") // optional token is never null
     private ListenableFuture<Optional<CompletedBackup>> completeBackupAsync(InProgressBackupToken backupToken) {
-        log.info("Completing backup for namespace", SafeArg.of("namespace", backupToken.getNamespace()));
         return Futures.transform(
                 maybeUnlock(backupToken),
                 maybeToken -> maybeToken.map(_successfulUnlock -> fetchFastForwardTimestamp(backupToken)),
@@ -206,16 +198,15 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
 
     @SuppressWarnings("ConstantConditions") // Set of locks is never null
     private ListenableFuture<Optional<LockToken>> maybeUnlock(InProgressBackupToken backupToken) {
-        log.info("Unlocking namespace", SafeArg.of("namespace", backupToken.getNamespace()));
         return Futures.transform(
                 timelock(backupToken.getNamespace()).unlock(ImmutableSet.of(backupToken.getLockToken())),
                 singletonOrEmptySet -> {
-                    log.info(
-                            "Lock response",
-                            SafeArg.of("namespace", backupToken.getNamespace()),
-                            SafeArg.of("response", singletonOrEmptySet));
                     if (singletonOrEmptySet.isEmpty()) {
-                        log.error("Failed to unlock namespace", SafeArg.of("namespace", backupToken.getNamespace()));
+                        log.error(
+                                "Failed to unlock namespace while completing backup. "
+                                        + "We lost the immutable timestamp lock, possibly due to a Timelock restart or "
+                                        + "leadership election. Please retry the backup.",
+                                SafeArg.of("namespace", backupToken.getNamespace()));
                     }
                     return singletonOrEmptySet.stream().findFirst();
                 },
@@ -224,12 +215,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
 
     private CompletedBackup fetchFastForwardTimestamp(InProgressBackupToken backupToken) {
         Namespace namespace = backupToken.getNamespace();
-        log.info("Fetching fast forward timestamp for namespace", SafeArg.of("namespace", namespace));
         long fastForwardTimestamp = timelock(namespace).getFreshTimestamp();
-        log.info(
-                "Found fast forward timestamp",
-                SafeArg.of("namespace", namespace),
-                SafeArg.of("ts", fastForwardTimestamp));
         return CompletedBackup.builder()
                 .namespace(namespace)
                 .immutableTimestamp(backupToken.getImmutableTimestamp())
