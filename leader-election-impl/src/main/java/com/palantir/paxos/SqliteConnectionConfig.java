@@ -27,13 +27,18 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableSqliteConnectionConfig.class)
 @JsonDeserialize(as = ImmutableSqliteConnectionConfig.class)
 public interface SqliteConnectionConfig {
+    /**
+     * Maximum number of concurrent connections to allow for reading/writing to an underlying SQLite.
+     * This needs to account for possible concurrency in reading and writing to the acceptor and learner namespaces
+     * on timelock, which can happen on multiple threads.
+     */
     @Value.Default
     default int maximumPoolSize() {
-        return 1;
+        return 10;
     }
 
     /**
-     * how long to wait for a connection to be opened.
+     * How long to wait for a connection to be opened.
      */
     @Value.Default
     default int connectionTimeoutSeconds() {
