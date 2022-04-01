@@ -144,6 +144,17 @@ public final class AtlasBackupService {
         lockRefresher.registerLocks(ImmutableSet.of(backupToken));
     }
 
+    /**
+     * Completes backup for the given set of namespaces.
+     * This will store metadata about the completed backup via the BackupPersister.
+     *
+     * In order to do this, we must unlock the immutable timestamp for each namespace. If {@link #prepareBackup(Set)}
+     * was not called, we will not have a record of the in-progress backup (and will not have been refreshing
+     * its lock anyway). Thus, we attempt to complete backup only for those namespaces where we have the in-progress
+     * backup stored.
+     *
+     * @return the namespaces whose backups were successfully completed
+     */
     public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
         Set<InProgressBackupToken> tokens = namespaces.stream()
                 .map(inProgressBackups::remove)
