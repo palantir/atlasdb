@@ -17,12 +17,12 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 public enum CassandraClientPoolHostLevelMetric {
-    MEAN_ACTIVE_TIME_MILLIS("meanActiveTimeMillis", 0.0, 2.0),
-    NUM_IDLE("numIdle", 0.1, 2.0),
-    NUM_ACTIVE("numActive", 0.1, 2.0),
-    CREATED("created", 0.01, 2.0),
-    DESTROYED_BY_EVICTOR("destroyedByEvictor", 0.01, 2.0),
-    DESTROYED("destroyed", 0.01, 2.0);
+    MEAN_ACTIVE_TIME_MILLIS("meanActiveTimeMillis", 0.0, -2.0),
+    NUM_IDLE("numIdle", 0.1, -2.0),
+    NUM_ACTIVE("numActive", 0.1, -2.0),
+    CREATED("created", 0.01, -2.0),
+    DESTROYED_BY_EVICTOR("destroyedByEvictor", 0.01, -2.0),
+    DESTROYED("destroyed", 0.01, -2.0);
 
     public final String metricName;
     public final double minimumMeanThreshold;
