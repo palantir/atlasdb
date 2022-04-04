@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: '(For RC Only): Disable metric filtration for Cassandra client pool
+    metrics'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5990
