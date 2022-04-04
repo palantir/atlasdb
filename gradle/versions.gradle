@@ -33,4 +33,5 @@ ext.libVersions =
 
 javaVersions {
     libraryTarget = 11
+    runtime = 17
 }
