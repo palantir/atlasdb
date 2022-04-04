@@ -1,7 +1,7 @@
 ch.qos.logback:* = 1.2.11
 com.boundary:high-scale-lib = 1.0.6
 com.ea.agentloader:ea-agent-loader = 1.0.3
-com.fasterxml.jackson.*:* = 2.11.1
+com.fasterxml.jackson.*:* = 2.13.2
 com.github.ben-manes.caffeine:caffeine = 3.0.5
 com.github.peterwippermann.junit4:parameterized-suite = 1.1.0
 com.github.rholder:guava-retrying = 2.0.0
@@ -26,7 +26,7 @@ com.palantir.common:streams = 1.9.1
 com.palantir.config.crypto:* = 4.0.0
 com.palantir.conjure.java.api:* = 2.24.0
 com.palantir.conjure.java.runtime:* = 7.29.0
-com.palantir.conjure.java:* = 6.33.0
+com.palantir.conjure.java:* = 6.40.0
 com.palantir.conjure:conjure = 4.25.0
 com.palantir.dialogue:* = 3.55.0
 com.palantir.docker.compose:docker-compose-rule* = 1.7.0

@@ -89,7 +89,6 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.getRequestId());
-
         return leasedLockImmutableTimestampResponse.value();
     }
 

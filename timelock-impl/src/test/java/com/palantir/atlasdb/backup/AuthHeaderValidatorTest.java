@@ -31,20 +31,20 @@ public class AuthHeaderValidatorTest {
 
     @Test
     public void succeedsWithMatchingHeader() {
-        assertThat(authHeaderValidator.suppliedTokenIsValid(AuthHeader.of(BEARER_TOKEN)))
+        assertThat(authHeaderValidator.suppliedHeaderMatchesConfig(AuthHeader.of(BEARER_TOKEN)))
                 .isTrue();
     }
 
     @Test
     public void failsWithWrongHeader() {
-        assertThat(authHeaderValidator.suppliedTokenIsValid(AuthHeader.of(WRONG_TOKEN)))
+        assertThat(authHeaderValidator.suppliedHeaderMatchesConfig(AuthHeader.of(WRONG_TOKEN)))
                 .isFalse();
     }
 
     @Test
     public void failsIfSupplierYieldsEmpty() {
         AuthHeaderValidator emptyValidator = new AuthHeaderValidator(Optional::empty);
-        assertThat(emptyValidator.suppliedTokenIsValid(AuthHeader.of(BEARER_TOKEN)))
+        assertThat(emptyValidator.suppliedHeaderMatchesConfig(AuthHeader.of(BEARER_TOKEN)))
                 .isFalse();
     }
 }

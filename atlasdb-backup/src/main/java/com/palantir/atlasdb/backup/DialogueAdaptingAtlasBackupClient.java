@@ -22,6 +22,8 @@ import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
+import com.palantir.atlasdb.backup.api.RefreshBackupRequest;
+import com.palantir.atlasdb.backup.api.RefreshBackupResponse;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class DialogueAdaptingAtlasBackupClient implements AtlasBackupClient {
@@ -34,6 +36,11 @@ public class DialogueAdaptingAtlasBackupClient implements AtlasBackupClient {
     @Override
     public PrepareBackupResponse prepareBackup(AuthHeader authHeader, PrepareBackupRequest request) {
         return dialogueDelegate.prepareBackup(authHeader, request);
+    }
+
+    @Override
+    public RefreshBackupResponse refreshBackup(AuthHeader authHeader, RefreshBackupRequest request) {
+        return dialogueDelegate.refreshBackup(authHeader, request);
     }
 
     @Override

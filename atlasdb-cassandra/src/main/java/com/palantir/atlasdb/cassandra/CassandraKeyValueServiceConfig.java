@@ -65,6 +65,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return ImmutableDefaultConfig.of();
     }
 
+    // Todo(snanda): the field is no longer in use
     @Value.Default
     default Map<String, InetSocketAddress> addressTranslation() {
         return ImmutableMap.of();

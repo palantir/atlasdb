@@ -29,6 +29,7 @@ import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
@@ -54,14 +55,17 @@ public class AtlasBackupServiceTest {
     @Mock
     private CoordinationServiceRecorder coordinationServiceRecorder;
 
+    @Mock
+    private LockRefresher<InProgressBackupToken> lockRefresher;
+
     private AtlasBackupService atlasBackupService;
     private BackupPersister backupPersister;
 
     @Before
     public void setup() {
         backupPersister = new InMemoryBackupPersister();
-        atlasBackupService =
-                new AtlasBackupService(authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister);
+        atlasBackupService = new AtlasBackupService(
+                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher);
     }
 
     @Test
@@ -72,6 +76,17 @@ public class AtlasBackupServiceTest {
 
         assertThat(atlasBackupService.prepareBackup(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE)))
                 .containsExactly(NAMESPACE);
+    }
+
+    @Test
+    public void prepareBackupRegistersLockForRefresh() {
+        Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
+        when(atlasBackupClient.prepareBackup(
+                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                .thenReturn(PrepareBackupResponse.of(tokens));
+
+        atlasBackupService.prepareBackup(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
+        verify(lockRefresher).registerLocks(tokens);
     }
 
     @Test
@@ -98,6 +113,23 @@ public class AtlasBackupServiceTest {
         atlasBackupService.prepareBackup(namespaces);
 
         assertThat(atlasBackupService.completeBackup(namespaces)).containsExactly(NAMESPACE);
+    }
+
+    @Test
+    public void completeBackupUnregistersLocks() {
+        Set<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
+        Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
+                .thenReturn(PrepareBackupResponse.of(tokens));
+
+        CompletedBackup completedBackup = completedBackup();
+        when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(tokens)))
+                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
+
+        atlasBackupService.prepareBackup(oneNamespace);
+        atlasBackupService.completeBackup(oneNamespace);
+
+        verify(lockRefresher).unregisterLocks(tokens);
     }
 
     @Test

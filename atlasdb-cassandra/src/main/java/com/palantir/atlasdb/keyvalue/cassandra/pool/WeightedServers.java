@@ -15,29 +15,29 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.logsafe.Preconditions;
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to
+ * Weights hosts inversely by the number of active connections. {@link #getRandomServer()} should then be used to
  * pick a random host
  */
-public final class WeightedHosts {
-    final NavigableMap<Integer, InetSocketAddress> hosts;
+public final class WeightedServers {
+    final NavigableMap<Integer, CassandraServer> hosts;
 
-    private WeightedHosts(NavigableMap<Integer, InetSocketAddress> hosts) {
+    private WeightedServers(NavigableMap<Integer, CassandraServer> hosts) {
         this.hosts = hosts;
     }
 
-    public static WeightedHosts create(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+    public static WeightedServers create(Map<CassandraServer, CassandraClientPoolingContainer> pools) {
         Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
-        return new WeightedHosts(buildHostsWeightedByActiveConnections(pools));
+        return new WeightedServers(buildHostsWeightedByActiveConnections(pools));
     }
 
     /**
@@ -49,20 +49,20 @@ public final class WeightedHosts {
      * Every weight is guaranteed to be non-zero in size. That is, every key is guaranteed to be at least one larger
      * than the previous key.
      */
-    private static NavigableMap<Integer, InetSocketAddress> buildHostsWeightedByActiveConnections(
-            Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+    private static NavigableMap<Integer, CassandraServer> buildHostsWeightedByActiveConnections(
+            Map<CassandraServer, CassandraClientPoolingContainer> pools) {
 
-        Map<InetSocketAddress, Integer> openRequestsByHost = Maps.newHashMapWithExpectedSize(pools.size());
+        Map<CassandraServer, Integer> openRequestsByHost = Maps.newHashMapWithExpectedSize(pools.size());
         int totalOpenRequests = 0;
-        for (Map.Entry<InetSocketAddress, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
+        for (Map.Entry<CassandraServer, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
             int openRequests = Math.max(poolEntry.getValue().getOpenRequests(), 0);
             openRequestsByHost.put(poolEntry.getKey(), openRequests);
             totalOpenRequests += openRequests;
         }
 
         int lowerBoundInclusive = 0;
-        NavigableMap<Integer, InetSocketAddress> weightedHosts = new TreeMap<>();
-        for (Map.Entry<InetSocketAddress, Integer> entry : openRequestsByHost.entrySet()) {
+        NavigableMap<Integer, CassandraServer> weightedHosts = new TreeMap<>();
+        for (Map.Entry<CassandraServer, Integer> entry : openRequestsByHost.entrySet()) {
             // We want the weight to be inversely proportional to the number of open requests so that we pick
             // less-active hosts. We add 1 to make sure that all ranges are non-empty
             int weight = totalOpenRequests - entry.getValue() + 1;
@@ -72,13 +72,13 @@ public final class WeightedHosts {
         return weightedHosts;
     }
 
-    public InetSocketAddress getRandomHost() {
+    public CassandraServer getRandomServer() {
         int index = ThreadLocalRandom.current().nextInt(hosts.lastKey());
-        return getRandomHostInternal(index);
+        return getRandomServerInternal(index);
     }
 
-    // This basically exists for testing
-    InetSocketAddress getRandomHostInternal(int index) {
+    @VisibleForTesting
+    CassandraServer getRandomServerInternal(int index) {
         return hosts.higherEntry(index).getValue();
     }
 }

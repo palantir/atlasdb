@@ -151,7 +151,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     @Override
     public ListenableFuture<DisableNamespacesResponse> disableTimelock(
             AuthHeader authHeader, DisableNamespacesRequest request) {
-        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedHeaderMatchesConfig(authHeader)) {
             log.error(
                     "Attempted to disable TimeLock with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",
@@ -169,7 +169,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     @Override
     public ListenableFuture<ReenableNamespacesResponse> reenableTimelock(
             AuthHeader authHeader, ReenableNamespacesRequest request) {
-        if (!authHeaderValidator.suppliedTokenIsValid(authHeader)) {
+        if (!authHeaderValidator.suppliedHeaderMatchesConfig(authHeader)) {
             log.error(
                     "Attempted to re-enable TimeLock with an invalid auth header. "
                             + "The provided token must match the configured permitted-backup-token.",

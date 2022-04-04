@@ -2,19 +2,19 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
 
 buildscript {
     repositories {
-        gradlePluginPortal()
-        mavenCentral()
+        gradlePluginPortal() { metadataSources { mavenPom(); ignoreGradleMetadataRedirection() } }
+        mavenCentral() { metadataSources { mavenPom(); ignoreGradleMetadataRedirection() } }
     }
 
     dependencies {
         classpath 'com.netflix.nebula:gradle-info-plugin:11.3.3'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:18.4.0'
         classpath 'com.palantir.baseline:gradle-baseline-java:4.95.0'
-        classpath 'com.palantir.gradle.conjure:gradle-conjure:5.20.0'
+        classpath 'com.palantir.gradle.conjure:gradle-conjure:5.22.0'
         classpath 'com.palantir.gradle.docker:gradle-docker:0.32.0'
         classpath 'com.palantir.gradle.externalpublish:gradle-external-publish-plugin:1.11.0'
-        classpath 'com.palantir.gradle.gitversion:gradle-git-version:0.13.0'
-        classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.17.0'
+        classpath 'com.palantir.gradle.gitversion:gradle-git-version:0.14.0'
+        classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.20.0'
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.12.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:7.13.0'
         classpath 'gradle.plugin.com.github.johnrengelman:shadow:7.1.2'
@@ -66,7 +66,7 @@ task printLastVersion {
 
 allprojects {
     repositories {
-        mavenCentral()
+        mavenCentral() { metadataSources { mavenPom(); ignoreGradleMetadataRedirection() } }
     }
 
     apply plugin: 'java-library'

@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: The AtlasBackupService now refreshes the immutable timestamp lock while
+    a backup is in progress. This prevents backups from failing due to losing this
+    lock midway through.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5986
