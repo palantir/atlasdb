@@ -69,6 +69,7 @@ final class TransactionStarterHelper {
         return ImmutableSet.copyOf(Sets.union(resultLockTokenShares, resultLockTokens));
     }
 
+    @SuppressWarnings("DangerousIdentityKey")
     static Set<LockTokenShare> filterLockTokenShares(Set<LockToken> tokens) {
         return tokens.stream()
                 .filter(TransactionStarterHelper::isLockTokenShare)
