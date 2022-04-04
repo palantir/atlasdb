@@ -43,6 +43,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+@SuppressWarnings("DangerousIdentityKey")
 public class PaxosRemoteClientsTest {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
