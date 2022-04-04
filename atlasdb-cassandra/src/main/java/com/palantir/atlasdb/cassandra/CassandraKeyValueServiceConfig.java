@@ -389,6 +389,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return TYPE;
     }
 
+    @Value.Default
+    Optional<Integer> concurrentGetRangesThreadPoolSize();
+
+    @Value.Default
+    Optional<Integer> defaultGetRangesConcurrency();
+
     @JsonIgnore
     @Value.Derived
     default boolean usingSsl() {

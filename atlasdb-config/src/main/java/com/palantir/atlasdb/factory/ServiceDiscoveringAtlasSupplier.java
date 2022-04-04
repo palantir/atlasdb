@@ -21,6 +21,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedConcurrencyConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -50,9 +51,9 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
-    private final KeyValueServiceConfig mergedKeyValueServiceConfig;
     private final Supplier<ManagedTimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
+    private final DerivedConcurrencyConfig derivedConcurrencyConfig;
 
     public ServiceDiscoveringAtlasSupplier(
             MetricsManager metricsManager,
@@ -65,12 +66,11 @@ public class ServiceDiscoveringAtlasSupplier {
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
 
-        AtlasDbFactory<KeyValueServiceConfig> atlasFactory =
+        AtlasDbFactory atlasFactory =
                 AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
-        mergedKeyValueServiceConfig = atlasFactory.createMergedKeyValueServiceConfig(config, runtimeConfig, namespace);
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
                 metricsManager,
-                mergedKeyValueServiceConfig,
+                config,
                 runtimeConfig,
                 leaderConfig,
                 namespace,
@@ -80,14 +80,15 @@ public class ServiceDiscoveringAtlasSupplier {
                 getKeyValueService(), tableReferenceOverride, initializeAsync);
         timestampStoreInvalidator =
                 () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService(), tableReferenceOverride);
+        derivedConcurrencyConfig = atlasFactory.createDerivedConcurrencyConfig(config, runtimeConfig, namespace);
     }
 
     public KeyValueService getKeyValueService() {
         return keyValueService.get();
     }
 
-    public KeyValueServiceConfig getMergedKeyValueServiceConfig() {
-        return mergedKeyValueServiceConfig;
+    public DerivedConcurrencyConfig getDerivedConcurrencyConfig() {
+        return derivedConcurrencyConfig;
     }
 
     public synchronized ManagedTimestampService getManagedTimestampService() {

@@ -22,11 +22,14 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedConcurrencyConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -43,7 +46,7 @@ import java.util.function.LongSupplier;
  * (SI) on all of the transactions it creates.
  */
 @AutoService(AtlasDbFactory.class)
-public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     private static final SafeLogger log = SafeLoggerFactory.get(InMemoryAtlasDbFactory.class);
 
     @Override
@@ -79,6 +82,22 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceCon
         return new InMemoryKeyValueService(false);
     }
 
+    @Override
+    public DerivedConcurrencyConfig createDerivedConcurrencyConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        return toInMemoryAtlasDbConfig(config);
+    }
+
+    private static InMemoryAtlasDbConfig toInMemoryAtlasDbConfig(KeyValueServiceConfig config) {
+        Preconditions.checkArgument(
+                config instanceof InMemoryAtlasDbConfig,
+                "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
+                        + " InMemoryAtlasDbConfig, but found a different type.",
+                SafeArg.of("configType", config.getClass()));
+        return (InMemoryAtlasDbConfig) config;
+    }
     @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> unused, boolean initializeAsync) {

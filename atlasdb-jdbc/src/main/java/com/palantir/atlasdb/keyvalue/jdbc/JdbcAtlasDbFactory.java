@@ -21,11 +21,13 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedConcurrencyConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -36,7 +38,7 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 @AutoService(AtlasDbFactory.class)
-public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class JdbcAtlasDbFactory implements AtlasDbFactory {
     private static final SafeLogger log = SafeLoggerFactory.get(JdbcAtlasDbFactory.class);
 
     @Override
@@ -65,11 +67,28 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig>
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
         AtlasDbVersion.ensureVersionReported();
-        return JdbcKeyValueService.create((JdbcKeyValueConfiguration) config);
+        return JdbcKeyValueService.create(toJdbcKeyValueConfig(config));
+    }
+
+    @Override
+    public DerivedConcurrencyConfig createDerivedConcurrencyConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        return toJdbcKeyValueConfig(config);
+    }
+
+    private static JdbcKeyValueConfiguration toJdbcKeyValueConfig(KeyValueServiceConfig config) {
+        Preconditions.checkArgument(
+                config instanceof JdbcKeyValueConfiguration,
+                "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
+                        + " JdbcKeyValueConfiguration, but found a different type.",
+                SafeArg.of("configType", config.getClass()));
+        return (JdbcKeyValueConfiguration) config;
     }
 
     @Override

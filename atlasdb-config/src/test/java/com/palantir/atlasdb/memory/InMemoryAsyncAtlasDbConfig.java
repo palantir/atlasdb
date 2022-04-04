@@ -18,6 +18,7 @@ package com.palantir.atlasdb.memory;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.auto.service.AutoService;
+import com.palantir.atlasdb.spi.DerivedConcurrencyConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import java.util.Optional;
@@ -25,7 +26,7 @@ import org.immutables.value.Value;
 
 @JsonTypeName(InMemoryAsyncAtlasDbConfig.TYPE)
 @AutoService(KeyValueServiceConfig.class)
-public final class InMemoryAsyncAtlasDbConfig implements KeyValueServiceConfig {
+public final class InMemoryAsyncAtlasDbConfig implements KeyValueServiceConfig, DerivedConcurrencyConfig {
     public static final String TYPE = "memory-async";
 
     @Override

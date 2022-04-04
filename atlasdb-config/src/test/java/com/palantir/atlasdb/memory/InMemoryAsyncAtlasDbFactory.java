@@ -22,10 +22,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryKvs;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedConcurrencyConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -33,7 +36,7 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 @AutoService(AtlasDbFactory.class)
-public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public String getType() {
@@ -54,6 +57,14 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory<KeyValueServi
     }
 
     @Override
+    public DerivedConcurrencyConfig createDerivedConcurrencyConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        return toInMemoryAsyncKeyValueServiceConfig(config);
+    }
+
+    @Override
     public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> unused, boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
@@ -61,5 +72,14 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory<KeyValueServi
             return AsyncInitializeableInMemoryTimestampService.initializeWhenKvsIsReady(rawKvs);
         }
         return new InMemoryTimestampService();
+    }
+
+    private static InMemoryAsyncAtlasDbConfig toInMemoryAsyncKeyValueServiceConfig(KeyValueServiceConfig config) {
+        Preconditions.checkArgument(
+                config instanceof InMemoryAsyncAtlasDbConfig,
+                "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
+                        + " InMemoryAsyncAtlasDbConfig, but found a different type.",
+                SafeArg.of("configType", config.getClass()));
+        return (InMemoryAsyncAtlasDbConfig) config;
     }
 }

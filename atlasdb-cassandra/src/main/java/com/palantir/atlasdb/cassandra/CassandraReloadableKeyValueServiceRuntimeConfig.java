@@ -21,68 +21,79 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.spi.DerivedConcurrencyConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
+import org.immutables.value.Value;
 
-public class CassandraReloadableKeyValueServiceRuntimeConfig extends ForwardingCassandraKeyValueServiceRuntimeConfig
+@Value.Immutable
+public abstract class CassandraReloadableKeyValueServiceRuntimeConfig
+        extends ForwardingCassandraKeyValueServiceRuntimeConfig
         implements DerivedConcurrencyConfig {
 
-    private final CassandraKeyValueServiceConfig installConfig;
-    private final CassandraKeyValueServiceRuntimeConfig runtimeConfig;
+    @Value.Parameter
+    abstract CassandraKeyValueServiceConfig installConfig();
 
-    private CassandraReloadableKeyValueServiceRuntimeConfig(
-            CassandraKeyValueServiceConfig installConfig, CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
-        this.installConfig = installConfig;
-        this.runtimeConfig = runtimeConfig;
-    }
+    @Value.Parameter
+    abstract CassandraKeyValueServiceRuntimeConfig runtimeConfig();
+
 
     static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
             CassandraKeyValueServiceConfig installConfig,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
         return runtimeConfigRefreshable.map(runtimeConfig ->
-                validate(new CassandraReloadableKeyValueServiceRuntimeConfig(installConfig, runtimeConfig)));
+                ImmutableCassandraReloadableKeyValueServiceRuntimeConfig.of(installConfig, runtimeConfig));
     }
 
     @Override
+    @Value.Derived
     public CassandraKeyValueServiceRuntimeConfig delegate() {
-        return runtimeConfig;
+        return runtimeConfig();
     }
 
     @Override
+    @Value.Derived
     public CassandraServersConfig servers() {
-        return installConfig.servers().orElseGet(runtimeConfig::servers);
+        return installConfig().servers().orElseGet(runtimeConfig()::servers);
     }
 
     @Override
+    @Value.Derived
     public int replicationFactor() {
-        return installConfig.replicationFactor().orElseGet(runtimeConfig::replicationFactor);
+        return installConfig().replicationFactor().orElseGet(runtimeConfig()::replicationFactor);
     }
 
     @Override
+    @Value.Derived
     public int concurrentGetRangesThreadPoolSize() {
-        return installConfig
+        return installConfig()
                 .concurrentGetRangesThreadPoolSize()
-                .orElseGet(() -> installConfig.poolSize() * servers().numberOfThriftHosts());
+                .orElseGet(() -> installConfig().poolSize() * servers().numberOfThriftHosts());
     }
 
     @Override
+    @Value.Derived
     public int defaultGetRangesConcurrency() {
-        return installConfig
+        return installConfig()
                 .defaultGetRangesConcurrency()
                 .orElseGet(() -> Math.min(8, concurrentGetRangesThreadPoolSize() / 2));
     }
 
-    private static CassandraReloadableKeyValueServiceRuntimeConfig validate(
-            CassandraReloadableKeyValueServiceRuntimeConfig instance) {
-        checkArgument(instance.servers().numberOfThriftHosts() > 0, "'servers' must have at least one defined host");
+    @Value.Check
+    private void checkPositiveNumberOfThriftHosts() {
+        checkArgument(servers().numberOfThriftHosts() > 0, "'servers' must have at least one defined host");
+    }
 
-        checkArgument(instance.replicationFactor() >= 0, "'replicationFactor' must be set to a non-negative number");
+    @Value.Check
+    private void checkNonNegativeReplicationFactor() {
+        checkArgument(replicationFactor() >= 0, "'replicationFactor' must be set to a non-negative number");
+    }
 
-        instance.installConfig
+    @Value.Check
+    private void checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool() {
+        installConfig()
                 .sharedResourcesConfig()
                 .ifPresent(config -> checkArgument(
-                        config.sharedGetRangesPoolSize() >= instance.concurrentGetRangesThreadPoolSize(),
+                        config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
                         "If set, shared get ranges pool size must not be less than individual pool size.",
                         SafeArg.of("shared", config.sharedGetRangesPoolSize()),
-                        SafeArg.of("individual", instance.concurrentGetRangesThreadPoolSize())));
-        return instance;
+                        SafeArg.of("individual", concurrentGetRangesThreadPoolSize())));
     }
 }
