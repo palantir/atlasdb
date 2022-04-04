@@ -105,8 +105,8 @@ public class TimeLockManagementResourceTest {
         TimelockNamespaces namespaces =
                 new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier, disabledNamespaces);
 
-        when(authHeaderValidator.suppliedTokenIsValid(AUTH_HEADER)).thenReturn(true);
-        when(authHeaderValidator.suppliedTokenIsValid(WRONG_AUTH_HEADER)).thenReturn(false);
+        when(authHeaderValidator.suppliedHeaderMatchesConfig(AUTH_HEADER)).thenReturn(true);
+        when(authHeaderValidator.suppliedHeaderMatchesConfig(WRONG_AUTH_HEADER)).thenReturn(false);
         timeLockManagementResource = TimeLockManagementResource.create(
                 persistentNamespaceContext,
                 namespaces,

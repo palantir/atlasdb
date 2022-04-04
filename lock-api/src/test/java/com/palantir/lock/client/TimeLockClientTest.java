@@ -58,7 +58,7 @@ public class TimeLockClientTest {
 
     private static final ImmutableSet<LockDescriptor> LOCKS = ImmutableSet.of(StringLockDescriptor.of("foo"));
 
-    private final LockRefresher refresher = mock(LockRefresher.class);
+    private final LockRefresher<LockToken> refresher = mock(LockRefresher.class);
     private final CloseableTimestampService timestampService = mock(CloseableTimestampService.class);
     private final TimelockService delegate = mock(TimelockService.class);
     private final TimeLockUnlocker unlocker = mock(TimeLockUnlocker.class);

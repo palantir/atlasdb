@@ -22,6 +22,7 @@ import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import java.util.Set;
@@ -49,6 +50,14 @@ public class DelegatingBackupTimeLockServiceView implements BackupTimeLockServic
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest _request) {
         return timelockService.lockImmutableTimestamp();
+    }
+
+    @Override
+    public ListenableFuture<RefreshLockResponseV2> refreshLockLeases(Set<LockToken> tokens) {
+        Set<LockToken> refreshedTokens = timelockService.refreshLockLeases(tokens);
+
+        // The leases from this response are not used in the backup/restore code path
+        return Futures.immediateFuture(RefreshLockResponseV2.of(refreshedTokens, null));
     }
 
     @Override
