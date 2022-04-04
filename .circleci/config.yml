@@ -38,7 +38,9 @@ jobs:
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      JAVA_HOME: /opt/java8
+      JAVA_HOME: /opt/java11
+      JAVA_11_HOME: /opt/java11
+      JAVA_17_HOME: /opt/java17
       _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /home/circleci/junit
       CIRCLE_ARTIFACTS: /home/circleci/artifacts
@@ -60,11 +62,17 @@ jobs:
           command: ./scripts/circle-ci/monitor-all-processes.sh
           background: true
       - run:
-          name: Install Java
+          name: Install Java 11
           command: |
               sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
               curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
-              sudo ln -s /opt/java/zulu*/ /opt/java8
+              sudo ln -s /opt/java/zulu11*/ /opt/java11
+      - run:
+          name: Install Java 17
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu17.32.13-ca-jdk17.0.2-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu17*/ /opt/java17
       - run:
           command: ./scripts/circle-ci/run-circle-tests.sh
           no_output_timeout: 900
