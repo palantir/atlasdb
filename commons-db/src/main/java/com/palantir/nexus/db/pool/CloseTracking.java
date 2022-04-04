@@ -106,6 +106,7 @@ public final class CloseTracking {
 
     // We maintain hard references to the custom weak references since
     // otherwise they themselves can get collected and thus never enqueued.
+    @SuppressWarnings("DangerousIdentityKey")
     private static final Set<MyReference<?>> destructorReferences =
             Sets.newSetFromMap(new ConcurrentHashMap<MyReference<?>, Boolean>());
     private static final FinalizableReferenceQueue destructorQueue = new FinalizableReferenceQueue();
