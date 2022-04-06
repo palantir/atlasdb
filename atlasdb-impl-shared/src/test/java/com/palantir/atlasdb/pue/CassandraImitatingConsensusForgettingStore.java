@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.pue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -28,6 +29,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -83,7 +85,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
     @Override
     public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException {
         runAtomically(cell, () -> {
-            Set<Node> quorumNodes = getQuorumNodes();
+            ImmutableList<Node> quorumNodes = getQuorumNodes();
             Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
             if (readResult.isPresent()) {
                 throw new KeyAlreadyExistsException("The cell was not empty", ImmutableSet.of(cell));
@@ -110,7 +112,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
     @Override
     public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
         runAtomically(cell, () -> {
-            Set<Node> quorumNodes = getQuorumNodes();
+            ImmutableList<Node> quorumNodes = getQuorumNodes();
             Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
             if (readResult.map(BytesAndTimestamp::bytes).stream().noneMatch(read -> Arrays.equals(read, value))) {
                 throw new CheckAndSetException(
@@ -178,7 +180,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         probabilityOfFailure = newProbability;
     }
 
-    public Optional<BytesAndTimestamp> getInternal(Cell cell, Set<Node> quorumNodes) {
+    public Optional<BytesAndTimestamp> getInternal(Cell cell, Collection<Node> quorumNodes) {
         Set<Optional<BytesAndTimestamp>> reads = quorumNodes.stream()
                 .map(node -> Optional.ofNullable(node.get(cell)))
                 .collect(Collectors.toSet());
@@ -196,17 +198,17 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         }
     }
 
-    private void writeToQuorum(Cell cell, Set<Node> quorumNodes, byte[] value) {
+    private void writeToQuorum(Cell cell, Collection<Node> quorumNodes, byte[] value) {
         BytesAndTimestamp tsValue = ImmutableBytesAndTimestamp.of(value, timestamps.getAndIncrement());
         runTaskOnNodesMaybeFail(quorumNodes, node -> {
             node.put(cell, tsValue);
         });
     }
 
-    private Set<Node> getQuorumNodes() {
+    private ImmutableList<Node> getQuorumNodes() {
         return nodes.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(ArrayList::new), list -> {
             Collections.shuffle(list);
-            return ImmutableSet.copyOf(list.subList(0, QUORUM));
+            return ImmutableList.copyOf(list.subList(0, QUORUM));
         }));
     }
 
@@ -221,7 +223,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         }
     }
 
-    private void runStateMutatingTaskOnNodes(Cell cell, Set<Node> quorumNodes, Consumer<Node> task) {
+    private void runStateMutatingTaskOnNodes(Cell cell, Collection<Node> quorumNodes, Consumer<Node> task) {
         ReentrantReadWriteLock.ReadLock lock =
                 getReentrantReadWriteLockForCell(cell).readLock();
         lock.lock();
@@ -232,7 +234,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         }
     }
 
-    private void runTaskOnNodesMaybeFail(Set<Node> quorumNodes, Consumer<Node> task) {
+    private void runTaskOnNodesMaybeFail(Collection<Node> quorumNodes, Consumer<Node> task) {
         maybeFail();
         for (Node current : quorumNodes) {
             task.accept(current);
