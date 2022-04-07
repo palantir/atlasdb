@@ -30,6 +30,9 @@ public class PersistedSchemaVersion {
     private static final String ONLY_ROW = "r";
     private final Jdbi jdbi;
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // better than setting to null...
+    private Optional<Long> persistedVersion = Optional.empty();
+
     private PersistedSchemaVersion(Jdbi jdbi) {
         this.jdbi = jdbi;
     }
@@ -53,14 +56,21 @@ public class PersistedSchemaVersion {
         execute(dao -> {
             if (dao.getVersion(ONLY_ROW).orElse(0L) < targetVersion) {
                 dao.setVersion(ONLY_ROW, targetVersion);
+                persistedVersion = Optional.of(targetVersion);
             }
             return null;
         });
     }
 
     long getVersion() {
-        return execute(dao -> dao.getVersion(ONLY_ROW))
+        return persistedVersion.orElseGet(this::getVersionFromDb);
+    }
+
+    private Long getVersionFromDb() {
+        Long versionInDb = execute(dao -> dao.getVersion(ONLY_ROW))
                 .orElseThrow(() -> new SafeIllegalStateException("No persisted schema version found."));
+        persistedVersion = Optional.of(versionInDb);
+        return versionInDb;
     }
 
     public interface Queries {
