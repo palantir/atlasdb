@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.LocalConnectionConfig;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
@@ -36,7 +37,7 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableDbKeyValueServiceConfig.class)
 @JsonTypeName(DbAtlasDbFactory.TYPE)
 @Value.Immutable
-public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
+public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig, DerivedSnapshotConfig {
     public abstract DdlConfig ddl();
 
     public abstract ConnectionConfig connection();

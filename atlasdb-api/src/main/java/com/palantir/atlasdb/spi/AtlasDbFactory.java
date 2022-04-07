@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -28,7 +29,7 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
-public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
+public interface AtlasDbFactory {
     SafeLogger log = SafeLoggerFactory.get(AtlasDbFactory.class);
 
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
@@ -38,20 +39,6 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
     };
 
     String getType();
-
-    /**
-     * Create the config (a merging of the given install and runtime config) that will be passed to
-     * {@link #createRawKeyValueService}.
-     * {@link KeyValueServiceConfig#defaultGetRangesConcurrency()} and
-     * {@link KeyValueServiceConfig#concurrentGetRangesThreadPoolSize()} will be used from the resulting merged
-     * config to initialize the transaction manager.
-     */
-    default MERGED_CONFIG createMergedKeyValueServiceConfig(
-            KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<String> namespace) {
-        return (MERGED_CONFIG) config;
-    }
 
     /**
      * Creates a KeyValueService instance of type according to the config parameter.
@@ -69,12 +56,23 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
      */
     KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            MERGED_CONFIG config,
+            KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
             boolean initializeAsync);
+
+    default DerivedSnapshotConfig createDerivedSnapshotConfig(KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        if (config instanceof DerivedSnapshotConfig) {
+            return (DerivedSnapshotConfig) config;
+        } else {
+            throw new SafeIllegalStateException("KeyValueServiceConfigs should extend DerivedSnapshotConfig, or "
+                    + "AtlasDbFactories should override this method.", SafeArg.of("type", config.type()));
+        }
+    }
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync);

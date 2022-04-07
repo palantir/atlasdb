@@ -35,7 +35,7 @@ import java.util.function.LongSupplier;
 import org.jmock.Mockery;
 
 @AutoService(AtlasDbFactory.class)
-public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     public static final String TYPE = "not-a-real-db";
 
     private static final Mockery context = new Mockery();

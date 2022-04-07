@@ -36,7 +36,7 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 @AutoService(AtlasDbFactory.class)
-public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class JdbcAtlasDbFactory implements AtlasDbFactory {
     private static final SafeLogger log = SafeLoggerFactory.get(JdbcAtlasDbFactory.class);
 
     @Override
@@ -65,7 +65,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig>
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
         AtlasDbVersion.ensureVersionReported();

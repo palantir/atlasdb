@@ -17,7 +17,7 @@ package com.palantir.atlasdb.spi;
 
 import java.util.Optional;
 
-public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig {
+public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig, DerivedSnapshotConfig {
     @Override
     String type();
 

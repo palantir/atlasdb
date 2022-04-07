@@ -37,7 +37,7 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 @AutoService(AtlasDbFactory.class)
-public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class DbAtlasDbFactory implements AtlasDbFactory {
     public static final String TYPE = "relational";
     private static final String EMPTY_TABLE_PREFIX = "";
 

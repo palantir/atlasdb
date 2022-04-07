@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.cassandra;
 
 import com.google.auto.service.AutoService;
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -26,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -42,37 +42,59 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 
 @AutoService(AtlasDbFactory.class)
-public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadableKvsConfig> {
+public class CassandraAtlasDbFactory implements AtlasDbFactory {
     private static SafeLogger log = SafeLoggerFactory.get(CassandraAtlasDbFactory.class);
-    private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
-            CassandraKeyValueServiceRuntimeConfig.getDefault();
 
     @Override
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            CassandraReloadableKvsConfig config,
+            KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> unused,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
-        Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig =
-                preprocessKvsRuntimeConfig(runtimeConfig);
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable =
+                createMergedKeyValueServiceRuntimeConfig(config, runtimeConfig, namespace);
+
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
-                toCassandraConfig(config),
-                cassandraRuntimeConfig,
+                createMergedKeyValueServiceConfig(config, runtimeConfig, namespace),
+                runtimeConfigRefreshable,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync);
     }
 
     @Override
-    public CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
+    public DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        return createMergedKeyValueServiceRuntimeConfig(config, runtimeConfig, namespace)
+                .get();
+    }
+
+    private static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> createMergedKeyValueServiceRuntimeConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        CassandraKeyValueServiceConfig cassandraConfig = toCassandraConfig(config);
+
+        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
+        CassandraKeyValueServiceConfig configWithNamespace =
+                CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
+
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable =
+                runtimeConfig.map(Optional::orElseThrow).map(CassandraKeyValueServiceRuntimeConfig.class::cast);
+
+        return CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(configWithNamespace,
+                runtimeConfigRefreshable);
+    }
+
+    private static CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
         CassandraKeyValueServiceConfig cassandraConfig = toCassandraConfig(config);
@@ -91,30 +113,6 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
                         + " CassandraKeyValueServiceConfig, but found a different type.",
                 SafeArg.of("configType", config.getClass()));
         return (CassandraKeyValueServiceConfig) config;
-    }
-
-    @VisibleForTesting
-    Supplier<CassandraKeyValueServiceRuntimeConfig> preprocessKvsRuntimeConfig(
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
-        return () -> {
-            Optional<KeyValueServiceRuntimeConfig> configOptional = runtimeConfig.get();
-
-            return configOptional
-                    .map(config -> {
-                        if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
-                            log.error(
-                                    "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
-                                        + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
-                                        + " CassandraKeyValueServiceRuntimeConfig.",
-                                    SafeArg.of("configClass", config.getClass()));
-                            return latestValidRuntimeConfig;
-                        }
-
-                        latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
-                        return latestValidRuntimeConfig;
-                    })
-                    .orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault);
-        };
     }
 
     @Override

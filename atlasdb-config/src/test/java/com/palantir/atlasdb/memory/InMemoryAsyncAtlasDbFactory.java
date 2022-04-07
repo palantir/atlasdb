@@ -33,7 +33,7 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 @AutoService(AtlasDbFactory.class)
-public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public String getType() {

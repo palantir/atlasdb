@@ -43,7 +43,7 @@ import java.util.function.LongSupplier;
  * (SI) on all of the transactions it creates.
  */
 @AutoService(AtlasDbFactory.class)
-public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     private static final SafeLogger log = SafeLoggerFactory.get(InMemoryAtlasDbFactory.class);
 
     @Override

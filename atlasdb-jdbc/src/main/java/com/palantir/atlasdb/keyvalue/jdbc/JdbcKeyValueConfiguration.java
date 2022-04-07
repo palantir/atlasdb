@@ -23,6 +23,7 @@ import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Optional;
@@ -33,7 +34,7 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableJdbcKeyValueConfiguration.class)
 @JsonTypeName(JdbcKeyValueConfiguration.TYPE)
 @Value.Immutable
-public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig {
+public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig, DerivedSnapshotConfig {
     public static final int MAX_TABLE_PREFIX_LENGTH = 6;
     public static final String TYPE = "jdbc";
 
