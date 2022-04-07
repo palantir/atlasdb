@@ -87,7 +87,7 @@ public class ServiceDiscoveringAtlasSupplier {
         return keyValueService.get();
     }
 
-    public DerivedSnapshotConfig getDerivedConcurrencyConfig() {
+    public DerivedSnapshotConfig getDerivedSnapshotConfig() {
         return derivedSnapshotConfig;
     }
 

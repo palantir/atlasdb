@@ -365,7 +365,7 @@ public abstract class TransactionManagers {
                 Optional.empty(),
                 config().initializeAsync(),
                 adapter);
-        DerivedSnapshotConfig derivedSnapshotConfig = atlasFactory.getDerivedConcurrencyConfig();
+        DerivedSnapshotConfig derivedSnapshotConfig = atlasFactory.getDerivedSnapshotConfig();
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config().getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
