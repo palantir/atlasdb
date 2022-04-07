@@ -18,6 +18,7 @@ package com.palantir.timelock.paxos;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
@@ -27,11 +28,10 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 @SuppressWarnings("FinalClass")
 public class PersistedSchemaVersion {
+    private static final long DUMMY_VERSION = -1;
     private static final String ONLY_ROW = "r";
     private final Jdbi jdbi;
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // better than setting to null...
-    private Optional<Long> persistedVersion = Optional.empty();
+    private final AtomicLong persistedVersion = new AtomicLong(DUMMY_VERSION);
 
     private PersistedSchemaVersion(Jdbi jdbi) {
         this.jdbi = jdbi;
@@ -53,24 +53,35 @@ public class PersistedSchemaVersion {
     }
 
     void upgradeVersion(long targetVersion) {
-        execute(dao -> {
+        boolean updated = execute(dao -> {
             if (dao.getVersion(ONLY_ROW).orElse(0L) < targetVersion) {
                 dao.setVersion(ONLY_ROW, targetVersion);
-                persistedVersion = Optional.of(targetVersion);
+                return true;
             }
-            return null;
+            return false;
         });
+        if (updated) {
+            updatePersistedVersionTo(targetVersion);
+        }
     }
 
     long getVersion() {
-        return persistedVersion.orElseGet(this::getVersionFromDb);
+        long persisted = persistedVersion.get();
+        if (persisted > DUMMY_VERSION) {
+            return persisted;
+        }
+
+        return getVersionFromDb();
     }
 
-    private Long getVersionFromDb() {
-        Long versionInDb = execute(dao -> dao.getVersion(ONLY_ROW))
+    private long getVersionFromDb() {
+        long versionInDb = execute(dao -> dao.getVersion(ONLY_ROW))
                 .orElseThrow(() -> new SafeIllegalStateException("No persisted schema version found."));
-        persistedVersion = Optional.of(versionInDb);
-        return versionInDb;
+        return updatePersistedVersionTo(versionInDb);
+    }
+
+    private long updatePersistedVersionTo(long versionInDb) {
+        return persistedVersion.updateAndGet(storedValue -> Math.max(storedValue, versionInDb));
     }
 
     public interface Queries {
