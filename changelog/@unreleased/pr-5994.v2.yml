@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: The TimeLock Agent will now cache its locally-persisted schema version.
+    This will prevent health check flakes due to transient failures in fetching from
+    SQLite.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5994

@@ -18,6 +18,7 @@ package com.palantir.timelock.paxos;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
@@ -27,8 +28,10 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 @SuppressWarnings("FinalClass")
 public class PersistedSchemaVersion {
+    private static final long DUMMY_VERSION = -1;
     private static final String ONLY_ROW = "r";
     private final Jdbi jdbi;
+    private final AtomicLong persistedVersion = new AtomicLong(DUMMY_VERSION);
 
     private PersistedSchemaVersion(Jdbi jdbi) {
         this.jdbi = jdbi;
@@ -50,17 +53,35 @@ public class PersistedSchemaVersion {
     }
 
     void upgradeVersion(long targetVersion) {
-        execute(dao -> {
+        boolean updated = execute(dao -> {
             if (dao.getVersion(ONLY_ROW).orElse(0L) < targetVersion) {
                 dao.setVersion(ONLY_ROW, targetVersion);
+                return true;
             }
-            return null;
+            return false;
         });
+        if (updated) {
+            updatePersistedVersionToAtLeast(targetVersion);
+        }
     }
 
     long getVersion() {
-        return execute(dao -> dao.getVersion(ONLY_ROW))
+        long persisted = persistedVersion.get();
+        if (persisted > DUMMY_VERSION) {
+            return persisted;
+        }
+
+        return getVersionFromDb();
+    }
+
+    private long getVersionFromDb() {
+        long versionInDb = execute(dao -> dao.getVersion(ONLY_ROW))
                 .orElseThrow(() -> new SafeIllegalStateException("No persisted schema version found."));
+        return updatePersistedVersionToAtLeast(versionInDb);
+    }
+
+    private long updatePersistedVersionToAtLeast(long versionInDb) {
+        return persistedVersion.updateAndGet(storedValue -> Math.max(storedValue, versionInDb));
     }
 
     public interface Queries {
