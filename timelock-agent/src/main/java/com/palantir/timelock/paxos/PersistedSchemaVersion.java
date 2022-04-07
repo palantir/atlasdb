@@ -61,7 +61,7 @@ public class PersistedSchemaVersion {
             return false;
         });
         if (updated) {
-            updatePersistedVersionTo(targetVersion);
+            updatePersistedVersionToAtLeast(targetVersion);
         }
     }
 
@@ -77,10 +77,10 @@ public class PersistedSchemaVersion {
     private long getVersionFromDb() {
         long versionInDb = execute(dao -> dao.getVersion(ONLY_ROW))
                 .orElseThrow(() -> new SafeIllegalStateException("No persisted schema version found."));
-        return updatePersistedVersionTo(versionInDb);
+        return updatePersistedVersionToAtLeast(versionInDb);
     }
 
-    private long updatePersistedVersionTo(long versionInDb) {
+    private long updatePersistedVersionToAtLeast(long versionInDb) {
         return persistedVersion.updateAndGet(storedValue -> Math.max(storedValue, versionInDb));
     }
 
