@@ -60,6 +60,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * This value, or values derived from it (e.g. the number of Thrift hosts) must ONLY be used on KVS initialization
      * to generate the initial connection(s) to the cluster, or as part of startup checks.
      */
+    @Deprecated
     @Value.Default
     default CassandraServersConfig servers() {
         return ImmutableDefaultConfig.of();
@@ -390,6 +391,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     default int concurrentGetRangesThreadPoolSize() {
         return poolSize() * servers().numberOfThriftHosts();
     }
+
     @Value.Default
     default int defaultGetRangesConcurrency() {
         return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);

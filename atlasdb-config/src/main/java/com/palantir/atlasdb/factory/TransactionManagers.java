@@ -512,9 +512,7 @@ public abstract class TransactionManagers {
                         transactionConfigSupplier,
                         conflictTracer,
                         metricsFilterEvaluationContext(),
-                        installConfig
-                                .sharedResourcesConfig()
-                                .map(SharedResourcesConfig::sharedGetRangesPoolSize)),
+                        installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize)),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);

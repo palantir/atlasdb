@@ -25,15 +25,13 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class CassandraReloadableKeyValueServiceRuntimeConfig
-        extends ForwardingCassandraKeyValueServiceRuntimeConfig
-        implements DerivedSnapshotConfig {
+        extends ForwardingCassandraKeyValueServiceRuntimeConfig implements DerivedSnapshotConfig {
 
     @Value.Parameter
     abstract CassandraKeyValueServiceConfig installConfig();
 
     @Value.Parameter
     abstract CassandraKeyValueServiceRuntimeConfig runtimeConfig();
-
 
     static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
             CassandraKeyValueServiceConfig installConfig,

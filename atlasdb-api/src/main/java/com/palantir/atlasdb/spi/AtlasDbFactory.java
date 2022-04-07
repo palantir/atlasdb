@@ -84,8 +84,10 @@ public interface AtlasDbFactory {
         if (config instanceof DerivedSnapshotConfig) {
             return (DerivedSnapshotConfig) config;
         } else {
-            throw new SafeIllegalStateException("KeyValueServiceConfigs should extend DerivedSnapshotConfig, or "
-                    + "AtlasDbFactories should override this method.", SafeArg.of("type", config.type()));
+            throw new SafeIllegalStateException(
+                    "KeyValueServiceConfigs should extend DerivedSnapshotConfig, or "
+                            + "AtlasDbFactories should override this method.",
+                    SafeArg.of("type", config.type()));
         }
     }
 
