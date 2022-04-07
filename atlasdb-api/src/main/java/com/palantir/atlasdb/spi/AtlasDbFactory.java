@@ -63,7 +63,22 @@ public interface AtlasDbFactory {
             LongSupplier freshTimestampSource,
             boolean initializeAsync);
 
-    default DerivedSnapshotConfig createDerivedSnapshotConfig(KeyValueServiceConfig config,
+    /**
+     * Creates a {@link DerivedSnapshotConfig} that is derived from a {@link KeyValueServiceConfig}, and where
+     * necessary, an <b>initial</b> snapshot of a {@link KeyValueServiceRuntimeConfig}.
+     *
+     * Note: The resultant {@link DerivedSnapshotConfig} may not reflect any updates to the
+     * {@link KeyValueServiceRuntimeConfig}
+     *
+     * @param config Static configuration.
+     * @param runtimeConfig Live-reloadable configuration.
+     * @param namespace If the implementation supports it, this is the namespace to use when the namespace in config is
+     * absent. If both are present, they must match.
+     *
+     * @return A DerivedSnapshotConfig that is derived from config and runtimeConfig.
+     */
+    default DerivedSnapshotConfig createDerivedSnapshotConfig(
+            KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
         if (config instanceof DerivedSnapshotConfig) {
