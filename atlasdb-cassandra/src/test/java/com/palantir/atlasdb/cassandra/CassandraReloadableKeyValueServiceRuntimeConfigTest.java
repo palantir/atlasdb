@@ -35,12 +35,21 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
             .addThriftHosts(InetSocketAddress.createUnresolved("host4", 5000))
             .build();
 
+    private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
+            .username("username")
+            .password("password")
+            .build();
+
+    private static final CassandraKeyValueServiceRuntimeConfig RUNTIME_CONFIG_WITH_DEFAULT_SERVERS =
+            runtimeConfigBuilderWithDefaultServers().build();
+
+
     @Test
     public void unresponsiveHostBackoffTimeSecondsAlwaysUsesRuntimeConfigValue() {
         CassandraKeyValueServiceConfig config =
-                configBuilder().unresponsiveHostBackoffTimeSeconds(5).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().unresponsiveHostBackoffTimeSeconds(5).build();
         Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig = Refreshable.only(
-                runtimeConfigBuilder().unresponsiveHostBackoffTimeSeconds(10).build());
+                runtimeConfigBuilderWithDefaultServers().unresponsiveHostBackoffTimeSeconds(10).build());
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, runtimeConfig);
@@ -50,9 +59,9 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void mutationBatchCountAlwaysUsesRuntimeConfigValue() {
         CassandraKeyValueServiceConfig config =
-                configBuilder().mutationBatchCount(5).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().mutationBatchCount(5).build();
         Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig =
-                Refreshable.only(runtimeConfigBuilder().mutationBatchCount(10).build());
+                Refreshable.only(runtimeConfigBuilderWithDefaultServers().mutationBatchCount(10).build());
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, runtimeConfig);
@@ -62,9 +71,9 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void mutationBatchSizeBytesAlwaysUsesRuntimeConfigValue() {
         CassandraKeyValueServiceConfig config =
-                configBuilder().mutationBatchSizeBytes(5).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().mutationBatchSizeBytes(5).build();
         Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig = Refreshable.only(
-                runtimeConfigBuilder().mutationBatchSizeBytes(10).build());
+                runtimeConfigBuilderWithDefaultServers().mutationBatchSizeBytes(10).build());
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, runtimeConfig);
@@ -74,9 +83,9 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void fetchBatchCountAlwaysUsesRuntimeConfigValue() {
         CassandraKeyValueServiceConfig config =
-                configBuilder().fetchBatchCount(5).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().fetchBatchCount(5).build();
         Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig =
-                Refreshable.only(runtimeConfigBuilder().fetchBatchCount(10).build());
+                Refreshable.only(runtimeConfigBuilderWithDefaultServers().fetchBatchCount(10).build());
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, runtimeConfig);
@@ -86,9 +95,9 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void sweepReadThreadsAlwaysUsesRuntimeConfigValue() {
         CassandraKeyValueServiceConfig config =
-                configBuilder().sweepReadThreads(5).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().sweepReadThreads(5).build();
         Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig =
-                Refreshable.only(runtimeConfigBuilder().sweepReadThreads(10).build());
+                Refreshable.only(runtimeConfigBuilderWithDefaultServers().sweepReadThreads(10).build());
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, runtimeConfig);
@@ -98,7 +107,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void mergedConfigPrioritisesInstallForServers() {
         CassandraKeyValueServiceConfig config =
-                configBuilder().servers(SERVERS_1).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().servers(SERVERS_1).build();
         CassandraKeyValueServiceRuntimeConfig runtimeConfig =
                 runtimeConfigBuilder().servers(SERVERS_2).build();
 
@@ -110,7 +119,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
 
     @Test
     public void mergedConfigDelegatesToRuntimeServersIfInstallIsEmpty() {
-        CassandraKeyValueServiceConfig config = configBuilder().build();
+        CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentialsAndReplicationFactor().build();
         CassandraKeyValueServiceRuntimeConfig runtimeConfig =
                 runtimeConfigBuilder().servers(SERVERS_2).build();
 
@@ -122,7 +131,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
 
     @Test
     public void mergedConfigServersEmptyFailsInitialisation() {
-        CassandraKeyValueServiceConfig config = configBuilder().build();
+        CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentialsAndReplicationFactor().build();
         CassandraKeyValueServiceRuntimeConfig runtimeConfig =
                 runtimeConfigBuilder().servers(ImmutableDefaultConfig.of()).build();
 
@@ -135,12 +144,11 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void mergedConfigPrioritisesInstallForConcurrentGetRangesThreadPoolSize() {
         CassandraKeyValueServiceConfig config =
-                configBuilder().concurrentGetRangesThreadPoolSize(1).build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
-                runtimeConfigBuilder().servers(SERVERS_1).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().concurrentGetRangesThreadPoolSize(1).build();
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
-                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig));
+                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config,
+                        Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
 
         assertThat(reloadableConfig.get().concurrentGetRangesThreadPoolSize()).isEqualTo(1);
     }
@@ -149,7 +157,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     public void mergedConfigDerivesThreadPoolSizeIfInstallIsEmpty() {
         int poolSize = 10;
         CassandraKeyValueServiceConfig config =
-                configBuilder().poolSize(poolSize).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().poolSize(poolSize).build();
         CassandraKeyValueServiceRuntimeConfig runtimeConfig =
                 runtimeConfigBuilder().servers(SERVERS_1).build();
 
@@ -163,12 +171,10 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void mergedConfigPrioritisesInstallForDefaultGetRangesConcurrency() {
         CassandraKeyValueServiceConfig config =
-                configBuilder().concurrentGetRangesThreadPoolSize(10).build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
-                runtimeConfigBuilder().servers(SERVERS_1).build();
+                configBuilderWithDefaultCredentialsAndReplicationFactor().concurrentGetRangesThreadPoolSize(10).build();
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
-                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig));
+                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
 
         assertThat(reloadableConfig.get().defaultGetRangesConcurrency())
                 .isEqualTo(config.defaultGetRangesConcurrency());
@@ -176,22 +182,24 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
 
     @Test
     public void mergedConfigDerivesDefaultGetRangesConcurrencyIfInstallIsEmpty() {
-        CassandraKeyValueServiceConfig config = configBuilder().poolSize(10).build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
-                runtimeConfigBuilder().servers(SERVERS_1).build();
+        CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentialsAndReplicationFactor().poolSize(10).build();
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
-                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig));
+                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
 
         assertThat(reloadableConfig.get().defaultGetRangesConcurrency())
                 .isEqualTo(Math.min(8, reloadableConfig.get().concurrentGetRangesThreadPoolSize() / 2));
     }
 
-    private ImmutableCassandraKeyValueServiceConfig.Builder configBuilder() {
-        return ImmutableCassandraKeyValueServiceConfig.builder();
+    private static ImmutableCassandraKeyValueServiceConfig.Builder configBuilderWithDefaultCredentialsAndReplicationFactor() {
+        return ImmutableCassandraKeyValueServiceConfig.builder().credentials(CREDENTIALS).replicationFactor(1);
     }
 
-    private ImmutableCassandraKeyValueServiceRuntimeConfig.Builder runtimeConfigBuilder() {
+    private static ImmutableCassandraKeyValueServiceRuntimeConfig.Builder runtimeConfigBuilder() {
         return ImmutableCassandraKeyValueServiceRuntimeConfig.builder();
+    }
+
+    private static ImmutableCassandraKeyValueServiceRuntimeConfig.Builder runtimeConfigBuilderWithDefaultServers() {
+        return runtimeConfigBuilder().servers(SERVERS_1);
     }
 }
