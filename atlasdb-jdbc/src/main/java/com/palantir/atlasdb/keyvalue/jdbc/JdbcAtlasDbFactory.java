@@ -21,6 +21,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -70,6 +71,18 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
 
         AtlasDbVersion.ensureVersionReported();
         return JdbcKeyValueService.create((JdbcKeyValueConfiguration) config);
+    }
+
+    @Override
+    public DerivedSnapshotConfig createDerivedSnapshotConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        JdbcKeyValueConfiguration jdbcKeyValueConfiguration = (JdbcKeyValueConfiguration) config;
+        return new ImmutableDerivedSnapshotConfig.Builder()
+                .concurrentGetRangesThreadPoolSize(jdbcKeyValueConfiguration.concurrentGetRangesThreadPoolSize())
+                .defaultGetRangesConcurrencyOverride(jdbcKeyValueConfiguration.defaultGetRangesConcurrency())
+                .build();
     }
 
     @Override
