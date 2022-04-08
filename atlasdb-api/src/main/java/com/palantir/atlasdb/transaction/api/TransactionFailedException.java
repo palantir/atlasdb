@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeLoggable;
+import java.util.List;
+
 /**
  * This is a generic exception for all failures thrown from a Transaction
  * <p>
@@ -24,7 +28,7 @@ package com.palantir.atlasdb.transaction.api;
  * @author carrino
  *
  */
-public abstract class TransactionFailedException extends RuntimeException {
+public abstract class TransactionFailedException extends RuntimeException implements SafeLoggable {
     private static final long serialVersionUID = 1L;
 
     TransactionFailedException(String message, Throwable cause) {
@@ -36,4 +40,14 @@ public abstract class TransactionFailedException extends RuntimeException {
     }
 
     public abstract boolean canTransactionBeRetried();
+
+    @Override
+    public String getLogMessage() {
+        return "Transaction failed";
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return List.of();
+    }
 }

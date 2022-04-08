@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.logsafe.Arg;
+import java.util.List;
+
 public class TransactionFailedNonRetriableException extends TransactionFailedException {
     private static final long serialVersionUID = 1L;
 

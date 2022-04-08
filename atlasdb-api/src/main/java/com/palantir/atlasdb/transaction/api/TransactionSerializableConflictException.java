@@ -16,6 +16,9 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
+import java.util.List;
 
 public class TransactionSerializableConflictException extends TransactionFailedRetriableException {
     private static final long serialVersionUID = 1L;
@@ -39,5 +42,15 @@ public class TransactionSerializableConflictException extends TransactionFailedR
 
     public TableReference getConflictingTable() {
         return conflictingTable;
+    }
+
+    @Override
+    public String getLogMessage() {
+        return "Transaction serializable conflict";
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return List.of(SafeArg.of("conflictingTableName", conflictingTable.getTableName()));
     }
 }

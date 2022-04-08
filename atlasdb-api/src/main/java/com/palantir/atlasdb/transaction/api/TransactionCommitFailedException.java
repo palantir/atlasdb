@@ -36,4 +36,9 @@ public class TransactionCommitFailedException extends TransactionFailedNonRetria
     public TransactionCommitFailedException(String message) {
         super(message);
     }
+
+    @Override
+    public String getLogMessage() {
+        return "Transaction commit failed";
+    }
 }

@@ -23,4 +23,9 @@ public class TransactionLockAcquisitionTimeoutException extends TransactionFaile
     public TransactionLockAcquisitionTimeoutException(String message) {
         super(message);
     }
+
+    @Override
+    public String getLogMessage() {
+        return "Transaction lock acquisition timeout";
+    }
 }

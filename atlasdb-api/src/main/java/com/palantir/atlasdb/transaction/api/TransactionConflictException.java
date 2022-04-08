@@ -19,8 +19,11 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -149,5 +152,15 @@ public final class TransactionConflictException extends TransactionFailedRetriab
         this.spanningWrites = ImmutableList.copyOf(spanningWrites);
         this.dominatingWrites = ImmutableList.copyOf(dominatingWrites);
         this.conflictingTable = conflictingTable;
+    }
+
+    @Override
+    public String getLogMessage() {
+        return "Transaction conflict";
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return List.of(SafeArg.of("conflictingTableName", conflictingTable.getTableName()));
     }
 }
