@@ -30,4 +30,9 @@ public class TransactionLockTimeoutException extends TransactionFailedRetriableE
     public TransactionLockTimeoutException(String message) {
         super(message);
     }
+
+    @Override
+    public String getLogMessage() {
+        return "Transaction lock timeout";
+    }
 }

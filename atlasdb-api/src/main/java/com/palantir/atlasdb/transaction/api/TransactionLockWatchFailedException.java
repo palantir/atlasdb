@@ -24,4 +24,9 @@ public final class TransactionLockWatchFailedException extends TransactionFailed
     public TransactionLockWatchFailedException(String message) {
         super(message);
     }
+
+    @Override
+    public String getLogMessage() {
+        return "Transaction lock watch failed";
+    }
 }
