@@ -18,15 +18,13 @@ package com.palantir.atlasdb.cassandra;
 import static com.palantir.logsafe.Preconditions.checkArgument;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueServiceConfig
-        implements DerivedSnapshotConfig {
+public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueServiceConfig {
 
     private final CassandraKeyValueServiceConfig config;
     private final Supplier<Optional<CassandraKeyValueServiceRuntimeConfig>> runtimeConfigSupplier;
@@ -106,7 +104,6 @@ public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueSer
                 .orElseGet(config::sweepReadThreads);
     }
 
-    @Override
     public int concurrentGetRangesThreadPoolSize() {
         if (config.servers().numberOfThriftHosts() > 0) {
             return config.concurrentGetRangesThreadPoolSize();
