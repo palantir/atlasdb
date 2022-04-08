@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -66,12 +67,28 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             Optional<String> namespace,
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {
+
+        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config, runtimeConfig, initializeAsync);
+    }
+
+    private static DbKeyValueServiceConfig toDbKeyValueServiceConfig(KeyValueServiceConfig config) {
         Preconditions.checkArgument(
                 config instanceof DbKeyValueServiceConfig,
                 "[Unexpected configuration] | DbAtlasDbFactory expects a configuration of type "
                         + "DbKeyValueServiceConfiguration.",
                 SafeArg.of("configurationClass", config.getClass()));
-        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config, runtimeConfig, initializeAsync);
+        return (DbKeyValueServiceConfig) config;
+    }
+    @Override
+    public DerivedSnapshotConfig createDerivedSnapshotConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        DbKeyValueServiceConfig dbKeyValueServiceConfig = toDbKeyValueServiceConfig(config);
+        return new ImmutableDerivedSnapshotConfig.Builder()
+                .concurrentGetRangesThreadPoolSize(dbKeyValueServiceConfig.concurrentGetRangesThreadPoolSize())
+                .defaultGetRangesConcurrencyOverride(dbKeyValueServiceConfig.defaultGetRangesConcurrency())
+                .build();
     }
 
     @Override

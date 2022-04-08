@@ -20,7 +20,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -77,19 +76,10 @@ public interface AtlasDbFactory {
      *
      * @return A DerivedSnapshotConfig that is derived from config and runtimeConfig.
      */
-    default DerivedSnapshotConfig createDerivedSnapshotConfig(
+    DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<String> namespace) {
-        if (config instanceof DerivedSnapshotConfig) {
-            return (DerivedSnapshotConfig) config;
-        } else {
-            throw new SafeIllegalStateException(
-                    "KeyValueServiceConfigs should extend DerivedSnapshotConfig, or "
-                            + "AtlasDbFactories should override this method.",
-                    SafeArg.of("type", config.type()));
-        }
-    }
+            Optional<String> namespace);
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync);

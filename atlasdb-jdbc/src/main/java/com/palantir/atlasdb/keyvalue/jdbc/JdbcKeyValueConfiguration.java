@@ -34,7 +34,7 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableJdbcKeyValueConfiguration.class)
 @JsonTypeName(JdbcKeyValueConfiguration.TYPE)
 @Value.Immutable
-public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig, DerivedSnapshotConfig {
+public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig {
     public static final int MAX_TABLE_PREFIX_LENGTH = 6;
     public static final String TYPE = "jdbc";
 
@@ -84,10 +84,13 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
 
     public abstract JdbcDataSourceConfiguration getDataSourceConfig();
 
-    @Override
     @Value.Default
     public int concurrentGetRangesThreadPoolSize() {
         return 64;
+    }
+
+    public Optional<Integer> defaultGetRangesConcurrency() {
+        return Optional.empty();
     }
 
     @Value.Check
