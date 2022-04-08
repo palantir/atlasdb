@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryKvs;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -51,6 +52,18 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         return AsyncInitializeableInMemoryKvs.createAndStartInit(initializeAsync);
+    }
+
+    @Override
+    public DerivedSnapshotConfig createDerivedSnapshotConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        InMemoryAsyncAtlasDbConfig inMemoryAsyncAtlasDbConfig = (InMemoryAsyncAtlasDbConfig) config;
+        return new ImmutableDerivedSnapshotConfig.Builder()
+                .concurrentGetRangesThreadPoolSize(inMemoryAsyncAtlasDbConfig.concurrentGetRangesThreadPoolSize())
+                .defaultGetRangesConcurrencyOverride(inMemoryAsyncAtlasDbConfig.defaultGetRangesConcurrency())
+                .build();
     }
 
     @Override
