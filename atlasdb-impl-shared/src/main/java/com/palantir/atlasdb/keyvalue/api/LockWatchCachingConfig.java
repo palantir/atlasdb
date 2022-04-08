@@ -37,12 +37,11 @@ public interface LockWatchCachingConfig {
     /**
      * Determines how frequently to validate reads from the cache. This involves a read to the KVS, and thus negates
      * the performance gain from the cache. A value of 1.0 will always read from the remote; a value of 0.0 will
-     * never read from the remote when it does not have to. Once there is confidence in the cache's correctness, this
-     * should probably be set to 0.01.
+     * never read from the remote when it does not have to.
      */
     @Value.Default
     default double validationProbability() {
-        return 1.0;
+        return 0.01;
     }
 
     static ImmutableLockWatchCachingConfig.Builder builder() {
