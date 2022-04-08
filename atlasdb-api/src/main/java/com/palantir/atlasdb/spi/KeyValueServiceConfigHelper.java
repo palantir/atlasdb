@@ -17,7 +17,7 @@ package com.palantir.atlasdb.spi;
 
 import java.util.Optional;
 
-public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig, DerivedSnapshotConfig {
+public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig {
     @Override
     String type();
 
@@ -26,7 +26,6 @@ public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig, Deri
         return Optional.empty();
     }
 
-    @Override
     default int concurrentGetRangesThreadPoolSize() {
         return 4;
     }

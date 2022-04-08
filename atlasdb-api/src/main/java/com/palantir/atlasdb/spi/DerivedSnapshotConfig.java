@@ -32,7 +32,8 @@ public abstract class DerivedSnapshotConfig {
      * for a single getRanges request when the user does not explicitly provide a value.
      */
     @Value.Derived
-    int defaultGetRangesConcurrency() {
-        return defaultGetRangesConcurrencyOverride().orElse(Math.min(8, concurrentGetRangesThreadPoolSize() / 2));
+    public int defaultGetRangesConcurrency() {
+        return defaultGetRangesConcurrencyOverride().orElseGet(() -> Math.min(8,
+                concurrentGetRangesThreadPoolSize() / 2));
     }
 }

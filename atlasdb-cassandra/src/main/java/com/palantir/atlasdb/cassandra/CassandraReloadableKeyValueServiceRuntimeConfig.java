@@ -24,8 +24,9 @@ import com.palantir.refreshable.Refreshable;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@SuppressWarnings("immutables:subtype")
 public abstract class CassandraReloadableKeyValueServiceRuntimeConfig
-        extends ForwardingCassandraKeyValueServiceRuntimeConfig implements DerivedSnapshotConfig {
+        extends ForwardingCassandraKeyValueServiceRuntimeConfig{
 
     @Value.Parameter
     abstract CassandraKeyValueServiceConfig installConfig();
@@ -55,7 +56,6 @@ public abstract class CassandraReloadableKeyValueServiceRuntimeConfig
         return runtimeConfig().servers();
     }
 
-    @Override
     @Value.Derived
     public int concurrentGetRangesThreadPoolSize() {
         if (installConfig().concurrentGetRangesThreadPoolSize() > 0) {
@@ -64,7 +64,6 @@ public abstract class CassandraReloadableKeyValueServiceRuntimeConfig
         return installConfig().poolSize() * servers().numberOfThriftHosts();
     }
 
-    @Override
     @Value.Derived
     public int defaultGetRangesConcurrency() {
         if (installConfig().defaultGetRangesConcurrency() > 0) {
