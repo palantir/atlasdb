@@ -104,6 +104,7 @@ public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueSer
                 .orElseGet(config::sweepReadThreads);
     }
 
+    @Override
     public int concurrentGetRangesThreadPoolSize() {
         if (config.servers().numberOfThriftHosts() > 0) {
             return config.concurrentGetRangesThreadPoolSize();

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cassandra;
 import static com.palantir.logsafe.Preconditions.checkArgument;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import org.immutables.value.Value;
@@ -26,7 +25,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 @SuppressWarnings("immutables:subtype")
 public abstract class CassandraReloadableKeyValueServiceRuntimeConfig
-        extends ForwardingCassandraKeyValueServiceRuntimeConfig{
+        extends ForwardingCassandraKeyValueServiceRuntimeConfig {
 
     @Value.Parameter
     abstract CassandraKeyValueServiceConfig installConfig();

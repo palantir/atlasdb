@@ -23,7 +23,6 @@ import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Optional;
