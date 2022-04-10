@@ -33,7 +33,11 @@ public abstract class DerivedSnapshotConfig {
      */
     @Value.Derived
     public int defaultGetRangesConcurrency() {
-        return defaultGetRangesConcurrencyOverride().orElseGet(() -> Math.min(8,
-                concurrentGetRangesThreadPoolSize() / 2));
+        return defaultGetRangesConcurrencyOverride()
+                .orElseGet(() -> Math.min(8, concurrentGetRangesThreadPoolSize() / 2));
+    }
+
+    public static ImmutableDerivedSnapshotConfig.Builder builder() {
+        return ImmutableDerivedSnapshotConfig.builder();
     }
 }
