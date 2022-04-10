@@ -79,13 +79,14 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
                 SafeArg.of("configurationClass", config.getClass()));
         return (DbKeyValueServiceConfig) config;
     }
+
     @Override
     public DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
         DbKeyValueServiceConfig dbKeyValueServiceConfig = toDbKeyValueServiceConfig(config);
-        return new ImmutableDerivedSnapshotConfig.Builder()
+        return DerivedSnapshotConfig.builder()
                 .concurrentGetRangesThreadPoolSize(dbKeyValueServiceConfig.concurrentGetRangesThreadPoolSize())
                 .defaultGetRangesConcurrencyOverride(dbKeyValueServiceConfig.defaultGetRangesConcurrency())
                 .build();

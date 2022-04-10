@@ -60,7 +60,7 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
         InMemoryAsyncAtlasDbConfig inMemoryAsyncAtlasDbConfig = (InMemoryAsyncAtlasDbConfig) config;
-        return new ImmutableDerivedSnapshotConfig.Builder()
+        return DerivedSnapshotConfig.builder()
                 .concurrentGetRangesThreadPoolSize(inMemoryAsyncAtlasDbConfig.concurrentGetRangesThreadPoolSize())
                 .defaultGetRangesConcurrencyOverride(inMemoryAsyncAtlasDbConfig.defaultGetRangesConcurrency())
                 .build();
