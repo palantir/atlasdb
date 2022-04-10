@@ -485,7 +485,6 @@ public class TransactionManagersTest {
         KeyValueServiceConfig kvs = mock(KeyValueServiceConfig.class);
         when(kvs.type()).thenReturn("memory");
         when(kvs.namespace()).thenReturn(Optional.of("namespace"));
-        when(kvs.concurrentGetRangesThreadPoolSize()).thenReturn(1);
 
         AtlasDbConfig atlasDbConfig =
                 ImmutableAtlasDbConfig.builder().keyValueService(kvs).build();
