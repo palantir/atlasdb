@@ -23,10 +23,16 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.ServicesConfig;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -39,14 +45,21 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.refreshable.Refreshable;
 import dagger.Module;
 import dagger.Provides;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Optional;
 import javax.inject.Named;
+import javax.inject.Qualifier;
 import javax.inject.Singleton;
 
 @Module
 public class TestTransactionManagerModule {
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    private @interface Internal {}
 
     @Provides
     @Singleton
@@ -83,6 +96,18 @@ public class TestTransactionManagerModule {
 
     @Provides
     @Singleton
+    @Internal
+    public DerivedSnapshotConfig provideDerivedSnapshotConfig(
+            AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
+        KeyValueServiceConfig keyValueServiceConfig = atlasDbConfig.keyValueService();
+        Optional<KeyValueServiceRuntimeConfig> keyValueServiceRuntimeConfig = atlasDbRuntimeConfig.keyValueService();
+        AtlasDbFactory atlasDbFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(keyValueServiceConfig);
+        return atlasDbFactory.createDerivedSnapshotConfig(
+                keyValueServiceConfig, Refreshable.only(keyValueServiceRuntimeConfig), atlasDbConfig.namespace());
+    }
+
+    @Provides
+    @Singleton
     public SerializableTransactionManager provideTransactionManager(
             MetricsManager metricsManager,
             ServicesConfig config,
@@ -92,7 +117,8 @@ public class TestTransactionManagerModule {
             TransactionService transactionService,
             ConflictDetectionManager conflictManager,
             SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner) {
+            Cleaner cleaner,
+            @Internal DerivedSnapshotConfig derivedSnapshotConfig) {
         return new SerializableTransactionManager(
                 metricsManager,
                 kvs,
@@ -108,8 +134,8 @@ public class TestTransactionManagerModule {
                 new DefaultTimestampCache(metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig()
                         .getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),
-                config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
-                config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
+                derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
+                derivedSnapshotConfig.defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
                 PTExecutors.newSingleThreadExecutor(true),
                 true,
