@@ -482,7 +482,7 @@ public class TransactionManagersTest {
 
     @Test
     public void serviceNameIsFetchedFromKvsConfigWhenItIsNotPresentInAtlasConfig() {
-        KeyValueServiceConfig kvs = mock(KeyValueServiceConfig.class);
+        InMemoryAtlasDbConfig kvs = mock(InMemoryAtlasDbConfig.class);
         when(kvs.type()).thenReturn("memory");
         when(kvs.namespace()).thenReturn(Optional.of("namespace"));
 
