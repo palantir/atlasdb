@@ -110,9 +110,9 @@ public final class CassandraVerifier {
         }
 
         if (clusterHasExactlyOneDatacenter(datacenterToRack) && replicationFactorSupplier.get() > 1) {
-            checkNodeTopologyIsSet(ignoreNodeTopologyChecks, datacenterToRack);
+            checkNodeTopologyIsSet(datacenterToRack, ignoreNodeTopologyChecks);
             checkMoreRacksThanRfOrFewerHostsThanRf(
-                    ignoreNodeTopologyChecks, replicationFactorSupplier, hosts, datacenterToRack);
+                    hosts, replicationFactorSupplier, datacenterToRack, ignoreNodeTopologyChecks);
         }
 
         return datacenterToRack.keySet();
@@ -135,10 +135,10 @@ public final class CassandraVerifier {
     }
 
     private static void checkMoreRacksThanRfOrFewerHostsThanRf(
-            boolean ignoreNodeTopologyChecks,
-            Supplier<Integer> replicationFactorSupplier,
             Set<String> hosts,
-            Multimap<String, String> dcRack) {
+            Supplier<Integer> replicationFactorSupplier,
+            Multimap<String, String> dcRack,
+            boolean ignoreNodeTopologyChecks) {
         int replicationFactor = replicationFactorSupplier.get();
         if (dcRack.values().size() < replicationFactor && hosts.size() > replicationFactor) {
             logErrorOrThrow(
@@ -153,7 +153,7 @@ public final class CassandraVerifier {
         }
     }
 
-    private static void checkNodeTopologyIsSet(Boolean ignoreNodeTopologyChecks, Multimap<String, String> dcRack) {
+    private static void checkNodeTopologyIsSet(Multimap<String, String> dcRack, boolean ignoreNodeTopologyChecks) {
         if (clusterHasExactlyOneRack(dcRack)) {
             String datacenter = Iterables.getOnlyElement(dcRack.keySet());
             String rack = Iterables.getOnlyElement(dcRack.values());
@@ -227,11 +227,11 @@ public final class CassandraVerifier {
                 .get()
                 .accept(new ThriftHostsExtractingVisitor());
 
-        return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(cassandraKeyspaceConfig, host));
+        return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(host, cassandraKeyspaceConfig));
     }
 
     private static boolean attemptToCreateIfNotExists(
-            CassandraKeyspaceConfig cassandraKeyspaceConfig, InetSocketAddress host) {
+            InetSocketAddress host, CassandraKeyspaceConfig cassandraKeyspaceConfig) {
         try {
             return keyspaceAlreadyExists(host, cassandraKeyspaceConfig)
                     || attemptToCreateKeyspaceOnHost(host, cassandraKeyspaceConfig);
@@ -336,7 +336,7 @@ public final class CassandraVerifier {
         if (Objects.equals(result.getStrategy_class(), CassandraConstants.SIMPLE_STRATEGY)) {
             datacenters = getDcForSimpleStrategy(client, result, cassandraKeyspaceConfig);
             result = setNetworkStrategyIfCheckedTopology(
-                    result, cassandraKeyspaceConfig.ignoreNodeTopologyChecks(), datacenters);
+                    result, datacenters, cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
         } else {
             datacenters = sanityCheckDatacenters(
                     client,
@@ -347,9 +347,9 @@ public final class CassandraVerifier {
 
         sanityCheckReplicationFactor(
                 result,
-                cassandraKeyspaceConfig.ignoreDatacenterConfigurationChecks(),
                 cassandraKeyspaceConfig.replicationFactorSupplier(),
-                datacenters);
+                datacenters,
+                cassandraKeyspaceConfig.ignoreDatacenterConfigurationChecks());
         return result;
     }
 
@@ -361,12 +361,12 @@ public final class CassandraVerifier {
                 cassandraKeyspaceConfig.cassandraServersConfigSupplier(),
                 cassandraKeyspaceConfig.replicationFactorSupplier(),
                 cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
-        checkOneDatacenter(cassandraKeyspaceConfig.ignoreNodeTopologyChecks(), datacenters);
+        checkOneDatacenter(datacenters, cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
         return datacenters;
     }
 
     private static KsDef setNetworkStrategyIfCheckedTopology(
-            KsDef ksDef, boolean ignoreNodeTopologyChecks, Set<String> datacenters) {
+            KsDef ksDef, Set<String> datacenters, boolean ignoreNodeTopologyChecks) {
         if (!ignoreNodeTopologyChecks) {
             ksDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
             ksDef.setStrategy_options(ImmutableMap.of(Iterables.getOnlyElement(datacenters), "1"));
@@ -381,7 +381,7 @@ public final class CassandraVerifier {
         }
     }
 
-    private static void checkOneDatacenter(boolean ignoreNodeTopologyChecks, Set<String> datacenters) {
+    private static void checkOneDatacenter(Set<String> datacenters, boolean ignoreNodeTopologyChecks) {
         if (datacenters.size() > 1) {
             logErrorOrThrow(SIMPLE_PARTITIONING_ERROR_MSG, ignoreNodeTopologyChecks);
         }
@@ -398,21 +398,21 @@ public final class CassandraVerifier {
         KsDef ks = client.describe_keyspace(keyspace);
         Set<String> dcs = sanityCheckDatacenters(
                 client, cassandraServersConfigSupplier, replicationFactorSupplier, ignoreNodeTopologyChecks);
-        sanityCheckReplicationFactor(ks, ignoreDatacetreConfigurationChecks, replicationFactorSupplier, dcs);
+        sanityCheckReplicationFactor(ks, replicationFactorSupplier, dcs, ignoreDatacetreConfigurationChecks);
     }
 
     static void sanityCheckReplicationFactor(
             KsDef ks,
-            boolean ignoreDatacentreConfigurationChecks,
             Supplier<Integer> replicationFactorSupplier,
-            Set<String> dcs) {
+            Set<String> dcs,
+            boolean ignoreDatacentreConfigurationChecks) {
         Set<String> scopedDownDcs = checkRfsSpecifiedAndScopeDownDcs(dcs, ks.getStrategy_options());
         checkRfsMatchConfig(
                 ks,
-                ignoreDatacentreConfigurationChecks,
                 replicationFactorSupplier,
                 scopedDownDcs,
-                ks.getStrategy_options());
+                ks.getStrategy_options(),
+                ignoreDatacentreConfigurationChecks);
     }
 
     private static Set<String> checkRfsSpecifiedAndScopeDownDcs(Set<String> dcs, Map<String, String> strategyOptions) {
@@ -421,10 +421,10 @@ public final class CassandraVerifier {
 
     private static void checkRfsMatchConfig(
             KsDef ks,
-            boolean ignoreDatacenterConfigurationChecks,
             Supplier<Integer> replicationFactorSupplier,
             Set<String> dcs,
-            Map<String, String> strategyOptions) {
+            Map<String, String> strategyOptions,
+            boolean ignoreDatacenterConfigurationChecks) {
         int replicationFactor = replicationFactorSupplier.get();
         for (String datacenter : dcs) {
             if (Integer.parseInt(strategyOptions.get(datacenter)) != replicationFactor) {
