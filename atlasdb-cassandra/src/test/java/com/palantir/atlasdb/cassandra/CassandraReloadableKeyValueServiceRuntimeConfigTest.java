@@ -174,7 +174,8 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
                 .poolSize(poolSize)
                 .build();
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
-                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
+                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(
+                        config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
 
         assertThat(reloadableConfig.get().concurrentGetRangesThreadPoolSize())
                 .isEqualTo(poolSize * SERVERS_1.numberOfThriftHosts());
@@ -204,8 +205,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(
                         config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
 
-        assertThat(reloadableConfig.get().defaultGetRangesConcurrency())
-                .isEqualTo(8);
+        assertThat(reloadableConfig.get().defaultGetRangesConcurrency()).isEqualTo(8);
     }
 
     private static ImmutableCassandraKeyValueServiceConfig.Builder

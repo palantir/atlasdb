@@ -82,8 +82,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public DerivedSnapshotConfig createDerivedSnapshotConfig(
-            KeyValueServiceConfig config,
-            Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
+            KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
         DbKeyValueServiceConfig dbKeyValueServiceConfig = toDbKeyValueServiceConfig(config);
         return DerivedSnapshotConfig.builder()
                 .concurrentGetRangesThreadPoolSize(dbKeyValueServiceConfig.concurrentGetRangesThreadPoolSize())

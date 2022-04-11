@@ -45,7 +45,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.refreshable.Refreshable;
 import dagger.Module;
 import dagger.Provides;
 import java.lang.annotation.Retention;
@@ -102,8 +101,7 @@ public class TestTransactionManagerModule {
         KeyValueServiceConfig keyValueServiceConfig = atlasDbConfig.keyValueService();
         Optional<KeyValueServiceRuntimeConfig> keyValueServiceRuntimeConfig = atlasDbRuntimeConfig.keyValueService();
         AtlasDbFactory atlasDbFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(keyValueServiceConfig);
-        return atlasDbFactory.createDerivedSnapshotConfig(
-                keyValueServiceConfig, keyValueServiceRuntimeConfig);
+        return atlasDbFactory.createDerivedSnapshotConfig(keyValueServiceConfig, keyValueServiceRuntimeConfig);
     }
 
     @Provides

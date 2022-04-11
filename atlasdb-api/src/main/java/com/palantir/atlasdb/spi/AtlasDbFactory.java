@@ -74,8 +74,7 @@ public interface AtlasDbFactory {
      * @return A DerivedSnapshotConfig that is derived from config and runtimeConfig.
      */
     DerivedSnapshotConfig createDerivedSnapshotConfig(
-            KeyValueServiceConfig config,
-            Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot);
+            KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot);
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync);

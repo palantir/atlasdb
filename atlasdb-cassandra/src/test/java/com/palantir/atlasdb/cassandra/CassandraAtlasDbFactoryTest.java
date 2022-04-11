@@ -169,8 +169,8 @@ public class CassandraAtlasDbFactoryTest {
                 .from(CONFIG_WITH_KEYSPACE)
                 .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
                 .build();
-        DerivedSnapshotConfig derivedSnapshotConfig = FACTORY.createDerivedSnapshotConfig(
-                installConfig, Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
+        DerivedSnapshotConfig derivedSnapshotConfig =
+                FACTORY.createDerivedSnapshotConfig(installConfig, Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
         assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(defaultGetRangesConcurrencyOverride);
     }
 }
