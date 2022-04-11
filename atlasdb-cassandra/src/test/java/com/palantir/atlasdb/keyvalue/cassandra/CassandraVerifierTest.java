@@ -65,7 +65,7 @@ public class CassandraVerifierTest {
         Supplier<CassandraServersConfig> serversConfigSupplier =
                 setTopologyAndGetServersSupplier(defaultTopology(HOST_1), defaultTopology(HOST_2));
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(
-                    client, serversConfigSupplier, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, serversConfigSupplier, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -269,7 +269,7 @@ public class CassandraVerifierTest {
                 createDetails(DC_2, RACK_1, HOST_4));
         CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
                 .cassandraServersConfigSupplier(serversConfigSupplier)
-            .replicationFactorSupplier(DEFAULT_REPLICATION_FACTOR)
+                .replicationFactorSupplier(DEFAULT_REPLICATION_FACTOR)
                 .build();
 
         KsDef ksDef = new KsDef("test", CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
