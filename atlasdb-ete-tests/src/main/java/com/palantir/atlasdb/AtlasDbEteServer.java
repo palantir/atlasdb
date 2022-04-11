@@ -188,12 +188,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         AtlasBackupService atlasBackupService =
                 AtlasBackupService.createForTests(authHeader, atlasBackupClient, txManager, backupFolderFactory);
 
-        Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory =  _unused -> (CassandraKeyValueServiceConfig)
-                config.getAtlasDbConfig().keyValueService();
+        Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory = _unused ->
+                (CassandraKeyValueServiceConfig) config.getAtlasDbConfig().keyValueService();
 
         Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory =
                 keyValueServiceConfigFactory.andThen(AtlasDbEteServer::getClusterConfigFromInstallConfig);
-
 
         Function<Namespace, String> keyspaceFactory =
                 keyValueServiceConfigFactory.andThen(CassandraKeyValueServiceConfig::getKeyspaceOrThrow);
@@ -209,8 +208,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 txManager,
                 cassandraClusterConfigFactory,
                 cassandraServersConfigSupplierFactory,
-                keyspaceFactory
-                );
+                keyspaceFactory);
 
         environment
                 .jersey()
@@ -364,6 +362,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 .poolSize(config.poolSize())
                 .autoRefreshNodes(config.autoRefreshNodes())
                 .usingSsl(config.usingSsl())
-                .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis()).build();
+                .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
+                .build();
     }
 }

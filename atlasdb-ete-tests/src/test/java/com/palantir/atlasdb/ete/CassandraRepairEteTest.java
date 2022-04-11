@@ -29,7 +29,6 @@ import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
@@ -71,7 +70,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import javax.print.attribute.standard.MediaSize.NA;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,7 +94,7 @@ public final class CassandraRepairEteTest {
     @Before
     public void setUp() {
         config = ThreeNodeCassandraCluster.getKvsConfig(2);
-        kvs = CassandraKeyValueServiceImpl.createForTesting(config, CassandraKeyValueServiceRuntimeConfig::getDefault);
+        kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         TransactionTables.createTables(kvs);
 
         kvs.createTable(TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -108,15 +106,19 @@ public final class CassandraRepairEteTest {
                 configFactory.andThen(CassandraKeyValueServiceConfig::getKeyspaceOrThrow);
         Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFunction =
                 configFactory.andThen(CassandraRepairEteTest::getClusterConfigFromInstallConfig);
-        Function<Namespace, Supplier<CassandraServersConfig>> cassandraServersConfigFactory  =
+        Function<Namespace, Supplier<CassandraServersConfig>> cassandraServersConfigFactory =
                 configFactory.andThen(config -> config::servers);
-        cassandraRepairHelper = new CassandraRepairHelper(kvsRunner, cassandraClusterConfigFunction,
-                cassandraServersConfigFactory, keyspaceFactory);
-        cluster =
-                new ClusterFactory(Cluster::builder).constructCluster(cassandraClusterConfigFunction.apply(NAMESPACE)
-                        , cassandraServersConfigFactory.apply(NAMESPACE));
-        cqlCluster = new CqlCluster(cluster, cassandraClusterConfigFunction.apply(NAMESPACE),
-                cassandraServersConfigFactory.apply(NAMESPACE), keyspaceFactory.apply(NAMESPACE));
+        cassandraRepairHelper = new CassandraRepairHelper(
+                kvsRunner, cassandraClusterConfigFunction, cassandraServersConfigFactory, keyspaceFactory);
+        cluster = new ClusterFactory(Cluster::builder)
+                .constructCluster(
+                        cassandraClusterConfigFunction.apply(NAMESPACE),
+                        cassandraServersConfigFactory.apply(NAMESPACE));
+        cqlCluster = new CqlCluster(
+                cluster,
+                cassandraClusterConfigFunction.apply(NAMESPACE),
+                cassandraServersConfigFactory.apply(NAMESPACE),
+                keyspaceFactory.apply(NAMESPACE));
     }
 
     @After
@@ -258,7 +260,6 @@ public final class CassandraRepairEteTest {
         CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
                 config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
                 new Blacklist(config),
                 new CassandraClientPoolMetrics(MetricsManagers.createForTests()));
         return invert(cassandraService.getTokenMap());
@@ -293,6 +294,7 @@ public final class CassandraRepairEteTest {
                 .poolSize(config.poolSize())
                 .autoRefreshNodes(config.autoRefreshNodes())
                 .usingSsl(config.usingSsl())
-                .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis()).build();
+                .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
+                .build();
     }
 }

@@ -102,9 +102,11 @@ public class AtlasRestoreService {
         TimeLockManagementService timeLockManagementService = new DialogueAdaptingTimeLockManagementService(
                 reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName));
 
-        CassandraRepairHelper cassandraRepairHelper =
-                new CassandraRepairHelper(KvsRunner.create(keyValueServiceFactory), cassandraClusterConfigFactory,
-                        cassandraServersConfigSupplierFactory, keyspaceFactory);
+        CassandraRepairHelper cassandraRepairHelper = new CassandraRepairHelper(
+                KvsRunner.create(keyValueServiceFactory),
+                cassandraClusterConfigFactory,
+                cassandraServersConfigSupplierFactory,
+                keyspaceFactory);
 
         return new AtlasRestoreService(
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
@@ -118,11 +120,12 @@ public class AtlasRestoreService {
             TransactionManager transactionManager,
             Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory,
             Function<Namespace, Supplier<CassandraServersConfig>> cassandraServersConfigSupplierFactory,
-            Function<Namespace, String> keyspaceFactory
-            ) {
-        CassandraRepairHelper cassandraRepairHelper =
-                new CassandraRepairHelper(KvsRunner.create(transactionManager), cassandraClusterConfigFactory,
-                        cassandraServersConfigSupplierFactory, keyspaceFactory);
+            Function<Namespace, String> keyspaceFactory) {
+        CassandraRepairHelper cassandraRepairHelper = new CassandraRepairHelper(
+                KvsRunner.create(transactionManager),
+                cassandraClusterConfigFactory,
+                cassandraServersConfigSupplierFactory,
+                keyspaceFactory);
 
         return new AtlasRestoreService(
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);

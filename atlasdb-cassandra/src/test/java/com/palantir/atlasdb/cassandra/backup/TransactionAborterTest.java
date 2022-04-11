@@ -142,7 +142,7 @@ public class TransactionAborterTest {
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
-                transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isZero();
     }
 
@@ -156,7 +156,7 @@ public class TransactionAborterTest {
         setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(BACKUP_TIMESTAMP + 16, 1000L)));
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
-                transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isZero();
     }
 
@@ -167,7 +167,7 @@ public class TransactionAborterTest {
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
-                transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isZero();
     }
 
@@ -180,7 +180,7 @@ public class TransactionAborterTest {
         setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(25L, 1000L)));
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
-                transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isEqualTo(2L);
     }
 
@@ -193,7 +193,7 @@ public class TransactionAborterTest {
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
-                transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isEqualTo(2L);
     }
 
@@ -206,7 +206,7 @@ public class TransactionAborterTest {
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
-                transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isEqualTo(2L);
     }
 
@@ -220,7 +220,7 @@ public class TransactionAborterTest {
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
-                transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isEqualTo(2L);
     }
 
@@ -234,7 +234,7 @@ public class TransactionAborterTest {
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort = transactionAborter.getTransactionsToAbort(
-                transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
+                KEYSPACE, transactionInteraction, tableMetadata, BACKUP_TIMESTAMP);
         assertThat(transactionsToAbort.count()).isEqualTo(0L);
     }
 
@@ -245,7 +245,7 @@ public class TransactionAborterTest {
 
         Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
         transactionAborter.executeTransactionAborts(
-                transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
+                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
 
         verify(cqlSession).execute(abortStatement);
     }
@@ -263,7 +263,7 @@ public class TransactionAborterTest {
 
         Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
         transactionAborter.executeTransactionAborts(
-                transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
+                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
 
         verify(cqlSession, times(2)).execute(abortStatement);
         verify(cqlSession).execute(checkStatement);
@@ -284,7 +284,7 @@ public class TransactionAborterTest {
         TransactionTableEntry notYetAborted = TransactionTableEntries.committedLegacy(100L, 101L);
         Stream<TransactionTableEntry> entries = Stream.of(notYetAborted);
         transactionAborter.executeTransactionAborts(
-                transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
+                KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries);
 
         verify(cqlSession, times(1)).execute(abortStatement);
         verify(cqlSession, times(1)).execute(checkStatement);
@@ -302,7 +302,7 @@ public class TransactionAborterTest {
         Stream<TransactionTableEntry> entries = Stream.of(TransactionTableEntries.committedLegacy(100L, 101L));
 
         assertThatThrownBy(() -> transactionAborter.executeTransactionAborts(
-                transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries))
+                        KEYSPACE, transactionInteraction, preparedAbortStatement, preparedCheckStatement, entries))
                 .isInstanceOf(IllegalStateException.class);
 
         verify(cqlSession, times(3)).execute(abortStatement);

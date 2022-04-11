@@ -69,8 +69,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final TSocketFactory tSocketFactory;
 
     public CassandraClientFactory(
-            MetricsManager metricsManager, InetSocketAddress addr, CassandraClientConfig clientConfig,
-            Optional<SslConfiguration> sslConfiguration, String keyspace,
+            MetricsManager metricsManager,
+            InetSocketAddress addr,
+            CassandraClientConfig clientConfig,
+            Optional<SslConfiguration> sslConfiguration,
+            String keyspace,
             Duration timeoutOnConnectionClose) {
         this.metricsManager = metricsManager;
         this.addr = addr;
@@ -126,12 +129,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
     }
 
-    static CassandraClient getClientInternal(InetSocketAddress addr,
-            CassandraClientConfig clientConfig,  Optional<SslConfiguration> sslConfiguration)
+    static CassandraClient getClientInternal(
+            InetSocketAddress addr, CassandraClientConfig clientConfig, Optional<SslConfiguration> sslConfiguration)
             throws TException {
-        return new CassandraClientImpl(
-                getRawClient(addr, clientConfig, createSslSocketFactory(sslConfiguration),
-                        TSocketFactory.Default.INSTANCE));
+        return new CassandraClientImpl(getRawClient(
+                addr, clientConfig, createSslSocketFactory(sslConfiguration), TSocketFactory.Default.INSTANCE));
     }
 
     private static SSLSocketFactory createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
@@ -154,7 +156,6 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             SSLSocketFactory sslSocketFactory,
             TSocketFactory tSocketFactory)
             throws TException {
-
 
         TSocket thriftSocket =
                 tSocketFactory.create(addr.getHostString(), addr.getPort(), clientConfig.socketTimeoutMillis());
@@ -190,7 +191,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         try {
             login(client, clientConfig.credentials());
             setSocketOptions(
-                    thriftSocket, socket -> socket.getSocket().setSoTimeout(clientConfig.socketQueryTimeoutMillis()), addr);
+                    thriftSocket,
+                    socket -> socket.getSocket().setSoTimeout(clientConfig.socketQueryTimeoutMillis()),
+                    addr);
         } catch (TException e) {
             client.getOutputProtocol().getTransport().close();
             log.error("Exception thrown attempting to authenticate with config provided credentials", e);
@@ -286,12 +289,15 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @Value.Immutable
     public interface CassandraClientConfig {
         int socketTimeoutMillis();
+
         int socketQueryTimeoutMillis();
+
         int initialSocketQueryTimeoutMillis();
+
         boolean usingSsl();
+
         CassandraCredentialsConfig credentials();
 
         class Builder extends ImmutableCassandraClientConfig.Builder {}
-
     }
 }

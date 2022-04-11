@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.containers;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -36,8 +35,7 @@ public class ThreeNodeCassandraResource extends ExternalResource implements KvsM
     private TestResourceManager testResourceManager;
 
     public ThreeNodeCassandraResource() {
-        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(ThreeNodeCassandraCluster.KVS_CONFIG,
-                CassandraKeyValueServiceRuntimeConfig::getDefault);
+        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(ThreeNodeCassandraCluster.KVS_CONFIG);
     }
 
     @Override

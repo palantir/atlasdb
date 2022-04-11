@@ -52,10 +52,11 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
             String keyspace,
             CassandraClusterConfig cassandraClusterConfig,
             boolean initializeAsync) {
-        Optional<CqlClient> cqlClient =
-                cqlClientFactory.constructClient(metricsManager.getTaggedRegistry(), cassandraServersConfigSupplier,
-                        cassandraClusterConfig,
-                        initializeAsync);
+        Optional<CqlClient> cqlClient = cqlClientFactory.constructClient(
+                metricsManager.getTaggedRegistry(),
+                cassandraServersConfigSupplier,
+                cassandraClusterConfig,
+                initializeAsync);
 
         ExecutorService executorService = cassandraServersConfigSupplier.get().accept(new Visitor<ExecutorService>() {
             @Override
@@ -71,13 +72,14 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 return tracingExecutorService(
                         "Atlas Cassandra Async KVS",
                         instrumentExecutorService(
-                                createThreadPool(cqlCapableConfig.cqlHosts().size() * cassandraClusterConfig.poolSize()),
+                                createThreadPool(
+                                        cqlCapableConfig.cqlHosts().size() * cassandraClusterConfig.poolSize()),
                                 metricsManager));
             }
         });
 
-        return cqlClient.map(client -> CassandraAsyncKeyValueService.create(
-                keyspace, client, AtlasFutures.futuresCombiner(executorService)));
+        return cqlClient.map(client ->
+                CassandraAsyncKeyValueService.create(keyspace, client, AtlasFutures.futuresCombiner(executorService)));
     }
 
     /**

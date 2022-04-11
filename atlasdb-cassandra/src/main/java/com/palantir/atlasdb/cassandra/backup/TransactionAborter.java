@@ -67,32 +67,34 @@ final class TransactionAborter {
     public void abortTransactions(long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
         CqlMetadata clusterMetadata = cqlSession.getMetadata();
         transactionsTableInteractions.forEach(
-                txnInteraction -> abortTransactions(clusterMetadata, timestamp, txnInteraction));
+                txnInteraction -> abortTransactions(clusterMetadata, keyspace, timestamp, txnInteraction));
     }
 
     private void abortTransactions(
             CqlMetadata clusterMetadata,
+            String keyspaceName,
             long timestamp,
             TransactionsTableInteraction txnInteraction) {
         log.info(
                 "Aborting transactions after backup timestamp",
                 SafeArg.of("backupTimestamp", timestamp),
-                SafeArg.of("keyspace", keyspace),
+                SafeArg.of("keyspace", keyspaceName),
                 SafeArg.of("table", txnInteraction.getTransactionsTableName()));
 
         TableMetadata transactionsTable = ClusterMetadataUtils.getTableMetadata(
-                clusterMetadata, keyspace, txnInteraction.getTransactionsTableName());
+                clusterMetadata, keyspaceName, txnInteraction.getTransactionsTableName());
 
         PreparedStatement preparedAbortStatement = txnInteraction.prepareAbortStatement(transactionsTable, cqlSession);
         PreparedStatement preparedCheckStatement = txnInteraction.prepareCheckStatement(transactionsTable, cqlSession);
         Stream<TransactionTableEntry> keysToAbort =
-                getTransactionsToAbort(txnInteraction, transactionsTable, timestamp);
+                getTransactionsToAbort(keyspaceName, txnInteraction, transactionsTable, timestamp);
         executeTransactionAborts(
-                txnInteraction, preparedAbortStatement, preparedCheckStatement, keysToAbort);
+                keyspaceName, txnInteraction, preparedAbortStatement, preparedCheckStatement, keysToAbort);
     }
 
     @VisibleForTesting
     Stream<TransactionTableEntry> getTransactionsToAbort(
+            String keyspaceName,
             TransactionsTableInteraction txnInteraction,
             TableMetadata transactionsTable,
             long timestamp) {
@@ -103,7 +105,7 @@ final class TransactionAborter {
 
         return KeyedStream.of(rowResults)
                 .map(txnInteraction::extractTimestamps)
-                .filter(entry -> isInRange(keyspace, txnInteraction, entry, timestamp))
+                .filter(entry -> isInRange(keyspaceName, txnInteraction, entry, timestamp))
                 .values();
     }
 
@@ -135,6 +137,7 @@ final class TransactionAborter {
 
     @VisibleForTesting
     void executeTransactionAborts(
+            String keyspace,
             TransactionsTableInteraction txnInteraction,
             PreparedStatement preparedAbortStatement,
             PreparedStatement preparedCheckStatement,
@@ -142,11 +145,12 @@ final class TransactionAborter {
         entries.forEach(entry -> {
             Statement abortStatement = txnInteraction.bindAbortStatement(preparedAbortStatement, entry);
             Statement checkStatement = txnInteraction.bindCheckStatement(preparedCheckStatement, entry);
-            executeWithRetry(txnInteraction, abortStatement, checkStatement, entry);
+            executeWithRetry(keyspace, txnInteraction, abortStatement, checkStatement, entry);
         });
     }
 
     private void executeWithRetry(
+            String keyspace,
             TransactionsTableInteraction txnInteraction,
             Statement abortStatement,
             Statement checkStatement,
@@ -167,7 +171,7 @@ final class TransactionAborter {
 
         try {
             abortRetryer.call(() ->
-                    tryAbortTransactions(txnInteraction, abortStatement, checkStatement, startTs, commitTs));
+                    tryAbortTransactions(keyspace, txnInteraction, abortStatement, checkStatement, startTs, commitTs));
         } catch (ExecutionException e) {
             throw new SafeIllegalStateException(
                     "Failed to execute transaction abort",
@@ -189,6 +193,7 @@ final class TransactionAborter {
     }
 
     private boolean tryAbortTransactions(
+            String keyspace,
             TransactionsTableInteraction txnInteraction,
             Statement abortStatement,
             Statement checkStatement,

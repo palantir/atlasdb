@@ -49,8 +49,8 @@ final class TokenRangeFetcher {
     private final String keyspace;
     private final Supplier<CassandraServersConfig> cassandraServersConfigSupplier;
 
-    public TokenRangeFetcher(CqlSession cqlSession, String keyspace,
-            Supplier<CassandraServersConfig> cassandraServersConfigSupplier) {
+    public TokenRangeFetcher(
+            CqlSession cqlSession, String keyspace, Supplier<CassandraServersConfig> cassandraServersConfigSupplier) {
         this.keyspace = keyspace;
         this.cassandraServersConfigSupplier = cassandraServersConfigSupplier;
         this.cqlSession = cqlSession;
@@ -71,7 +71,9 @@ final class TokenRangeFetcher {
 
         Set<LightweightOppToken> partitionTokens = getPartitionTokens(tableMetadata);
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode = ClusterMetadataUtils.getTokenMapping(
-                CassandraServersConfigs.getCqlHosts(cassandraServersConfigSupplier.get()), cqlMetadata, keyspace,
+                CassandraServersConfigs.getCqlHosts(cassandraServersConfigSupplier.get()),
+                cqlMetadata,
+                keyspace,
                 partitionTokens);
 
         if (!partitionTokens.isEmpty() && log.isDebugEnabled()) {

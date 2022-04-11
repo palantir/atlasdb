@@ -46,8 +46,8 @@ final class RepairRangeFetcher {
     private final String keyspace;
     private final Supplier<CassandraServersConfig> cassandraServersConfigSupplier;
 
-    public RepairRangeFetcher(CqlSession cqlSession, String keyspace,
-            Supplier<CassandraServersConfig> cassandraServersConfigSupplier) {
+    public RepairRangeFetcher(
+            CqlSession cqlSession, String keyspace, Supplier<CassandraServersConfig> cassandraServersConfigSupplier) {
         this.cqlSession = cqlSession;
         this.cqlMetadata = cqlSession.getMetadata();
         this.keyspace = keyspace;

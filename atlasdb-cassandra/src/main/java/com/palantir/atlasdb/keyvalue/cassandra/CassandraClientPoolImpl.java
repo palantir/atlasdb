@@ -111,8 +111,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraRequestExceptionHandler exceptionHandler;
     private final CassandraService cassandra;
 
-    private final CassandraKeyValueServiceConfig installConfig;
-    private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
+    private final CassandraKeyValueServiceConfig config;
     private final StartupChecks startupChecks;
     private final ScheduledExecutorService refreshDaemon;
     private final CassandraClientPoolMetrics metrics;
@@ -124,15 +123,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig installConfig,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             Blacklist blacklist) {
-        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist, runtimeConfigSupplier);
+        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
-                installConfig,
-                runtimeConfigSupplier,
+                config,
                 startupChecks,
                 exceptionHandler,
                 blacklist,
@@ -144,16 +141,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig installConfig,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             Blacklist blacklist,
             CassandraService cassandra) {
-        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist, runtimeConfigSupplier);
+        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
-                installConfig,
-                runtimeConfigSupplier,
+                config,
                 startupChecks,
                 initializeableExecutorSupplier,
                 exceptionHandler,
@@ -166,10 +161,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     public static CassandraClientPool create(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig installConfig,
+            CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             boolean initializeAsync) {
-        Blacklist blacklist = new Blacklist(installConfig);
+        Blacklist blacklist = new Blacklist(config);
         CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
                 () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
                 () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
@@ -177,8 +172,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
-                installConfig,
-                runtimeConfig,
+                config,
                 StartupChecks.RUN,
                 exceptionHandler,
                 blacklist,
@@ -189,42 +183,38 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private CassandraClientPoolImpl(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig installConfig,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraClientPoolMetrics metrics) {
         this(
-                installConfig,
-                runtimeConfigSupplier,
+                config,
                 startupChecks,
                 SHARED_EXECUTOR_SUPPLIER,
                 exceptionHandler,
                 blacklist,
-                new CassandraService(metricsManager, installConfig, runtimeConfigSupplier, blacklist, metrics),
+                new CassandraService(metricsManager, config, blacklist, metrics),
                 metrics);
     }
 
     private CassandraClientPoolImpl(
-            CassandraKeyValueServiceConfig installConfig,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
+            CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraService cassandra,
             CassandraClientPoolMetrics metrics) {
-        this.installConfig = installConfig;
-        this.runtimeConfigSupplier = runtimeConfigSupplier;
+        this.config = config;
         this.startupChecks = startupChecks;
-        initializeableExecutorSupplier.initialize(installConfig.numPoolRefreshingThreads());
+        initializeableExecutorSupplier.initialize(config.numPoolRefreshingThreads());
         this.refreshDaemon = initializeableExecutorSupplier.get();
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
         this.metrics = metrics;
-        this.absentHostTracker = new CassandraAbsentHostTracker(installConfig.consecutiveAbsencesBeforePoolRemoval());
+        this.absentHostTracker = new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval());
     }
 
     private void tryInitialize() {
@@ -241,8 +231,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                                 t);
                     }
                 },
-                installConfig.poolRefreshIntervalSeconds(),
-                installConfig.poolRefreshIntervalSeconds(),
+                config.poolRefreshIntervalSeconds(),
+                config.poolRefreshIntervalSeconds(),
                 TimeUnit.SECONDS);
 
         // for testability, mock/spy are bad at mockability of things called in constructors
@@ -263,11 +253,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         cassandra.clearInitialCassandraHosts();
     }
 
-    private static CassandraRequestExceptionHandler testExceptionHandler(Blacklist blacklist,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier) {
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigSupplier.get();
+    private static CassandraRequestExceptionHandler testExceptionHandler(Blacklist blacklist) {
         return CassandraRequestExceptionHandler.withNoBackoffForTest(
-                () -> getMaxRetriesPerHost(runtimeConfig), () -> getMaxTriesTotal(runtimeConfig), blacklist);
+                CassandraClientPoolImpl::getMaxRetriesPerHost, CassandraClientPoolImpl::getMaxTriesTotal, blacklist);
     }
 
     @Override
@@ -286,13 +274,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
     @VisibleForTesting
-    static int getMaxRetriesPerHost(CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
-        return runtimeConfig.numberOfRetriesOnSameHost();
+    static int getMaxRetriesPerHost() {
+        return CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnSameHost();
     }
 
     @VisibleForTesting
-    static int getMaxTriesTotal(CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
-        return runtimeConfig.numberOfRetriesOnAllHosts();
+    static int getMaxTriesTotal() {
+        return CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnSameHost();
     }
 
     @Override
@@ -313,7 +301,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
-        if (installConfig.autoRefreshNodes()) {
+        if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
             setServersInPoolTo(cassandra.getInitialServerList());
@@ -369,16 +357,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void runOneTimeStartupChecks() {
-        CassandraKeyspaceConfig cassandraKeyspaceConfig =
-                new CassandraKeyspaceConfig.Builder().keyspace(installConfig.getKeyspaceOrThrow())
-                        .schemaMutationTimeoutMillis(installConfig.schemaMutationTimeoutMillis())
-                        .cassandraServersConfigSupplier(installConfig::servers)
-                        .ignoreDatacenterConfigurationChecks(installConfig.ignoreDatacenterConfigurationChecks())
-                        .ignoreNodeTopologyChecks(installConfig.ignoreNodeTopologyChecks())
-                        .replicationFactorSupplier(installConfig::replicationFactor)
-                        .sslConfiguration(installConfig.sslConfiguration())
-                        .clientConfig(getCassandraClientConfig(installConfig))
-                        .build();
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = new CassandraKeyspaceConfig.Builder()
+                .keyspace(config.getKeyspaceOrThrow())
+                .schemaMutationTimeoutMillis(config.schemaMutationTimeoutMillis())
+                .cassandraServersConfigSupplier(config::servers)
+                .ignoreDatacenterConfigurationChecks(config.ignoreDatacenterConfigurationChecks())
+                .ignoreNodeTopologyChecks(config.ignoreNodeTopologyChecks())
+                .replicationFactorSupplier(config::replicationFactor)
+                .sslConfiguration(config.sslConfiguration())
+                .clientConfig(getCassandraClientConfig(config))
+                .build();
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, cassandraKeyspaceConfig);
         } catch (Exception e) {
@@ -529,14 +517,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
         for (CassandraServer host : getCachedServers()) {
-            try (CassandraClient client = CassandraClientFactory.getClientInternal(host.proxy(),
-                    getCassandraClientConfig(installConfig), installConfig.sslConfiguration())) {
+            try (CassandraClient client = CassandraClientFactory.getClientInternal(
+                    host.proxy(), getCassandraClientConfig(config), config.sslConfiguration())) {
                 try {
-                    client.describe_keyspace(installConfig.getKeyspaceOrThrow());
+                    client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {
                     return; // don't care to check for ring consistency when we're not even fully initialized
                 }
-                tokenRangesToServer.put(ImmutableSet.copyOf(client.describe_ring(installConfig.getKeyspaceOrThrow())), host);
+                tokenRangesToServer.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
                 log.warn(
                         "Failed to get ring info from host: {}",
@@ -550,7 +538,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             log.warn(
                     "Failed to get ring info for entire Cassandra cluster ({});"
                             + " ring could not be checked for consistency.",
-                    UnsafeArg.of("keyspace", installConfig.getKeyspaceOrThrow()));
+                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
             return;
         }
 
@@ -599,12 +587,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     SafeArg.of("hosts2", CassandraLogHelper.collectionOfHosts(tokenRangesToServer.get(set2))));
         }
 
-        CassandraVerifier.logErrorOrThrow(ex.getMessage(), installConfig.ignoreInconsistentRingChecks());
+        CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
     }
 
     @Override
     public FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner() {
-        return CassandraUtils.getValidatePartitioner(installConfig);
+        return CassandraUtils.getValidatePartitioner(config);
     }
 
     public enum StartupChecks {
@@ -613,10 +601,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private static CassandraClientConfig getCassandraClientConfig(CassandraKeyValueServiceConfig installConfig) {
-        return new CassandraClientConfig.Builder().credentials(installConfig.credentials())
+        return new CassandraClientConfig.Builder()
+                .credentials(installConfig.credentials())
                 .initialSocketQueryTimeoutMillis(installConfig.initialSocketQueryTimeoutMillis())
                 .socketQueryTimeoutMillis(installConfig.socketQueryTimeoutMillis())
                 .socketTimeoutMillis(installConfig.socketTimeoutMillis())
-                .usingSsl(installConfig.usingSsl()).build();
+                .usingSsl(installConfig.usingSsl())
+                .build();
     }
 }

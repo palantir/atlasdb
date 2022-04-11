@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -62,8 +61,7 @@ public class CassandraSchemaLockTest {
             CyclicBarrier barrier = new CyclicBarrier(THREAD_COUNT);
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
-                    CassandraKeyValueService keyValueService = CassandraKeyValueServiceImpl.createForTesting(config,
-                            CassandraKeyValueServiceRuntimeConfig::getDefault);
+                    CassandraKeyValueService keyValueService = CassandraKeyValueServiceImpl.createForTesting(config);
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -74,8 +72,7 @@ public class CassandraSchemaLockTest {
             assertThat(executorService.awaitTermination(4, TimeUnit.MINUTES)).isTrue();
         }
 
-        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault);
+        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         assertThat(kvs.getAllTableNames()).contains(table1);
 
         assertThat(new File(CONTAINERS.getLogDirectory()).listFiles()).allSatisfy(file -> {

@@ -51,10 +51,13 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
             Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
             CassandraClusterConfig cassandraClusterConfig,
             boolean initializeAsync) {
-        return CassandraServersConfigs.getCqlCapableConfigIfValid(cassandraServersConfigSupplier.get()).map(cqlCapableConfig -> {
-            Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
-            Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory).constructCluster(servers, cassandraClusterConfig);
-            return CqlClientImpl.create(taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync);
-        });
+        return CassandraServersConfigs.getCqlCapableConfigIfValid(cassandraServersConfigSupplier.get())
+                .map(cqlCapableConfig -> {
+                    Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
+                    Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory)
+                            .constructCluster(servers, cassandraClusterConfig);
+                    return CqlClientImpl.create(
+                            taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync);
+                });
     }
 }

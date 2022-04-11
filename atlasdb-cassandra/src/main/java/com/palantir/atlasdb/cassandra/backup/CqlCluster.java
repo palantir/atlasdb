@@ -37,18 +37,23 @@ public final class CqlCluster implements Closeable {
     private final String keyspace;
 
     // VisibleForTesting
-    public CqlCluster(Cluster cluster, CassandraClusterConfig cassandraClusterConfig,
+    public CqlCluster(
+            Cluster cluster,
+            CassandraClusterConfig cassandraClusterConfig,
             Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
-        String keyspace) {
+            String keyspace) {
         this.cluster = cluster;
         this.cassandraClusterConfig = cassandraClusterConfig;
         this.cassandraServersConfigSupplier = cassandraServersConfigSupplier;
         this.keyspace = keyspace;
     }
 
-    public static CqlCluster create(CassandraClusterConfig cassandraClusterConfig,
-            Supplier<CassandraServersConfig> cassandraServersConfigSupplier, String keyspace) {
-        Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(cassandraClusterConfig, cassandraServersConfigSupplier);
+    public static CqlCluster create(
+            CassandraClusterConfig cassandraClusterConfig,
+            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
+            String keyspace) {
+        Cluster cluster = new ClusterFactory(Cluster::builder)
+                .constructCluster(cassandraClusterConfig, cassandraServersConfigSupplier);
         return new CqlCluster(cluster, cassandraClusterConfig, cassandraServersConfigSupplier, keyspace);
     }
 

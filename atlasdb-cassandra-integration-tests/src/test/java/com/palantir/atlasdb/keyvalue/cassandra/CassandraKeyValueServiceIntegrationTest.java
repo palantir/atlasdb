@@ -513,7 +513,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 testLogger);
     }

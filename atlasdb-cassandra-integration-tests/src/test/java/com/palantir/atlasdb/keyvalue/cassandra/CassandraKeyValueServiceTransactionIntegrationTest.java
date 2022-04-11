@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -147,8 +146,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     }
 
     private static KeyValueService createAndRegisterKeyValueService() {
-        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(CASSANDRA.getConfig(),
-                CassandraKeyValueServiceRuntimeConfig::getDefault);
+        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(CASSANDRA.getConfig());
         CASSANDRA.registerKvs(kvs);
         return kvs;
     }

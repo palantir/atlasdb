@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -53,7 +52,6 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, services));
     }
 

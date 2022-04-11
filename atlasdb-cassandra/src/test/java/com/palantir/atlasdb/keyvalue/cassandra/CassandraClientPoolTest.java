@@ -29,7 +29,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -57,7 +56,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -90,15 +88,12 @@ public class CassandraClientPoolTest {
     private Set<CassandraServer> poolServers = new HashSet<>();
 
     private CassandraKeyValueServiceConfig config;
-    private CassandraKeyValueServiceRuntimeConfig runtimeConfig;
     private Blacklist blacklist;
     private CassandraService cassandra = mock(CassandraService.class);
 
-    private Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier = () -> runtimeConfig;
     @Before
     public void setup() {
         config = mock(CassandraKeyValueServiceConfig.class);
-        runtimeConfig = mock(CassandraKeyValueServiceRuntimeConfig.class);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
@@ -171,7 +166,7 @@ public class CassandraClientPoolTest {
         assertThatThrownBy(() -> runNoopWithRetryOnHost(serverList.get(0), clientPool))
                 .isInstanceOf(Exception.class);
 
-        verifyNumberOfAttemptsOnHost(serverList.get(0), clientPool, CassandraClientPoolImpl.getMaxRetriesPerHost(runtimeConfig));
+        verifyNumberOfAttemptsOnHost(serverList.get(0), clientPool, CassandraClientPoolImpl.getMaxRetriesPerHost());
         for (int i = 1; i < numHosts; i++) {
             verifyNumberOfAttemptsOnHost(serverList.get(i), clientPool, 1);
         }
@@ -184,7 +179,7 @@ public class CassandraClientPoolTest {
 
         assertThatThrownBy(() -> runNoopWithRetryOnHost(CASS_SERVER_1, cassandraClientPool))
                 .isInstanceOf(Exception.class);
-        verifyNumberOfAttemptsOnHost(CASS_SERVER_1, cassandraClientPool, CassandraClientPoolImpl.getMaxTriesTotal(runtimeConfig));
+        verifyNumberOfAttemptsOnHost(CASS_SERVER_1, cassandraClientPool, CassandraClientPoolImpl.getMaxTriesTotal());
     }
 
     @Test
@@ -279,7 +274,6 @@ public class CassandraClientPoolTest {
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
-                runtimeConfigSupplier,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist);
 
@@ -431,7 +425,6 @@ public class CassandraClientPoolTest {
         return CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.createForTests(),
                 config,
-                runtimeConfigSupplier,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 InitializeableScheduledExecutorServiceSupplier.createForTests(deterministicExecutor),
                 blacklist,
@@ -509,7 +502,6 @@ public class CassandraClientPoolTest {
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
-                runtimeConfigSupplier,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist);
 

@@ -291,15 +291,19 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      *       while still keeping a minimum number of idle connections around for fast borrows.
      */
     private GenericObjectPool<CassandraClient> createClientPool() {
-        CassandraClientConfig cassandraClientConfig =
-                new CassandraClientConfig.Builder()
-                        .usingSsl(config.usingSsl())
-                        .socketTimeoutMillis(config.socketTimeoutMillis())
-                        .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
-                        .initialSocketQueryTimeoutMillis(config.initialSocketQueryTimeoutMillis())
-                        .credentials(config.credentials()).build();
-        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(metricsManager, proxy,
-                cassandraClientConfig, config.sslConfiguration(), config.getKeyspaceOrThrow(),
+        CassandraClientConfig cassandraClientConfig = new CassandraClientConfig.Builder()
+                .usingSsl(config.usingSsl())
+                .socketTimeoutMillis(config.socketTimeoutMillis())
+                .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
+                .initialSocketQueryTimeoutMillis(config.initialSocketQueryTimeoutMillis())
+                .credentials(config.credentials())
+                .build();
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(
+                metricsManager,
+                proxy,
+                cassandraClientConfig,
+                config.sslConfiguration(),
+                config.getKeyspaceOrThrow(),
                 config.timeoutOnConnectionClose());
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 

@@ -17,7 +17,6 @@ package com.palantir.cassandra.multinode;
 
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
@@ -55,8 +54,7 @@ public abstract class NodesDownTestSetup {
     }
 
     private static CassandraKeyValueService createKvs(Class<?> testClass) {
-        return CassandraKeyValueServiceImpl.createForTesting(getConfig(testClass),
-                CassandraKeyValueServiceRuntimeConfig::getDefault);
+        return CassandraKeyValueServiceImpl.createForTesting(getConfig(testClass));
     }
 
     static CassandraKeyValueServiceConfig getConfig(Class<?> testClass) {

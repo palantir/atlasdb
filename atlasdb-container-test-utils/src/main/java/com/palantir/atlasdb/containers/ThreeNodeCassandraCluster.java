@@ -19,7 +19,6 @@ import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -103,7 +102,6 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     private static boolean canCreateCassandraKeyValueService() {
-        return CassandraKeyValueServiceImpl.createForTesting(KVS_CONFIG,
-                ImmutableCassandraKeyValueServiceRuntimeConfig::getDefault).isInitialized();
+        return CassandraKeyValueServiceImpl.createForTesting(KVS_CONFIG).isInitialized();
     }
 }

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.containers;
 import com.datastax.driver.core.Cluster;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -101,8 +100,7 @@ public class CassandraContainer extends Container {
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         try (CassandraKeyValueService cassandraKeyValueService = CassandraKeyValueServiceImpl.createForTesting(
-                getConfigWithProxy(Containers.getSocksProxy(name).address()),
-                CassandraKeyValueServiceRuntimeConfig::getDefault)) {
+                getConfigWithProxy(Containers.getSocksProxy(name).address()))) {
             return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);
         } catch (Exception e) {
             return SuccessOrFailure.failure(e.getMessage());

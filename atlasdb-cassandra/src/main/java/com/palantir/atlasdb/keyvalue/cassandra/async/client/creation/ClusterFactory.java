@@ -50,26 +50,28 @@ public class ClusterFactory {
         this.cqlClusterBuilderFactory = cqlClusterBuilderFactory;
     }
 
-    public Cluster constructCluster(CassandraClusterConfig cassandraClusterConfig,
+    public Cluster constructCluster(
+            CassandraClusterConfig cassandraClusterConfig,
             Supplier<CassandraServersConfig> cassandraServersConfigSupplier) {
         Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(cassandraServersConfigSupplier.get());
         return constructCluster(hosts, cassandraClusterConfig);
     }
 
-    public Cluster constructCluster(Set<InetSocketAddress> servers,
-            CassandraClusterConfig cassandraClusterConfig) {
+    public Cluster constructCluster(Set<InetSocketAddress> servers, CassandraClusterConfig cassandraClusterConfig) {
         Cluster.Builder clusterBuilder = cqlClusterBuilderFactory
                 .get()
                 .addContactPointsWithPorts(servers)
                 .withCredentials(
-                        cassandraClusterConfig.credentials().username(), cassandraClusterConfig.credentials().password())
+                        cassandraClusterConfig.credentials().username(),
+                        cassandraClusterConfig.credentials().password())
                 .withCompression(ProtocolOptions.Compression.LZ4)
                 .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
                 .withoutJMXReporting()
                 .withProtocolVersion(CassandraConstants.DEFAULT_PROTOCOL_VERSION)
                 .withThreadingOptions(new ThreadingOptions());
 
-        clusterBuilder = withSslOptions(clusterBuilder, cassandraClusterConfig.usingSsl(), cassandraClusterConfig.sslConfiguration());
+        clusterBuilder = withSslOptions(
+                clusterBuilder, cassandraClusterConfig.usingSsl(), cassandraClusterConfig.sslConfiguration());
         clusterBuilder = withPoolingOptions(
                 clusterBuilder, cassandraClusterConfig.poolSize(), cassandraClusterConfig.cqlPoolTimeoutMillis());
         clusterBuilder = withQueryOptions(clusterBuilder, cassandraClusterConfig.fetchBatchCount());
@@ -79,21 +81,19 @@ public class ClusterFactory {
         return clusterBuilder.build();
     }
 
-    private static Cluster.Builder withSocketOptions(
-            Cluster.Builder clusterBuilder, int socketQueryTimeoutMillis) {
+    private static Cluster.Builder withSocketOptions(Cluster.Builder clusterBuilder, int socketQueryTimeoutMillis) {
         return clusterBuilder.withSocketOptions(new SocketOptions()
                 .setConnectTimeoutMillis(socketQueryTimeoutMillis)
                 .setReadTimeoutMillis(socketQueryTimeoutMillis));
     }
 
-    private static Cluster.Builder withSslOptions(Cluster.Builder builder, boolean usingSsl,
-            Optional<SslConfiguration> sslConfiguration) {
+    private static Cluster.Builder withSslOptions(
+            Cluster.Builder builder, boolean usingSsl, Optional<SslConfiguration> sslConfiguration) {
         if (!usingSsl) {
             return builder;
         }
         if (sslConfiguration.isPresent()) {
-            SSLContext sslContext = SslSocketFactories.createSslContext(
-                    sslConfiguration.get());
+            SSLContext sslContext = SslSocketFactories.createSslContext(sslConfiguration.get());
             return builder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder()
                     .withSSLContext(sslContext)
                     .build());
@@ -139,14 +139,21 @@ public class ClusterFactory {
 
     @Value.Immutable
     public interface CassandraClusterConfig {
-         CassandraCredentialsConfig credentials();
-         int socketQueryTimeoutMillis();
-         boolean usingSsl();
-         Optional<SslConfiguration> sslConfiguration();
-         int poolSize();
-         int cqlPoolTimeoutMillis();
-         boolean autoRefreshNodes();
-         int fetchBatchCount();
+        CassandraCredentialsConfig credentials();
+
+        int socketQueryTimeoutMillis();
+
+        boolean usingSsl();
+
+        Optional<SslConfiguration> sslConfiguration();
+
+        int poolSize();
+
+        int cqlPoolTimeoutMillis();
+
+        boolean autoRefreshNodes();
+
+        int fetchBatchCount();
 
         class Builder extends ImmutableCassandraClusterConfig.Builder {}
     }
