@@ -19,9 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,6 +61,7 @@ public class CassandraAtlasDbFactoryTest {
     private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
     private static final KeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
+
     private static final CassandraAtlasDbFactory FACTORY = new CassandraAtlasDbFactory();
 
     @Test
@@ -159,5 +162,58 @@ public class CassandraAtlasDbFactoryTest {
         assertThat(returnedConfig)
                 .describedAs("First invalid config should resolve to default")
                 .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+    }
+
+    @Test
+    public void derivedSnapshotConfigDoesNotReloadWhenRuntimeConfigReloads() {
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .servers(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(SERVERS)
+                        .build())
+                .build();
+
+        CassandraKeyValueServiceRuntimeConfig updatedRuntimeConfig =
+                ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .servers(ImmutableDefaultConfig.builder()
+                                .addAllThriftHosts(SERVERS)
+                                .addThriftHosts(InetSocketAddress.createUnresolved("bar", 56))
+                                .build())
+                        .build();
+
+        SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> refreshableRuntimeConfig =
+                Refreshable.create(Optional.of(runtimeConfig));
+
+        DerivedSnapshotConfig derivedSnapshotConfig =
+                FACTORY.createDerivedSnapshotConfig(CONFIG_WITH_KEYSPACE, refreshableRuntimeConfig, Optional.empty());
+
+        int previousConcurrentGetRangesThreadPoolSize = derivedSnapshotConfig.concurrentGetRangesThreadPoolSize();
+        int previousDefaultGetRangesConcurrency = derivedSnapshotConfig.defaultGetRangesConcurrency();
+
+        refreshableRuntimeConfig.update(Optional.of(updatedRuntimeConfig));
+
+        assertThat(derivedSnapshotConfig.concurrentGetRangesThreadPoolSize())
+                .isEqualTo(previousConcurrentGetRangesThreadPoolSize);
+        assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(previousDefaultGetRangesConcurrency);
+    }
+
+    @Test
+    public void getDerivedSnapshotConfigRequiresNamespacesToMatchIfPresent() {
+        assertThatThrownBy(() -> FACTORY.createDerivedSnapshotConfig(
+                        CONFIG_WITH_KEYSPACE,
+                        Refreshable.only(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG)),
+                        Optional.of(KEYSPACE_2)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void derivedSnapshotConfigDefaultGetRangesConcurrencyOverriddenWhenInstallOverrideIsPresent() {
+        int defaultGetRangesConcurrencyOverride = 200;
+        CassandraKeyValueServiceConfig installConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(CONFIG_WITH_KEYSPACE)
+                .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
+                .build();
+        DerivedSnapshotConfig derivedSnapshotConfig = FACTORY.createDerivedSnapshotConfig(
+                installConfig, Refreshable.only(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG)), Optional.empty());
+        assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(defaultGetRangesConcurrencyOverride);
     }
 }
