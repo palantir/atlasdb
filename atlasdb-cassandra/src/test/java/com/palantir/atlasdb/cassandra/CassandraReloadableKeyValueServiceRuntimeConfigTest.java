@@ -181,7 +181,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void mergedConfigPrioritisesInstallForDefaultGetRangesConcurrency() {
         CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentialsAndReplicationFactor()
-                .concurrentGetRangesThreadPoolSize(10)
+                .concurrentGetRangesThreadPoolSize(1243)
                 .build();
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
