@@ -43,6 +43,8 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     private static final CassandraKeyValueServiceRuntimeConfig RUNTIME_CONFIG_WITH_DEFAULT_SERVERS =
             runtimeConfigBuilderWithDefaultServers().build();
 
+    // The following 5 tests are present to ensure we have back-compat with the previous merging reloadable config
+    // which, for the following properties, prioritised the runtime config value instead of the install config value.
     @Test
     public void unresponsiveHostBackoffTimeSecondsAlwaysUsesRuntimeConfigValue() {
         CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentialsAndReplicationFactor()
