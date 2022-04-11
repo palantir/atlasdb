@@ -52,8 +52,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     @Override
     public DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<String> namespace) {
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
         return DerivedSnapshotConfig.builder()
                 .concurrentGetRangesThreadPoolSize(1)
                 .build();

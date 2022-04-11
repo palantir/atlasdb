@@ -71,15 +71,11 @@ public interface AtlasDbFactory {
      *
      * @param config Static configuration.
      * @param runtimeConfig Live-reloadable configuration.
-     * @param namespace If the implementation supports it, this is the namespace to use when the namespace in config is
-     * absent. If both are present, they must match.
-     *
      * @return A DerivedSnapshotConfig that is derived from config and runtimeConfig.
      */
     DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<String> namespace);
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig);
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync);

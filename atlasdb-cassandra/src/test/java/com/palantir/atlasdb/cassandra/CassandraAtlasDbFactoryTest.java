@@ -184,7 +184,7 @@ public class CassandraAtlasDbFactoryTest {
                 Refreshable.create(Optional.of(runtimeConfig));
 
         DerivedSnapshotConfig derivedSnapshotConfig =
-                FACTORY.createDerivedSnapshotConfig(CONFIG_WITH_KEYSPACE, refreshableRuntimeConfig, Optional.empty());
+                FACTORY.createDerivedSnapshotConfig(CONFIG_WITH_KEYSPACE, refreshableRuntimeConfig);
 
         int previousConcurrentGetRangesThreadPoolSize = derivedSnapshotConfig.concurrentGetRangesThreadPoolSize();
         int previousDefaultGetRangesConcurrency = derivedSnapshotConfig.defaultGetRangesConcurrency();
@@ -197,15 +197,6 @@ public class CassandraAtlasDbFactoryTest {
     }
 
     @Test
-    public void getDerivedSnapshotConfigRequiresNamespacesToMatchIfPresent() {
-        assertThatThrownBy(() -> FACTORY.createDerivedSnapshotConfig(
-                        CONFIG_WITH_KEYSPACE,
-                        Refreshable.only(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG)),
-                        Optional.of(KEYSPACE_2)))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
     public void derivedSnapshotConfigDefaultGetRangesConcurrencyOverriddenWhenInstallOverrideIsPresent() {
         int defaultGetRangesConcurrencyOverride = 200;
         CassandraKeyValueServiceConfig installConfig = ImmutableCassandraKeyValueServiceConfig.builder()
@@ -213,7 +204,7 @@ public class CassandraAtlasDbFactoryTest {
                 .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
                 .build();
         DerivedSnapshotConfig derivedSnapshotConfig = FACTORY.createDerivedSnapshotConfig(
-                installConfig, Refreshable.only(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG)), Optional.empty());
+                installConfig, Refreshable.only(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG)));
         assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(defaultGetRangesConcurrencyOverride);
     }
 }
