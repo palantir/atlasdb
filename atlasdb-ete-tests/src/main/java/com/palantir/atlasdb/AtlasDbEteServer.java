@@ -192,7 +192,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 (CassandraKeyValueServiceConfig) config.getAtlasDbConfig().keyValueService();
 
         Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory =
-                keyValueServiceConfigFactory.andThen(AtlasDbEteServer::getClusterConfigFromInstallConfig);
+                keyValueServiceConfigFactory.andThen(CassandraClusterConfig::of);
 
         Function<Namespace, String> keyspaceFactory =
                 keyValueServiceConfigFactory.andThen(CassandraKeyValueServiceConfig::getKeyspaceOrThrow);
@@ -349,20 +349,5 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         public Response toResponse(EmptyOptionalException exception) {
             return Response.noContent().build();
         }
-    }
-
-    private static CassandraClusterConfig getClusterConfigFromInstallConfig(CassandraKeyValueServiceConfig config) {
-        return new CassandraClusterConfig.Builder()
-                .autoRefreshNodes(config.autoRefreshNodes())
-                .usingSsl(config.usingSsl())
-                .sslConfiguration(config.sslConfiguration())
-                .cqlPoolTimeoutMillis(config.cqlPoolTimeoutMillis())
-                .credentials(config.credentials())
-                .fetchBatchCount(config.fetchBatchCount())
-                .poolSize(config.poolSize())
-                .autoRefreshNodes(config.autoRefreshNodes())
-                .usingSsl(config.usingSsl())
-                .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
-                .build();
     }
 }

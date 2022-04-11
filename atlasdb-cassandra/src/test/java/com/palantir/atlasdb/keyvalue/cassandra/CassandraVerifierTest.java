@@ -336,8 +336,8 @@ public class CassandraVerifierTest {
         return details.setRack(rack);
     }
 
-    private CassandraClientConfig.Builder getCassandraClientConfigBuilderWithDefaults() {
-        return new CassandraClientConfig.Builder()
+    private ImmutableCassandraClientConfig.Builder getCassandraClientConfigBuilderWithDefaults() {
+        return CassandraClientConfig.builder()
                 .credentials(mock(CassandraCredentialsConfig.class))
                 .initialSocketQueryTimeoutMillis(0)
                 .usingSsl(false)
@@ -345,14 +345,14 @@ public class CassandraVerifierTest {
                 .socketTimeoutMillis(0);
     }
 
-    private CassandraKeyspaceConfig.Builder getCassandraKeyspaceConfigBuilderWithDefaults() {
+    private ImmutableCassandraKeyspaceConfig.Builder getCassandraKeyspaceConfigBuilderWithDefaults() {
         return getCassandraKeyspaceConfigBuilderWithDefaults(
                 getCassandraClientConfigBuilderWithDefaults().build());
     }
 
-    private CassandraKeyspaceConfig.Builder getCassandraKeyspaceConfigBuilderWithDefaults(
+    private ImmutableCassandraKeyspaceConfig.Builder getCassandraKeyspaceConfigBuilderWithDefaults(
             CassandraClientConfig cassandraClientConfig) {
-        return new CassandraKeyspaceConfig.Builder()
+        return CassandraKeyspaceConfig.builder()
                 .clientConfig(cassandraClientConfig)
                 .keyspace("test")
                 .ignoreNodeTopologyChecks(false)

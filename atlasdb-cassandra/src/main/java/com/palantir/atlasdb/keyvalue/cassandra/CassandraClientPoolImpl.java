@@ -357,16 +357,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void runOneTimeStartupChecks() {
-        CassandraKeyspaceConfig cassandraKeyspaceConfig = new CassandraKeyspaceConfig.Builder()
-                .keyspace(config.getKeyspaceOrThrow())
-                .schemaMutationTimeoutMillis(config.schemaMutationTimeoutMillis())
-                .cassandraServersConfigSupplier(config::servers)
-                .ignoreDatacenterConfigurationChecks(config.ignoreDatacenterConfigurationChecks())
-                .ignoreNodeTopologyChecks(config.ignoreNodeTopologyChecks())
-                .replicationFactorSupplier(config::replicationFactor)
-                .sslConfiguration(config.sslConfiguration())
-                .clientConfig(getCassandraClientConfig(config))
-                .build();
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = CassandraKeyspaceConfig.of(config);
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, cassandraKeyspaceConfig);
         } catch (Exception e) {
@@ -518,7 +509,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
         for (CassandraServer host : getCachedServers()) {
             try (CassandraClient client = CassandraClientFactory.getClientInternal(
-                    host.proxy(), getCassandraClientConfig(config), config.sslConfiguration())) {
+                    host.proxy(), CassandraClientConfig.of(config), config.sslConfiguration())) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {
@@ -598,15 +589,5 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     public enum StartupChecks {
         RUN,
         DO_NOT_RUN
-    }
-
-    private static CassandraClientConfig getCassandraClientConfig(CassandraKeyValueServiceConfig installConfig) {
-        return new CassandraClientConfig.Builder()
-                .credentials(installConfig.credentials())
-                .initialSocketQueryTimeoutMillis(installConfig.initialSocketQueryTimeoutMillis())
-                .socketQueryTimeoutMillis(installConfig.socketQueryTimeoutMillis())
-                .socketTimeoutMillis(installConfig.socketTimeoutMillis())
-                .usingSsl(installConfig.usingSsl())
-                .build();
     }
 }

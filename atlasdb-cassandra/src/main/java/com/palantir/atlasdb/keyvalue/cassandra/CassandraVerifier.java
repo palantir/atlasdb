@@ -440,23 +440,38 @@ public final class CassandraVerifier {
 
     // TODO(mdaudali) - this should be a refreshable instead of holding suppliers
     @Value.Immutable
-    public interface CassandraKeyspaceConfig {
-        String keyspace();
+    public static abstract class CassandraKeyspaceConfig {
+        public abstract String keyspace();
 
-        CassandraClientConfig clientConfig();
+        public abstract CassandraClientConfig clientConfig();
 
-        Supplier<CassandraServersConfig> cassandraServersConfigSupplier();
+        public abstract Supplier<CassandraServersConfig> cassandraServersConfigSupplier();
 
-        Supplier<Integer> replicationFactorSupplier();
+        public abstract Supplier<Integer> replicationFactorSupplier();
 
-        Optional<SslConfiguration> sslConfiguration();
+        public abstract Optional<SslConfiguration> sslConfiguration();
 
-        boolean ignoreNodeTopologyChecks();
+        public abstract boolean ignoreNodeTopologyChecks();
 
-        boolean ignoreDatacenterConfigurationChecks();
+        public abstract boolean ignoreDatacenterConfigurationChecks();
 
-        int schemaMutationTimeoutMillis();
+        public abstract int schemaMutationTimeoutMillis();
 
-        class Builder extends ImmutableCassandraKeyspaceConfig.Builder {}
+        static CassandraKeyspaceConfig of(CassandraKeyValueServiceConfig config) {
+            return builder()
+                    .keyspace(config.getKeyspaceOrThrow())
+                    .schemaMutationTimeoutMillis(config.schemaMutationTimeoutMillis())
+                    .cassandraServersConfigSupplier(config::servers)
+                    .ignoreDatacenterConfigurationChecks(config.ignoreDatacenterConfigurationChecks())
+                    .ignoreNodeTopologyChecks(config.ignoreNodeTopologyChecks())
+                    .replicationFactorSupplier(config::replicationFactor)
+                    .sslConfiguration(config.sslConfiguration())
+                    .clientConfig(CassandraClientConfig.of(config))
+                    .build();
+        }
+
+        static ImmutableCassandraKeyspaceConfig.Builder builder() {
+            return ImmutableCassandraKeyspaceConfig.builder();
+        }
     }
 }

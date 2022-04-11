@@ -31,6 +31,7 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
@@ -138,23 +139,38 @@ public class ClusterFactory {
     }
 
     @Value.Immutable
-    public interface CassandraClusterConfig {
-        CassandraCredentialsConfig credentials();
+    public abstract static class CassandraClusterConfig {
+        public abstract CassandraCredentialsConfig credentials();
 
-        int socketQueryTimeoutMillis();
+        public abstract int socketQueryTimeoutMillis();
 
-        boolean usingSsl();
+        public abstract boolean usingSsl();
 
-        Optional<SslConfiguration> sslConfiguration();
+        public abstract Optional<SslConfiguration> sslConfiguration();
 
-        int poolSize();
+        public abstract int poolSize();
 
-        int cqlPoolTimeoutMillis();
+        public abstract int cqlPoolTimeoutMillis();
 
-        boolean autoRefreshNodes();
+        public abstract boolean autoRefreshNodes();
 
-        int fetchBatchCount();
+        public abstract int fetchBatchCount();
 
-        class Builder extends ImmutableCassandraClusterConfig.Builder {}
+        public static ImmutableCassandraClusterConfig.Builder builder() {
+            return ImmutableCassandraClusterConfig.builder();
+        }
+
+        public static CassandraClusterConfig of(CassandraKeyValueServiceConfig config) {
+           return builder()
+                    .autoRefreshNodes(config.autoRefreshNodes())
+                    .cqlPoolTimeoutMillis(config.cqlPoolTimeoutMillis())
+                    .poolSize(config.poolSize())
+                    .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
+                    .credentials(config.credentials())
+                    .fetchBatchCount(config.fetchBatchCount())
+                    .usingSsl(config.usingSsl())
+                    .sslConfiguration(config.sslConfiguration())
+                    .build();
+        }
     }
 }

@@ -36,7 +36,7 @@ public class CassandraClientFactoryTest {
     private static final CassandraClientFactory FACTORY = new CassandraClientFactory(
             MetricsManagers.createForTests(),
             InetSocketAddress.createUnresolved("localhost", 4242),
-            new CassandraClientConfig.Builder()
+            CassandraClientConfig.builder()
                     .credentials(ImmutableCassandraCredentialsConfig.builder()
                             .username("jeremy")
                             .password("tom")

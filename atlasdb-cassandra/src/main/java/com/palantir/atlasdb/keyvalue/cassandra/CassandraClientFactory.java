@@ -19,6 +19,7 @@ import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -287,17 +288,29 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     @Value.Immutable
-    public interface CassandraClientConfig {
-        int socketTimeoutMillis();
+    public static abstract class CassandraClientConfig {
+        public abstract int socketTimeoutMillis();
 
-        int socketQueryTimeoutMillis();
+        public abstract int socketQueryTimeoutMillis();
 
-        int initialSocketQueryTimeoutMillis();
+        public abstract int initialSocketQueryTimeoutMillis();
 
-        boolean usingSsl();
+        public abstract boolean usingSsl();
 
-        CassandraCredentialsConfig credentials();
+        public abstract CassandraCredentialsConfig credentials();
 
-        class Builder extends ImmutableCassandraClientConfig.Builder {}
+        static CassandraClientConfig of(CassandraKeyValueServiceConfig config) {
+            return builder()
+                    .credentials(config.credentials())
+                    .initialSocketQueryTimeoutMillis(config.initialSocketQueryTimeoutMillis())
+                    .usingSsl(config.usingSsl())
+                    .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
+                    .socketTimeoutMillis(config.socketTimeoutMillis())
+                    .build();
+        }
+
+        static ImmutableCassandraClientConfig.Builder builder() {
+            return ImmutableCassandraClientConfig.builder();
+        }
     }
 }

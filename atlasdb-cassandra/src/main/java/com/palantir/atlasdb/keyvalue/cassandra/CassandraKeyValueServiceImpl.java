@@ -371,16 +371,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            CassandraClusterConfig clusterConfig = new CassandraClusterConfig.Builder()
-                    .autoRefreshNodes(config.autoRefreshNodes())
-                    .cqlPoolTimeoutMillis(config.cqlPoolTimeoutMillis())
-                    .poolSize(config.poolSize())
-                    .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
-                    .credentials(config.credentials())
-                    .fetchBatchCount(config.fetchBatchCount())
-                    .usingSsl(config.usingSsl())
-                    .sslConfiguration(config.sslConfiguration())
-                    .build();
+            CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config);
             Optional<AsyncKeyValueService> asyncKeyValueService = config.asyncKeyValueServiceFactory()
                     .constructAsyncKeyValueService(
                             metricsManager,

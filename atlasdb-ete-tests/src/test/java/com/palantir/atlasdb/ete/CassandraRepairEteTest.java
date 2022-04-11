@@ -105,7 +105,7 @@ public final class CassandraRepairEteTest {
         Function<Namespace, String> keyspaceFactory =
                 configFactory.andThen(CassandraKeyValueServiceConfig::getKeyspaceOrThrow);
         Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFunction =
-                configFactory.andThen(CassandraRepairEteTest::getClusterConfigFromInstallConfig);
+                configFactory.andThen(CassandraClusterConfig::of);
         Function<Namespace, Supplier<CassandraServersConfig>> cassandraServersConfigFactory =
                 configFactory.andThen(config -> config::servers);
         cassandraRepairHelper = new CassandraRepairHelper(
@@ -281,20 +281,5 @@ public final class CassandraRepairEteTest {
 
     private static FullyBoundedTimestampRange range(long lower, long upper) {
         return FullyBoundedTimestampRange.of(Range.closed(lower, upper));
-    }
-
-    private static CassandraClusterConfig getClusterConfigFromInstallConfig(CassandraKeyValueServiceConfig config) {
-        return new CassandraClusterConfig.Builder()
-                .autoRefreshNodes(config.autoRefreshNodes())
-                .usingSsl(config.usingSsl())
-                .sslConfiguration(config.sslConfiguration())
-                .cqlPoolTimeoutMillis(config.cqlPoolTimeoutMillis())
-                .credentials(config.credentials())
-                .fetchBatchCount(config.fetchBatchCount())
-                .poolSize(config.poolSize())
-                .autoRefreshNodes(config.autoRefreshNodes())
-                .usingSsl(config.usingSsl())
-                .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
-                .build();
     }
 }
