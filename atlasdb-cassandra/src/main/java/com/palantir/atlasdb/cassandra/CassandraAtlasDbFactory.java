@@ -74,10 +74,10 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
+            Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
         CassandraReloadableKvsConfig cassandraReloadableKvsConfig =
                 new CassandraReloadableKvsConfig(toCassandraConfig(config),
-                runtimeConfig);
+                        Refreshable.only(runtimeConfigSnapshot));
         return DerivedSnapshotConfig.builder()
                 .concurrentGetRangesThreadPoolSize(cassandraReloadableKvsConfig.concurrentGetRangesThreadPoolSize())
                 .defaultGetRangesConcurrencyOverride(cassandraReloadableKvsConfig.defaultGetRangesConcurrency())

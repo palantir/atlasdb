@@ -23,7 +23,6 @@ import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.refreshable.SettableRefreshable;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,7 +60,6 @@ public class CassandraAtlasDbFactoryTest {
     private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
     private static final KeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
-
     private static final CassandraAtlasDbFactory FACTORY = new CassandraAtlasDbFactory();
 
     @Test
@@ -165,38 +163,6 @@ public class CassandraAtlasDbFactoryTest {
     }
 
     @Test
-    public void derivedSnapshotConfigDoesNotReloadWhenRuntimeConfigReloads() {
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
-                .servers(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(SERVERS)
-                        .build())
-                .build();
-
-        CassandraKeyValueServiceRuntimeConfig updatedRuntimeConfig =
-                ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
-                        .servers(ImmutableDefaultConfig.builder()
-                                .addAllThriftHosts(SERVERS)
-                                .addThriftHosts(InetSocketAddress.createUnresolved("bar", 56))
-                                .build())
-                        .build();
-
-        SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> refreshableRuntimeConfig =
-                Refreshable.create(Optional.of(runtimeConfig));
-
-        DerivedSnapshotConfig derivedSnapshotConfig =
-                FACTORY.createDerivedSnapshotConfig(CONFIG_WITH_KEYSPACE, refreshableRuntimeConfig);
-
-        int previousConcurrentGetRangesThreadPoolSize = derivedSnapshotConfig.concurrentGetRangesThreadPoolSize();
-        int previousDefaultGetRangesConcurrency = derivedSnapshotConfig.defaultGetRangesConcurrency();
-
-        refreshableRuntimeConfig.update(Optional.of(updatedRuntimeConfig));
-
-        assertThat(derivedSnapshotConfig.concurrentGetRangesThreadPoolSize())
-                .isEqualTo(previousConcurrentGetRangesThreadPoolSize);
-        assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(previousDefaultGetRangesConcurrency);
-    }
-
-    @Test
     public void derivedSnapshotConfigDefaultGetRangesConcurrencyOverriddenWhenInstallOverrideIsPresent() {
         int defaultGetRangesConcurrencyOverride = 200;
         CassandraKeyValueServiceConfig installConfig = ImmutableCassandraKeyValueServiceConfig.builder()
@@ -204,7 +170,7 @@ public class CassandraAtlasDbFactoryTest {
                 .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
                 .build();
         DerivedSnapshotConfig derivedSnapshotConfig = FACTORY.createDerivedSnapshotConfig(
-                installConfig, Refreshable.only(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG)));
+                installConfig, Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
         assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(defaultGetRangesConcurrencyOverride);
     }
 }

@@ -73,7 +73,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 getKeyValueService(), tableReferenceOverride, initializeAsync);
         timestampStoreInvalidator =
                 () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService(), tableReferenceOverride);
-        derivedSnapshotConfig = atlasFactory.createDerivedSnapshotConfig(config, runtimeConfig);
+        derivedSnapshotConfig = atlasFactory.createDerivedSnapshotConfig(config, runtimeConfig.get());
     }
 
     public KeyValueService getKeyValueService() {

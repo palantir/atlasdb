@@ -155,27 +155,24 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     @Test
     public void mergedConfigPrioritisesInstallForConcurrentGetRangesThreadPoolSize() {
         CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentialsAndReplicationFactor()
-                .concurrentGetRangesThreadPoolSize(1)
+                .concurrentGetRangesThreadPoolSize(1234)
                 .build();
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(
                         config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
 
-        assertThat(reloadableConfig.get().concurrentGetRangesThreadPoolSize()).isEqualTo(1);
+        assertThat(reloadableConfig.get().concurrentGetRangesThreadPoolSize()).isEqualTo(1234);
     }
 
     @Test
     public void mergedConfigDerivesThreadPoolSizeIfInstallIsEmpty() {
-        int poolSize = 10;
+        int poolSize = 4321;
         CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentialsAndReplicationFactor()
                 .poolSize(poolSize)
                 .build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
-                runtimeConfigBuilder().servers(SERVERS_1).build();
-
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
-                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig));
+                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
 
         assertThat(reloadableConfig.get().concurrentGetRangesThreadPoolSize())
                 .isEqualTo(poolSize * SERVERS_1.numberOfThriftHosts());
@@ -206,7 +203,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
                         config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS));
 
         assertThat(reloadableConfig.get().defaultGetRangesConcurrency())
-                .isEqualTo(Math.min(8, reloadableConfig.get().concurrentGetRangesThreadPoolSize() / 2));
+                .isEqualTo(8);
     }
 
     private static ImmutableCassandraKeyValueServiceConfig.Builder

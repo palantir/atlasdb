@@ -64,18 +64,18 @@ public interface AtlasDbFactory {
 
     /**
      * Creates a {@link DerivedSnapshotConfig} that is derived from a {@link KeyValueServiceConfig}, and where
-     * necessary, an <b>initial</b> snapshot of a {@link KeyValueServiceRuntimeConfig}.
+     * necessary, a snapshot of a {@link KeyValueServiceRuntimeConfig}.
      *
      * Note: The resultant {@link DerivedSnapshotConfig} may not reflect any updates to the
      * {@link KeyValueServiceRuntimeConfig}
      *
      * @param config Static configuration.
-     * @param runtimeConfig Live-reloadable configuration.
+     * @param runtimeConfigSnapshot Snapshot of a live-reloadable configuration.
      * @return A DerivedSnapshotConfig that is derived from config and runtimeConfig.
      */
     DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig);
+            Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot);
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync);

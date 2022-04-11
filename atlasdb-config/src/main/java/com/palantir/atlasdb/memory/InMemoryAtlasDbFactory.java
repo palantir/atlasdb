@@ -83,7 +83,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Override
     public DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
+            Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
         InMemoryAtlasDbConfig inMemoryAtlasDbConfig = (InMemoryAtlasDbConfig) config;
         return DerivedSnapshotConfig.builder()
                 .concurrentGetRangesThreadPoolSize(inMemoryAtlasDbConfig.concurrentGetRangesThreadPoolSize())

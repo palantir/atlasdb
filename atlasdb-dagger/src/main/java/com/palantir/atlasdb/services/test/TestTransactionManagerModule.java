@@ -103,7 +103,7 @@ public class TestTransactionManagerModule {
         Optional<KeyValueServiceRuntimeConfig> keyValueServiceRuntimeConfig = atlasDbRuntimeConfig.keyValueService();
         AtlasDbFactory atlasDbFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(keyValueServiceConfig);
         return atlasDbFactory.createDerivedSnapshotConfig(
-                keyValueServiceConfig, Refreshable.only(keyValueServiceRuntimeConfig));
+                keyValueServiceConfig, keyValueServiceRuntimeConfig);
     }
 
     @Provides
