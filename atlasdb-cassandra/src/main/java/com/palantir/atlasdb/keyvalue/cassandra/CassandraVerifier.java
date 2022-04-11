@@ -440,7 +440,7 @@ public final class CassandraVerifier {
 
     // TODO(mdaudali) - this should be a refreshable instead of holding suppliers
     @Value.Immutable
-    public static abstract class CassandraKeyspaceConfig {
+    public abstract static class CassandraKeyspaceConfig {
         public abstract String keyspace();
 
         public abstract CassandraClientConfig clientConfig();

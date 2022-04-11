@@ -288,7 +288,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     @Value.Immutable
-    public static abstract class CassandraClientConfig {
+    public abstract static class CassandraClientConfig {
         public abstract int socketTimeoutMillis();
 
         public abstract int socketQueryTimeoutMillis();

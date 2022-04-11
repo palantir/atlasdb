@@ -161,7 +161,7 @@ public class ClusterFactory {
         }
 
         public static CassandraClusterConfig of(CassandraKeyValueServiceConfig config) {
-           return builder()
+            return builder()
                     .autoRefreshNodes(config.autoRefreshNodes())
                     .cqlPoolTimeoutMillis(config.cqlPoolTimeoutMillis())
                     .poolSize(config.poolSize())
