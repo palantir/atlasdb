@@ -20,70 +20,71 @@ import static com.palantir.logsafe.Preconditions.checkArgument;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
-import org.immutables.value.Value;
 
-@Value.Immutable
-@SuppressWarnings("immutables:subtype")
-public abstract class CassandraReloadableKeyValueServiceRuntimeConfig
+public final class CassandraReloadableKeyValueServiceRuntimeConfig
         extends ForwardingCassandraKeyValueServiceRuntimeConfig {
 
-    @Value.Parameter
-    abstract CassandraKeyValueServiceConfig installConfig();
+    private final CassandraKeyValueServiceConfig installConfig;
+    private final CassandraKeyValueServiceRuntimeConfig runtimeConfig;
 
-    @Value.Parameter
-    abstract CassandraKeyValueServiceRuntimeConfig runtimeConfig();
+    private CassandraReloadableKeyValueServiceRuntimeConfig(
+            CassandraKeyValueServiceConfig installConfig, CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
+        this.installConfig = installConfig;
+        this.runtimeConfig = runtimeConfig;
+    }
 
     static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
             CassandraKeyValueServiceConfig installConfig,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
         return runtimeConfigRefreshable.map(runtimeConfig ->
-                ImmutableCassandraReloadableKeyValueServiceRuntimeConfig.of(installConfig, runtimeConfig));
+                validate(new CassandraReloadableKeyValueServiceRuntimeConfig(installConfig, runtimeConfig)));
     }
 
     @Override
-    @Value.Derived
     public CassandraKeyValueServiceRuntimeConfig delegate() {
-        return runtimeConfig();
+        return runtimeConfig;
     }
 
     @Override
-    @Value.Derived
     public CassandraServersConfig servers() {
-        if (installConfig().servers().numberOfThriftHosts() > 0) {
-            return installConfig().servers();
+        if (installConfig.servers().numberOfThriftHosts() > 0) {
+            return installConfig.servers();
         }
-        return runtimeConfig().servers();
+        return runtimeConfig.servers();
     }
 
-    @Value.Derived
     public int concurrentGetRangesThreadPoolSize() {
-        if (installConfig().concurrentGetRangesThreadPoolSize() > 0) {
-            return installConfig().concurrentGetRangesThreadPoolSize();
+        if (installConfig.concurrentGetRangesThreadPoolSize() > 0) {
+            return installConfig.concurrentGetRangesThreadPoolSize();
         }
-        return installConfig().poolSize() * servers().numberOfThriftHosts();
+        return installConfig.poolSize() * servers().numberOfThriftHosts();
     }
 
-    @Value.Derived
     public int defaultGetRangesConcurrency() {
-        if (installConfig().defaultGetRangesConcurrency() > 0) {
-            return installConfig().defaultGetRangesConcurrency();
+        if (installConfig.defaultGetRangesConcurrency() > 0) {
+            return installConfig.defaultGetRangesConcurrency();
         }
         return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
     }
 
-    @Value.Check
-    void checkPositiveNumberOfThriftHosts() {
+    private void checkPositiveNumberOfThriftHosts() {
         checkArgument(servers().numberOfThriftHosts() > 0, "'servers' must have at least one defined host");
     }
 
-    @Value.Check
-    void checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool() {
-        installConfig()
+    private void checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool() {
+        installConfig
                 .sharedResourcesConfig()
                 .ifPresent(config -> checkArgument(
                         config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
                         "If set, shared get ranges pool size must not be less than individual pool size.",
                         SafeArg.of("shared", config.sharedGetRangesPoolSize()),
                         SafeArg.of("individual", concurrentGetRangesThreadPoolSize())));
+    }
+
+    private static CassandraReloadableKeyValueServiceRuntimeConfig validate(
+            CassandraReloadableKeyValueServiceRuntimeConfig instance) {
+        instance.checkPositiveNumberOfThriftHosts();
+        instance.checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool();
+        return instance;
     }
 }
