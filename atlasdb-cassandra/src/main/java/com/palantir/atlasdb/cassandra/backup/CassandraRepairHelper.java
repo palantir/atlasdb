@@ -24,11 +24,12 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.KvsRunner;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -44,6 +45,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class CassandraRepairHelper {
@@ -52,14 +54,21 @@ public class CassandraRepairHelper {
     private static final Set<TableReference> TABLES_TO_REPAIR =
             Sets.union(ImmutableSet.of(AtlasDbConstants.COORDINATION_TABLE), TargetedSweepTables.REPAIR_ON_RESTORE);
 
-    private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
+    private final Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory;
+    private final Function<Namespace, Supplier<CassandraServersConfig>> cassandraServersConfigSupplierFactory;
+    private final Function<Namespace, String> keyspaceFactory;
     private final LoadingCache<Namespace, CqlCluster> cqlClusters;
     private final KvsRunner kvsRunner;
 
     public CassandraRepairHelper(
-            KvsRunner kvsRunner, Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
+            KvsRunner kvsRunner,
+            Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory,
+            Function<Namespace, Supplier<CassandraServersConfig>> cassandraServersConfigSupplierFactory,
+            Function<Namespace, String> keyspaceFactory) {
         this.kvsRunner = kvsRunner;
-        this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
+        this.cassandraClusterConfigFactory = cassandraClusterConfigFactory;
+        this.cassandraServersConfigSupplierFactory = cassandraServersConfigSupplierFactory;
+        this.keyspaceFactory = keyspaceFactory;
 
         this.cqlClusters = Caffeine.newBuilder()
                 .maximumSize(100)
@@ -78,8 +87,12 @@ public class CassandraRepairHelper {
     }
 
     private CqlCluster getCqlClusterUncached(Namespace namespace) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        return CqlCluster.create(config);
+        CassandraClusterConfig cassandraClusterConfig = cassandraClusterConfigFactory.apply(namespace);
+        Supplier<CassandraServersConfig> cassandraServersConfigSupplier =
+                cassandraServersConfigSupplierFactory.apply(namespace);
+        String keyspace = keyspaceFactory.apply(namespace);
+
+        return CqlCluster.create(cassandraClusterConfig, cassandraServersConfigSupplier, keyspace);
     }
 
     public void repairInternalTables(Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -195,6 +196,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.copyOf(
                         CASSANDRA.getConfig())
                 .withSchemaMutationTimeoutMillis(millis);
-        return CassandraKeyValueServiceImpl.createForTesting(config);
+        return CassandraKeyValueServiceImpl.createForTesting(config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault);
     }
 }

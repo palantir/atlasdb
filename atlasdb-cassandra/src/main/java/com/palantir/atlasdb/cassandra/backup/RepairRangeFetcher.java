@@ -21,8 +21,8 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.common.streams.KeyedStream;
@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 final class RepairRangeFetcher {
@@ -42,26 +43,28 @@ final class RepairRangeFetcher {
 
     private final CqlSession cqlSession;
     private final CqlMetadata cqlMetadata;
-    private final CassandraKeyValueServiceConfig config;
+    private final String keyspace;
+    private final Supplier<CassandraServersConfig> cassandraServersConfigSupplier;
 
-    public RepairRangeFetcher(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
+    public RepairRangeFetcher(CqlSession cqlSession, String keyspace,
+            Supplier<CassandraServersConfig> cassandraServersConfigSupplier) {
         this.cqlSession = cqlSession;
         this.cqlMetadata = cqlSession.getMetadata();
-        this.config = config;
+        this.keyspace = keyspace;
+        this.cassandraServersConfigSupplier = cassandraServersConfigSupplier;
     }
 
     public Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> getTransactionTableRangesForRepair(
             List<TransactionsTableInteraction> transactionsTableInteractions) {
-        String keyspaceName = config.getKeyspaceOrThrow();
 
         Map<String, Set<LightweightOppToken>> partitionKeysByTable =
-                getPartitionTokensByTable(transactionsTableInteractions, keyspaceName);
+                getPartitionTokensByTable(transactionsTableInteractions, keyspace);
 
         maybeLogTokenRanges(transactionsTableInteractions, partitionKeysByTable);
 
-        Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(config);
+        Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(cassandraServersConfigSupplier.get());
         return KeyedStream.stream(partitionKeysByTable)
-                .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, cqlMetadata, keyspaceName, ranges))
+                .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, cqlMetadata, keyspace, ranges))
                 .collectToMap();
     }
 

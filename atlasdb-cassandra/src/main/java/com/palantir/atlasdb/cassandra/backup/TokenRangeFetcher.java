@@ -24,8 +24,8 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.logsafe.SafeArg;
@@ -35,6 +35,7 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 final class TokenRangeFetcher {
     private static final SafeLogger log = SafeLoggerFactory.get(TokenRangeFetcher.class);
@@ -45,30 +46,33 @@ final class TokenRangeFetcher {
 
     private final CqlSession cqlSession;
     private final CqlMetadata cqlMetadata;
-    private final CassandraKeyValueServiceConfig config;
+    private final String keyspace;
+    private final Supplier<CassandraServersConfig> cassandraServersConfigSupplier;
 
-    public TokenRangeFetcher(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
-        this.config = config;
+    public TokenRangeFetcher(CqlSession cqlSession, String keyspace,
+            Supplier<CassandraServersConfig> cassandraServersConfigSupplier) {
+        this.keyspace = keyspace;
+        this.cassandraServersConfigSupplier = cassandraServersConfigSupplier;
         this.cqlSession = cqlSession;
         this.cqlMetadata = cqlSession.getMetadata();
     }
 
     public Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRange(String tableName) {
-        String keyspaceName = config.getKeyspaceOrThrow();
-        KeyspaceMetadata keyspace = cqlMetadata.getKeyspaceMetadata(keyspaceName);
-        TableMetadata tableMetadata = keyspace.getTable(tableName);
+        KeyspaceMetadata keyspaceMetadata = cqlMetadata.getKeyspaceMetadata(keyspace);
+        TableMetadata tableMetadata = keyspaceMetadata.getTable(tableName);
 
         if (tableMetadata == null) {
             log.error(
                     "Could not find metadata for table that is supposed to exist",
-                    SafeArg.of("keyspace", keyspaceName),
+                    SafeArg.of("keyspace", keyspace),
                     SafeArg.of("tableName", tableName));
             return ImmutableMap.of();
         }
 
         Set<LightweightOppToken> partitionTokens = getPartitionTokens(tableMetadata);
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode = ClusterMetadataUtils.getTokenMapping(
-                CassandraServersConfigs.getCqlHosts(config), cqlMetadata, keyspaceName, partitionTokens);
+                CassandraServersConfigs.getCqlHosts(cassandraServersConfigSupplier.get()), cqlMetadata, keyspace,
+                partitionTokens);
 
         if (!partitionTokens.isEmpty() && log.isDebugEnabled()) {
             int numTokenRanges = tokenRangesByNode.values().stream()
@@ -77,7 +81,7 @@ final class TokenRangeFetcher {
 
             log.debug(
                     "Identified token ranges requiring repair",
-                    SafeArg.of("keyspace", keyspace),
+                    SafeArg.of("keyspace", keyspaceMetadata),
                     SafeArg.of("table", tableName),
                     SafeArg.of("numPartitionKeys", partitionTokens.size()),
                     SafeArg.of("numTokenRanges", numTokenRanges));

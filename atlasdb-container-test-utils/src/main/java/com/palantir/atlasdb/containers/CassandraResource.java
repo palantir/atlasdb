@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.containers;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -39,7 +40,8 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     private Proxy socksProxy;
 
     public CassandraResource() {
-        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(getConfig());
+        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(getConfig(),
+                ImmutableCassandraKeyValueServiceRuntimeConfig::getDefault);
     }
 
     public CassandraResource(Supplier<KeyValueService> supplier) {

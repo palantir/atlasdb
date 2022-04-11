@@ -24,10 +24,14 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraKeyspaceConfig;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.function.Supplier;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
@@ -47,7 +51,6 @@ public class CassandraVerifierTest {
     private static final String RACK_3 = "test_rack3";
 
     private CassandraClient client = mock(CassandraClient.class);
-    private CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
 
     @Before
     public void beforeEach() {
@@ -56,211 +59,251 @@ public class CassandraVerifierTest {
 
     @Test
     public void unsetTopologyAndHighRfThrows() throws TException {
-        setTopology(defaultTopology(HOST_1), defaultTopology(HOST_2));
-        when(config.replicationFactor()).thenReturn(3);
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(defaultTopology(HOST_1),
+                defaultTopology(HOST_2));
+        int replicationFactor = 3;
+        boolean ignoreNodeTopologyChecks = false;
 
-        assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(client, config))
+        assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(client, serversConfigSupplier, () -> replicationFactor,
+                ignoreNodeTopologyChecks))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void unsetTopologyAndRfOneSucceeds() throws TException {
-        setTopology(defaultTopology(HOST_1), defaultTopology(HOST_2));
-        when(config.replicationFactor()).thenReturn(1);
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(defaultTopology(HOST_1),
+                defaultTopology(HOST_2));
+        int replicationFactor = 1;
+        boolean ignoreNodeTopologyChecks = false;
 
-        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config))
+        assertThat(CassandraVerifier.sanityCheckDatacenters(client, serversConfigSupplier, () -> replicationFactor,
+                ignoreNodeTopologyChecks))
                 .containsExactly(CassandraConstants.DEFAULT_DC);
     }
 
     @Test
     public void nonDefaultDcAndHighRfSucceeds() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1));
-        when(config.replicationFactor()).thenReturn(3);
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(createDetails(DC_1, RACK_1, HOST_1));
+        int replicationFactor = 3;
+        boolean ignoreNodeTopologyChecks = false;
+        setTopologyAndGetServersSupplier(createDetails(DC_1, RACK_1, HOST_1));
 
-        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config)).containsExactly(DC_1);
+        assertThat(CassandraVerifier.sanityCheckDatacenters(client, serversConfigSupplier, () -> replicationFactor,
+                ignoreNodeTopologyChecks)).containsExactly(DC_1);
     }
 
     @Test
     public void oneDcOneRackAndMoreHostsThanRfThrows() throws TException {
-        setTopology(
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(
                 createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_1, RACK_1, HOST_4));
-        when(config.replicationFactor()).thenReturn(3);
+        int replicationFactor = 3;
+        boolean ignoreNodeTopologyChecks = false;
 
-        assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(client, config))
+        assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(client, serversConfigSupplier,
+                () -> replicationFactor, ignoreNodeTopologyChecks))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void moreDcsPresentThanInStrategyOptionsSucceeds() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1));
-        when(config.replicationFactor()).thenReturn(3);
-
-        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, config);
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(createDetails(DC_1, RACK_1, HOST_1));
+        int replicationFactor = 3;
+        CassandraKeyspaceConfig cassandraKeyspaceConfig =
+                getCassandraKeyspaceConfigBuilderWithDefaults().cassandraServersConfigSupplier(serversConfigSupplier).replicationFactorSupplier(() -> replicationFactor).build();
+        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, cassandraKeyspaceConfig);
         CassandraVerifier.sanityCheckedDatacenters.invalidateAll();
         CassandraVerifier.sanityCheckedDatacenters.cleanUp();
-        setTopology(createDetails(DC_1, RACK_1, HOST_1), createDetails(DC_2, RACK_2, HOST_2));
+        setTopologyAndGetServersSupplier(createDetails(DC_1, RACK_1, HOST_1), createDetails(DC_2, RACK_2, HOST_2));
 
-        assertThatCode(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config))
+        assertThatCode(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraKeyspaceConfig))
                 .as("strategy options should only contain info for DC_1 but should not throw despite detecting two DCs")
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void oneDcFewerRacksThanRfAndMoreHostsThanRfThrows() throws TException {
-        setTopology(
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(
                 defaultDcDetails(RACK_1, HOST_1),
                 defaultDcDetails(RACK_2, HOST_2),
                 defaultDcDetails(RACK_1, HOST_3),
                 defaultDcDetails(RACK_2, HOST_4));
-        when(config.replicationFactor()).thenReturn(3);
-
-        assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(client, config))
+        int replicationFactor = 3;
+        boolean ignoreNodeTopologyChecks = false;
+        assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(client, serversConfigSupplier,
+                () -> replicationFactor, ignoreNodeTopologyChecks))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void oneDcMoreRacksThanRfAndMoreHostsThanRfSucceeds() throws TException {
-        setTopology(
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(
                 defaultDcDetails(RACK_1, HOST_1),
                 defaultDcDetails(RACK_2, HOST_2),
                 defaultDcDetails(RACK_1, HOST_3),
                 defaultDcDetails(RACK_3, HOST_4));
-        when(config.replicationFactor()).thenReturn(2);
-
-        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config))
+        int replicationFactor = 2;
+        boolean ignoreNodeTopologyChecks = false;
+        ;
+        assertThat(CassandraVerifier.sanityCheckDatacenters(client, serversConfigSupplier, () -> replicationFactor,
+                ignoreNodeTopologyChecks))
                 .containsExactly(CassandraConstants.DEFAULT_DC);
     }
 
     @Test
     public void oneDcFewerRacksThanRfAndFewerHostsThanRfSucceeds() throws TException {
-        setTopology(
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(
                 defaultDcDetails(RACK_1, HOST_1),
                 defaultDcDetails(RACK_2, HOST_2),
                 defaultDcDetails(RACK_1, HOST_2),
                 defaultDcDetails(RACK_2, HOST_1));
-        when(config.replicationFactor()).thenReturn(3);
+        int replicationFactor = 3;
+        boolean ignoreNodeTopologyChecks = false;
 
-        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config))
+        assertThat(CassandraVerifier.sanityCheckDatacenters(client, serversConfigSupplier, () -> replicationFactor,
+                ignoreNodeTopologyChecks))
                 .containsExactly(CassandraConstants.DEFAULT_DC);
     }
 
     @Test
     public void multipleDcSuceeds() throws TException {
-        setTopology(
+        Supplier<CassandraServersConfig> serversConfigSupplier =  setTopologyAndGetServersSupplier(
                 createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
-        when(config.replicationFactor()).thenReturn(3);
+        int replicationFactor = 3;
+        boolean ignoreNodeTopologyChecks = false;
 
-        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config)).containsExactlyInAnyOrder(DC_1, DC_2);
+        assertThat(CassandraVerifier.sanityCheckDatacenters(client, serversConfigSupplier,
+                () -> replicationFactor, ignoreNodeTopologyChecks)).containsExactlyInAnyOrder(DC_1, DC_2);
     }
 
     @Test
     public void freshInstanceSetsStrategyOptions() throws TException {
-        setTopology(
+        Supplier<CassandraServersConfig> serversConfigSupplier =  setTopologyAndGetServersSupplier(
                 createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
-        when(config.replicationFactor()).thenReturn(3);
+        int replicationFactor = 3;
+        CassandraKeyspaceConfig cassandraKeyspaceConfig =
+                getCassandraKeyspaceConfigBuilderWithDefaults().cassandraServersConfigSupplier(serversConfigSupplier)
+                        .replicationFactorSupplier(() -> replicationFactor).build();
 
-        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, config);
+        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, cassandraKeyspaceConfig);
         assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(DC_1, "3", DC_2, "3"));
     }
 
     @Test
     public void simpleStrategyOneDcOneRfSucceedsAndUpdatesKsDef() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1));
-        when(config.replicationFactor()).thenReturn(1);
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(createDetails(DC_1,
+                RACK_1, HOST_1));
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
+                .cassandraServersConfigSupplier(serversConfigSupplier)
+                        .replicationFactorSupplier(() -> 1)
+                                .build();
+
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ImmutableMap<String, String> strategyOptions =
                 ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1");
         ksDef.setStrategy_options(strategyOptions);
 
-        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
+        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraKeyspaceConfig);
         assertThat(ksDef.strategy_class).isEqualTo(CassandraConstants.NETWORK_STRATEGY);
         assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(DC_1, "1"));
     }
 
     @Test
     public void simpleStrategyOneDcHighRfThrows() throws TException {
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
+                .cassandraServersConfigSupplier(() -> ImmutableDefaultConfig.of())
+                .replicationFactorSupplier(() -> 3)
+                .build();
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "3"));
 
-        assertThatThrownBy(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config))
+        assertThatThrownBy(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraKeyspaceConfig))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void simpleStrategyMultipleDcsThrows() throws TException {
-        setTopology(
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(
                 createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
-        when(config.replicationFactor()).thenReturn(1);
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
+                .cassandraServersConfigSupplier(serversConfigSupplier)
+                        .replicationFactorSupplier(() -> 1).build();
+
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1"));
 
-        assertThatThrownBy(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config))
+        assertThatThrownBy(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraKeyspaceConfig))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void returnSameKsDefIfNodeTopologyChecksIgnored() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1));
-        when(config.replicationFactor()).thenReturn(7);
-        when(config.ignoreNodeTopologyChecks()).thenReturn(true);
+        Supplier<CassandraServersConfig> serversConfigSupplier = setTopologyAndGetServersSupplier(createDetails(DC_1, RACK_1, HOST_1));
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
+                .cassandraServersConfigSupplier(serversConfigSupplier)
+                        .replicationFactorSupplier(() -> 7)
+                        .ignoreNodeTopologyChecks(true)
+                        .build();
+
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ImmutableMap<String, String> strategyOptions =
                 ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1", DC_1, "7");
         ksDef.setStrategy_options(strategyOptions);
 
-        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
+        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraKeyspaceConfig);
         assertThat(ksDef.strategy_class).isEqualTo(CassandraConstants.SIMPLE_STRATEGY);
         assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(strategyOptions);
     }
 
     @Test
     public void networkStrategyMultipleDcsSucceeds() throws TException {
-        setTopology(
+        Supplier<CassandraServersConfig> serversConfigSupplier =  setTopologyAndGetServersSupplier(
                 createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
-        when(config.replicationFactor()).thenReturn(3);
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
+                .cassandraServersConfigSupplier(serversConfigSupplier)
+                .replicationFactorSupplier(() -> 3)
+                .build();
+
         KsDef ksDef = new KsDef("test", CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
         ImmutableMap<String, String> strategyOptions =
                 ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "3", DC_1, "3", DC_2, "3");
         ksDef.setStrategy_options(strategyOptions);
 
-        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
+        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraKeyspaceConfig);
         assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(strategyOptions);
     }
 
     @Test
     public void differentRfThanConfigThrows() {
+        int replicationFactor = 1;
+        boolean ignoreDatacentreConfigurationChecks = false;
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(DC_1, "1", DC_2, "2"));
-        when(config.replicationFactor()).thenReturn(1);
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
-                        ksDef, config, ImmutableSortedSet.of(DC_1, DC_2)))
+                        ksDef, ignoreDatacentreConfigurationChecks, () -> replicationFactor, ImmutableSortedSet.of(DC_1, DC_2)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    private void setTopology(EndpointDetails... details) throws TException {
+    private Supplier<CassandraServersConfig> setTopologyAndGetServersSupplier(EndpointDetails... details)
+            throws TException {
         when(client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE))
                 .thenReturn(ImmutableList.of(mockRangeWithDetails(details)));
-        when(config.servers())
-                .thenReturn(ImmutableDefaultConfig.builder()
-                        .addThriftHosts(InetSocketAddress.createUnresolved(HOST_1, 8080))
-                        .build());
-    }
-
+        return ImmutableDefaultConfig.builder().addThriftHosts(InetSocketAddress.createUnresolved(HOST_1, 8080))::build;
+}
     private TokenRange mockRangeWithDetails(EndpointDetails... details) {
         TokenRange mockRange = new TokenRange();
         mockRange.setEndpoint_details(Arrays.asList(details));
@@ -278,5 +321,29 @@ public class CassandraVerifierTest {
     private EndpointDetails createDetails(String dc, String rack, String host) {
         EndpointDetails details = new EndpointDetails(host, dc);
         return details.setRack(rack);
+    }
+
+    private CassandraClientConfig.Builder getCassandraClientConfigBuilderWithDefaults() {
+        return new CassandraClientConfig.Builder().credentials(
+                mock(CassandraCredentialsConfig.class)
+        )
+                .initialSocketQueryTimeoutMillis(0)
+                .usingSsl(false)
+                .socketQueryTimeoutMillis(0)
+                .socketTimeoutMillis(0);
+    }
+
+    private CassandraKeyspaceConfig.Builder getCassandraKeyspaceConfigBuilderWithDefaults() {
+        return getCassandraKeyspaceConfigBuilderWithDefaults(
+                getCassandraClientConfigBuilderWithDefaults().build()
+        );
+    }
+    private CassandraKeyspaceConfig.Builder getCassandraKeyspaceConfigBuilderWithDefaults(CassandraClientConfig cassandraClientConfig) {
+        return new CassandraKeyspaceConfig.Builder()
+                .clientConfig(cassandraClientConfig)
+                .keyspace("test")
+                .ignoreNodeTopologyChecks(false)
+                .ignoreDatacenterConfigurationChecks(false)
+                .schemaMutationTimeoutMillis(0);
     }
 }

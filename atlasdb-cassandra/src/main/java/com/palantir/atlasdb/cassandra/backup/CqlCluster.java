@@ -18,29 +18,38 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Cluster;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public final class CqlCluster implements Closeable {
     private final Cluster cluster;
-    private final CassandraKeyValueServiceConfig config;
+    private final CassandraClusterConfig cassandraClusterConfig;
+    private final Supplier<CassandraServersConfig> cassandraServersConfigSupplier;
+    private final String keyspace;
 
     // VisibleForTesting
-    public CqlCluster(Cluster cluster, CassandraKeyValueServiceConfig config) {
+    public CqlCluster(Cluster cluster, CassandraClusterConfig cassandraClusterConfig,
+            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
+        String keyspace) {
         this.cluster = cluster;
-        this.config = config;
+        this.cassandraClusterConfig = cassandraClusterConfig;
+        this.cassandraServersConfigSupplier = cassandraServersConfigSupplier;
+        this.keyspace = keyspace;
     }
 
-    public static CqlCluster create(CassandraKeyValueServiceConfig config) {
-        Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
-        return new CqlCluster(cluster, config);
+    public static CqlCluster create(CassandraClusterConfig cassandraClusterConfig,
+            Supplier<CassandraServersConfig> cassandraServersConfigSupplier, String keyspace) {
+        Cluster cluster = new ClusterFactory(Cluster::builder).constructCluster(cassandraClusterConfig, cassandraServersConfigSupplier);
+        return new CqlCluster(cluster, cassandraClusterConfig, cassandraServersConfigSupplier, keyspace);
     }
 
     @Override
@@ -50,21 +59,21 @@ public final class CqlCluster implements Closeable {
 
     public Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRanges(String tableName) {
         try (CqlSession session = new CqlSession(cluster.connect())) {
-            return new TokenRangeFetcher(session, config).getTokenRange(tableName);
+            return new TokenRangeFetcher(session, keyspace, cassandraServersConfigSupplier).getTokenRange(tableName);
         }
     }
 
     public Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> getTransactionsTableRangesForRepair(
             List<TransactionsTableInteraction> transactionsTableInteractions) {
         try (CqlSession session = new CqlSession(cluster.connect())) {
-            return new RepairRangeFetcher(session, config)
+            return new RepairRangeFetcher(session, keyspace, cassandraServersConfigSupplier)
                     .getTransactionTableRangesForRepair(transactionsTableInteractions);
         }
     }
 
     public void abortTransactions(long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
         try (CqlSession session = new CqlSession(cluster.connect())) {
-            new TransactionAborter(session, config).abortTransactions(timestamp, transactionsTableInteractions);
+            new TransactionAborter(session, keyspace).abortTransactions(timestamp, transactionsTableInteractions);
         }
     }
 }

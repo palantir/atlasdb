@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -73,7 +74,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetFallBackNotNeeded() {
-        when(factory.constructAsyncKeyValueService(any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
+        when(factory.constructAsyncKeyValueService(any(), any(), any(),
+                any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(Optional.of(asyncKeyValueService));
 
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
@@ -81,7 +83,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = CassandraKeyValueServiceImpl.createForTesting(config);
+        keyValueService = CassandraKeyValueServiceImpl.createForTesting(config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault);
         keyValueService.getAsync(TEST_TABLE, ImmutableMap.of(CELL, 3L));
 
         verify(asyncKeyValueService, times(1)).getAsync(any(), any());
@@ -89,7 +92,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetFallingBackToSynchronous() {
-        when(factory.constructAsyncKeyValueService(any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
+        when(factory.constructAsyncKeyValueService(any(), any(), any(),
+                any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(Optional.empty());
 
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
@@ -97,7 +101,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = CassandraKeyValueServiceImpl.createForTesting(config);
+        keyValueService = CassandraKeyValueServiceImpl.createForTesting(config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault);
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, ImmutableMap.of(CELL, 3L));

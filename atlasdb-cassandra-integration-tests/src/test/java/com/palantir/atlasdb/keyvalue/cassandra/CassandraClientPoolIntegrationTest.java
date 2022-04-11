@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -56,7 +57,9 @@ public class CassandraClientPoolIntegrationTest {
         blacklist = new Blacklist(CASSANDRA.getConfig());
         modifiedReplicationFactor = CASSANDRA.getConfig().replicationFactor() + 1;
         clientPool = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+                metricsManager, CASSANDRA.getConfig(),
+                CassandraKeyValueServiceRuntimeConfig::getDefault, CassandraClientPoolImpl.StartupChecks.RUN,
+                blacklist);
     }
 
     @Test
@@ -95,7 +98,8 @@ public class CassandraClientPoolIntegrationTest {
                 .build();
 
         CassandraClientPoolImpl clientPoolWithLocation = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+                metricsManager, configHostWithLocation,CassandraKeyValueServiceRuntimeConfig::getDefault,
+                CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
 
         return clientPoolWithLocation.getLocalHosts();
     }
@@ -104,7 +108,9 @@ public class CassandraClientPoolIntegrationTest {
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CASSANDRA.getConfig());
+                CassandraKeyValueServiceConfig config = CASSANDRA.getConfig();
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, config.getKeyspaceOrThrow(),
+                        config::servers, config::replicationFactor, config.ignoreNodeTopologyChecks(), config.ignoreDatacenterConfigurationChecks());
             } catch (TException e) {
                 fail("currentRf On Keyspace does not Match DesiredRf");
             }
@@ -116,10 +122,14 @@ public class CassandraClientPoolIntegrationTest {
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorInConfig() {
         clientPool.run(client -> {
             try {
+                CassandraKeyValueServiceConfig config = CASSANDRA.getConfig();
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
                         client,
-                        ImmutableCassandraKeyValueServiceConfig.copyOf(CASSANDRA.getConfig())
-                                .withReplicationFactor(modifiedReplicationFactor));
+                        config.getKeyspaceOrThrow(),
+                        config::servers,
+                        () -> modifiedReplicationFactor,
+                        config.ignoreNodeTopologyChecks(),
+                        config.ignoreDatacenterConfigurationChecks());
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);
@@ -133,7 +143,9 @@ public class CassandraClientPoolIntegrationTest {
         changeReplicationFactor(modifiedReplicationFactor);
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CASSANDRA.getConfig());
+                CassandraKeyValueServiceConfig config = CASSANDRA.getConfig();
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, config.getKeyspaceOrThrow(),
+                        config::servers, config::replicationFactor, config.ignoreNodeTopologyChecks(), config.ignoreDatacenterConfigurationChecks());
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);

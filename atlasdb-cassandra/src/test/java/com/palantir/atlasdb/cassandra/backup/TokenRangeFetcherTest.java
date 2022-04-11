@@ -68,7 +68,7 @@ public class TokenRangeFetcherTest {
         when(cqlSession.retrieveRowKeysAtConsistencyAll(anyList()))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.TOKEN_1, BackupTestUtils.TOKEN_2, BackupTestUtils.TOKEN_3));
 
-        tokenRangeFetcher = new TokenRangeFetcher(cqlSession, config);
+        tokenRangeFetcher = new TokenRangeFetcher(cqlSession, config.getKeyspaceOrThrow(), config::servers);
     }
 
     @Test

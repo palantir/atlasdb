@@ -29,6 +29,7 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
@@ -76,9 +77,10 @@ public class CassandraService implements AutoCloseable {
             Interners.newWeakInterner();
 
     private final MetricsManager metricsManager;
-    private final CassandraKeyValueServiceConfig config;
+    private final CassandraKeyValueServiceConfig installConfig;
     private final Blacklist blacklist;
     private final CassandraClientPoolMetrics poolMetrics;
+    private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
 
     private volatile RangeMap<LightweightOppToken, List<CassandraServer>> tokenMap = ImmutableRangeMap.of();
     private final Map<CassandraServer, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
@@ -94,13 +96,15 @@ public class CassandraService implements AutoCloseable {
 
     public CassandraService(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            CassandraKeyValueServiceConfig installConfig,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
-        this.config = config;
+        this.installConfig = installConfig;
+        this.runtimeConfigSupplier = runtimeConfigSupplier;
         this.myLocationSupplier =
-                AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation()));
+                AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, installConfig.overrideHostLocation()));
         this.blacklist = blacklist;
         this.poolMetrics = poolMetrics;
 
@@ -110,10 +114,12 @@ public class CassandraService implements AutoCloseable {
 
     public static CassandraService createInitialized(
             MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
+            CassandraKeyValueServiceConfig installConfig,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
-        CassandraService cassandraService = new CassandraService(metricsManager, config, blacklist, poolMetrics);
+        CassandraService cassandraService = new CassandraService(metricsManager, installConfig, runtimeConfigSupplier, blacklist,
+                poolMetrics);
         cassandraService.cacheInitialCassandraHosts();
         cassandraService.refreshTokenRangesAndGetServers();
         return cassandraService;
@@ -175,7 +181,7 @@ public class CassandraService implements AutoCloseable {
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
-                    SafeArg.of("poolRefreshIntervalSeconds", config.poolRefreshIntervalSeconds()),
+                    SafeArg.of("poolRefreshIntervalSeconds", installConfig.poolRefreshIntervalSeconds()),
                     e);
 
             // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
@@ -202,7 +208,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     private Set<InetSocketAddress> getServersFromConfig() {
-        return config.servers().accept(new ThriftHostsExtractingVisitor());
+        return installConfig.servers().accept(new ThriftHostsExtractingVisitor());
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
@@ -217,7 +223,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     private List<TokenRange> getTokenRanges() throws Exception {
-        return getRandomGoodHost().runWithPooledResource(CassandraUtils.getDescribeRing(config));
+        return getRandomGoodHost().runWithPooledResource(CassandraUtils.getDescribeRing(installConfig));
     }
 
     private String getSnitch() {
@@ -386,7 +392,7 @@ public class CassandraService implements AutoCloseable {
 
     @VisibleForTesting
     Set<CassandraServer> maybeFilterLocalHosts(Set<CassandraServer> hosts) {
-        if (random.nextDouble() < config.localHostWeighting()) {
+        if (random.nextDouble() < installConfig.localHostWeighting()) {
             Set<CassandraServer> localFilteredHosts = Sets.intersection(localHosts, hosts);
             if (!localFilteredHosts.isEmpty()) {
                 return localFilteredHosts;
@@ -435,7 +441,7 @@ public class CassandraService implements AutoCloseable {
         List<CassandraServer> hostsForKey = getHostsFor(key);
 
         if (hostsForKey == null) {
-            if (config.autoRefreshNodes()) {
+            if (installConfig.autoRefreshNodes()) {
                 log.info("We attempted to route your query to a cassandra host that already contains the relevant data."
                         + " However, the mapping of which host contains which data is not available yet."
                         + " We will choose a random host instead.");
@@ -474,7 +480,8 @@ public class CassandraService implements AutoCloseable {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
         addPoolInternal(
                 server,
-                new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber, poolMetrics));
+                new CassandraClientPoolingContainer(metricsManager, server,
+                        installConfig, currentPoolNumber, poolMetrics));
     }
 
     public void returnOrCreatePool(CassandraServer server, Optional<CassandraClientPoolingContainer> container) {

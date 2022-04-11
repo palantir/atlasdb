@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
@@ -293,7 +294,8 @@ public class CassandraServiceTest {
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraService service =
-                new CassandraService(metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
+                new CassandraService(metricsManager, config, CassandraKeyValueServiceRuntimeConfig::getDefault, blacklist,
+                        new CassandraClientPoolMetrics(metricsManager));
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

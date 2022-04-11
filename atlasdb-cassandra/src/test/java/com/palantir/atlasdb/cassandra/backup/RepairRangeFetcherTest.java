@@ -79,7 +79,7 @@ public class RepairRangeFetcherTest {
         when(cqlMetadata.getReplicas(eq(BackupTestUtils.KEYSPACE_NAME), any()))
                 .thenReturn(ImmutableSet.copyOf(BackupTestUtils.HOSTS));
 
-        repairRangeFetcher = new RepairRangeFetcher(cqlSession, config);
+        repairRangeFetcher = new RepairRangeFetcher(cqlSession, config.getKeyspaceOrThrow(), config::servers);
     }
 
     @Test

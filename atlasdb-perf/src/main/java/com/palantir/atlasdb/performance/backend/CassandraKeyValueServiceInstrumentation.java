@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.performance.backend;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
@@ -51,7 +52,8 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     @Override
     public boolean canConnect(InetSocketAddress addr) {
         return CassandraKeyValueServiceImpl.createForTesting(
-                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr))
+                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
+                        CassandraKeyValueServiceRuntimeConfig::getDefault)
                 .isInitialized();
     }
 
