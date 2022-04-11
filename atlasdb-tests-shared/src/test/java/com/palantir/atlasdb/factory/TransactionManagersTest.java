@@ -485,6 +485,7 @@ public class TransactionManagersTest {
         InMemoryAtlasDbConfig kvs = mock(InMemoryAtlasDbConfig.class);
         when(kvs.type()).thenReturn("memory");
         when(kvs.namespace()).thenReturn(Optional.of("namespace"));
+        when(kvs.concurrentGetRangesThreadPoolSize()).thenReturn(64);
 
         AtlasDbConfig atlasDbConfig =
                 ImmutableAtlasDbConfig.builder().keyValueService(kvs).build();
