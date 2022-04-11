@@ -41,7 +41,6 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
 
     private static final Mockery context = new Mockery();
     private static final KeyValueService keyValueService = context.mock(KeyValueService.class);
-    private static final DerivedSnapshotConfig derivedSnapshotConfig = context.mock(DerivedSnapshotConfig.class);
     private static List<ManagedTimestampService> nextTimestampServices = new ArrayList<>();
     private static final SafeLogger log = SafeLoggerFactory.get(AutoServiceAnnotatedAtlasDbFactory.class);
 
@@ -55,7 +54,9 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
-        return derivedSnapshotConfig;
+        return DerivedSnapshotConfig.builder()
+                .concurrentGetRangesThreadPoolSize(1)
+                .build();
     }
 
     @Override
