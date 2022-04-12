@@ -392,9 +392,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * deriving fom {@link CassandraKeyValueServiceRuntimeConfig#servers()} in a similar fashion.
      *
      * As a result, if the below derivation is changed to be non-zero when {@link #servers()} is empty, then this
-     * will always take precedence over the derived value from the reloadable config. As such,
-     * {@link CassandraReloadableKvsConfig#concurrentGetRangesThreadPoolSize()} should be adjusted to account for any
-     * such change.
+     * will always take precedence over the derived value from the reloadable config.
+     *
+     * If such a change happens, {@link CassandraReloadableKvsConfig#concurrentGetRangesThreadPoolSize()} should be
+     * updated to compare against a new sentinel value (e.g the calculated value when servers is empty) so that the
+     * reloadable config correctly flips over to using the runtime derived value when appropriate.
      *
      */
     @Value.Default
