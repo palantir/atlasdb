@@ -19,6 +19,24 @@ package com.palantir.atlasdb.spi;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+/**
+ * Cassandra derives the default concurrentGetRangesThreadPoolSize from
+ * the pool size and the number of thrift hosts.
+ *
+ * The pool size is configured in {@link com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig}, whereas the
+ * initial server list is now present in {@link com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig},
+ * and thus the derivation requires information from both configs.
+ *
+ * This immutable represents the minimal set of properties where the values <i>may</i> be derived from different
+ * configs, to avoid library consumers from depending on the idea of a totally merged config (which may exist
+ * separately, e.g for the purpose of moving config keys from install to runtime config)
+ *
+ * Despite being derived from the runtime config, there is no guarantees that the derived values are in turn
+ * live-reloaded.
+ *
+ * See {@link AtlasDbFactory} for information on how this is constructed for the various KVSs.
+ *
+ */
 @Value.Immutable
 public abstract class DerivedSnapshotConfig {
     /**
