@@ -125,7 +125,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
+     * The minimal period we wait to check if a Cassandra node is healthy after it has been blacklisted.
      *
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make this
      * value live-reloadable.
@@ -388,7 +388,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * {@link CassandraReloadableKvsConfig} uses the value below if and only if it's greater than 0, otherwise
+     * {@link CassandraReloadableKvsConfig} uses the value below if and only if it is greater than 0, otherwise
      * deriving fom {@link CassandraKeyValueServiceRuntimeConfig#servers()} in a similar fashion.
      *
      * As a result, if the below derivation is changed to be non-zero when {@link #servers()} is empty, then this
