@@ -216,21 +216,22 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     public void mergedConfigSharedGetRangesPoolSizeLessThanConcurrentGetRangesThreadPoolSizeFailsInitialisation() {
         int sharedGetRangesPoolSize = 123;
         int concurrentGetRangesThreadPoolSize = 321;
-        CassandraKeyValueServiceConfig config =
-                configBuilderWithDefaultCredentialsAndReplicationFactor().sharedResourcesConfig(
-                        ImmutableSharedResourcesConfig
-                                .builder()
-                                .sharedGetRangesPoolSize(sharedGetRangesPoolSize)
-                                .sharedKvsExecutorSize(0)
-                                .connectionConfig(mock(LocalConnectionConfig.class)).build())
-                        .concurrentGetRangesThreadPoolSize(concurrentGetRangesThreadPoolSize).build();
+        CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentialsAndReplicationFactor()
+                .sharedResourcesConfig(ImmutableSharedResourcesConfig.builder()
+                        .sharedGetRangesPoolSize(sharedGetRangesPoolSize)
+                        .sharedKvsExecutorSize(0)
+                        .connectionConfig(mock(LocalConnectionConfig.class))
+                        .build())
+                .concurrentGetRangesThreadPoolSize(concurrentGetRangesThreadPoolSize)
+                .build();
 
-        assertThatLoggableExceptionThrownBy(() -> CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config,
-                Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS)))
+        assertThatLoggableExceptionThrownBy(() -> CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(
+                        config, Refreshable.only(RUNTIME_CONFIG_WITH_DEFAULT_SERVERS)))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("If set, shared get ranges pool size must not be less than individual pool size.")
-                .containsArgs(SafeArg.of("shared", sharedGetRangesPoolSize), SafeArg.of("individual", concurrentGetRangesThreadPoolSize));
-
+                .containsArgs(
+                        SafeArg.of("shared", sharedGetRangesPoolSize),
+                        SafeArg.of("individual", concurrentGetRangesThreadPoolSize));
     }
 
     private static ImmutableCassandraKeyValueServiceConfig.Builder
