@@ -39,12 +39,14 @@ import org.immutables.value.Value;
  */
 @Value.Immutable
 public abstract class DerivedSnapshotConfig {
+
     /**
      * The size of the thread pool used for concurrently running range requests.
      */
     public abstract int concurrentGetRangesThreadPoolSize();
 
     abstract Optional<Integer> defaultGetRangesConcurrencyOverride();
+
     /**
      * The maximum number of threads from the pool of {@link #concurrentGetRangesThreadPoolSize()} to use
      * for a single getRanges request when the user does not explicitly provide a value.
