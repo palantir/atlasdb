@@ -66,7 +66,7 @@ public interface AtlasDbFactory {
      * Creates a {@link DerivedSnapshotConfig} that is derived from a {@link KeyValueServiceConfig}, and where
      * necessary, a snapshot of a {@link KeyValueServiceRuntimeConfig}.
      *
-     * Note: The resultant {@link DerivedSnapshotConfig} may not reflect any updates to the
+     * Note: The resultant {@link DerivedSnapshotConfig} will not reflect any updates to the
      * {@link KeyValueServiceRuntimeConfig}
      *
      * @param config Static configuration.

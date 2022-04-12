@@ -31,8 +31,7 @@ import org.immutables.value.Value;
  * configs, to avoid library consumers from depending on the idea of a totally merged config (which may exist
  * separately, e.g for the purpose of moving config keys from install to runtime config)
  *
- * Despite being derived from the runtime config, there is no guarantees that the derived values are in turn
- * live-reloaded.
+ * Despite being derived from the runtime config, derived values <i>will not</i> be live reloaded.
  *
  * See {@link AtlasDbFactory} for information on how this is constructed for the various KVSs.
  *

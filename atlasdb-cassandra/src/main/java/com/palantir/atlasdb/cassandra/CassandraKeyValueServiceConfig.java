@@ -387,6 +387,16 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return TYPE;
     }
 
+    /**
+     * {@link CassandraReloadableKvsConfig} uses the value below if and only if it's greater than 0, otherwise
+     * deriving fom {@link CassandraKeyValueServiceRuntimeConfig#servers()} in a similar fashion.
+     *
+     * As a result, if the below derivation is changed to be non-zero when {@link #servers()} is empty, then this
+     * will always take precedence over the derived value from the reloadable config. As such,
+     * {@link CassandraReloadableKvsConfig#concurrentGetRangesThreadPoolSize()} should be adjusted to account for any
+     * such change.
+     *
+     */
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
         return poolSize() * servers().numberOfThriftHosts();
