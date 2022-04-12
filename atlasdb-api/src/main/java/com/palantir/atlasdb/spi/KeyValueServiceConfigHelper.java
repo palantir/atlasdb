@@ -26,7 +26,6 @@ public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig {
         return Optional.empty();
     }
 
-    @Override
     default int concurrentGetRangesThreadPoolSize() {
         return 4;
     }

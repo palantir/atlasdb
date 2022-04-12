@@ -21,6 +21,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -36,7 +37,7 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 
 @AutoService(AtlasDbFactory.class)
-public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class JdbcAtlasDbFactory implements AtlasDbFactory {
     private static final SafeLogger log = SafeLoggerFactory.get(JdbcAtlasDbFactory.class);
 
     @Override
@@ -65,11 +66,21 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig>
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
         AtlasDbVersion.ensureVersionReported();
         return JdbcKeyValueService.create((JdbcKeyValueConfiguration) config);
+    }
+
+    @Override
+    public DerivedSnapshotConfig createDerivedSnapshotConfig(
+            KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
+        JdbcKeyValueConfiguration jdbcKeyValueConfiguration = (JdbcKeyValueConfiguration) config;
+        return DerivedSnapshotConfig.builder()
+                .concurrentGetRangesThreadPoolSize(jdbcKeyValueConfiguration.concurrentGetRangesThreadPoolSize())
+                .defaultGetRangesConcurrencyOverride(jdbcKeyValueConfiguration.defaultGetRangesConcurrency())
+                .build();
     }
 
     @Override

@@ -21,6 +21,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -50,9 +51,9 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
-    private final KeyValueServiceConfig mergedKeyValueServiceConfig;
     private final Supplier<ManagedTimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
+    private final DerivedSnapshotConfig derivedSnapshotConfig;
 
     public ServiceDiscoveringAtlasSupplier(
             MetricsManager metricsManager,
@@ -65,29 +66,22 @@ public class ServiceDiscoveringAtlasSupplier {
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
 
-        AtlasDbFactory<KeyValueServiceConfig> atlasFactory =
-                AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
-        mergedKeyValueServiceConfig = atlasFactory.createMergedKeyValueServiceConfig(config, runtimeConfig, namespace);
+        AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
-                metricsManager,
-                mergedKeyValueServiceConfig,
-                runtimeConfig,
-                leaderConfig,
-                namespace,
-                timestampSupplier,
-                initializeAsync));
+                metricsManager, config, runtimeConfig, leaderConfig, namespace, timestampSupplier, initializeAsync));
         timestampService = () -> atlasFactory.createManagedTimestampService(
                 getKeyValueService(), tableReferenceOverride, initializeAsync);
         timestampStoreInvalidator =
                 () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService(), tableReferenceOverride);
+        derivedSnapshotConfig = atlasFactory.createDerivedSnapshotConfig(config, runtimeConfig.get());
     }
 
     public KeyValueService getKeyValueService() {
         return keyValueService.get();
     }
 
-    public KeyValueServiceConfig getMergedKeyValueServiceConfig() {
-        return mergedKeyValueServiceConfig;
+    public DerivedSnapshotConfig getDerivedSnapshotConfig() {
+        return derivedSnapshotConfig;
     }
 
     public synchronized ManagedTimestampService getManagedTimestampService() {

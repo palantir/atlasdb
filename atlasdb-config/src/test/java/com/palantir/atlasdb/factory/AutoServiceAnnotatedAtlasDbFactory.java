@@ -21,6 +21,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -35,7 +36,7 @@ import java.util.function.LongSupplier;
 import org.jmock.Mockery;
 
 @AutoService(AtlasDbFactory.class)
-public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     public static final String TYPE = "not-a-real-db";
 
     private static final Mockery context = new Mockery();
@@ -46,6 +47,14 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory<KeyVal
     @Override
     public String getType() {
         return TYPE;
+    }
+
+    @Override
+    public DerivedSnapshotConfig createDerivedSnapshotConfig(
+            KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
+        return DerivedSnapshotConfig.builder()
+                .concurrentGetRangesThreadPoolSize(1)
+                .build();
     }
 
     @Override

@@ -67,6 +67,7 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
@@ -354,16 +355,17 @@ public abstract class TransactionManagers {
                 getTimeLockFeedbackBackgroundTask(metricsManager, closeables, config(), runtime);
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
+        KeyValueServiceConfig installConfig = config().keyValueService();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
                 metricsManager,
-                config().keyValueService(),
+                installConfig,
                 runtime.map(AtlasDbRuntimeConfig::keyValueService),
                 config().leader(),
                 config().namespace(),
                 Optional.empty(),
                 config().initializeAsync(),
                 adapter);
-        KeyValueServiceConfig mergedKeyValueServiceConfig = atlasFactory.getMergedKeyValueServiceConfig();
+        DerivedSnapshotConfig derivedSnapshotConfig = atlasFactory.getDerivedSnapshotConfig();
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config().getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
@@ -500,8 +502,8 @@ public abstract class TransactionManagers {
                         () -> areTransactionManagerInitializationPrerequisitesSatisfied(
                                 initializer, lockAndTimestampServices),
                         allowHiddenTableAccess(),
-                        mergedKeyValueServiceConfig.concurrentGetRangesThreadPoolSize(),
-                        mergedKeyValueServiceConfig.defaultGetRangesConcurrency(),
+                        derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
+                        derivedSnapshotConfig.defaultGetRangesConcurrency(),
                         config().initializeAsync(),
                         timestampCache,
                         targetedSweep,
@@ -510,9 +512,7 @@ public abstract class TransactionManagers {
                         transactionConfigSupplier,
                         conflictTracer,
                         metricsFilterEvaluationContext(),
-                        mergedKeyValueServiceConfig
-                                .sharedResourcesConfig()
-                                .map(SharedResourcesConfig::sharedGetRangesPoolSize)),
+                        installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize)),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);

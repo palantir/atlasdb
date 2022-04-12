@@ -56,7 +56,6 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
         return DbAtlasDbFactory.TYPE;
     }
 
-    @Override
     @Value.Default
     public int concurrentGetRangesThreadPoolSize() {
         int poolSize = sharedResourcesConfig()
@@ -65,6 +64,8 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
                 .orElseGet(() -> connection().getMaxConnections());
         return Math.max(2 * poolSize / 3, 1);
     }
+
+    abstract Optional<Integer> defaultGetRangesConcurrency();
 
     @Value.Check
     public void checkKvsPoolSize() {
