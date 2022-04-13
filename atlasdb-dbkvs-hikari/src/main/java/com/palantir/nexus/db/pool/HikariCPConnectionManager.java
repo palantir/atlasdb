@@ -16,6 +16,7 @@
 package com.palantir.nexus.db.pool;
 
 import com.google.common.base.Stopwatch;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -35,8 +36,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.TimeZone;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -53,10 +57,9 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(HikariCPConnectionManager.class);
 
-    private static final AtomicLong uniquePoolId = new AtomicLong(0L);
-
     private final ConnectionConfig connConfig;
     private final HikariConfig hikariConfig;
+    private final ScheduledExecutorService exec;
 
     private enum StateType {
         // Base state at construction.  Nothing is set.
@@ -88,7 +91,25 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
         this.connConfig = Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
         this.hikariConfig = connConfig.getHikariConfig();
-        hikariConfig.setPoolName(hikariConfig.getPoolName() + "-" + uniquePoolId.incrementAndGet());
+        this.exec = makeExecutorIfNecessary();
+    }
+
+    /**
+     * Manage our own executor so that hikari does not manage it for us. This is
+     * a workaround for the executor leaking in hikari if there is a metric
+     * conflict.
+     */
+    private ScheduledExecutorService makeExecutorIfNecessary() {
+        if (hikariConfig.getScheduledExecutor() != null) {
+            return hikariConfig.getScheduledExecutor();
+        }
+
+        ScheduledThreadPoolExecutor pool =
+                PTExecutors.newScheduledThreadPoolExecutor(1, new ThreadPoolExecutor.DiscardPolicy());
+        pool.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+        pool.setRemoveOnCancelPolicy(true);
+        hikariConfig.setScheduledExecutor(pool);
+        return pool;
     }
 
     @Override
@@ -256,6 +277,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             }
         } finally {
             state = new State(StateType.CLOSED, null, null, new Throwable("Hikari pool closed here"));
+            exec.shutdownNow();
         }
     }
 
@@ -303,7 +325,23 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         HikariDataSource dataSourcePool;
 
         try {
-            dataSourcePool = new HikariDataSource(hikariConfig);
+            try {
+                dataSourcePool = new HikariDataSource(hikariConfig);
+            } catch (IllegalArgumentException e) {
+                // allow multiple pools on same JVM (they need unique names / endpoints)
+                if (e.getMessage().contains("A metric named")) {
+                    String poolName = connConfig.getConnectionPoolName();
+                    String newPoolName =
+                            poolName + "-" + ThreadLocalRandom.current().nextInt();
+                    hikariConfig.setPoolName(newPoolName);
+                    log.error(
+                            "Created second data source pool. Metrics will be logged under an unexpected pool name.",
+                            SafeArg.of("newPoolName", newPoolName));
+                    dataSourcePool = new HikariDataSource(hikariConfig);
+                } else {
+                    throw e;
+                }
+            }
         } catch (PoolInitializationException e) {
             log.error(
                     "Failed to initialize hikari data source",
