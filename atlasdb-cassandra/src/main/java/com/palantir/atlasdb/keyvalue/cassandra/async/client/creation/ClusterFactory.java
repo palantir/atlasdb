@@ -138,28 +138,28 @@ public class ClusterFactory {
     }
 
     @Value.Immutable
-    public abstract static class CassandraClusterConfig {
-        public abstract CassandraCredentialsConfig credentials();
+    public interface CassandraClusterConfig {
+        CassandraCredentialsConfig credentials();
 
-        public abstract int socketQueryTimeoutMillis();
+        int socketQueryTimeoutMillis();
 
-        public abstract boolean usingSsl();
+        boolean usingSsl();
 
-        public abstract Optional<SslConfiguration> sslConfiguration();
+        Optional<SslConfiguration> sslConfiguration();
 
-        public abstract int poolSize();
+        int poolSize();
 
-        public abstract int cqlPoolTimeoutMillis();
+        int cqlPoolTimeoutMillis();
 
-        public abstract boolean autoRefreshNodes();
+        boolean autoRefreshNodes();
 
-        public abstract int fetchBatchCount();
+        int fetchBatchCount();
 
-        public static ImmutableCassandraClusterConfig.Builder builder() {
+        static ImmutableCassandraClusterConfig.Builder builder() {
             return ImmutableCassandraClusterConfig.builder();
         }
 
-        public static CassandraClusterConfig of(CassandraKeyValueServiceConfig config) {
+        static CassandraClusterConfig of(CassandraKeyValueServiceConfig config) {
             return builder()
                     .autoRefreshNodes(config.autoRefreshNodes())
                     .cqlPoolTimeoutMillis(config.cqlPoolTimeoutMillis())
