@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Modify the workaround for hikari executor leak so that metric names
+    are unchanged.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5999
