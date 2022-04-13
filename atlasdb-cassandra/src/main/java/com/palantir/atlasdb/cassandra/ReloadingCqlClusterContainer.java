@@ -113,7 +113,9 @@ public class ReloadingCqlClusterContainer implements Closeable, Supplier<CqlClus
     }
 
     /**
-     * Gets the latest CqlCluster that reflects any changes in the server list.
+     * Gets the latest CqlCluster that reflects any changes in the server list, provided {@link #close()} has not
+     * been called.
+     *
      * The CQL Cluster returned will be closed after {@link #close} is called, or the server list is refreshed, even
      * if the CQL Cluster is in active use.
      */
