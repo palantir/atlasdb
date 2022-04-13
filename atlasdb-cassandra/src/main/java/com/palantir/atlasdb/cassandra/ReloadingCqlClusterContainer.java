@@ -39,7 +39,7 @@ import java.util.function.Supplier;
  * After {@link #close()} has returned, no further CQL Clusters will be created, and all managed CQL Clusters will be
  * closed.
  */
-public class ReloadingCqlClusterContainer implements Closeable, Supplier<CqlCluster> {
+public final class ReloadingCqlClusterContainer implements Closeable, Supplier<CqlCluster> {
     private static final SafeLogger log = SafeLoggerFactory.get(ReloadingCqlClusterContainer.class);
 
     private final AtomicReference<Optional<CqlCluster>> lastCqlCluster;

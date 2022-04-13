@@ -65,7 +65,7 @@ public class ReloadingCqlClusterContainerTest {
     }
 
     @Test
-    public void previousCqlClusterIsClosedUponRefresh() throws IOException {
+    public void previousCqlClusterIsClosedAfterRefresh() throws IOException {
         CqlCluster firstMock = mock(CqlCluster.class);
         CqlCluster secondMock = mock(CqlCluster.class);
         when(cqlClusterFactory.create(cassandraClusterConfig, EMPTY_SERVERS_CONFIG, NAMESPACE))
@@ -83,7 +83,7 @@ public class ReloadingCqlClusterContainerTest {
     }
 
     @Test
-    public void newCqlClusterCreatedWithNewServerListUponRefresh() {
+    public void newCqlClusterCreatedWithNewServerListAfterRefresh() {
         CqlCluster firstMock = mock(CqlCluster.class);
         CqlCluster secondMock = mock(CqlCluster.class);
         when(cqlClusterFactory.create(cassandraClusterConfig, EMPTY_SERVERS_CONFIG, NAMESPACE))
