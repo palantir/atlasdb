@@ -80,7 +80,7 @@ final class TokenRangeFetcher {
 
             log.debug(
                     "Identified token ranges requiring repair",
-                    SafeArg.of("keyspace", keyspaceMetadata),
+                    SafeArg.of("keyspace", namespace),
                     SafeArg.of("table", tableName),
                     SafeArg.of("numPartitionKeys", partitionTokens.size()),
                     SafeArg.of("numTokenRanges", numTokenRanges));
