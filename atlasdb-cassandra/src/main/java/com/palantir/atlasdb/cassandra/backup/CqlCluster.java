@@ -36,10 +36,7 @@ public final class CqlCluster implements Closeable {
     private final Namespace namespace;
 
     // VisibleForTesting
-    public CqlCluster(
-            Cluster cluster,
-            CassandraServersConfig cassandraServersConfig,
-            Namespace namespace) {
+    public CqlCluster(Cluster cluster, CassandraServersConfig cassandraServersConfig, Namespace namespace) {
         this.cluster = cluster;
         this.cassandraServersConfig = cassandraServersConfig;
         this.namespace = namespace;

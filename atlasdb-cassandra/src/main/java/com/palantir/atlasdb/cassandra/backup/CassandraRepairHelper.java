@@ -90,7 +90,7 @@ public class CassandraRepairHelper {
         Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable =
                 refreshableCassandraServersConfigFactory.apply(namespace);
 
-        return new ReloadingCqlClusterContainer(cassandraClusterConfig, cassandraServersConfigRefreshable, namespace);
+        return ReloadingCqlClusterContainer.of(cassandraClusterConfig, cassandraServersConfigRefreshable, namespace);
     }
 
     public void repairInternalTables(Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {

@@ -114,9 +114,7 @@ public final class CassandraRepairEteTest {
                         cassandraClusterConfigFunction.apply(NAMESPACE),
                         cassandraServersConfigFactory.apply(NAMESPACE).get());
         cqlCluster = new CqlCluster(
-                cluster,
-                cassandraServersConfigFactory.apply(NAMESPACE).get(),
-                NAMESPACE);
+                cluster, cassandraServersConfigFactory.apply(NAMESPACE).get(), NAMESPACE);
     }
 
     @After

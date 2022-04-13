@@ -29,6 +29,16 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+/**
+ * This container creates new CQL Clusters when the underlying server refreshable changes.
+ * After a refresh, previous CQL Clusters are closed to avoid resource leaks.
+ *
+ * There is no guarantee that a cluster provided via {@link #get} will <i>not</i> be closed whilst in use.
+ * Consumers should be resilient to any uses after the cluster has been closed, and where necessary, retry.
+ *
+ * After {@link #close()} has returned, no further CQL Clusters will be created, and all managed CQL Clusters will be
+ * closed.
+ */
 public class ReloadingCqlClusterContainer implements Closeable, Supplier<CqlCluster> {
     private static final SafeLogger log = SafeLoggerFactory.get(ReloadingCqlClusterContainer.class);
 
@@ -36,14 +46,15 @@ public class ReloadingCqlClusterContainer implements Closeable, Supplier<CqlClus
     private final Refreshable<CqlCluster> refreshableCqlCluster;
     private boolean isClosed;
 
-    public ReloadingCqlClusterContainer(
+    private ReloadingCqlClusterContainer(
             CassandraClusterConfig cassandraClusterConfig,
             Refreshable<CassandraServersConfig> refreshableCassandraServersConfig,
-            Namespace namespace) {
-        lastCqlCluster = new AtomicReference<>(Optional.empty());
-        isClosed = false;
-        refreshableCqlCluster = refreshableCassandraServersConfig.map(
-                cassandraServersConfig -> createNewCluster(cassandraClusterConfig, cassandraServersConfig, namespace));
+            Namespace namespace,
+            CqlClusterFactory cqlClusterFactory) {
+        this.isClosed = false;
+        this.lastCqlCluster = new AtomicReference<>(Optional.empty());
+        this.refreshableCqlCluster = refreshableCassandraServersConfig.map(cassandraServersConfig ->
+                createNewCluster(cassandraClusterConfig, cassandraServersConfig, namespace, cqlClusterFactory));
 
         refreshableCqlCluster.subscribe(cqlCluster -> {
             Optional<CqlCluster> maybeCqlClusterToClose = lastCqlCluster.getAndSet(Optional.of(cqlCluster));
@@ -57,16 +68,41 @@ public class ReloadingCqlClusterContainer implements Closeable, Supplier<CqlClus
         });
     }
 
+    public static ReloadingCqlClusterContainer of(
+            CassandraClusterConfig cassandraClusterConfig,
+            Refreshable<CassandraServersConfig> refreshableCassandraServersConfig,
+            Namespace namespace) {
+        return of(cassandraClusterConfig, refreshableCassandraServersConfig, namespace, CqlCluster::create);
+    }
+
+    public static ReloadingCqlClusterContainer of(
+            CassandraClusterConfig cassandraClusterConfig,
+            Refreshable<CassandraServersConfig> refreshableCassandraServersConfig,
+            Namespace namespace,
+            CqlClusterFactory cqlClusterFactory) {
+        return new ReloadingCqlClusterContainer(
+                cassandraClusterConfig, refreshableCassandraServersConfig, namespace, cqlClusterFactory);
+    }
+
+    /**
+     * Synchronized: See {@link #close()}.
+     */
     private synchronized CqlCluster createNewCluster(
             CassandraClusterConfig cassandraClusterConfig,
             CassandraServersConfig cassandraServersConfig,
-            Namespace namespace) {
+            Namespace namespace,
+            CqlClusterFactory cqlClusterFactory) {
         if (isClosed) {
             throw new IllegalStateException();
         }
-        return CqlCluster.create(cassandraClusterConfig, cassandraServersConfig, namespace);
+        return cqlClusterFactory.create(cassandraClusterConfig, cassandraServersConfig, namespace);
     }
 
+    /**
+     * Synchronized: A lock is taken out to ensure no new CQL Clusters are created after retrieving the current stored
+     * cql cluster to close. By doing so, we avoid closing a cluster and subsequently creating a new one that is
+     * never closed.
+     */
     @Override
     public synchronized void close() throws IOException {
         isClosed = true;
@@ -76,8 +112,21 @@ public class ReloadingCqlClusterContainer implements Closeable, Supplier<CqlClus
         }
     }
 
+    /**
+     * Gets the latest CqlCluster that reflects any changes in the server list.
+     * The CQL Cluster returned will be closed after {@link #close} is called, or the server list is refreshed, even
+     * if the CQL Cluster is in active use.
+     */
     @Override
     public CqlCluster get() {
         return refreshableCqlCluster.get();
+    }
+
+    @FunctionalInterface
+    interface CqlClusterFactory {
+        CqlCluster create(
+                CassandraClusterConfig cassandraClusterConfig,
+                CassandraServersConfig cassandraServersConfig,
+                Namespace namespace);
     }
 }
