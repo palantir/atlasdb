@@ -33,6 +33,7 @@ import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -50,6 +51,7 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.lock.SimpleLockResource;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -185,14 +187,24 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
         AtlasBackupService atlasBackupService =
                 AtlasBackupService.createForTests(authHeader, atlasBackupClient, txManager, backupFolderFactory);
+
+        Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory = _unused ->
+                (CassandraKeyValueServiceConfig) config.getAtlasDbConfig().keyValueService();
+
+        Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory =
+                keyValueServiceConfigFactory.andThen(CassandraClusterConfig::of);
+
+        Function<Namespace, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory =
+                keyValueServiceConfigFactory.andThen(installConfig -> Refreshable.only(installConfig.servers()));
+
         AtlasRestoreService atlasRestoreService = AtlasRestoreService.createForTests(
                 authHeader,
                 atlasRestoreClient,
                 timeLockManagementService,
                 externalBackupPersister,
                 txManager,
-                _unused -> (CassandraKeyValueServiceConfig)
-                        config.getAtlasDbConfig().keyValueService());
+                cassandraClusterConfigFactory,
+                refreshableCassandraServersConfigFactory);
 
         environment
                 .jersey()

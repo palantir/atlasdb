@@ -68,12 +68,12 @@ public class TokenRangeFetcherTest {
         when(cqlSession.retrieveRowKeysAtConsistencyAll(anyList()))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.TOKEN_1, BackupTestUtils.TOKEN_2, BackupTestUtils.TOKEN_3));
 
-        tokenRangeFetcher = new TokenRangeFetcher(cqlSession, config);
+        tokenRangeFetcher = new TokenRangeFetcher(cqlSession, BackupTestUtils.NAMESPACE, config.servers());
     }
 
     @Test
     public void allNodesGetAllRangesWithThreeNodesAndRF3() {
-        when(cqlMetadata.getReplicas(eq(BackupTestUtils.KEYSPACE_NAME), any()))
+        when(cqlMetadata.getReplicas(eq(BackupTestUtils.NAMESPACE), any()))
                 .thenReturn(ImmutableSet.copyOf(BackupTestUtils.HOSTS));
 
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRange = tokenRangeFetcher.getTokenRange(TABLE_NAME);
@@ -85,13 +85,13 @@ public class TokenRangeFetcherTest {
 
     @Test
     public void testGetTokenRangesWithRF2() {
-        when(cqlMetadata.getReplicas(BackupTestUtils.KEYSPACE_NAME, BackupTestUtils.RANGE_AT_MOST_1))
+        when(cqlMetadata.getReplicas(BackupTestUtils.NAMESPACE, BackupTestUtils.RANGE_AT_MOST_1))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.HOST_3, BackupTestUtils.HOST_1));
-        when(cqlMetadata.getReplicas(BackupTestUtils.KEYSPACE_NAME, BackupTestUtils.RANGE_GREATER_THAN_3))
+        when(cqlMetadata.getReplicas(BackupTestUtils.NAMESPACE, BackupTestUtils.RANGE_GREATER_THAN_3))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.HOST_3, BackupTestUtils.HOST_1));
-        when(cqlMetadata.getReplicas(BackupTestUtils.KEYSPACE_NAME, BackupTestUtils.RANGE_1_TO_2))
+        when(cqlMetadata.getReplicas(BackupTestUtils.NAMESPACE, BackupTestUtils.RANGE_1_TO_2))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.HOST_1, BackupTestUtils.HOST_2));
-        when(cqlMetadata.getReplicas(BackupTestUtils.KEYSPACE_NAME, BackupTestUtils.RANGE_2_TO_3))
+        when(cqlMetadata.getReplicas(BackupTestUtils.NAMESPACE, BackupTestUtils.RANGE_2_TO_3))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.HOST_2, BackupTestUtils.HOST_3));
 
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRange = tokenRangeFetcher.getTokenRange(TABLE_NAME);

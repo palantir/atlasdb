@@ -29,6 +29,7 @@ import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
 import com.palantir.atlasdb.cassandra.backup.CqlMetadata;
@@ -46,6 +47,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
@@ -54,6 +56,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -65,6 +68,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.junit.After;
 import org.junit.Before;
@@ -97,9 +101,22 @@ public final class CassandraRepairEteTest {
         kvs.putUnlessExists(TABLE_REF, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
 
         KvsRunner kvsRunner = KvsRunner.create(_unused -> kvs);
-        cassandraRepairHelper = new CassandraRepairHelper(kvsRunner, _unused -> config);
-        cluster = new ClusterFactory(Cluster::builder).constructCluster(config);
-        cqlCluster = new CqlCluster(cluster, config);
+        Function<Namespace, CassandraKeyValueServiceConfig> configFactory = _unused -> config;
+        Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFunction =
+                configFactory.andThen(CassandraClusterConfig::of);
+        Function<Namespace, Refreshable<CassandraServersConfig>> cassandraServersConfigFactory =
+                configFactory.andThen(config -> Refreshable.only(config.servers()));
+
+        cassandraRepairHelper =
+                new CassandraRepairHelper(kvsRunner, cassandraClusterConfigFunction, cassandraServersConfigFactory);
+        cluster = new ClusterFactory(Cluster::builder)
+                .constructCluster(
+                        cassandraClusterConfigFunction.apply(NAMESPACE),
+                        cassandraServersConfigFactory.apply(NAMESPACE).get());
+        cqlCluster = new CqlCluster(
+                cluster,
+                cassandraServersConfigFactory.apply(NAMESPACE).get(),
+                NAMESPACE);
     }
 
     @After

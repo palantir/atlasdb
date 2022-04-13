@@ -31,6 +31,7 @@ import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -54,14 +55,14 @@ public final class ClusterMetadataUtils {
         // util class
     }
 
-    public static TableMetadata getTableMetadata(CqlMetadata metadata, String keyspace, String table) {
-        KeyspaceMetadata keyspaceMetadata = metadata.getKeyspaceMetadata(keyspace);
+    public static TableMetadata getTableMetadata(CqlMetadata metadata, Namespace namespace, String table) {
+        KeyspaceMetadata keyspaceMetadata = metadata.getKeyspaceMetadata(namespace);
         Optional<TableMetadata> maybeTable = keyspaceMetadata.getTables().stream()
                 .filter(tableMetadata -> tableMetadata.getName().equals(table))
                 .collect(MoreCollectors.toOptional());
         return maybeTable.orElseThrow(() -> new SafeIllegalArgumentException(
                 "Can't find table",
-                SafeArg.of("keyspace", keyspace),
+                SafeArg.of("keyspace", namespace),
                 LoggingArgs.tableRef("table", TableReference.fromString(table))));
     }
 
@@ -83,7 +84,7 @@ public final class ClusterMetadataUtils {
      *
      * @param nodeSet The Cassandra nodes whose replicas to check
      * @param metadata The Datastax driver metadata from the Cassandra cluster
-     * @param keyspace The keyspace containing the partition keys we want to map
+     * @param namespace The keyspace containing the partition keys we want to map
      * @param partitionKeyTokens The Cassandra tokens for the partition keys we want to map
      * @return Mapping of Node to token ranges its host contains, where every partition key in the specified
      * list is present in one of the token ranges on one host
@@ -92,13 +93,13 @@ public final class ClusterMetadataUtils {
     public static Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenMapping(
             Collection<InetSocketAddress> nodeSet,
             CqlMetadata metadata,
-            String keyspace,
+            Namespace namespace,
             Set<LightweightOppToken> partitionKeyTokens) {
 
         Map<String, InetSocketAddress> nodeMetadataHostMap =
                 KeyedStream.of(nodeSet).mapKeys(InetSocketAddress::getHostName).collectToMap();
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> hostToTokenRangeMap =
-                getTokenMappingForPartitionKeys(metadata, keyspace, partitionKeyTokens);
+                getTokenMappingForPartitionKeys(metadata, namespace, partitionKeyTokens);
 
         return KeyedStream.stream(hostToTokenRangeMap)
                 .mapKeys(host -> lookUpAddress(nodeMetadataHostMap, host))
@@ -119,7 +120,7 @@ public final class ClusterMetadataUtils {
     }
 
     private static Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenMappingForPartitionKeys(
-            CqlMetadata metadata, String keyspace, Set<LightweightOppToken> partitionKeyTokens) {
+            CqlMetadata metadata, Namespace namespace, Set<LightweightOppToken> partitionKeyTokens) {
         Set<Range<LightweightOppToken>> tokenRanges = metadata.getTokenRanges();
         SortedMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByStart = KeyedStream.of(tokenRanges)
                 .mapKeys(LightweightOppToken::getLowerExclusive)
@@ -127,12 +128,12 @@ public final class ClusterMetadataUtils {
         Set<Range<LightweightOppToken>> ranges = getMinimalSetOfRangesForTokens(partitionKeyTokens, tokenRangesByStart);
         Multimap<InetSocketAddress, Range<LightweightOppToken>> tokenMapping = ArrayListMultimap.create();
         ranges.forEach(range -> {
-            List<InetSocketAddress> hosts = ImmutableList.copyOf(metadata.getReplicas(keyspace, range));
+            List<InetSocketAddress> hosts = ImmutableList.copyOf(metadata.getReplicas(namespace, range));
             if (hosts.isEmpty()) {
                 throw new SafeIllegalStateException(
                         "Failed to find any replicas of token range for repair",
                         SafeArg.of("tokenRange", range.toString()),
-                        SafeArg.of("keyspace", quotedKeyspace(keyspace)));
+                        SafeArg.of("keyspace", quotedKeyspace(namespace)));
             }
             hosts.forEach(host -> tokenMapping.put(host, range));
         });
@@ -188,8 +189,8 @@ public final class ClusterMetadataUtils {
         }
     }
 
-    private static String quotedKeyspace(String keyspaceName) {
-        return "\"" + keyspaceName + "\"";
+    private static String quotedKeyspace(Namespace namespace) {
+        return "\"" + namespace.value() + "\"";
     }
 
     // VisibleForTesting

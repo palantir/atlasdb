@@ -24,11 +24,13 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.KvsRunner;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.cassandra.ReloadingCqlClusterContainer;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -36,6 +38,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -52,34 +55,42 @@ public class CassandraRepairHelper {
     private static final Set<TableReference> TABLES_TO_REPAIR =
             Sets.union(ImmutableSet.of(AtlasDbConstants.COORDINATION_TABLE), TargetedSweepTables.REPAIR_ON_RESTORE);
 
-    private final Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory;
-    private final LoadingCache<Namespace, CqlCluster> cqlClusters;
+    private final Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory;
+    private final Function<Namespace, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory;
+    private final LoadingCache<Namespace, ReloadingCqlClusterContainer> cqlClusterContainers;
     private final KvsRunner kvsRunner;
 
     public CassandraRepairHelper(
-            KvsRunner kvsRunner, Function<Namespace, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory) {
+            KvsRunner kvsRunner,
+            Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory,
+            Function<Namespace, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory) {
         this.kvsRunner = kvsRunner;
-        this.keyValueServiceConfigFactory = keyValueServiceConfigFactory;
+        this.cassandraClusterConfigFactory = cassandraClusterConfigFactory;
+        this.refreshableCassandraServersConfigFactory = refreshableCassandraServersConfigFactory;
 
-        this.cqlClusters = Caffeine.newBuilder()
+        this.cqlClusterContainers = Caffeine.newBuilder()
                 .maximumSize(100)
                 .expireAfterAccess(Duration.ofMinutes(20L))
                 .removalListener(CassandraRepairHelper::onRemoval)
                 .build(this::getCqlClusterUncached);
     }
 
-    private static void onRemoval(Namespace namespace, CqlCluster cqlCluster, RemovalCause _removalCause) {
+    private static void onRemoval(
+            Namespace namespace, ReloadingCqlClusterContainer cqlClusterContainer, RemovalCause _removalCause) {
         try {
             log.info("Closing cql cluster", SafeArg.of("namespace", namespace));
-            cqlCluster.close();
+            cqlClusterContainer.close();
         } catch (IOException ex) {
             log.warn("Failed to close CqlCluster", ex);
         }
     }
 
-    private CqlCluster getCqlClusterUncached(Namespace namespace) {
-        CassandraKeyValueServiceConfig config = keyValueServiceConfigFactory.apply(namespace);
-        return CqlCluster.create(config);
+    private ReloadingCqlClusterContainer getCqlClusterUncached(Namespace namespace) {
+        CassandraClusterConfig cassandraClusterConfig = cassandraClusterConfigFactory.apply(namespace);
+        Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable =
+                refreshableCassandraServersConfigFactory.apply(namespace);
+
+        return new ReloadingCqlClusterContainer(cassandraClusterConfig, cassandraServersConfigRefreshable, namespace);
     }
 
     public void repairInternalTables(Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {
@@ -88,7 +99,7 @@ public class CassandraRepairHelper {
 
     public Void repairInternalTables(
             KeyValueService kvs, Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {
-        CqlCluster cqlCluster = cqlClusters.get(namespace);
+        CqlCluster cqlCluster = cqlClusterContainers.get(namespace).get();
         KeyedStream.of(getTableNamesToRepair(kvs))
                 .map(tableName -> getRangesToRepair(cqlCluster, namespace, tableName))
                 .forEach(repairTable);
@@ -118,7 +129,7 @@ public class CassandraRepairHelper {
             Namespace namespace,
             long startTimestamp,
             List<TransactionsTableInteraction> transactionsTableInteractions) {
-        cqlClusters.get(namespace).abortTransactions(startTimestamp, transactionsTableInteractions);
+        cqlClusterContainers.get(namespace).get().abortTransactions(startTimestamp, transactionsTableInteractions);
     }
 
     private Map<String, RangesForRepair> getRangesForRepairByTable(
@@ -130,7 +141,10 @@ public class CassandraRepairHelper {
 
     private Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> getRawRangesForRepairByTable(
             Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
-        return cqlClusters.get(namespace).getTransactionsTableRangesForRepair(transactionsTableInteractions);
+        return cqlClusterContainers
+                .get(namespace)
+                .get()
+                .getTransactionsTableRangesForRepair(transactionsTableInteractions);
     }
 
     // VisibleForTesting

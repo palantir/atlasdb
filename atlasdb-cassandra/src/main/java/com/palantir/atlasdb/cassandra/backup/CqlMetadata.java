@@ -24,6 +24,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.net.InetSocketAddress;
@@ -39,8 +40,8 @@ public class CqlMetadata {
         this.metadata = metadata;
     }
 
-    public KeyspaceMetadata getKeyspaceMetadata(String keyspace) {
-        return metadata.getKeyspace(keyspace);
+    public KeyspaceMetadata getKeyspaceMetadata(Namespace namespace) {
+        return metadata.getKeyspace(namespace.value());
     }
 
     // This needs to be a Set<Range>, because we don't want to merge the token ranges.
@@ -76,8 +77,8 @@ public class CqlMetadata {
         }
     }
 
-    public Set<InetSocketAddress> getReplicas(String keyspace, Range<LightweightOppToken> range) {
-        return metadata.getReplicas(quotedKeyspace(keyspace), toTokenRange(range)).stream()
+    public Set<InetSocketAddress> getReplicas(Namespace namespace, Range<LightweightOppToken> range) {
+        return metadata.getReplicas(quotedKeyspace(namespace), toTokenRange(range)).stream()
                 .map(host -> host.getEndPoint().resolve())
                 .collect(Collectors.toSet());
     }
@@ -104,7 +105,7 @@ public class CqlMetadata {
         return metadata.newToken(ByteBuffer.allocate(0));
     }
 
-    private static String quotedKeyspace(String keyspaceName) {
-        return "\"" + keyspaceName + "\"";
+    private static String quotedKeyspace(Namespace namespace) {
+        return "\"" + namespace.value() + "\"";
     }
 }
