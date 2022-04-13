@@ -334,10 +334,11 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     String newPoolName =
                             poolName + "-" + ThreadLocalRandom.current().nextInt();
                     hikariConfig.setPoolName(newPoolName);
+                    dataSourcePool = new HikariDataSource(hikariConfig);
                     log.error(
                             "Created second data source pool. Metrics will be logged under an unexpected pool name.",
-                            SafeArg.of("newPoolName", newPoolName));
-                    dataSourcePool = new HikariDataSource(hikariConfig);
+                            SafeArg.of("newPoolName", newPoolName),
+                            e);
                 } else {
                     throw e;
                 }
