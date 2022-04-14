@@ -68,7 +68,7 @@ import java.util.stream.Collectors;
 /**
  *  Service for Atlas restore tasks.
  *  While a single restore operation may encompass multiple namespaces, it is essential that each namespace in a given
- *  request corresponds to a single TimeLock service, since we support a single AtlasRestoreClient and
+ *  request corresponds to the same TimeLock service, since we support a single AtlasRestoreClient and
  *  TimelockManagementService (these both exist on TimeLock rather than on the backup client side).
  *  If the set of AtlasServices in a given request contains duplicated namespaces
  *  (e.g. {(123, namespace), (456, namespace)}), then a SafeIllegalArgumentException will be thrown.
