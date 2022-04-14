@@ -42,8 +42,9 @@ public class BackupAndRestoreEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Namespace NAMESPACE = Namespace.of("atlasete");
     private static final AtlasService ATLAS_SERVICE = AtlasService.of(ServiceId.of("a"), NAMESPACE);
-    private static final ImmutableSet<Namespace> NAMESPACES = ImmutableSet.of(NAMESPACE);
-    private static final ImmutableSet<AtlasService> ATLAS_SERVICES = ImmutableSet.of(ATLAS_SERVICE);
+    private static final Namespace NAMESPACE_2 = Namespace.of("atlasete-2");
+    private static final AtlasService ATLAS_SERVICE_2 = AtlasService.of(ServiceId.of("b"), NAMESPACE_2);
+    private static final ImmutableSet<AtlasService> ATLAS_SERVICES = ImmutableSet.of(ATLAS_SERVICE, ATLAS_SERVICE_2);
 
     private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
     private final BackupAndRestoreResource backupResource =
@@ -56,7 +57,7 @@ public class BackupAndRestoreEteTest {
         assertThat(backupResource.getStoredImmutableTimestamp(ATLAS_SERVICE)).isEmpty();
 
         Set<AtlasService> preparedAtlasServices = backupResource.prepareBackup(ATLAS_SERVICES);
-        assertThat(preparedAtlasServices).containsExactly(ATLAS_SERVICE);
+        assertThat(preparedAtlasServices).containsExactly(ATLAS_SERVICE, ATLAS_SERVICE_2);
 
         // verify we persisted the immutable timestamp to disk
         assertThat(backupResource.getStoredImmutableTimestamp(ATLAS_SERVICE)).isNotEmpty();
@@ -73,7 +74,7 @@ public class BackupAndRestoreEteTest {
         assertThat(backupResource.getStoredBackup(ATLAS_SERVICE)).isEmpty();
 
         Set<AtlasService> completedAtlasServices = backupResource.completeBackup(ATLAS_SERVICES);
-        assertThat(completedAtlasServices).containsExactly(ATLAS_SERVICE);
+        assertThat(completedAtlasServices).containsExactly(ATLAS_SERVICE, ATLAS_SERVICE_2);
 
         Optional<CompletedBackup> storedBackup = backupResource.getStoredBackup(ATLAS_SERVICE);
         assertThat(storedBackup).isNotEmpty();
