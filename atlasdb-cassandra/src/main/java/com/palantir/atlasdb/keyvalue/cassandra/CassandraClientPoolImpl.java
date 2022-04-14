@@ -27,6 +27,8 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraKeyspaceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
@@ -278,7 +280,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     static int getMaxTriesTotal() {
-        return CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnAllHosts();
+        return CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnSameHost();
     }
 
     @Override
@@ -355,8 +357,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void runOneTimeStartupChecks() {
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = CassandraKeyspaceConfig.of(config);
         try {
-            CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, config);
+            CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, cassandraKeyspaceConfig);
         } catch (Exception e) {
             log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.", e);
             throw new RuntimeException(e);
@@ -505,7 +508,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
         for (CassandraServer host : getCachedServers()) {
-            try (CassandraClient client = CassandraClientFactory.getClientInternal(host.proxy(), config)) {
+            try (CassandraClient client = CassandraClientFactory.getClientInternal(
+                    host.proxy(), CassandraClientConfig.of(config), config.sslConfiguration())) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {

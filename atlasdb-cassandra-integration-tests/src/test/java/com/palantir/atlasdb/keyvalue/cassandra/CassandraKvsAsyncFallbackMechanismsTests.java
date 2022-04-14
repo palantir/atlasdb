@@ -73,7 +73,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetFallBackNotNeeded() {
-        when(factory.constructAsyncKeyValueService(any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
+        when(factory.constructAsyncKeyValueService(
+                        any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(Optional.of(asyncKeyValueService));
 
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
@@ -89,7 +90,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetFallingBackToSynchronous() {
-        when(factory.constructAsyncKeyValueService(any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
+        when(factory.constructAsyncKeyValueService(
+                        any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(Optional.empty());
 
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
