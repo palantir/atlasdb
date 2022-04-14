@@ -43,7 +43,7 @@ import javax.annotation.concurrent.GuardedBy;
 public final class ReloadingCqlClusterContainer implements Closeable, Supplier<CqlCluster> {
     private static final SafeLogger log = SafeLoggerFactory.get(ReloadingCqlClusterContainer.class);
 
-    private final AtomicReference<Optional<CqlCluster>> lastCqlCluster;
+    private final AtomicReference<Optional<CqlCluster>> currentCqlCluster;
     private final Refreshable<CqlCluster> refreshableCqlCluster;
 
     @GuardedBy("this")
@@ -55,12 +55,12 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
             Namespace namespace,
             CqlClusterFactory cqlClusterFactory) {
         this.isClosed = false;
-        this.lastCqlCluster = new AtomicReference<>(Optional.empty());
+        this.currentCqlCluster = new AtomicReference<>(Optional.empty());
         this.refreshableCqlCluster = refreshableCassandraServersConfig.map(cassandraServersConfig ->
                 createNewCluster(cassandraClusterConfig, cassandraServersConfig, namespace, cqlClusterFactory));
 
         refreshableCqlCluster.subscribe(cqlCluster -> {
-            Optional<CqlCluster> maybeCqlClusterToClose = lastCqlCluster.getAndSet(Optional.of(cqlCluster));
+            Optional<CqlCluster> maybeCqlClusterToClose = currentCqlCluster.getAndSet(Optional.of(cqlCluster));
             if (maybeCqlClusterToClose.isPresent()) {
                 try {
                     maybeCqlClusterToClose.get().close();
@@ -109,7 +109,7 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
     @Override
     public synchronized void close() throws IOException {
         isClosed = true;
-        Optional<CqlCluster> maybeCqlClusterToClose = lastCqlCluster.get();
+        Optional<CqlCluster> maybeCqlClusterToClose = currentCqlCluster.get();
         if (maybeCqlClusterToClose.isPresent()) {
             maybeCqlClusterToClose.get().close();
         }
