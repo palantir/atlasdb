@@ -119,7 +119,7 @@ public class AtlasRestoreServiceTest {
 
         assertThatThrownBy(() -> atlasRestoreService.prepareRestore(requests, BACKUP_ID))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("severe data corruption");
+                .hasMessageContaining("Restore cannot safely proceed.");
     }
 
     @Test
