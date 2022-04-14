@@ -31,6 +31,7 @@ import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.backup.api.RefreshBackupRequest;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -41,12 +42,14 @@ import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,6 +57,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ *  Service for Atlas backup tasks.
+ *  While a single backup operation may encompass multiple namespaces, it is essential that each namespace in a given
+ *  request corresponds to a single TimeLock service, since we support a single AtlasBackupClient (this exists on
+ *  TimeLock rather than on the backup client side). If the set of AtlasServices in a given request contains
+ *  duplicated namespaces (e.g. {(123, namespace), (456, namespace)}), then a SafeIllegalArgumentException will be
+ *  thrown.
+ */
 public final class AtlasBackupService {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupService.class);
 
@@ -129,6 +140,7 @@ public final class AtlasBackupService {
     }
 
     public Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices) {
+        validateAtlasServices(atlasServices);
         PrepareBackupRequest request = PrepareBackupRequest.of(atlasServices);
         PrepareBackupResponse response = atlasBackupClient.prepareBackup(authHeader, request);
 
@@ -148,7 +160,7 @@ public final class AtlasBackupService {
      * Completes backup for the given set of atlas services.
      * This will store metadata about the completed backup via the BackupPersister.
      *
-     * In order to do this, we must unlock the immutable timestamp for each atlas service. If {@link #prepareBackup(Set)}
+     * In order to do this, we must unlock the immutable timestamp for each service. If {@link #prepareBackup(Set)}
      * was not called, we will not have a record of the in-progress backup (and will not have been refreshing
      * its lock anyway). Thus, we attempt to complete backup only for those atlas services where we have the in-progress
      * backup stored.
@@ -156,6 +168,7 @@ public final class AtlasBackupService {
      * @return the atlas services whose backups were successfully completed
      */
     public Set<AtlasService> completeBackup(Set<AtlasService> atlasServices) {
+        validateAtlasServices(atlasServices);
         Set<InProgressBackupToken> tokens = atlasServices.stream()
                 .map(inProgressBackups::remove)
                 .filter(Objects::nonNull)
@@ -196,5 +209,20 @@ public final class AtlasBackupService {
                 .peek(backupPersister::storeCompletedBackup)
                 .map(CompletedBackup::getAtlasService)
                 .collect(Collectors.toSet());
+    }
+
+    private static void validateAtlasServices(Set<AtlasService> atlasServices) {
+        Map<Namespace, Long> namespacesByCount = atlasServices.stream()
+                .collect(Collectors.groupingBy(AtlasService::getNamespace, Collectors.counting()));
+        Set<Namespace> duplicatedNamespaces = namespacesByCount.entrySet().stream()
+                .filter(m -> m.getValue() > 1)
+                .map(Entry::getKey)
+                .collect(Collectors.toSet());
+        if (!duplicatedNamespaces.isEmpty()) {
+            throw new SafeIllegalArgumentException(
+                    "Duplicated namespaces found in backup request. Backup cannot safely proceed.",
+                    SafeArg.of("duplicatedNamespaces", duplicatedNamespaces),
+                    SafeArg.of("atlasServices", atlasServices));
+        }
     }
 }
