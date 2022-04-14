@@ -133,29 +133,21 @@ types:
       InProgressBackupToken:
         package: com.palantir.atlasdb.backup.api
         fields:
-          atlasService: AtlasService
+          namespace: Namespace
           lockToken: LockToken
           immutableTimestamp: Long
           backupStartTimestamp: Long
       CompletedBackup:
         package: com.palantir.atlasdb.backup.api
         fields:
-          atlasService: AtlasService
+          namespace: Namespace
           immutableTimestamp: Long
           backupStartTimestamp: Long
           backupEndTimestamp: Long
-      RestoredService:
-        package: com.palantir.atlasdb.backup.api
-        fields:
-          restoredAtlasService: AtlasService
-          backupRestoredFrom: CompletedBackup
-        docs: |
-          Mapping from the atlas service being restored into, to the backup we're restoring.
-          Note that the atlas service might not be the same as the atlas service originally backed up.
       PrepareBackupRequest:
         package: com.palantir.atlasdb.backup.api
         fields:
-          atlasServices: set<AtlasService>
+          atlasServices: set<Namespace>
       PrepareBackupResponse:
         package: com.palantir.atlasdb.backup.api
         fields:
@@ -179,12 +171,15 @@ types:
       CompleteRestoreRequest:
         package: com.palantir.atlasdb.backup.api
         fields:
-          restoredServices:
-            type: set<RestoredService>
+          completedBackups:
+            type: map<Namespace, CompletedBackup>
+            docs: |
+              Mapping from the namespace being restored into, to the backup we're restoring.
+              Note that the namespace might not be the same as the namespace originally backed up.
       CompleteRestoreResponse:
         package: com.palantir.atlasdb.backup.api
         fields:
-          successfulServices: set<AtlasService>
+          successfulNamespaces: set<Namespace>
 
 services:
   AtlasBackupClient:
