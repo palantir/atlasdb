@@ -78,7 +78,7 @@ public final class CassandraRepairEteTest {
     private static final byte[] FIRST_COLUMN = PtBytes.toBytes("col1");
     private static final Cell NONEMPTY_CELL = Cell.create(PtBytes.toBytes("nonempty"), FIRST_COLUMN);
     private static final byte[] CONTENTS = PtBytes.toBytes("default_value");
-    private static final String NAMESPACE_NAME = "ns";
+    private static final String NAMESPACE_NAME = "atlasdb";
     private static final Namespace NAMESPACE = Namespace.of(NAMESPACE_NAME);
     private static final String TABLE_1 = "table1";
     private static final TableReference TABLE_REF =
