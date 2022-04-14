@@ -17,10 +17,10 @@
 package com.palantir.atlasdb.backup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -42,52 +42,53 @@ public class ExternalBackupPersister implements BackupPersister {
     private static final String IMMUTABLE_TIMESTAMP_FILE_NAME = "immutable.timestamp";
     private static final String FAST_FORWARD_TIMESTAMP_FILE_NAME = "fast-forward.timestamp";
 
-    private final Function<Namespace, Path> pathFactory;
+    private final Function<AtlasService, Path> pathFactory;
 
-    public ExternalBackupPersister(Function<Namespace, Path> pathFactory) {
+    public ExternalBackupPersister(Function<AtlasService, Path> pathFactory) {
         this.pathFactory = pathFactory;
     }
 
     @Override
-    public void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
-        File schemaMetadataFile = getSchemaMetadataFile(namespace);
+    public void storeSchemaMetadata(AtlasService service, InternalSchemaMetadataState internalSchemaMetadataState) {
+        File schemaMetadataFile = getSchemaMetadataFile(service);
         if (log.isDebugEnabled()) {
             log.debug(
                     "Storing schema metadata",
-                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("service", service),
                     SafeArg.of("file", schemaMetadataFile.getPath()));
         }
-        writeToFile(namespace, schemaMetadataFile, internalSchemaMetadataState);
+        writeToFile(service, schemaMetadataFile, internalSchemaMetadataState);
     }
 
     @Override
-    public Optional<InternalSchemaMetadataState> getSchemaMetadata(Namespace namespace) {
-        return loadFromFile(namespace, getSchemaMetadataFile(namespace), InternalSchemaMetadataState.class);
+    public Optional<InternalSchemaMetadataState> getSchemaMetadata(AtlasService atlasService) {
+        return loadFromFile(atlasService, getSchemaMetadataFile(atlasService), InternalSchemaMetadataState.class);
     }
 
     @Override
     public void storeCompletedBackup(CompletedBackup completedBackup) {
-        Namespace namespace = completedBackup.getNamespace();
+        AtlasService atlasService = completedBackup.getAtlasService();
 
         if (log.isDebugEnabled()) {
-            log.debug("Storing completed backup", SafeArg.of("namespace", namespace));
+            log.debug("Storing completed backup", SafeArg.of("atlasService", atlasService));
         }
-        writeToFile(namespace, getImmutableTimestampFile(namespace), completedBackup.getImmutableTimestamp());
-        writeToFile(namespace, getBackupTimestampFile(namespace), completedBackup.getBackupStartTimestamp());
-        writeToFile(namespace, getFastForwardTimestampFile(namespace), completedBackup.getBackupEndTimestamp());
+        writeToFile(atlasService, getImmutableTimestampFile(atlasService), completedBackup.getImmutableTimestamp());
+        writeToFile(atlasService, getBackupTimestampFile(atlasService), completedBackup.getBackupStartTimestamp());
+        writeToFile(atlasService, getFastForwardTimestampFile(atlasService), completedBackup.getBackupEndTimestamp());
     }
 
     @Override
-    public Optional<CompletedBackup> getCompletedBackup(Namespace namespace) {
-        Optional<Long> immutableTimestamp = loadFromFile(namespace, getImmutableTimestampFile(namespace), Long.class);
-        Optional<Long> startTimestamp = loadFromFile(namespace, getBackupTimestampFile(namespace), Long.class);
-        Optional<Long> endTimestamp = loadFromFile(namespace, getFastForwardTimestampFile(namespace), Long.class);
+    public Optional<CompletedBackup> getCompletedBackup(AtlasService atlasService) {
+        Optional<Long> immutableTimestamp =
+                loadFromFile(atlasService, getImmutableTimestampFile(atlasService), Long.class);
+        Optional<Long> startTimestamp = loadFromFile(atlasService, getBackupTimestampFile(atlasService), Long.class);
+        Optional<Long> endTimestamp = loadFromFile(atlasService, getFastForwardTimestampFile(atlasService), Long.class);
         if (immutableTimestamp.isEmpty() || startTimestamp.isEmpty() || endTimestamp.isEmpty()) {
             return Optional.empty();
         }
 
         return Optional.of(CompletedBackup.builder()
-                .namespace(namespace)
+                .atlasService(atlasService)
                 .immutableTimestamp(immutableTimestamp.get())
                 .backupStartTimestamp(startTimestamp.get())
                 .backupEndTimestamp(endTimestamp.get())
@@ -96,36 +97,37 @@ public class ExternalBackupPersister implements BackupPersister {
 
     @Override
     public void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken) {
-        Namespace namespace = inProgressBackupToken.getNamespace();
-        writeToFile(namespace, getImmutableTimestampFile(namespace), inProgressBackupToken.getImmutableTimestamp());
+        AtlasService atlasService = inProgressBackupToken.getAtlasService();
+        writeToFile(
+                atlasService, getImmutableTimestampFile(atlasService), inProgressBackupToken.getImmutableTimestamp());
     }
 
     @Override
-    public Optional<Long> getImmutableTimestamp(Namespace namespace) {
-        return loadFromFile(namespace, getImmutableTimestampFile(namespace), Long.class);
+    public Optional<Long> getImmutableTimestamp(AtlasService atlasService) {
+        return loadFromFile(atlasService, getImmutableTimestampFile(atlasService), Long.class);
     }
 
-    private File getSchemaMetadataFile(Namespace namespace) {
-        return getFile(namespace, SCHEMA_METADATA_FILE_NAME);
+    private File getSchemaMetadataFile(AtlasService atlasService) {
+        return getFile(atlasService, SCHEMA_METADATA_FILE_NAME);
     }
 
-    private File getImmutableTimestampFile(Namespace namespace) {
-        return getFile(namespace, IMMUTABLE_TIMESTAMP_FILE_NAME);
+    private File getImmutableTimestampFile(AtlasService atlasService) {
+        return getFile(atlasService, IMMUTABLE_TIMESTAMP_FILE_NAME);
     }
 
-    private File getBackupTimestampFile(Namespace namespace) {
-        return getFile(namespace, BACKUP_TIMESTAMP_FILE_NAME);
+    private File getBackupTimestampFile(AtlasService atlasService) {
+        return getFile(atlasService, BACKUP_TIMESTAMP_FILE_NAME);
     }
 
-    private File getFastForwardTimestampFile(Namespace namespace) {
-        return getFile(namespace, FAST_FORWARD_TIMESTAMP_FILE_NAME);
+    private File getFastForwardTimestampFile(AtlasService atlasService) {
+        return getFile(atlasService, FAST_FORWARD_TIMESTAMP_FILE_NAME);
     }
 
-    private File getFile(Namespace namespace, String fileName) {
-        return new File(pathFactory.apply(namespace).toFile(), fileName);
+    private File getFile(AtlasService atlasService, String fileName) {
+        return new File(pathFactory.apply(atlasService).toFile(), fileName);
     }
 
-    private void writeToFile(Namespace namespace, File file, Object data) {
+    private void writeToFile(AtlasService atlasService, File file, Object data) {
         try (OutputStream os = Files.newOutputStream(file.toPath())) {
             os.write(OBJECT_MAPPER.writeValueAsBytes(data));
             os.flush();
@@ -133,18 +135,18 @@ public class ExternalBackupPersister implements BackupPersister {
             log.error(
                     "Failed to store file",
                     SafeArg.of("fileName", file.getName()),
-                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("atlasService", atlasService),
                     e);
             throw new RuntimeException(e);
         }
     }
 
-    private <T> Optional<T> loadFromFile(Namespace namespace, File file, Class<T> clazz) {
+    private <T> Optional<T> loadFromFile(AtlasService atlasService, File file, Class<T> clazz) {
         if (!file.exists()) {
             log.info(
                     "Tried to load file, but it did not exist",
                     SafeArg.of("fileName", file.getName()),
-                    SafeArg.of("namespace", namespace));
+                    SafeArg.of("atlasService", atlasService));
             return Optional.empty();
         }
 
@@ -153,13 +155,13 @@ public class ExternalBackupPersister implements BackupPersister {
             log.info(
                     "Successfully loaded file",
                     SafeArg.of("fileName", file.getName()),
-                    SafeArg.of("namespace", namespace));
+                    SafeArg.of("atlasService", atlasService));
             return Optional.of(state);
         } catch (IOException e) {
             log.warn(
                     "Failed to read file",
                     SafeArg.of("fileName", file.getName()),
-                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("atlasService", atlasService),
                     e);
             return Optional.empty();
         }

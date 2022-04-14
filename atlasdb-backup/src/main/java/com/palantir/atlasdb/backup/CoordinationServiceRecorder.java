@@ -18,6 +18,7 @@ package com.palantir.atlasdb.backup;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
@@ -26,7 +27,6 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -44,21 +44,23 @@ final class CoordinationServiceRecorder {
     }
 
     public void storeFastForwardState(CompletedBackup completedBackup) {
-        Namespace namespace = completedBackup.getNamespace();
+        AtlasService atlasService = completedBackup.getAtlasService();
         Optional<InternalSchemaMetadataState> maybeMetadata =
-                fetchSchemaMetadata(namespace, completedBackup.getBackupEndTimestamp());
+                fetchSchemaMetadata(atlasService, completedBackup.getBackupEndTimestamp());
 
         maybeMetadata.ifPresentOrElse(
-                metadata -> backupPersister.storeSchemaMetadata(namespace, metadata),
-                () -> logEmptyMetadata(namespace));
+                metadata -> backupPersister.storeSchemaMetadata(atlasService, metadata),
+                () -> logEmptyMetadata(atlasService));
     }
 
-    private void logEmptyMetadata(Namespace namespace) {
-        log.info("No metadata stored in coordination service for namespace.", SafeArg.of("namespace", namespace));
+    private void logEmptyMetadata(AtlasService atlasService) {
+        log.info(
+                "No metadata stored in coordination service for atlas service.",
+                SafeArg.of("atlasService", atlasService));
     }
 
-    private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(Namespace namespace, long timestamp) {
-        return kvsRunner.run(namespace, kvs -> getInternalSchemaMetadataState(kvs, timestamp));
+    private Optional<InternalSchemaMetadataState> fetchSchemaMetadata(AtlasService atlasService, long timestamp) {
+        return kvsRunner.run(atlasService, kvs -> getInternalSchemaMetadataState(kvs, timestamp));
     }
 
     private Optional<InternalSchemaMetadataState> getInternalSchemaMetadataState(KeyValueService kvs, long timestamp) {

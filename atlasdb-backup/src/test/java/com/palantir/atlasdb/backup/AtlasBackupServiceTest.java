@@ -22,12 +22,14 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
+import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockToken;
@@ -43,8 +45,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AtlasBackupServiceTest {
     private static final Namespace NAMESPACE = Namespace.of("foo");
+    private static final AtlasService ATLAS_SERVICE = AtlasService.of(ServiceId.of("a"), NAMESPACE);
     private static final Namespace OTHER_NAMESPACE = Namespace.of("other");
-    private static final InProgressBackupToken IN_PROGRESS = inProgressBackupToken(NAMESPACE);
+    private static final AtlasService OTHER_ATLAS_SERVICE = AtlasService.of(ServiceId.of("b"), OTHER_NAMESPACE);
+    private static final InProgressBackupToken IN_PROGRESS = inProgressBackupToken(ATLAS_SERVICE);
 
     @Mock
     private AuthHeader authHeader;
@@ -69,98 +73,98 @@ public class AtlasBackupServiceTest {
     }
 
     @Test
-    public void prepareBackupReturnsSuccessfulNamespaces() {
+    public void prepareBackupReturnsSuccessfulServices() {
         when(atlasBackupClient.prepareBackup(
-                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE))))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
 
-        assertThat(atlasBackupService.prepareBackup(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE)))
-                .containsExactly(NAMESPACE);
+        assertThat(atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE)))
+                .containsExactly(ATLAS_SERVICE);
     }
 
     @Test
     public void prepareBackupRegistersLockForRefresh() {
         Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
         when(atlasBackupClient.prepareBackup(
-                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE))))
                 .thenReturn(PrepareBackupResponse.of(tokens));
 
-        atlasBackupService.prepareBackup(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
+        atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
         verify(lockRefresher).registerLocks(tokens);
     }
 
     @Test
-    public void completeBackupDoesNotRunUnpreparedNamespaces() {
+    public void completeBackupDoesNotRunUnpreparedServices() {
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of())))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of()));
 
-        assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_NAMESPACE)))
+        assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_ATLAS_SERVICE)))
                 .isEmpty();
     }
 
     @Test
-    public void completeBackupReturnsSuccessfulNamespaces() {
-        InProgressBackupToken otherInProgress = inProgressBackupToken(OTHER_NAMESPACE);
-        Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
+    public void completeBackupReturnsSuccessfulServices() {
+        InProgressBackupToken otherInProgress = inProgressBackupToken(OTHER_ATLAS_SERVICE);
+        Set<AtlasService> services = ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE);
 
-        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(namespaces)))
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(services)))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS, otherInProgress)));
 
         when(atlasBackupClient.completeBackup(
                         authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS, otherInProgress))))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup())));
 
-        atlasBackupService.prepareBackup(namespaces);
+        atlasBackupService.prepareBackup(services);
 
-        assertThat(atlasBackupService.completeBackup(namespaces)).containsExactly(NAMESPACE);
+        assertThat(atlasBackupService.completeBackup(services)).containsExactly(ATLAS_SERVICE);
     }
 
     @Test
     public void completeBackupUnregistersLocks() {
-        Set<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
+        Set<AtlasService> oneService = ImmutableSet.of(ATLAS_SERVICE);
         Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
-        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneService)))
                 .thenReturn(PrepareBackupResponse.of(tokens));
 
         CompletedBackup completedBackup = completedBackup();
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(tokens)))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
 
-        atlasBackupService.prepareBackup(oneNamespace);
-        atlasBackupService.completeBackup(oneNamespace);
+        atlasBackupService.prepareBackup(oneService);
+        atlasBackupService.completeBackup(oneService);
 
         verify(lockRefresher).unregisterLocks(tokens);
     }
 
     @Test
     public void completeBackupStoresBackupInfoAndMetadata() {
-        ImmutableSet<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
-        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
+        ImmutableSet<AtlasService> oneService = ImmutableSet.of(ATLAS_SERVICE);
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneService)))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
 
         CompletedBackup completedBackup = completedBackup();
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS))))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
 
-        atlasBackupService.prepareBackup(oneNamespace);
-        atlasBackupService.completeBackup(oneNamespace);
+        atlasBackupService.prepareBackup(oneService);
+        atlasBackupService.completeBackup(oneService);
 
         verify(coordinationServiceRecorder).storeFastForwardState(completedBackup);
-        assertThat(backupPersister.getCompletedBackup(NAMESPACE)).contains(completedBackup);
+        assertThat(backupPersister.getCompletedBackup(ATLAS_SERVICE)).contains(completedBackup);
     }
 
     private static CompletedBackup completedBackup() {
         return CompletedBackup.builder()
-                .namespace(NAMESPACE)
+                .atlasService(ATLAS_SERVICE)
                 .immutableTimestamp(1L)
                 .backupStartTimestamp(2L)
                 .backupEndTimestamp(3L)
                 .build();
     }
 
-    private static InProgressBackupToken inProgressBackupToken(Namespace namespace) {
+    private static InProgressBackupToken inProgressBackupToken(AtlasService atlasService) {
         return InProgressBackupToken.builder()
-                .namespace(namespace)
+                .atlasService(atlasService)
                 .immutableTimestamp(1L)
                 .backupStartTimestamp(2L)
                 .lockToken(LockToken.of(UUID.randomUUID()))

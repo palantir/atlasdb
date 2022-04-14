@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.processors.AutoDelegate;
 import java.util.Optional;
 import java.util.Set;
@@ -34,35 +34,35 @@ public interface BackupAndRestoreResource {
     @Path("/prepare-backup")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<Namespace> prepareBackup(Set<Namespace> namespaces);
+    Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices);
 
     @POST
     @Path("/complete-backup")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<Namespace> completeBackup(Set<Namespace> namespaces);
+    Set<AtlasService> completeBackup(Set<AtlasService> atlasServices);
 
     @POST
     @Path("/prepare-restore")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<Namespace> prepareRestore(RestoreRequestWithId restoreRequestWithId);
+    Set<AtlasService> prepareRestore(RestoreRequestWithId restoreRequestWithId);
 
     @POST
     @Path("/complete-restore")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<Namespace> completeRestore(RestoreRequestWithId restoreRequestWithId);
+    Set<AtlasService> completeRestore(RestoreRequestWithId restoreRequestWithId);
 
     @POST
     @Path("/immutable-ts")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Optional<Long> getStoredImmutableTimestamp(Namespace namespace);
+    Optional<Long> getStoredImmutableTimestamp(AtlasService atlasService);
 
     @POST
     @Path("/ff-ts")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Optional<CompletedBackup> getStoredBackup(Namespace namespace);
+    Optional<CompletedBackup> getStoredBackup(AtlasService atlasService);
 }

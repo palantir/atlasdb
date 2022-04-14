@@ -23,9 +23,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClientEndpoints;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
-import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.RestoredService;
 import com.palantir.atlasdb.backup.api.UndertowAtlasRestoreClient;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
@@ -94,24 +95,25 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
 
-        Map<Namespace, ListenableFuture<Optional<Namespace>>> futureMap = KeyedStream.stream(
-                        request.getCompletedBackups())
+        Map<AtlasService, ListenableFuture<Optional<AtlasService>>> inFlightRequests = KeyedStream.of(
+                        request.getRestoredServices())
+                .mapKeys(RestoredService::getRestoredAtlasService)
                 .map(this::completeRestoreAsync)
                 .collectToMap();
-        ListenableFuture<Map<Namespace, Namespace>> singleFuture =
-                AtlasFutures.allAsMap(futureMap, MoreExecutors.newDirectExecutorService());
+        ListenableFuture<Map<AtlasService, AtlasService>> completedRequests =
+                AtlasFutures.allAsMap(inFlightRequests, MoreExecutors.newDirectExecutorService());
 
         return Futures.transform(
-                singleFuture,
+                completedRequests,
                 map -> CompleteRestoreResponse.of(ImmutableSet.copyOf(map.values())),
                 MoreExecutors.directExecutor());
     }
 
-    private ListenableFuture<Optional<Namespace>> completeRestoreAsync(
-            Namespace namespace, CompletedBackup completedBackup) {
-        BackupTimeLockServiceView timelock = timelock(namespace);
-        timelock.fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
-        return Futures.immediateFuture(Optional.of(namespace));
+    private ListenableFuture<Optional<AtlasService>> completeRestoreAsync(RestoredService restoredService) {
+        BackupTimeLockServiceView timelock =
+                timelock(restoredService.getRestoredAtlasService().getNamespace());
+        timelock.fastForwardTimestamp(restoredService.getBackupRestoredFrom().getBackupEndTimestamp());
+        return Futures.immediateFuture(Optional.of(restoredService.getRestoredAtlasService()));
     }
 
     private BackupTimeLockServiceView timelock(Namespace namespace) {

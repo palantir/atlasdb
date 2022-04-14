@@ -18,8 +18,10 @@ package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
+import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
@@ -36,6 +38,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class ExternalBackupPersisterTest {
     private static final Namespace NAMESPACE = Namespace.of("broken_namespace");
+    private static final AtlasService ATLAS_SERVICE = AtlasService.of(ServiceId.of("service"), NAMESPACE);
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -49,7 +52,7 @@ public class ExternalBackupPersisterTest {
 
     @Test
     public void getSchemaMetadataWhenEmpty() {
-        assertThat(externalBackupPersister.getSchemaMetadata(NAMESPACE)).isEmpty();
+        assertThat(externalBackupPersister.getSchemaMetadata(ATLAS_SERVICE)).isEmpty();
     }
 
     @Test
@@ -57,57 +60,59 @@ public class ExternalBackupPersisterTest {
         InternalSchemaMetadata internalSchemaMetadata = InternalSchemaMetadata.defaultValue();
         InternalSchemaMetadataState state =
                 InternalSchemaMetadataState.of(ValueAndBound.of(internalSchemaMetadata, 100L));
-        externalBackupPersister.storeSchemaMetadata(NAMESPACE, state);
+        externalBackupPersister.storeSchemaMetadata(ATLAS_SERVICE, state);
 
-        assertThat(externalBackupPersister.getSchemaMetadata(NAMESPACE)).contains(state);
+        assertThat(externalBackupPersister.getSchemaMetadata(ATLAS_SERVICE)).contains(state);
     }
 
     @Test
     public void getImmutableTimestampWhenEmpty() {
-        assertThat(externalBackupPersister.getImmutableTimestamp(NAMESPACE)).isEmpty();
+        assertThat(externalBackupPersister.getImmutableTimestamp(ATLAS_SERVICE)).isEmpty();
     }
 
     @Test
     public void putAndGetImmutableTimestamp() {
         long immutableTimestamp = 1337L;
         InProgressBackupToken inProgressBackupToken = InProgressBackupToken.builder()
-                .namespace(NAMESPACE)
+                .atlasService(ATLAS_SERVICE)
                 .immutableTimestamp(immutableTimestamp)
                 .backupStartTimestamp(3141L)
                 .lockToken(LockToken.of(UUID.randomUUID()))
                 .build();
         externalBackupPersister.storeImmutableTimestamp(inProgressBackupToken);
-        assertThat(externalBackupPersister.getImmutableTimestamp(NAMESPACE)).contains(immutableTimestamp);
+        assertThat(externalBackupPersister.getImmutableTimestamp(ATLAS_SERVICE)).contains(immutableTimestamp);
     }
 
     @Test
     public void getCompletedBackupWhenEmpty() {
-        assertThat(externalBackupPersister.getCompletedBackup(NAMESPACE)).isEmpty();
+        assertThat(externalBackupPersister.getCompletedBackup(ATLAS_SERVICE)).isEmpty();
     }
 
     @Test
     public void putAndGetCompletedBackup() {
         CompletedBackup completedBackup = CompletedBackup.builder()
-                .namespace(NAMESPACE)
+                .atlasService(ATLAS_SERVICE)
                 .immutableTimestamp(1L)
                 .backupStartTimestamp(2L)
                 .backupEndTimestamp(3L)
                 .build();
         externalBackupPersister.storeCompletedBackup(completedBackup);
 
-        assertThat(externalBackupPersister.getCompletedBackup(NAMESPACE)).contains(completedBackup);
+        assertThat(externalBackupPersister.getCompletedBackup(ATLAS_SERVICE)).contains(completedBackup);
     }
 
-    private Path getPath(Namespace namespace) {
+    private Path getPath(AtlasService atlasService) {
         try {
-            return getOrCreateFolder(namespace).toPath();
+            return getOrCreateFolder(atlasService).toPath();
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
     }
 
-    private File getOrCreateFolder(Namespace namespace) throws IOException {
-        File file = new File(tempFolder.getRoot(), namespace.get());
-        return file.exists() ? file : tempFolder.newFolder(namespace.get());
+    private File getOrCreateFolder(AtlasService atlasService) throws IOException {
+        File file = new File(tempFolder.getRoot(), atlasService.getNamespace().value());
+        return file.exists()
+                ? file
+                : tempFolder.newFolder(atlasService.getNamespace().value());
     }
 }

@@ -31,6 +31,7 @@ import com.palantir.atlasdb.backup.ExternalBackupPersister;
 import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -58,7 +59,6 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timestamp.SimpleEteTimestampResource;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
@@ -166,7 +166,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
         Path backupFolder = Paths.get("/var/data/backup");
         Files.createDirectories(backupFolder);
-        Function<Namespace, Path> backupFolderFactory = _unused -> backupFolder;
+        Function<AtlasService, Path> backupFolderFactory = _unused -> backupFolder;
         ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
         Function<String, BackupTimeLockServiceView> timelockServices =

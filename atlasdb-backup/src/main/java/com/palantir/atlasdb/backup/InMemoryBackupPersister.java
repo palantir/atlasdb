@@ -16,18 +16,18 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 class InMemoryBackupPersister implements BackupPersister {
-    private final Map<Namespace, Long> immutableTimestamps;
-    private final Map<Namespace, InternalSchemaMetadataState> schemaMetadatas;
-    private final Map<Namespace, CompletedBackup> completedBackups;
+    private final Map<AtlasService, Long> immutableTimestamps;
+    private final Map<AtlasService, InternalSchemaMetadataState> schemaMetadatas;
+    private final Map<AtlasService, CompletedBackup> completedBackups;
 
     InMemoryBackupPersister() {
         schemaMetadatas = new ConcurrentHashMap<>();
@@ -36,32 +36,33 @@ class InMemoryBackupPersister implements BackupPersister {
     }
 
     @Override
-    public void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState) {
-        schemaMetadatas.put(namespace, internalSchemaMetadataState);
+    public void storeSchemaMetadata(
+            AtlasService atlasService, InternalSchemaMetadataState internalSchemaMetadataState) {
+        schemaMetadatas.put(atlasService, internalSchemaMetadataState);
     }
 
     @Override
-    public Optional<InternalSchemaMetadataState> getSchemaMetadata(Namespace namespace) {
-        return Optional.ofNullable(schemaMetadatas.get(namespace));
+    public Optional<InternalSchemaMetadataState> getSchemaMetadata(AtlasService atlasService) {
+        return Optional.ofNullable(schemaMetadatas.get(atlasService));
     }
 
     @Override
     public void storeCompletedBackup(CompletedBackup completedBackup) {
-        completedBackups.put(completedBackup.getNamespace(), completedBackup);
+        completedBackups.put(completedBackup.getAtlasService(), completedBackup);
     }
 
     @Override
-    public Optional<CompletedBackup> getCompletedBackup(Namespace namespace) {
-        return Optional.ofNullable(completedBackups.get(namespace));
+    public Optional<CompletedBackup> getCompletedBackup(AtlasService atlasService) {
+        return Optional.ofNullable(completedBackups.get(atlasService));
     }
 
     @Override
     public void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken) {
-        immutableTimestamps.put(inProgressBackupToken.getNamespace(), inProgressBackupToken.getImmutableTimestamp());
+        immutableTimestamps.put(inProgressBackupToken.getAtlasService(), inProgressBackupToken.getImmutableTimestamp());
     }
 
     @Override
-    public Optional<Long> getImmutableTimestamp(Namespace namespace) {
-        return Optional.ofNullable(immutableTimestamps.get(namespace));
+    public Optional<Long> getImmutableTimestamp(AtlasService atlasService) {
+        return Optional.ofNullable(immutableTimestamps.get(atlasService));
     }
 }
