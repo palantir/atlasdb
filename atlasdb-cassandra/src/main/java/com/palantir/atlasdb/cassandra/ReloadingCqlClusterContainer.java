@@ -44,7 +44,7 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
 
     private final AtomicReference<Optional<CqlCluster>> lastCqlCluster;
     private final Refreshable<CqlCluster> refreshableCqlCluster;
-    private volatile boolean isClosed;
+    private boolean isClosed;
 
     private ReloadingCqlClusterContainer(
             CassandraClusterConfig cassandraClusterConfig,
