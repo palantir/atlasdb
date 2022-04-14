@@ -84,7 +84,7 @@ public final class ClusterMetadataUtils {
      *
      * @param nodeSet The Cassandra nodes whose replicas to check
      * @param metadata The Datastax driver metadata from the Cassandra cluster
-     * @param namespace The keyspace containing the partition keys we want to map
+     * @param namespace The namespace containing the partition keys we want to map
      * @param partitionKeyTokens The Cassandra tokens for the partition keys we want to map
      * @return Mapping of Node to token ranges its host contains, where every partition key in the specified
      * list is present in one of the token ranges on one host
