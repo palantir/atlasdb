@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFact
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Disposable;
 import com.palantir.refreshable.Refreshable;
 import java.io.Closeable;
 import java.io.IOException;
@@ -45,6 +46,7 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
 
     private final AtomicReference<Optional<CqlCluster>> currentCqlCluster;
     private final Refreshable<CqlCluster> refreshableCqlCluster;
+    private final Disposable refreshableSubscriptionDisposable;
 
     @GuardedBy("this")
     private boolean isClosed;
@@ -59,7 +61,7 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
         this.refreshableCqlCluster = refreshableCassandraServersConfig.map(cassandraServersConfig ->
                 createNewCluster(cassandraClusterConfig, cassandraServersConfig, namespace, cqlClusterFactory));
 
-        refreshableCqlCluster.subscribe(cqlCluster -> {
+        this.refreshableSubscriptionDisposable = refreshableCqlCluster.subscribe(cqlCluster -> {
             Optional<CqlCluster> maybeCqlClusterToClose = currentCqlCluster.getAndSet(Optional.of(cqlCluster));
             if (maybeCqlClusterToClose.isPresent()) {
                 try {
@@ -109,6 +111,7 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
     @Override
     public synchronized void close() throws IOException {
         isClosed = true;
+        refreshableSubscriptionDisposable.dispose();
         Optional<CqlCluster> maybeCqlClusterToClose = currentCqlCluster.get();
         if (maybeCqlClusterToClose.isPresent()) {
             maybeCqlClusterToClose.get().close();
