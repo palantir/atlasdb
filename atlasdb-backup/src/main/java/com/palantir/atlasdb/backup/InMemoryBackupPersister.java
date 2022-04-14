@@ -47,8 +47,8 @@ class InMemoryBackupPersister implements BackupPersister {
     }
 
     @Override
-    public void storeCompletedBackup(CompletedBackup completedBackup) {
-        completedBackups.put(completedBackup.getAtlasService(), completedBackup);
+    public void storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup) {
+        completedBackups.put(atlasService, completedBackup);
     }
 
     @Override
@@ -57,8 +57,8 @@ class InMemoryBackupPersister implements BackupPersister {
     }
 
     @Override
-    public void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken) {
-        immutableTimestamps.put(inProgressBackupToken.getAtlasService(), inProgressBackupToken.getImmutableTimestamp());
+    public void storeImmutableTimestamp(AtlasService atlasService, InProgressBackupToken inProgressBackupToken) {
+        immutableTimestamps.put(atlasService, inProgressBackupToken.getImmutableTimestamp());
     }
 
     @Override

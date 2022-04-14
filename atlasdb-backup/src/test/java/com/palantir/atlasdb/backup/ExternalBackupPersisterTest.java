@@ -74,12 +74,12 @@ public class ExternalBackupPersisterTest {
     public void putAndGetImmutableTimestamp() {
         long immutableTimestamp = 1337L;
         InProgressBackupToken inProgressBackupToken = InProgressBackupToken.builder()
-                .atlasService(ATLAS_SERVICE)
+                .namespace(NAMESPACE)
                 .immutableTimestamp(immutableTimestamp)
                 .backupStartTimestamp(3141L)
                 .lockToken(LockToken.of(UUID.randomUUID()))
                 .build();
-        externalBackupPersister.storeImmutableTimestamp(inProgressBackupToken);
+        externalBackupPersister.storeImmutableTimestamp(ATLAS_SERVICE, inProgressBackupToken);
         assertThat(externalBackupPersister.getImmutableTimestamp(ATLAS_SERVICE)).contains(immutableTimestamp);
     }
 
@@ -91,12 +91,12 @@ public class ExternalBackupPersisterTest {
     @Test
     public void putAndGetCompletedBackup() {
         CompletedBackup completedBackup = CompletedBackup.builder()
-                .atlasService(ATLAS_SERVICE)
+                .namespace(NAMESPACE)
                 .immutableTimestamp(1L)
                 .backupStartTimestamp(2L)
                 .backupEndTimestamp(3L)
                 .build();
-        externalBackupPersister.storeCompletedBackup(completedBackup);
+        externalBackupPersister.storeCompletedBackup(ATLAS_SERVICE, completedBackup);
 
         assertThat(externalBackupPersister.getCompletedBackup(ATLAS_SERVICE)).contains(completedBackup);
     }

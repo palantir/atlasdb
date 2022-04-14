@@ -43,8 +43,7 @@ final class CoordinationServiceRecorder {
         this.backupPersister = backupPersister;
     }
 
-    public void storeFastForwardState(CompletedBackup completedBackup) {
-        AtlasService atlasService = completedBackup.getAtlasService();
+    public void storeFastForwardState(AtlasService atlasService, CompletedBackup completedBackup) {
         Optional<InternalSchemaMetadataState> maybeMetadata =
                 fetchSchemaMetadata(atlasService, completedBackup.getBackupEndTimestamp());
 

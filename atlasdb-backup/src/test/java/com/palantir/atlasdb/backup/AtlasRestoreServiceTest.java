@@ -25,13 +25,13 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.backup.api.RestoredService;
 import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
@@ -42,8 +42,10 @@ import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.SuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulDisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -62,7 +64,8 @@ public class AtlasRestoreServiceTest {
     private static final AtlasService WITH_BACKUP = AtlasService.of(ServiceId.of("a"), WITH_BACKUP_NS);
     private static final Namespace NO_BACKUP_NS = Namespace.of("no-backup");
     private static final AtlasService NO_BACKUP = AtlasService.of(ServiceId.of("b"), NO_BACKUP_NS);
-    private static final AtlasService FAILING_NAMESPACE = AtlasService.of(ServiceId.of("c"), Namespace.of("failing"));
+    private static final Namespace FAILING_NS = Namespace.of("failing");
+    private static final AtlasService FAILING_NAMESPACE = AtlasService.of(ServiceId.of("c"), FAILING_NS);
     private static final long BACKUP_START_TIMESTAMP = 2L;
     private static final String BACKUP_ID = "backup-19890526215242";
 
@@ -93,12 +96,12 @@ public class AtlasRestoreServiceTest {
 
     private void storeCompletedBackup(AtlasService atlasService) {
         CompletedBackup completedBackup = CompletedBackup.builder()
-                .atlasService(atlasService)
+                .namespace(atlasService.getNamespace())
                 .immutableTimestamp(1L)
                 .backupStartTimestamp(BACKUP_START_TIMESTAMP)
                 .backupEndTimestamp(3L)
                 .build();
-        backupPersister.storeCompletedBackup(completedBackup);
+        backupPersister.storeCompletedBackup(atlasService, completedBackup);
     }
 
     @Test
@@ -155,9 +158,9 @@ public class AtlasRestoreServiceTest {
         CompletedBackup completedBackup =
                 backupPersister.getCompletedBackup(WITH_BACKUP).orElseThrow();
         CompleteRestoreRequest completeRestoreRequest =
-                CompleteRestoreRequest.of(ImmutableSet.of(RestoredService.of(NO_BACKUP, completedBackup)));
+                CompleteRestoreRequest.of(ImmutableMap.of(NO_BACKUP_NS, completedBackup));
         when(atlasRestoreClient.completeRestore(authHeader, completeRestoreRequest))
-                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(NO_BACKUP)));
+                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(NO_BACKUP_NS)));
         ReenableNamespacesRequest reenableRequest =
                 ReenableNamespacesRequest.of(ImmutableSet.of(NO_BACKUP_NS), BACKUP_ID);
 
@@ -208,13 +211,12 @@ public class AtlasRestoreServiceTest {
 
     @Test
     public void completesRestoreAfterFastForwardingTimestamp() {
-        Set<AtlasService> atlasServices = ImmutableSet.of(WITH_BACKUP);
-        Set<RestoredService> restoredServices = ImmutableSet.of(RestoredService.of(
-                WITH_BACKUP, backupPersister.getCompletedBackup(WITH_BACKUP).orElseThrow()));
+        Map<Namespace, CompletedBackup> completedBackups = ImmutableMap.of(
+                WITH_BACKUP_NS, backupPersister.getCompletedBackup(WITH_BACKUP).orElseThrow());
 
-        CompleteRestoreRequest completeRequest = CompleteRestoreRequest.of(restoredServices);
+        CompleteRestoreRequest completeRequest = CompleteRestoreRequest.of(completedBackups);
         when(atlasRestoreClient.completeRestore(authHeader, completeRequest))
-                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
+                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP_NS)));
 
         ReenableNamespacesRequest reenableRequest =
                 ReenableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP_NS), BACKUP_ID);
@@ -241,15 +243,15 @@ public class AtlasRestoreServiceTest {
     @Test
     public void completeRestoreReturnsSuccessfulNamespaces() {
         Set<AtlasService> atlasServices = ImmutableSet.of(WITH_BACKUP, FAILING_NAMESPACE);
-        Set<RestoredService> restoredServices = atlasServices.stream()
-                .map(service -> backupPersister.getCompletedBackup(service))
+        Map<Namespace, CompletedBackup> completedBackups = KeyedStream.of(atlasServices)
+                .map(backupPersister::getCompletedBackup)
                 .flatMap(Optional::stream)
-                .map(completedBackup -> RestoredService.of(completedBackup.getAtlasService(), completedBackup))
-                .collect(Collectors.toSet());
+                .mapKeys(AtlasService::getNamespace)
+                .collectToMap();
 
-        CompleteRestoreRequest request = CompleteRestoreRequest.of(restoredServices);
+        CompleteRestoreRequest request = CompleteRestoreRequest.of(completedBackups);
         when(atlasRestoreClient.completeRestore(authHeader, request))
-                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP)));
+                .thenReturn(CompleteRestoreResponse.of(ImmutableSet.of(WITH_BACKUP_NS)));
 
         ReenableNamespacesRequest reenableRequest =
                 ReenableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP_NS), BACKUP_ID);

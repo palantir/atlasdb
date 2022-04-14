@@ -221,7 +221,7 @@ public final class AtlasBackupService {
     }
 
     private void storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup) {
-        coordinationServiceRecorder.storeFastForwardState(completedBackup);
+        coordinationServiceRecorder.storeFastForwardState(atlasService, completedBackup);
         backupPersister.storeCompletedBackup(atlasService, completedBackup);
     }
 
