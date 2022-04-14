@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import javax.annotation.concurrent.GuardedBy;
 
 /**
  * This container creates new CQL Clusters when the underlying server refreshable changes.
@@ -44,6 +45,8 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
 
     private final AtomicReference<Optional<CqlCluster>> lastCqlCluster;
     private final Refreshable<CqlCluster> refreshableCqlCluster;
+
+    @GuardedBy("this")
     private boolean isClosed;
 
     private ReloadingCqlClusterContainer(
