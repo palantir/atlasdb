@@ -146,7 +146,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
     }
 
     private ListenableFuture<Optional<RefreshLockResponseV2>> refreshBackupAsync(InProgressBackupToken token) {
-        // TODO(gs): handle AtlasService -> Timelock???
         Namespace namespace = token.getAtlasService().getNamespace();
         return Futures.transform(
                 timelock(namespace).refreshLockLeases(ImmutableSet.of(token.getLockToken())),
@@ -222,7 +221,6 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
 
     private CompletedBackup fetchFastForwardTimestamp(InProgressBackupToken backupToken) {
         AtlasService atlasService = backupToken.getAtlasService();
-        // TODO(gs): this is DEFINITELY broken
         long fastForwardTimestamp = timelock(atlasService.getNamespace()).getFreshTimestamp();
         return CompletedBackup.builder()
                 .atlasService(atlasService)
