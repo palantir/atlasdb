@@ -27,11 +27,11 @@ interface BackupPersister {
 
     Optional<InternalSchemaMetadataState> getSchemaMetadata(AtlasService service);
 
-    void storeCompletedBackup(CompletedBackup completedBackup);
+    void storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup);
 
     Optional<CompletedBackup> getCompletedBackup(AtlasService service);
 
-    void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken);
+    void storeImmutableTimestamp(AtlasService atlasService, InProgressBackupToken inProgressBackupToken);
 
     Optional<Long> getImmutableTimestamp(AtlasService service);
 }

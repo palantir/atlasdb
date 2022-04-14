@@ -23,13 +23,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.backup.api.AtlasService;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.backup.api.RestoredService;
-import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
@@ -56,7 +53,6 @@ public class AtlasRestoreResourceTest {
     private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("bear");
     private static final AuthHeader AUTH_HEADER = AuthHeader.of(BEARER_TOKEN);
     private static final Namespace NAMESPACE = Namespace.of("test");
-    private static final AtlasService ATLAS_SERVICE = AtlasService.of(ServiceId.of("a"), NAMESPACE);
     private static final long FAST_FORWARD_TIMESTAMP = 9000L;
 
     @Mock
@@ -84,8 +80,7 @@ public class AtlasRestoreResourceTest {
     public void throwsIfWrongAuthHeaderIsProvided() {
         CompletedBackup completedBackup = completedBackup();
         AuthHeader wrongHeader = AuthHeader.of(BearerToken.valueOf("imposter"));
-        CompleteRestoreRequest request =
-                CompleteRestoreRequest.of(ImmutableSet.of(RestoredService.of(ATLAS_SERVICE, completedBackup)));
+        CompleteRestoreRequest request = CompleteRestoreRequest.of(ImmutableMap.of(NAMESPACE, completedBackup));
         assertThatServiceExceptionThrownBy(
                         () -> AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(wrongHeader, request)))
                 .hasType(ErrorType.PERMISSION_DENIED);
@@ -94,19 +89,17 @@ public class AtlasRestoreResourceTest {
     @Test
     public void completesRestoreSuccessfully() {
         Namespace newNamespace = Namespace.of("newNamespace");
-        AtlasService newAtlasService = AtlasService.of(ServiceId.of("b"), newNamespace);
         CompletedBackup completedBackup = completedBackup();
         CompleteRestoreResponse response = AtlasFutures.getUnchecked(atlasRestoreResource.completeRestore(
-                AUTH_HEADER,
-                CompleteRestoreRequest.of(ImmutableSet.of(RestoredService.of(newAtlasService, completedBackup)))));
+                AUTH_HEADER, CompleteRestoreRequest.of(ImmutableMap.of(newNamespace, completedBackup))));
 
-        assertThat(response.getSuccessfulServices()).containsExactly(newAtlasService);
+        assertThat(response.getSuccessfulNamespaces()).containsExactly(newNamespace);
         verify(otherTimelock).fastForwardTimestamp(completedBackup.getBackupEndTimestamp());
     }
 
     private static CompletedBackup completedBackup() {
         return CompletedBackup.builder()
-                .atlasService(ATLAS_SERVICE)
+                .namespace(NAMESPACE)
                 .immutableTimestamp(1000L)
                 .backupStartTimestamp(1337L)
                 .backupEndTimestamp(FAST_FORWARD_TIMESTAMP)

@@ -66,9 +66,7 @@ public class ExternalBackupPersister implements BackupPersister {
     }
 
     @Override
-    public void storeCompletedBackup(CompletedBackup completedBackup) {
-        AtlasService atlasService = completedBackup.getAtlasService();
-
+    public void storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup) {
         if (log.isDebugEnabled()) {
             log.debug("Storing completed backup", SafeArg.of("atlasService", atlasService));
         }
@@ -88,7 +86,7 @@ public class ExternalBackupPersister implements BackupPersister {
         }
 
         return Optional.of(CompletedBackup.builder()
-                .atlasService(atlasService)
+                .namespace(atlasService.getNamespace())
                 .immutableTimestamp(immutableTimestamp.get())
                 .backupStartTimestamp(startTimestamp.get())
                 .backupEndTimestamp(endTimestamp.get())
@@ -96,8 +94,7 @@ public class ExternalBackupPersister implements BackupPersister {
     }
 
     @Override
-    public void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken) {
-        AtlasService atlasService = inProgressBackupToken.getAtlasService();
+    public void storeImmutableTimestamp(AtlasService atlasService, InProgressBackupToken inProgressBackupToken) {
         writeToFile(
                 atlasService, getImmutableTimestampFile(atlasService), inProgressBackupToken.getImmutableTimestamp());
     }

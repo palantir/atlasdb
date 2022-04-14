@@ -147,7 +147,7 @@ types:
       PrepareBackupRequest:
         package: com.palantir.atlasdb.backup.api
         fields:
-          atlasServices: set<Namespace>
+          namespaces: set<Namespace>
       PrepareBackupResponse:
         package: com.palantir.atlasdb.backup.api
         fields:

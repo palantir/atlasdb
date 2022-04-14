@@ -26,7 +26,6 @@ import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.backup.api.RestoredService;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
@@ -216,8 +215,8 @@ public class AtlasRestoreService {
                     SafeArg.of("restoreRequests", restoreRequests));
             return ImmutableSet.of();
         } else if (completedBackups.size() < restoreRequests.size()) {
-            Set<AtlasService> atlasServicesWithBackup = completedBackups.values().stream()
-                    .map(CompletedBackup::getAtlasService)
+            Set<AtlasService> atlasServicesWithBackup = completedBackups.keySet().stream()
+                    .map(RestoreRequest::oldAtlasService)
                     .collect(Collectors.toSet());
             Set<AtlasService> allOldAtlasServices = restoreRequests.stream()
                     .map(RestoreRequest::oldAtlasService)
@@ -231,13 +230,19 @@ public class AtlasRestoreService {
         }
 
         // Fast forward timestamps
-        Set<RestoredService> completeRequest = completedBackups.entrySet().stream()
-                .map(entry -> RestoredService.of(entry.getKey().newAtlasService(), entry.getValue()))
-                .collect(Collectors.toSet());
+        Map<Namespace, CompletedBackup> completeRequest = KeyedStream.stream(completedBackups)
+                .mapKeys(RestoreRequest::newAtlasService)
+                .mapKeys(AtlasService::getNamespace)
+                .collectToMap();
+        Map<Namespace, AtlasService> namespaceToServices = KeyedStream.of(atlasServicesToRestore)
+                .mapKeys(AtlasService::getNamespace)
+                .collectToMap();
 
         CompleteRestoreResponse response =
                 atlasRestoreClient.completeRestore(authHeader, CompleteRestoreRequest.of(completeRequest));
-        Set<AtlasService> successfulAtlasServices = response.getSuccessfulServices();
+        Set<AtlasService> successfulAtlasServices = response.getSuccessfulNamespaces().stream()
+                .map(namespaceToServices::get)
+                .collect(Collectors.toSet());
         Set<AtlasService> failedAtlasServices = Sets.difference(atlasServicesToRestore, successfulAtlasServices);
         if (!failedAtlasServices.isEmpty()) {
             log.error(
@@ -247,13 +252,9 @@ public class AtlasRestoreService {
         }
 
         // Re-enable timelock
-        Set<AtlasService> newAtlasServices =
-                restoreRequests.stream().map(RestoreRequest::newAtlasService).collect(Collectors.toSet());
-        Set<Namespace> successfulNamespaces =
-                successfulAtlasServices.stream().map(AtlasService::getNamespace).collect(Collectors.toSet());
         timeLockManagementService.reenableTimelock(
-                authHeader, ReenableNamespacesRequest.of(successfulNamespaces, backupId));
-        if (successfulAtlasServices.containsAll(newAtlasServices)) {
+                authHeader, ReenableNamespacesRequest.of(response.getSuccessfulNamespaces(), backupId));
+        if (successfulAtlasServices.containsAll(atlasServicesToRestore)) {
             log.info(
                     "Successfully completed restore for all atlasServices",
                     SafeArg.of("atlasServices", successfulAtlasServices));
@@ -280,7 +281,8 @@ public class AtlasRestoreService {
             RestoreRequest restoreRequest,
             CompletedBackup completedBackup,
             BiConsumer<String, RangesForRepair> repairTable) {
-        Map<FullyBoundedTimestampRange, Integer> coordinationMap = getCoordinationMap(completedBackup);
+        Map<FullyBoundedTimestampRange, Integer> coordinationMap =
+                getCoordinationMap(restoreRequest.oldAtlasService(), completedBackup);
         List<TransactionsTableInteraction> transactionsTableInteractions =
                 TransactionsTableInteraction.getTransactionTableInteractions(
                         coordinationMap, DefaultRetryPolicy.INSTANCE);
@@ -290,9 +292,9 @@ public class AtlasRestoreService {
                 atlasService, completedBackup.getBackupStartTimestamp(), transactionsTableInteractions);
     }
 
-    private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(CompletedBackup completedBackup) {
-        Optional<InternalSchemaMetadataState> schemaMetadataState =
-                backupPersister.getSchemaMetadata(completedBackup.getAtlasService());
+    private Map<FullyBoundedTimestampRange, Integer> getCoordinationMap(
+            AtlasService atlasService, CompletedBackup completedBackup) {
+        Optional<InternalSchemaMetadataState> schemaMetadataState = backupPersister.getSchemaMetadata(atlasService);
 
         long fastForwardTs = completedBackup.getBackupEndTimestamp();
         long immutableTs = completedBackup.getBackupStartTimestamp();

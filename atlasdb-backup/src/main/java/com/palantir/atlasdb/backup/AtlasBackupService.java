@@ -35,6 +35,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
@@ -141,18 +142,22 @@ public final class AtlasBackupService {
 
     public Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices) {
         validateAtlasServices(atlasServices);
-        PrepareBackupRequest request = PrepareBackupRequest.of(atlasServices);
+        Map<Namespace, AtlasService> namespaceToServices = KeyedStream.of(atlasServices)
+                .mapKeys(AtlasService::getNamespace)
+                .collectToMap();
+        PrepareBackupRequest request = PrepareBackupRequest.of(namespaceToServices.keySet());
         PrepareBackupResponse response = atlasBackupClient.prepareBackup(authHeader, request);
 
-        return response.getSuccessful().stream()
-                .peek(this::storeBackupToken)
-                .map(InProgressBackupToken::getAtlasService)
-                .collect(Collectors.toSet());
+        Map<AtlasService, InProgressBackupToken> tokensPerService = KeyedStream.of(response.getSuccessful())
+                .mapKeys(token -> namespaceToServices.get(token.getNamespace()))
+                .collectToMap();
+        KeyedStream.stream(tokensPerService).forEach(this::storeBackupToken);
+        return tokensPerService.keySet();
     }
 
-    private void storeBackupToken(InProgressBackupToken backupToken) {
-        inProgressBackups.put(backupToken.getAtlasService(), backupToken);
-        backupPersister.storeImmutableTimestamp(backupToken);
+    private void storeBackupToken(AtlasService atlasService, InProgressBackupToken backupToken) {
+        inProgressBackups.put(atlasService, backupToken);
+        backupPersister.storeImmutableTimestamp(atlasService, backupToken);
         lockRefresher.registerLocks(ImmutableSet.of(backupToken));
     }
 
@@ -169,14 +174,16 @@ public final class AtlasBackupService {
      */
     public Set<AtlasService> completeBackup(Set<AtlasService> atlasServices) {
         validateAtlasServices(atlasServices);
-        Set<InProgressBackupToken> tokens = atlasServices.stream()
-                .map(inProgressBackups::remove)
+
+        Map<AtlasService, InProgressBackupToken> knownBackups = KeyedStream.of(atlasServices)
+                .map((Function<AtlasService, InProgressBackupToken>) inProgressBackups::remove)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                .collectToMap();
+        Set<InProgressBackupToken> tokens = ImmutableSet.copyOf(knownBackups.values());
+
         lockRefresher.unregisterLocks(tokens);
 
-        Set<AtlasService> atlasServicesWithInProgressBackups =
-                tokens.stream().map(InProgressBackupToken::getAtlasService).collect(Collectors.toSet());
+        Set<AtlasService> atlasServicesWithInProgressBackups = knownBackups.keySet();
         if (tokens.size() < atlasServices.size()) {
             Set<AtlasService> atlasServicesWithNoInProgressBackup =
                     Sets.difference(atlasServices, atlasServicesWithInProgressBackups);
@@ -188,13 +195,19 @@ public final class AtlasBackupService {
                     SafeArg.of("allRequestedAtlasServices", atlasServices));
         }
 
+        Map<Namespace, AtlasService> namespaceToServices = KeyedStream.of(atlasServices)
+                .mapKeys(AtlasService::getNamespace)
+                .collectToMap();
         CompleteBackupRequest request = CompleteBackupRequest.of(tokens);
         CompleteBackupResponse response = atlasBackupClient.completeBackup(authHeader, request);
 
+        Map<AtlasService, CompletedBackup> successfulBackups = KeyedStream.of(response.getSuccessfulBackups())
+                .mapKeys(token -> namespaceToServices.get(token.getNamespace()))
+                .collectToMap();
+        KeyedStream.stream(successfulBackups).forEach(this::storeCompletedBackup);
+
         if (response.getSuccessfulBackups().size() < atlasServicesWithInProgressBackups.size()) {
-            Set<AtlasService> successfulAtlasServices = response.getSuccessfulBackups().stream()
-                    .map(CompletedBackup::getAtlasService)
-                    .collect(Collectors.toSet());
+            Set<AtlasService> successfulAtlasServices = successfulBackups.keySet();
             Set<AtlasService> failedAtlasServices =
                     Sets.difference(atlasServicesWithInProgressBackups, successfulAtlasServices);
             log.error(
@@ -204,11 +217,12 @@ public final class AtlasBackupService {
                     SafeArg.of("atlasServicesWithoutBackup", atlasServicesWithInProgressBackups));
         }
 
-        return response.getSuccessfulBackups().stream()
-                .peek(coordinationServiceRecorder::storeFastForwardState)
-                .peek(backupPersister::storeCompletedBackup)
-                .map(CompletedBackup::getAtlasService)
-                .collect(Collectors.toSet());
+        return successfulBackups.keySet();
+    }
+
+    private void storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup) {
+        coordinationServiceRecorder.storeFastForwardState(completedBackup);
+        backupPersister.storeCompletedBackup(atlasService, completedBackup);
     }
 
     private static void validateAtlasServices(Set<AtlasService> atlasServices) {
