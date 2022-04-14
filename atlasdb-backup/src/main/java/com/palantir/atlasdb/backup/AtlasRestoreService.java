@@ -49,6 +49,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -57,12 +58,21 @@ import com.palantir.timestamp.FullyBoundedTimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ *  Service for Atlas restore tasks.
+ *  While a single restore operation may encompass multiple namespaces, it is essential that each namespace in a given
+ *  request corresponds to a single TimeLock service, since we support a single AtlasRestoreClient and
+ *  TimelockManagementService (these both exist on TimeLock rather than on the backup client side).
+ *  If the set of AtlasServices in a given request contains duplicated namespaces
+ *  (e.g. {(123, namespace), (456, namespace)}), then a SafeIllegalArgumentException will be thrown.
+ */
 public class AtlasRestoreService {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasRestoreService.class);
 
@@ -131,6 +141,7 @@ public class AtlasRestoreService {
      * @return the atlasServices successfully disabled.
      */
     public Set<AtlasService> prepareRestore(Set<RestoreRequest> restoreRequests, String backupId) {
+        validateRestoreRequests(restoreRequests);
         Map<RestoreRequest, CompletedBackup> completedBackups = getCompletedBackups(restoreRequests);
         Set<AtlasService> atlasServicesToRestore = getAtlasServicesToRestore(completedBackups);
         Preconditions.checkArgument(
@@ -179,6 +190,7 @@ public class AtlasRestoreService {
      */
     public Set<AtlasService> repairInternalTables(
             Set<RestoreRequest> restoreRequests, BiConsumer<String, RangesForRepair> repairTable) {
+        validateRestoreRequests(restoreRequests);
         Map<RestoreRequest, CompletedBackup> completedBackups = getCompletedBackups(restoreRequests);
         Set<AtlasService> namespacesToRepair = getAtlasServicesToRestore(completedBackups);
         repairTables(repairTable, completedBackups, namespacesToRepair);
@@ -194,6 +206,7 @@ public class AtlasRestoreService {
      * @return the set of atlasServices that were successfully fast-forwarded and re-enabled.
      */
     public Set<AtlasService> completeRestore(Set<RestoreRequest> restoreRequests, String backupId) {
+        validateRestoreRequests(restoreRequests);
         Map<RestoreRequest, CompletedBackup> completedBackups = getCompletedBackups(restoreRequests);
         Set<AtlasService> atlasServicesToRestore = getAtlasServicesToRestore(completedBackups);
 
@@ -236,7 +249,6 @@ public class AtlasRestoreService {
         // Re-enable timelock
         Set<AtlasService> newAtlasServices =
                 restoreRequests.stream().map(RestoreRequest::newAtlasService).collect(Collectors.toSet());
-        // TODO(gs): probably need to disambiguate namespaces even at this level
         Set<Namespace> successfulNamespaces =
                 successfulAtlasServices.stream().map(AtlasService::getNamespace).collect(Collectors.toSet());
         timeLockManagementService.reenableTimelock(
@@ -301,5 +313,21 @@ public class AtlasRestoreService {
         return completedBackups.keySet().stream()
                 .map(RestoreRequest::newAtlasService)
                 .collect(Collectors.toSet());
+    }
+
+    private static void validateRestoreRequests(Set<RestoreRequest> restoreRequests) {
+        Map<Namespace, Long> namespacesByCount = restoreRequests.stream()
+                .collect(Collectors.groupingBy(
+                        restoreRequest -> restoreRequest.newAtlasService().getNamespace(), Collectors.counting()));
+        Set<Namespace> duplicatedNamespaces = namespacesByCount.entrySet().stream()
+                .filter(m -> m.getValue() > 1)
+                .map(Entry::getKey)
+                .collect(Collectors.toSet());
+        if (!duplicatedNamespaces.isEmpty()) {
+            throw new SafeIllegalArgumentException(
+                    "Duplicated namespaces found in restore request. Restore cannot safely proceed.",
+                    SafeArg.of("duplicatedNamespaces", duplicatedNamespaces),
+                    SafeArg.of("restoreRequests", restoreRequests));
+        }
     }
 }
