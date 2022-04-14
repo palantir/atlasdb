@@ -121,8 +121,7 @@ public class AtlasRestoreServiceTest {
         Set<RestoreRequest> requests = ImmutableSet.of(firstRequest, secondRequest);
 
         assertThatThrownBy(() -> atlasRestoreService.prepareRestore(requests, BACKUP_ID))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("Restore cannot safely proceed.");
+                .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
@@ -193,6 +192,33 @@ public class AtlasRestoreServiceTest {
         Set<AtlasService> disabledAtlasServices = atlasRestoreService.prepareRestore(
                 ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(NO_BACKUP)), BACKUP_ID);
         assertThat(disabledAtlasServices).isEmpty();
+    }
+
+    @Test
+    public void prepareRestoreThrowsIfNamespacesCollide() {
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), WITH_BACKUP.getNamespace());
+        Set<RestoreRequest> restoreRequests =
+                ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(collidingAtlasService));
+        assertThatThrownBy(() -> atlasRestoreService.prepareRestore(restoreRequests, BACKUP_ID))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void repairTablesThrowsIfNamespacesCollide() {
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), WITH_BACKUP.getNamespace());
+        Set<RestoreRequest> restoreRequests =
+                ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(collidingAtlasService));
+        assertThatThrownBy(() -> atlasRestoreService.repairInternalTables(restoreRequests, (_unused, _unused2) -> {}))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void completeRestoreThrowsIfNamespacesCollide() {
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), WITH_BACKUP.getNamespace());
+        Set<RestoreRequest> restoreRequests =
+                ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(collidingAtlasService));
+        assertThatThrownBy(() -> atlasRestoreService.completeRestore(restoreRequests, BACKUP_ID))
+                .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test

@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,7 @@ import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 import java.util.UUID;
@@ -91,6 +93,22 @@ public class AtlasBackupServiceTest {
 
         atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
         verify(lockRefresher).registerLocks(tokens);
+    }
+
+    @Test
+    public void prepareBackupThrowsIfNamespacesCollide() {
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
+        assertThatThrownBy(
+                        () -> atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, collidingAtlasService)))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void completeBackupThrowsIfNamespacesCollide() {
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
+        assertThatThrownBy(
+                        () -> atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE, collidingAtlasService)))
+                .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
