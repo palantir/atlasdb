@@ -18,7 +18,7 @@ package com.palantir.atlasdb.cassandra;
 
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,7 +83,7 @@ public class ReloadingCqlClusterContainerTest {
     }
 
     @Test
-    public void newCqlClusterCreatedWithNewServerListAfterRefresh() {
+    public void newCqlClusterCreatedWithNewServerListAfterRefresh() throws IOException {
         CqlCluster firstMock = mock(CqlCluster.class);
         CqlCluster secondMock = mock(CqlCluster.class);
         when(cqlClusterFactory.create(cassandraClusterConfig, EMPTY_SERVERS_CONFIG, NAMESPACE))
@@ -99,6 +99,7 @@ public class ReloadingCqlClusterContainerTest {
         CqlCluster secondCluster = reloadingCqlClusterContainer.get();
         assertThat(firstCluster).isEqualTo(firstMock);
         assertThat(secondCluster).isEqualTo(secondMock);
+        verify(secondCluster, never()).close();
     }
 
     @Test
@@ -114,6 +115,6 @@ public class ReloadingCqlClusterContainerTest {
         reloadingCqlClusterContainer.close();
         cassandraServersConfigRefreshable.update(SERVERS_CONFIG);
         assertThat(reloadingCqlClusterContainer.get()).isEqualTo(cqlCluster);
-        verify(cqlClusterFactory, times(0)).create(cassandraClusterConfig, SERVERS_CONFIG, NAMESPACE);
+        verify(cqlClusterFactory, never()).create(cassandraClusterConfig, SERVERS_CONFIG, NAMESPACE);
     }
 }
