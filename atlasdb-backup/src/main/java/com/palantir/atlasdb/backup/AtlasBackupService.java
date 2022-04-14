@@ -43,20 +43,17 @@ import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  *  Service for Atlas backup tasks.
@@ -141,7 +138,7 @@ public final class AtlasBackupService {
     }
 
     public Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices) {
-        validateAtlasServices(atlasServices);
+        AtlasServices.throwIfAtlasServicesCollide(atlasServices);
         Map<Namespace, AtlasService> namespaceToServices = KeyedStream.of(atlasServices)
                 .mapKeys(AtlasService::getNamespace)
                 .collectToMap();
@@ -173,7 +170,7 @@ public final class AtlasBackupService {
      * @return the atlas services whose backups were successfully completed
      */
     public Set<AtlasService> completeBackup(Set<AtlasService> atlasServices) {
-        validateAtlasServices(atlasServices);
+        AtlasServices.throwIfAtlasServicesCollide(atlasServices);
 
         Map<AtlasService, InProgressBackupToken> knownBackups = KeyedStream.of(atlasServices)
                 .map((Function<AtlasService, InProgressBackupToken>) inProgressBackups::remove)
@@ -223,20 +220,5 @@ public final class AtlasBackupService {
     private void storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup) {
         coordinationServiceRecorder.storeFastForwardState(atlasService, completedBackup);
         backupPersister.storeCompletedBackup(atlasService, completedBackup);
-    }
-
-    private static void validateAtlasServices(Set<AtlasService> atlasServices) {
-        Map<Namespace, Long> namespacesByCount = atlasServices.stream()
-                .collect(Collectors.groupingBy(AtlasService::getNamespace, Collectors.counting()));
-        Set<Namespace> duplicatedNamespaces = namespacesByCount.entrySet().stream()
-                .filter(m -> m.getValue() > 1)
-                .map(Entry::getKey)
-                .collect(Collectors.toSet());
-        if (!duplicatedNamespaces.isEmpty()) {
-            throw new SafeIllegalArgumentException(
-                    "Duplicated namespaces found in backup request. Backup cannot safely proceed.",
-                    SafeArg.of("duplicatedNamespaces", duplicatedNamespaces),
-                    SafeArg.of("atlasServices", atlasServices));
-        }
     }
 }

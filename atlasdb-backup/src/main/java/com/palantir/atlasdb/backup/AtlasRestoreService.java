@@ -48,7 +48,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -57,7 +56,6 @@ import com.palantir.timestamp.FullyBoundedTimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -318,18 +316,8 @@ public class AtlasRestoreService {
     }
 
     private static void validateRestoreRequests(Set<RestoreRequest> restoreRequests) {
-        Map<Namespace, Long> namespacesByCount = restoreRequests.stream()
-                .collect(Collectors.groupingBy(
-                        restoreRequest -> restoreRequest.newAtlasService().getNamespace(), Collectors.counting()));
-        Set<Namespace> duplicatedNamespaces = namespacesByCount.entrySet().stream()
-                .filter(m -> m.getValue() > 1)
-                .map(Entry::getKey)
-                .collect(Collectors.toSet());
-        if (!duplicatedNamespaces.isEmpty()) {
-            throw new SafeIllegalArgumentException(
-                    "Duplicated namespaces found in restore request. Restore cannot safely proceed.",
-                    SafeArg.of("duplicatedNamespaces", duplicatedNamespaces),
-                    SafeArg.of("restoreRequests", restoreRequests));
-        }
+        Set<AtlasService> newAtlasServices =
+                restoreRequests.stream().map(RestoreRequest::newAtlasService).collect(Collectors.toSet());
+        AtlasServices.throwIfAtlasServicesCollide(newAtlasServices);
     }
 }
