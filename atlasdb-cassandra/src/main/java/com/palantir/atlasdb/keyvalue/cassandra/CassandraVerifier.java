@@ -217,9 +217,8 @@ public final class CassandraVerifier {
     }
 
     private static boolean attemptToCreateKeyspace(CassandraKeyspaceConfig cassandraKeyspaceConfig) {
-        Set<InetSocketAddress> thriftHosts = cassandraKeyspaceConfig
-                .cassandraServersConfig()
-                .accept(new ThriftHostsExtractingVisitor());
+        Set<InetSocketAddress> thriftHosts =
+                cassandraKeyspaceConfig.cassandraServersConfig().accept(new ThriftHostsExtractingVisitor());
 
         return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(host, cassandraKeyspaceConfig));
     }
@@ -388,8 +387,8 @@ public final class CassandraVerifier {
             boolean ignoreDatacetreConfigurationChecks)
             throws TException {
         KsDef ks = client.describe_keyspace(keyspace);
-        Set<String> dcs = sanityCheckDatacenters(
-                client, cassandraServersConfig, replicationFactor, ignoreNodeTopologyChecks);
+        Set<String> dcs =
+                sanityCheckDatacenters(client, cassandraServersConfig, replicationFactor, ignoreNodeTopologyChecks);
         sanityCheckReplicationFactor(ks, replicationFactor, dcs, ignoreDatacetreConfigurationChecks);
     }
 

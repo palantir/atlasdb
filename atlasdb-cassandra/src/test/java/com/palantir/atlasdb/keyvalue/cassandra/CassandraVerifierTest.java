@@ -292,11 +292,12 @@ public class CassandraVerifierTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    private CassandraServersConfig setTopologyAndGetServersConfig(EndpointDetails... details)
-            throws TException {
+    private CassandraServersConfig setTopologyAndGetServersConfig(EndpointDetails... details) throws TException {
         when(client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE))
                 .thenReturn(ImmutableList.of(mockRangeWithDetails(details)));
-        return ImmutableDefaultConfig.builder().addThriftHosts(InetSocketAddress.createUnresolved(HOST_1, 8080)).build();
+        return ImmutableDefaultConfig.builder()
+                .addThriftHosts(InetSocketAddress.createUnresolved(HOST_1, 8080))
+                .build();
     }
 
     private TokenRange mockRangeWithDetails(EndpointDetails... details) {
