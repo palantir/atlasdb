@@ -444,7 +444,7 @@ public final class CassandraVerifier {
 
         Supplier<CassandraServersConfig> cassandraServersConfigSupplier();
 
-        Integer replicationFactor();
+        int replicationFactor();
 
         Optional<SslConfiguration> sslConfiguration();
 
