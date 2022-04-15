@@ -48,8 +48,8 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
     @Override
     public Optional<AsyncKeyValueService> constructAsyncKeyValueService(
             MetricsManager metricsManager,
-            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
             String keyspace,
+            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
             CassandraClusterConfig cassandraClusterConfig,
             boolean initializeAsync) {
         Optional<CqlClient> cqlClient = cqlClientFactory.constructClient(

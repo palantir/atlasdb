@@ -375,8 +375,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Optional<AsyncKeyValueService> asyncKeyValueService = config.asyncKeyValueServiceFactory()
                     .constructAsyncKeyValueService(
                             metricsManager,
-                            config::servers,
                             config.getKeyspaceOrThrow(),
+                            config::servers,
                             clusterConfig,
                             initializeAsync);
 

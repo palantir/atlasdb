@@ -26,8 +26,8 @@ import java.util.function.Supplier;
 public interface CassandraAsyncKeyValueServiceFactory {
     Optional<AsyncKeyValueService> constructAsyncKeyValueService(
             MetricsManager metricsManager,
-            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
             String keyspace,
+            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
             CassandraClusterConfig cassandraClusterConfig,
             boolean initializeAsync);
 }
