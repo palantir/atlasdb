@@ -106,7 +106,7 @@ public class CassandraVerifierTest {
         CassandraServersConfig cassandraServersConfig =
                 setTopologyAndGetServersConfig(createDetails(DC_1, RACK_1, HOST_1));
         CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
-                .cassandraServersConfig(cassandraServersConfig)
+                .servers(cassandraServersConfig)
                 .replicationFactor(DEFAULT_REPLICATION_FACTOR)
                 .build();
         KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, cassandraKeyspaceConfig);
@@ -179,7 +179,7 @@ public class CassandraVerifierTest {
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
         CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
-                .cassandraServersConfig(cassandraServersConfig)
+                .servers(cassandraServersConfig)
                 .replicationFactor(DEFAULT_REPLICATION_FACTOR)
                 .build();
 
@@ -192,7 +192,7 @@ public class CassandraVerifierTest {
         CassandraServersConfig cassandraServersConfig =
                 setTopologyAndGetServersConfig(createDetails(DC_1, RACK_1, HOST_1));
         CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
-                .cassandraServersConfig(cassandraServersConfig)
+                .servers(cassandraServersConfig)
                 .replicationFactor(SINGLE_REPLICATION_FACTOR)
                 .build();
 
@@ -209,7 +209,7 @@ public class CassandraVerifierTest {
     @Test
     public void simpleStrategyOneDcHighRfThrows() throws TException {
         CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
-                .cassandraServersConfig(ImmutableDefaultConfig.of())
+                .servers(ImmutableDefaultConfig.of())
                 .replicationFactor(DEFAULT_REPLICATION_FACTOR)
                 .build();
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
@@ -227,7 +227,7 @@ public class CassandraVerifierTest {
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
         CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
-                .cassandraServersConfig(cassandraServersConfig)
+                .servers(cassandraServersConfig)
                 .replicationFactor(SINGLE_REPLICATION_FACTOR)
                 .build();
 
@@ -243,7 +243,7 @@ public class CassandraVerifierTest {
         CassandraServersConfig cassandraServersConfig =
                 setTopologyAndGetServersConfig(createDetails(DC_1, RACK_1, HOST_1));
         CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
-                .cassandraServersConfig(cassandraServersConfig)
+                .servers(cassandraServersConfig)
                 .replicationFactor(7)
                 .ignoreNodeTopologyChecks(true)
                 .build();
@@ -266,7 +266,7 @@ public class CassandraVerifierTest {
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
         CassandraKeyspaceConfig cassandraKeyspaceConfig = getCassandraKeyspaceConfigBuilderWithDefaults()
-                .cassandraServersConfig(cassandraServersConfig)
+                .servers(cassandraServersConfig)
                 .replicationFactor(DEFAULT_REPLICATION_FACTOR)
                 .build();
 

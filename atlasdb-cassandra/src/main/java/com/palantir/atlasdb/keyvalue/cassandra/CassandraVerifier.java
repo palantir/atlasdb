@@ -218,7 +218,7 @@ public final class CassandraVerifier {
 
     private static boolean attemptToCreateKeyspace(CassandraKeyspaceConfig cassandraKeyspaceConfig) {
         Set<InetSocketAddress> thriftHosts =
-                cassandraKeyspaceConfig.cassandraServersConfig().accept(new ThriftHostsExtractingVisitor());
+                cassandraKeyspaceConfig.servers().accept(new ThriftHostsExtractingVisitor());
 
         return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(host, cassandraKeyspaceConfig));
     }
@@ -311,7 +311,7 @@ public final class CassandraVerifier {
                 new KsDef(cassandraKeyspaceConfig.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
         Set<String> dcs = sanityCheckDatacenters(
                 client,
-                cassandraKeyspaceConfig.cassandraServersConfig(),
+                cassandraKeyspaceConfig.servers(),
                 cassandraKeyspaceConfig.replicationFactor(),
                 cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
         ksDef.setStrategy_options(
@@ -331,7 +331,7 @@ public final class CassandraVerifier {
         } else {
             datacenters = sanityCheckDatacenters(
                     client,
-                    cassandraKeyspaceConfig.cassandraServersConfig(),
+                    cassandraKeyspaceConfig.servers(),
                     cassandraKeyspaceConfig.replicationFactor(),
                     cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
         }
@@ -349,7 +349,7 @@ public final class CassandraVerifier {
         checkKsDefRfEqualsOne(ksDef, cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
         Set<String> datacenters = sanityCheckDatacenters(
                 client,
-                cassandraKeyspaceConfig.cassandraServersConfig(),
+                cassandraKeyspaceConfig.servers(),
                 cassandraKeyspaceConfig.replicationFactor(),
                 cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
         checkOneDatacenter(datacenters, cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
@@ -427,7 +427,7 @@ public final class CassandraVerifier {
 
         CassandraClientConfig clientConfig();
 
-        CassandraServersConfig cassandraServersConfig();
+        CassandraServersConfig servers();
 
         int replicationFactor();
 
@@ -441,7 +441,7 @@ public final class CassandraVerifier {
             return builder()
                     .keyspace(config.getKeyspaceOrThrow())
                     .schemaMutationTimeoutMillis(config.schemaMutationTimeoutMillis())
-                    .cassandraServersConfig(config.servers())
+                    .servers(config.servers())
                     .ignoreDatacenterConfigurationChecks(config.ignoreDatacenterConfigurationChecks())
                     .ignoreNodeTopologyChecks(config.ignoreNodeTopologyChecks())
                     .replicationFactor(config.replicationFactor())
