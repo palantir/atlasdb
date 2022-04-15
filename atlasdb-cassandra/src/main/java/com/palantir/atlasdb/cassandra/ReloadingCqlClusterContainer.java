@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -99,10 +100,12 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
             Namespace namespace,
             CqlClusterFactory cqlClusterFactory) {
         if (isClosed) {
-            throw new SafeIllegalStateException("Attempted to create a new cluster after the container was closed. If"
-                    + " this happens repeatedly, this is likely a bug in closing the container. Otherwise, "
-                    + "it is highly likely that the container was closed at the same time as the server list was "
-                    + "updated. If so, this error can be ignored.");
+            throw new SafeIllegalStateException(
+                    "Attempted to create a new cluster after the container was closed. If this happens repeatedly,"
+                            + " this is likely a bug in closing the container. Otherwise, it is highly likely that the"
+                            + " container was closed at the same time as the server list was updated. If so, this error"
+                            + " can be ignored.",
+                    UnsafeArg.of("keyspace", namespace));
         }
         return cqlClusterFactory.create(cassandraClusterConfig, cassandraServersConfig, namespace);
     }
