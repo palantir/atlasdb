@@ -103,7 +103,6 @@ public class ReloadingCqlClusterContainerTest {
         verify(cqlClusterFactory, never()).create(cassandraClusterConfig, UPDATED_SERVERS_CONFIG, NAMESPACE);
     }
 
-
     private CqlCluster mockFactoryForServersConfig(CassandraServersConfig cassandraServersConfig) {
         CqlCluster cqlCluster = mock(CqlCluster.class);
         when(cqlClusterFactory.create(cassandraClusterConfig, cassandraServersConfig, NAMESPACE))
