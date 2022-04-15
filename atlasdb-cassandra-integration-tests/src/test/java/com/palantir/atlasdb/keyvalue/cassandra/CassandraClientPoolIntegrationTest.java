@@ -108,7 +108,7 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
                         client,
                         config.getKeyspaceOrThrow(),
-                        config::servers,
+                        config.servers(),
                         config.replicationFactor(),
                         config.ignoreNodeTopologyChecks(),
                         config.ignoreDatacenterConfigurationChecks());
@@ -127,7 +127,7 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
                         client,
                         config.getKeyspaceOrThrow(),
-                        config::servers,
+                        config.servers(),
                         modifiedReplicationFactor,
                         config.ignoreNodeTopologyChecks(),
                         config.ignoreDatacenterConfigurationChecks());
@@ -148,7 +148,7 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
                         client,
                         config.getKeyspaceOrThrow(),
-                        config::servers,
+                        config.servers(),
                         config.replicationFactor(),
                         config.ignoreNodeTopologyChecks(),
                         config.ignoreDatacenterConfigurationChecks());

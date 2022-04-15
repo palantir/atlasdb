@@ -564,7 +564,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         try {
             dcs = clientPool.runWithRetry(client -> CassandraVerifier.sanityCheckDatacenters(
-                    client, config::servers, config.replicationFactor(), config.ignoreNodeTopologyChecks()));
+                    client, config.servers(), config.replicationFactor(), config.ignoreNodeTopologyChecks()));
             KsDef ksDef = clientPool.runWithRetry(client -> client.describe_keyspace(config.getKeyspaceOrThrow()));
             strategyOptions = new HashMap<>(ksDef.getStrategy_options());
 
@@ -2007,7 +2007,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
                         client,
                         config.getKeyspaceOrThrow(),
-                        config::servers,
+                        config.servers(),
                         config.replicationFactor(),
                         config.ignoreNodeTopologyChecks(),
                         config.ignoreDatacenterConfigurationChecks());
