@@ -436,24 +436,23 @@ public final class CassandraVerifier {
         }
     }
 
-    // TODO(mdaudali) - this should be a refreshable instead of holding suppliers
     @Value.Immutable
-    public abstract static class CassandraKeyspaceConfig {
-        public abstract String keyspace();
+    interface CassandraKeyspaceConfig {
+        String keyspace();
 
-        public abstract CassandraClientConfig clientConfig();
+        CassandraClientConfig clientConfig();
 
-        public abstract Supplier<CassandraServersConfig> cassandraServersConfigSupplier();
+        Supplier<CassandraServersConfig> cassandraServersConfigSupplier();
 
-        public abstract Integer replicationFactor();
+        Integer replicationFactor();
 
-        public abstract Optional<SslConfiguration> sslConfiguration();
+        Optional<SslConfiguration> sslConfiguration();
 
-        public abstract boolean ignoreNodeTopologyChecks();
+        boolean ignoreNodeTopologyChecks();
 
-        public abstract boolean ignoreDatacenterConfigurationChecks();
+        boolean ignoreDatacenterConfigurationChecks();
 
-        public abstract int schemaMutationTimeoutMillis();
+        int schemaMutationTimeoutMillis();
 
         static CassandraKeyspaceConfig of(CassandraKeyValueServiceConfig config) {
             return builder()
