@@ -25,7 +25,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraC
 import com.palantir.atlasdb.util.MetricsManagers;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.Optional;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -35,6 +34,7 @@ import org.junit.Test;
 public class CassandraClientFactoryTest {
     private static final CassandraClientFactory FACTORY = new CassandraClientFactory(
             MetricsManagers.createForTests(),
+            "test",
             InetSocketAddress.createUnresolved("localhost", 4242),
             CassandraClientConfig.builder()
                     .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -46,8 +46,6 @@ public class CassandraClientFactoryTest {
                     .socketQueryTimeoutMillis(0)
                     .socketTimeoutMillis(0)
                     .build(),
-            Optional.empty(),
-            "test",
             Duration.ofSeconds(10));
 
     private CassandraClient client = mock(CassandraClient.class);

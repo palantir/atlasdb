@@ -34,7 +34,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -44,7 +43,6 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -96,8 +94,7 @@ public final class CassandraVerifier {
     }
 
     private static Set<String> sanityCheckDatacentersInternal(
-            CassandraClient client, int replicationFactor, boolean ignoreNodeTopologyChecks)
-            throws TException {
+            CassandraClient client, int replicationFactor, boolean ignoreNodeTopologyChecks) throws TException {
         createSimpleRfTestKeyspaceIfNotExists(client);
 
         Multimap<String, String> datacenterToRack = HashMultimap.create();
@@ -250,8 +247,8 @@ public final class CassandraVerifier {
     // swallows the expected TException subtype NotFoundException, throws connection problem related ones
     private static boolean keyspaceAlreadyExists(
             InetSocketAddress host, CassandraKeyspaceConfig cassandraKeyspaceConfig) throws TException {
-        try (CassandraClient client = CassandraClientFactory.getClientInternal(
-                host, cassandraKeyspaceConfig.clientConfig(), cassandraKeyspaceConfig.sslConfiguration())) {
+        try (CassandraClient client =
+                CassandraClientFactory.getClientInternal(host, cassandraKeyspaceConfig.clientConfig())) {
             client.describe_keyspace(cassandraKeyspaceConfig.keyspace());
             CassandraKeyValueServices.waitForSchemaVersions(
                     cassandraKeyspaceConfig.schemaMutationTimeoutMillis(),
@@ -265,8 +262,8 @@ public final class CassandraVerifier {
 
     private static boolean attemptToCreateKeyspaceOnHost(
             InetSocketAddress host, CassandraKeyspaceConfig cassandraKeyspaceConfig) throws TException {
-        try (CassandraClient client = CassandraClientFactory.getClientInternal(
-                host, cassandraKeyspaceConfig.clientConfig(), cassandraKeyspaceConfig.sslConfiguration())) {
+        try (CassandraClient client =
+                CassandraClientFactory.getClientInternal(host, cassandraKeyspaceConfig.clientConfig())) {
             KsDef ksDef = createKsDefForFresh(client, cassandraKeyspaceConfig);
             client.system_add_keyspace(ksDef);
             log.info("Created keyspace: {}", SafeArg.of("keyspace", cassandraKeyspaceConfig.keyspace()));
@@ -320,10 +317,8 @@ public final class CassandraVerifier {
                 cassandraKeyspaceConfig.cassandraServersConfigSupplier(),
                 cassandraKeyspaceConfig.replicationFactor(),
                 cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
-        ksDef.setStrategy_options(Maps.asMap(
-                dcs,
-                ignore -> String.valueOf(
-                        cassandraKeyspaceConfig.replicationFactor())));
+        ksDef.setStrategy_options(
+                Maps.asMap(dcs, ignore -> String.valueOf(cassandraKeyspaceConfig.replicationFactor())));
         ksDef.setDurable_writes(true);
         return ksDef;
     }
@@ -401,17 +396,10 @@ public final class CassandraVerifier {
     }
 
     static void sanityCheckReplicationFactor(
-            KsDef ks,
-            int replicationFactor,
-            Set<String> dcs,
-            boolean ignoreDatacentreConfigurationChecks) {
+            KsDef ks, int replicationFactor, Set<String> dcs, boolean ignoreDatacentreConfigurationChecks) {
         Set<String> scopedDownDcs = checkRfsSpecifiedAndScopeDownDcs(dcs, ks.getStrategy_options());
         checkRfsMatchConfig(
-                ks,
-                replicationFactor,
-                scopedDownDcs,
-                ks.getStrategy_options(),
-                ignoreDatacentreConfigurationChecks);
+                ks, replicationFactor, scopedDownDcs, ks.getStrategy_options(), ignoreDatacentreConfigurationChecks);
     }
 
     private static Set<String> checkRfsSpecifiedAndScopeDownDcs(Set<String> dcs, Map<String, String> strategyOptions) {
@@ -446,8 +434,6 @@ public final class CassandraVerifier {
 
         int replicationFactor();
 
-        Optional<SslConfiguration> sslConfiguration();
-
         boolean ignoreNodeTopologyChecks();
 
         boolean ignoreDatacenterConfigurationChecks();
@@ -462,7 +448,6 @@ public final class CassandraVerifier {
                     .ignoreDatacenterConfigurationChecks(config.ignoreDatacenterConfigurationChecks())
                     .ignoreNodeTopologyChecks(config.ignoreNodeTopologyChecks())
                     .replicationFactor(config.replicationFactor())
-                    .sslConfiguration(config.sslConfiguration())
                     .clientConfig(CassandraClientConfig.of(config))
                     .build();
         }

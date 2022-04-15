@@ -71,16 +71,15 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     public CassandraClientFactory(
             MetricsManager metricsManager,
+            String keyspace,
             InetSocketAddress addr,
             CassandraClientConfig clientConfig,
-            Optional<SslConfiguration> sslConfiguration,
-            String keyspace,
             Duration timeoutOnConnectionClose) {
         this.metricsManager = metricsManager;
         this.addr = addr;
         this.clientConfig = clientConfig;
         this.keyspace = keyspace;
-        this.sslSocketFactory = createSslSocketFactory(sslConfiguration);
+        this.sslSocketFactory = createSslSocketFactory(clientConfig.sslConfiguration());
         this.timedRunner = TimedRunner.create(timeoutOnConnectionClose);
         this.tSocketFactory = new InstrumentedTSocket.Factory(metricsManager);
     }
@@ -130,11 +129,13 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
     }
 
-    static CassandraClient getClientInternal(
-            InetSocketAddress addr, CassandraClientConfig clientConfig, Optional<SslConfiguration> sslConfiguration)
+    static CassandraClient getClientInternal(InetSocketAddress addr, CassandraClientConfig clientConfig)
             throws TException {
         return new CassandraClientImpl(getRawClient(
-                addr, clientConfig, createSslSocketFactory(sslConfiguration), TSocketFactory.Default.INSTANCE));
+                addr,
+                clientConfig,
+                createSslSocketFactory(clientConfig.sslConfiguration()),
+                TSocketFactory.Default.INSTANCE));
     }
 
     private static SSLSocketFactory createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
@@ -288,22 +289,25 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     @Value.Immutable
-    public abstract static class CassandraClientConfig {
-        public abstract int socketTimeoutMillis();
+    interface CassandraClientConfig {
+        int socketTimeoutMillis();
 
-        public abstract int socketQueryTimeoutMillis();
+        int socketQueryTimeoutMillis();
 
-        public abstract int initialSocketQueryTimeoutMillis();
+        int initialSocketQueryTimeoutMillis();
 
-        public abstract boolean usingSsl();
+        CassandraCredentialsConfig credentials();
 
-        public abstract CassandraCredentialsConfig credentials();
+        boolean usingSsl();
+
+        Optional<SslConfiguration> sslConfiguration();
 
         static CassandraClientConfig of(CassandraKeyValueServiceConfig config) {
             return builder()
                     .credentials(config.credentials())
                     .initialSocketQueryTimeoutMillis(config.initialSocketQueryTimeoutMillis())
                     .usingSsl(config.usingSsl())
+                    .sslConfiguration(config.sslConfiguration())
                     .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
                     .socketTimeoutMillis(config.socketTimeoutMillis())
                     .build();

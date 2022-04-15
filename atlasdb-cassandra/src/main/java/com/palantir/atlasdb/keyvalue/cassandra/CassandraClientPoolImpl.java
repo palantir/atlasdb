@@ -508,8 +508,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
         for (CassandraServer host : getCachedServers()) {
-            try (CassandraClient client = CassandraClientFactory.getClientInternal(
-                    host.proxy(), CassandraClientConfig.of(config), config.sslConfiguration())) {
+            try (CassandraClient client =
+                    CassandraClientFactory.getClientInternal(host.proxy(), CassandraClientConfig.of(config))) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {
