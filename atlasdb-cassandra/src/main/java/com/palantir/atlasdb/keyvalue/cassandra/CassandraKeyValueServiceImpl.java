@@ -42,6 +42,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -68,6 +69,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.StartupChecks;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -371,8 +373,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
+            CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config);
             Optional<AsyncKeyValueService> asyncKeyValueService = config.asyncKeyValueServiceFactory()
-                    .constructAsyncKeyValueService(metricsManager, config, initializeAsync);
+                    .constructAsyncKeyValueService(
+                            metricsManager,
+                            config.getKeyspaceOrThrow(),
+                            config::servers,
+                            clusterConfig,
+                            initializeAsync);
 
             return createAndInitialize(
                     metricsManager,
@@ -449,18 +457,26 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static ExecutorService createBlockingThreadpool(
-            CassandraKeyValueServiceConfig config, MetricsManager metricsManager) {
+            CassandraKeyValueServiceConfig config,
+            MetricsManager metricsManager) {
         return config.thriftExecutorServiceFactory()
-                .orElseGet(() -> instrumentedFixedThreadPoolSupplier(config, metricsManager.getTaggedRegistry()))
+                .orElseGet(() -> instrumentedFixedThreadPoolSupplier(
+                        config.servers(),
+                        config.poolSize(),
+                        config.maxConnectionBurstSize(),
+                        metricsManager.getTaggedRegistry()))
                 .get();
     }
 
     private static Supplier<ExecutorService> instrumentedFixedThreadPoolSupplier(
-            CassandraKeyValueServiceConfig config, TaggedMetricRegistry registry) {
+            CassandraServersConfig serversConfig,
+            int poolSize,
+            int maxConnectionBurstSize,
+            TaggedMetricRegistry registry) {
         return () -> {
-            int numberOfThriftHosts = config.servers().numberOfThriftHosts();
-            int corePoolSize = config.poolSize() * numberOfThriftHosts;
-            int maxPoolSize = config.maxConnectionBurstSize() * numberOfThriftHosts;
+            int numberOfThriftHosts = serversConfig.numberOfThriftHosts();
+            int corePoolSize = poolSize * numberOfThriftHosts;
+            int maxPoolSize = maxConnectionBurstSize * numberOfThriftHosts;
             return Tracers.wrap(
                     "Atlas Cassandra KVS",
                     MetricRegistries.instrument(
