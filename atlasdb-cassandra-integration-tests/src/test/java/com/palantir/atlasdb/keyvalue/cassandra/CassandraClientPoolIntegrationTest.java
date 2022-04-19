@@ -106,9 +106,7 @@ public class CassandraClientPoolIntegrationTest {
         CassandraKeyspaceConfig cassandraKeyspaceConfig = CassandraKeyspaceConfig.of(CASSANDRA.getConfig());
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
-                        client,
-                        cassandraKeyspaceConfig);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, cassandraKeyspaceConfig);
             } catch (TException e) {
                 fail("currentRf On Keyspace does not Match DesiredRf");
             }
@@ -123,9 +121,7 @@ public class CassandraClientPoolIntegrationTest {
         clientPool.run(client -> {
             try {
                 CassandraKeyValueServiceConfig config = CASSANDRA.getConfig();
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
-                        client,
-                        cassandraKeyspaceConfig);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, cassandraKeyspaceConfig);
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);
@@ -141,9 +137,7 @@ public class CassandraClientPoolIntegrationTest {
         clientPool.run(client -> {
             try {
                 CassandraKeyValueServiceConfig config = CASSANDRA.getConfig();
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
-                        client,
-                        cassandraKeyspaceConfig);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, cassandraKeyspaceConfig);
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);
