@@ -88,4 +88,4 @@ case $CIRCLE_NODE_INDEX in
     11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
 
-ls /home/circleci/.gradle/jdks/adoptium-17-x64-hotspot-linux
+ls /home/circleci/.gradle/jdks/adoptium-17-x64-hotspot-linux || true
