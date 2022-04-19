@@ -280,7 +280,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     static int getMaxTriesTotal() {
-        return CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnSameHost();
+        return CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnAllHosts();
     }
 
     @Override
