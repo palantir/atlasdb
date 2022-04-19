@@ -2,7 +2,7 @@
 
 set -x
 
-BASE_GRADLE_ARGS="--profile --continue --stacktrace"
+BASE_GRADLE_ARGS="--profile --continue --stacktrace --info"
 
 function checkDocsBuild {
      pyenv install 3.5.4
@@ -87,3 +87,5 @@ case $CIRCLE_NODE_INDEX in
     10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} ;;
     11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
+
+ls /home/circleci/.gradle/jdks/adoptium-17-x64-hotspot-linux
