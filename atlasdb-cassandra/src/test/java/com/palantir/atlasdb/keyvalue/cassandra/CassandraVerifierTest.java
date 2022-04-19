@@ -63,7 +63,7 @@ public class CassandraVerifierTest {
         CassandraServersConfig cassandraServersConfig =
                 setTopologyAndGetServersConfig(defaultTopology(HOST_1), defaultTopology(HOST_2));
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(
-                client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -72,7 +72,7 @@ public class CassandraVerifierTest {
         CassandraServersConfig cassandraServersConfig =
                 setTopologyAndGetServersConfig(defaultTopology(HOST_1), defaultTopology(HOST_2));
         assertThat(CassandraVerifier.sanityCheckDatacenters(
-                client, cassandraServersConfig, SINGLE_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, cassandraServersConfig, SINGLE_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .containsExactly(CassandraConstants.DEFAULT_DC);
     }
 
@@ -83,7 +83,7 @@ public class CassandraVerifierTest {
         setTopologyAndGetServersConfig(createDetails(DC_1, RACK_1, HOST_1));
 
         assertThat(CassandraVerifier.sanityCheckDatacenters(
-                client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .containsExactly(DC_1);
     }
 
@@ -96,7 +96,7 @@ public class CassandraVerifierTest {
                 createDetails(DC_1, RACK_1, HOST_4));
 
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(
-                client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -126,7 +126,7 @@ public class CassandraVerifierTest {
                 defaultDcDetails(RACK_1, HOST_3),
                 defaultDcDetails(RACK_2, HOST_4));
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(
-                client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -140,7 +140,7 @@ public class CassandraVerifierTest {
         int replicationFactor = 2;
 
         assertThat(CassandraVerifier.sanityCheckDatacenters(
-                client, cassandraServersConfig, replicationFactor, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, cassandraServersConfig, replicationFactor, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .containsExactly(CassandraConstants.DEFAULT_DC);
     }
 
@@ -153,7 +153,7 @@ public class CassandraVerifierTest {
                 defaultDcDetails(RACK_2, HOST_1));
 
         assertThat(CassandraVerifier.sanityCheckDatacenters(
-                client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .containsExactly(CassandraConstants.DEFAULT_DC);
     }
 
@@ -166,7 +166,7 @@ public class CassandraVerifierTest {
                 createDetails(DC_2, RACK_1, HOST_4));
 
         assertThat(CassandraVerifier.sanityCheckDatacenters(
-                client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
+                        client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
                 .containsExactlyInAnyOrder(DC_1, DC_2);
     }
 
@@ -284,10 +284,10 @@ public class CassandraVerifierTest {
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(DC_1, "1", DC_2, "2"));
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
-                ksDef,
-                SINGLE_REPLICATION_FACTOR,
-                ImmutableSortedSet.of(DC_1, DC_2),
-                ignoreDatacentreConfigurationChecks))
+                        ksDef,
+                        SINGLE_REPLICATION_FACTOR,
+                        ImmutableSortedSet.of(DC_1, DC_2),
+                        ignoreDatacentreConfigurationChecks))
                 .isInstanceOf(IllegalStateException.class);
     }
 
