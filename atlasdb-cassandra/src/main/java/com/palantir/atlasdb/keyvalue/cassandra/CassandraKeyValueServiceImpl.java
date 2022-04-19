@@ -1989,9 +1989,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CassandraKeyspaceConfig cassandraKeyspaceConfig = CassandraKeyspaceConfig.of(config);
         return clientPool.runWithRetry(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
-                        client,
-                        cassandraKeyspaceConfig);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, cassandraKeyspaceConfig);
                 return true;
             } catch (Exception e) {
                 log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);
