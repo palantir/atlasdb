@@ -55,7 +55,7 @@ import org.immutables.value.Value;
 public final class CassandraVerifier {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraVerifier.class);
     private static final KsDef SIMPLE_RF_TEST_KS_DEF = new KsDef(
-            CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of())
+                    CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of())
             .setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1"));
     private static final String SIMPLE_PARTITIONING_ERROR_MSG = "This cassandra cluster is running using the simple "
             + "partitioning strategy. This partitioner is not rack aware and is not intended for use on prod. "
