@@ -67,6 +67,7 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.StartupChecks;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraKeyspaceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -1985,15 +1986,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private boolean doesConfigReplicationFactorMatchWithCluster() {
+        CassandraKeyspaceConfig cassandraKeyspaceConfig = CassandraKeyspaceConfig.of(config);
         return clientPool.runWithRetry(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
                         client,
-                        config.getKeyspaceOrThrow(),
-                        config.servers(),
-                        config.replicationFactor(),
-                        config.ignoreNodeTopologyChecks(),
-                        config.ignoreDatacenterConfigurationChecks());
+                        cassandraKeyspaceConfig);
                 return true;
             } catch (Exception e) {
                 log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);

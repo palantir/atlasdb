@@ -379,16 +379,14 @@ public final class CassandraVerifier {
 
     static void currentRfOnKeyspaceMatchesDesiredRf(
             CassandraClient client,
-            String keyspace,
-            CassandraServersConfig cassandraServersConfig,
-            int replicationFactor,
-            boolean ignoreNodeTopologyChecks,
-            boolean ignoreDatacetreConfigurationChecks)
+            CassandraKeyspaceConfig cassandraKeyspaceConfig)
             throws TException {
-        KsDef ks = client.describe_keyspace(keyspace);
+        KsDef ks = client.describe_keyspace(cassandraKeyspaceConfig.keyspace());
         Set<String> dcs =
-                sanityCheckDatacenters(client, cassandraServersConfig, replicationFactor, ignoreNodeTopologyChecks);
-        sanityCheckReplicationFactor(ks, replicationFactor, dcs, ignoreDatacetreConfigurationChecks);
+                sanityCheckDatacenters(client, cassandraKeyspaceConfig.servers(), cassandraKeyspaceConfig.replicationFactor(),
+                        cassandraKeyspaceConfig.ignoreNodeTopologyChecks());
+        sanityCheckReplicationFactor(
+                ks, cassandraKeyspaceConfig.replicationFactor(), dcs, cassandraKeyspaceConfig.ignoreDatacenterConfigurationChecks());
     }
 
     static void sanityCheckReplicationFactor(
