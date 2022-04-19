@@ -109,5 +109,6 @@ public final class CloseTracking {
     @SuppressWarnings("DangerousIdentityKey")
     private static final Set<MyReference<?>> destructorReferences =
             Sets.newSetFromMap(new ConcurrentHashMap<MyReference<?>, Boolean>());
+
     private static final FinalizableReferenceQueue destructorQueue = new FinalizableReferenceQueue();
 }
