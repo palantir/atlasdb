@@ -546,7 +546,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Map<String, String> strategyOptions;
 
         try {
-            dcs = clientPool.runWithRetry(client -> CassandraVerifier.sanityCheckDatacenters(client, config));
+            dcs = clientPool.runWithRetry(client -> CassandraVerifier.sanityCheckDatacenters(
+                    client, config.servers(), config.replicationFactor(), config.ignoreNodeTopologyChecks()));
             KsDef ksDef = clientPool.runWithRetry(client -> client.describe_keyspace(config.getKeyspaceOrThrow()));
             strategyOptions = new HashMap<>(ksDef.getStrategy_options());
 
@@ -1986,7 +1987,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private boolean doesConfigReplicationFactorMatchWithCluster() {
         return clientPool.runWithRetry(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, config);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(
+                        client,
+                        config.getKeyspaceOrThrow(),
+                        config.servers(),
+                        config.replicationFactor(),
+                        config.ignoreNodeTopologyChecks(),
+                        config.ignoreDatacenterConfigurationChecks());
                 return true;
             } catch (Exception e) {
                 log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);
