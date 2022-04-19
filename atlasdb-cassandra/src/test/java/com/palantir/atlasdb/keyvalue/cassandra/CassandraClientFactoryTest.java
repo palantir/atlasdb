@@ -21,9 +21,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.util.MetricsManagers;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -33,15 +34,19 @@ import org.junit.Test;
 public class CassandraClientFactoryTest {
     private static final CassandraClientFactory FACTORY = new CassandraClientFactory(
             MetricsManagers.createForTests(),
+            "test",
             InetSocketAddress.createUnresolved("localhost", 4242),
-            ImmutableCassandraKeyValueServiceConfig.builder()
-                    .replicationFactor(1)
+            CassandraClientConfig.builder()
                     .credentials(ImmutableCassandraCredentialsConfig.builder()
                             .username("jeremy")
                             .password("tom")
                             .build())
-                    .consecutiveAbsencesBeforePoolRemoval(1)
-                    .build());
+                    .initialSocketQueryTimeoutMillis(0)
+                    .usingSsl(false)
+                    .socketQueryTimeoutMillis(0)
+                    .socketTimeoutMillis(0)
+                    .build(),
+            Duration.ofSeconds(10));
 
     private CassandraClient client = mock(CassandraClient.class);
     private PooledObject<CassandraClient> pooledClient = new DefaultPooledObject<>(client);

@@ -20,6 +20,7 @@ import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevelMetric;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -290,7 +291,13 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      *       while still keeping a minimum number of idle connections around for fast borrows.
      */
     private GenericObjectPool<CassandraClient> createClientPool() {
-        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(metricsManager, proxy, config);
+        CassandraClientConfig cassandraClientConfig = CassandraClientConfig.of(config);
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(
+                metricsManager,
+                config.getKeyspaceOrThrow(),
+                proxy,
+                cassandraClientConfig,
+                config.timeoutOnConnectionClose());
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
         poolConfig.setMinIdle(config.poolSize());

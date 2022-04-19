@@ -31,6 +31,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
@@ -390,8 +391,7 @@ public final class CassandraVerifier {
     interface CassandraVerifierConfig {
         String keyspace();
 
-        // TODO(mdaudali): Use a scoped down config object for Cassandra Clients
-        CassandraKeyValueServiceConfig clientConfig();
+        CassandraClientConfig clientConfig();
 
         CassandraServersConfig servers();
 
@@ -406,7 +406,7 @@ public final class CassandraVerifier {
         static CassandraVerifierConfig of(CassandraKeyValueServiceConfig config) {
             return builder()
                     .keyspace(config.getKeyspaceOrThrow())
-                    .clientConfig(config)
+                    .clientConfig(CassandraClientConfig.of(config))
                     .servers(config.servers())
                     .replicationFactor(config.replicationFactor())
                     .ignoreNodeTopologyChecks(config.ignoreNodeTopologyChecks())

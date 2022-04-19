@@ -27,6 +27,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -507,7 +508,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
         for (CassandraServer host : getCachedServers()) {
-            try (CassandraClient client = CassandraClientFactory.getClientInternal(host.proxy(), config)) {
+            try (CassandraClient client =
+                    CassandraClientFactory.getClientInternal(host.proxy(), CassandraClientConfig.of(config))) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {
