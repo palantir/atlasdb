@@ -320,14 +320,17 @@ public class CassandraVerifierTest {
     }
 
     private ImmutableCassandraKeyspaceConfig.Builder getCassandraKeyspaceConfigBuilderWithDefaults() {
-        CassandraCredentialsConfig defaultCredentialsConfig = ImmutableCassandraCredentialsConfig.builder().username(
-                "test").password("test").build();
+        CassandraCredentialsConfig defaultCredentialsConfig = ImmutableCassandraCredentialsConfig.builder()
+                .username("test")
+                .password("test")
+                .build();
         CassandraClientConfig defaultClientConfig = CassandraClientConfig.builder()
                 .credentials(defaultCredentialsConfig)
                 .initialSocketQueryTimeoutMillis(0)
                 .usingSsl(false)
                 .socketQueryTimeoutMillis(0)
-                .socketTimeoutMillis(0).build();
+                .socketTimeoutMillis(0)
+                .build();
         return CassandraKeyspaceConfig.builder()
                 .clientConfig(defaultClientConfig)
                 .keyspace("test")
