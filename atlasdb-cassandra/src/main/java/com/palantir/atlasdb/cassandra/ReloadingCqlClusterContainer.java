@@ -77,7 +77,7 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
             Namespace namespace) {
         return of(
                 refreshableCassandraServersConfig,
-                (cassandraServersConfig) ->
+                cassandraServersConfig ->
                         CqlCluster.create(cassandraClusterConfig, cassandraServersConfig, namespace));
     }
 
