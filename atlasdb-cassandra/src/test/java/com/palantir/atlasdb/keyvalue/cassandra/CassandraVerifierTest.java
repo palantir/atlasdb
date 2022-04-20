@@ -182,7 +182,6 @@ public class CassandraVerifierTest {
         CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig =
                 getCassandraKeyspaceVerifierConfigBuilderWithDefaults()
                         .servers(cassandraServersConfig)
-                        .replicationFactor(DEFAULT_REPLICATION_FACTOR)
                         .build();
 
         KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, cassandraKeyspaceVerifierConfig);
@@ -214,7 +213,6 @@ public class CassandraVerifierTest {
         CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig =
                 getCassandraKeyspaceVerifierConfigBuilderWithDefaults()
                         .servers(ImmutableDefaultConfig.of())
-                        .replicationFactor(DEFAULT_REPLICATION_FACTOR)
                         .build();
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "3"));
@@ -276,7 +274,6 @@ public class CassandraVerifierTest {
         CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig =
                 getCassandraKeyspaceVerifierConfigBuilderWithDefaults()
                         .servers(cassandraServersConfig)
-                        .replicationFactor(DEFAULT_REPLICATION_FACTOR)
                         .build();
 
         KsDef ksDef = new KsDef("test", CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
@@ -332,6 +329,7 @@ public class CassandraVerifierTest {
         return CassandraKeyspaceVerifierConfig.builder()
                 .clientConfig(mock(CassandraKeyValueServiceConfig.class))
                 .keyspace("test")
+                .replicationFactor(DEFAULT_REPLICATION_FACTOR)
                 .ignoreNodeTopologyChecks(ENABLE_NODE_TOPOLOGY_CHECKS)
                 .ignoreDatacenterConfigurationChecks(false)
                 .schemaMutationTimeoutMillis(0);
