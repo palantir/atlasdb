@@ -332,10 +332,10 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 if (e.getMessage().contains("A metric named")) {
                     String poolName = connConfig.getConnectionPoolName();
                     String newPoolName =
-                            poolName + "-" + ThreadLocalRandom.current().nextInt();
+                            poolName + "-" + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
                     hikariConfig.setPoolName(newPoolName);
                     dataSourcePool = new HikariDataSource(hikariConfig);
-                    log.error(
+                    log.warn(
                             "Created second data source pool. Metrics will be logged under an unexpected pool name.",
                             SafeArg.of("newPoolName", newPoolName),
                             e);
