@@ -20,7 +20,6 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -30,6 +29,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.GuardedBy;
 
@@ -54,23 +54,19 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
     private boolean isClosed;
 
     private ReloadingCqlClusterContainer(
-            CassandraClusterConfig cassandraClusterConfig,
             Refreshable<CassandraServersConfig> refreshableCassandraServersConfig,
-            Namespace namespace,
             CqlClusterFactory cqlClusterFactory) {
         this.isClosed = false;
         this.currentCqlCluster = new AtomicReference<>(Optional.empty());
-        this.refreshableCqlCluster = refreshableCassandraServersConfig.map(cassandraServersConfig ->
-                createNewCluster(cassandraClusterConfig, cassandraServersConfig, namespace, cqlClusterFactory));
+        this.refreshableCqlCluster = refreshableCassandraServersConfig.map(
+                cassandraServersConfig -> createNewCluster(cassandraServersConfig, cqlClusterFactory));
 
         this.refreshableSubscriptionDisposable = refreshableCqlCluster.subscribe(cqlCluster -> {
-            Optional<CqlCluster> maybeCqlClusterToClose = currentCqlCluster.getAndSet(Optional.of(cqlCluster));
-            if (maybeCqlClusterToClose.isPresent()) {
-                try {
-                    maybeCqlClusterToClose.get().close();
-                } catch (IOException e) {
-                    log.warn("Failed to close CQL Cluster after reloading server list", e);
-                }
+            Optional<CqlCluster> maybeClusterToClose = currentCqlCluster.getAndSet(Optional.of(cqlCluster));
+            try {
+                shutdownCluster(maybeClusterToClose);
+            } catch (IOException e) {
+                log.warn("Failed to close CQL Cluster. This may result in a resource leak", e);
             }
         });
     }
@@ -79,35 +75,31 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
             CassandraClusterConfig cassandraClusterConfig,
             Refreshable<CassandraServersConfig> refreshableCassandraServersConfig,
             Namespace namespace) {
-        return of(cassandraClusterConfig, refreshableCassandraServersConfig, namespace, CqlCluster::create);
+        return of(
+                refreshableCassandraServersConfig,
+                (cassandraServersConfig) ->
+                        CqlCluster.create(cassandraClusterConfig, cassandraServersConfig, namespace));
     }
 
     public static ReloadingCqlClusterContainer of(
-            CassandraClusterConfig cassandraClusterConfig,
             Refreshable<CassandraServersConfig> refreshableCassandraServersConfig,
-            Namespace namespace,
             CqlClusterFactory cqlClusterFactory) {
-        return new ReloadingCqlClusterContainer(
-                cassandraClusterConfig, refreshableCassandraServersConfig, namespace, cqlClusterFactory);
+        return new ReloadingCqlClusterContainer(refreshableCassandraServersConfig, cqlClusterFactory);
     }
 
     /**
      * Synchronized: See {@link #close()}.
      */
     private synchronized CqlCluster createNewCluster(
-            CassandraClusterConfig cassandraClusterConfig,
-            CassandraServersConfig cassandraServersConfig,
-            Namespace namespace,
-            CqlClusterFactory cqlClusterFactory) {
+            CassandraServersConfig cassandraServersConfig, CqlClusterFactory cqlClusterFactory) {
         if (isClosed) {
             throw new SafeIllegalStateException(
                     "Attempted to create a new cluster after the container was closed. If this happens repeatedly,"
                             + " this is likely a bug in closing the container. Otherwise, it is highly likely that the"
                             + " container was closed at the same time as the server list was updated. If so, this error"
-                            + " can be ignored.",
-                    UnsafeArg.of("keyspace", namespace));
+                            + " can be ignored.");
         }
-        return cqlClusterFactory.create(cassandraClusterConfig, cassandraServersConfig, namespace);
+        return cqlClusterFactory.apply(cassandraServersConfig);
     }
 
     /**
@@ -119,10 +111,8 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
     public synchronized void close() throws IOException {
         isClosed = true;
         refreshableSubscriptionDisposable.dispose();
-        Optional<CqlCluster> maybeCqlClusterToClose = currentCqlCluster.get();
-        if (maybeCqlClusterToClose.isPresent()) {
-            maybeCqlClusterToClose.get().close();
-        }
+        Optional<CqlCluster> maybeClusterToClose = currentCqlCluster.get();
+        shutdownCluster(maybeClusterToClose);
     }
 
     /**
@@ -137,11 +127,11 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
         return refreshableCqlCluster.get();
     }
 
-    @FunctionalInterface
-    interface CqlClusterFactory {
-        CqlCluster create(
-                CassandraClusterConfig cassandraClusterConfig,
-                CassandraServersConfig cassandraServersConfig,
-                Namespace namespace);
+    interface CqlClusterFactory extends Function<CassandraServersConfig, CqlCluster> {}
+
+    private void shutdownCluster(Optional<CqlCluster> maybeClusterToClose) throws IOException {
+        if (maybeClusterToClose.isPresent()) {
+            maybeClusterToClose.get().close();
+        }
     }
 }

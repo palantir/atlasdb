@@ -25,8 +25,6 @@ import static org.mockito.Mockito.when;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.ReloadingCqlClusterContainer.CqlClusterFactory;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.io.IOException;
@@ -39,14 +37,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ReloadingCqlClusterContainerTest {
-    private static final Namespace NAMESPACE = Namespace.of("TEST");
     private static final CassandraServersConfig INITIAL_SERVERS_CONFIG = ImmutableDefaultConfig.of();
     private static final CassandraServersConfig UPDATED_SERVERS_CONFIG = ImmutableDefaultConfig.builder()
             .addThriftHosts(InetSocketAddress.createUnresolved("foo", 42))
             .build();
-
-    @Mock
-    private CassandraClusterConfig cassandraClusterConfig;
 
     @Mock
     private CqlClusterFactory cqlClusterFactory;
@@ -64,8 +58,8 @@ public class ReloadingCqlClusterContainerTest {
         initialCqlClusterMock = mockFactoryForServersConfig(INITIAL_SERVERS_CONFIG);
         refreshedCqlClusterMock = mockFactoryForServersConfig(UPDATED_SERVERS_CONFIG);
         refreshableCassandraServersConfig = Refreshable.create(INITIAL_SERVERS_CONFIG);
-        reloadingCqlClusterContainer = ReloadingCqlClusterContainer.of(
-                cassandraClusterConfig, refreshableCassandraServersConfig, NAMESPACE, cqlClusterFactory);
+        reloadingCqlClusterContainer =
+                ReloadingCqlClusterContainer.of(refreshableCassandraServersConfig, cqlClusterFactory);
     }
 
     @Test
@@ -100,13 +94,12 @@ public class ReloadingCqlClusterContainerTest {
         reloadingCqlClusterContainer.close();
         refreshableCassandraServersConfig.update(UPDATED_SERVERS_CONFIG);
         assertThat(reloadingCqlClusterContainer.get()).isEqualTo(initialCqlClusterMock);
-        verify(cqlClusterFactory, never()).create(cassandraClusterConfig, UPDATED_SERVERS_CONFIG, NAMESPACE);
+        verify(cqlClusterFactory, never()).apply(UPDATED_SERVERS_CONFIG);
     }
 
     private CqlCluster mockFactoryForServersConfig(CassandraServersConfig cassandraServersConfig) {
         CqlCluster cqlCluster = mock(CqlCluster.class);
-        when(cqlClusterFactory.create(cassandraClusterConfig, cassandraServersConfig, NAMESPACE))
-                .thenReturn(cqlCluster);
+        when(cqlClusterFactory.apply(cassandraServersConfig)).thenReturn(cqlCluster);
         return cqlCluster;
     }
 }
