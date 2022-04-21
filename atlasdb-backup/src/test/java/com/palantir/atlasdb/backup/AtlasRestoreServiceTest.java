@@ -183,7 +183,7 @@ public class AtlasRestoreServiceTest {
     }
 
     @Test
-    public void prepareBackupFailsIfDisableFails() {
+    public void prepareRestoreFailsIfDisableFails() {
         DisableNamespacesResponse failedDisable = DisableNamespacesResponse.unsuccessful(
                 UnsuccessfulDisableNamespacesResponse.of(ImmutableSet.of(WITH_BACKUP_NS), ImmutableSet.of()));
         DisableNamespacesRequest request = DisableNamespacesRequest.of(ImmutableSet.of(WITH_BACKUP_NS), BACKUP_ID);
