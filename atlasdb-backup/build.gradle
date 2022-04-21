@@ -25,6 +25,7 @@ dependencies {
     implementation project(':timelock-api:timelock-api-objects')
     implementation project(':timestamp-impl')
 
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'commons-codec:commons-codec'
 

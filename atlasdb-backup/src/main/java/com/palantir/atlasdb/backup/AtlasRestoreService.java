@@ -239,7 +239,11 @@ public class AtlasRestoreService {
                 .map(namespaceToServices::get)
                 .collect(Collectors.toSet());
         Set<AtlasService> failedAtlasServices = Sets.difference(atlasServicesToRestore, successfulAtlasServices);
-        if (!failedAtlasServices.isEmpty()) {
+        if (failedAtlasServices.isEmpty()) {
+            log.info(
+                    "Successfully completed restore for all atlasServices",
+                    SafeArg.of("atlasServices", successfulAtlasServices));
+        } else {
             log.error(
                     "Failed to fast-forward timestamp for some atlasServices. These will not be re-enabled.",
                     SafeArg.of("failedAtlasServices", failedAtlasServices),
@@ -249,11 +253,6 @@ public class AtlasRestoreService {
         // Re-enable timelock
         timeLockManagementService.reenableTimelock(
                 authHeader, ReenableNamespacesRequest.of(response.getSuccessfulNamespaces(), backupId));
-        if (successfulAtlasServices.containsAll(atlasServicesToRestore)) {
-            log.info(
-                    "Successfully completed restore for all atlasServices",
-                    SafeArg.of("atlasServices", successfulAtlasServices));
-        }
 
         return successfulAtlasServices;
     }

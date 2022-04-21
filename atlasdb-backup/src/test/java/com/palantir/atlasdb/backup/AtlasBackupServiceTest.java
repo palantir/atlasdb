@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.backup;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -98,17 +98,19 @@ public class AtlasBackupServiceTest {
     @Test
     public void prepareBackupThrowsIfNamespacesCollide() {
         AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
-        assertThatThrownBy(
+        assertThatLoggableExceptionThrownBy(
                         () -> atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, collidingAtlasService)))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
     }
 
     @Test
     public void completeBackupThrowsIfNamespacesCollide() {
         AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
-        assertThatThrownBy(
+        assertThatLoggableExceptionThrownBy(
                         () -> atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE, collidingAtlasService)))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
     }
 
     @Test

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.backup;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -199,8 +200,9 @@ public class AtlasRestoreServiceTest {
         AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), WITH_BACKUP.getNamespace());
         Set<RestoreRequest> restoreRequests =
                 ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(collidingAtlasService));
-        assertThatThrownBy(() -> atlasRestoreService.prepareRestore(restoreRequests, BACKUP_ID))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatLoggableExceptionThrownBy(() -> atlasRestoreService.prepareRestore(restoreRequests, BACKUP_ID))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
     }
 
     @Test
@@ -208,8 +210,10 @@ public class AtlasRestoreServiceTest {
         AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), WITH_BACKUP.getNamespace());
         Set<RestoreRequest> restoreRequests =
                 ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(collidingAtlasService));
-        assertThatThrownBy(() -> atlasRestoreService.repairInternalTables(restoreRequests, (_unused, _unused2) -> {}))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatLoggableExceptionThrownBy(
+                        () -> atlasRestoreService.repairInternalTables(restoreRequests, (_unused, _unused2) -> {}))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
     }
 
     @Test
@@ -217,8 +221,9 @@ public class AtlasRestoreServiceTest {
         AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), WITH_BACKUP.getNamespace());
         Set<RestoreRequest> restoreRequests =
                 ImmutableSet.of(restoreRequest(WITH_BACKUP), restoreRequest(collidingAtlasService));
-        assertThatThrownBy(() -> atlasRestoreService.completeRestore(restoreRequests, BACKUP_ID))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatLoggableExceptionThrownBy(() -> atlasRestoreService.completeRestore(restoreRequests, BACKUP_ID))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
     }
 
     @Test
