@@ -106,6 +106,8 @@ public class AtlasBackupServiceTest {
 
     @Test
     public void prepareBackupThrowsIfNamespacesCollideWithExistingInProgressBackups() {
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE))))
+                .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
         AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
         atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE));
         assertThatLoggableExceptionThrownBy(
