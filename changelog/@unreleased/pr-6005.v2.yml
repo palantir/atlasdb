@@ -1,0 +1,10 @@
+type: fix
+fix:
+  description: |-
+    Use protoc x86_64 on Apple M1 aarch64
+
+    The old protoc version 3.5.1 atlasdb uses does not yet support Apple M1 aarch64
+    (see https://github.com/protocolbuffers/protobuf/issues/8062), so use x86_64 until
+    atlasdb upgrades to protoc 3.18.0+ which add osx-aarch_64.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6005
