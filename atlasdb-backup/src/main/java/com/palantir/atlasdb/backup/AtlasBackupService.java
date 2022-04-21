@@ -138,7 +138,8 @@ public final class AtlasBackupService {
     }
 
     public Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices) {
-        AtlasServices.throwIfAtlasServicesCollide(atlasServices);
+        Set<AtlasService> inProgressAndProposedBackups = Sets.union(atlasServices, inProgressBackups.keySet());
+        AtlasServices.throwIfAtlasServicesCollide(inProgressAndProposedBackups);
         Map<Namespace, AtlasService> namespaceToServices = KeyedStream.of(atlasServices)
                 .mapKeys(AtlasService::getNamespace)
                 .collectToMap();

@@ -105,6 +105,16 @@ public class AtlasBackupServiceTest {
     }
 
     @Test
+    public void prepareBackupThrowsIfNamespacesCollideWithExistingInProgressBackups() {
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
+        atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE));
+        assertThatLoggableExceptionThrownBy(
+                        () -> atlasBackupService.prepareBackup(ImmutableSet.of(collidingAtlasService)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
+    }
+
+    @Test
     public void completeBackupThrowsIfNamespacesCollide() {
         AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
         assertThatLoggableExceptionThrownBy(
