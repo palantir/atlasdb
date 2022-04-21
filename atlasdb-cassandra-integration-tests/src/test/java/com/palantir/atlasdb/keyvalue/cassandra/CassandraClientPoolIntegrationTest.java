@@ -118,11 +118,12 @@ public class CassandraClientPoolIntegrationTest {
     @Test
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorInConfig() {
         CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig =
-                CassandraKeyspaceVerifierConfig.of(CASSANDRA.getConfig());
+                ImmutableCassandraKeyspaceVerifierConfig.copyOf(
+                                CassandraKeyspaceVerifierConfig.of(CASSANDRA.getConfig()))
+                        .withReplicationFactor(modifiedReplicationFactor);
 
         clientPool.run(client -> {
             try {
-                CassandraKeyValueServiceConfig config = CASSANDRA.getConfig();
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, cassandraKeyspaceVerifierConfig);
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
@@ -139,7 +140,6 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraKeyspaceVerifierConfig.of(CASSANDRA.getConfig());
         clientPool.run(client -> {
             try {
-                CassandraKeyValueServiceConfig config = CASSANDRA.getConfig();
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, cassandraKeyspaceVerifierConfig);
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
