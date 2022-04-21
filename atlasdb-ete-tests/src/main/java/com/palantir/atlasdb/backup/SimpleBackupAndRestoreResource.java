@@ -19,8 +19,10 @@ package com.palantir.atlasdb.backup;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource {
     private final AtlasBackupService atlasBackupService;
@@ -47,13 +49,22 @@ public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource 
     }
 
     @Override
-    public Set<AtlasService> prepareRestore(RestoreRequestWithId request) {
-        return atlasRestoreService.prepareRestore(ImmutableSet.of(request.restoreRequest()), request.backupId());
+    public Set<AtlasService> prepareRestore(Set<RestoreRequestWithId> requests) {
+        // Would be more efficient to group by backup ID, but this is fine for ETE purposes
+        return requests.stream()
+                .map(request -> atlasRestoreService.prepareRestore(
+                        ImmutableSet.of(request.restoreRequest()), request.backupId()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<AtlasService> completeRestore(RestoreRequestWithId request) {
-        return atlasRestoreService.completeRestore(ImmutableSet.of(request.restoreRequest()), request.backupId());
+    public Set<AtlasService> completeRestore(Set<RestoreRequestWithId> requests) {
+        return requests.stream()
+                .map(request -> atlasRestoreService.completeRestore(
+                        ImmutableSet.of(request.restoreRequest()), request.backupId()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
     }
 
     @Override

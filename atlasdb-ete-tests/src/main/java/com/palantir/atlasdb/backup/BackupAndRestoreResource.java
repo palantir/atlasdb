@@ -46,13 +46,13 @@ public interface BackupAndRestoreResource {
     @Path("/prepare-restore")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<AtlasService> prepareRestore(RestoreRequestWithId restoreRequestWithId);
+    Set<AtlasService> prepareRestore(Set<RestoreRequestWithId> restoreRequestsWithId);
 
     @POST
     @Path("/complete-restore")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<AtlasService> completeRestore(RestoreRequestWithId restoreRequestWithId);
+    Set<AtlasService> completeRestore(Set<RestoreRequestWithId> restoreRequestsWithId);
 
     @POST
     @Path("/immutable-ts")

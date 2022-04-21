@@ -35,6 +35,7 @@ import com.palantir.conjure.java.api.errors.ErrorType;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.Test;
 
@@ -45,6 +46,7 @@ public class BackupAndRestoreEteTest {
     private static final Namespace NAMESPACE_2 = Namespace.of("atlasete-2");
     private static final AtlasService ATLAS_SERVICE_2 = AtlasService.of(ServiceId.of("b"), NAMESPACE_2);
     private static final ImmutableSet<AtlasService> ATLAS_SERVICES = ImmutableSet.of(ATLAS_SERVICE, ATLAS_SERVICE_2);
+    private static final String BACKUP_ID = "backupId";
 
     private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
     private final BackupAndRestoreResource backupResource =
@@ -89,25 +91,28 @@ public class BackupAndRestoreEteTest {
 
         assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
 
-        String backupId = "backupId";
-        RestoreRequest restoreRequest = RestoreRequest.builder()
-                .oldAtlasService(ATLAS_SERVICE)
-                .newAtlasService(ATLAS_SERVICE)
-                .build();
-        Set<AtlasService> preparedAtlasServices =
-                backupResource.prepareRestore(RestoreRequestWithId.of(restoreRequest, backupId));
-        assertThat(preparedAtlasServices).containsExactly(ATLAS_SERVICE);
+        Set<RestoreRequestWithId> restoreRequests =
+                ATLAS_SERVICES.stream().map(this::getRestoreRequest).collect(Collectors.toSet());
+        Set<AtlasService> preparedAtlasServices = backupResource.prepareRestore(restoreRequests);
+        assertThat(preparedAtlasServices).containsAll(ATLAS_SERVICES);
 
         // verify TimeLock is disabled
         assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
                 .isGeneratedFromErrorType(ErrorType.INTERNAL);
 
-        Set<AtlasService> completedAtlasServices =
-                backupResource.completeRestore(RestoreRequestWithId.of(restoreRequest, backupId));
-        assertThat(completedAtlasServices).containsExactly(ATLAS_SERVICE);
+        Set<AtlasService> completedAtlasServices = backupResource.completeRestore(restoreRequests);
+        assertThat(completedAtlasServices).containsAll(ATLAS_SERVICES);
 
         // verify TimeLock is re-enabled
         assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
+    }
+
+    private RestoreRequestWithId getRestoreRequest(AtlasService atlasService) {
+        RestoreRequest restoreRequest = RestoreRequest.builder()
+                .oldAtlasService(atlasService)
+                .newAtlasService(atlasService)
+                .build();
+        return RestoreRequestWithId.of(restoreRequest, BACKUP_ID);
     }
 
     private void addTodo() {
