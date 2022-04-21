@@ -78,7 +78,7 @@ public class CqlMetadata {
     }
 
     public Set<InetSocketAddress> getReplicas(Namespace namespace, Range<LightweightOppToken> range) {
-        return metadata.getReplicas(quotedKeyspace(namespace), toTokenRange(range)).stream()
+        return metadata.getReplicas(quotedNamespace(namespace), toTokenRange(range)).stream()
                 .map(host -> host.getEndPoint().resolve())
                 .collect(Collectors.toSet());
     }
@@ -105,7 +105,7 @@ public class CqlMetadata {
         return metadata.newToken(ByteBuffer.allocate(0));
     }
 
-    private static String quotedKeyspace(Namespace namespace) {
+    private static String quotedNamespace(Namespace namespace) {
         return "\"" + namespace.value() + "\"";
     }
 }

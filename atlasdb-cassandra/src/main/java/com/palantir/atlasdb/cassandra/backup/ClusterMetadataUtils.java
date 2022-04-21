@@ -133,7 +133,7 @@ public final class ClusterMetadataUtils {
                 throw new SafeIllegalStateException(
                         "Failed to find any replicas of token range for repair",
                         SafeArg.of("tokenRange", range.toString()),
-                        SafeArg.of("keyspace", quotedKeyspace(namespace)));
+                        SafeArg.of("keyspace", quotedNamespace(namespace)));
             }
             hosts.forEach(host -> tokenMapping.put(host, range));
         });
@@ -189,7 +189,7 @@ public final class ClusterMetadataUtils {
         }
     }
 
-    private static String quotedKeyspace(Namespace namespace) {
+    private static String quotedNamespace(Namespace namespace) {
         return "\"" + namespace.value() + "\"";
     }
 
