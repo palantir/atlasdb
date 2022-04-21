@@ -39,7 +39,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.List;
@@ -77,12 +76,8 @@ public class CassandraRepairHelper {
 
     private static void onRemoval(
             Namespace namespace, ReloadingCqlClusterContainer cqlClusterContainer, RemovalCause _removalCause) {
-        try {
-            log.info("Closing cql cluster", SafeArg.of("namespace", namespace));
-            cqlClusterContainer.close();
-        } catch (IOException ex) {
-            log.warn("Failed to close CqlCluster", ex);
-        }
+        log.info("Closing cql cluster", SafeArg.of("namespace", namespace));
+        cqlClusterContainer.close();
     }
 
     private ReloadingCqlClusterContainer getCqlClusterUncached(Namespace namespace) {

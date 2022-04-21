@@ -63,11 +63,7 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
 
         this.refreshableSubscriptionDisposable = refreshableCqlCluster.subscribe(cqlCluster -> {
             Optional<CqlCluster> maybeClusterToClose = currentCqlCluster.getAndSet(Optional.of(cqlCluster));
-            try {
-                shutdownCluster(maybeClusterToClose);
-            } catch (IOException e) {
-                log.warn("Failed to close CQL Cluster. This may result in a resource leak", e);
-            }
+            shutdownCluster(maybeClusterToClose);
         });
     }
 
@@ -107,7 +103,7 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
      * never closed.
      */
     @Override
-    public synchronized void close() throws IOException {
+    public synchronized void close() {
         isClosed = true;
         refreshableSubscriptionDisposable.dispose();
         Optional<CqlCluster> maybeClusterToClose = currentCqlCluster.get();
@@ -128,9 +124,13 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
 
     interface CqlClusterFactory extends Function<CassandraServersConfig, CqlCluster> {}
 
-    private void shutdownCluster(Optional<CqlCluster> maybeClusterToClose) throws IOException {
-        if (maybeClusterToClose.isPresent()) {
-            maybeClusterToClose.get().close();
-        }
+    private void shutdownCluster(Optional<CqlCluster> maybeClusterToClose) {
+        maybeClusterToClose.ifPresent(cqlCluster -> {
+            try {
+                cqlCluster.close();
+            } catch (IOException e) {
+                log.warn("Failed to close CQL Cluster. This may result in a resource leak", e);
+            }
+        });
     }
 }
