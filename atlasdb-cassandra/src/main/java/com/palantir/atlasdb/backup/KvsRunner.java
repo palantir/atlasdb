@@ -16,15 +16,15 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.function.Function;
 
 public interface KvsRunner {
-    <T> T run(Namespace namespace, Function<KeyValueService, T> function);
+    <T> T run(AtlasService atlasService, Function<KeyValueService, T> function);
 
-    static KvsRunner create(Function<Namespace, KeyValueService> kvsFactory) {
+    static KvsRunner create(Function<AtlasService, KeyValueService> kvsFactory) {
         return new ClosingKvsRunner(kvsFactory);
     }
 

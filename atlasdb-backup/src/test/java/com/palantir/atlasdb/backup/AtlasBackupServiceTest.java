@@ -16,21 +16,25 @@
 
 package com.palantir.atlasdb.backup;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompleteBackupRequest;
 import com.palantir.atlasdb.backup.api.CompleteBackupResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
+import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 import java.util.UUID;
@@ -43,7 +47,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AtlasBackupServiceTest {
     private static final Namespace NAMESPACE = Namespace.of("foo");
+    private static final AtlasService ATLAS_SERVICE = AtlasService.of(ServiceId.of("a"), NAMESPACE);
     private static final Namespace OTHER_NAMESPACE = Namespace.of("other");
+    private static final AtlasService OTHER_ATLAS_SERVICE = AtlasService.of(ServiceId.of("b"), OTHER_NAMESPACE);
     private static final InProgressBackupToken IN_PROGRESS = inProgressBackupToken(NAMESPACE);
 
     @Mock
@@ -69,13 +75,13 @@ public class AtlasBackupServiceTest {
     }
 
     @Test
-    public void prepareBackupReturnsSuccessfulNamespaces() {
+    public void prepareBackupReturnsSuccessfulServices() {
         when(atlasBackupClient.prepareBackup(
                         authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
 
-        assertThat(atlasBackupService.prepareBackup(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE)))
-                .containsExactly(NAMESPACE);
+        assertThat(atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE)))
+                .containsExactly(ATLAS_SERVICE);
     }
 
     @Test
@@ -85,21 +91,51 @@ public class AtlasBackupServiceTest {
                         authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
                 .thenReturn(PrepareBackupResponse.of(tokens));
 
-        atlasBackupService.prepareBackup(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE));
+        atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
         verify(lockRefresher).registerLocks(tokens);
     }
 
     @Test
-    public void completeBackupDoesNotRunUnpreparedNamespaces() {
+    public void prepareBackupThrowsIfNamespacesCollide() {
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
+        assertThatLoggableExceptionThrownBy(
+                        () -> atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, collidingAtlasService)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
+    }
+
+    @Test
+    public void prepareBackupThrowsIfNamespacesCollideWithExistingInProgressBackups() {
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE))))
+                .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
+        atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE));
+        assertThatLoggableExceptionThrownBy(
+                        () -> atlasBackupService.prepareBackup(ImmutableSet.of(collidingAtlasService)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
+    }
+
+    @Test
+    public void completeBackupThrowsIfNamespacesCollide() {
+        AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
+        assertThatLoggableExceptionThrownBy(
+                        () -> atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE, collidingAtlasService)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Duplicated namespaces");
+    }
+
+    @Test
+    public void completeBackupDoesNotRunUnpreparedServices() {
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of())))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of()));
 
-        assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_NAMESPACE)))
+        assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_ATLAS_SERVICE)))
                 .isEmpty();
     }
 
     @Test
-    public void completeBackupReturnsSuccessfulNamespaces() {
+    public void completeBackupReturnsSuccessfulServices() {
         InProgressBackupToken otherInProgress = inProgressBackupToken(OTHER_NAMESPACE);
         Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
 
@@ -110,13 +146,15 @@ public class AtlasBackupServiceTest {
                         authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS, otherInProgress))))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup())));
 
-        atlasBackupService.prepareBackup(namespaces);
+        Set<AtlasService> services = ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE);
+        atlasBackupService.prepareBackup(services);
 
-        assertThat(atlasBackupService.completeBackup(namespaces)).containsExactly(NAMESPACE);
+        assertThat(atlasBackupService.completeBackup(services)).containsExactly(ATLAS_SERVICE);
     }
 
     @Test
     public void completeBackupUnregistersLocks() {
+        Set<AtlasService> oneService = ImmutableSet.of(ATLAS_SERVICE);
         Set<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
         Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
         when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
@@ -126,8 +164,8 @@ public class AtlasBackupServiceTest {
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(tokens)))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
 
-        atlasBackupService.prepareBackup(oneNamespace);
-        atlasBackupService.completeBackup(oneNamespace);
+        atlasBackupService.prepareBackup(oneService);
+        atlasBackupService.completeBackup(oneService);
 
         verify(lockRefresher).unregisterLocks(tokens);
     }
@@ -135,6 +173,7 @@ public class AtlasBackupServiceTest {
     @Test
     public void completeBackupStoresBackupInfoAndMetadata() {
         ImmutableSet<Namespace> oneNamespace = ImmutableSet.of(NAMESPACE);
+        ImmutableSet<AtlasService> oneService = ImmutableSet.of(ATLAS_SERVICE);
         when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(oneNamespace)))
                 .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS)));
 
@@ -142,11 +181,11 @@ public class AtlasBackupServiceTest {
         when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of(IN_PROGRESS))))
                 .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
 
-        atlasBackupService.prepareBackup(oneNamespace);
-        atlasBackupService.completeBackup(oneNamespace);
+        atlasBackupService.prepareBackup(oneService);
+        atlasBackupService.completeBackup(oneService);
 
-        verify(coordinationServiceRecorder).storeFastForwardState(completedBackup);
-        assertThat(backupPersister.getCompletedBackup(NAMESPACE)).contains(completedBackup);
+        verify(coordinationServiceRecorder).storeFastForwardState(ATLAS_SERVICE, completedBackup);
+        assertThat(backupPersister.getCompletedBackup(ATLAS_SERVICE)).contains(completedBackup);
     }
 
     private static CompletedBackup completedBackup() {

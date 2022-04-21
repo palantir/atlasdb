@@ -17,10 +17,12 @@
 package com.palantir.atlasdb.backup;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.timelock.api.Namespace;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource {
     private final AtlasBackupService atlasBackupService;
@@ -37,32 +39,41 @@ public class SimpleBackupAndRestoreResource implements BackupAndRestoreResource 
     }
 
     @Override
-    public Set<Namespace> prepareBackup(Set<Namespace> namespaces) {
-        return atlasBackupService.prepareBackup(namespaces);
+    public Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices) {
+        return atlasBackupService.prepareBackup(atlasServices);
     }
 
     @Override
-    public Set<Namespace> completeBackup(Set<Namespace> namespaces) {
-        return atlasBackupService.completeBackup(namespaces);
+    public Set<AtlasService> completeBackup(Set<AtlasService> atlasServices) {
+        return atlasBackupService.completeBackup(atlasServices);
     }
 
     @Override
-    public Set<Namespace> prepareRestore(RestoreRequestWithId request) {
-        return atlasRestoreService.prepareRestore(ImmutableSet.of(request.restoreRequest()), request.backupId());
+    public Set<AtlasService> prepareRestore(Set<RestoreRequestWithId> requests) {
+        // Would be more efficient to group by backup ID, but this is fine for ETE purposes
+        return requests.stream()
+                .map(request -> atlasRestoreService.prepareRestore(
+                        ImmutableSet.of(request.restoreRequest()), request.backupId()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<Namespace> completeRestore(RestoreRequestWithId request) {
-        return atlasRestoreService.completeRestore(ImmutableSet.of(request.restoreRequest()), request.backupId());
+    public Set<AtlasService> completeRestore(Set<RestoreRequestWithId> requests) {
+        return requests.stream()
+                .map(request -> atlasRestoreService.completeRestore(
+                        ImmutableSet.of(request.restoreRequest()), request.backupId()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
     }
 
     @Override
-    public Optional<Long> getStoredImmutableTimestamp(Namespace namespace) {
-        return externalBackupPersister.getImmutableTimestamp(namespace);
+    public Optional<Long> getStoredImmutableTimestamp(AtlasService atlasService) {
+        return externalBackupPersister.getImmutableTimestamp(atlasService);
     }
 
     @Override
-    public Optional<CompletedBackup> getStoredBackup(Namespace namespace) {
-        return externalBackupPersister.getCompletedBackup(namespace);
+    public Optional<CompletedBackup> getStoredBackup(AtlasService atlasService) {
+        return externalBackupPersister.getCompletedBackup(atlasService);
     }
 }

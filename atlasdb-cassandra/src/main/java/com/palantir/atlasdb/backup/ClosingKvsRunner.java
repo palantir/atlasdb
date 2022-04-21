@@ -16,20 +16,20 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.function.Function;
 
 final class ClosingKvsRunner implements KvsRunner {
-    private final Function<Namespace, KeyValueService> keyValueServiceFactory;
+    private final Function<AtlasService, KeyValueService> keyValueServiceFactory;
 
-    ClosingKvsRunner(Function<Namespace, KeyValueService> keyValueServiceFactory) {
+    ClosingKvsRunner(Function<AtlasService, KeyValueService> keyValueServiceFactory) {
         this.keyValueServiceFactory = keyValueServiceFactory;
     }
 
     @Override
-    public <T> T run(Namespace namespace, Function<KeyValueService, T> function) {
-        try (KeyValueService kvs = keyValueServiceFactory.apply(namespace)) {
+    public <T> T run(AtlasService atlasService, Function<KeyValueService, T> function) {
+        try (KeyValueService kvs = keyValueServiceFactory.apply(atlasService)) {
             return function.apply(kvs);
         }
     }

@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.function.Function;
 
@@ -29,7 +29,7 @@ final class NonClosingKvsRunner implements KvsRunner {
     }
 
     @Override
-    public <T> T run(Namespace _namespace, Function<KeyValueService, T> function) {
+    public <T> T run(AtlasService _atlasService, Function<KeyValueService, T> function) {
         return function.apply(txnManager.getKeyValueService());
     }
 }
