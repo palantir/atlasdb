@@ -59,7 +59,7 @@ public class BackupAndRestoreEteTest {
         assertThat(backupResource.getStoredImmutableTimestamp(ATLAS_SERVICE)).isEmpty();
 
         Set<AtlasService> preparedAtlasServices = backupResource.prepareBackup(ATLAS_SERVICES);
-        assertThat(preparedAtlasServices).containsExactly(ATLAS_SERVICE, ATLAS_SERVICE_2);
+        assertThat(preparedAtlasServices).containsExactlyInAnyOrder(ATLAS_SERVICE, ATLAS_SERVICE_2);
 
         // verify we persisted the immutable timestamp to disk
         assertThat(backupResource.getStoredImmutableTimestamp(ATLAS_SERVICE)).isNotEmpty();
@@ -76,7 +76,7 @@ public class BackupAndRestoreEteTest {
         assertThat(backupResource.getStoredBackup(ATLAS_SERVICE)).isEmpty();
 
         Set<AtlasService> completedAtlasServices = backupResource.completeBackup(ATLAS_SERVICES);
-        assertThat(completedAtlasServices).containsExactly(ATLAS_SERVICE, ATLAS_SERVICE_2);
+        assertThat(completedAtlasServices).containsExactlyInAnyOrder(ATLAS_SERVICE, ATLAS_SERVICE_2);
 
         Optional<CompletedBackup> storedBackup = backupResource.getStoredBackup(ATLAS_SERVICE);
         assertThat(storedBackup).isNotEmpty();
