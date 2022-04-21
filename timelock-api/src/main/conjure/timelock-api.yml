@@ -122,6 +122,14 @@ types:
         fields:
           leaderTimes: map<Namespace, LeaderTime>
       # backup and restore
+      ServiceId:
+        package: com.palantir.atlasdb.backup.api
+        alias: string
+      AtlasService:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          serviceId: ServiceId
+          namespace: Namespace
       InProgressBackupToken:
         package: com.palantir.atlasdb.backup.api
         fields:

@@ -94,15 +94,15 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
             throw new ServiceException(ErrorType.PERMISSION_DENIED);
         }
 
-        Map<Namespace, ListenableFuture<Optional<Namespace>>> futureMap = KeyedStream.stream(
+        Map<Namespace, ListenableFuture<Optional<Namespace>>> inFlightRequests = KeyedStream.stream(
                         request.getCompletedBackups())
                 .map(this::completeRestoreAsync)
                 .collectToMap();
-        ListenableFuture<Map<Namespace, Namespace>> singleFuture =
-                AtlasFutures.allAsMap(futureMap, MoreExecutors.newDirectExecutorService());
+        ListenableFuture<Map<Namespace, Namespace>> completedRequests =
+                AtlasFutures.allAsMap(inFlightRequests, MoreExecutors.newDirectExecutorService());
 
         return Futures.transform(
-                singleFuture,
+                completedRequests,
                 map -> CompleteRestoreResponse.of(ImmutableSet.copyOf(map.values())),
                 MoreExecutors.directExecutor());
     }

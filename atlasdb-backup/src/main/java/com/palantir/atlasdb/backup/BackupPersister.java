@@ -16,22 +16,22 @@
 
 package com.palantir.atlasdb.backup;
 
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Optional;
 
 interface BackupPersister {
-    void storeSchemaMetadata(Namespace namespace, InternalSchemaMetadataState internalSchemaMetadataState);
+    void storeSchemaMetadata(AtlasService service, InternalSchemaMetadataState internalSchemaMetadataState);
 
-    Optional<InternalSchemaMetadataState> getSchemaMetadata(Namespace namespace);
+    Optional<InternalSchemaMetadataState> getSchemaMetadata(AtlasService service);
 
-    void storeCompletedBackup(CompletedBackup completedBackup);
+    void storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup);
 
-    Optional<CompletedBackup> getCompletedBackup(Namespace namespace);
+    Optional<CompletedBackup> getCompletedBackup(AtlasService service);
 
-    void storeImmutableTimestamp(InProgressBackupToken inProgressBackupToken);
+    void storeImmutableTimestamp(AtlasService atlasService, InProgressBackupToken inProgressBackupToken);
 
-    Optional<Long> getImmutableTimestamp(Namespace namespace);
+    Optional<Long> getImmutableTimestamp(AtlasService service);
 }

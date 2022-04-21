@@ -24,6 +24,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.KvsRunner;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.ReloadingCqlClusterContainer;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -54,15 +55,15 @@ public class CassandraRepairHelper {
     private static final Set<TableReference> TABLES_TO_REPAIR =
             Sets.union(ImmutableSet.of(AtlasDbConstants.COORDINATION_TABLE), TargetedSweepTables.REPAIR_ON_RESTORE);
 
-    private final Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory;
-    private final Function<Namespace, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory;
-    private final LoadingCache<Namespace, ReloadingCqlClusterContainer> cqlClusterContainers;
+    private final Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory;
+    private final Function<AtlasService, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory;
+    private final LoadingCache<AtlasService, ReloadingCqlClusterContainer> cqlClusterContainers;
     private final KvsRunner kvsRunner;
 
     public CassandraRepairHelper(
             KvsRunner kvsRunner,
-            Function<Namespace, CassandraClusterConfig> cassandraClusterConfigFactory,
-            Function<Namespace, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory) {
+            Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory,
+            Function<AtlasService, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory) {
         this.kvsRunner = kvsRunner;
         this.cassandraClusterConfigFactory = cassandraClusterConfigFactory;
         this.refreshableCassandraServersConfigFactory = refreshableCassandraServersConfigFactory;
@@ -75,28 +76,29 @@ public class CassandraRepairHelper {
     }
 
     private static void onRemoval(
-            Namespace namespace, ReloadingCqlClusterContainer cqlClusterContainer, RemovalCause _removalCause) {
-        log.info("Closing cql cluster", SafeArg.of("namespace", namespace));
+            AtlasService atlasService, ReloadingCqlClusterContainer cqlClusterContainer, RemovalCause _removalCause) {
+        log.info("Closing cql cluster", SafeArg.of("atlasService", atlasService));
         cqlClusterContainer.close();
     }
 
-    private ReloadingCqlClusterContainer getCqlClusterUncached(Namespace namespace) {
-        CassandraClusterConfig cassandraClusterConfig = cassandraClusterConfigFactory.apply(namespace);
+    private ReloadingCqlClusterContainer getCqlClusterUncached(AtlasService atlasService) {
+        CassandraClusterConfig cassandraClusterConfig = cassandraClusterConfigFactory.apply(atlasService);
         Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable =
-                refreshableCassandraServersConfigFactory.apply(namespace);
+                refreshableCassandraServersConfigFactory.apply(atlasService);
 
-        return ReloadingCqlClusterContainer.of(cassandraClusterConfig, cassandraServersConfigRefreshable, namespace);
+        return ReloadingCqlClusterContainer.of(
+                cassandraClusterConfig, cassandraServersConfigRefreshable, atlasService.getNamespace());
     }
 
-    public void repairInternalTables(Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {
-        kvsRunner.run(namespace, kvs -> repairInternalTables(kvs, namespace, repairTable));
+    public void repairInternalTables(AtlasService atlasService, BiConsumer<String, RangesForRepair> repairTable) {
+        kvsRunner.run(atlasService, kvs -> repairInternalTables(kvs, atlasService, repairTable));
     }
 
     public Void repairInternalTables(
-            KeyValueService kvs, Namespace namespace, BiConsumer<String, RangesForRepair> repairTable) {
-        CqlCluster cqlCluster = cqlClusterContainers.get(namespace).get();
+            KeyValueService kvs, AtlasService atlasService, BiConsumer<String, RangesForRepair> repairTable) {
+        CqlCluster cqlCluster = cqlClusterContainers.get(atlasService).get();
         KeyedStream.of(getTableNamesToRepair(kvs))
-                .map(tableName -> getRangesToRepair(cqlCluster, namespace, tableName))
+                .map(tableName -> getRangesToRepair(cqlCluster, atlasService, tableName))
                 .forEach(repairTable);
         return null;
     }
@@ -108,11 +110,11 @@ public class CassandraRepairHelper {
     }
 
     public void repairTransactionsTables(
-            Namespace namespace,
+            AtlasService atlasService,
             List<TransactionsTableInteraction> transactionsTableInteractions,
             BiConsumer<String, RangesForRepair> repairTable) {
         Map<String, RangesForRepair> tokenRangesForRepair =
-                getRangesForRepairByTable(namespace, transactionsTableInteractions);
+                getRangesForRepairByTable(atlasService, transactionsTableInteractions);
 
         tokenRangesForRepair.forEach((table, ranges) -> {
             log.info("Repairing ranges for table", SafeArg.of("table", table));
@@ -121,37 +123,38 @@ public class CassandraRepairHelper {
     }
 
     public void cleanTransactionsTables(
-            Namespace namespace,
+            AtlasService atlasService,
             long startTimestamp,
             List<TransactionsTableInteraction> transactionsTableInteractions) {
-        cqlClusterContainers.get(namespace).get().abortTransactions(startTimestamp, transactionsTableInteractions);
+        cqlClusterContainers.get(atlasService).get().abortTransactions(startTimestamp, transactionsTableInteractions);
     }
 
     private Map<String, RangesForRepair> getRangesForRepairByTable(
-            Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
-        return KeyedStream.stream(getRawRangesForRepairByTable(namespace, transactionsTableInteractions))
+            AtlasService atlasService, List<TransactionsTableInteraction> transactionsTableInteractions) {
+        return KeyedStream.stream(getRawRangesForRepairByTable(atlasService, transactionsTableInteractions))
                 .map(RangesForRepair::of)
                 .collectToMap();
     }
 
     private Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> getRawRangesForRepairByTable(
-            Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
+            AtlasService atlasService, List<TransactionsTableInteraction> transactionsTableInteractions) {
         return cqlClusterContainers
-                .get(namespace)
+                .get(atlasService)
                 .get()
                 .getTransactionsTableRangesForRepair(transactionsTableInteractions);
     }
 
     // VisibleForTesting
-    public static RangesForRepair getRangesToRepair(CqlCluster cqlCluster, Namespace namespace, String tableName) {
+    public static RangesForRepair getRangesToRepair(
+            CqlCluster cqlCluster, AtlasService atlasService, String tableName) {
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRanges =
-                getTokenRangesToRepair(cqlCluster, namespace, tableName);
+                getTokenRangesToRepair(cqlCluster, atlasService, tableName);
         return RangesForRepair.of(tokenRanges);
     }
 
     private static Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRangesToRepair(
-            CqlCluster cqlCluster, Namespace namespace, String tableName) {
-        String cassandraTableName = getCassandraTableName(namespace, tableName);
+            CqlCluster cqlCluster, AtlasService atlasService, String tableName) {
+        String cassandraTableName = getCassandraTableName(atlasService.getNamespace(), tableName);
         return cqlCluster.getTokenRanges(cassandraTableName);
     }
 
