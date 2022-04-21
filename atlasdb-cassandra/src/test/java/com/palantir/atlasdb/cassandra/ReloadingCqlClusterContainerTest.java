@@ -90,7 +90,7 @@ public class ReloadingCqlClusterContainerTest {
     }
 
     @Test
-    public void noNewClustersAfterClose() throws IOException {
+    public void noNewClustersAfterClose() {
         reloadingCqlClusterContainer.close();
         refreshableCassandraServersConfig.update(UPDATED_SERVERS_CONFIG);
         assertThat(reloadingCqlClusterContainer.get()).isEqualTo(initialCqlClusterMock);
