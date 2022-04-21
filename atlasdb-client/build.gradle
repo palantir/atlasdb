@@ -118,8 +118,7 @@ dependencies {
   integrationInputImplementation project(':atlasdb-client')
   integrationInputImplementation 'com.fasterxml.jackson.core:jackson-annotations'
   integrationInputImplementation 'com.fasterxml.jackson.core:jackson-databind'
-  integrationInputImplementation 'com.google.code.findbugs:annotations'
-  integrationInputImplementation 'com.google.code.findbugs:annotations'
+  integrationInputImplementation 'com.google.code.findbugs:findbugs-annotations'
   integrationInputImplementation 'com.google.errorprone:error_prone_annotations'
   integrationInputImplementation 'com.google.guava:guava'
   integrationInputImplementation 'com.google.protobuf:protobuf-java'
