@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import static com.palantir.logsafe.Preconditions.checkArgument;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -33,7 +31,6 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
@@ -54,17 +51,22 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     String TYPE = "cassandra";
 
     /**
+     *
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#servers()}.
+     *
      * These are only the initial 'contact points' that will be used in connecting with the cluster. AtlasDB will
      * subsequently discover additional hosts in the cluster. (This is true for both Thrift and CQL endpoints.)
      *
      * This value, or values derived from it (e.g. the number of Thrift hosts) must ONLY be used on KVS initialization
      * to generate the initial connection(s) to the cluster, or as part of startup checks.
      */
+    @Deprecated
     @Value.Default
     default CassandraServersConfig servers() {
         return ImmutableDefaultConfig.of();
     }
 
+    // Todo(snanda): the field is no longer in use
     @Value.Default
     default Map<String, InetSocketAddress> addressTranslation() {
         return ImmutableMap.of();
@@ -123,7 +125,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
+     * The minimal period we wait to check if a Cassandra node is healthy after it has been blacklisted.
      *
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make this
      * value live-reloadable.
@@ -385,10 +387,26 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return TYPE;
     }
 
-    @Override
+    /**
+     * {@link CassandraReloadableKvsConfig} uses the value below if and only if it is greater than 0, otherwise
+     * deriving fom {@link CassandraKeyValueServiceRuntimeConfig#servers()} in a similar fashion.
+     *
+     * As a result, if the below derivation is changed to be non-zero when {@link #servers()} is empty, then this
+     * will always take precedence over the derived value from the reloadable config.
+     *
+     * If such a change happens, {@link CassandraReloadableKvsConfig#concurrentGetRangesThreadPoolSize()} should be
+     * updated to compare against a new sentinel value (e.g the calculated value when servers is empty) so that the
+     * reloadable config correctly flips over to using the runtime derived value when appropriate.
+     *
+     */
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
         return poolSize() * servers().numberOfThriftHosts();
+    }
+
+    @Value.Default
+    default int defaultGetRangesConcurrency() {
+        return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
     }
 
     @JsonIgnore
@@ -416,15 +434,5 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Value.Default
     default int numPoolRefreshingThreads() {
         return 1;
-    }
-
-    @Value.Check
-    default void checkGetRangesPoolSizes() {
-        sharedResourcesConfig()
-                .ifPresent(config -> checkArgument(
-                        config.sharedGetRangesPoolSize() >= concurrentGetRangesThreadPoolSize(),
-                        "If set, shared get ranges pool size must not be less than individual pool size.",
-                        SafeArg.of("shared", config.sharedGetRangesPoolSize()),
-                        SafeArg.of("individual", concurrentGetRangesThreadPoolSize())));
     }
 }

@@ -83,10 +83,13 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
 
     public abstract JdbcDataSourceConfiguration getDataSourceConfig();
 
-    @Override
     @Value.Default
     public int concurrentGetRangesThreadPoolSize() {
         return 64;
+    }
+
+    public Optional<Integer> defaultGetRangesConcurrency() {
+        return Optional.empty();
     }
 
     @Value.Check

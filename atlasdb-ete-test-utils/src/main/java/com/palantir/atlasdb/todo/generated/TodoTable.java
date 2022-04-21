@@ -513,7 +513,7 @@ public final class TodoTable implements
     }
 
     private static Multimap<TodoRow, TodoNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TodoRow, TodoNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<TodoRow, TodoNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             TodoRow row = TodoRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -681,5 +681,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2TUlQO74MDuPAp1x+H3UCw==";
+    static String __CLASS_HASH = "3r55GHWJy0tMGWUUK/aUMg==";
 }

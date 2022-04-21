@@ -252,6 +252,7 @@ public final class HotspottyDataStreamMetadataTable implements
      *     label: LABEL_REQUIRED
      *     type: TYPE_BYTES
      *   }
+     *   
      * }
      * </pre>
      */
@@ -537,7 +538,7 @@ public final class HotspottyDataStreamMetadataTable implements
     }
 
     private static Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<HotspottyDataStreamMetadataRow, HotspottyDataStreamMetadataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             HotspottyDataStreamMetadataRow row = HotspottyDataStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -705,5 +706,5 @@ public final class HotspottyDataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZAmuaTg7KVhrSM8jgiLdFA==";
+    static String __CLASS_HASH = "/o0oiRKrpv9bcIlY6oe0Jw==";
 }

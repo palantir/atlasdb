@@ -513,7 +513,7 @@ public final class NamespacedTodoTable implements
     public Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> get(Multimap<NamespacedTodoRow, NamespacedTodoColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> rowMap = HashMultimap.create();
+        Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 NamespacedTodoRow row = NamespacedTodoRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -563,7 +563,7 @@ public final class NamespacedTodoTable implements
     }
 
     private static Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> rowMap = HashMultimap.create();
+        Multimap<NamespacedTodoRow, NamespacedTodoColumnValue> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             NamespacedTodoRow row = NamespacedTodoRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -739,5 +739,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3DJdGHmS1KFWFWaP05WZiQ==";
+    static String __CLASS_HASH = "C7WE9160VLtCdDQhpeaP2Q==";
 }

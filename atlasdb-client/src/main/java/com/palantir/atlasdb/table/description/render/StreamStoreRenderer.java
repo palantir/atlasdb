@@ -50,6 +50,9 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.Pair;
@@ -79,8 +82,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamStoreRenderer {
@@ -209,7 +210,7 @@ public class StreamStoreRenderer {
                 line("public static final String STREAM_FILE_PREFIX = \"", name, "_stream_\";");
                 line("public static final String STREAM_FILE_SUFFIX = \".tmp\";");
                 line();
-                line("private static final Logger log = LoggerFactory.getLogger(", StreamStore, ".class);");
+                line("private static final SafeLogger log = SafeLoggerFactory.get(", StreamStore, ".class);");
                 line();
                 line("private final ", TableFactory, " tables;");
             }
@@ -281,8 +282,11 @@ public class StreamStoreRenderer {
                     }
                     line("} catch (RuntimeException e) {");
                     {
-                        line("log.error(\"Error storing block {} for stream id {}\", row.getBlockId(), row.getId(),"
-                                + " e);");
+                        line("log.error(");
+                        line("        \"Error storing block {} for stream id {}\",");
+                        line("        SafeArg.of(\"blockId\", row.getBlockId()),");
+                        line("        SafeArg.of(\"id\", row.getId()),");
+                        line("        e);");
                         line("throw e;");
                     }
                     line("}");
@@ -407,14 +411,20 @@ public class StreamStoreRenderer {
                     }
                     line("} catch (RuntimeException e) {");
                     {
-                        line("log.error(\"Error storing block {} for stream id {}\", row.getBlockId(), row.getId(),"
-                                + " e);");
+                        line("log.error(");
+                        line("        \"Error storing block {} for stream id {}\",");
+                        line("        SafeArg.of(\"blockId\", row.getBlockId()),");
+                        line("        SafeArg.of(\"id\", row.getId()),");
+                        line("        e);");
                         line("throw e;");
                     }
                     line("} catch (IOException e) {");
                     {
-                        line("log.error(\"Error writing block {} to file when getting stream id {}\","
-                                + " row.getBlockId(), row.getId(), e);");
+                        line("log.error(");
+                        line("        \"Error writing block {} to file when getting stream id {}\",");
+                        line("        SafeArg.of(\"blockId\", row.getBlockId()),");
+                        line("        SafeArg.of(\"id\", row.getId()),");
+                        line("        e);");
                         line("throw Throwables.rewrapAndThrowUncheckedException(\"Error writing blocks to file when"
                                 + " creating stream.\", e);");
                     }
@@ -642,7 +652,9 @@ public class StreamStoreRenderer {
                         }
                         line("} else {");
                         {
-                            line("log.error(\"Empty hash for stream {}\", streamId);");
+                            line("log.error(");
+                            line("        \"Empty hash for stream {}\",");
+                            line("        SafeArg.of(\"id\", streamId));");
                         }
                         line("}");
                         line(StreamHashAidxRow, " hashRow = ", StreamHashAidxRow, ".of(hash);");
@@ -796,7 +808,6 @@ public class StreamStoreRenderer {
                 line("package ", packageName, ";");
                 line();
                 line("import java.util.Map;");
-                line("import java.util.HashSet;");
                 line("import java.util.Set;");
                 line();
                 line("import com.google.common.collect.Sets;");
@@ -892,8 +903,6 @@ public class StreamStoreRenderer {
                 line("public class ", MetadataCleanupTask, " implements OnCleanupTask {");
                 {
                     line();
-                    line("private static final Logger log = LoggerFactory.getLogger(", MetadataCleanupTask, ".class);");
-                    line();
                     line("private final ", TableFactory, " tables;");
                     line();
                     line("public ", MetadataCleanupTask, "(Namespace namespace) {");
@@ -918,10 +927,6 @@ public class StreamStoreRenderer {
                 line("import java.util.Set;");
                 line("import java.util.stream.Collectors;");
                 line();
-                line("import org.slf4j.Logger;");
-                line("import org.slf4j.LoggerFactory;");
-                line();
-                line("import com.google.common.collect.Multimap;");
                 line("import com.google.common.collect.Sets;");
                 line("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
                 line("import com.palantir.atlasdb.encoding.PtBytes;");
@@ -930,9 +935,7 @@ public class StreamStoreRenderer {
                 line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
                 line("import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;");
                 line("import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;");
-                line("import com.palantir.atlasdb.table.description.ValueType;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
-                line("import com.palantir.logsafe.SafeArg;");
 
                 if (streamIdType == ValueType.SHA256HASH) {
                     line("import com.palantir.util.crypto.Sha256Hash;");
@@ -1022,8 +1025,9 @@ public class StreamStoreRenderer {
         Set.class,
         TimeUnit.class,
         BiConsumer.class,
-        Logger.class,
-        LoggerFactory.class,
+        SafeArg.class,
+        SafeLogger.class,
+        SafeLoggerFactory.class,
         Preconditions.class,
         Arrays.class,
         ArrayListMultimap.class,

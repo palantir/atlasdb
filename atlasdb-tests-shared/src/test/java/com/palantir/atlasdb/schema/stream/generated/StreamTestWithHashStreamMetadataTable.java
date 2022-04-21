@@ -266,6 +266,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
      *     label: LABEL_REQUIRED
      *     type: TYPE_BYTES
      *   }
+     *   
      * }
      * </pre>
      */
@@ -551,7 +552,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     private static Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -719,5 +720,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "1VSlI4x38qhyOljyKBZ1xA==";
+    static String __CLASS_HASH = "+CTiiWu+YOVuhh3VLe1XKg==";
 }

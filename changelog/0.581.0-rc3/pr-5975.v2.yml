@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Reduce CassandraLogHelper.host(InetSocketAddress) memory allocations
+
+    CassandraLogHelper.host allocates less memory wrapping InetSocketAddress
+    Avoid safe-logging args and CassandraLogHelper.host for debug logging
+  links:
+  - https://github.com/palantir/atlasdb/pull/5975

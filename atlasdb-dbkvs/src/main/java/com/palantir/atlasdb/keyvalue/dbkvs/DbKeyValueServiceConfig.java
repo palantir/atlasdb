@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import static com.palantir.logsafe.Preconditions.checkArgument;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -44,15 +45,17 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     @JsonIgnore
     @Value.Derived
     public Optional<String> namespace() {
-        return connection().namespace();
+        return namespaceOverride().or(() -> connection().namespace());
     }
+
+    @JsonProperty("namespace")
+    public abstract Optional<String> namespaceOverride();
 
     @Override
     public final String type() {
         return DbAtlasDbFactory.TYPE;
     }
 
-    @Override
     @Value.Default
     public int concurrentGetRangesThreadPoolSize() {
         int poolSize = sharedResourcesConfig()
@@ -61,6 +64,8 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
                 .orElseGet(() -> connection().getMaxConnections());
         return Math.max(2 * poolSize / 3, 1);
     }
+
+    abstract Optional<Integer> defaultGetRangesConcurrency();
 
     @Value.Check
     public void checkKvsPoolSize() {

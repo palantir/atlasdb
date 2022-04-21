@@ -513,7 +513,7 @@ public final class TableClearsTable implements
     }
 
     private static Multimap<TableClearsRow, TableClearsNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<TableClearsRow, TableClearsNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<TableClearsRow, TableClearsNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             TableClearsRow row = TableClearsRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -681,5 +681,5 @@ public final class TableClearsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZTQrUhB7dvmc+eZsO+E7CA==";
+    static String __CLASS_HASH = "7M6FU/3Ys4wUHyxKlBgnYw==";
 }

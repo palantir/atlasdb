@@ -10,15 +10,11 @@ schemas = [
 
 sourceSets {
   integrationInput
-  test {
-    compileClasspath += integrationInput.output
-    runtimeClasspath += integrationInput.output
-  }
 }
 
 idea {
   module {
-    testSourceDirs += sourceSets.integrationInput.java.srcDirs
+    sourceDirs += sourceSets.integrationInput.java.srcDirs
   }
 }
 
@@ -96,6 +92,7 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
 
+  testImplementation sourceSets.integrationInput.output
   testImplementation 'ch.qos.logback:logback-core'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'

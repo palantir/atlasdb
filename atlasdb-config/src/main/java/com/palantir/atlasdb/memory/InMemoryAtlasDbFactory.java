@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
@@ -43,7 +44,7 @@ import java.util.function.LongSupplier;
  * (SI) on all of the transactions it creates.
  */
 @AutoService(AtlasDbFactory.class)
-public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
+public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     private static final SafeLogger log = SafeLoggerFactory.get(InMemoryAtlasDbFactory.class);
 
     @Override
@@ -77,6 +78,16 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceCon
 
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
+    }
+
+    @Override
+    public DerivedSnapshotConfig createDerivedSnapshotConfig(
+            KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
+        InMemoryAtlasDbConfig inMemoryAtlasDbConfig = (InMemoryAtlasDbConfig) config;
+        return DerivedSnapshotConfig.builder()
+                .concurrentGetRangesThreadPoolSize(inMemoryAtlasDbConfig.concurrentGetRangesThreadPoolSize())
+                .defaultGetRangesConcurrencyOverride(inMemoryAtlasDbConfig.defaultGetRangesConcurrency())
+                .build();
     }
 
     @Override

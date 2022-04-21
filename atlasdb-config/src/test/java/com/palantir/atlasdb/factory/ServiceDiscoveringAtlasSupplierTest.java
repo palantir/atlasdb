@@ -35,7 +35,7 @@ import org.junit.Test;
 public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
     private final KeyValueServiceConfigHelper invalidKvsConfig = () -> "should not be found kvs";
-    private final AtlasDbFactory<KeyValueServiceConfig> delegate = new AutoServiceAnnotatedAtlasDbFactory();
+    private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
     private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
     private final MetricsManager metrics = MetricsManagers.createForTests();
 

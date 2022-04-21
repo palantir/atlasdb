@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Optimize a few hot code paths
+
+    Precompile regex used in table reference to name normalization.
+    Avoid additional interim ArrayList.grow when streaming provides improved estimated sizes.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5954

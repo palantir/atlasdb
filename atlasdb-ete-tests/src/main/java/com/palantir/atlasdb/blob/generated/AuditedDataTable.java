@@ -513,7 +513,7 @@ public final class AuditedDataTable implements
     }
 
     private static Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<AuditedDataRow, AuditedDataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             AuditedDataRow row = AuditedDataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -681,5 +681,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3dnqqHdi4s83XI/7WEOh5g==";
+    static String __CLASS_HASH = "q1P83AmwW/yrqywQuzeOwQ==";
 }

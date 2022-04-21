@@ -22,11 +22,11 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.Mutations;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
 import java.util.function.ToLongFunction;
@@ -56,7 +56,7 @@ class CellRangeDeleter {
             return;
         }
 
-        Map<InetSocketAddress, Map<Cell, TimestampRangeDelete>> keysByHost =
+        Map<CassandraServer, Map<Cell, TimestampRangeDelete>> keysByHost =
                 HostPartitioner.partitionMapByHost(clientPool, deletes.entrySet());
 
         // this is required by the interface of the CassandraMutationTimestampProvider, although it exists for tests
@@ -65,7 +65,7 @@ class CellRangeDeleter {
                 .max()
                 .getAsLong();
         long rangeTombstoneCassandraTimestamp = rangeTombstoneTimestampProvider.applyAsLong(maxTimestampForAllCells);
-        for (Map.Entry<InetSocketAddress, Map<Cell, TimestampRangeDelete>> entry : keysByHost.entrySet()) {
+        for (Map.Entry<CassandraServer, Map<Cell, TimestampRangeDelete>> entry : keysByHost.entrySet()) {
             deleteAllTimestampsOnSingleHost(
                     tableRef, entry.getKey(), entry.getValue(), rangeTombstoneCassandraTimestamp);
         }
@@ -73,7 +73,7 @@ class CellRangeDeleter {
 
     private void deleteAllTimestampsOnSingleHost(
             TableReference tableRef,
-            InetSocketAddress host,
+            CassandraServer server,
             Map<Cell, TimestampRangeDelete> deletes,
             long rangeTombstoneCassandraTs) {
         if (deletes.isEmpty()) {
@@ -81,7 +81,7 @@ class CellRangeDeleter {
         }
 
         try {
-            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+            clientPool.runWithRetryOnServer(server, new FunctionCheckedException<CassandraClient, Void, Exception>() {
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
@@ -91,7 +91,7 @@ class CellRangeDeleter {
 
                 @Override
                 public String toString() {
-                    return "delete_timestamp_ranges_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
+                    return "delete_timestamp_ranges_batch_mutate(" + server + ", " + tableRef.getQualifiedName() + ", "
                             + deletes.size() + " column timestamp ranges)";
                 }
             });

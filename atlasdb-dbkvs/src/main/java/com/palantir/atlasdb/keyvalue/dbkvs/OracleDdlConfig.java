@@ -88,6 +88,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     @Value.Derived
+    @JsonIgnore
     public OracleIdentifierLengthLimits identifierLengthLimits() {
         return longIdentifierNamesSupported()
                 ? OracleIdentifierLengthLimitOptions.ORACLE_12_2

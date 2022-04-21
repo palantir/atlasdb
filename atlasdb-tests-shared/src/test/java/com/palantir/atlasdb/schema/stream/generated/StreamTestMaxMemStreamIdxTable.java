@@ -513,7 +513,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
     public Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> get(Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumn> cells) {
         Set<Cell> rawCells = ColumnValues.toCells(cells);
         Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-        Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> rowMap = HashMultimap.create();
+        Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> rowMap = ArrayListMultimap.create();
         for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
             if (e.getValue().length > 0) {
                 StreamTestMaxMemStreamIdxRow row = StreamTestMaxMemStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
@@ -563,7 +563,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
     }
 
     private static Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> rowMap = HashMultimap.create();
+        Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             StreamTestMaxMemStreamIdxRow row = StreamTestMaxMemStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -739,5 +739,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mdc3ZXDaRdTDV/QU6SnHmw==";
+    static String __CLASS_HASH = "f3+mNJV5GuwYXKdlZSRKag==";
 }

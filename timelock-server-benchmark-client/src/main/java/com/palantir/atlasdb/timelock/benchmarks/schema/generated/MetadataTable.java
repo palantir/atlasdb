@@ -541,7 +541,7 @@ public final class MetadataTable implements
     }
 
     private static Multimap<MetadataRow, MetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<MetadataRow, MetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+        Multimap<MetadataRow, MetadataNamedColumnValue<?>> rowMap = ArrayListMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             MetadataRow row = MetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
@@ -771,5 +771,5 @@ public final class MetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "dODm8JfCNENQMGubJd/7+g==";
+    static String __CLASS_HASH = "kLiNx/eU/XoEb5MP8ToBvg==";
 }

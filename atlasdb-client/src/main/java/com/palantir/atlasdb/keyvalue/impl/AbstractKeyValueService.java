@@ -45,9 +45,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
+    private static final Pattern PERIOD_REGEX = Pattern.compile("\\.");
+
     protected ExecutorService executor;
 
     /**
@@ -148,7 +151,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             while (iterator.hasNext()) {
                 RowResult<Set<Long>> rowResult = iterator.next();
                 Multimap<Cell, Long> cellsToDelete = HashMultimap.create();
-
                 rowResult.getCells().forEach(entry -> cellsToDelete.putAll(entry.getKey(), entry.getValue()));
                 delete(tableRef, cellsToDelete);
             }
@@ -185,7 +187,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         if (tableName.startsWith("_")) {
             return tableName;
         }
-        return tableName.replaceFirst("\\.", "__");
+        return PERIOD_REGEX.matcher(tableName).replaceFirst("__");
     }
 
     @Override

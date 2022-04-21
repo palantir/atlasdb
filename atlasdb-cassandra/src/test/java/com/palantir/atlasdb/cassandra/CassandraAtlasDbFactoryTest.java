@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.refreshable.Refreshable;
@@ -159,5 +160,17 @@ public class CassandraAtlasDbFactoryTest {
         assertThat(returnedConfig)
                 .describedAs("First invalid config should resolve to default")
                 .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+    }
+
+    @Test
+    public void derivedSnapshotConfigDefaultGetRangesConcurrencyOverriddenWhenInstallOverrideIsPresent() {
+        int defaultGetRangesConcurrencyOverride = 200;
+        CassandraKeyValueServiceConfig installConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(CONFIG_WITH_KEYSPACE)
+                .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
+                .build();
+        DerivedSnapshotConfig derivedSnapshotConfig =
+                FACTORY.createDerivedSnapshotConfig(installConfig, Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
+        assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(defaultGetRangesConcurrencyOverride);
     }
 }
