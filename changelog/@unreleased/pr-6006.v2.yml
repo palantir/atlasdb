@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Storage of completed backup metadata will now happen in parallel.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6006
