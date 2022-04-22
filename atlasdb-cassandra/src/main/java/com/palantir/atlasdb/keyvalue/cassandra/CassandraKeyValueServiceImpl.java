@@ -237,6 +237,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
     private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
+    private final CassandraKeyspaceVerifierConfig keyspaceVerifierConfig;
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
@@ -444,6 +445,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableDropper =
                 new CassandraTableDropper(config, clientPool, tableMetadata, cassandraTableTruncator);
         this.runtimeConfigSupplier = runtimeConfigSupplier;
+        this.keyspaceVerifierConfig = CassandraKeyspaceVerifierConfig.of(config);
     }
 
     private static ExecutorService createBlockingThreadpool(
@@ -1986,10 +1988,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private boolean doesConfigReplicationFactorMatchWithCluster() {
-        CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig = CassandraKeyspaceVerifierConfig.of(config);
         return clientPool.runWithRetry(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, cassandraKeyspaceVerifierConfig);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, this.keyspaceVerifierConfig);
                 return true;
             } catch (Exception e) {
                 log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);
