@@ -80,7 +80,6 @@ public class CassandraVerifierTest {
     public void nonDefaultDcAndHighRfSucceeds() throws TException {
         CassandraServersConfig cassandraServersConfig =
                 setTopologyAndGetServersConfig(createDetails(DC_1, RACK_1, HOST_1));
-        setTopologyAndGetServersConfig(createDetails(DC_1, RACK_1, HOST_1));
 
         assertThat(CassandraVerifier.sanityCheckDatacenters(
                         client, cassandraServersConfig, DEFAULT_REPLICATION_FACTOR, ENABLE_NODE_TOPOLOGY_CHECKS))
@@ -209,7 +208,7 @@ public class CassandraVerifierTest {
     }
 
     @Test
-    public void simpleStrategyOneDcHighRfThrows() throws TException {
+    public void simpleStrategyOneDcHighRfThrows() {
         CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig =
                 getCassandraKeyspaceVerifierConfigBuilderWithDefaults()
                         .servers(ImmutableDefaultConfig.of())
