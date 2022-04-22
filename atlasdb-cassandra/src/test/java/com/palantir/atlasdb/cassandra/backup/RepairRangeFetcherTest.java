@@ -76,10 +76,10 @@ public class RepairRangeFetcherTest {
 
         when(cqlSession.retrieveRowKeysAtConsistencyAll(anyList()))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.TOKEN_1, OTHER_TOKEN));
-        when(cqlMetadata.getReplicas(eq(BackupTestUtils.KEYSPACE_NAME), any()))
+        when(cqlMetadata.getReplicas(eq(BackupTestUtils.NAMESPACE), any()))
                 .thenReturn(ImmutableSet.copyOf(BackupTestUtils.HOSTS));
 
-        repairRangeFetcher = new RepairRangeFetcher(cqlSession, config);
+        repairRangeFetcher = new RepairRangeFetcher(cqlSession, BackupTestUtils.NAMESPACE, config.servers());
     }
 
     @Test
@@ -163,7 +163,7 @@ public class RepairRangeFetcherTest {
 
     @Test
     public void testRepairGivesTwoReplicasForRF2() {
-        when(cqlMetadata.getReplicas(eq(BackupTestUtils.KEYSPACE_NAME), any()))
+        when(cqlMetadata.getReplicas(eq(BackupTestUtils.NAMESPACE), any()))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.HOST_1, BackupTestUtils.HOST_2));
         List<TransactionsTableInteraction> interactions =
                 ImmutableList.of(new Transactions2TableInteraction(range(1L, 10_000_000L), POLICY));

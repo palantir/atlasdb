@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: AtlasDb Restore will now live reload the cluster used if Cassandra
+    servers are provided exclusively via the runtime config instead of install.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6000

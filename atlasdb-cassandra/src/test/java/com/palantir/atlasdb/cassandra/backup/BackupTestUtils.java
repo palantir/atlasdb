@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
@@ -40,7 +41,7 @@ final class BackupTestUtils {
     static final InetSocketAddress HOST_2 = new InetSocketAddress("cassandra-2", 9042);
     static final InetSocketAddress HOST_3 = new InetSocketAddress("cassandra-3", 9042);
     static final ImmutableList<InetSocketAddress> HOSTS = ImmutableList.of(HOST_1, HOST_2, HOST_3);
-    static final String KEYSPACE_NAME = "keyspace";
+    static final Namespace NAMESPACE = Namespace.of("keyspace");
 
     static final LightweightOppToken TOKEN_1 = BackupTestUtils.lightweightOppToken("1111");
     static final LightweightOppToken TOKEN_2 = BackupTestUtils.lightweightOppToken("5555");
@@ -71,7 +72,6 @@ final class BackupTestUtils {
                 .addAllThriftHosts(HOSTS)
                 .build();
         when(config.servers()).thenReturn(cqlCapableConfig);
-        when(config.getKeyspaceOrThrow()).thenReturn(KEYSPACE_NAME);
     }
 
     static List<TableMetadata> mockTableMetadatas(KeyspaceMetadata keyspaceMetadata, String... tableNames) {
@@ -83,8 +83,8 @@ final class BackupTestUtils {
 
     static KeyspaceMetadata mockKeyspaceMetadata(CqlMetadata cqlMetadata) {
         KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
-        when(keyspaceMetadata.getName()).thenReturn(KEYSPACE_NAME);
-        when(cqlMetadata.getKeyspaceMetadata(KEYSPACE_NAME)).thenReturn(keyspaceMetadata);
+        when(keyspaceMetadata.getName()).thenReturn(NAMESPACE.value());
+        when(cqlMetadata.getKeyspaceMetadata(NAMESPACE)).thenReturn(keyspaceMetadata);
         return keyspaceMetadata;
     }
 

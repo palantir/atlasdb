@@ -30,14 +30,19 @@ import com.datastax.driver.core.policies.LatencyAwarePolicy;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
+import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
+import org.immutables.value.Value;
 
 public class ClusterFactory {
     private final Supplier<Cluster.Builder> cqlClusterBuilderFactory;
@@ -46,46 +51,49 @@ public class ClusterFactory {
         this.cqlClusterBuilderFactory = cqlClusterBuilderFactory;
     }
 
-    public Cluster constructCluster(CassandraKeyValueServiceConfig config) {
-        Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(config);
-        return constructCluster(hosts, config);
+    public Cluster constructCluster(
+            CassandraClusterConfig cassandraClusterConfig, CassandraServersConfig cassandraServersConfig) {
+        Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(cassandraServersConfig);
+        return constructCluster(hosts, cassandraClusterConfig);
     }
 
-    public Cluster constructCluster(Set<InetSocketAddress> servers, CassandraKeyValueServiceConfig config) {
+    public Cluster constructCluster(Set<InetSocketAddress> servers, CassandraClusterConfig cassandraClusterConfig) {
         Cluster.Builder clusterBuilder = cqlClusterBuilderFactory
                 .get()
                 .addContactPointsWithPorts(servers)
                 .withCredentials(
-                        config.credentials().username(), config.credentials().password())
+                        cassandraClusterConfig.credentials().username(),
+                        cassandraClusterConfig.credentials().password())
                 .withCompression(ProtocolOptions.Compression.LZ4)
                 .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
                 .withoutJMXReporting()
                 .withProtocolVersion(CassandraConstants.DEFAULT_PROTOCOL_VERSION)
                 .withThreadingOptions(new ThreadingOptions());
 
-        clusterBuilder = withSslOptions(clusterBuilder, config);
-        clusterBuilder = withPoolingOptions(clusterBuilder, config);
-        clusterBuilder = withQueryOptions(clusterBuilder, config);
-        clusterBuilder = withLoadBalancingPolicy(clusterBuilder, config, servers);
-        clusterBuilder = withSocketOptions(clusterBuilder, config);
+        clusterBuilder = withSslOptions(
+                clusterBuilder, cassandraClusterConfig.usingSsl(), cassandraClusterConfig.sslConfiguration());
+        clusterBuilder = withPoolingOptions(
+                clusterBuilder, cassandraClusterConfig.poolSize(), cassandraClusterConfig.cqlPoolTimeoutMillis());
+        clusterBuilder = withQueryOptions(clusterBuilder, cassandraClusterConfig.fetchBatchCount());
+        clusterBuilder = withLoadBalancingPolicy(clusterBuilder, cassandraClusterConfig.autoRefreshNodes(), servers);
+        clusterBuilder = withSocketOptions(clusterBuilder, cassandraClusterConfig.socketQueryTimeoutMillis());
 
         return clusterBuilder.build();
     }
 
-    private static Cluster.Builder withSocketOptions(
-            Cluster.Builder clusterBuilder, CassandraKeyValueServiceConfig config) {
+    private static Cluster.Builder withSocketOptions(Cluster.Builder clusterBuilder, int socketQueryTimeoutMillis) {
         return clusterBuilder.withSocketOptions(new SocketOptions()
-                .setConnectTimeoutMillis(config.socketQueryTimeoutMillis())
-                .setReadTimeoutMillis(config.socketQueryTimeoutMillis()));
+                .setConnectTimeoutMillis(socketQueryTimeoutMillis)
+                .setReadTimeoutMillis(socketQueryTimeoutMillis));
     }
 
-    private static Cluster.Builder withSslOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
-        if (!config.usingSsl()) {
+    private static Cluster.Builder withSslOptions(
+            Cluster.Builder builder, boolean usingSsl, Optional<SslConfiguration> sslConfiguration) {
+        if (!usingSsl) {
             return builder;
         }
-        if (config.sslConfiguration().isPresent()) {
-            SSLContext sslContext = SslSocketFactories.createSslContext(
-                    config.sslConfiguration().get());
+        if (sslConfiguration.isPresent()) {
+            SSLContext sslContext = SslSocketFactories.createSslContext(sslConfiguration.get());
             return builder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder()
                     .withSSLContext(sslContext)
                     .build());
@@ -93,19 +101,19 @@ public class ClusterFactory {
         return builder.withSSL(RemoteEndpointAwareJdkSSLOptions.builder().build());
     }
 
-    private static Cluster.Builder withPoolingOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
+    private static Cluster.Builder withPoolingOptions(Cluster.Builder builder, int poolSize, int cqlPoolTimeoutMillis) {
         return builder.withPoolingOptions(new PoolingOptions()
-                .setMaxConnectionsPerHost(HostDistance.LOCAL, config.poolSize())
-                .setMaxConnectionsPerHost(HostDistance.REMOTE, config.poolSize())
-                .setPoolTimeoutMillis(config.cqlPoolTimeoutMillis()));
+                .setMaxConnectionsPerHost(HostDistance.LOCAL, poolSize)
+                .setMaxConnectionsPerHost(HostDistance.REMOTE, poolSize)
+                .setPoolTimeoutMillis(cqlPoolTimeoutMillis));
     }
 
-    private static Cluster.Builder withQueryOptions(Cluster.Builder builder, CassandraKeyValueServiceConfig config) {
-        return builder.withQueryOptions(new QueryOptions().setFetchSize(config.fetchBatchCount()));
+    private static Cluster.Builder withQueryOptions(Cluster.Builder builder, int fetchBatchCount) {
+        return builder.withQueryOptions(new QueryOptions().setFetchSize(fetchBatchCount));
     }
 
     private static Cluster.Builder withLoadBalancingPolicy(
-            Cluster.Builder builder, CassandraKeyValueServiceConfig config, Set<InetSocketAddress> servers) {
+            Cluster.Builder builder, boolean autoRefreshNodes, Set<InetSocketAddress> servers) {
         // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
         // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
         //
@@ -119,7 +127,7 @@ public class ClusterFactory {
                 .build();
 
         // If user wants, do not automatically add in new nodes to pool (useful during DC migrations / rebuilds)
-        if (!config.autoRefreshNodes()) {
+        if (!autoRefreshNodes) {
             policy = new WhiteListPolicy(policy, servers);
         }
 
@@ -127,5 +135,41 @@ public class ClusterFactory {
         // but also shuffle which replica we talk to for a load balancing that comes at the expense
         // of less effective caching, default to TokenAwarePolicy.ReplicaOrdering.RANDOM childPolicy
         return builder.withLoadBalancingPolicy(new TokenAwarePolicy(policy));
+    }
+
+    @Value.Immutable
+    public interface CassandraClusterConfig {
+        CassandraCredentialsConfig credentials();
+
+        int socketQueryTimeoutMillis();
+
+        boolean usingSsl();
+
+        Optional<SslConfiguration> sslConfiguration();
+
+        int poolSize();
+
+        int cqlPoolTimeoutMillis();
+
+        boolean autoRefreshNodes();
+
+        int fetchBatchCount();
+
+        static ImmutableCassandraClusterConfig.Builder builder() {
+            return ImmutableCassandraClusterConfig.builder();
+        }
+
+        static CassandraClusterConfig of(CassandraKeyValueServiceConfig config) {
+            return builder()
+                    .autoRefreshNodes(config.autoRefreshNodes())
+                    .cqlPoolTimeoutMillis(config.cqlPoolTimeoutMillis())
+                    .poolSize(config.poolSize())
+                    .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
+                    .credentials(config.credentials())
+                    .fetchBatchCount(config.fetchBatchCount())
+                    .usingSsl(config.usingSsl())
+                    .sslConfiguration(config.sslConfiguration())
+                    .build();
+        }
     }
 }
