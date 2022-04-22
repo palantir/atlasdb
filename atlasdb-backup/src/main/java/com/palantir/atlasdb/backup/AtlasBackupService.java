@@ -19,6 +19,9 @@ package com.palantir.atlasdb.backup;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasBackupClientBlocking;
 import com.palantir.atlasdb.backup.api.AtlasService;
@@ -29,6 +32,7 @@ import com.palantir.atlasdb.backup.api.InProgressBackupToken;
 import com.palantir.atlasdb.backup.api.PrepareBackupRequest;
 import com.palantir.atlasdb.backup.api.PrepareBackupResponse;
 import com.palantir.atlasdb.backup.api.RefreshBackupRequest;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -50,10 +54,13 @@ import com.palantir.tokens.auth.AuthHeader;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  *  Service for Atlas backup tasks.
@@ -74,6 +81,7 @@ public final class AtlasBackupService {
     private final BackupPersister backupPersister;
     private final Map<AtlasService, InProgressBackupToken> inProgressBackups;
     private final LockRefresher<InProgressBackupToken> lockRefresher;
+    private final int completeBackupNumThreads;
 
     @VisibleForTesting
     AtlasBackupService(
@@ -81,13 +89,15 @@ public final class AtlasBackupService {
             AtlasBackupClient atlasBackupClient,
             CoordinationServiceRecorder coordinationServiceRecorder,
             BackupPersister backupPersister,
-            LockRefresher<InProgressBackupToken> lockRefresher) {
+            LockRefresher<InProgressBackupToken> lockRefresher,
+            int completeBackupNumThreads) {
         this.authHeader = authHeader;
         this.atlasBackupClient = atlasBackupClient;
         this.coordinationServiceRecorder = coordinationServiceRecorder;
         this.backupPersister = backupPersister;
         this.lockRefresher = lockRefresher;
         this.inProgressBackups = new ConcurrentHashMap<>();
+        this.completeBackupNumThreads = completeBackupNumThreads;
     }
 
     public static AtlasBackupService create(
@@ -95,7 +105,8 @@ public final class AtlasBackupService {
             Refreshable<ServicesConfigBlock> servicesConfigBlock,
             String serviceName,
             Function<AtlasService, Path> backupFolderFactory,
-            Function<AtlasService, KeyValueService> keyValueServiceFactory) {
+            Function<AtlasService, KeyValueService> keyValueServiceFactory,
+            int completeBackupNumThreads) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
                 .withUserAgent(UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT));
 
@@ -109,7 +120,12 @@ public final class AtlasBackupService {
         LockRefresher<InProgressBackupToken> lockRefresher = getLockRefresher(authHeader, atlasBackupClient);
 
         return new AtlasBackupService(
-                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher);
+                authHeader,
+                atlasBackupClient,
+                coordinationServiceRecorder,
+                backupPersister,
+                lockRefresher,
+                completeBackupNumThreads);
     }
 
     public static AtlasBackupService createForTests(
@@ -124,7 +140,7 @@ public final class AtlasBackupService {
         LockRefresher<InProgressBackupToken> lockRefresher = getLockRefresher(authHeader, atlasBackupClient);
 
         return new AtlasBackupService(
-                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher);
+                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher, 10);
     }
 
     private static LockRefresher<InProgressBackupToken> getLockRefresher(
@@ -202,24 +218,47 @@ public final class AtlasBackupService {
         Map<AtlasService, CompletedBackup> successfulBackups = KeyedStream.of(response.getSuccessfulBackups())
                 .mapKeys(token -> namespaceToServices.get(token.getNamespace()))
                 .collectToMap();
-        KeyedStream.stream(successfulBackups).forEach(this::storeCompletedBackup);
+        Set<AtlasService> successfullyStoredBackups = storeCompletedBackups(successfulBackups);
 
-        if (response.getSuccessfulBackups().size() < atlasServicesWithInProgressBackups.size()) {
-            Set<AtlasService> successfulAtlasServices = successfulBackups.keySet();
+        if (successfullyStoredBackups.size() < atlasServicesWithInProgressBackups.size()) {
             Set<AtlasService> failedAtlasServices =
-                    Sets.difference(atlasServicesWithInProgressBackups, successfulAtlasServices);
+                    Sets.difference(atlasServicesWithInProgressBackups, successfullyStoredBackups);
             log.error(
                     "Backup did not complete successfully for all atlasServices. Check TimeLock logs to debug.",
                     SafeArg.of("failedAtlasServices", failedAtlasServices),
-                    SafeArg.of("successfulAtlasServices", successfulAtlasServices),
+                    SafeArg.of("successfulAtlasServices", successfullyStoredBackups),
                     SafeArg.of("atlasServicesWithoutBackup", atlasServicesWithInProgressBackups));
         }
 
         return successfulBackups.keySet();
     }
 
-    private void storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup) {
-        coordinationServiceRecorder.storeFastForwardState(atlasService, completedBackup);
-        backupPersister.storeCompletedBackup(atlasService, completedBackup);
+    private Set<AtlasService> storeCompletedBackups(Map<AtlasService, CompletedBackup> successfulBackups) {
+        ExecutorService executorService = PTExecutors.newFixedThreadPool(completeBackupNumThreads);
+        Map<AtlasService, ListenableFuture<Optional<Boolean>>> storedBackups = KeyedStream.stream(successfulBackups)
+                .map((atlasService, completeBackup) -> Futures.submit(
+                        () -> Optional.of(storeCompletedBackup(atlasService, completeBackup)), executorService))
+                .collectToMap();
+        ListenableFuture<Map<AtlasService, Boolean>> allStorageTasks =
+                AtlasFutures.allAsMap(storedBackups, MoreExecutors.directExecutor());
+
+        // Waits for future to complete
+        Map<AtlasService, Boolean> storageTaskResults = AtlasFutures.getUnchecked(allStorageTasks);
+        executorService.shutdown();
+        return KeyedStream.stream(storageTaskResults)
+                .filter(Boolean::booleanValue)
+                .keys()
+                .collect(Collectors.toSet());
+    }
+
+    private Boolean storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup) {
+        try {
+            coordinationServiceRecorder.storeFastForwardState(atlasService, completedBackup);
+            backupPersister.storeCompletedBackup(atlasService, completedBackup);
+            return true;
+        } catch (Exception ex) {
+            log.warn("Failed to store completed backup for AtlasService", SafeArg.of("atlasService", atlasService), ex);
+            return false;
+        }
     }
 }
