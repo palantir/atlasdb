@@ -356,9 +356,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void runOneTimeStartupChecks() {
-        CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig = CassandraKeyspaceVerifierConfig.of(config);
+        CassandraKeyspaceVerifierConfig verifierConfig = CassandraKeyspaceVerifierConfig.of(config);
         try {
-            CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, cassandraKeyspaceVerifierConfig);
+            CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, verifierConfig);
         } catch (Exception e) {
             log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.", e);
             throw new RuntimeException(e);
