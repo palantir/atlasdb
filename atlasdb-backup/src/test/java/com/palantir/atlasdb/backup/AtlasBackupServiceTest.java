@@ -71,7 +71,7 @@ public class AtlasBackupServiceTest {
     public void setup() {
         backupPersister = new InMemoryBackupPersister();
         atlasBackupService = new AtlasBackupService(
-                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher);
+                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher, 10);
     }
 
     @Test
