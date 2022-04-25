@@ -3652,15 +3652,15 @@ These logs will be invaluable in more easily identifying hotspotting and for usi
 <td><p>The <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> builder now hooks up the metric registries passed in so that AtlasDB metrics are registered on the specified metric registries.
 Applications no longer should use the <code class="docutils literal notranslate"><span class="pre">AtlasDbMetrics.setMetricRegistry</span></code> method to specify a metric registry for AtlasDB.</p>
 <blockquote>
-<div><div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">TransactionManagers</span><span class="p">.</span><span class="na">builder</span><span class="p">()</span>
-    <span class="p">.</span><span class="na">config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">userAgent</span><span class="p">(</span><span class="s">&quot;ete test&quot;</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">globalMetricRegistry</span><span class="p">(</span><span class="k">new</span> <span class="n">MetricRegistry</span><span class="p">())</span>
-    <span class="p">.</span><span class="na">globalTaggedMetricRegistry</span><span class="p">(</span><span class="n">DefaultTaggedMetricRegistry</span><span class="p">.</span><span class="na">getDefault</span><span class="p">())</span>
-    <span class="p">.</span><span class="na">registrar</span><span class="p">(</span><span class="n">environment</span><span class="p">.</span><span class="na">jersey</span><span class="p">()::</span><span class="n">register</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">addAllSchemas</span><span class="p">(</span><span class="n">ETE_SCHEMAS</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">build</span><span class="p">()</span>
-    <span class="p">.</span><span class="na">serializable</span><span class="p">()</span>
+<div><div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">TransactionManagers</span><span class="p">.</span><span class="na">builder</span><span class="p">()</span><span class="w"></span>
+<span class="w">    </span><span class="p">.</span><span class="na">config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="p">.</span><span class="na">userAgent</span><span class="p">(</span><span class="s">&quot;ete test&quot;</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="p">.</span><span class="na">globalMetricRegistry</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">MetricRegistry</span><span class="p">())</span><span class="w"></span>
+<span class="w">    </span><span class="p">.</span><span class="na">globalTaggedMetricRegistry</span><span class="p">(</span><span class="n">DefaultTaggedMetricRegistry</span><span class="p">.</span><span class="na">getDefault</span><span class="p">())</span><span class="w"></span>
+<span class="w">    </span><span class="p">.</span><span class="na">registrar</span><span class="p">(</span><span class="n">environment</span><span class="p">.</span><span class="na">jersey</span><span class="p">()::</span><span class="n">register</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="p">.</span><span class="na">addAllSchemas</span><span class="p">(</span><span class="n">ETE_SCHEMAS</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="p">.</span><span class="na">build</span><span class="p">()</span><span class="w"></span>
+<span class="w">    </span><span class="p">.</span><span class="na">serializable</span><span class="p">()</span><span class="w"></span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -7670,8 +7670,8 @@ This should result in less connection churn and therefore lower latency.
 values include empty strings and empty protobufs.</p>
 <p>AtlasDB cannot currently distinguish between empty and deleted cells. In previous versions of AtlasDB, inserting
 an empty value into a <code class="docutils literal notranslate"><span class="pre">Cell</span></code> would delete that cell. Thus, in this snippet,</p>
-<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">Transaction</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">ImmutableMap</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">myCell</span><span class="p">,</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">))</span>
-<span class="n">Transaction</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">ImmutableSet</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">myCell</span><span class="p">)).</span><span class="na">get</span><span class="p">(</span><span class="n">myCell</span><span class="p">)</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">Transaction</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">table</span><span class="p">,</span><span class="w"> </span><span class="n">ImmutableMap</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">myCell</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">byte</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">))</span><span class="w"></span>
+<span class="n">Transaction</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">table</span><span class="p">,</span><span class="w"> </span><span class="n">ImmutableSet</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">myCell</span><span class="p">)).</span><span class="na">get</span><span class="p">(</span><span class="n">myCell</span><span class="p">)</span><span class="w"></span>
 </pre></div>
 </div>
 <p>the second line will return <code class="docutils literal notranslate"><span class="pre">null</span></code> instead of a zero-length byte array.</p>
