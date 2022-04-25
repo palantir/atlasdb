@@ -91,7 +91,6 @@ import java.util.stream.Stream;
 import org.junit.Assume;
 import org.junit.Test;
 
-@SuppressWarnings({"checkstyle:all", "DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private static final BatchColumnRangeSelection ALL_COLUMNS =
             BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 3);
@@ -1115,16 +1114,16 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col1", "v2", 5);
         putDirect("row2", "col1", "v3", 3);
         putDirect("row2", "col1", "v4", 8);
-        Cell cell1 = Cell.create("row1".getBytes(), "col1".getBytes());
-        Cell cell2 = Cell.create("row2".getBytes(), "col1".getBytes());
+        Cell cell1 = Cell.create("row1".getBytes(StandardCharsets.UTF_8), "col1".getBytes(StandardCharsets.UTF_8));
+        Cell cell2 = Cell.create("row2".getBytes(StandardCharsets.UTF_8), "col1".getBytes(StandardCharsets.UTF_8));
         Map<Cell, Value> results = keyValueService.get(TEST_TABLE, ImmutableMap.of(cell1, 5L, cell2, 8L));
 
         Value v = results.get(cell1);
         assertThat(v.getTimestamp()).isEqualTo(1L);
-        assertThat(new String(v.getContents())).isEqualTo("v1");
+        assertThat(new String(v.getContents(), StandardCharsets.UTF_8)).isEqualTo("v1");
         v = results.get(cell2);
         assertThat(v.getTimestamp()).isEqualTo(3L);
-        assertThat(new String(v.getContents())).isEqualTo("v3");
+        assertThat(new String(v.getContents(), StandardCharsets.UTF_8)).isEqualTo("v3");
     }
 
     @Test
@@ -1169,15 +1168,23 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         final Map<Cell, byte[]> vals = new HashMap<>();
         visitable.batchAccept(100, AbortingVisitors.batching((RowVisitor) item -> {
             MapEntries.putAll(vals, item.getCells());
-            if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
+            if (Arrays.equals(item.getRowName(), "row1".getBytes(StandardCharsets.UTF_8))) {
                 assertThat(IterableView.of(item.getCells()).size()).isEqualTo(3);
-                assertThat(new String(item.getColumns().get("col1".getBytes()))).isEqualTo("v5");
+                assertThat(new String(
+                                item.getColumns().get("col1".getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8))
+                        .isEqualTo("v5");
             }
             return true;
         }));
-        assertThat(vals).containsKey(Cell.create("row1".getBytes(), "col1".getBytes()));
-        assertThat("v5".getBytes()).isEqualTo(vals.get(Cell.create("row1".getBytes(), "col1".getBytes())));
-        assertThat(vals).doesNotContainKey(Cell.create("row2".getBytes(), "col1".getBytes()));
+        assertThat(vals)
+                .containsKey(
+                        Cell.create("row1".getBytes(StandardCharsets.UTF_8), "col1".getBytes(StandardCharsets.UTF_8)));
+        assertThat("v5".getBytes(StandardCharsets.UTF_8))
+                .isEqualTo(vals.get(
+                        Cell.create("row1".getBytes(StandardCharsets.UTF_8), "col1".getBytes(StandardCharsets.UTF_8))));
+        assertThat(vals)
+                .doesNotContainKey(
+                        Cell.create("row2".getBytes(StandardCharsets.UTF_8), "col1".getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -1218,16 +1225,24 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         throw Throwables.throwUncheckedException(e);
                     }
                     MapEntries.putAll(vals, item.getCells());
-                    if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
-                        assertThat(new String(item.getColumns().get("col1".getBytes())))
+                    if (Arrays.equals(item.getRowName(), "row1".getBytes(StandardCharsets.UTF_8))) {
+                        assertThat(new String(
+                                        item.getColumns().get("col1".getBytes(StandardCharsets.UTF_8)),
+                                        StandardCharsets.UTF_8))
                                 .isEqualTo("v5");
                         assertThat(IterableView.of(item.getCells()).size()).isEqualTo(3);
                     }
                     return true;
                 }));
-                assertThat(vals).containsKey(Cell.create("row1".getBytes(), "col1".getBytes()));
-                assertThat("v5".getBytes()).isEqualTo(vals.get(Cell.create("row1".getBytes(), "col1".getBytes())));
-                assertThat(vals).doesNotContainKey(Cell.create("row2".getBytes(), "col1".getBytes()));
+                assertThat(vals)
+                        .containsKey(Cell.create(
+                                "row1".getBytes(StandardCharsets.UTF_8), "col1".getBytes(StandardCharsets.UTF_8)));
+                assertThat("v5".getBytes(StandardCharsets.UTF_8))
+                        .isEqualTo(vals.get(Cell.create(
+                                "row1".getBytes(StandardCharsets.UTF_8), "col1".getBytes(StandardCharsets.UTF_8))));
+                assertThat(vals)
+                        .doesNotContainKey(Cell.create(
+                                "row2".getBytes(StandardCharsets.UTF_8), "col1".getBytes(StandardCharsets.UTF_8)));
                 return null;
             } catch (Throwable t1) {
                 latch.countDown();
