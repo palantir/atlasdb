@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.backup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
@@ -44,8 +45,13 @@ public class ExternalBackupPersister implements BackupPersister {
 
     private final Function<AtlasService, Path> pathFactory;
 
-    public ExternalBackupPersister(Function<AtlasService, Path> pathFactory) {
+    @VisibleForTesting
+    ExternalBackupPersister(Function<AtlasService, Path> pathFactory) {
         this.pathFactory = pathFactory;
+    }
+
+    public static ExternalBackupPersister create(AtlasServiceConfigMapper atlasServiceConfigMapper) {
+        return new ExternalBackupPersister(atlasServiceConfigMapper::getBackupFolder);
     }
 
     @Override

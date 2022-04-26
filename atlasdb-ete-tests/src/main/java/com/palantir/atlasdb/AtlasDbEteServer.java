@@ -32,7 +32,6 @@ import com.palantir.atlasdb.backup.ExternalBackupPersister;
 import com.palantir.atlasdb.backup.SimpleBackupAndRestoreResource;
 import com.palantir.atlasdb.backup.api.AtlasBackupClient;
 import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
-import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -167,8 +166,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
         Path backupFolder = Paths.get("/var/data/backup");
         Files.createDirectories(backupFolder);
-        Function<AtlasService, Path> backupFolderFactory = _unused -> backupFolder;
-        ExternalBackupPersister externalBackupPersister = new ExternalBackupPersister(backupFolderFactory);
 
         Function<String, BackupTimeLockServiceView> timelockServices =
                 _unused -> createBackupTimeLockServiceView(txManager);
@@ -185,9 +182,10 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 getRemoteTimeLockManagementService(serverListConfig, taggedMetrics);
 
         AtlasServiceConfigMapper atlasServiceConfigMapper = new TestAtlasServiceConfigMapper(backupFolder, config);
+        ExternalBackupPersister externalBackupPersister = ExternalBackupPersister.create(atlasServiceConfigMapper);
 
         AtlasBackupService atlasBackupService =
-                AtlasBackupService.createForTests(authHeader, atlasBackupClient, txManager, backupFolderFactory);
+                AtlasBackupService.createForTests(authHeader, atlasBackupClient, txManager, atlasServiceConfigMapper);
 
         AtlasRestoreService atlasRestoreService = AtlasRestoreService.createForTests(
                 authHeader,

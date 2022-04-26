@@ -26,14 +26,12 @@ import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompleteRestoreRequest;
 import com.palantir.atlasdb.backup.api.CompleteRestoreResponse;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.RangesForRepair;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
 import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -89,30 +87,6 @@ public class AtlasRestoreService {
         this.timeLockManagementService = timeLockManagementService;
         this.backupPersister = backupPersister;
         this.cassandraRepairHelper = cassandraRepairHelper;
-    }
-
-    public static AtlasRestoreService create(
-            AuthHeader authHeader,
-            Refreshable<ServicesConfigBlock> servicesConfigBlock,
-            String serviceName,
-            BackupPersister backupPersister,
-            Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory,
-            Function<AtlasService, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory,
-            Function<AtlasService, KeyValueService> keyValueServiceFactory) {
-        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
-                .withUserAgent(UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT));
-        AtlasRestoreClient atlasRestoreClient = new DialogueAdaptingAtlasRestoreClient(
-                reloadingFactory.get(AtlasRestoreClientBlocking.class, serviceName));
-        TimeLockManagementService timeLockManagementService = new DialogueAdaptingTimeLockManagementService(
-                reloadingFactory.get(TimeLockManagementServiceBlocking.class, serviceName));
-
-        CassandraRepairHelper cassandraRepairHelper = new CassandraRepairHelper(
-                KvsRunner.create(keyValueServiceFactory),
-                cassandraClusterConfigFactory,
-                refreshableCassandraServersConfigFactory);
-
-        return new AtlasRestoreService(
-                authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
     }
 
     public static AtlasRestoreService create(

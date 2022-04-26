@@ -51,7 +51,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -104,8 +103,7 @@ public final class AtlasBackupService {
             AuthHeader authHeader,
             Refreshable<ServicesConfigBlock> servicesConfigBlock,
             String serviceName,
-            // TODO(gs): pull these godawful functions into an Interface
-            Function<AtlasService, Path> backupFolderFactory,
+            AtlasServiceConfigMapper atlasServiceConfigMapper,
             Function<AtlasService, KeyValueService> keyValueServiceFactory,
             int completeBackupNumThreads) {
         ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
@@ -114,7 +112,7 @@ public final class AtlasBackupService {
         AtlasBackupClient atlasBackupClient = new DialogueAdaptingAtlasBackupClient(
                 reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName));
 
-        BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
+        BackupPersister backupPersister = ExternalBackupPersister.create(atlasServiceConfigMapper);
         KvsRunner kvsRunner = KvsRunner.create(keyValueServiceFactory);
         CoordinationServiceRecorder coordinationServiceRecorder =
                 new CoordinationServiceRecorder(kvsRunner, backupPersister);
@@ -133,8 +131,8 @@ public final class AtlasBackupService {
             AuthHeader authHeader,
             AtlasBackupClient atlasBackupClient,
             TransactionManager transactionManager,
-            Function<AtlasService, Path> backupFolderFactory) {
-        BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
+            AtlasServiceConfigMapper atlasServiceConfigMapper) {
+        BackupPersister backupPersister = ExternalBackupPersister.create(atlasServiceConfigMapper);
         KvsRunner kvsRunner = KvsRunner.create(transactionManager);
         CoordinationServiceRecorder coordinationServiceRecorder =
                 new CoordinationServiceRecorder(kvsRunner, backupPersister);
