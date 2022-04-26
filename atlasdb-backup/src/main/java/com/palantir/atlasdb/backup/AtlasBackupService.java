@@ -104,6 +104,7 @@ public final class AtlasBackupService {
             AuthHeader authHeader,
             Refreshable<ServicesConfigBlock> servicesConfigBlock,
             String serviceName,
+            // TODO(gs): pull these godawful functions into an Interface
             Function<AtlasService, Path> backupFolderFactory,
             Function<AtlasService, KeyValueService> keyValueServiceFactory,
             int completeBackupNumThreads) {
@@ -253,6 +254,7 @@ public final class AtlasBackupService {
 
     private Boolean storeCompletedBackup(AtlasService atlasService, CompletedBackup completedBackup) {
         try {
+            // TODO(gs): need a CqlCluster here
             coordinationServiceRecorder.storeFastForwardState(atlasService, completedBackup);
             backupPersister.storeCompletedBackup(atlasService, completedBackup);
             return true;

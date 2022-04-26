@@ -115,18 +115,42 @@ public class AtlasRestoreService {
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
     }
 
+    public static AtlasRestoreService create(
+            AuthHeader authHeader,
+            Refreshable<ServicesConfigBlock> servicesConfigBlock,
+            String timelockServiceName,
+            BackupPersister backupPersister,
+            AtlasServiceConfigMapper atlasServiceConfigMapper,
+            // TODO(gs): get rid of KVSFactory
+            Function<AtlasService, KeyValueService> keyValueServiceFactory) {
+        DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(servicesConfigBlock)
+                .withUserAgent(UserAgent.of(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT));
+        AtlasRestoreClient atlasRestoreClient = new DialogueAdaptingAtlasRestoreClient(
+                reloadingFactory.get(AtlasRestoreClientBlocking.class, timelockServiceName));
+        TimeLockManagementService timeLockManagementService = new DialogueAdaptingTimeLockManagementService(
+                reloadingFactory.get(TimeLockManagementServiceBlocking.class, timelockServiceName));
+
+        // TODO(gs): push down ASCM
+        CassandraRepairHelper cassandraRepairHelper = new CassandraRepairHelper(
+                KvsRunner.create(keyValueServiceFactory),
+                atlasServiceConfigMapper::getCassandraClusterConfig,
+                atlasServiceConfigMapper::getCassandraServersConfig);
+
+        return new AtlasRestoreService(
+                authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
+    }
+
     public static AtlasRestoreService createForTests(
             AuthHeader authHeader,
             AtlasRestoreClient atlasRestoreClient,
             TimeLockManagementService timeLockManagementService,
             BackupPersister backupPersister,
             TransactionManager transactionManager,
-            Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory,
-            Function<AtlasService, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory) {
+            AtlasServiceConfigMapper atlasServiceConfigMapper) {
         CassandraRepairHelper cassandraRepairHelper = new CassandraRepairHelper(
                 KvsRunner.create(transactionManager),
-                cassandraClusterConfigFactory,
-                refreshableCassandraServersConfigFactory);
+                atlasServiceConfigMapper::getCassandraClusterConfig,
+                atlasServiceConfigMapper::getCassandraServersConfig);
 
         return new AtlasRestoreService(
                 authHeader, atlasRestoreClient, timeLockManagementService, backupPersister, cassandraRepairHelper);
