@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Stopwatch;
@@ -97,6 +101,7 @@ import com.palantir.common.concurrent.SharedFixedExecutors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
@@ -275,9 +280,22 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     }
 
     private void init() {
+        Retryer<Void> initializationRetryer = new Retryer<>(
+                StopStrategies.stopAfterAttempt(3),
+                WaitStrategies.fixedWait(1L, TimeUnit.SECONDS),
+                attempt -> attempt == null || !attempt.hasResult());
+        try {
+            initializationRetryer.call(this::tryInit);
+        } catch (ExecutionException | RetryException e) {
+            throw new SafeIllegalStateException("Unable to initialise DbKvs even with retry", e);
+        }
+    }
+
+    private Void tryInit() {
         checkDatabaseVersion();
         databaseSpecificInitialization();
         createMetadataTable();
+        return null;
     }
 
     private void databaseSpecificInitialization() {
