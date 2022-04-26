@@ -68,6 +68,7 @@ public class CassandraRepairHelper {
         this.cassandraClusterConfigFactory = cassandraClusterConfigFactory;
         this.refreshableCassandraServersConfigFactory = refreshableCassandraServersConfigFactory;
 
+        // TODO(gs): may be able to use one cqlCluster per CassandraClusterConfig
         this.cqlClusterContainers = Caffeine.newBuilder()
                 .maximumSize(100)
                 .expireAfterAccess(Duration.ofMinutes(20L))
@@ -86,8 +87,7 @@ public class CassandraRepairHelper {
         Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable =
                 refreshableCassandraServersConfigFactory.apply(atlasService);
 
-        return ReloadingCqlClusterContainer.of(
-                cassandraClusterConfig, cassandraServersConfigRefreshable, atlasService.getNamespace());
+        return ReloadingCqlClusterContainer.of(cassandraClusterConfig, cassandraServersConfigRefreshable);
     }
 
     public void repairInternalTables(AtlasService atlasService, BiConsumer<String, RangesForRepair> repairTable) {
@@ -126,7 +126,10 @@ public class CassandraRepairHelper {
             AtlasService atlasService,
             long startTimestamp,
             List<TransactionsTableInteraction> transactionsTableInteractions) {
-        cqlClusterContainers.get(atlasService).get().abortTransactions(startTimestamp, transactionsTableInteractions);
+        cqlClusterContainers
+                .get(atlasService)
+                .get()
+                .abortTransactions(atlasService.getNamespace(), startTimestamp, transactionsTableInteractions);
     }
 
     private Map<String, RangesForRepair> getRangesForRepairByTable(
@@ -141,7 +144,7 @@ public class CassandraRepairHelper {
         return cqlClusterContainers
                 .get(atlasService)
                 .get()
-                .getTransactionsTableRangesForRepair(transactionsTableInteractions);
+                .getTransactionsTableRangesForRepair(atlasService.getNamespace(), transactionsTableInteractions);
     }
 
     // VisibleForTesting
@@ -155,7 +158,7 @@ public class CassandraRepairHelper {
     private static Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRangesToRepair(
             CqlCluster cqlCluster, AtlasService atlasService, String tableName) {
         String cassandraTableName = getCassandraTableName(atlasService.getNamespace(), tableName);
-        return cqlCluster.getTokenRanges(cassandraTableName);
+        return cqlCluster.getTokenRanges(atlasService.getNamespace(), cassandraTableName);
     }
 
     private static String getCassandraTableName(Namespace namespace, String tableName) {

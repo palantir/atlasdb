@@ -19,7 +19,6 @@ package com.palantir.atlasdb.cassandra;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
-import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -69,11 +68,10 @@ public final class ReloadingCqlClusterContainer implements Closeable, Supplier<C
 
     public static ReloadingCqlClusterContainer of(
             CassandraClusterConfig cassandraClusterConfig,
-            Refreshable<CassandraServersConfig> refreshableCassandraServersConfig,
-            Namespace namespace) {
+            Refreshable<CassandraServersConfig> refreshableCassandraServersConfig) {
         return of(
                 refreshableCassandraServersConfig,
-                cassandraServersConfig -> CqlCluster.create(cassandraClusterConfig, cassandraServersConfig, namespace));
+                cassandraServersConfig -> CqlCluster.create(cassandraClusterConfig, cassandraServersConfig));
     }
 
     public static ReloadingCqlClusterContainer of(

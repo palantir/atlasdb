@@ -33,44 +33,43 @@ import java.util.Map;
 public final class CqlCluster implements Closeable {
     private final Cluster cluster;
     private final CassandraServersConfig cassandraServersConfig;
-    private final Namespace namespace;
 
     // VisibleForTesting
-    public CqlCluster(Cluster cluster, CassandraServersConfig cassandraServersConfig, Namespace namespace) {
+    public CqlCluster(Cluster cluster, CassandraServersConfig cassandraServersConfig) {
         this.cluster = cluster;
         this.cassandraServersConfig = cassandraServersConfig;
-        this.namespace = namespace;
     }
 
     public static CqlCluster create(
-            CassandraClusterConfig cassandraClusterConfig,
-            CassandraServersConfig cassandraServersConfig,
-            Namespace namespace) {
+            CassandraClusterConfig cassandraClusterConfig, CassandraServersConfig cassandraServersConfig) {
         Cluster cluster =
                 new ClusterFactory(Cluster::builder).constructCluster(cassandraClusterConfig, cassandraServersConfig);
-        return new CqlCluster(cluster, cassandraServersConfig, namespace);
+        return new CqlCluster(cluster, cassandraServersConfig);
     }
+
+    // TODO(gs): method for coord service
 
     @Override
     public void close() throws IOException {
         cluster.close();
     }
 
-    public Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRanges(String tableName) {
+    public Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRanges(Namespace namespace, String tableName) {
         try (CqlSession session = new CqlSession(cluster.connect())) {
             return new TokenRangeFetcher(session, namespace, cassandraServersConfig).getTokenRange(tableName);
         }
     }
 
     public Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> getTransactionsTableRangesForRepair(
-            List<TransactionsTableInteraction> transactionsTableInteractions) {
+            Namespace namespace, List<TransactionsTableInteraction> transactionsTableInteractions) {
         try (CqlSession session = new CqlSession(cluster.connect())) {
             return new RepairRangeFetcher(session, namespace, cassandraServersConfig)
                     .getTransactionTableRangesForRepair(transactionsTableInteractions);
         }
     }
 
-    public void abortTransactions(long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
+    public void abortTransactions(
+            Namespace namespace, long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
         try (CqlSession session = new CqlSession(cluster.connect())) {
             new TransactionAborter(session, namespace).abortTransactions(timestamp, transactionsTableInteractions);
         }

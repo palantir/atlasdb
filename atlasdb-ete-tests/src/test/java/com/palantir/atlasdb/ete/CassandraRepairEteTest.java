@@ -117,7 +117,7 @@ public final class CassandraRepairEteTest {
                         cassandraClusterConfigFunction.apply(ATLAS_SERVICE),
                         cassandraServersConfigFactory.apply(ATLAS_SERVICE).get());
         cqlCluster = new CqlCluster(
-                cluster, cassandraServersConfigFactory.apply(ATLAS_SERVICE).get(), NAMESPACE);
+                cluster, cassandraServersConfigFactory.apply(ATLAS_SERVICE).get());
     }
 
     @After
