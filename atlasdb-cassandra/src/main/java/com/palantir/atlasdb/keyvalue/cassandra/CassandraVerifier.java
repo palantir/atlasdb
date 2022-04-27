@@ -429,6 +429,7 @@ public final class CassandraVerifier {
     interface CassandraKeyspaceVerifierConfig {
         String keyspace();
 
+        // TODO(mdaudali): Use a scoped down config object for Cassandra Clients
         CassandraKeyValueServiceConfig clientConfig();
 
         CassandraServersConfig servers();
