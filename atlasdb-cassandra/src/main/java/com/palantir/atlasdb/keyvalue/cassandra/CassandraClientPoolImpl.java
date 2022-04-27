@@ -112,11 +112,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraService cassandra;
 
     private final CassandraKeyValueServiceConfig config;
+    private final CassandraClientConfig clientConfig;
     private final StartupChecks startupChecks;
     private final ScheduledExecutorService refreshDaemon;
     private final CassandraClientPoolMetrics metrics;
     private final InitializingWrapper wrapper = new InitializingWrapper();
     private final CassandraAbsentHostTracker absentHostTracker;
+
 
     private ScheduledFuture<?> refreshPoolFuture;
 
@@ -207,6 +209,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraService cassandra,
             CassandraClientPoolMetrics metrics) {
         this.config = config;
+        this.clientConfig = CassandraClientConfig.of(config);
         this.startupChecks = startupChecks;
         initializeableExecutorSupplier.initialize(config.numPoolRefreshingThreads());
         this.refreshDaemon = initializeableExecutorSupplier.get();
@@ -509,7 +512,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
         for (CassandraServer host : getCachedServers()) {
             try (CassandraClient client =
-                    CassandraClientFactory.getClientInternal(host.proxy(), CassandraClientConfig.of(config))) {
+                    CassandraClientFactory.getClientInternal(host.proxy(), clientConfig)) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {

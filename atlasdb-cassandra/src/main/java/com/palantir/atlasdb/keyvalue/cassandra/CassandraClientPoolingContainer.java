@@ -294,10 +294,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         CassandraClientConfig clientConfig = CassandraClientConfig.of(config);
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(
                 metricsManager,
-                config.getKeyspaceOrThrow(),
                 proxy,
-                clientConfig,
-                config.timeoutOnConnectionClose());
+                clientConfig
+        );
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
         poolConfig.setMinIdle(config.poolSize());

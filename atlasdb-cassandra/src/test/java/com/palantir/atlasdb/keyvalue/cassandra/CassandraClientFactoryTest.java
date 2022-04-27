@@ -34,7 +34,6 @@ import org.junit.Test;
 public class CassandraClientFactoryTest {
     private static final CassandraClientFactory FACTORY = new CassandraClientFactory(
             MetricsManagers.createForTests(),
-            "test",
             InetSocketAddress.createUnresolved("localhost", 4242),
             CassandraClientConfig.builder()
                     .socketTimeoutMillis(0)
@@ -45,8 +44,10 @@ public class CassandraClientFactoryTest {
                             .password("tom")
                             .build())
                     .usingSsl(false)
-                    .build(),
-            Duration.ofSeconds(10));
+                    .keyspace("ks")
+                    .timeoutOnConnectionClose(Duration.ZERO)
+                    .build()
+    );
 
     private CassandraClient client = mock(CassandraClient.class);
     private PooledObject<CassandraClient> pooledClient = new DefaultPooledObject<>(client);

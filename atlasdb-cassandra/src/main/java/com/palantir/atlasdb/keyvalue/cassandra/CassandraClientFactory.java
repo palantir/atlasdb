@@ -65,23 +65,19 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final MetricsManager metricsManager;
     private final InetSocketAddress addr;
     private final CassandraClientConfig clientConfig;
-    private final String keyspace;
     private final SSLSocketFactory sslSocketFactory;
     private final TimedRunner timedRunner;
     private final TSocketFactory tSocketFactory;
 
     public CassandraClientFactory(
             MetricsManager metricsManager,
-            String keyspace,
             InetSocketAddress addr,
-            CassandraClientConfig clientConfig,
-            Duration timeoutOnConnectionClose) {
+            CassandraClientConfig clientConfig) {
         this.metricsManager = metricsManager;
         this.addr = addr;
         this.clientConfig = clientConfig;
-        this.keyspace = keyspace;
         this.sslSocketFactory = createSslSocketFactory(clientConfig.sslConfiguration());
-        this.timedRunner = TimedRunner.create(timeoutOnConnectionClose);
+        this.timedRunner = TimedRunner.create(clientConfig.timeoutOnConnectionClose());
         this.tSocketFactory = new InstrumentedTSocket.Factory(metricsManager);
     }
 
@@ -90,7 +86,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         try {
             return instrumentClient(getRawClientWithKeyspaceSet());
         } catch (Exception e) {
-            String message = String.format("Failed to construct client for %s/%s", addr, keyspace);
+            String message = String.format("Failed to construct client for %s/%s", addr, clientConfig.keyspace());
             if (clientConfig.usingSsl()) {
                 message += " over SSL";
             }
@@ -112,12 +108,12 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private Cassandra.Client getRawClientWithKeyspaceSet() throws TException {
         Client ret = getRawClientWithTimedCreation();
         try {
-            ret.set_keyspace(keyspace);
+            ret.set_keyspace(clientConfig.keyspace());
             if (log.isDebugEnabled()) {
                 log.debug(
                         "Created new client for {}/{}{}{}",
                         SafeArg.of("address", CassandraLogHelper.host(addr)),
-                        UnsafeArg.of("keyspace", keyspace),
+                        UnsafeArg.of("keyspace", clientConfig.keyspace()),
                         SafeArg.of("usingSsl", clientConfig.usingSsl() ? " over SSL" : ""),
                         UnsafeArg.of(
                                 "usernameConfig",
@@ -304,6 +300,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
         Optional<SslConfiguration> sslConfiguration();
 
+        String keyspace();
+
+        Duration timeoutOnConnectionClose();
+
         static CassandraClientConfig of(CassandraKeyValueServiceConfig config) {
             return builder()
                     .socketTimeoutMillis(config.socketTimeoutMillis())
@@ -311,6 +311,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     .initialSocketQueryTimeoutMillis(config.initialSocketQueryTimeoutMillis())
                     .credentials(config.credentials())
                     .usingSsl(config.usingSsl())
+                    .keyspace(config.getKeyspaceOrThrow())
+                    .timeoutOnConnectionClose(config.timeoutOnConnectionClose())
                     .sslConfiguration(config.sslConfiguration())
                     .build();
         }
