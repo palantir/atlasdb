@@ -47,6 +47,8 @@ public class CassandraVerifierTest {
     private static final String RACK_1 = "test_rack1";
     private static final String RACK_2 = "test_rack2";
     private static final String RACK_3 = "test_rack3";
+
+    // This constant is used as a value for ignoreNodeTopologyChecks. Therefore, to enable checks, the value is false.
     private static final boolean ENABLE_NODE_TOPOLOGY_CHECKS = false;
     private static final int DEFAULT_REPLICATION_FACTOR = 3;
     private static final int SINGLE_REPLICATION_FACTOR = 1;
