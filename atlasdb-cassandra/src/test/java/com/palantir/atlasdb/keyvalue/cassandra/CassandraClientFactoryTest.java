@@ -37,14 +37,14 @@ public class CassandraClientFactoryTest {
             "test",
             InetSocketAddress.createUnresolved("localhost", 4242),
             CassandraClientConfig.builder()
+                    .socketTimeoutMillis(0)
+                    .socketQueryTimeoutMillis(0)
+                    .initialSocketQueryTimeoutMillis(0)
                     .credentials(ImmutableCassandraCredentialsConfig.builder()
                             .username("jeremy")
                             .password("tom")
                             .build())
-                    .initialSocketQueryTimeoutMillis(0)
                     .usingSsl(false)
-                    .socketQueryTimeoutMillis(0)
-                    .socketTimeoutMillis(0)
                     .build(),
             Duration.ofSeconds(10));
 

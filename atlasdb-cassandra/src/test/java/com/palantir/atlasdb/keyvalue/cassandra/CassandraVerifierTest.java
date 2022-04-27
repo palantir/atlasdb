@@ -18,15 +18,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -54,6 +53,8 @@ public class CassandraVerifierTest {
 
     @Mock
     private CassandraClient client;
+
+    @Mock CassandraClientConfig clientConfig;
 
     @Before
     public void beforeEach() {
@@ -294,7 +295,7 @@ public class CassandraVerifierTest {
     private ImmutableCassandraVerifierConfig.Builder getVerifierConfigBuilderWithDefaults(EndpointDetails... details)
             throws TException {
         return CassandraVerifierConfig.builder()
-                .clientConfig(mock(CassandraKeyValueServiceConfig.class))
+                .clientConfig(clientConfig)
                 .servers(setTopologyAndGetServersConfig(details))
                 .keyspace("test")
                 .replicationFactor(3)
