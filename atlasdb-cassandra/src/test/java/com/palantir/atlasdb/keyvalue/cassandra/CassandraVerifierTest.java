@@ -102,15 +102,15 @@ public class CassandraVerifierTest {
 
     @Test
     public void moreDcsPresentThanInStrategyOptionsSucceeds() throws TException {
-        CassandraVerifierConfig cassandraVerifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
                         createDetails(DC_1, RACK_1, HOST_1))
                 .build();
-        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, cassandraVerifierConfig);
+        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, verifierConfig);
         CassandraVerifier.sanityCheckedDatacenters.invalidateAll();
         CassandraVerifier.sanityCheckedDatacenters.cleanUp();
         setTopologyAndGetServersConfig(createDetails(DC_1, RACK_1, HOST_1), createDetails(DC_2, RACK_2, HOST_2));
 
-        assertThatCode(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraVerifierConfig))
+        assertThatCode(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, verifierConfig))
                 .as("strategy options should only contain info for DC_1 but should not throw despite detecting two DCs")
                 .doesNotThrowAnyException();
     }
@@ -167,20 +167,20 @@ public class CassandraVerifierTest {
 
     @Test
     public void freshInstanceSetsStrategyOptions() throws TException {
-        CassandraVerifierConfig cassandraVerifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
                         createDetails(DC_1, RACK_1, HOST_1),
                         createDetails(DC_1, RACK_1, HOST_2),
                         createDetails(DC_1, RACK_1, HOST_3),
                         createDetails(DC_2, RACK_1, HOST_4))
                 .build();
 
-        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, cassandraVerifierConfig);
+        KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, verifierConfig);
         assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(DC_1, "3", DC_2, "3"));
     }
 
     @Test
     public void simpleStrategyOneDcOneRfSucceedsAndUpdatesKsDef() throws TException {
-        CassandraVerifierConfig cassandraVerifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
                         createDetails(DC_1, RACK_1, HOST_1))
                 .replicationFactor(1)
                 .build();
@@ -190,26 +190,26 @@ public class CassandraVerifierTest {
                 ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1");
         ksDef.setStrategy_options(strategyOptions);
 
-        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraVerifierConfig);
+        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, verifierConfig);
         assertThat(ksDef.strategy_class).isEqualTo(CassandraConstants.NETWORK_STRATEGY);
         assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(DC_1, "1"));
     }
 
     @Test
     public void simpleStrategyOneDcHighRfThrows() throws TException {
-        CassandraVerifierConfig cassandraVerifierConfig = getVerifierConfigBuilderWithDefaults()
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
                 .servers(ImmutableDefaultConfig.of())
                 .build();
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "3"));
 
-        assertThatThrownBy(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraVerifierConfig))
+        assertThatThrownBy(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, verifierConfig))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void simpleStrategyMultipleDcsThrows() throws TException {
-        CassandraVerifierConfig cassandraVerifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
                         createDetails(DC_1, RACK_1, HOST_1),
                         createDetails(DC_1, RACK_1, HOST_2),
                         createDetails(DC_1, RACK_1, HOST_3),
@@ -220,13 +220,13 @@ public class CassandraVerifierTest {
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1"));
 
-        assertThatThrownBy(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraVerifierConfig))
+        assertThatThrownBy(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, verifierConfig))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void returnSameKsDefIfNodeTopologyChecksIgnored() throws TException {
-        CassandraVerifierConfig cassandraVerifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
                         createDetails(DC_1, RACK_1, HOST_1))
                 .replicationFactor(7)
                 .ignoreNodeTopologyChecks(true)
@@ -237,14 +237,14 @@ public class CassandraVerifierTest {
                 ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1", DC_1, "7");
         ksDef.setStrategy_options(strategyOptions);
 
-        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraVerifierConfig);
+        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, verifierConfig);
         assertThat(ksDef.strategy_class).isEqualTo(CassandraConstants.SIMPLE_STRATEGY);
         assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(strategyOptions);
     }
 
     @Test
     public void networkStrategyMultipleDcsSucceeds() throws TException {
-        CassandraVerifierConfig cassandraVerifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
                         createDetails(DC_1, RACK_1, HOST_1),
                         createDetails(DC_1, RACK_1, HOST_2),
                         createDetails(DC_1, RACK_1, HOST_3),
@@ -256,7 +256,7 @@ public class CassandraVerifierTest {
                 ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "3", DC_1, "3", DC_2, "3");
         ksDef.setStrategy_options(strategyOptions);
 
-        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, cassandraVerifierConfig);
+        ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, verifierConfig);
         assertThat(ksDef.strategy_options).containsExactlyInAnyOrderEntriesOf(strategyOptions);
     }
 
