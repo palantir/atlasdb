@@ -197,8 +197,8 @@ public class CassandraVerifierTest {
 
     @Test
     public void simpleStrategyOneDcHighRfThrows() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
-                .build();
+        CassandraVerifierConfig verifierConfig =
+                getVerifierConfigBuilderWithDefaults().build();
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "3"));
 
