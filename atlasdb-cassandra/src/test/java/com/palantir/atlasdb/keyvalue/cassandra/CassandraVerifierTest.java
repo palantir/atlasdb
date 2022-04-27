@@ -36,7 +36,11 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class CassandraVerifierTest {
     private static final String DC_1 = "dc1";
     private static final String DC_2 = "dc2";
@@ -53,7 +57,8 @@ public class CassandraVerifierTest {
     private static final int DEFAULT_REPLICATION_FACTOR = 3;
     private static final int SINGLE_REPLICATION_FACTOR = 1;
 
-    private CassandraClient client = mock(CassandraClient.class);
+    @Mock
+    private CassandraClient client;
 
     @Before
     public void beforeEach() {
