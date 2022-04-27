@@ -27,7 +27,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraKeyspaceVerifierConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
@@ -356,7 +356,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void runOneTimeStartupChecks() {
-        CassandraKeyspaceVerifierConfig verifierConfig = CassandraKeyspaceVerifierConfig.of(config);
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config);
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, verifierConfig);
         } catch (Exception e) {

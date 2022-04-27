@@ -77,14 +77,11 @@ public final class CassandraVerifier {
         return null;
     };
 
-    static Set<String> sanityCheckDatacenters(
-            CassandraClient client,
-            CassandraServersConfig cassandraServersConfig,
-            int replicationFactor,
-            boolean ignoreNodeTopologyChecks) {
-        return sanityCheckedDatacenters.get(cassandraServersConfig, _kvsConfig -> {
+    static Set<String> sanityCheckDatacenters(CassandraClient client, CassandraVerifierConfig verifierConfig) {
+        return sanityCheckedDatacenters.get(verifierConfig.servers(), _kvsConfig -> {
             try {
-                return sanityCheckDatacentersInternal(client, replicationFactor, ignoreNodeTopologyChecks);
+                return sanityCheckDatacentersInternal(
+                        client, verifierConfig.replicationFactor(), verifierConfig.ignoreNodeTopologyChecks());
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }
@@ -203,32 +200,30 @@ public final class CassandraVerifier {
     }
 
     static void ensureKeyspaceExistsAndIsUpToDate(
-            CassandraClientPool clientPool, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig)
-            throws TException {
-        createKeyspace(cassandraKeyspaceVerifierConfig);
-        updateExistingKeyspace(clientPool, cassandraKeyspaceVerifierConfig);
+            CassandraClientPool clientPool, CassandraVerifierConfig cassandraVerifierConfig) throws TException {
+        createKeyspace(cassandraVerifierConfig);
+        updateExistingKeyspace(clientPool, cassandraVerifierConfig);
     }
 
-    private static void createKeyspace(CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig)
-            throws TException {
+    private static void createKeyspace(CassandraVerifierConfig cassandraVerifierConfig) throws TException {
         // We can't use the pool yet because it does things like setting the connection's keyspace for us
-        if (!attemptToCreateKeyspace(cassandraKeyspaceVerifierConfig)) {
+        if (!attemptToCreateKeyspace(cassandraVerifierConfig)) {
             throw new TException("No host tried was able to create the keyspace requested.");
         }
     }
 
-    private static boolean attemptToCreateKeyspace(CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig) {
+    private static boolean attemptToCreateKeyspace(CassandraVerifierConfig cassandraVerifierConfig) {
         Set<InetSocketAddress> thriftHosts =
-                cassandraKeyspaceVerifierConfig.servers().accept(new ThriftHostsExtractingVisitor());
+                cassandraVerifierConfig.servers().accept(new ThriftHostsExtractingVisitor());
 
-        return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(host, cassandraKeyspaceVerifierConfig));
+        return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(host, cassandraVerifierConfig));
     }
 
     private static boolean attemptToCreateIfNotExists(
-            InetSocketAddress host, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig) {
+            InetSocketAddress host, CassandraVerifierConfig cassandraVerifierConfig) {
         try {
-            return keyspaceAlreadyExists(host, cassandraKeyspaceVerifierConfig)
-                    || attemptToCreateKeyspaceOnHost(host, cassandraKeyspaceVerifierConfig);
+            return keyspaceAlreadyExists(host, cassandraVerifierConfig)
+                    || attemptToCreateKeyspaceOnHost(host, cassandraVerifierConfig);
         } catch (Exception exception) {
             log.warn(
                     "Couldn't use host {} to create keyspace."
@@ -244,12 +239,12 @@ public final class CassandraVerifier {
 
     // swallows the expected TException subtype NotFoundException, throws connection problem related ones
     private static boolean keyspaceAlreadyExists(
-            InetSocketAddress host, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig) throws TException {
+            InetSocketAddress host, CassandraVerifierConfig cassandraVerifierConfig) throws TException {
         try (CassandraClient client =
-                CassandraClientFactory.getClientInternal(host, cassandraKeyspaceVerifierConfig.clientConfig())) {
-            client.describe_keyspace(cassandraKeyspaceVerifierConfig.keyspace());
+                CassandraClientFactory.getClientInternal(host, cassandraVerifierConfig.clientConfig())) {
+            client.describe_keyspace(cassandraVerifierConfig.keyspace());
             CassandraKeyValueServices.waitForSchemaVersions(
-                    cassandraKeyspaceVerifierConfig.schemaMutationTimeoutMillis(),
+                    cassandraVerifierConfig.schemaMutationTimeoutMillis(),
                     client,
                     "while checking if schemas diverged on startup");
             return true;
@@ -259,19 +254,19 @@ public final class CassandraVerifier {
     }
 
     private static boolean attemptToCreateKeyspaceOnHost(
-            InetSocketAddress host, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig) throws TException {
+            InetSocketAddress host, CassandraVerifierConfig cassandraVerifierConfig) throws TException {
         try (CassandraClient client =
-                CassandraClientFactory.getClientInternal(host, cassandraKeyspaceVerifierConfig.clientConfig())) {
-            KsDef ksDef = createKsDefForFresh(client, cassandraKeyspaceVerifierConfig);
+                CassandraClientFactory.getClientInternal(host, cassandraVerifierConfig.clientConfig())) {
+            KsDef ksDef = createKsDefForFresh(client, cassandraVerifierConfig);
             client.system_add_keyspace(ksDef);
-            log.info("Created keyspace: {}", SafeArg.of("keyspace", cassandraKeyspaceVerifierConfig.keyspace()));
+            log.info("Created keyspace: {}", SafeArg.of("keyspace", cassandraVerifierConfig.keyspace()));
             CassandraKeyValueServices.waitForSchemaVersions(
-                    cassandraKeyspaceVerifierConfig.schemaMutationTimeoutMillis(),
+                    cassandraVerifierConfig.schemaMutationTimeoutMillis(),
                     client,
                     "after adding the initial empty keyspace");
             return true;
         } catch (InvalidRequestException e) {
-            boolean keyspaceAlreadyExists = keyspaceAlreadyExists(host, cassandraKeyspaceVerifierConfig);
+            boolean keyspaceAlreadyExists = keyspaceAlreadyExists(host, cassandraVerifierConfig);
             if (!keyspaceAlreadyExists) {
                 log.info(
                         "Encountered an invalid request exception {} when attempting to create a keyspace"
@@ -286,21 +281,20 @@ public final class CassandraVerifier {
     }
 
     private static void updateExistingKeyspace(
-            CassandraClientPool clientPool, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig)
-            throws TException {
+            CassandraClientPool clientPool, CassandraVerifierConfig cassandraVerifierConfig) throws TException {
         clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
-            KsDef originalKsDef = client.describe_keyspace(cassandraKeyspaceVerifierConfig.keyspace());
+            KsDef originalKsDef = client.describe_keyspace(cassandraVerifierConfig.keyspace());
             // there was an existing keyspace
             // check and make sure it's definition is up to date with our config
             KsDef modifiedKsDef = originalKsDef.deepCopy();
-            checkAndSetReplicationFactor(client, modifiedKsDef, cassandraKeyspaceVerifierConfig);
+            checkAndSetReplicationFactor(client, modifiedKsDef, cassandraVerifierConfig);
 
             if (!modifiedKsDef.equals(originalKsDef)) {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
                 client.system_update_keyspace(modifiedKsDef);
                 CassandraKeyValueServices.waitForSchemaVersions(
-                        cassandraKeyspaceVerifierConfig.schemaMutationTimeoutMillis(),
+                        cassandraVerifierConfig.schemaMutationTimeoutMillis(),
                         client,
                         "after updating the existing keyspace");
             }
@@ -308,54 +302,37 @@ public final class CassandraVerifier {
         });
     }
 
-    static KsDef createKsDefForFresh(
-            CassandraClient client, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig) {
-        KsDef ksDef = new KsDef(
-                cassandraKeyspaceVerifierConfig.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
-        Set<String> dcs = sanityCheckDatacenters(
-                client,
-                cassandraKeyspaceVerifierConfig.servers(),
-                cassandraKeyspaceVerifierConfig.replicationFactor(),
-                cassandraKeyspaceVerifierConfig.ignoreNodeTopologyChecks());
+    static KsDef createKsDefForFresh(CassandraClient client, CassandraVerifierConfig cassandraVerifierConfig) {
+        KsDef ksDef =
+                new KsDef(cassandraVerifierConfig.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
+        Set<String> dcs = sanityCheckDatacenters(client, cassandraVerifierConfig);
         ksDef.setStrategy_options(
-                Maps.asMap(dcs, ignore -> String.valueOf(cassandraKeyspaceVerifierConfig.replicationFactor())));
+                Maps.asMap(dcs, ignore -> String.valueOf(cassandraVerifierConfig.replicationFactor())));
         ksDef.setDurable_writes(true);
         return ksDef;
     }
 
     static KsDef checkAndSetReplicationFactor(
-            CassandraClient client, KsDef ksDef, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig) {
+            CassandraClient client, KsDef ksDef, CassandraVerifierConfig cassandraVerifierConfig) {
         KsDef result = ksDef;
         Set<String> datacenters;
         if (Objects.equals(result.getStrategy_class(), CassandraConstants.SIMPLE_STRATEGY)) {
-            datacenters = getDcForSimpleStrategy(client, result, cassandraKeyspaceVerifierConfig);
+            datacenters = getDcForSimpleStrategy(client, result, cassandraVerifierConfig);
             result = setNetworkStrategyIfCheckedTopology(
-                    result, datacenters, cassandraKeyspaceVerifierConfig.ignoreNodeTopologyChecks());
+                    result, datacenters, cassandraVerifierConfig.ignoreNodeTopologyChecks());
         } else {
-            datacenters = sanityCheckDatacenters(
-                    client,
-                    cassandraKeyspaceVerifierConfig.servers(),
-                    cassandraKeyspaceVerifierConfig.replicationFactor(),
-                    cassandraKeyspaceVerifierConfig.ignoreNodeTopologyChecks());
+            datacenters = sanityCheckDatacenters(client, cassandraVerifierConfig);
         }
 
-        sanityCheckReplicationFactor(
-                result,
-                cassandraKeyspaceVerifierConfig.replicationFactor(),
-                datacenters,
-                cassandraKeyspaceVerifierConfig.ignoreDatacenterConfigurationChecks());
+        sanityCheckReplicationFactor(result, datacenters, cassandraVerifierConfig);
         return result;
     }
 
     private static Set<String> getDcForSimpleStrategy(
-            CassandraClient client, KsDef ksDef, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig) {
-        checkKsDefRfEqualsOne(ksDef, cassandraKeyspaceVerifierConfig.ignoreNodeTopologyChecks());
-        Set<String> datacenters = sanityCheckDatacenters(
-                client,
-                cassandraKeyspaceVerifierConfig.servers(),
-                cassandraKeyspaceVerifierConfig.replicationFactor(),
-                cassandraKeyspaceVerifierConfig.ignoreNodeTopologyChecks());
-        checkOneDatacenter(datacenters, cassandraKeyspaceVerifierConfig.ignoreNodeTopologyChecks());
+            CassandraClient client, KsDef ksDef, CassandraVerifierConfig cassandraVerifierConfig) {
+        checkKsDefRfEqualsOne(ksDef, cassandraVerifierConfig.ignoreNodeTopologyChecks());
+        Set<String> datacenters = sanityCheckDatacenters(client, cassandraVerifierConfig);
+        checkOneDatacenter(datacenters, cassandraVerifierConfig.ignoreNodeTopologyChecks());
         return datacenters;
     }
 
@@ -382,25 +359,21 @@ public final class CassandraVerifier {
     }
 
     static void currentRfOnKeyspaceMatchesDesiredRf(
-            CassandraClient client, CassandraKeyspaceVerifierConfig cassandraKeyspaceVerifierConfig) throws TException {
-        KsDef ks = client.describe_keyspace(cassandraKeyspaceVerifierConfig.keyspace());
-        Set<String> dcs = sanityCheckDatacenters(
-                client,
-                cassandraKeyspaceVerifierConfig.servers(),
-                cassandraKeyspaceVerifierConfig.replicationFactor(),
-                cassandraKeyspaceVerifierConfig.ignoreNodeTopologyChecks());
-        sanityCheckReplicationFactor(
-                ks,
-                cassandraKeyspaceVerifierConfig.replicationFactor(),
-                dcs,
-                cassandraKeyspaceVerifierConfig.ignoreDatacenterConfigurationChecks());
+            CassandraClient client, CassandraVerifierConfig cassandraVerifierConfig) throws TException {
+        KsDef ks = client.describe_keyspace(cassandraVerifierConfig.keyspace());
+        Set<String> dcs = sanityCheckDatacenters(client, cassandraVerifierConfig);
+        sanityCheckReplicationFactor(ks, dcs, cassandraVerifierConfig);
     }
 
     static void sanityCheckReplicationFactor(
-            KsDef ks, int replicationFactor, Set<String> dcs, boolean ignoreDatacentreConfigurationChecks) {
+            KsDef ks, Set<String> dcs, CassandraVerifierConfig cassandraVerifierConfig) {
         Set<String> scopedDownDcs = checkRfsSpecifiedAndScopeDownDcs(dcs, ks.getStrategy_options());
         checkRfsMatchConfig(
-                ks, replicationFactor, scopedDownDcs, ks.getStrategy_options(), ignoreDatacentreConfigurationChecks);
+                ks,
+                cassandraVerifierConfig.replicationFactor(),
+                scopedDownDcs,
+                ks.getStrategy_options(),
+                cassandraVerifierConfig.ignoreDatacenterConfigurationChecks());
     }
 
     private static Set<String> checkRfsSpecifiedAndScopeDownDcs(Set<String> dcs, Map<String, String> strategyOptions) {
@@ -426,7 +399,7 @@ public final class CassandraVerifier {
     }
 
     @Value.Immutable
-    interface CassandraKeyspaceVerifierConfig {
+    interface CassandraVerifierConfig {
         String keyspace();
 
         // TODO(mdaudali): Use a scoped down config object for Cassandra Clients
@@ -442,7 +415,7 @@ public final class CassandraVerifier {
 
         int schemaMutationTimeoutMillis();
 
-        static CassandraKeyspaceVerifierConfig of(CassandraKeyValueServiceConfig config) {
+        static CassandraVerifierConfig of(CassandraKeyValueServiceConfig config) {
             return builder()
                     .keyspace(config.getKeyspaceOrThrow())
                     .clientConfig(config)
@@ -454,8 +427,8 @@ public final class CassandraVerifier {
                     .build();
         }
 
-        static ImmutableCassandraKeyspaceVerifierConfig.Builder builder() {
-            return ImmutableCassandraKeyspaceVerifierConfig.builder();
+        static ImmutableCassandraVerifierConfig.Builder builder() {
+            return ImmutableCassandraVerifierConfig.builder();
         }
     }
 }

@@ -67,7 +67,7 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.StartupChecks;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraKeyspaceVerifierConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -237,7 +237,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
     private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
-    private final CassandraKeyspaceVerifierConfig keyspaceVerifierConfig;
+    private final CassandraVerifierConfig verifierConfig;
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
@@ -445,7 +445,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableDropper =
                 new CassandraTableDropper(config, clientPool, tableMetadata, cassandraTableTruncator);
         this.runtimeConfigSupplier = runtimeConfigSupplier;
-        this.keyspaceVerifierConfig = CassandraKeyspaceVerifierConfig.of(config);
+        this.verifierConfig = CassandraVerifierConfig.of(config);
     }
 
     private static ExecutorService createBlockingThreadpool(
@@ -549,8 +549,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Map<String, String> strategyOptions;
 
         try {
-            dcs = clientPool.runWithRetry(client -> CassandraVerifier.sanityCheckDatacenters(
-                    client, config.servers(), config.replicationFactor(), config.ignoreNodeTopologyChecks()));
+            dcs = clientPool.runWithRetry(client -> CassandraVerifier.sanityCheckDatacenters(client, verifierConfig));
             KsDef ksDef = clientPool.runWithRetry(client -> client.describe_keyspace(config.getKeyspaceOrThrow()));
             strategyOptions = new HashMap<>(ksDef.getStrategy_options());
 
@@ -1990,7 +1989,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private boolean doesConfigReplicationFactorMatchWithCluster() {
         return clientPool.runWithRetry(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, keyspaceVerifierConfig);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, verifierConfig);
                 return true;
             } catch (Exception e) {
                 log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);

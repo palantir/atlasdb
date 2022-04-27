@@ -24,7 +24,7 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraKeyspaceVerifierConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -103,7 +103,7 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
-        CassandraKeyspaceVerifierConfig verifierConfig = CassandraKeyspaceVerifierConfig.of(CASSANDRA.getConfig());
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(CASSANDRA.getConfig());
         clientPool.run(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, verifierConfig);
@@ -116,8 +116,8 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorInConfig() {
-        CassandraKeyspaceVerifierConfig verifierConfig = CassandraKeyspaceVerifierConfig.builder()
-                .from(CassandraKeyspaceVerifierConfig.of(CASSANDRA.getConfig()))
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.builder()
+                .from(CassandraVerifierConfig.of(CASSANDRA.getConfig()))
                 .replicationFactor(modifiedReplicationFactor)
                 .build();
 
@@ -135,7 +135,7 @@ public class CassandraClientPoolIntegrationTest {
     @Test
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorOnCassandra() throws TException {
         changeReplicationFactor(modifiedReplicationFactor);
-        CassandraKeyspaceVerifierConfig verifierConfig = CassandraKeyspaceVerifierConfig.of(CASSANDRA.getConfig());
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(CASSANDRA.getConfig());
         clientPool.run(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, verifierConfig);
