@@ -70,9 +70,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final TSocketFactory tSocketFactory;
 
     public CassandraClientFactory(
-            MetricsManager metricsManager,
-            InetSocketAddress addr,
-            CassandraClientConfig clientConfig) {
+            MetricsManager metricsManager, InetSocketAddress addr, CassandraClientConfig clientConfig) {
         this.metricsManager = metricsManager;
         this.addr = addr;
         this.clientConfig = clientConfig;

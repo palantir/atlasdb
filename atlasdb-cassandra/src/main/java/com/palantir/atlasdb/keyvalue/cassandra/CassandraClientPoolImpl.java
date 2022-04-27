@@ -119,7 +119,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final InitializingWrapper wrapper = new InitializingWrapper();
     private final CassandraAbsentHostTracker absentHostTracker;
 
-
     private ScheduledFuture<?> refreshPoolFuture;
 
     @VisibleForTesting
@@ -511,8 +510,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
         for (CassandraServer host : getCachedServers()) {
-            try (CassandraClient client =
-                    CassandraClientFactory.getClientInternal(host.proxy(), clientConfig)) {
+            try (CassandraClient client = CassandraClientFactory.getClientInternal(host.proxy(), clientConfig)) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {

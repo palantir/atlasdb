@@ -54,7 +54,8 @@ public class CassandraVerifierTest {
     @Mock
     private CassandraClient client;
 
-    @Mock CassandraClientConfig clientConfig;
+    @Mock
+    CassandraClientConfig clientConfig;
 
     @Before
     public void beforeEach() {

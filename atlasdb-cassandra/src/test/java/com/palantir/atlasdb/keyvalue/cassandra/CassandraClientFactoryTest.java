@@ -46,8 +46,7 @@ public class CassandraClientFactoryTest {
                     .usingSsl(false)
                     .keyspace("ks")
                     .timeoutOnConnectionClose(Duration.ZERO)
-                    .build()
-    );
+                    .build());
 
     private CassandraClient client = mock(CassandraClient.class);
     private PooledObject<CassandraClient> pooledClient = new DefaultPooledObject<>(client);
