@@ -182,15 +182,14 @@ public final class AtlasBackupService implements Closeable {
         lockRefresher.close();
 
         // Clean up the refreshing thread
-        refreshExecutor.shutdownNow();
+        if (!refreshExecutor.isShutdown()) {
+            refreshExecutor.shutdownNow();
+        }
         isClosed = true;
     }
 
     public Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices) {
-        if (isClosed) {
-            throw new SafeIllegalStateException("Tried to prepareBackup, but the AtlasBackupService is closed.",
-                    SafeArg.of("atlasServices", atlasServices));
-        }
+        throwIfClosed(atlasServices);
 
         Set<AtlasService> inProgressAndProposedBackups = Sets.union(atlasServices, inProgressBackups.keySet());
         AtlasServices.throwIfAtlasServicesCollide(inProgressAndProposedBackups);
@@ -225,10 +224,7 @@ public final class AtlasBackupService implements Closeable {
      * @return the atlas services whose backups were successfully completed
      */
     public Set<AtlasService> completeBackup(Set<AtlasService> atlasServices) {
-        if (isClosed) {
-            throw new SafeIllegalStateException("Tried to completeBackup, but the AtlasBackupService is closed.",
-                    SafeArg.of("atlasServices", atlasServices));
-        }
+        throwIfClosed(atlasServices);
 
         AtlasServices.throwIfAtlasServicesCollide(atlasServices);
 
@@ -281,6 +277,13 @@ public final class AtlasBackupService implements Closeable {
         }
 
         return successfulBackups.keySet();
+    }
+
+    private void throwIfClosed(Set<AtlasService> atlasServices) {
+        if (isClosed) {
+            throw new SafeIllegalStateException("The AtlasBackupService is closed.",
+                    SafeArg.of("atlasServices", atlasServices));
+        }
     }
 
     private Set<AtlasService> storeCompletedBackups(Map<AtlasService, CompletedBackup> successfulBackups) {

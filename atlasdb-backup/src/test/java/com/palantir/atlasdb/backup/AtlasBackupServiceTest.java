@@ -18,6 +18,7 @@ package com.palantir.atlasdb.backup;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -147,6 +148,13 @@ public class AtlasBackupServiceTest {
                 () -> atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("closed");
+    }
+
+    @Test
+    public void canCloseTwice() {
+        atlasBackupService.close();
+
+        assertThatCode(() -> atlasBackupService.close()).doesNotThrowAnyException();
     }
 
     @Test
