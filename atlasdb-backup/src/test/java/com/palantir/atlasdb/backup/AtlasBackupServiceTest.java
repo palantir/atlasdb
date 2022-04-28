@@ -37,6 +37,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 import java.util.UUID;
@@ -129,45 +130,38 @@ public class AtlasBackupServiceTest {
     }
 
     @Test
-    public void cleanupBackupCloesLockRefresher() {
+    public void prepareBackupThrowsAfterClose() {
+        atlasBackupService.close();
+
+        assertThatLoggableExceptionThrownBy(
+                () -> atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE)))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("closed");
+    }
+
+    @Test
+    public void completeBackupThrowsAfterClose() {
+        atlasBackupService.close();
+
+        assertThatLoggableExceptionThrownBy(
+                () -> atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE)))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("closed");
+    }
+
+    @Test
+    public void closeClosesLockRefresher() {
         Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
         when(atlasBackupClient.prepareBackup(
-                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
                 .thenReturn(PrepareBackupResponse.of(tokens));
 
         atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
 
-        atlasBackupService.cleanupBackup();
+        atlasBackupService.close();
         verify(lockRefresher).unregisterLocks(argThat(collection -> collection.contains(IN_PROGRESS)));
         verify(lockRefresher).close();
         verify(executorService).shutdownNow();
-    }
-
-    @Test
-    public void completeBackupThrowsAfterCleanup() {
-        InProgressBackupToken otherInProgress = inProgressBackupToken(OTHER_NAMESPACE);
-        Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
-
-        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(namespaces)))
-                .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS, otherInProgress)));
-
-        Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
-        CompletedBackup completedBackup = completedBackup();
-        when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(tokens)))
-                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
-
-        // Prepare backup for both
-        atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
-
-        // Complete only ATLAS_SERVICE
-        atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE));
-
-        // Cleanup
-        atlasBackupService.cleanupBackup();
-
-        // Complete for OTHER_ATLAS_SERVICE should now fail gracefully
-        assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_ATLAS_SERVICE)))
-                .isEmpty();
     }
 
     @Test

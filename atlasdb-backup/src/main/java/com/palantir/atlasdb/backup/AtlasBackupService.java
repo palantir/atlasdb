@@ -47,10 +47,12 @@ import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.lock.client.LockRefresher;
 import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
+import java.io.Closeable;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
@@ -70,7 +72,7 @@ import java.util.stream.Collectors;
  * duplicated namespaces (e.g. {(123, namespace), (456, namespace)}), then a SafeIllegalArgumentException will be
  * thrown.
  */
-public final class AtlasBackupService {
+public final class AtlasBackupService implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupService.class);
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000L;
@@ -83,6 +85,8 @@ public final class AtlasBackupService {
     private final int completeBackupNumThreads;
     private final LockRefresher<InProgressBackupToken> lockRefresher;
     private final ScheduledExecutorService refreshExecutor;
+
+    private volatile boolean isClosed = false;
 
     @VisibleForTesting
     AtlasBackupService(
@@ -167,7 +171,8 @@ public final class AtlasBackupService {
      * Must be called after any failure; after calling this, completeBackup will fail for any namespace which
      * has not yet reached that stage.
      */
-    public void cleanupBackup() {
+    @Override
+    public void close() {
         log.info(
                 "Cleaning up backup. This will remove all record of in-progress backups on this node.",
                 SafeArg.of("inProgressBackupCount", inProgressBackups.size()),
@@ -178,9 +183,15 @@ public final class AtlasBackupService {
 
         // Clean up the refreshing thread
         refreshExecutor.shutdownNow();
+        isClosed = true;
     }
 
     public Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices) {
+        if (isClosed) {
+            throw new SafeIllegalStateException("Tried to prepareBackup, but the AtlasBackupService is closed.",
+                    SafeArg.of("atlasServices", atlasServices));
+        }
+
         Set<AtlasService> inProgressAndProposedBackups = Sets.union(atlasServices, inProgressBackups.keySet());
         AtlasServices.throwIfAtlasServicesCollide(inProgressAndProposedBackups);
         Map<Namespace, AtlasService> namespaceToServices = KeyedStream.of(atlasServices)
@@ -214,6 +225,11 @@ public final class AtlasBackupService {
      * @return the atlas services whose backups were successfully completed
      */
     public Set<AtlasService> completeBackup(Set<AtlasService> atlasServices) {
+        if (isClosed) {
+            throw new SafeIllegalStateException("Tried to completeBackup, but the AtlasBackupService is closed.",
+                    SafeArg.of("atlasServices", atlasServices));
+        }
+
         AtlasServices.throwIfAtlasServicesCollide(atlasServices);
 
         Map<AtlasService, InProgressBackupToken> knownBackups = KeyedStream.of(atlasServices)
