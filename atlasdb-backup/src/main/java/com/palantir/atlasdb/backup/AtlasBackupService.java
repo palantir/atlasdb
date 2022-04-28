@@ -281,8 +281,8 @@ public final class AtlasBackupService implements Closeable {
 
     private void throwIfClosed(Set<AtlasService> atlasServices) {
         if (isClosed) {
-            throw new SafeIllegalStateException("The AtlasBackupService is closed.",
-                    SafeArg.of("atlasServices", atlasServices));
+            throw new SafeIllegalStateException(
+                    "The AtlasBackupService is closed.", SafeArg.of("atlasServices", atlasServices));
         }
     }
 

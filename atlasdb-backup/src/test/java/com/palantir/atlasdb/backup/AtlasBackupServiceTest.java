@@ -134,8 +134,7 @@ public class AtlasBackupServiceTest {
     public void prepareBackupThrowsAfterClose() {
         atlasBackupService.close();
 
-        assertThatLoggableExceptionThrownBy(
-                () -> atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE)))
+        assertThatLoggableExceptionThrownBy(() -> atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("closed");
     }
@@ -144,8 +143,7 @@ public class AtlasBackupServiceTest {
     public void completeBackupThrowsAfterClose() {
         atlasBackupService.close();
 
-        assertThatLoggableExceptionThrownBy(
-                () -> atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE)))
+        assertThatLoggableExceptionThrownBy(() -> atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("closed");
     }
@@ -161,7 +159,7 @@ public class AtlasBackupServiceTest {
     public void closeClosesLockRefresher() {
         Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
         when(atlasBackupClient.prepareBackup(
-                authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
                 .thenReturn(PrepareBackupResponse.of(tokens));
 
         atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
