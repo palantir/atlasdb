@@ -23,6 +23,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
@@ -284,7 +285,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     @Value.Immutable
-    @Value.Style(stagedBuilder = true)
+    @StagedBuilderStyle
     interface CassandraClientConfig {
         int socketTimeoutMillis();
 
