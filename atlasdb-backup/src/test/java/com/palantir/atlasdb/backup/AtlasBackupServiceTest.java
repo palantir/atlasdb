@@ -18,7 +18,9 @@ package com.palantir.atlasdb.backup;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -38,6 +40,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,6 +67,9 @@ public class AtlasBackupServiceTest {
     @Mock
     private LockRefresher<InProgressBackupToken> lockRefresher;
 
+    @Mock
+    private ScheduledExecutorService executorService;
+
     private AtlasBackupService atlasBackupService;
     private BackupPersister backupPersister;
 
@@ -71,7 +77,7 @@ public class AtlasBackupServiceTest {
     public void setup() {
         backupPersister = new InMemoryBackupPersister();
         atlasBackupService = new AtlasBackupService(
-                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher, 10);
+                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher, executorService, 10);
     }
 
     @Test
@@ -117,6 +123,47 @@ public class AtlasBackupServiceTest {
     }
 
     @Test
+    public void cleanupBackupCloesLockRefresher() {
+        Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
+        when(atlasBackupClient.prepareBackup(
+                authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                .thenReturn(PrepareBackupResponse.of(tokens));
+
+        atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
+
+        atlasBackupService.cleanupBackup();
+        verify(lockRefresher).unregisterLocks(argThat(collection -> collection.contains(IN_PROGRESS)));
+        verify(lockRefresher).close();
+        verify(executorService).shutdownNow();
+    }
+
+    @Test
+    public void completeBackupThrowsAfterCleanup() {
+        InProgressBackupToken otherInProgress = inProgressBackupToken(OTHER_NAMESPACE);
+        Set<Namespace> namespaces = ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE);
+
+        when(atlasBackupClient.prepareBackup(authHeader, PrepareBackupRequest.of(namespaces)))
+                .thenReturn(PrepareBackupResponse.of(ImmutableSet.of(IN_PROGRESS, otherInProgress)));
+
+        Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
+        CompletedBackup completedBackup = completedBackup();
+        when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(tokens)))
+                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of(completedBackup)));
+
+        // Prepare backup for both
+        atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
+
+        // Complete only ATLAS_SERVICE
+        atlasBackupService.completeBackup(ImmutableSet.of(ATLAS_SERVICE));
+
+        // Cleanup
+        atlasBackupService.cleanupBackup();
+
+        // Complete for OTHER_ATLAS_SERVICE should now fail gracefully
+        assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_ATLAS_SERVICE))).isEmpty();
+    }
+
+    @Test
     public void completeBackupThrowsIfNamespacesCollide() {
         AtlasService collidingAtlasService = AtlasService.of(ServiceId.of("c"), ATLAS_SERVICE.getNamespace());
         assertThatLoggableExceptionThrownBy(
@@ -127,11 +174,10 @@ public class AtlasBackupServiceTest {
 
     @Test
     public void completeBackupDoesNotRunUnpreparedServices() {
-        when(atlasBackupClient.completeBackup(authHeader, CompleteBackupRequest.of(ImmutableSet.of())))
-                .thenReturn(CompleteBackupResponse.of(ImmutableSet.of()));
-
         assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_ATLAS_SERVICE)))
                 .isEmpty();
+
+        verifyNoInteractions(atlasBackupClient);
     }
 
     @Test

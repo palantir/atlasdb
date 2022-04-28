@@ -80,8 +80,9 @@ public final class AtlasBackupService {
     private final CoordinationServiceRecorder coordinationServiceRecorder;
     private final BackupPersister backupPersister;
     private final Map<AtlasService, InProgressBackupToken> inProgressBackups;
-    private final LockRefresher<InProgressBackupToken> lockRefresher;
     private final int completeBackupNumThreads;
+    private final LockRefresher<InProgressBackupToken> lockRefresher;
+    private final ScheduledExecutorService refreshExecutor;
 
     @VisibleForTesting
     AtlasBackupService(
@@ -90,12 +91,14 @@ public final class AtlasBackupService {
             CoordinationServiceRecorder coordinationServiceRecorder,
             BackupPersister backupPersister,
             LockRefresher<InProgressBackupToken> lockRefresher,
+            ScheduledExecutorService refreshExecutor,
             int completeBackupNumThreads) {
         this.authHeader = authHeader;
         this.atlasBackupClient = atlasBackupClient;
         this.coordinationServiceRecorder = coordinationServiceRecorder;
         this.backupPersister = backupPersister;
         this.lockRefresher = lockRefresher;
+        this.refreshExecutor = refreshExecutor;
         this.inProgressBackups = new ConcurrentHashMap<>();
         this.completeBackupNumThreads = completeBackupNumThreads;
     }
@@ -117,7 +120,9 @@ public final class AtlasBackupService {
         KvsRunner kvsRunner = KvsRunner.create(keyValueServiceFactory);
         CoordinationServiceRecorder coordinationServiceRecorder =
                 new CoordinationServiceRecorder(kvsRunner, backupPersister);
-        LockRefresher<InProgressBackupToken> lockRefresher = getLockRefresher(authHeader, atlasBackupClient);
+        ScheduledExecutorService refreshExecutor =
+                PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("backupLockRefresher", true));
+        LockRefresher<InProgressBackupToken> lockRefresher = getLockRefresher(authHeader, atlasBackupClient, refreshExecutor);
 
         return new AtlasBackupService(
                 authHeader,
@@ -125,6 +130,7 @@ public final class AtlasBackupService {
                 coordinationServiceRecorder,
                 backupPersister,
                 lockRefresher,
+                refreshExecutor,
                 completeBackupNumThreads);
     }
 
@@ -137,20 +143,37 @@ public final class AtlasBackupService {
         KvsRunner kvsRunner = KvsRunner.create(transactionManager);
         CoordinationServiceRecorder coordinationServiceRecorder =
                 new CoordinationServiceRecorder(kvsRunner, backupPersister);
-        LockRefresher<InProgressBackupToken> lockRefresher = getLockRefresher(authHeader, atlasBackupClient);
+        ScheduledExecutorService refreshExecutor =
+                PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("backupLockRefresher", true));
+        LockRefresher<InProgressBackupToken> lockRefresher = getLockRefresher(authHeader, atlasBackupClient, refreshExecutor);
 
         return new AtlasBackupService(
-                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher, 10);
+                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher, refreshExecutor, 10);
     }
 
     private static LockRefresher<InProgressBackupToken> getLockRefresher(
-            AuthHeader authHeader, AtlasBackupClient atlasBackupClient) {
-        ScheduledExecutorService refreshExecutor =
-                PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("backupLockRefresher", true));
+            AuthHeader authHeader, AtlasBackupClient atlasBackupClient, ScheduledExecutorService refreshExecutor) {
         LockLeaseRefresher<InProgressBackupToken> lockLeaseRefresher = tokens -> atlasBackupClient
                 .refreshBackup(authHeader, RefreshBackupRequest.of(tokens))
                 .getRefreshedTokens();
         return new LockRefresher<>(refreshExecutor, lockLeaseRefresher, REFRESH_INTERVAL_MILLIS);
+    }
+
+    /**
+     *  Cleans up the backup operation. This will release all immutable timestamp locks.
+     *  Must be called after any failure; after calling this, completeBackup will fail for any namespace which
+     *  has not yet reached that stage.
+     */
+    public void cleanupBackup() {
+        log.info("Cleaning up backup. This will remove all record of in-progress backups on this node.",
+                SafeArg.of("inProgressBackupCount", inProgressBackups.size()),
+                SafeArg.of("servicesWithInProgressBackups", inProgressBackups.keySet()));
+        lockRefresher.unregisterLocks(ImmutableSet.copyOf(inProgressBackups.values()));
+        inProgressBackups.clear();
+        lockRefresher.close();
+
+        // Clean up the refreshing thread
+        refreshExecutor.shutdownNow();
     }
 
     public Set<AtlasService> prepareBackup(Set<AtlasService> atlasServices) {
@@ -194,6 +217,12 @@ public final class AtlasBackupService {
                 .filter(Objects::nonNull)
                 .collectToMap();
         Set<InProgressBackupToken> tokens = ImmutableSet.copyOf(knownBackups.values());
+
+        if (tokens.isEmpty()) {
+            log.error("Complete backup called, but no in progress backups were found.",
+                    SafeArg.of("atlasServices", atlasServices));
+            return ImmutableSet.of();
+        }
 
         lockRefresher.unregisterLocks(tokens);
 
