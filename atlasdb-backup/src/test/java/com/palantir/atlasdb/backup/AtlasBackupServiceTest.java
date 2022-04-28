@@ -77,7 +77,13 @@ public class AtlasBackupServiceTest {
     public void setup() {
         backupPersister = new InMemoryBackupPersister();
         atlasBackupService = new AtlasBackupService(
-                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher, executorService, 10);
+                authHeader,
+                atlasBackupClient,
+                coordinationServiceRecorder,
+                backupPersister,
+                lockRefresher,
+                executorService,
+                10);
     }
 
     @Test
@@ -126,7 +132,7 @@ public class AtlasBackupServiceTest {
     public void cleanupBackupCloesLockRefresher() {
         Set<InProgressBackupToken> tokens = ImmutableSet.of(IN_PROGRESS);
         when(atlasBackupClient.prepareBackup(
-                authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
+                        authHeader, PrepareBackupRequest.of(ImmutableSet.of(NAMESPACE, OTHER_NAMESPACE))))
                 .thenReturn(PrepareBackupResponse.of(tokens));
 
         atlasBackupService.prepareBackup(ImmutableSet.of(ATLAS_SERVICE, OTHER_ATLAS_SERVICE));
@@ -160,7 +166,8 @@ public class AtlasBackupServiceTest {
         atlasBackupService.cleanupBackup();
 
         // Complete for OTHER_ATLAS_SERVICE should now fail gracefully
-        assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_ATLAS_SERVICE))).isEmpty();
+        assertThat(atlasBackupService.completeBackup(ImmutableSet.of(OTHER_ATLAS_SERVICE)))
+                .isEmpty();
     }
 
     @Test

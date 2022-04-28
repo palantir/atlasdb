@@ -63,12 +63,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- *  Service for Atlas backup tasks.
- *  While a single backup operation may encompass multiple namespaces, it is essential that each namespace in a given
- *  request corresponds to the same TimeLock service, since we support a single AtlasBackupClient (this exists on
- *  TimeLock rather than on the backup client side). If the set of AtlasServices in a given request contains
- *  duplicated namespaces (e.g. {(123, namespace), (456, namespace)}), then a SafeIllegalArgumentException will be
- *  thrown.
+ * Service for Atlas backup tasks.
+ * While a single backup operation may encompass multiple namespaces, it is essential that each namespace in a given
+ * request corresponds to the same TimeLock service, since we support a single AtlasBackupClient (this exists on
+ * TimeLock rather than on the backup client side). If the set of AtlasServices in a given request contains
+ * duplicated namespaces (e.g. {(123, namespace), (456, namespace)}), then a SafeIllegalArgumentException will be
+ * thrown.
  */
 public final class AtlasBackupService {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasBackupService.class);
@@ -116,13 +116,33 @@ public final class AtlasBackupService {
         AtlasBackupClient atlasBackupClient = new DialogueAdaptingAtlasBackupClient(
                 reloadingFactory.get(AtlasBackupClientBlocking.class, serviceName));
 
-        BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
         KvsRunner kvsRunner = KvsRunner.create(keyValueServiceFactory);
+        return createAtlasBackupService(
+                authHeader, atlasBackupClient, backupFolderFactory, kvsRunner, completeBackupNumThreads);
+    }
+
+    public static AtlasBackupService createForTests(
+            AuthHeader authHeader,
+            AtlasBackupClient atlasBackupClient,
+            TransactionManager transactionManager,
+            Function<AtlasService, Path> backupFolderFactory) {
+        return createAtlasBackupService(
+                authHeader, atlasBackupClient, backupFolderFactory, KvsRunner.create(transactionManager), 10);
+    }
+
+    private static AtlasBackupService createAtlasBackupService(
+            AuthHeader authHeader,
+            AtlasBackupClient atlasBackupClient,
+            Function<AtlasService, Path> backupFolderFactory,
+            KvsRunner kvsRunner,
+            int completeBackupNumThreads) {
+        BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
         CoordinationServiceRecorder coordinationServiceRecorder =
                 new CoordinationServiceRecorder(kvsRunner, backupPersister);
         ScheduledExecutorService refreshExecutor =
                 PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("backupLockRefresher", true));
-        LockRefresher<InProgressBackupToken> lockRefresher = getLockRefresher(authHeader, atlasBackupClient, refreshExecutor);
+        LockRefresher<InProgressBackupToken> lockRefresher =
+                getLockRefresher(authHeader, atlasBackupClient, refreshExecutor);
 
         return new AtlasBackupService(
                 authHeader,
@@ -134,23 +154,6 @@ public final class AtlasBackupService {
                 completeBackupNumThreads);
     }
 
-    public static AtlasBackupService createForTests(
-            AuthHeader authHeader,
-            AtlasBackupClient atlasBackupClient,
-            TransactionManager transactionManager,
-            Function<AtlasService, Path> backupFolderFactory) {
-        BackupPersister backupPersister = new ExternalBackupPersister(backupFolderFactory);
-        KvsRunner kvsRunner = KvsRunner.create(transactionManager);
-        CoordinationServiceRecorder coordinationServiceRecorder =
-                new CoordinationServiceRecorder(kvsRunner, backupPersister);
-        ScheduledExecutorService refreshExecutor =
-                PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("backupLockRefresher", true));
-        LockRefresher<InProgressBackupToken> lockRefresher = getLockRefresher(authHeader, atlasBackupClient, refreshExecutor);
-
-        return new AtlasBackupService(
-                authHeader, atlasBackupClient, coordinationServiceRecorder, backupPersister, lockRefresher, refreshExecutor, 10);
-    }
-
     private static LockRefresher<InProgressBackupToken> getLockRefresher(
             AuthHeader authHeader, AtlasBackupClient atlasBackupClient, ScheduledExecutorService refreshExecutor) {
         LockLeaseRefresher<InProgressBackupToken> lockLeaseRefresher = tokens -> atlasBackupClient
@@ -160,12 +163,13 @@ public final class AtlasBackupService {
     }
 
     /**
-     *  Cleans up the backup operation. This will release all immutable timestamp locks.
-     *  Must be called after any failure; after calling this, completeBackup will fail for any namespace which
-     *  has not yet reached that stage.
+     * Cleans up the backup operation. This will release all immutable timestamp locks.
+     * Must be called after any failure; after calling this, completeBackup will fail for any namespace which
+     * has not yet reached that stage.
      */
     public void cleanupBackup() {
-        log.info("Cleaning up backup. This will remove all record of in-progress backups on this node.",
+        log.info(
+                "Cleaning up backup. This will remove all record of in-progress backups on this node.",
                 SafeArg.of("inProgressBackupCount", inProgressBackups.size()),
                 SafeArg.of("servicesWithInProgressBackups", inProgressBackups.keySet()));
         lockRefresher.unregisterLocks(ImmutableSet.copyOf(inProgressBackups.values()));
@@ -201,7 +205,7 @@ public final class AtlasBackupService {
     /**
      * Completes backup for the given set of atlas services.
      * This will store metadata about the completed backup via the BackupPersister.
-     *
+     * <p>
      * In order to do this, we must unlock the immutable timestamp for each service. If {@link #prepareBackup(Set)}
      * was not called, we will not have a record of the in-progress backup (and will not have been refreshing
      * its lock anyway). Thus, we attempt to complete backup only for those atlas services where we have the in-progress
@@ -219,7 +223,8 @@ public final class AtlasBackupService {
         Set<InProgressBackupToken> tokens = ImmutableSet.copyOf(knownBackups.values());
 
         if (tokens.isEmpty()) {
-            log.error("Complete backup called, but no in progress backups were found.",
+            log.error(
+                    "Complete backup called, but no in progress backups were found.",
                     SafeArg.of("atlasServices", atlasServices));
             return ImmutableSet.of();
         }
