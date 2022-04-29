@@ -26,7 +26,9 @@ import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.Compression;
@@ -43,20 +45,27 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
     private static final String HOSTNAME_COLUMN = "hostname";
     private static final String IP_COLUMN = "ip";
 
-    private final Supplier<PoolingContainer<CassandraClient>> randomGoodHostSupplier;
+    private final Supplier<List<PoolingContainer<CassandraClient>>> hosts;
 
-    public HostnamesByIpSupplier(Supplier<PoolingContainer<CassandraClient>> randomGoodHostSupplier) {
-        this.randomGoodHostSupplier = randomGoodHostSupplier;
+    public HostnamesByIpSupplier(Supplier<List<PoolingContainer<CassandraClient>>> hosts) {
+        this.hosts = hosts;
     }
 
     @Override
     public Map<String, String> get() {
-        try {
-            return randomGoodHostSupplier.get().runWithPooledResource(getHostnamesByIp());
-        } catch (Exception e) {
-            log.warn("Could not get hostnames by ip from Cassandra", e);
-            return ImmutableMap.of();
-        }
+        return hosts.get().stream()
+                .map(container -> {
+                    try {
+                        return Optional.of(container.runWithPooledResource(getHostnamesByIp()));
+                    } catch (Exception e) {
+                        log.warn("Could not get hostnames by ip from Cassandra", e);
+                        return Optional.<Map<String, String>>empty();
+                    }
+                })
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst()
+                .orElseGet(ImmutableMap::of);
     }
 
     public FunctionCheckedException<CassandraClient, Map<String, String>, Exception> getHostnamesByIp() {
