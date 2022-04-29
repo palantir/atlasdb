@@ -370,9 +370,11 @@ public class CassandraService implements AutoCloseable {
     }
 
     public List<PoolingContainer<CassandraClient>> getAllHostsUnlessBlacklisted() {
-        Collection<CassandraServer> hosts =
-                blacklist.filterBlacklistedHostsFrom(getPools().keySet());
-        return hosts.stream().map(getPools()::get).collect(Collectors.toList());
+        ImmutableMap<CassandraServer, CassandraClientPoolingContainer> pools = ImmutableMap.copyOf(getPools());
+        return blacklist.filterBlacklistedHostsFrom(pools.keySet()).stream()
+                .map(pools::get)
+                .filter(Objects::nonNull)
+                .collect(ImmutableList.toImmutableList());
     }
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
