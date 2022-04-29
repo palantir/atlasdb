@@ -56,7 +56,7 @@ public class HostnamesByIpSupplierTest {
     CassandraClient secondaryClient;
 
     private final Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(
-            () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofSeconds(10));
+            () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofSeconds(2));
 
     @Test
     public void keyspaceNotAccessibleDoesNotError() throws Exception {
@@ -87,7 +87,7 @@ public class HostnamesByIpSupplierTest {
     @Test
     public void returnsEmptyOnTimeout() throws Exception {
         when(client.describe_keyspace("system_palantir")).thenAnswer(_args -> {
-            Thread.sleep(1_000);
+            Thread.sleep(2_001);
             throw new NotFoundException();
         });
         setupKeyspaceAndTable(secondaryClient);
