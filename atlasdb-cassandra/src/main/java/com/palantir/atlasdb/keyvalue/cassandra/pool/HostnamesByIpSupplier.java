@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -26,9 +28,9 @@ import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.Compression;
@@ -46,36 +48,34 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
     private static final String IP_COLUMN = "ip";
 
     private final Supplier<List<PoolingContainer<CassandraClient>>> hosts;
+    private final Duration timeout;
 
     public HostnamesByIpSupplier(Supplier<List<PoolingContainer<CassandraClient>>> hosts) {
+        this(hosts, Duration.ofSeconds(60));
+    }
+
+    @VisibleForTesting
+    public HostnamesByIpSupplier(Supplier<List<PoolingContainer<CassandraClient>>> hosts, Duration timeout) {
         this.hosts = hosts;
+        this.timeout = timeout;
     }
 
     @Override
     public Map<String, String> get() {
-        Map<String, String> result = ImmutableMap.of();
         List<PoolingContainer<CassandraClient>> containers = hosts.get();
         Stopwatch timer = Stopwatch.createStarted();
         for (PoolingContainer<CassandraClient> container : containers) {
             try {
-                result = container.runWithPooledResource(getHostnamesByIp());
+                return container.runWithPooledResource(getHostnamesByIp());
             } catch (Exception | Error e) {
                 log.warn(
                         "Could not get hostnames by IP from Cassandra",
                         SafeArg.of("poolSize", containers.size()),
-                        SafeArg.of("mappings", result),
                         SafeArg.of("elapsed", timer.elapsed()),
                         e);
             }
 
-            if (result != null && !result.isEmpty()) {
-                log.info(
-                        "Found hostnames by IP mapping for pool",
-                        SafeArg.of("poolSize", containers.size()),
-                        SafeArg.of("mappings", result),
-                        SafeArg.of("elapsed", timer.elapsed()));
-                return result;
-            } else if (timer.elapsed(TimeUnit.SECONDS) > 60) {
+            if (timer.elapsed().toNanos() >= timeout.toNanos()) {
                 log.warn(
                         "Could not find hostnames by IP mapping for pool within timeout",
                         SafeArg.of("poolSize", containers.size()),

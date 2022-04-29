@@ -29,6 +29,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +55,8 @@ public class HostnamesByIpSupplierTest {
     @Mock
     CassandraClient secondaryClient;
 
-    private final Supplier<Map<String, String>> hostnamesByIpSupplier =
-            new HostnamesByIpSupplier(() -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)));
+    private final Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(
+            () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofSeconds(10));
 
     @Test
     public void keyspaceNotAccessibleDoesNotError() throws Exception {
@@ -81,6 +82,24 @@ public class HostnamesByIpSupplierTest {
         Map<String, String> hostnamesByIp = hostnamesByIpSupplier.get();
         assertThat(hostnamesByIp).containsEntry("10.0.0.0", "cassandra-1");
         assertThat(hostnamesByIp).containsEntry("10.0.0.1", "cassandra-2");
+    }
+
+    @Test
+    public void returnsEmptyOnTimeout() throws Exception {
+        when(client.describe_keyspace("system_palantir")).thenAnswer(_args -> {
+            Thread.sleep(1_000);
+            throw new NotFoundException();
+        });
+        setupKeyspaceAndTable(secondaryClient);
+        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(
+                ImmutableList.of(
+                        createColumn("ip", PtBytes.toBytes("10.0.0.0")),
+                        createColumn("hostname", PtBytes.toBytes("cassandra-1"))),
+                ImmutableList.of(
+                        createColumn("ip", PtBytes.toBytes("10.0.0.1")),
+                        createColumn("hostname", PtBytes.toBytes("cassandra-2")))));
+        when(secondaryClient.execute_cql3_query(any(), any(), any())).thenReturn(cqlResult);
+        assertThat(hostnamesByIpSupplier.get()).isEmpty();
     }
 
     @Test

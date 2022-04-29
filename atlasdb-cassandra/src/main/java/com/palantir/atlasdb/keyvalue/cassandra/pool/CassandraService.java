@@ -106,8 +106,8 @@ public class CassandraService implements AutoCloseable {
         this.poolMetrics = poolMetrics;
 
         Supplier<Map<String, String>> hostnamesByIpSupplier =
-                new HostnamesByIpSupplier(this::getAllHostsUnlessBlacklisted);
-        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 2, TimeUnit.MINUTES);
+                new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts);
+        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 1, TimeUnit.MINUTES);
     }
 
     public static CassandraService createInitialized(
@@ -369,7 +369,7 @@ public class CassandraService implements AutoCloseable {
         return randomLivingHost.map(pools::get);
     }
 
-    public List<PoolingContainer<CassandraClient>> getAllHostsUnlessBlacklisted() {
+    public List<PoolingContainer<CassandraClient>> getAllNonBlacklistedHosts() {
         ImmutableMap<CassandraServer, CassandraClientPoolingContainer> pools = ImmutableMap.copyOf(getPools());
         return blacklist.filterBlacklistedHostsFrom(pools.keySet()).stream()
                 .map(pools::get)
