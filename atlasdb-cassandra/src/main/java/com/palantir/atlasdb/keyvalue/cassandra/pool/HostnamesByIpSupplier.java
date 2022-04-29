@@ -56,7 +56,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
         return hosts.get().stream()
                 .map(container -> {
                     try {
-                        return Optional.of(container.runWithPooledResource(getHostnamesByIp()));
+                        return Optional.ofNullable(container.runWithPooledResource(getHostnamesByIp()));
                     } catch (Exception e) {
                         log.warn("Could not get hostnames by ip from Cassandra", e);
                         return Optional.<Map<String, String>>empty();
