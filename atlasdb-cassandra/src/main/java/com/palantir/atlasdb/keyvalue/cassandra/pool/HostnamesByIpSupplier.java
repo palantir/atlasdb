@@ -53,19 +53,42 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
 
     @Override
     public Map<String, String> get() {
-        return hosts.get().stream()
-                .map(container -> {
-                    try {
-                        return Optional.ofNullable(container.runWithPooledResource(getHostnamesByIp()));
-                    } catch (Exception e) {
-                        log.warn("Could not get hostnames by ip from Cassandra", e);
-                        return Optional.<Map<String, String>>empty();
-                    }
-                })
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .findFirst()
-                .orElseGet(ImmutableMap::of);
+        Map<String, String> result = ImmutableMap.of();
+        List<PoolingContainer<CassandraClient>> containers = hosts.get();
+        Stopwatch timer = Stopwatch.createStarted();
+        for (PoolingContainer<CassandraClient> container : containers) {
+            try {
+                result = container.runWithPooledResource(getHostnamesByIp());
+            } catch (Exception | Error e) {
+                log.warn(
+                        "Could not get hostnames by IP from Cassandra",
+                        SafeArg.of("poolSize", containers.size()),
+                        SafeArg.of("mappings", result),
+                        SafeArg.of("elapsed", timer.elapsed()),
+                        e);
+            }
+
+            if (result != null && !result.isEmpty()) {
+                log.info(
+                        "Found hostnames by IP mapping for pool",
+                        SafeArg.of("poolSize", containers.size()),
+                        SafeArg.of("mappings", result),
+                        SafeArg.of("elapsed", timer.elapsed()));
+                return result;
+            } else if (timer.elapsed(TimeUnit.SECONDS) > 60) {
+                log.warn(
+                        "Could not find hostnames by IP mapping for pool within timeout",
+                        SafeArg.of("poolSize", containers.size()),
+                        SafeArg.of("elapsed", timer.elapsed()));
+                return ImmutableMap.of();
+            }
+        }
+
+        log.warn(
+                "Could not find hostnames by IP mapping for pool",
+                SafeArg.of("poolSize", containers.size()),
+                SafeArg.of("elapsed", timer.elapsed()));
+        return ImmutableMap.of();
     }
 
     public FunctionCheckedException<CassandraClient, Map<String, String>, Exception> getHostnamesByIp() {
