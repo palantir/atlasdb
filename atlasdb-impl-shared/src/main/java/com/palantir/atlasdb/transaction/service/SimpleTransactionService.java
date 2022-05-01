@@ -33,6 +33,7 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
     private final PutUnlessExistsTable<Long, Long> txnTable;
@@ -52,12 +53,19 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
     }
 
-    public static SimpleTransactionService createV3(KeyValueService kvs, TaggedMetricRegistry metricRegistry) {
+    public static SimpleTransactionService createV3(
+            KeyValueService kvs,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
             return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
         }
         return createResilient(
-                kvs, TransactionConstants.TRANSACTIONS2_TABLE, TwoPhaseEncodingStrategy.INSTANCE, metricRegistry);
+                kvs,
+                TransactionConstants.TRANSACTIONS2_TABLE,
+                TwoPhaseEncodingStrategy.INSTANCE,
+                metricRegistry,
+                acceptStagingReadsOnVersionThree);
     }
 
     private static SimpleTransactionService createSimple(
@@ -71,11 +79,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             KeyValueService kvs,
             TableReference tableRef,
             TwoPhaseEncodingStrategy encodingStrategy,
-            TaggedMetricRegistry metricRegistry) {
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new KvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        PutUnlessExistsTable<Long, Long> pueTable =
-                new ResilientCommitTimestampPutUnlessExistsTable(store, encodingStrategy);
+        PutUnlessExistsTable<Long, Long> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
+                store, encodingStrategy, acceptStagingReadsOnVersionThree);
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
 

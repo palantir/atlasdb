@@ -33,6 +33,7 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public final class TransactionServices {
     private TransactionServices() {
@@ -49,9 +50,18 @@ public final class TransactionServices {
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
             TaggedMetricRegistry metricRegistry) {
+        return createTransactionService(keyValueService, transactionSchemaManager, metricRegistry, () -> false);
+    }
+
+    public static TransactionService createTransactionService(
+            KeyValueService keyValueService,
+            TransactionSchemaManager transactionSchemaManager,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
         if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
-            return createSplitKeyTransactionService(keyValueService, transactionSchemaManager, metricRegistry);
+            return createSplitKeyTransactionService(
+                    keyValueService, transactionSchemaManager, metricRegistry, acceptStagingReadsOnVersionThree);
         }
         return createV1TransactionService(keyValueService);
     }
@@ -59,7 +69,8 @@ public final class TransactionServices {
     private static TransactionService createSplitKeyTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
-            TaggedMetricRegistry metricRegistry) {
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
         return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
                 transactionSchemaManager::getTransactionsSchemaVersion,
@@ -69,7 +80,8 @@ public final class TransactionServices {
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV2TransactionService(keyValueService),
                         TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV3TransactionService(keyValueService, metricRegistry))));
+                        createV3TransactionService(
+                                keyValueService, metricRegistry, acceptStagingReadsOnVersionThree))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -82,9 +94,11 @@ public final class TransactionServices {
     }
 
     private static TransactionService createV3TransactionService(
-            KeyValueService keyValueService, TaggedMetricRegistry metricRegistry) {
+            KeyValueService keyValueService,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
-                SimpleTransactionService.createV3(keyValueService, metricRegistry)));
+                SimpleTransactionService.createV3(keyValueService, metricRegistry, acceptStagingReadsOnVersionThree)));
     }
 
     /**
