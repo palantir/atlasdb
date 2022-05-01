@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Allow users to configure a mode where transactions3 runs like transactions2,
+    reintroducing the risk of hitting the rare Cassandra LWT consistency bug, but
+    avoiding excessive user contention.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6016
