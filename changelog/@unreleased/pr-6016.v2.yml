@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Set transaction schema version installer interval to 3m
+  links:
+  - https://github.com/palantir/atlasdb/pull/6016
