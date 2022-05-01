@@ -48,7 +48,9 @@ public abstract class InternalSchemaConfig {
      * Eventually, this should be changed to perform some kind of locking.
      */
     @JsonProperty("acceptStagingReadsOnVersionThreeDangerousIKnowWhatIAmDoing")
-    public abstract boolean acceptStagingReadsOnVersionThree();
+    public boolean acceptStagingReadsOnVersionThree() {
+        return false;
+    }
 
     @Value.Check
     public void check() {

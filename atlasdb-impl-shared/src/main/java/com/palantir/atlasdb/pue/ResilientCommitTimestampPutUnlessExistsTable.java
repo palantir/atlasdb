@@ -41,6 +41,11 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     private final Supplier<Boolean> acceptStagingReadsOnVersionThree;
 
     public ResilientCommitTimestampPutUnlessExistsTable(
+            ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
+        this(store, encodingStrategy, () -> false);
+    }
+
+    public ResilientCommitTimestampPutUnlessExistsTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsOnVersionThree) {
