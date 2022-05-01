@@ -31,17 +31,22 @@ import com.palantir.logsafe.SafeArg;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
     private final ConsensusForgettingStore store;
     private final TwoPhaseEncodingStrategy encodingStrategy;
+    private final Supplier<Boolean> acceptStagingReadsOnVersionThree;
 
     public ResilientCommitTimestampPutUnlessExistsTable(
-            ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
+            ConsensusForgettingStore store,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         this.store = store;
         this.encodingStrategy = encodingStrategy;
+        this.acceptStagingReadsOnVersionThree = acceptStagingReadsOnVersionThree;
     }
 
     @Override
@@ -84,7 +89,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
 
             Long commitTs = currentValue.value();
-            if (currentValue.isCommitted()) {
+            if (currentValue.isCommitted() || acceptStagingReadsOnVersionThree.get()) {
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }

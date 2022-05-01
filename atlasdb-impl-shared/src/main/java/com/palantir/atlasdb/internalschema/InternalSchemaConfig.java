@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.internalschema;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -40,6 +41,14 @@ public abstract class InternalSchemaConfig {
      * transaction persistence.
      */
     public abstract Optional<Integer> targetTransactionsSchemaVersion();
+
+    /**
+     * If specified, accepts a read of a STAGING value as COMMITTED when reading a transactions3 value.
+     * This addresses a problem faced at stacks where users have high read throughput.
+     * Eventually, this should be changed to perform some kind of locking.
+     */
+    @JsonProperty("acceptStagingReadsOnVersionThreeDangerousIKnowWhatIAmDoing")
+    public abstract boolean acceptStagingReadsOnVersionThree();
 
     @Value.Check
     public void check() {
