@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[RC only for now] Tune polling interval to 2 mins'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6015
