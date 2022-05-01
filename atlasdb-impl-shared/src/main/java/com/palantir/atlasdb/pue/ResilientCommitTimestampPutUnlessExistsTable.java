@@ -94,13 +94,15 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
 
             Long commitTs = currentValue.value();
-            if (currentValue.isCommitted() || acceptStagingReadsOnVersionThree.get()) {
+            if (currentValue.isCommitted()) {
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
             // if we reach here, actual is guaranteed to be a staging value
             try {
-                store.checkAndTouch(cell, actual);
+                if (!acceptStagingReadsOnVersionThree.get()) {
+                    store.checkAndTouch(cell, actual);
+                }
                 checkAndTouch.put(cell, actual);
             } catch (CheckAndSetException e) {
                 PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
