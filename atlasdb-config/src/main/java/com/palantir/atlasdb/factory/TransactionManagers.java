@@ -690,13 +690,7 @@ public abstract class TransactionManagers {
                         metricsManager.getRegistry(),
                         TransactionService.class,
                         TransactionServices.createTransactionService(
-                                keyValueService,
-                                transactionSchemaManager,
-                                metricsManager.getTaggedRegistry(),
-                                () -> runtimeConfigSupplier
-                                        .get()
-                                        .internalSchema()
-                                        .acceptStagingReadsOnVersionThree())),
+                                keyValueService, transactionSchemaManager, metricsManager.getTaggedRegistry())),
                 closeables);
         Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
