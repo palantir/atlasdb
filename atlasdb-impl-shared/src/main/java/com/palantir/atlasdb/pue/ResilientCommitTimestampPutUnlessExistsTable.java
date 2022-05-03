@@ -31,17 +31,27 @@ import com.palantir.logsafe.SafeArg;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
     private final ConsensusForgettingStore store;
     private final TwoPhaseEncodingStrategy encodingStrategy;
+    private final Supplier<Boolean> acceptStagingReadsAsCommitted;
 
     public ResilientCommitTimestampPutUnlessExistsTable(
             ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
+        this(store, encodingStrategy, () -> false);
+    }
+
+    public ResilientCommitTimestampPutUnlessExistsTable(
+            ConsensusForgettingStore store,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
         this.store = store;
         this.encodingStrategy = encodingStrategy;
+        this.acceptStagingReadsAsCommitted = acceptStagingReadsAsCommitted;
     }
 
     @Override
@@ -90,7 +100,9 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             }
             // if we reach here, actual is guaranteed to be a staging value
             try {
-                store.checkAndTouch(cell, actual);
+                if (!acceptStagingReadsAsCommitted.get()) {
+                    store.checkAndTouch(cell, actual);
+                }
                 checkAndTouch.put(cell, actual);
             } catch (CheckAndSetException e) {
                 PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
