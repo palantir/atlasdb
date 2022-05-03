@@ -29,6 +29,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,10 +40,12 @@ import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.thrift.TException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -50,8 +53,11 @@ public class HostnamesByIpSupplierTest {
     @Mock
     CassandraClient client;
 
-    private final Supplier<Map<String, String>> hostnamesByIpSupplier =
-            new HostnamesByIpSupplier(() -> new DummyClientPool(client));
+    @Mock
+    CassandraClient secondaryClient;
+
+    private final Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(
+            () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofSeconds(10));
 
     @Test
     public void keyspaceNotAccessibleDoesNotError() throws Exception {
@@ -59,6 +65,46 @@ public class HostnamesByIpSupplierTest {
 
         assertThatCode(hostnamesByIpSupplier::get).doesNotThrowAnyException();
         assertThat(hostnamesByIpSupplier.get()).isEmpty();
+    }
+
+    @Test
+    public void triesMultipleHosts() throws Exception {
+        when(client.describe_keyspace("system_palantir")).thenThrow(new TimedOutException());
+        setupKeyspaceAndTable(secondaryClient);
+        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(
+                ImmutableList.of(
+                        createColumn("ip", PtBytes.toBytes("10.0.0.0")),
+                        createColumn("hostname", PtBytes.toBytes("cassandra-1"))),
+                ImmutableList.of(
+                        createColumn("ip", PtBytes.toBytes("10.0.0.1")),
+                        createColumn("hostname", PtBytes.toBytes("cassandra-2")))));
+        when(secondaryClient.execute_cql3_query(any(), any(), any())).thenReturn(cqlResult);
+
+        Map<String, String> hostnamesByIp = hostnamesByIpSupplier.get();
+        assertThat(hostnamesByIp).containsEntry("10.0.0.0", "cassandra-1");
+        assertThat(hostnamesByIp).containsEntry("10.0.0.1", "cassandra-2");
+    }
+
+    @Test
+    public void returnsEmptyOnTimeout() throws Exception {
+        HostnamesByIpSupplier supplier = new HostnamesByIpSupplier(
+                () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofNanos(1));
+        when(client.describe_keyspace("system_palantir")).thenAnswer(_args -> {
+            Thread.sleep(1);
+            throw new NotFoundException();
+        });
+        setupKeyspaceAndTable(secondaryClient);
+        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(
+                ImmutableList.of(
+                        createColumn("ip", PtBytes.toBytes("10.0.0.0")),
+                        createColumn("hostname", PtBytes.toBytes("cassandra-1"))),
+                ImmutableList.of(
+                        createColumn("ip", PtBytes.toBytes("10.0.0.1")),
+                        createColumn("hostname", PtBytes.toBytes("cassandra-2")))));
+        Mockito.lenient()
+                .when(secondaryClient.execute_cql3_query(any(), any(), any()))
+                .thenReturn(cqlResult);
+        assertThat(supplier.get()).isEmpty();
     }
 
     @Test
@@ -72,7 +118,7 @@ public class HostnamesByIpSupplierTest {
 
     @Test
     public void unexpectedTableFormatDoesNotError() throws Exception {
-        setupKeyspaceAndTable();
+        setupKeyspaceAndTable(client);
         CqlResult cqlResult = createMockCqlResult(ImmutableList.of(ImmutableList.of(
                 createColumn("unknown_name", PtBytes.toBytes("unknown_value")),
                 createColumn("another_unknown_name", PtBytes.toBytes("another_unknown_value")))));
@@ -84,7 +130,7 @@ public class HostnamesByIpSupplierTest {
 
     @Test
     public void hostnamesByIpAreReturnedWhenPresent() throws Exception {
-        setupKeyspaceAndTable();
+        setupKeyspaceAndTable(client);
         CqlResult cqlResult = createMockCqlResult(ImmutableList.of(
                 ImmutableList.of(
                         createColumn("ip", PtBytes.toBytes("10.0.0.0")),
@@ -101,7 +147,7 @@ public class HostnamesByIpSupplierTest {
 
     @Test
     public void unknownColumnsAreIgnored() throws Exception {
-        setupKeyspaceAndTable();
+        setupKeyspaceAndTable(client);
         CqlResult cqlResult = createMockCqlResult(ImmutableList.of(ImmutableList.of(
                 createColumn("ip", PtBytes.toBytes("10.0.0.0")),
                 createColumn("hostname", PtBytes.toBytes("cassandra-1")),
@@ -112,8 +158,8 @@ public class HostnamesByIpSupplierTest {
         assertThat(hostnamesByIp).containsEntry("10.0.0.0", "cassandra-1");
     }
 
-    private void setupKeyspaceAndTable() throws TException {
-        when(client.describe_keyspace("system_palantir"))
+    private void setupKeyspaceAndTable(CassandraClient clientToSetup) throws TException {
+        when(clientToSetup.describe_keyspace("system_palantir"))
                 .thenReturn(new KsDef(
                         "system_palantir", "", ImmutableList.of(new CfDef("system_palantir", "hostnames_by_ip"))));
     }

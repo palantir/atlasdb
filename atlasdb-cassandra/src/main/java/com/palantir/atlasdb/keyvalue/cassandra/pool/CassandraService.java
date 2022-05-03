@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -104,8 +105,9 @@ public class CassandraService implements AutoCloseable {
         this.blacklist = blacklist;
         this.poolMetrics = poolMetrics;
 
-        Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(this::getRandomGoodHost);
-        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 2, TimeUnit.MINUTES);
+        Supplier<Map<String, String>> hostnamesByIpSupplier =
+                new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts);
+        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 1, TimeUnit.MINUTES);
     }
 
     public static CassandraService createInitialized(
@@ -365,6 +367,14 @@ public class CassandraService implements AutoCloseable {
 
         Optional<CassandraServer> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
         return randomLivingHost.map(pools::get);
+    }
+
+    public List<PoolingContainer<CassandraClient>> getAllNonBlacklistedHosts() {
+        ImmutableMap<CassandraServer, CassandraClientPoolingContainer> pools = ImmutableMap.copyOf(getPools());
+        return blacklist.filterBlacklistedHostsFrom(pools.keySet()).stream()
+                .map(pools::get)
+                .filter(Objects::nonNull)
+                .collect(ImmutableList.toImmutableList());
     }
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
