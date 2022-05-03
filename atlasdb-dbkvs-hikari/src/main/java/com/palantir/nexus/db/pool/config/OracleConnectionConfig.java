@@ -262,8 +262,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     public static class OracleSqlExceptionOverride implements SQLExceptionOverride {
 
         // Must be public as Hikari instantiates via reflection
-        public OracleSqlExceptionOverride() {
-        }
+        public OracleSqlExceptionOverride() {}
 
         /*
          * See https://github.com/brettwooldridge/HikariCP/pull/1838
@@ -275,8 +274,9 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
          */
         @java.lang.Override
         public SQLExceptionOverride.Override adjudicate(SQLException sqlException) {
-            return sqlException instanceof SQLTimeoutException ? SQLExceptionOverride.Override.DO_NOT_EVICT :
-                    SQLExceptionOverride.Override.CONTINUE_EVICT;
+            return sqlException instanceof SQLTimeoutException
+                    ? SQLExceptionOverride.Override.DO_NOT_EVICT
+                    : SQLExceptionOverride.Override.CONTINUE_EVICT;
         }
     }
 }
