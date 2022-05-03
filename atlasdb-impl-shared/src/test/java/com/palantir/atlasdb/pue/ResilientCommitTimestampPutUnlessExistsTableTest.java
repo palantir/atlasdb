@@ -34,21 +34,45 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class ResilientCommitTimestampPutUnlessExistsTableTest {
+    private static final String VALIDATING_STAGING_VALUES = "validating staging values";
+    private static final String NOT_VALIDATING_STAGING_VALUES = "not validating staging values";
+
     private final UnreliableInMemoryKvs kvs = new UnreliableInMemoryKvs();
     private final ConsensusForgettingStore spiedStore =
             spy(new KvsConsensusForgettingStore(kvs, TableReference.createFromFullyQualifiedName("test.table")));
 
-    private final PutUnlessExistsTable<Long, Long> pueTable =
-            new ResilientCommitTimestampPutUnlessExistsTable(spiedStore, TwoPhaseEncodingStrategy.INSTANCE);
+    private final PutUnlessExistsTable<Long, Long> pueTable;
+
+    @SuppressWarnings("unchecked") // Guaranteed given implementation of data()
+    public ResilientCommitTimestampPutUnlessExistsTableTest(String name, Object parameter) {
+        pueTable = new ResilientCommitTimestampPutUnlessExistsTable(spiedStore, TwoPhaseEncodingStrategy.INSTANCE,
+                ((Supplier<Boolean>) parameter));
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+        Object[][] data = new Object[][] {
+                {VALIDATING_STAGING_VALUES, (Supplier<Boolean>) () -> false},
+                {NOT_VALIDATING_STAGING_VALUES, (Supplier<Boolean>) () -> true}
+        };
+        return Arrays.asList(data);
+    }
+
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {
