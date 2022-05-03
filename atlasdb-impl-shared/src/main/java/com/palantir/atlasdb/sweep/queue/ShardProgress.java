@@ -197,6 +197,7 @@ public class ShardProgress {
         }
     }
 
+    @SuppressWarnings("ImmutablesReferenceEquality")
     private static boolean isDefaultValue(ShardAndStrategy shardAndStrategy, long oldVal) {
         return SweepQueueUtils.firstSweep(oldVal)
                 || (shardAndStrategy == SHARD_COUNT_SAS

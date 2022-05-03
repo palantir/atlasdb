@@ -26,7 +26,7 @@ import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
@@ -256,7 +256,7 @@ public abstract class BasicSQL {
     /**
      * Takes a byte array, deserializes it and returns an Object
      */
-    @SuppressWarnings("BanSerializableRead")
+    @SuppressWarnings({"BanSerializableRead", "DangerousJavaDeserialization"})
     static Object getBlobObject(InputStream stream) throws IOException, ClassNotFoundException {
         ObjectInputStream ois = new ObjectInputStream(stream);
         Object object = ois.readObject();
@@ -595,8 +595,7 @@ public abstract class BasicSQL {
                 SafeArg.of("elapsedTime", elapsedTime),
                 SafeArg.of("errorCode", cause.getErrorCode()), // $NON-NLS-1$
                 SafeArg.of("SQLState", cause.getSQLState()), // $NON-NLS-1$
-                UnsafeArg.of("SQLException", cause.getNextException()), // $NON-NLS-1$
-                new Exception("Just for a stack trace", cause));
+                new SafeRuntimeException("Just for a stack trace", cause));
         Thread.currentThread().interrupt();
         throw new PalantirInterruptedException("SQL call interrupted", cause); // $NON-NLS-1$
     }

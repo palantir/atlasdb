@@ -196,7 +196,7 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
         if (columns.get(col) == null) {
             return null;
         }
-        return Double.valueOf(getLong(col));
+        return Double.valueOf((double) getLong(col));
     }
 
     @Override
