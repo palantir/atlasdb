@@ -60,19 +60,18 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     @SuppressWarnings("unchecked") // Guaranteed given implementation of data()
     public ResilientCommitTimestampPutUnlessExistsTableTest(String name, Object parameter) {
-        pueTable = new ResilientCommitTimestampPutUnlessExistsTable(spiedStore, TwoPhaseEncodingStrategy.INSTANCE,
-                ((Supplier<Boolean>) parameter));
+        pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
+                spiedStore, TwoPhaseEncodingStrategy.INSTANCE, ((Supplier<Boolean>) parameter));
     }
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {VALIDATING_STAGING_VALUES, (Supplier<Boolean>) () -> false},
-                {NOT_VALIDATING_STAGING_VALUES, (Supplier<Boolean>) () -> true}
+            {VALIDATING_STAGING_VALUES, (Supplier<Boolean>) () -> false},
+            {NOT_VALIDATING_STAGING_VALUES, (Supplier<Boolean>) () -> true}
         };
         return Arrays.asList(data);
     }
-
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {
