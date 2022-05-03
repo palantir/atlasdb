@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
@@ -89,6 +90,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Override
     @Value.Default
+    @Nullable
     public String getTestQuery() {
         return null;
     }
