@@ -1,5 +1,7 @@
 type: improvement
 improvement:
-  description: Don't let Hikari treat SQLTimeoutException an evictable
+  description: |-
+    Don't let Hikari treat SQLTimeoutException an evictable
+    Allow null testQuery (and use Connection.isActive() in that case)
   links:
   - https://github.com/palantir/atlasdb/pull/6018
