@@ -239,6 +239,10 @@ public class Scrubber {
 
     @VisibleForTesting
     void runBackgroundScrubTask(final TransactionManager txManager) {
+        if (!isScrubEnabled.get()) {
+            log.debug("Not running scrub, are we are currently during banned hours.");
+            return;
+        }
         log.debug("Starting scrub task");
 
         // Warning: Let T be the hard delete transaction that triggered a scrub, and let S be its
