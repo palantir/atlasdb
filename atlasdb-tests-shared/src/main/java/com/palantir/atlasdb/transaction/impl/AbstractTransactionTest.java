@@ -1822,7 +1822,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .startRowInclusive(PtBytes.toBytes("zzzz"))
                 .build();
 
-        // Contract is not entirely valid, but we don'tx have a good way of mocking out the KVS.
+        // Contract is not entirely valid, but we don't have a good way of mocking out the KVS.
         UnaryOperator<RangeRequest> goldenForcingOperator = $ -> goldenRequest;
 
         putDirect("tom", "col", "value", 0);
