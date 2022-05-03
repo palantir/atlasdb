@@ -94,7 +94,7 @@ public class DistributionOutlierControllerTest {
 
         value.set(8);
         tick.addAndGet(DistributionOutlierController.REFRESH_INTERVAL.toNanos() + 1);
-        assertThat(defaultController.getMeanGauge().getValue()).isEqualTo(8L);
+        assertThat(defaultController.getMeanGauge().getValue()).isEqualTo((double) 8L);
     }
 
     @Test

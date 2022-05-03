@@ -46,6 +46,7 @@ public class TableMetadataCache {
     }
 
     @CheckForNull
+    @SuppressWarnings("ImmutablesReferenceEquality")
     public TableMetadata getMetadata(String tableName) {
         TableMetadata ret = cache.getUnchecked(tableName);
         if (ret == EMPTY) {

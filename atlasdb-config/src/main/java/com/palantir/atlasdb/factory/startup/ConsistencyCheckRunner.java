@@ -43,8 +43,6 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
 
     private static final SafeLogger log = SafeLoggerFactory.get(ConsistencyCheckRunner.class);
 
-    private static final RuntimeException UNKNOWN = new SafeRuntimeException("unknown");
-
     private final List<TransactionManagerConsistencyCheck> consistencyChecks;
 
     @VisibleForTesting
@@ -76,7 +74,9 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
                 // Errors get bubbled up to the top level
                 throw new AssertionError(
                         "AtlasDB found in an unexpected state!",
-                        consistencyResult.reasonForInconsistency().orElse(UNKNOWN));
+                        consistencyResult
+                                .reasonForInconsistency()
+                                .orElseGet(() -> new SafeRuntimeException("unknown")));
             case INDETERMINATE:
                 throw new NotInitializedException("ConsistencyCheckRunner");
             case CONSISTENT:

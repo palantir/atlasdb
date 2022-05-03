@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -48,6 +46,7 @@ import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -180,7 +179,8 @@ public class SweepableCells extends SweepQueueTable {
                 .filter(row -> {
                     TargetedSweepMetadata metadata =
                             TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
-                    checkState(metadata.dedicatedRow(), "Row not a dedicated row", SafeArg.of("row", row));
+                    Preconditions.checkState(
+                            metadata.dedicatedRow(), "Row not a dedicated row", SafeArg.of("row", row));
                     return tsToSweep.timestampsDescending().contains(row.getTimestampPartition());
                 })
                 .collect(Collectors.toList()));

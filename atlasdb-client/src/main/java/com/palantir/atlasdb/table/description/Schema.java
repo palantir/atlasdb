@@ -323,6 +323,7 @@ public class Schema {
      *
      * @param srcDir root source directory where code generation is performed.
      */
+    @SuppressWarnings("DangerousIdentityKey")
     public void renderTables(File srcDir) throws IOException {
         com.palantir.logsafe.Preconditions.checkNotNull(name, "schema name not set");
         com.palantir.logsafe.Preconditions.checkNotNull(packageName, "package name not set");

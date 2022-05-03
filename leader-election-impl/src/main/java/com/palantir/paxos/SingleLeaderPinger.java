@@ -278,6 +278,7 @@ public final class SingleLeaderPinger implements LeaderPinger {
         return Optional.empty();
     }
 
+    @SuppressWarnings("ImmutablesReferenceEquality")
     private void throwIfInvalidSetup(
             LeaderPingerContext<PingableLeader> cachedService,
             LeaderPingerContext<PingableLeader> pingedService,

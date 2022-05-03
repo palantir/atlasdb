@@ -47,7 +47,7 @@ public interface SweepTableIdentifier extends Persistable {
 
     @Override
     default byte[] persistToBytes() {
-        return EncodingUtils.encodeSignedVarLong((isPending() ? -1 : 1) * identifier());
+        return EncodingUtils.encodeSignedVarLong((isPending() ? -1 : 1) * ((long) identifier()));
     }
 
     @Value.Check

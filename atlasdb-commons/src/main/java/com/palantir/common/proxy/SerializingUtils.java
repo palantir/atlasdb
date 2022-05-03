@@ -36,7 +36,7 @@ public final class SerializingUtils {
         return copy(orig, (is, codebase) -> new ObjectInputStream(is));
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "DangerousJavaDeserialization"})
     public static <T> T copy(T orig, ObjectInputStreamFactory factory) {
         T obj = null;
 
