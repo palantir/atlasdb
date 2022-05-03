@@ -45,6 +45,7 @@ import org.apache.thrift.TException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -56,7 +57,7 @@ public class HostnamesByIpSupplierTest {
     CassandraClient secondaryClient;
 
     private final Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(
-            () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofSeconds(2));
+            () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofSeconds(10));
 
     @Test
     public void keyspaceNotAccessibleDoesNotError() throws Exception {
@@ -86,8 +87,10 @@ public class HostnamesByIpSupplierTest {
 
     @Test
     public void returnsEmptyOnTimeout() throws Exception {
+        HostnamesByIpSupplier supplier = new HostnamesByIpSupplier(
+                () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofNanos(1));
         when(client.describe_keyspace("system_palantir")).thenAnswer(_args -> {
-            Thread.sleep(2_001);
+            Thread.sleep(1);
             throw new NotFoundException();
         });
         setupKeyspaceAndTable(secondaryClient);
@@ -98,8 +101,10 @@ public class HostnamesByIpSupplierTest {
                 ImmutableList.of(
                         createColumn("ip", PtBytes.toBytes("10.0.0.1")),
                         createColumn("hostname", PtBytes.toBytes("cassandra-2")))));
-        when(secondaryClient.execute_cql3_query(any(), any(), any())).thenReturn(cqlResult);
-        assertThat(hostnamesByIpSupplier.get()).isEmpty();
+        Mockito.lenient()
+                .when(secondaryClient.execute_cql3_query(any(), any(), any()))
+                .thenReturn(cqlResult);
+        assertThat(supplier.get()).isEmpty();
     }
 
     @Test
