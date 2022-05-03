@@ -75,7 +75,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
                         e);
             }
 
-            if (timer.elapsed().toNanos() >= timeout.toNanos()) {
+            if (timer.elapsed().compareTo(timeout) >= 0) {
                 log.warn(
                         "Could not find hostnames by IP mapping for pool within timeout",
                         SafeArg.of("poolSize", containers.size()),
