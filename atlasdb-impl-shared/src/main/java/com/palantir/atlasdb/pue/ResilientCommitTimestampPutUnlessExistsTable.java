@@ -48,7 +48,9 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             .build(new CacheLoader<>() {
                 @Override
                 public RequiresPut load(CellAndValue cellAndValue) {
-                    return touchAndReturn(cellAndValue);
+                    synchronized (this) {
+                        return touchAndReturn(cellAndValue);
+                    }
                 }
             });
 
