@@ -55,7 +55,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
     }
 
     @VisibleForTesting
-    public HostnamesByIpSupplier(Supplier<List<PoolingContainer<CassandraClient>>> hosts, Duration timeout) {
+    HostnamesByIpSupplier(Supplier<List<PoolingContainer<CassandraClient>>> hosts, Duration timeout) {
         this.hosts = hosts;
         this.timeout = timeout;
     }
