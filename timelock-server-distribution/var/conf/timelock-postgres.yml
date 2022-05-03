@@ -4,6 +4,7 @@ install:
     is-new-service: false
   timestampBoundPersistence:
     type: database
+    initialize-async: true
     key-value-service:
       type: "relational"
       ddl:

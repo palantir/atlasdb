@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import org.immutables.value.Value;
 
@@ -30,6 +31,12 @@ public abstract class DatabaseTsBoundPersisterConfiguration implements TsBoundPe
 
     @JsonProperty("key-value-service")
     public abstract KeyValueServiceConfig keyValueServiceConfig();
+
+    @JsonProperty("initialize-async")
+    @Value.Default
+    public boolean initializeAsync() {
+        return AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC;
+    }
 
     @Override
     public boolean isLocationallyIncompatible(TsBoundPersisterConfiguration other) {

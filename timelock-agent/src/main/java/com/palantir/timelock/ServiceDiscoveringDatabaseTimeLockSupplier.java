@@ -49,14 +49,15 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            LeaderConfig leaderConfig) {
+            LeaderConfig leaderConfig,
+            boolean initializeAsync) {
         DbTimeLockFactory dbTimeLockFactory = AtlasDbServiceDiscovery.createDbTimeLockFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(
-                () -> dbTimeLockFactory.createRawKeyValueService(metricsManager, config, runtimeConfig, leaderConfig));
+                () -> dbTimeLockFactory.createRawKeyValueService(metricsManager, config, runtimeConfig, leaderConfig, initializeAsync));
         timestampServiceFactory = creationSetting -> dbTimeLockFactory.createManagedTimestampService(
-                keyValueService.get(), creationSetting, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                keyValueService.get(), creationSetting, initializeAsync);
         timestampSeriesProvider = tableRef -> dbTimeLockFactory.createTimestampSeriesProvider(
-                keyValueService.get(), tableRef, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                keyValueService.get(), tableRef, initializeAsync);
     }
 
     @Override
