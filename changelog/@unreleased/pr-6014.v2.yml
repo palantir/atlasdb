@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Try every host when attempting to get the ip to hostname mapping if
+    a failure is hit.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6014
