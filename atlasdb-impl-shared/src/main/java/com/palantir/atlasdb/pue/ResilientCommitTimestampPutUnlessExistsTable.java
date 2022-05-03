@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.pue;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
@@ -33,10 +36,41 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import org.immutables.value.Value;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
     private final ConsensusForgettingStore store;
     private final TwoPhaseEncodingStrategy encodingStrategy;
+    private final LoadingCache<CellAndValue, RequiresPut> needsPutCache = CacheBuilder.newBuilder()
+            .maximumSize(1000)
+            .build(new CacheLoader<>() {
+                @Override
+                public RequiresPut load(CellAndValue cellAndValue) {
+                    return touchAndReturn(cellAndValue);
+                }
+            });
+
+    private RequiresPut touchAndReturn(CellAndValue cellAndValue) {
+        Cell cell = cellAndValue.cell();
+        byte[] actual = cellAndValue.value();
+        try {
+            store.checkAndTouch(cell, actual);
+            return RequiresPut.YES;
+        } catch (CheckAndSetException e) {
+            long startTs = cellAndValue.startTs();
+            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            Long commitTs = currentValue.value();
+            PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+                    startTs, Iterables.getOnlyElement(e.getActualValues()));
+            Preconditions.checkState(
+                    kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
+                    "Failed to persist a staging value for commit timestamp because an unexpected value "
+                            + "was found in the KVS",
+                    SafeArg.of("kvsValue", kvsValue),
+                    SafeArg.of("stagingValue", currentValue));
+            return RequiresPut.NO;
+        }
+    }
 
     public ResilientCommitTimestampPutUnlessExistsTable(
             ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
@@ -88,6 +122,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
+            // needsPutCache.get()
+
             // if we reach here, actual is guaranteed to be a staging value
             try {
                 store.checkAndTouch(cell, actual);
@@ -111,5 +147,22 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 .map(encodingStrategy::transformStagingToCommitted)
                 .collectToMap());
         return resultBuilder.build();
+    }
+
+    @Value.Immutable
+    interface CellAndValue {
+        @Value.Parameter
+        Cell cell();
+
+        @Value.Parameter
+        long startTs();
+
+        @Value.Parameter
+        byte[] value();
+    }
+
+    private enum RequiresPut {
+        YES,
+        NO;
     }
 }
