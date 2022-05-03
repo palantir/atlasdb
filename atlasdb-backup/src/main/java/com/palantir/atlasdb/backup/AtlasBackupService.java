@@ -176,7 +176,7 @@ public final class AtlasBackupService implements Closeable {
         log.info(
                 "Cleaning up backup. This will remove all record of in-progress backups on this node.",
                 SafeArg.of("inProgressBackupCount", inProgressBackups.size()),
-                SafeArg.of("servicesWithInProgressBackups", inProgressBackups.keySet()));
+                SafeArg.of("servicesWithInProgressBackups", ImmutableSet.copyOf(inProgressBackups.keySet())));
         lockRefresher.unregisterLocks(ImmutableSet.copyOf(inProgressBackups.values()));
         inProgressBackups.clear();
         lockRefresher.close();
