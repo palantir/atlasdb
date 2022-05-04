@@ -168,7 +168,9 @@ public abstract class ConnectionConfig {
         // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
 
-        config.setConnectionTestQuery(getTestQuery());
+        if (!getTestQuery().isEmpty()) {
+            config.setConnectionTestQuery(getTestQuery());
+        }
 
         config.setExceptionOverrideClassName(getSqlExceptionOverrideClassname());
 
