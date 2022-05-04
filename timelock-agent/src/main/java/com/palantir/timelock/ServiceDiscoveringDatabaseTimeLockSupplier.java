@@ -52,12 +52,12 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
             LeaderConfig leaderConfig,
             boolean initializeAsync) {
         DbTimeLockFactory dbTimeLockFactory = AtlasDbServiceDiscovery.createDbTimeLockFactoryOfCorrectType(config);
-        keyValueService = Suppliers.memoize(
-                () -> dbTimeLockFactory.createRawKeyValueService(metricsManager, config, runtimeConfig, leaderConfig, initializeAsync));
+        keyValueService = Suppliers.memoize(() -> dbTimeLockFactory.createRawKeyValueService(
+                metricsManager, config, runtimeConfig, leaderConfig, initializeAsync));
         timestampServiceFactory = creationSetting -> dbTimeLockFactory.createManagedTimestampService(
                 keyValueService.get(), creationSetting, initializeAsync);
-        timestampSeriesProvider = tableRef -> dbTimeLockFactory.createTimestampSeriesProvider(
-                keyValueService.get(), tableRef, initializeAsync);
+        timestampSeriesProvider = tableRef ->
+                dbTimeLockFactory.createTimestampSeriesProvider(keyValueService.get(), tableRef, initializeAsync);
     }
 
     @Override
