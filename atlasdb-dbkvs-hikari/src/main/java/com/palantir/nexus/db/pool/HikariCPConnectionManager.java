@@ -32,9 +32,9 @@ import com.zaxxer.hikari.HikariPoolMXBean;
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import java.lang.management.ManagementFactory;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.TimeZone;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -249,8 +249,9 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 throw new SQLException(String.format("Connection %s is not valid", connection));
             }
         } else {
-            try (Statement stmt = connection.createStatement();
-                    ResultSet rs = stmt.executeQuery(connConfig.getTestQuery())) {
+            try (PreparedStatement stmt = connection.prepareStatement(connConfig.getTestQuery())) {
+                stmt.setFetchSize(1);
+                ResultSet rs = stmt.executeQuery();
                 if (!rs.next()) {
                     throw new SQLException(String.format(
                             "Connection %s could not be validated as it did not return any results for test query %s",
