@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.nexus.db.DBType;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableH2ConnectionConfig.class)
@@ -53,7 +52,6 @@ public abstract class H2ConnectionConfig extends ConnectionConfig {
 
     @Override
     @Value.Default
-    @Nullable
     public String getTestQuery() {
         return "SELECT 1";
     }

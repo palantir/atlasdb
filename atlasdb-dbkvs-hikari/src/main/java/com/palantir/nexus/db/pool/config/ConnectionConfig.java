@@ -29,7 +29,6 @@ import java.sql.Connection;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
 
@@ -58,7 +57,6 @@ public abstract class ConnectionConfig {
 
     public abstract String getDriverClass();
 
-    @Nullable
     public abstract String getTestQuery();
 
     @JsonIgnore
