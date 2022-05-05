@@ -151,14 +151,11 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     @Test
     public void inAbsenceOfConcurrencyGetRetriesBothTouchAndPut() throws ExecutionException, InterruptedException {
-        spiedStore.startFailingPuts();
-        assertThatThrownBy(() -> pueTable.putUnlessExists(7L, 7L))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to set value");
+        setupStagingValues(1);
 
         int numberOfReads = 100;
         for (int i = 0; i < numberOfReads; i++) {
-            assertThatThrownBy(() -> pueTable.get(7L).get())
+            assertThatThrownBy(() -> pueTable.get(0L).get())
                     .isInstanceOf(ExecutionException.class)
                     .hasCauseInstanceOf(RuntimeException.class)
                     .hasMessageContaining("Failed to set value");
@@ -169,7 +166,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         spiedStore.stopFailingPuts();
         for (long i = 0; i < 100; i++) {
-            assertThat(pueTable.get(7L).get()).isEqualTo(7L);
+            assertThat(pueTable.get(0L).get()).isEqualTo(0L);
         }
 
         verify(spiedKvs, times(101)).checkAndSet(any());
@@ -177,12 +174,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     }
 
     @Test
-    public void coalesceConcurrentGetsForSameTimestamps() {
-        spiedStore.startFailingPuts();
-        Map<Long, Long> initialWrites = LongStream.range(0, 5).boxed().collect(Collectors.toMap(x -> x, x -> x));
-        assertThatThrownBy(() -> pueTable.putUnlessExistsMultiple(initialWrites))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to set value");
+    public void coalesceConcurrentGetsForSameTimestampsInPresenceOfFailuresButSucceedsWhenFailuresStop()
+            throws ExecutionException, InterruptedException {
+        setupStagingValues(5);
 
         ExecutorService writers = Executors.newFixedThreadPool(100);
         ThreadLocalRandom random = ThreadLocalRandom.current();
@@ -197,21 +191,47 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
                 .hasMessageContaining("Failed to set value"));
         writers.shutdownNow();
 
-        long puts = getNumberOfInvocations(spiedStore, "put");
         long checkAndSets = getNumberOfInvocations(spiedKvs, "checkAndSet");
+        long puts = getNumberOfInvocations(spiedStore, "put");
 
         // assert that some concurrent gets get coalesced but no guarantees due to scheduling
         assertThat(checkAndSets).isLessThan(numberOfReads / 2);
         assertThat(checkAndSets).isEqualTo(puts - 1);
+
+        spiedStore.stopFailingPuts();
+        assertThat(pueTable.get(0L).get()).isEqualTo(0L);
+        assertThat(getNumberOfInvocations(spiedKvs, "checkAndSet")).isEqualTo(checkAndSets + 1);
+        assertThat(getNumberOfInvocations(spiedStore, "put")).isEqualTo(puts + 1);
+    }
+
+    @Test
+    public void noSuperfluousCasOrPuts() {
+        setupStagingValues(50);
+
+        spiedStore.stopFailingPuts();
+        ExecutorService writers = Executors.newFixedThreadPool(100);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
+        int numberOfReads = 100_000;
+        for (int i = 0; i < numberOfReads; i++) {
+            results.add(writers.submit(() -> pueTable.get(random.nextLong(50L))));
+        }
+        results.forEach(future -> {
+            try {
+                assertThat(future.get().get()).isBetween(0L, 49L);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        writers.shutdownNow();
+
+        verify(spiedKvs, times(50)).checkAndSet(any());
+        verify(spiedStore, times(51)).put(anyMap());
     }
 
     @Test
     public void touchesAreSerial() {
-        spiedStore.startFailingPuts();
-        Map<Long, Long> initialWrites = LongStream.range(0, 10).boxed().collect(Collectors.toMap(x -> x, x -> x));
-        assertThatThrownBy(() -> pueTable.putUnlessExistsMultiple(initialWrites))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to set value");
+        setupStagingValues(10);
 
         ExecutorService writers = Executors.newFixedThreadPool(100);
         ThreadLocalRandom random = ThreadLocalRandom.current();
@@ -232,6 +252,25 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         writers.shutdownNow();
 
         assertThat(spiedStore.multipleConcurrentTouches()).isFalse();
+    }
+
+    @Test
+    public void doNotPutIfAlreadyCommitted() throws ExecutionException, InterruptedException {
+        setupStagingValues(1);
+        spiedStore.enableCommittingUnderUs();
+
+        assertThat(pueTable.get(0L).get()).isEqualTo(0L);
+        verify(spiedKvs, times(1)).checkAndSet(any());
+        // only the put from the original PUE was registered
+        verify(spiedStore, times(1)).put(anyMap());
+    }
+
+    private void setupStagingValues(int num) {
+        spiedStore.startFailingPuts();
+        Map<Long, Long> initialWrites = LongStream.range(0, num).boxed().collect(Collectors.toMap(x -> x, x -> x));
+        assertThatThrownBy(() -> pueTable.putUnlessExistsMultiple(initialWrites))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to set value");
     }
 
     private static long getNumberOfInvocations(Object mock, String put) {
@@ -275,6 +314,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         private volatile boolean failPuts = false;
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
         private volatile boolean multipleConcurrentTouches = false;
+        private boolean commitUnderUs = false;
 
         public UnreliableKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
             super(kvs, tableRef);
@@ -294,6 +334,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
          */
         @Override
         public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+            if (commitUnderUs) {
+                super.put(ImmutableMap.of(cell, TwoPhaseEncodingStrategy.INSTANCE.transformStagingToCommitted(value)));
+            }
             if (concurrentTouches.incrementAndGet() > 1) {
                 multipleConcurrentTouches = true;
             }
@@ -314,6 +357,13 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         public boolean multipleConcurrentTouches() {
             return multipleConcurrentTouches;
+        }
+
+        /**
+         * This will cause a staging value to be committed just before we try to touch it
+         */
+        public void enableCommittingUnderUs() {
+            commitUnderUs = true;
         }
     }
 }
