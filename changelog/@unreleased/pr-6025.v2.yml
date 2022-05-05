@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: '`CqlFactory` and `CassandraAsyncKeyValueService` now take the relevant
+    configuration values when constructing, rather than an entire `CassandraKeyValueServiceConfig`
+    instance.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6025
