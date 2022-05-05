@@ -21,7 +21,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -33,6 +32,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -111,7 +111,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     private Map<Long, Long> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
-        Set<CellInfo> cellsRequiringPut = Sets.newHashSet();
+        Set<CellInfo> cellsRequiringPut = new HashSet<>();
         ImmutableMap.Builder<Long, Long> resultBuilder = ImmutableMap.builder();
         for (Map.Entry<Long, Cell> startTsAndCell : startTsToCell.entrySet()) {
             Cell cell = startTsAndCell.getValue();

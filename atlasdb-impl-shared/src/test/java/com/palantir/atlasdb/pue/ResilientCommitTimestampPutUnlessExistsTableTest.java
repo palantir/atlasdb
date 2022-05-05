@@ -148,7 +148,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     }
 
     @Test
-    public void touchEachStagingValuesOnlyOnceWhileCached() throws ExecutionException, InterruptedException {
+    public void touchEachStagingValueOnlyOnceWhileCached() throws ExecutionException, InterruptedException {
         spiedStore.startFailingPuts();
         Map<Long, Long> initialWrites = LongStream.range(
                         0, ResilientCommitTimestampPutUnlessExistsTable.TOUCH_CACHE_SIZE)
