@@ -287,6 +287,7 @@ public class CassandraServiceTest {
                         .build())
                 .localHostWeighting(weighting)
                 .consecutiveAbsencesBeforePoolRemoval(1)
+                .keyspace("ks")
                 .build();
 
         blacklist = new Blacklist(config);
