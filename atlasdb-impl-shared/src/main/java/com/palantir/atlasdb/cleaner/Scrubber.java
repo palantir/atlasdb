@@ -240,7 +240,7 @@ public class Scrubber {
     @VisibleForTesting
     void runBackgroundScrubTask(final TransactionManager txManager) {
         if (!isScrubEnabled.get()) {
-            log.debug("Not running scrub, are we are currently during banned hours.");
+            log.debug("Not running scrub as we are currently during banned hours.");
             return;
         }
         log.debug("Starting scrub task");
