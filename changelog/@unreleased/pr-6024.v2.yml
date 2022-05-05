@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Fixed an issue where we would run an iteration of scrub, even if it
+    was disabled.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6024
