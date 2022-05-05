@@ -50,10 +50,6 @@ public interface ConsensusForgettingStore {
      */
     void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
 
-    /**
-     * Note that implementing this method may invalidate existing tests in
-     * ResilientCommitTimestampPutUnlessExistsTableTest.
-     */
     default void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
         values.forEach(this::checkAndTouch);
     }

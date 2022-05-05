@@ -46,7 +46,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     private final TwoPhaseEncodingStrategy encodingStrategy;
     private final Supplier<Boolean> acceptStagingReadsAsCommitted;
 
-    private final LoadingCache<CellInfo, Long> needsPutCache = CacheBuilder.newBuilder()
+    private final LoadingCache<CellInfo, Long> touchCache = CacheBuilder.newBuilder()
             .maximumSize(TOUCH_CACHE_SIZE)
             .build(new CacheLoader<>() {
                 @Override
@@ -143,8 +143,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
-            resultBuilder.put(
-                    startTs, needsPutCache.getUnchecked(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
+            resultBuilder.put(startTs, touchCache.getUnchecked(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
         }
         return resultBuilder.build();
     }
