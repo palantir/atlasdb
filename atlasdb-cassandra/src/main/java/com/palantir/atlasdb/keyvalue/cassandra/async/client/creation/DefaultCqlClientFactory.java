@@ -55,14 +55,23 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
             boolean initializeAsync) {
         return ReloadingCloseableContainer.of(
                 cassandraServersConfigRefreshable,
-                serversConfig -> CassandraServersConfigs.getCqlCapableConfigIfValid(serversConfig)
-                        .map(cqlCapableConfig -> {
-                            Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
-                            Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory)
-                                    .constructCluster(servers, cassandraClusterConfig);
-                            return CqlClientImpl.create(
-                                    taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync);
-                        })
-                        .orElse(ThrowingCqlClient.of()));
+                serversConfig ->
+                        constructClient(taggedMetricRegistry, serversConfig, cassandraClusterConfig, initializeAsync));
+    }
+
+    private CqlClient constructClient(
+            TaggedMetricRegistry taggedMetricRegistry,
+            CassandraServersConfig serversConfig,
+            CassandraClusterConfig cassandraClusterConfig,
+            boolean initializeAsync) {
+        return CassandraServersConfigs.getCqlCapableConfigIfValid(serversConfig)
+                .map(cqlCapableConfig -> {
+                    Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
+                    Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory)
+                            .constructCluster(servers, cassandraClusterConfig);
+                    return CqlClientImpl.create(
+                            taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync);
+                })
+                .orElseGet(ThrowingCqlClient::of);
     }
 }

@@ -2089,10 +2089,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             log.info("Attempted get with no specified cells", LoggingArgs.tableRef(tableRef));
             return Futures.immediateFuture(ImmutableMap.of());
         }
+
         try {
             return asyncKeyValueService.getAsync(tableRef, timestampByCell);
         } catch (IllegalStateException e) {
-            log.info("Invalid async KVS");
+            log.warn(
+                    "Either the CQL config is invalid or not present, or the Async Key Value Store has been closed. If"
+                        + " intending to use getAsync please ensure you have configured AtlasDB to use CQL, and that"
+                        + " the configured set of CQL hosts match the set of Thrift hosts. Defaulting to a synchronous"
+                        + " get",
+                    e);
             return Futures.immediateFuture(this.get(tableRef, timestampByCell));
         }
     }

@@ -24,7 +24,7 @@ public class ThrowingCqlClient implements CqlClient {
 
     @Override
     public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
-        throw new SafeIllegalStateException("Invalid CQL Config");
+        throw new SafeIllegalStateException("CQL config invalid or not provided.");
     }
 
     public static ThrowingCqlClient of() {
