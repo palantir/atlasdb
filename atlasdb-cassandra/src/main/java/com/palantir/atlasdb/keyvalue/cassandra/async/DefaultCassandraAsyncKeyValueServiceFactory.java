@@ -33,7 +33,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tracing.Tracers;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
 
 public final class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsyncKeyValueServiceFactory {
     public static final CassandraAsyncKeyValueServiceFactory DEFAULT =
@@ -49,16 +48,13 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
     public Optional<AsyncKeyValueService> constructAsyncKeyValueService(
             MetricsManager metricsManager,
             String keyspace,
-            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
             CassandraClusterConfig cassandraClusterConfig,
+            CassandraServersConfig cassandraServersConfig,
             boolean initializeAsync) {
         Optional<CqlClient> cqlClient = cqlClientFactory.constructClient(
-                metricsManager.getTaggedRegistry(),
-                cassandraServersConfigSupplier,
-                cassandraClusterConfig,
-                initializeAsync);
+                metricsManager.getTaggedRegistry(), cassandraServersConfig, cassandraClusterConfig, initializeAsync);
 
-        ExecutorService executorService = cassandraServersConfigSupplier.get().accept(new Visitor<ExecutorService>() {
+        ExecutorService executorService = cassandraServersConfig.accept(new Visitor<ExecutorService>() {
             @Override
             public ExecutorService visit(DefaultConfig defaultConfig) {
                 return MoreExecutors.newDirectExecutorService();

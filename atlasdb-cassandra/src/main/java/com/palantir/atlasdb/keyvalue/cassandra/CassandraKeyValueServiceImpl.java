@@ -378,8 +378,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     .constructAsyncKeyValueService(
                             metricsManager,
                             config.getKeyspaceOrThrow(),
-                            config::servers,
                             clusterConfig,
+                            config.servers(),
                             initializeAsync);
 
             return createAndInitialize(
@@ -457,8 +457,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static ExecutorService createBlockingThreadpool(
-            CassandraKeyValueServiceConfig config,
-            MetricsManager metricsManager) {
+            CassandraKeyValueServiceConfig config, MetricsManager metricsManager) {
         return config.thriftExecutorServiceFactory()
                 .orElseGet(() -> instrumentedFixedThreadPoolSupplier(
                         config.servers(),
