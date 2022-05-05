@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -38,43 +39,23 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
+    static final int TOUCH_CACHE_SIZE = 1000;
+
     private final ConsensusForgettingStore store;
     private final TwoPhaseEncodingStrategy encodingStrategy;
-    private final LoadingCache<CellAndValue, RequiresPut> needsPutCache = CacheBuilder.newBuilder()
-            .maximumSize(1000)
+    private final LoadingCache<CellInfo, FollowUpAction> needsPutCache = CacheBuilder.newBuilder()
+            .maximumSize(TOUCH_CACHE_SIZE)
             .build(new CacheLoader<>() {
                 @Override
-                public RequiresPut load(CellAndValue cellAndValue) {
-                    synchronized (this) {
-                        return touchAndReturn(cellAndValue);
-                    }
+                @Nonnull
+                public FollowUpAction load(@Nonnull CellInfo cellAndValue) {
+                    return touchAndReturn(cellAndValue);
                 }
             });
-
-    private RequiresPut touchAndReturn(CellAndValue cellAndValue) {
-        Cell cell = cellAndValue.cell();
-        byte[] actual = cellAndValue.value();
-        try {
-            store.checkAndTouch(cell, actual);
-            return RequiresPut.YES;
-        } catch (CheckAndSetException e) {
-            long startTs = cellAndValue.startTs();
-            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
-            Long commitTs = currentValue.value();
-            PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
-                    startTs, Iterables.getOnlyElement(e.getActualValues()));
-            Preconditions.checkState(
-                    kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
-                    "Failed to persist a staging value for commit timestamp because an unexpected value "
-                            + "was found in the KVS",
-                    SafeArg.of("kvsValue", kvsValue),
-                    SafeArg.of("stagingValue", currentValue));
-            return RequiresPut.NO;
-        }
-    }
 
     public ResilientCommitTimestampPutUnlessExistsTable(
             ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
@@ -107,8 +88,30 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 MoreExecutors.directExecutor());
     }
 
+    private synchronized FollowUpAction touchAndReturn(CellInfo cellAndValue) {
+        Cell cell = cellAndValue.cell();
+        byte[] actual = cellAndValue.value();
+        try {
+            store.checkAndTouch(cell, actual);
+            return FollowUpAction.PUT;
+        } catch (CheckAndSetException e) {
+            long startTs = cellAndValue.startTs();
+            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            Long commitTs = currentValue.value();
+            PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+                    startTs, Iterables.getOnlyElement(e.getActualValues()));
+            Preconditions.checkState(
+                    kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
+                    "Failed to persist a staging value for commit timestamp because an unexpected value "
+                            + "was found in the KVS",
+                    SafeArg.of("kvsValue", kvsValue),
+                    SafeArg.of("stagingValue", currentValue));
+            return FollowUpAction.NONE;
+        }
+    }
+
     private Map<Long, Long> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
-        Set<CellAndValue> checkAndTouch = Sets.newHashSet();
+        Set<CellInfo> cellsRequiringPut = Sets.newHashSet();
         ImmutableMap.Builder<Long, Long> resultBuilder = ImmutableMap.builder();
         for (Map.Entry<Long, Cell> startTsAndCell : startTsToCell.entrySet()) {
             Cell cell = startTsAndCell.getValue();
@@ -127,27 +130,29 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 continue;
             }
             try {
-                ImmutableCellAndValue cellAndValue = ImmutableCellAndValue.of(cell, startTs, actual);
-                RequiresPut result = needsPutCache.get(cellAndValue);
-                if (result == RequiresPut.YES) {
-                    checkAndTouch.add(cellAndValue);
+                ImmutableCellInfo cellAndValue = ImmutableCellInfo.of(cell, startTs, actual);
+                FollowUpAction result = needsPutCache.get(cellAndValue);
+                if (result == FollowUpAction.PUT) {
+                    cellsRequiringPut.add(cellAndValue);
                 }
             } catch (ExecutionException e) {
-                throw new RuntimeException(e);
+                throw Throwables.throwUncheckedException(e);
             }
             resultBuilder.put(startTs, commitTs);
         }
-        store.put(KeyedStream.of(checkAndTouch.stream())
-                .mapKeys(CellAndValue::cell)
-                .map(CellAndValue::value)
-                .map(encodingStrategy::transformStagingToCommitted)
-                .collectToMap());
-        checkAndTouch.forEach(cellAndValue -> needsPutCache.put(cellAndValue, RequiresPut.NO));
+        if (!cellsRequiringPut.isEmpty()) {
+            store.put(KeyedStream.of(cellsRequiringPut.stream())
+                    .mapKeys(CellInfo::cell)
+                    .map(CellInfo::value)
+                    .map(encodingStrategy::transformStagingToCommitted)
+                    .collectToMap());
+            cellsRequiringPut.forEach(cellInfo -> needsPutCache.put(cellInfo, FollowUpAction.NONE));
+        }
         return resultBuilder.build();
     }
 
     @Value.Immutable
-    interface CellAndValue {
+    interface CellInfo {
         @Value.Parameter
         Cell cell();
 
@@ -158,8 +163,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
         byte[] value();
     }
 
-    private enum RequiresPut {
-        YES,
-        NO;
+    private enum FollowUpAction {
+        PUT,
+        NONE;
     }
 }

@@ -17,35 +17,46 @@
 package com.palantir.atlasdb.pue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import org.junit.Test;
 
 public class ResilientCommitTimestampPutUnlessExistsTableTest {
-    private final UnreliableInMemoryKvs kvs = new UnreliableInMemoryKvs();
-    private final ConsensusForgettingStore spiedStore =
-            spy(new KvsConsensusForgettingStore(kvs, TableReference.createFromFullyQualifiedName("test.table")));
+    private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
+    private final UnreliableKvsConsensusForgettingStore spiedStore = spy(new UnreliableKvsConsensusForgettingStore(
+            spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
 
     private final PutUnlessExistsTable<Long, Long> pueTable =
             new ResilientCommitTimestampPutUnlessExistsTable(spiedStore, TwoPhaseEncodingStrategy.INSTANCE);
@@ -80,12 +91,12 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     @Test
     public void pueThatThrowsIsCorrectedOnGet() throws ExecutionException, InterruptedException {
-        kvs.setThrowOnNextPue();
+        spiedStore.startFailingPuts();
         assertThatThrownBy(() -> pueTable.putUnlessExists(1L, 2L)).isInstanceOf(RuntimeException.class);
-        verify(spiedStore, never()).put(anyMap());
+        spiedStore.stopFailingPuts();
 
         assertThat(pueTable.get(1L).get()).isEqualTo(2L);
-        verify(spiedStore).put(anyMap());
+        verify(spiedStore, times(2)).put(anyMap());
     }
 
     @Test
@@ -136,6 +147,72 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         }
     }
 
+    @Test
+    public void touchEachStagingValuesOnlyOnceWhileCached() throws ExecutionException, InterruptedException {
+        spiedStore.startFailingPuts();
+        Map<Long, Long> initialWrites = LongStream.range(
+                        0, ResilientCommitTimestampPutUnlessExistsTable.TOUCH_CACHE_SIZE)
+                .boxed()
+                .collect(Collectors.toMap(x -> x, x -> x));
+        assertThatThrownBy(() -> pueTable.putUnlessExistsMultiple(initialWrites))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to set value");
+
+        ExecutorService writers = Executors.newFixedThreadPool(100);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
+        int numberOfReads = 100_000;
+        for (int i = 0; i < numberOfReads; i++) {
+            results.add(writers.submit(() ->
+                    pueTable.get(random.nextLong(ResilientCommitTimestampPutUnlessExistsTable.TOUCH_CACHE_SIZE))));
+        }
+        results.forEach(future -> assertThatThrownBy(() -> future.get().get())
+                .isInstanceOf(ExecutionException.class)
+                .hasCauseInstanceOf(RuntimeException.class));
+        writers.shutdownNow();
+
+        // Each timestamp hit will only be touched exactly once, but each get will cause a put attempt regardless
+        verify(spiedKvs, atMost(ResilientCommitTimestampPutUnlessExistsTable.TOUCH_CACHE_SIZE))
+                .checkAndSet(any());
+        verify(spiedStore, times(1 + numberOfReads)).put(anyMap());
+
+        // Once puts are enabled again, we put exactly once in absence of concurrency
+        spiedStore.stopFailingPuts();
+        for (long i = 0; i < 100; i++) {
+            assertThat(pueTable.get(7L).get()).isEqualTo(7L);
+        }
+        verify(spiedStore, times(1 + numberOfReads + 1)).put(anyMap());
+    }
+
+    @Test
+    public void touchesAreSerial() {
+        spiedStore.startFailingPuts();
+        Map<Long, Long> initialWrites = LongStream.range(0, 10).boxed().collect(Collectors.toMap(x -> x, x -> x));
+        assertThatThrownBy(() -> pueTable.putUnlessExistsMultiple(initialWrites))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to set value");
+
+        ExecutorService writers = Executors.newFixedThreadPool(100);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
+        int numberOfReads = 1_000;
+        for (int i = 0; i < numberOfReads; i++) {
+            results.add(writers.submit(() -> pueTable.get(random.nextLong(10))));
+        }
+        results.forEach(future -> assertThatThrownBy(() -> future.get().get())
+                .isInstanceOf(ExecutionException.class)
+                .hasCauseInstanceOf(RuntimeException.class));
+        spiedStore.stopFailingPuts();
+        results.clear();
+        for (int i = 0; i < numberOfReads; i++) {
+            results.add(writers.submit(() -> pueTable.get(random.nextLong(10))));
+        }
+        results.forEach(future -> assertThatCode(() -> future.get().get()).doesNotThrowAnyException());
+        writers.shutdownNow();
+
+        assertThat(spiedStore.multipleConcurrentTouches()).isFalse();
+    }
+
     private static Optional<Long> tryPue(
             PutUnlessExistsTable<Long, Long> putUnlessExistsTable, long startTs, long commitTs) {
         try {
@@ -157,24 +234,57 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         }
     }
 
-    private static class UnreliableInMemoryKvs extends InMemoryKeyValueService {
-        private boolean throwOnNextPue = false;
+    /**
+     * An implementation of the consensus forgetting store that allows us to simulate failures after the atomic
+     * operation in the resilient PUE table protocol, and inspect the concurrency guarantees for the touch method.
+     *
+     * WARNING: the usefulness of this store is coupled with the implementation of
+     * {@link KvsConsensusForgettingStore} and {@link ResilientCommitTimestampPutUnlessExistsTable}. If implementation
+     * details are changed, it may invalidate tests relying on this class.
+     */
+    private static class UnreliableKvsConsensusForgettingStore extends KvsConsensusForgettingStore {
+        private volatile boolean failPuts = false;
+        private final AtomicInteger concurrentTouches = new AtomicInteger(0);
+        private volatile boolean multipleConcurrentTouches = false;
 
-        public UnreliableInMemoryKvs() {
-            super(true);
-        }
-
-        void setThrowOnNextPue() {
-            throwOnNextPue = true;
+        public UnreliableKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
+            super(kvs, tableRef);
         }
 
         @Override
-        public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) {
-            super.putUnlessExists(tableRef, values);
-            if (throwOnNextPue) {
-                throwOnNextPue = false;
-                throw new RuntimeException("Ohno!");
+        public void put(Map<Cell, byte[]> values) {
+            if (failPuts) {
+                throw new RuntimeException("Failed to set value");
             }
+            super.put(values);
+        }
+
+        /**
+         * We rely on the fact that {@link KvsConsensusForgettingStore} uses the default
+         * implementation of {@link ConsensusForgettingStore#checkAndTouch(Map)}
+         */
+        @Override
+        public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+            if (concurrentTouches.incrementAndGet() > 1) {
+                multipleConcurrentTouches = true;
+            }
+            super.checkAndTouch(cell, value);
+            concurrentTouches.decrementAndGet();
+        }
+
+        /**
+         * This effectively causes all newly put values to be stuck in staging
+         */
+        public void startFailingPuts() {
+            failPuts = true;
+        }
+
+        public void stopFailingPuts() {
+            failPuts = false;
+        }
+
+        public boolean multipleConcurrentTouches() {
+            return multipleConcurrentTouches;
         }
     }
 }
