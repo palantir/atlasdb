@@ -48,10 +48,10 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
     @Override
     public Optional<CqlClient> constructClient(
             TaggedMetricRegistry taggedMetricRegistry,
-            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
+            CassandraServersConfig cassandraServersConfig,
             CassandraClusterConfig cassandraClusterConfig,
             boolean initializeAsync) {
-        return CassandraServersConfigs.getCqlCapableConfigIfValid(cassandraServersConfigSupplier.get())
+        return CassandraServersConfigs.getCqlCapableConfigIfValid(cassandraServersConfig)
                 .map(cqlCapableConfig -> {
                     Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
                     Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory)

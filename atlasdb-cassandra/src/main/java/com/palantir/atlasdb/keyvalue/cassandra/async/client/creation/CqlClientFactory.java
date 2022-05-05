@@ -21,12 +21,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 public interface CqlClientFactory {
     Optional<CqlClient> constructClient(
             TaggedMetricRegistry taggedMetricRegistry,
-            Supplier<CassandraServersConfig> cassandraServersConfigSupplier,
+            CassandraServersConfig cassandraServersConfigSupplier,
             CassandraClusterConfig cassandraClusterConfig,
             boolean initializeAsync);
 }
