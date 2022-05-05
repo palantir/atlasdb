@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mockingDetails;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -40,6 +41,8 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,16 +55,38 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
+import org.junit.Assume;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.invocation.Invocation;
 
+@RunWith(Parameterized.class)
 public class ResilientCommitTimestampPutUnlessExistsTableTest {
+    private static final String VALIDATING_STAGING_VALUES = "validating staging values";
+    private static final String NOT_VALIDATING_STAGING_VALUES = "not validating staging values";
+
     private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
     private final UnreliableKvsConsensusForgettingStore spiedStore = spy(new UnreliableKvsConsensusForgettingStore(
             spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
 
-    private final PutUnlessExistsTable<Long, Long> pueTable =
-            new ResilientCommitTimestampPutUnlessExistsTable(spiedStore, TwoPhaseEncodingStrategy.INSTANCE);
+    private final boolean validating;
+    private final PutUnlessExistsTable<Long, Long> pueTable;
+
+    public ResilientCommitTimestampPutUnlessExistsTableTest(String name, Object parameter) {
+        validating = !(boolean) parameter;
+        pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
+                spiedStore, TwoPhaseEncodingStrategy.INSTANCE, () -> !validating);
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+        Object[][] data = new Object[][] {
+            {VALIDATING_STAGING_VALUES, false},
+            {NOT_VALIDATING_STAGING_VALUES, true}
+        };
+        return Arrays.asList(data);
+    }
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {
@@ -161,7 +186,11 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
                     .hasMessageContaining("Failed to set value");
         }
 
-        verify(spiedKvs, times(100)).checkAndSet(any());
+        if (validating) {
+            verify(spiedKvs, times(100)).checkAndSet(any());
+        } else {
+            verify(spiedKvs, never()).checkAndSet(any());
+        }
         verify(spiedStore, times(101)).put(anyMap());
 
         spiedStore.stopFailingPuts();
@@ -169,7 +198,11 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
             assertThat(pueTable.get(0L).get()).isEqualTo(0L);
         }
 
-        verify(spiedKvs, times(101)).checkAndSet(any());
+        if (validating) {
+            verify(spiedKvs, times(101)).checkAndSet(any());
+        } else {
+            verify(spiedKvs, never()).checkAndSet(any());
+        }
         verify(spiedStore, times(102)).put(anyMap());
     }
 
@@ -195,12 +228,20 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         long puts = getNumberOfInvocations(spiedStore, "put");
 
         // assert that some concurrent gets get coalesced but no guarantees due to scheduling
-        assertThat(checkAndSets).isLessThan(numberOfReads / 2);
-        assertThat(checkAndSets).isEqualTo(puts - 1);
+        if (validating) {
+            assertThat(checkAndSets).isLessThan(numberOfReads / 2);
+            assertThat(checkAndSets).isEqualTo(puts - 1);
+        } else {
+            assertThat(checkAndSets).isEqualTo(0L);
+        }
 
         spiedStore.stopFailingPuts();
         assertThat(pueTable.get(0L).get()).isEqualTo(0L);
-        assertThat(getNumberOfInvocations(spiedKvs, "checkAndSet")).isEqualTo(checkAndSets + 1);
+        if (validating) {
+            assertThat(getNumberOfInvocations(spiedKvs, "checkAndSet")).isEqualTo(checkAndSets + 1);
+        } else {
+            assertThat(checkAndSets).isEqualTo(0L);
+        }
         assertThat(getNumberOfInvocations(spiedStore, "put")).isEqualTo(puts + 1);
     }
 
@@ -212,7 +253,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         ExecutorService writers = Executors.newFixedThreadPool(100);
         ThreadLocalRandom random = ThreadLocalRandom.current();
         List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
-        int numberOfReads = 100_000;
+        int numberOfReads = 20_000;
         for (int i = 0; i < numberOfReads; i++) {
             results.add(writers.submit(() -> pueTable.get(random.nextLong(50L))));
         }
@@ -225,7 +266,11 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         });
         writers.shutdownNow();
 
-        verify(spiedKvs, times(50)).checkAndSet(any());
+        if (validating) {
+            verify(spiedKvs, times(50)).checkAndSet(any());
+        } else {
+            verify(spiedKvs, never()).checkAndSet(any());
+        }
         verify(spiedStore, times(51)).put(anyMap());
     }
 
@@ -256,6 +301,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     @Test
     public void doNotPutIfAlreadyCommitted() throws ExecutionException, InterruptedException {
+        // not worth the effort to make this work
+        Assume.assumeTrue(validating);
         setupStagingValues(1);
         spiedStore.enableCommittingUnderUs();
 

@@ -80,7 +80,7 @@ public final class ThriftQueryWeighers {
             @Override
             public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
-                        .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * numberOfQueriedRows)
+                        .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * ((long) numberOfQueriedRows))
                         .timeTakenNanos(timeTakenNanos)
                         .numDistinctRows(1)
                         .build();

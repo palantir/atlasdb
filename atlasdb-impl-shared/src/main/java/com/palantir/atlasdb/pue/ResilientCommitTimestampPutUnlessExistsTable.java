@@ -33,6 +33,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
@@ -43,6 +44,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
     private final ConsensusForgettingStore store;
     private final TwoPhaseEncodingStrategy encodingStrategy;
+    private final Supplier<Boolean> acceptStagingReadsAsCommitted;
+
     private final LoadingCache<CellInfo, Long> needsPutCache = CacheBuilder.newBuilder()
             .maximumSize(TOUCH_CACHE_SIZE)
             .build(new CacheLoader<>() {
@@ -60,8 +63,16 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
     public ResilientCommitTimestampPutUnlessExistsTable(
             ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
+        this(store, encodingStrategy, () -> false);
+    }
+
+    public ResilientCommitTimestampPutUnlessExistsTable(
+            ConsensusForgettingStore store,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
         this.store = store;
         this.encodingStrategy = encodingStrategy;
+        this.acceptStagingReadsAsCommitted = acceptStagingReadsAsCommitted;
     }
 
     @Override
@@ -90,6 +101,9 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     private synchronized FollowUpAction touchAndReturn(CellInfo cellAndValue) {
+        if (acceptStagingReadsAsCommitted.get()) {
+            return FollowUpAction.PUT;
+        }
         Cell cell = cellAndValue.cell();
         byte[] actual = cellAndValue.value();
         try {

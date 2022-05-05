@@ -106,7 +106,7 @@ public abstract class AbstractOperationStats implements OperationStats {
         double prev = 1.0 - ((double) underStatsMillis.get(comparisonPoint - 1).get()) / localTotalCalls;
         double next = 1.0 - ((double) underStatsMillis.get(comparisonPoint).get()) / localTotalCalls;
         // lerp(x0, y0, x1, y1, x) -> y
-        return 100.0 * lerp(upper / 2.0, prev, upper, next, millis);
+        return 100.0 * lerp(upper / 2.0, prev, (double) upper, next, millis);
     }
 
     @Override
@@ -139,7 +139,7 @@ public abstract class AbstractOperationStats implements OperationStats {
             prevPerc = percent;
             percent = 100.0 * ((double) underStatsMillis.get(comparisonPoint).get()) / localTotalCalls;
         }
-        double ret = lerp(prevPerc, millis / 2.0, percent, millis, mustBeBellow);
+        double ret = lerp(prevPerc, millis / 2.0, percent, (double) millis, mustBeBellow);
         if (ret > maxInMillis) {
             return maxInMillis;
         }

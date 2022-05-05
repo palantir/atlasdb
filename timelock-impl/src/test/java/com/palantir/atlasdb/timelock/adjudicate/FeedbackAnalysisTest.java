@@ -233,9 +233,9 @@ public class FeedbackAnalysisTest {
                 serviceName,
                 nodeId,
                 LEADER_TIME_MIN_RATE + 1,
-                LEADER_TIME_MAX_P99 + 1,
+                (double) (LEADER_TIME_MAX_P99 + 1),
                 START_TXN_MIN_RATE + 1,
-                START_TRANSACTION_MAX_P99 + 1);
+                (double) (START_TRANSACTION_MAX_P99 + 1));
     }
 
     private ConjureTimeLockClientFeedback getHealthyClientFeedbackReport(String serviceName, UUID nodeId) {
@@ -243,9 +243,9 @@ public class FeedbackAnalysisTest {
                 serviceName,
                 nodeId,
                 LEADER_TIME_MIN_RATE + 1,
-                LEADER_TIME_MAX_P99 - 1,
+                (double) (LEADER_TIME_MAX_P99 - 1),
                 START_TXN_MIN_RATE + 1,
-                START_TRANSACTION_MAX_P99 - 1);
+                (double) (START_TRANSACTION_MAX_P99 - 1));
     }
 
     private ConjureTimeLockClientFeedback getUnknownClientFeedbackReport(String serviceName, UUID nodeId) {
@@ -253,9 +253,9 @@ public class FeedbackAnalysisTest {
                 serviceName,
                 nodeId,
                 LEADER_TIME_MIN_RATE - 1,
-                LEADER_TIME_MAX_P99 - 1,
+                (double) (LEADER_TIME_MAX_P99 - 1),
                 START_TXN_MIN_RATE - 1,
-                START_TRANSACTION_MAX_P99 - 1);
+                (double) (START_TRANSACTION_MAX_P99 - 1));
     }
 
     private ConjureTimeLockClientFeedback getReportWithLeaderTimeMetricInUnknownState(String serviceName, UUID nodeId) {
@@ -263,9 +263,9 @@ public class FeedbackAnalysisTest {
                 serviceName,
                 nodeId,
                 LEADER_TIME_MIN_RATE - 1,
-                LEADER_TIME_MAX_P99 - 1,
+                (double) (LEADER_TIME_MAX_P99 - 1),
                 START_TXN_MIN_RATE + 1,
-                START_TRANSACTION_MAX_P99 - 1);
+                (double) (START_TRANSACTION_MAX_P99 - 1));
     }
 
     private ConjureTimeLockClientFeedback getReportWithStartTxnMetricInUnknownState(String serviceName, UUID nodeId) {
@@ -273,9 +273,9 @@ public class FeedbackAnalysisTest {
                 serviceName,
                 nodeId,
                 LEADER_TIME_MIN_RATE + 1,
-                LEADER_TIME_MAX_P99 - 1,
+                (double) (LEADER_TIME_MAX_P99 - 1),
                 START_TXN_MIN_RATE - 1,
-                START_TRANSACTION_MAX_P99 - 1);
+                (double) (START_TRANSACTION_MAX_P99 - 1));
     }
 
     private ConjureTimeLockClientFeedback getReportWithLeaderTimeMetricInUnhealthyState(
@@ -284,9 +284,9 @@ public class FeedbackAnalysisTest {
                 serviceName,
                 nodeId,
                 LEADER_TIME_MIN_RATE + 1,
-                LEADER_TIME_MAX_P99 + 1,
+                (double) (LEADER_TIME_MAX_P99 + 1),
                 START_TXN_MIN_RATE + 1,
-                START_TRANSACTION_MAX_P99 - 1);
+                (double) (START_TRANSACTION_MAX_P99 - 1));
     }
 
     private ConjureTimeLockClientFeedback getReportWithStartTxnMetricInUnHealthyState(String serviceName, UUID nodeId) {
@@ -294,9 +294,9 @@ public class FeedbackAnalysisTest {
                 serviceName,
                 nodeId,
                 LEADER_TIME_MIN_RATE + 1,
-                LEADER_TIME_MAX_P99 - 1,
+                (double) (LEADER_TIME_MAX_P99 - 1),
                 START_TXN_MIN_RATE + 1,
-                START_TRANSACTION_MAX_P99 + 1);
+                (double) (START_TRANSACTION_MAX_P99 + 1));
     }
 
     private ConjureTimeLockClientFeedback getReportWithStartTxnForVeryHighP99(String serviceName, UUID nodeId) {
@@ -304,9 +304,9 @@ public class FeedbackAnalysisTest {
                 serviceName,
                 nodeId,
                 LEADER_TIME_MIN_RATE + 1,
-                LEADER_TIME_MAX_P99 - 1,
+                (double) (LEADER_TIME_MAX_P99 - 1),
                 START_TXN_MIN_RATE - 0.001, // Outliers are bad, even if req rate is low
-                START_TXN_QUIET_P99_LIMIT + 1);
+                (double) (START_TXN_QUIET_P99_LIMIT + 1));
     }
 
     private ConjureTimeLockClientFeedback getClientFeedbackReport(

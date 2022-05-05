@@ -263,7 +263,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
             }
         } catch (Throwable t) {
             if (!Thread.interrupted()) {
-                log.warn("Error occurred while flushing sweep stats: {}", UnsafeArg.of("throwable", t), t);
+                log.warn("Error occurred while flushing sweep stats", t);
             }
         }
     }
@@ -283,8 +283,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 "Flushing stats for {} writes and {} clears",
                 SafeArg.of("writes", writes.size()),
                 SafeArg.of("clears", clears.size()));
-        log.trace("Flushing writes: {}", UnsafeArg.of("writes", writes));
-        log.trace("Flushing clears: {}", UnsafeArg.of("clears", clears));
+        log.trace("Flushing writes: {} and clears: ", UnsafeArg.of("writes", writes), UnsafeArg.of("clears", clears));
         try {
             Set<TableReference> tableNames = Sets.difference(writes.elementSet(), clears);
             Collection<byte[]> rows = Collections2.transform(

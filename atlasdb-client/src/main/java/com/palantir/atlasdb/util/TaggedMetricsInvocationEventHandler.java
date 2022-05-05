@@ -23,7 +23,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
@@ -165,10 +164,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
     public void onFailure(@Nullable InvocationContext context, @Nonnull Throwable cause) {
         markGlobalFailure();
         if (context == null) {
-            log.debug(
-                    "Encountered null metric context likely due to exception in preInvocation: {}",
-                    UnsafeArg.of("exception", cause),
-                    cause);
+            log.debug("Encountered null metric context likely due to exception in preInvocation", cause);
             return;
         }
 

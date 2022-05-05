@@ -36,6 +36,7 @@ public class TableMetadataCache {
     }
 
     @Nullable
+    @SuppressWarnings("ImmutablesReferenceEquality")
     public TableMetadata getTableMetadata(TableReference tableRef, ConnectionSupplier conns) {
         TableMetadata metadataOrEmpty = getOrReturnEmpty(tableRef, conns);
         if (metadataOrEmpty == EMPTY) {
@@ -45,6 +46,7 @@ public class TableMetadataCache {
         }
     }
 
+    @SuppressWarnings("ImmutablesReferenceEquality")
     private TableMetadata getOrReturnEmpty(TableReference tableRef, ConnectionSupplier conns) {
         TableMetadata cached = cache.getIfPresent(tableRef);
         if (cached != null) {

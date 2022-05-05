@@ -204,6 +204,7 @@ public final class Throwables {
      * thread's stack trace.  Use this method when you are about to rethrow a throwable from another thread,
      * for example when throwing {@link ExecutionException#getCause()} after calling {@link Future#get()};
      */
+    @SuppressWarnings("LogsafeThrowableArgument")
     public static <T extends Throwable> T rewrap(final String newMessage, final T throwable) {
         Preconditions.checkNotNull(throwable);
         log.info(
