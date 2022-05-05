@@ -28,32 +28,33 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
-    static final int TOUCH_CACHE_SIZE = 1000;
+    private static final int TOUCH_CACHE_SIZE = 1000;
 
     private final ConsensusForgettingStore store;
     private final TwoPhaseEncodingStrategy encodingStrategy;
-    private final LoadingCache<CellInfo, FollowUpAction> needsPutCache = CacheBuilder.newBuilder()
+    private final LoadingCache<CellInfo, Long> needsPutCache = CacheBuilder.newBuilder()
             .maximumSize(TOUCH_CACHE_SIZE)
             .build(new CacheLoader<>() {
                 @Override
                 @Nonnull
-                public FollowUpAction load(@Nonnull CellInfo cellAndValue) {
-                    return touchAndReturn(cellAndValue);
+                public Long load(@Nonnull CellInfo cellInfo) {
+                    FollowUpAction followUpAction = touchAndReturn(cellInfo);
+                    if (followUpAction == FollowUpAction.PUT) {
+                        store.put(ImmutableMap.of(
+                                cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
+                    }
+                    return cellInfo.commitTs();
                 }
             });
 
@@ -111,7 +112,6 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     private Map<Long, Long> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
-        Set<CellInfo> cellsRequiringPut = new HashSet<>();
         ImmutableMap.Builder<Long, Long> resultBuilder = ImmutableMap.builder();
         for (Map.Entry<Long, Cell> startTsAndCell : startTsToCell.entrySet()) {
             Cell cell = startTsAndCell.getValue();
@@ -129,24 +129,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
-            try {
-                ImmutableCellInfo cellAndValue = ImmutableCellInfo.of(cell, startTs, actual);
-                FollowUpAction result = needsPutCache.get(cellAndValue);
-                if (result == FollowUpAction.PUT) {
-                    cellsRequiringPut.add(cellAndValue);
-                }
-            } catch (ExecutionException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
-            resultBuilder.put(startTs, commitTs);
-        }
-        if (!cellsRequiringPut.isEmpty()) {
-            store.put(KeyedStream.of(cellsRequiringPut.stream())
-                    .mapKeys(CellInfo::cell)
-                    .map(CellInfo::value)
-                    .map(encodingStrategy::transformStagingToCommitted)
-                    .collectToMap());
-            cellsRequiringPut.forEach(cellInfo -> needsPutCache.put(cellInfo, FollowUpAction.NONE));
+            resultBuilder.put(
+                    startTs, needsPutCache.getUnchecked(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
         }
         return resultBuilder.build();
     }
@@ -158,6 +142,9 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
         @Value.Parameter
         long startTs();
+
+        @Value.Parameter
+        long commitTs();
 
         @Value.Parameter
         byte[] value();

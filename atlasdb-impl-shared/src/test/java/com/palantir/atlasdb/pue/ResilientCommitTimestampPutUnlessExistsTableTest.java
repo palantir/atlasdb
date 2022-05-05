@@ -22,8 +22,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.junit.Test;
+import org.mockito.invocation.Invocation;
 
 public class ResilientCommitTimestampPutUnlessExistsTableTest {
     private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
@@ -148,12 +150,36 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     }
 
     @Test
-    public void touchEachStagingValueOnlyOnceWhileCached() throws ExecutionException, InterruptedException {
+    public void inAbsenceOfConcurrencyGetRetriesBothTouchAndPut() throws ExecutionException, InterruptedException {
         spiedStore.startFailingPuts();
-        Map<Long, Long> initialWrites = LongStream.range(
-                        0, ResilientCommitTimestampPutUnlessExistsTable.TOUCH_CACHE_SIZE)
-                .boxed()
-                .collect(Collectors.toMap(x -> x, x -> x));
+        assertThatThrownBy(() -> pueTable.putUnlessExists(7L, 7L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to set value");
+
+        int numberOfReads = 100;
+        for (int i = 0; i < numberOfReads; i++) {
+            assertThatThrownBy(() -> pueTable.get(7L).get())
+                    .isInstanceOf(ExecutionException.class)
+                    .hasCauseInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Failed to set value");
+        }
+
+        verify(spiedKvs, times(100)).checkAndSet(any());
+        verify(spiedStore, times(101)).put(anyMap());
+
+        spiedStore.stopFailingPuts();
+        for (long i = 0; i < 100; i++) {
+            assertThat(pueTable.get(7L).get()).isEqualTo(7L);
+        }
+
+        verify(spiedKvs, times(101)).checkAndSet(any());
+        verify(spiedStore, times(102)).put(anyMap());
+    }
+
+    @Test
+    public void coalesceConcurrentGetsForSameTimestamps() {
+        spiedStore.startFailingPuts();
+        Map<Long, Long> initialWrites = LongStream.range(0, 5).boxed().collect(Collectors.toMap(x -> x, x -> x));
         assertThatThrownBy(() -> pueTable.putUnlessExistsMultiple(initialWrites))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to set value");
@@ -161,27 +187,22 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         ExecutorService writers = Executors.newFixedThreadPool(100);
         ThreadLocalRandom random = ThreadLocalRandom.current();
         List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
-        int numberOfReads = 100_000;
+        int numberOfReads = 10_000;
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(writers.submit(() ->
-                    pueTable.get(random.nextLong(ResilientCommitTimestampPutUnlessExistsTable.TOUCH_CACHE_SIZE))));
+            results.add(writers.submit(() -> pueTable.get(random.nextLong(5L))));
         }
         results.forEach(future -> assertThatThrownBy(() -> future.get().get())
                 .isInstanceOf(ExecutionException.class)
-                .hasCauseInstanceOf(RuntimeException.class));
+                .hasCauseInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to set value"));
         writers.shutdownNow();
 
-        // Each timestamp hit will only be touched exactly once, but each get will cause a put attempt regardless
-        verify(spiedKvs, atMost(ResilientCommitTimestampPutUnlessExistsTable.TOUCH_CACHE_SIZE))
-                .checkAndSet(any());
-        verify(spiedStore, times(1 + numberOfReads)).put(anyMap());
+        long puts = getNumberOfInvocations(spiedStore, "put");
+        long checkAndSets = getNumberOfInvocations(spiedKvs, "checkAndSet");
 
-        // Once puts are enabled again, we put exactly once in absence of concurrency
-        spiedStore.stopFailingPuts();
-        for (long i = 0; i < 100; i++) {
-            assertThat(pueTable.get(7L).get()).isEqualTo(7L);
-        }
-        verify(spiedStore, times(1 + numberOfReads + 1)).put(anyMap());
+        // assert that some concurrent gets get coalesced but no guarantees due to scheduling
+        assertThat(checkAndSets).isLessThan(numberOfReads / 2);
+        assertThat(checkAndSets).isEqualTo(puts - 1);
     }
 
     @Test
@@ -211,6 +232,14 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         writers.shutdownNow();
 
         assertThat(spiedStore.multipleConcurrentTouches()).isFalse();
+    }
+
+    private static long getNumberOfInvocations(Object mock, String put) {
+        return mockingDetails(mock).getInvocations().stream()
+                .map(Invocation::getMethod)
+                .map(Method::getName)
+                .filter(name -> name.equals(put))
+                .count();
     }
 
     private static Optional<Long> tryPue(
