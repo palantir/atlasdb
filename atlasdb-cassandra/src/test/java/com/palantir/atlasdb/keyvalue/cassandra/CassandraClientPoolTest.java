@@ -99,6 +99,7 @@ public class CassandraClientPoolTest {
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
         when(config.credentials()).thenReturn(mock(CassandraCredentialsConfig.class));
+        when(config.getKeyspaceOrThrow()).thenReturn("ks");
         blacklist = new Blacklist(config);
 
         doAnswer(invocation -> {
