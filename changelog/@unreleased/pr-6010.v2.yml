@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: "`CassandraClientFactory` now uses a narrowed `CassandraKeyValueServiceConfig`
+    called `CassandraClientConfig`. \n\nAs a result of `keyspace` now being required
+    for construction, both `CassandraService` and `CassandraClientFactory` now throw
+    at construction if `keyspace` is not present. \n\nPreviously, `CassandraService`
+    would throw if `keyspace` is missing but `servers` is not empty, and `CassandraClientFactory`
+    would throw on each call of `create` if `keyspace` is missing."
+  links:
+  - https://github.com/palantir/atlasdb/pull/6010
