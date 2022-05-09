@@ -317,6 +317,8 @@ public class ReloadingCloseableContainerTest {
         try {
             barrier.await();
         } catch (InterruptedException | BrokenBarrierException e) {
+            // If we throw checked exceptions, we'll have to surround every await within an executor with the same
+            // try catch fail block.
             throw new AssertionError("Failed to await barrier", e);
         }
     }
