@@ -40,7 +40,8 @@ public interface DbTimeLockFactory {
             MetricsManager metricManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            LeaderConfig leaderConfig);
+            LeaderConfig leaderConfig,
+            boolean initializeAsync);
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync);
