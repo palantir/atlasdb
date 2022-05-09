@@ -178,7 +178,8 @@ public abstract class ConnectionConfig {
             config.setConnectionTestQuery(getTestQuery());
         }
 
-        if (getSqlExceptionOverrideClassname() != null && !getSqlExceptionOverrideClassname().isEmpty()) {
+        if (getSqlExceptionOverrideClassname() != null
+                && !getSqlExceptionOverrideClassname().isEmpty()) {
             config.setExceptionOverrideClassName(getSqlExceptionOverrideClassname());
         }
 
