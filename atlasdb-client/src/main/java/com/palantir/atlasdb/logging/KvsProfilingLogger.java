@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.common.base.CallableCheckedException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -248,9 +249,5 @@ public class KvsProfilingLogger {
 
     private static Predicate<Stopwatch> createLogPredicateForThresholdMillis(long thresholdMillis) {
         return stopwatch -> stopwatch.elapsed(TimeUnit.MILLISECONDS) > thresholdMillis;
-    }
-
-    public interface CallableCheckedException<T, E extends Exception> {
-        T call() throws E;
     }
 }

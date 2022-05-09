@@ -19,6 +19,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.common.base.CallableCheckedException;
 import com.palantir.logsafe.SafeArg;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -68,7 +69,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
+                (CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
                         () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
                 (logger, timer) -> logger.log(
                         "CassandraClient.multiget_slice({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
@@ -127,7 +128,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<List<KeySlice>, TException>)
+                (CallableCheckedException<List<KeySlice>, TException>)
                         () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
                 (logger, timer) -> logger.log(
                         "CassandraClient.get_range_slices({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
@@ -154,7 +155,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         long startTime = System.currentTimeMillis();
         KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<Void, TException>) () -> {
+                (CallableCheckedException<Void, TException>) () -> {
                     client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
                     return null;
                 },
@@ -177,7 +178,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         long startTime = System.currentTimeMillis();
 
         KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<Void, TException>) () -> {
+                (CallableCheckedException<Void, TException>) () -> {
                     client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
                     return null;
                 },
@@ -206,7 +207,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<ColumnOrSuperColumn, TException>)
+                (CallableCheckedException<ColumnOrSuperColumn, TException>)
                         () -> client.get(tableReference, key, column, consistency_level),
                 (logger, timer) -> logger.log(
                         "CassandraClient.get({}, {}) at time {} took {} ms",
@@ -228,7 +229,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<CASResult, TException>) () -> client.cas(
+                (CallableCheckedException<CASResult, TException>) () -> client.cas(
                         tableReference, key, expected, updates, serial_consistency_level, commit_consistency_level),
                 (logger, timer) -> logger.log(
                         "CassandraClient.cas({}) at time {} took {} ms",
@@ -244,7 +245,7 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
+                (CallableCheckedException<CqlResult, TException>)
                         () -> client.execute_cql3_query(cqlQuery, compression, consistency),
                 cqlQuery::logSlowResult,
                 (logger, cqlResult) -> {
