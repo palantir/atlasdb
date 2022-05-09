@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.cassandra.backup;
+package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.common.base.CallableCheckedException;
 import com.palantir.common.base.FunctionCheckedException;
