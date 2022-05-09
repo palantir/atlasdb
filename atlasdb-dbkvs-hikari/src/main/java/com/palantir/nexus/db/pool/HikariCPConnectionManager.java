@@ -135,7 +135,9 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             profiler.logAcquisitionAndRestart();
 
             try {
-                testConnection(conn);
+                if (connConfig.testConnectionBeforeHandout()) {
+                    testConnection(conn);
+                }
                 profiler.logConnectionTest();
                 return conn;
             } catch (SQLException e) {

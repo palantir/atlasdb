@@ -29,6 +29,7 @@ import java.sql.Connection;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
 
@@ -129,6 +130,11 @@ public abstract class ConnectionConfig {
         return String.format("%s-%s", getConnectionPoolIdentifier(), getConnId());
     }
 
+    @Value.Default
+    public boolean testConnectionBeforeHandout() {
+        return true;
+    }
+
     /**
      * This is JsonIgnore'd because it doesn't serialise. Serialisation is needed for atlasdb-dropwizard-bundle.
      */
@@ -168,11 +174,13 @@ public abstract class ConnectionConfig {
         // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
 
-        if (!getTestQuery().isEmpty()) {
+        if (getTestQuery() != null && !getTestQuery().isEmpty()) {
             config.setConnectionTestQuery(getTestQuery());
         }
 
-        config.setExceptionOverrideClassName(getSqlExceptionOverrideClassname());
+        if (getSqlExceptionOverrideClassname() != null && !getSqlExceptionOverrideClassname().isEmpty()) {
+            config.setExceptionOverrideClassName(getSqlExceptionOverrideClassname());
+        }
 
         if (!props.isEmpty()) {
             config.setDataSourceProperties(props);
@@ -197,6 +205,7 @@ public abstract class ConnectionConfig {
 
     @JsonIgnore
     @Value.Default
+    @Nullable
     public String getSqlExceptionOverrideClassname() {
         return null;
     }
