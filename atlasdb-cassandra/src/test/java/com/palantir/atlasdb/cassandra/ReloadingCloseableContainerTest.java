@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -82,7 +81,7 @@ public class ReloadingCloseableContainerTest {
         CyclicBarrier runWithFutureRunsFirstBarrier = new CyclicBarrier(2);
         CyclicBarrier manuallyFinishRunWith = new CyclicBarrier(2);
 
-        executor.submit(() -> container.executeWithResource(closeable -> {
+        executor.execute(() -> container.executeWithResource(closeable -> {
             awaitOrFail(runWithFutureRunsFirstBarrier);
             awaitOrFail(manuallyFinishRunWith);
             verifyNoInteractions(closeable);
@@ -111,7 +110,7 @@ public class ReloadingCloseableContainerTest {
         CyclicBarrier runWithFutureRunsFirstBarrier = new CyclicBarrier(2);
         CyclicBarrier manuallyFinishRunWith = new CyclicBarrier(2);
 
-        executor.submit(() -> container.executeWithResource(closeable -> {
+        executor.execute(() -> container.executeWithResource(closeable -> {
             awaitOrFail(runWithFutureRunsFirstBarrier);
             awaitOrFail(manuallyFinishRunWith);
             verifyNoInteractions(closeable);
@@ -272,7 +271,7 @@ public class ReloadingCloseableContainerTest {
         ReloadingCloseableContainer<Closeable> container = getContainer();
         CyclicBarrier ensureInitialExecuteHasStartedBarrier = new CyclicBarrier(2);
         CyclicBarrier manuallyFinishRunWithBarrier = new CyclicBarrier(2);
-        executor.submit(() -> container.executeWithResource(closeable -> {
+        executor.execute(() -> container.executeWithResource(closeable -> {
             awaitOrFail(ensureInitialExecuteHasStartedBarrier);
             awaitOrFail(manuallyFinishRunWithBarrier);
             assertThat(closeable).isEqualTo(mockCloseable);
@@ -281,7 +280,7 @@ public class ReloadingCloseableContainerTest {
         awaitOrFail(ensureInitialExecuteHasStartedBarrier);
         // Map and subscriber updates happen sequentially, but on the same thread. Therefore, the next call won't
         // complete until after the execute above completes, even if the map itself has finished.
-        executor.submit(() -> settableRefreshable.update(UPDATED_VALUE));
+        executor.execute(() -> settableRefreshable.update(UPDATED_VALUE));
 
         // The earlier executeWithResource call cannot complete yet, and so if the update was blocked, this following
         // assertion would fail.
@@ -299,11 +298,7 @@ public class ReloadingCloseableContainerTest {
         if (random < 0.2) {
             settableRefreshable.update(refreshableValue.incrementAndGet());
         } else {
-            try {
-                container.executeWithResource(_closeable -> {});
-            } catch (Throwable t) {
-                fail("Triggering an event caused an exception");
-            }
+            container.executeWithResource(_closeable -> {});
         }
     }
 
@@ -322,7 +317,7 @@ public class ReloadingCloseableContainerTest {
         try {
             barrier.await();
         } catch (InterruptedException | BrokenBarrierException e) {
-            fail("Failed to await barrier");
+            throw new AssertionError("Failed to await barrier", e);
         }
     }
 }
