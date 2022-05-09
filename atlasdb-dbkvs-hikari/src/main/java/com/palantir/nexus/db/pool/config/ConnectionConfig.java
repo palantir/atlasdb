@@ -206,8 +206,7 @@ public abstract class ConnectionConfig {
 
     @JsonIgnore
     @Value.Default
-    @Nullable
     public String getSqlExceptionOverrideClassname() {
-        return null;
+        return "";
     }
 }
