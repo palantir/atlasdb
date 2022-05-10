@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -146,15 +147,15 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
                 .collect(Collectors.toMap(TwoPhaseEncodingStrategy.INSTANCE::encodeStartTimestampAsCell, x -> x));
         Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
                 .map(startTs -> TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
-                        startTs, PutUnlessExistsValue.staging(startTs)))
+                        startTs, PutUnlessExistsValue.committed(startTs)))
                 .collectToMap();
         store.putUnlessExists(stagingValues);
         SimpleTransactionService v3TransactionService =
                 SimpleTransactionService.createV3(keyValueService, metricRegistry, () -> false);
         TransactionService transactionService = WriteBatchingTransactionService.create(v3TransactionService);
-        int numTransactionGetters = 200;
+        int numTransactionGetters = 300;
         ExecutorService executorService = Executors.newFixedThreadPool(numTransactionGetters);
-
+        Stopwatch stopwatch = Stopwatch.createStarted();
         List<Future<?>> futures = new ArrayList<>();
         for (int i = 1; i < 100; i++) {
             long ts = i;
@@ -163,6 +164,66 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
                     .collect(Collectors.toList()));
         }
         futures.stream().forEach(Futures::getUnchecked);
+        System.out.println(stopwatch.elapsed());
+    }
+
+    @Test
+    public void happiness() {
+        TransactionTables.createTables(keyValueService);
+        TransactionTables.truncateTables(keyValueService);
+
+        TaggedMetricRegistry metricRegistry = new DefaultTaggedMetricRegistry();
+
+        ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
+                new KvsConsensusForgettingStore(keyValueService, TransactionConstants.TRANSACTIONS2_TABLE),
+                metricRegistry);
+
+        Map<Cell, Long> cellToStartTs = LongStream.range(1, 100)
+                .boxed()
+                .collect(Collectors.toMap(TwoPhaseEncodingStrategy.INSTANCE::encodeStartTimestampAsCell, x -> x));
+        Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
+                .map(startTs -> TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+                        startTs, PutUnlessExistsValue.committed(startTs)))
+                .collectToMap();
+        store.putUnlessExists(stagingValues);
+        SimpleTransactionService v3TransactionService =
+                SimpleTransactionService.createV3(keyValueService, metricRegistry, () -> true);
+        TransactionService transactionService = WriteBatchingTransactionService.create(v3TransactionService);
+        int numTransactionGetters = 300;
+        ExecutorService executorService = Executors.newFixedThreadPool(numTransactionGetters);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 1; i < 100; i++) {
+            long ts = i;
+            futures.addAll(LongStream.range(1, numTransactionGetters)
+                    .mapToObj(ignore -> executorService.submit(() -> transactionService.get(ts)))
+                    .collect(Collectors.toList()));
+        }
+        futures.stream().forEach(Futures::getUnchecked);
+        System.out.println(stopwatch.elapsed());
+    }
+
+    @Test
+    public void v2() {
+        TransactionTables.createTables(keyValueService);
+        TransactionTables.truncateTables(keyValueService);
+
+        SimpleTransactionService v3TransactionService = SimpleTransactionService.createV2(keyValueService);
+        TransactionService transactionService = WriteBatchingTransactionService.create(v3TransactionService);
+        transactionService.putUnlessExistsMultiple(
+                LongStream.range(1, 100).boxed().collect(Collectors.toMap(x -> x, x -> x)));
+        int numTransactionGetters = 300;
+        ExecutorService executorService = Executors.newFixedThreadPool(numTransactionGetters);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 1; i < 100; i++) {
+            long ts = i;
+            futures.addAll(LongStream.range(1, numTransactionGetters)
+                    .mapToObj(ignore -> executorService.submit(() -> transactionService.get(ts)))
+                    .collect(Collectors.toList()));
+        }
+        futures.stream().forEach(Futures::getUnchecked);
+        System.out.println(stopwatch.elapsed());
     }
 
     private void tryPutTimestampPermittingExceptions(TransactionService transactionService, long timestamp) {
