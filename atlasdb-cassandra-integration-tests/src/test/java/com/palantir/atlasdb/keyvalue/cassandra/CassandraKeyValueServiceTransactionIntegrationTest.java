@@ -19,9 +19,15 @@ import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.pue.ConsensusForgettingStore;
+import com.palantir.atlasdb.pue.InstrumentedConsensusForgettingStore;
+import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
+import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -30,11 +36,16 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.WriteBatchingTransactionService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -62,16 +73,16 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-            {
-                SYNC_TRANSACTIONS_1,
-                UnaryOperator.identity(),
-                TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION
-            },
-            {
-                ASYNC_TRANSACTIONS_2,
-                (UnaryOperator<Transaction>) GetAsyncDelegate::new,
-                TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION
-            },
+            // {
+            //     SYNC_TRANSACTIONS_1,
+            //     UnaryOperator.identity(),
+            //     TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION
+            // },
+            // {
+            //     ASYNC_TRANSACTIONS_2,
+            //     (UnaryOperator<Transaction>) GetAsyncDelegate::new,
+            //     TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION
+            // },
             {
                 ASYNC_TRANSACTIONS_3,
                 (UnaryOperator<Transaction>) GetAsyncDelegate::new,
@@ -120,21 +131,38 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     }
 
     @Test
-    public void canUntangleHighlyConflictingPutUnlessExists() {
+    public void sadness() {
         TransactionTables.createTables(keyValueService);
         TransactionTables.truncateTables(keyValueService);
-        SimpleTransactionService v2TransactionService = SimpleTransactionService.createV2(keyValueService);
-        TransactionService transactionService = WriteBatchingTransactionService.create(v2TransactionService);
-        ExecutorService executorService = Executors.newCachedThreadPool();
 
-        int numTransactionPutters = 100;
-        List<Future<?>> futures = LongStream.range(1, numTransactionPutters)
-                .mapToObj(timestamp -> executorService.submit(() -> {
-                    tryPutTimestampPermittingExceptions(transactionService, timestamp);
-                    tryPutTimestampPermittingExceptions(transactionService, timestamp + 1);
-                }))
-                .collect(Collectors.toList());
-        futures.forEach(Futures::getUnchecked);
+        TaggedMetricRegistry metricRegistry = new DefaultTaggedMetricRegistry();
+
+        ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
+                new KvsConsensusForgettingStore(keyValueService, TransactionConstants.TRANSACTIONS2_TABLE),
+                metricRegistry);
+
+        Map<Cell, Long> cellToStartTs = LongStream.range(1, 100)
+                .boxed()
+                .collect(Collectors.toMap(TwoPhaseEncodingStrategy.INSTANCE::encodeStartTimestampAsCell, x -> x));
+        Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
+                .map(startTs -> TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+                        startTs, PutUnlessExistsValue.staging(startTs)))
+                .collectToMap();
+        store.putUnlessExists(stagingValues);
+        SimpleTransactionService v3TransactionService =
+                SimpleTransactionService.createV3(keyValueService, metricRegistry, () -> false);
+        TransactionService transactionService = WriteBatchingTransactionService.create(v3TransactionService);
+        int numTransactionGetters = 200;
+        ExecutorService executorService = Executors.newFixedThreadPool(numTransactionGetters);
+
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 1; i < 100; i++) {
+            long ts = i;
+            futures.addAll(LongStream.range(1, numTransactionGetters)
+                    .mapToObj(ignore -> executorService.submit(() -> transactionService.get(ts)))
+                    .collect(Collectors.toList()));
+        }
+        futures.stream().forEach(Futures::getUnchecked);
     }
 
     private void tryPutTimestampPermittingExceptions(TransactionService transactionService, long timestamp) {
