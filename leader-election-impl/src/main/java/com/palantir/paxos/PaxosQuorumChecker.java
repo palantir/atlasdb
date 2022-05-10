@@ -53,7 +53,6 @@ public final class PaxosQuorumChecker {
 
     // used to cancel outstanding reqeusts after we have already achieved a quorum or otherwise finished collecting
     // responses
-
     private static final ScheduledExecutorService CANCELLATION_EXECUTOR = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("paxos-quorum-checker-canceller", true));
     private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 2;
@@ -209,75 +208,6 @@ public final class PaxosQuorumChecker {
 
     private static <SERVICE, RESPONSE extends PaxosResponse>
             PaxosResponsesWithRemote<SERVICE, RESPONSE> collectResponses(
-                    ImmutableList<SERVICE> remotes,
-                    Function<SERVICE, RESPONSE> request,
-                    int quorumSize,
-                    Duration remoteRequestTimeout,
-                    Predicate<InProgressResponseState<SERVICE, RESPONSE>> shouldSkipNextRequest,
-                    boolean cancelRemainingCalls,
-                    MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService) {
-        PaxosResponseAccumulator<SERVICE, RESPONSE> receivedResponses =
-                PaxosResponseAccumulator.newResponse(remotes.size(), quorumSize, shouldSkipNextRequest);
-        // kick off all the requests
-        List<Future<Map.Entry<SERVICE, RESPONSE>>> allFutures = new ArrayList<>();
-        for (SERVICE remote : remotes) {
-            try {
-                allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
-            } catch (CheckedRejectedExecutionException e) {
-                requestExecutionRejection.mark();
-                receivedResponses.markFailure();
-                if (shouldLogDiagnosticInformation()) {
-                    log.info("Quorum checker executor rejected task", e);
-                    log.info(
-                            "Rate of execution rejections: {}",
-                            SafeArg.of("rate1m", requestExecutionRejection.getOneMinuteRate()));
-                }
-            }
-        }
-
-        List<Throwable> encounteredErrors = new ArrayList<>();
-        boolean interrupted = false;
-        try {
-            long deadline = System.nanoTime() + remoteRequestTimeout.toNanos();
-            while (receivedResponses.hasMoreRequests() && receivedResponses.shouldProcessNextRequest()) {
-                try {
-                    Future<Map.Entry<SERVICE, RESPONSE>> responseFuture =
-                            responseCompletionService.poll(deadline - System.nanoTime(), TimeUnit.NANOSECONDS);
-                    if (timedOut(responseFuture)) {
-                        break;
-                    }
-                    receivedResponses.add(
-                            responseFuture.get().getKey(), responseFuture.get().getValue());
-                } catch (ExecutionException e) {
-                    receivedResponses.markFailure();
-                    encounteredErrors.add(e.getCause());
-                }
-            }
-        } catch (InterruptedException e) {
-            log.warn("paxos request interrupted", e);
-            interrupted = true;
-        } finally {
-            if (cancelRemainingCalls) {
-                cancelOutstandingRequestsAfterTimeout(allFutures);
-            }
-
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
-
-            if (!receivedResponses.hasQuorum()) {
-                RuntimeException exceptionForSuppression = new SafeRuntimeException("exception for suppresion");
-                encounteredErrors.forEach(throwable -> {
-                    throwable.addSuppressed(exceptionForSuppression);
-                    log.warn(PAXOS_MESSAGE_ERROR, throwable);
-                });
-            }
-        }
-        return receivedResponses.collect();
-    }
-
-    private static <SERVICE, RESPONSE extends PaxosResponse>
-            PaxosResponsesWithRemote<SERVICE, RESPONSE> collectResponsesForPartialQuorum(
                     ImmutableList<SERVICE> remotes,
                     Function<SERVICE, RESPONSE> request,
                     int quorumSize,
