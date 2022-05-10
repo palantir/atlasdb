@@ -73,6 +73,22 @@ public interface TimeLockInstallConfiguration {
         return paxos().isNewService();
     }
 
+    /**
+     * TODO(gs): Remove this once PDS-264792 is resolved
+     *
+     * Defines the probability at which, upon receiving a request whilst not being the leader, we
+     * refuse to follow our own leader hint, and return QoS.unavailable().
+     *
+     * This gives us a 95% chance of hitting the correct node in the usual case, and a 5% chance of
+     * escaping from an infinite loop of 308s in the failure case (where our hint is wrong).
+     *
+     * We may want to reduce this if too many redirects make this slow.
+     */
+    @Value.Default
+    default double randomRedirectProbability() {
+        return 0.1;
+    }
+
     static Builder builder() {
         return new Builder();
     }

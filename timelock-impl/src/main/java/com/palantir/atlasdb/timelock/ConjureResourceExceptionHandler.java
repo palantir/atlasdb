@@ -25,14 +25,24 @@ import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import java.net.URL;
 import java.time.Duration;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 public class ConjureResourceExceptionHandler {
     private final RedirectRetryTargeter redirectRetryTargeter;
+    private final double randomRedirectProbability;
 
     public ConjureResourceExceptionHandler(RedirectRetryTargeter redirectRetryTargeter) {
         this.redirectRetryTargeter = redirectRetryTargeter;
+        this.randomRedirectProbability = 0.0;
+    }
+
+    public ConjureResourceExceptionHandler(
+            RedirectRetryTargeter redirectRetryTargeter, double randomRedirectProbability) {
+        this.redirectRetryTargeter = redirectRetryTargeter;
+        this.randomRedirectProbability = randomRedirectProbability;
     }
 
     public <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
@@ -52,7 +62,7 @@ public class ConjureResourceExceptionHandler {
                         notCurrentLeader -> {
                             throw redirectRetryTargeter
                                     .redirectRequest(notCurrentLeader.getServiceHint())
-                                    .<QosException>map(QosException::retryOther)
+                                    .map(this::maybeRedirectTo)
                                     .orElseGet(QosException::unavailable);
                         },
                         MoreExecutors.directExecutor())
@@ -80,5 +90,13 @@ public class ConjureResourceExceptionHandler {
                             throw runtimeException;
                         },
                         MoreExecutors.directExecutor());
+    }
+
+    private QosException maybeRedirectTo(URL redirectTo) {
+        if (ThreadLocalRandom.current().nextDouble() >= randomRedirectProbability) {
+            return QosException.retryOther(redirectTo);
+        } else {
+            return QosException.unavailable();
+        }
     }
 }

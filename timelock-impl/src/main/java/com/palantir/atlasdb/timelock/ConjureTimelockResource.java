@@ -74,14 +74,28 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         this.timelockServices = timelockServices;
     }
 
+    private ConjureTimelockResource(
+            RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
+            Function<String, AsyncTimelockService> timelockServices) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter, randomRedirectProbability);
+        this.timelockServices = timelockServices;
+    }
+
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return ConjureTimelockServiceEndpoints.of(new ConjureTimelockResource(redirectRetryTargeter, timelockServices));
+            RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
+            Function<String, AsyncTimelockService> timelockServices) {
+        return ConjureTimelockServiceEndpoints.of(
+                new ConjureTimelockResource(redirectRetryTargeter, randomRedirectProbability, timelockServices));
     }
 
     public static ConjureTimelockService jersey(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return new JerseyAdapter(new ConjureTimelockResource(redirectRetryTargeter, timelockServices));
+            RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
+            Function<String, AsyncTimelockService> timelockServices) {
+        return new JerseyAdapter(
+                new ConjureTimelockResource(redirectRetryTargeter, randomRedirectProbability, timelockServices));
     }
 
     @Override
