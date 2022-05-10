@@ -233,10 +233,14 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
         }
 
+        // this node was the proposer of this paxosValue
         if (!isLatestRound(value)) {
             return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
         }
 
+        // this is the latest round as per current node
+
+        // At this point the node loses leadership only if it does not have quorum
         return Futures.transform(
                 latestRoundVerifier.isLatestRoundAsync(value.getRound()),
                 PaxosQuorumStatus::toStillLeadingStatus,
