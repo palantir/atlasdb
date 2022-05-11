@@ -113,6 +113,7 @@ public class TimeLockManagementResourceTest {
                 allNodesDisabledNamespacesUpdater,
                 authHeaderValidator,
                 redirectRetryTargeter,
+                0.0,
                 new ServiceLifecycleController(serviceStopper, PTExecutors.newSingleThreadScheduledExecutor()));
 
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
