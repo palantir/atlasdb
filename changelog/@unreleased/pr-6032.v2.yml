@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: With a 10% probability, TimeLock will now produce a 503 (unavailable)
+    exception rather than a 308 (redirect) pointing towards the node which it believes
+    to be the leader.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6032
