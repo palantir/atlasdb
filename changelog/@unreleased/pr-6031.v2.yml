@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Formalise the behaviour around retrying of lock requests when users
+    provide a `Supplier<LockRequest>` to `runTaskWithLocksWithRetry()`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6031
