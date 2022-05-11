@@ -101,7 +101,15 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
         }
 
         // force local learner to update
+        log.info(
+                "Teaching ourselves the value () at sequence ()",
+                UnsafeArg.of("value", base16EncodePaxosValue(value)),
+                SafeArg.of("sequence", seq));
         localLearner.learn(seq, value);
+        log.info(
+                "Successfully taught ourselves the value () at sequence () (we assume)",
+                UnsafeArg.of("value", base16EncodePaxosValue(value)),
+                SafeArg.of("sequence", seq));
     }
 
     @Override

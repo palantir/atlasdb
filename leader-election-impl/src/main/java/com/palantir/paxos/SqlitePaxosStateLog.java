@@ -16,10 +16,16 @@
 
 package com.palantir.paxos;
 
+import com.google.common.collect.Streams;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
@@ -33,6 +39,8 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
+    private static final SafeLogger log = SafeLoggerFactory.get(SqlitePaxosStateLog.class);
+
     private final Client namespace;
     private final String useCase;
     private final Jdbi jdbi;
@@ -58,12 +66,31 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
 
     @Override
     public void writeRound(long seq, V round) {
-        execute(dao -> dao.writeRound(namespace, useCase, seq, round.persistToBytes()));
+        try {
+            execute(dao -> dao.writeRound(namespace, useCase, seq, round.persistToBytes()));
+        } catch (Exception ex) {
+            log.error(
+                    "Failed to write round",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("useCase", useCase),
+                    SafeArg.of("seq", seq),
+                    UnsafeArg.of("value", round));
+        }
     }
 
     @Override
     public void writeBatchOfRounds(Iterable<PaxosRound<V>> rounds) {
-        execute(dao -> dao.writeBatchOfRounds(namespace, useCase, rounds));
+        try {
+            execute(dao -> dao.writeBatchOfRounds(namespace, useCase, rounds));
+        } catch (Exception ex) {
+            log.error(
+                    "Failed to write round batch of rounds",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("useCase", useCase),
+                    SafeArg.of(
+                            "seqs",
+                            Streams.stream(rounds).map(PaxosRound::sequence).collect(Collectors.toList())));
+        }
     }
 
     @Override
