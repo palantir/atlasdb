@@ -62,12 +62,13 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
             TimelockNamespaces timelockNamespaces,
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
             ServiceLifecycleController serviceLifecycleController) {
         this.namespaceLoaders = namespaceLoaders;
         this.allNodesDisabledNamespacesUpdater = allNodesDisabledNamespacesUpdater;
         this.timelockNamespaces = timelockNamespaces;
         this.authHeaderValidator = authHeaderValidator;
-        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter, randomRedirectProbability);
         this.serviceLifecycleController = serviceLifecycleController;
     }
 
@@ -77,6 +78,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
             AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater,
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
             ServiceLifecycleController serviceLifecycleController) {
         return new TimeLockManagementResource(
                 createNamespaceLoaders(persistentNamespaceContext),
@@ -84,6 +86,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
                 timelockNamespaces,
                 authHeaderValidator,
                 redirectRetryTargeter,
+                randomRedirectProbability,
                 serviceLifecycleController);
     }
 
@@ -93,6 +96,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
             AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater,
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
             ServiceLifecycleController serviceLifecycleController) {
         return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(
                 persistentNamespaceContext,
@@ -100,6 +104,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
                 allNodesDisabledNamespacesUpdater,
                 authHeaderValidator,
                 redirectRetryTargeter,
+                randomRedirectProbability,
                 serviceLifecycleController));
     }
 
@@ -109,6 +114,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
             AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater,
             AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
             ServiceLifecycleController serviceLifecycleController) {
         return new JerseyAdapter(TimeLockManagementResource.create(
                 persistentNamespaceContext,
@@ -116,6 +122,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
                 allNodesDisabledNamespacesUpdater,
                 authHeaderValidator,
                 redirectRetryTargeter,
+                randomRedirectProbability,
                 serviceLifecycleController));
     }
 

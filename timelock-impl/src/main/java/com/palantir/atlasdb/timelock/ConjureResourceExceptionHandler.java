@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.config.TimeLockConstants;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
@@ -36,7 +37,7 @@ public class ConjureResourceExceptionHandler {
 
     public ConjureResourceExceptionHandler(RedirectRetryTargeter redirectRetryTargeter) {
         this.redirectRetryTargeter = redirectRetryTargeter;
-        this.randomRedirectProbability = 0.0;
+        this.randomRedirectProbability = TimeLockConstants.DEFAULT_RANDOM_REDIRECT_PROBABILITY;
     }
 
     public ConjureResourceExceptionHandler(

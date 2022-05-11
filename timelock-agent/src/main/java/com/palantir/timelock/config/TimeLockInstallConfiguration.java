@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
+import com.palantir.atlasdb.timelock.config.TimeLockConstants;
 import com.palantir.paxos.Client;
 import java.util.Map;
 import org.immutables.value.Value;
@@ -32,7 +33,6 @@ import org.immutables.value.Value;
 @Value.Immutable
 @JsonIgnoreProperties(value = "asyncLock")
 public interface TimeLockInstallConfiguration {
-
     PaxosInstallConfiguration paxos();
 
     /**
@@ -86,7 +86,7 @@ public interface TimeLockInstallConfiguration {
      */
     @Value.Default
     default double randomRedirectProbability() {
-        return 0.1;
+        return TimeLockConstants.DEFAULT_RANDOM_REDIRECT_PROBABILITY;
     }
 
     static Builder builder() {

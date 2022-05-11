@@ -69,12 +69,6 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
     @VisibleForTesting
     ConjureTimelockResource(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
-        this.timelockServices = timelockServices;
-    }
-
-    private ConjureTimelockResource(
             RedirectRetryTargeter redirectRetryTargeter,
             double randomRedirectProbability,
             Function<String, AsyncTimelockService> timelockServices) {

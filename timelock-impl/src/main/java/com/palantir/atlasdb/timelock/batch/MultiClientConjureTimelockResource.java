@@ -57,20 +57,27 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @VisibleForTesting
     MultiClientConjureTimelockResource(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+            RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
+            Function<String, AsyncTimelockService> timelockServices) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter, randomRedirectProbability);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return MultiClientConjureTimelockServiceEndpoints.of(
-                new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
+            RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
+            Function<String, AsyncTimelockService> timelockServices) {
+        return MultiClientConjureTimelockServiceEndpoints.of(new MultiClientConjureTimelockResource(
+                redirectRetryTargeter, randomRedirectProbability, timelockServices));
     }
 
     public static MultiClientConjureTimelockService jersey(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return new JerseyAdapter(new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
+            RedirectRetryTargeter redirectRetryTargeter,
+            double randomRedirectProbability,
+            Function<String, AsyncTimelockService> timelockServices) {
+        return new JerseyAdapter(new MultiClientConjureTimelockResource(
+                redirectRetryTargeter, randomRedirectProbability, timelockServices));
     }
 
     @Override

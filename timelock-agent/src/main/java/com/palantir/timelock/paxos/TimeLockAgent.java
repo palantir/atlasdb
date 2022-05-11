@@ -363,7 +363,8 @@ public class TimeLockAgent {
                             redirectRetryTargeter, install.randomRedirectProbability(), asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    ConjureLockWatchingResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    ConjureLockWatchingResource.undertow(
+                            redirectRetryTargeter, install.randomRedirectProbability(), asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar, ConjureLockV1Resource.undertow(redirectRetryTargeter, lockServiceGetter));
             registerCorruptionHandlerWrappedService(
@@ -371,7 +372,8 @@ public class TimeLockAgent {
                     TimeLockPaxosHistoryProviderResource.undertow(corruptionComponents.localHistoryLoader()));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    MultiClientConjureTimelockResource.undertow(
+                            redirectRetryTargeter, install.randomRedirectProbability(), asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     AtlasBackupResource.undertow(
@@ -386,11 +388,12 @@ public class TimeLockAgent {
         } else {
             registrar.accept(ConjureTimelockResource.jersey(
                     redirectRetryTargeter, install.randomRedirectProbability(), asyncTimelockServiceGetter));
-            registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(ConjureLockWatchingResource.jersey(
+                    redirectRetryTargeter, install.randomRedirectProbability(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter, lockServiceGetter));
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
-            registrar.accept(
-                    MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(MultiClientConjureTimelockResource.jersey(
+                    redirectRetryTargeter, install.randomRedirectProbability(), asyncTimelockServiceGetter));
             registrar.accept(
                     AtlasBackupResource.jersey(authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(AtlasRestoreResource.jersey(
@@ -444,6 +447,7 @@ public class TimeLockAgent {
                             allNodesDisabledNamespacesUpdater,
                             getAuthHeaderValidator(),
                             redirectRetryTargeter(),
+                            install.randomRedirectProbability(),
                             serviceLifecycleController));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
@@ -452,6 +456,7 @@ public class TimeLockAgent {
                     allNodesDisabledNamespacesUpdater,
                     getAuthHeaderValidator(),
                     redirectRetryTargeter(),
+                    install.randomRedirectProbability(),
                     serviceLifecycleController));
         }
     }
