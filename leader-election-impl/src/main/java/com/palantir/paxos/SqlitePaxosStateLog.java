@@ -74,7 +74,9 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
                     SafeArg.of("namespace", namespace),
                     SafeArg.of("useCase", useCase),
                     SafeArg.of("seq", seq),
-                    UnsafeArg.of("value", round));
+                    UnsafeArg.of("value", round),
+                    ex);
+            throw ex;
         }
     }
 
@@ -89,7 +91,9 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
                     SafeArg.of("useCase", useCase),
                     SafeArg.of(
                             "seqs",
-                            Streams.stream(rounds).map(PaxosRound::sequence).collect(Collectors.toList())));
+                            Streams.stream(rounds).map(PaxosRound::sequence).collect(Collectors.toList())),
+                    ex);
+            throw ex;
         }
     }
 
