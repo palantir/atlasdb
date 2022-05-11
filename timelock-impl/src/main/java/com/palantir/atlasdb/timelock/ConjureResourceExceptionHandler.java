@@ -26,12 +26,17 @@ import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.URL;
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 public class ConjureResourceExceptionHandler {
+    private static final SafeLogger log = SafeLoggerFactory.get(ConjureResourceExceptionHandler.class);
+
     private final RedirectRetryTargeter redirectRetryTargeter;
     private final double randomRedirectProbability;
 
@@ -97,6 +102,10 @@ public class ConjureResourceExceptionHandler {
         if (ThreadLocalRandom.current().nextDouble() >= randomRedirectProbability) {
             return QosException.retryOther(redirectTo);
         } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Randomly redirecting the request, instead of following our leader hint.",
+                        SafeArg.of("leaderHint", redirectTo));
+            }
             return QosException.unavailable();
         }
     }
