@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.pue;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
@@ -31,8 +31,10 @@ import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -46,13 +48,20 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     private final TwoPhaseEncodingStrategy encodingStrategy;
     private final Supplier<Boolean> acceptStagingReadsAsCommitted;
 
-    private final LoadingCache<CellInfo, Long> touchCache = CacheBuilder.newBuilder()
+    private final Map<ByteBuffer, Object> rowLocks = new ConcurrentHashMap<>();
+
+    private final LoadingCache<CellInfo, Long> touchCache = Caffeine.newBuilder()
             .maximumSize(TOUCH_CACHE_SIZE)
             .build(new CacheLoader<>() {
                 @Override
                 @Nonnull
                 public Long load(@Nonnull CellInfo cellInfo) {
-                    FollowUpAction followUpAction = touchAndReturn(cellInfo);
+                    Object lock = rowLocks.computeIfAbsent(
+                            ByteBuffer.wrap(cellInfo.cell().getRowName()), x -> x);
+                    FollowUpAction followUpAction;
+                    synchronized (lock) {
+                        followUpAction = touchAndReturn(cellInfo);
+                    }
                     if (followUpAction == FollowUpAction.PUT) {
                         store.put(ImmutableMap.of(
                                 cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
@@ -100,7 +109,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 MoreExecutors.directExecutor());
     }
 
-    private synchronized FollowUpAction touchAndReturn(CellInfo cellAndValue) {
+    private FollowUpAction touchAndReturn(CellInfo cellAndValue) {
         if (acceptStagingReadsAsCommitted.get()) {
             return FollowUpAction.PUT;
         }
@@ -143,7 +152,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
-            resultBuilder.put(startTs, touchCache.getUnchecked(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
+            resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
         }
         return resultBuilder.build();
     }
