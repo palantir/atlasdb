@@ -37,15 +37,15 @@ public class ReloadingCloseableContainerTest {
     private static final int UPDATED_VALUE = 1;
 
     @Mock
-    private Function<Integer, java.lang.AutoCloseable> resourceFactory;
+    private Function<Integer, AutoCloseable> resourceFactory;
 
-    private java.lang.AutoCloseable initialResource;
+    private AutoCloseable initialResource;
 
-    private java.lang.AutoCloseable refreshedResource;
+    private AutoCloseable refreshedResource;
 
     private SettableRefreshable<Integer> refreshableFactoryArg;
 
-    private ReloadingCloseableContainer<java.lang.AutoCloseable> reloadingCloseableContainer;
+    private ReloadingCloseableContainer<AutoCloseable> reloadingCloseableContainer;
 
     @Before
     public void setUp() {
@@ -57,14 +57,14 @@ public class ReloadingCloseableContainerTest {
 
     @Test
     public void lastCqlClusterClosedAfterClose() throws Exception {
-        java.lang.AutoCloseable resource = reloadingCloseableContainer.get();
+        AutoCloseable resource = reloadingCloseableContainer.get();
         reloadingCloseableContainer.close();
         verify(resource).close();
     }
 
     @Test
     public void previousCqlClusterIsClosedAfterRefresh() throws Exception {
-        java.lang.AutoCloseable resource = reloadingCloseableContainer.get();
+        AutoCloseable resource = reloadingCloseableContainer.get();
         refreshableFactoryArg.update(UPDATED_VALUE);
         verify(resource).close();
     }
@@ -91,7 +91,7 @@ public class ReloadingCloseableContainerTest {
     }
 
     private AutoCloseable mockFactory(int factoryArg) {
-        java.lang.AutoCloseable autoCloseable = mock(java.lang.AutoCloseable.class);
+        AutoCloseable autoCloseable = mock(AutoCloseable.class);
         when(resourceFactory.apply(factoryArg)).thenReturn(autoCloseable);
         return autoCloseable;
     }
