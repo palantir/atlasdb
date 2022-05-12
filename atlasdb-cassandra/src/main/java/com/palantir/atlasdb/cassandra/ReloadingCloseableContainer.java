@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.cassandra;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -103,7 +104,7 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
         return runIfNotClosed(refreshableResource, "Attempted to get a resource after the container was closed");
     }
 
-    private <K> K runIfNotClosed(Supplier<K> supplier, String ifClosedExceptionMessage) {
+    private <K> K runIfNotClosed(Supplier<K> supplier, @CompileTimeConstant String ifClosedExceptionMessage) {
         if (!isClosed) {
             return runWithReadLock(() -> {
                 if (isClosed) {
