@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -207,45 +208,6 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     }
 
     @Test
-    public void coalesceConcurrentGetsForSameTimestampsInPresenceOfFailuresButSucceedsWhenFailuresStop()
-            throws ExecutionException, InterruptedException {
-        setupStagingValues(5);
-
-        ExecutorService writers = Executors.newFixedThreadPool(100);
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
-        int numberOfReads = 10_000;
-        for (int i = 0; i < numberOfReads; i++) {
-            results.add(writers.submit(() -> pueTable.get(random.nextLong(5L))));
-        }
-        results.forEach(future -> assertThatThrownBy(() -> future.get().get())
-                .isInstanceOf(ExecutionException.class)
-                .hasCauseInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to set value"));
-        writers.shutdownNow();
-
-        long checkAndSets = getNumberOfInvocations(spiedKvs, "checkAndSet");
-        long puts = getNumberOfInvocations(spiedStore, "put");
-
-        // assert that some concurrent gets get coalesced but no guarantees due to scheduling
-        if (validating) {
-            assertThat(checkAndSets).isLessThan(numberOfReads / 2);
-            assertThat(checkAndSets).isEqualTo(puts - 1);
-        } else {
-            assertThat(checkAndSets).isEqualTo(0L);
-        }
-
-        spiedStore.stopFailingPuts();
-        assertThat(pueTable.get(0L).get()).isEqualTo(0L);
-        if (validating) {
-            assertThat(getNumberOfInvocations(spiedKvs, "checkAndSet")).isEqualTo(checkAndSets + 1);
-        } else {
-            assertThat(checkAndSets).isEqualTo(0L);
-        }
-        assertThat(getNumberOfInvocations(spiedStore, "put")).isEqualTo(puts + 1);
-    }
-
-    @Test
     public void noSuperfluousCasOrPuts() {
         setupStagingValues(50);
 
@@ -257,13 +219,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         for (int i = 0; i < numberOfReads; i++) {
             results.add(writers.submit(() -> pueTable.get(random.nextLong(50L))));
         }
-        results.forEach(future -> {
-            try {
-                assertThat(future.get().get()).isBetween(0L, 49L);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
+        results.forEach(future -> assertThatCode(() -> future.get().get()).doesNotThrowAnyException());
         writers.shutdownNow();
 
         if (validating) {
@@ -271,19 +227,22 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         } else {
             verify(spiedKvs, never()).checkAndSet(any());
         }
-        verify(spiedStore, times(51)).put(anyMap());
+        verify(spiedStore, times(1 + 50)).put(anyMap());
     }
 
     @Test
-    public void touchesAreSerial() {
-        setupStagingValues(10);
+    public void touchesForSameRowAreSerial() {
+        int rowsPerQuantum = TicketsEncodingStrategy.ROWS_PER_QUANTUM;
+        int parallelism = 100;
+        setupStagingValues(rowsPerQuantum * 10);
 
-        ExecutorService writers = Executors.newFixedThreadPool(100);
+        ExecutorService writers = Executors.newFixedThreadPool(parallelism);
         ThreadLocalRandom random = ThreadLocalRandom.current();
         List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
-        int numberOfReads = 1_000;
+        int numberOfReads = parallelism * 100;
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(writers.submit(() -> pueTable.get(random.nextLong(10))));
+            // all timestamps go into the same row
+            results.add(writers.submit(() -> pueTable.get(random.nextLong(10) * rowsPerQuantum)));
         }
         results.forEach(future -> assertThatThrownBy(() -> future.get().get())
                 .isInstanceOf(ExecutionException.class)
@@ -291,12 +250,42 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         spiedStore.stopFailingPuts();
         results.clear();
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(writers.submit(() -> pueTable.get(random.nextLong(10))));
+            results.add(writers.submit(() -> pueTable.get(random.nextLong(10) * rowsPerQuantum)));
         }
         results.forEach(future -> assertThatCode(() -> future.get().get()).doesNotThrowAnyException());
         writers.shutdownNow();
 
-        assertThat(spiedStore.multipleConcurrentTouches()).isFalse();
+        assertThat(spiedStore.maximumConcurrentTouches()).isEqualTo(validating ? 1 : 0);
+    }
+
+    @Test
+    public void allowParallelTouchesForDifferentRows() {
+        int maximumParallelism = TicketsEncodingStrategy.ROWS_PER_QUANTUM;
+        setupStagingValues(maximumParallelism * 2);
+
+        ExecutorService writers = Executors.newFixedThreadPool(maximumParallelism * 10);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
+        int numberOfReads = maximumParallelism * 100;
+        for (int i = 0; i < numberOfReads; i++) {
+            results.add(writers.submit(() -> pueTable.get(random.nextLong(maximumParallelism * 2))));
+        }
+        results.forEach(future -> assertThatThrownBy(() -> future.get().get())
+                .isInstanceOf(ExecutionException.class)
+                .hasCauseInstanceOf(RuntimeException.class));
+        spiedStore.stopFailingPuts();
+        results.clear();
+        for (int i = 0; i < numberOfReads; i++) {
+            results.add(writers.submit(() -> pueTable.get(random.nextLong(maximumParallelism * 2))));
+        }
+        results.forEach(future -> assertThatCode(() -> future.get().get()).doesNotThrowAnyException());
+        writers.shutdownNow();
+
+        if (validating) {
+            assertThat(spiedStore.maximumConcurrentTouches()).isBetween(2, maximumParallelism);
+        } else {
+            assertThat(spiedStore.maximumConcurrentTouches()).isEqualTo(0);
+        }
     }
 
     @Test
@@ -360,7 +349,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     private static class UnreliableKvsConsensusForgettingStore extends KvsConsensusForgettingStore {
         private volatile boolean failPuts = false;
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
-        private volatile boolean multipleConcurrentTouches = false;
+        private final AtomicInteger maximumConcurrentTouches = new AtomicInteger(0);
         private boolean commitUnderUs = false;
 
         public UnreliableKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
@@ -384,8 +373,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
             if (commitUnderUs) {
                 super.put(ImmutableMap.of(cell, TwoPhaseEncodingStrategy.INSTANCE.transformStagingToCommitted(value)));
             }
-            if (concurrentTouches.incrementAndGet() > 1) {
-                multipleConcurrentTouches = true;
+            int current = concurrentTouches.incrementAndGet();
+            if (current > maximumConcurrentTouches.get()) {
+                maximumConcurrentTouches.accumulateAndGet(current, Math::max);
             }
             super.checkAndTouch(cell, value);
             concurrentTouches.decrementAndGet();
@@ -402,8 +392,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
             failPuts = false;
         }
 
-        public boolean multipleConcurrentTouches() {
-            return multipleConcurrentTouches;
+        public int maximumConcurrentTouches() {
+            return maximumConcurrentTouches.get();
         }
 
         /**
