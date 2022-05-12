@@ -152,6 +152,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
+            // todo(gmaretic): time this call, if it gets too slow or starts throwing we can temporarily start accepting
+            // staging values
             resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
         }
         return resultBuilder.build();
