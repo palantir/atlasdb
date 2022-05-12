@@ -71,7 +71,7 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
     /**
      * Synchronized: See {@link #close()}.
      */
-    private synchronized <K> T createNewResource(K factoryArg, Function<K, T> factory) {
+    private <K> T createNewResource(K factoryArg, Function<K, T> factory) {
         if (!isClosed) {
             return runWithReadLock(() -> {
                 if (isClosed) {
