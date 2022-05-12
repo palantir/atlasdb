@@ -41,11 +41,6 @@ import javax.annotation.concurrent.GuardedBy;
  * closed.
  */
 public final class ReloadingCloseableContainer<T extends AutoCloseable> implements AutoCloseable {
-    private static final String CREATION_AFTER_CLOSE_ERROR_MESSAGE =
-            "Attempted to create a new cluster after the container was closed. If this happens repeatedly, this is "
-                    + "likely a bug in closing the container.";
-
-    private static final String GET_AFTER_CLOSE_ERROR_MESSAGE = "Attempted to get a resource from a closed container";
     private static final SafeLogger log = SafeLoggerFactory.get(ReloadingCloseableContainer.class);
 
     private final AtomicReference<Optional<T>> currentResource;
@@ -77,15 +72,8 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
      * isClosedLock: See {@link #close()}.
      */
     private <K> T createNewResource(K factoryArg, Function<K, T> factory) {
-        if (!isClosed) {
-            return runWithReadLock(() -> {
-                if (isClosed) {
-                    throw new SafeIllegalStateException(CREATION_AFTER_CLOSE_ERROR_MESSAGE);
-                }
-                return factory.apply(factoryArg);
-            });
-        }
-        throw new SafeIllegalStateException(CREATION_AFTER_CLOSE_ERROR_MESSAGE);
+        return runIfNotClosed(
+                () -> factory.apply(factoryArg), "Attempted to create a new resource after the container was closed.");
     }
 
     /**
@@ -112,15 +100,19 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
      * @throws SafeIllegalStateException if the container was closed prior to getting a resource.
      */
     public T get() {
+        return runIfNotClosed(refreshableResource, "Attempted to get a resource after the container was closed");
+    }
+
+    private <K> K runIfNotClosed(Supplier<K> supplier, String ifClosedExceptionMessage) {
         if (!isClosed) {
             return runWithReadLock(() -> {
                 if (isClosed) {
-                    throw new SafeIllegalStateException(GET_AFTER_CLOSE_ERROR_MESSAGE);
+                    throw new SafeIllegalStateException(ifClosedExceptionMessage);
                 }
-                return refreshableResource.get();
+                return supplier.get();
             });
         }
-        throw new SafeIllegalStateException(GET_AFTER_CLOSE_ERROR_MESSAGE);
+        throw new SafeIllegalStateException(ifClosedExceptionMessage);
     }
 
     private <K> K runWithReadLock(Supplier<K> supplier) {
