@@ -102,6 +102,7 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -223,7 +224,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
-    private final Optional<AsyncKeyValueService> asyncKeyValueService;
+    private final AsyncKeyValueService asyncKeyValueService;
     private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
@@ -374,12 +375,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             boolean initializeAsync) {
         try {
             CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config);
-            Optional<AsyncKeyValueService> asyncKeyValueService = config.asyncKeyValueServiceFactory()
+            AsyncKeyValueService asyncKeyValueService = config.asyncKeyValueServiceFactory()
                     .constructAsyncKeyValueService(
                             metricsManager,
                             config.getKeyspaceOrThrow(),
                             clusterConfig,
-                            config.servers(),
+                            Refreshable.only(config.servers()),
                             initializeAsync);
 
             return createAndInitialize(
@@ -402,7 +403,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
-            Optional<AsyncKeyValueService> asyncKeyValueService,
+            AsyncKeyValueService asyncKeyValueService,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
@@ -422,7 +423,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
-            Optional<AsyncKeyValueService> asyncKeyValueService,
+            AsyncKeyValueService asyncKeyValueService,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
@@ -1804,7 +1805,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void close() {
         clientPool.shutdown();
-        asyncKeyValueService.ifPresent(AsyncKeyValueService::close);
+        asyncKeyValueService.close();
         super.close();
     }
 
@@ -2088,10 +2089,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             log.info("Attempted get with no specified cells", LoggingArgs.tableRef(tableRef));
             return Futures.immediateFuture(ImmutableMap.of());
         }
-
-        return asyncKeyValueService
-                .map(asyncKvs -> asyncKvs.getAsync(tableRef, timestampByCell))
-                .orElseGet(() -> Futures.immediateFuture(this.get(tableRef, timestampByCell)));
+        try {
+            return asyncKeyValueService.getAsync(tableRef, timestampByCell);
+        } catch (IllegalStateException e) {
+            log.info("Invalid async KVS");
+            return Futures.immediateFuture(this.get(tableRef, timestampByCell));
+        }
     }
 
     private static class TableCellAndValue {

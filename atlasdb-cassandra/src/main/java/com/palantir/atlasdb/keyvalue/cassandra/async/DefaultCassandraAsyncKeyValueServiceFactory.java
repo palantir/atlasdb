@@ -23,6 +23,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
@@ -30,8 +31,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.CqlClientFa
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tracing.Tracers;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 public final class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsyncKeyValueServiceFactory {
@@ -45,16 +46,16 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
     }
 
     @Override
-    public Optional<AsyncKeyValueService> constructAsyncKeyValueService(
+    public AsyncKeyValueService constructAsyncKeyValueService(
             MetricsManager metricsManager,
             String keyspace,
             CassandraClusterConfig cassandraClusterConfig,
-            CassandraServersConfig cassandraServersConfig,
+            Refreshable<CassandraServersConfig> refreshable,
             boolean initializeAsync) {
-        Optional<CqlClient> cqlClient = cqlClientFactory.constructClient(
-                metricsManager.getTaggedRegistry(), cassandraServersConfig, cassandraClusterConfig, initializeAsync);
+        ReloadingCloseableContainer<CqlClient> cqlClientContainer = cqlClientFactory.constructReloadingClientContainer(
+                metricsManager.getTaggedRegistry(), refreshable, cassandraClusterConfig, initializeAsync);
 
-        ExecutorService executorService = cassandraServersConfig.accept(new Visitor<ExecutorService>() {
+        ExecutorService executorService = refreshable.get().accept(new Visitor<ExecutorService>() {
             @Override
             public ExecutorService visit(DefaultConfig defaultConfig) {
                 return MoreExecutors.newDirectExecutorService();
@@ -74,8 +75,8 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
             }
         });
 
-        return cqlClient.map(client ->
-                CassandraAsyncKeyValueService.create(keyspace, client, AtlasFutures.futuresCombiner(executorService)));
+        return CassandraAsyncKeyValueService.create(
+                keyspace, cqlClientContainer, AtlasFutures.futuresCombiner(executorService));
     }
 
     /**

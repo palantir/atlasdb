@@ -19,12 +19,14 @@ package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 import com.datastax.driver.core.Cluster;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.async.ThrowingCqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.net.InetSocketAddress;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -46,18 +48,21 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
     }
 
     @Override
-    public Optional<CqlClient> constructClient(
+    public ReloadingCloseableContainer<CqlClient> constructReloadingClientContainer(
             TaggedMetricRegistry taggedMetricRegistry,
-            CassandraServersConfig cassandraServersConfig,
+            Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable,
             CassandraClusterConfig cassandraClusterConfig,
             boolean initializeAsync) {
-        return CassandraServersConfigs.getCqlCapableConfigIfValid(cassandraServersConfig)
-                .map(cqlCapableConfig -> {
-                    Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
-                    Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory)
-                            .constructCluster(servers, cassandraClusterConfig);
-                    return CqlClientImpl.create(
-                            taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync);
-                });
+        return ReloadingCloseableContainer.of(
+                cassandraServersConfigRefreshable,
+                serversConfig -> CassandraServersConfigs.getCqlCapableConfigIfValid(serversConfig)
+                        .map(cqlCapableConfig -> {
+                            Set<InetSocketAddress> servers = cqlCapableConfig.cqlHosts();
+                            Cluster cluster = new ClusterFactory(cqlClusterBuilderFactory)
+                                    .constructCluster(servers, cassandraClusterConfig);
+                            return CqlClientImpl.create(
+                                    taggedMetricRegistry, cluster, cqlCapableConfig.tuning(), initializeAsync);
+                        })
+                        .orElse(ThrowingCqlClient.of()));
     }
 }

@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
@@ -34,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
 import com.palantir.common.random.RandomBytes;
+import com.palantir.refreshable.Refreshable;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -63,10 +65,13 @@ public class CassandraAsyncKeyValueServiceTests {
     @Mock
     private CqlClient cqlClient;
 
+    private final ReloadingCloseableContainer<CqlClient> cqlClientContainer =
+            ReloadingCloseableContainer.of(Refreshable.only(Optional.empty()), _ignored -> cqlClient);
+
     @Before
     public void setUp() {
         asyncKeyValueService = CassandraAsyncKeyValueService.create(
-                KEYSPACE, cqlClient, AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
+                KEYSPACE, cqlClientContainer, AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
     }
 
     @After
