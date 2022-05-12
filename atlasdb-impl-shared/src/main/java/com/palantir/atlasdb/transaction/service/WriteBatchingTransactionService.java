@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -55,17 +57,21 @@ public final class WriteBatchingTransactionService implements TransactionService
     private static final SafeLogger log = SafeLoggerFactory.get(WriteBatchingTransactionService.class);
 
     private final EncodingTransactionService delegate;
-    private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
+    private final DisruptorAutobatcher<TimestampPair, Duration> autobatcher;
 
     private WriteBatchingTransactionService(
-            EncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Void> autobatcher) {
+            EncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Duration> autobatcher) {
         this.delegate = delegate;
         this.autobatcher = autobatcher;
     }
 
     public static TransactionService create(EncodingTransactionService delegate) {
-        DisruptorAutobatcher<TimestampPair, Void> autobatcher = Autobatchers.<TimestampPair, Void>independent(
-                        elements -> processBatch(delegate, elements))
+        return create(delegate, Ticker.systemTicker());
+    }
+
+    static TransactionService create(EncodingTransactionService delegate, Ticker ticker) {
+        DisruptorAutobatcher<TimestampPair, Duration> autobatcher = Autobatchers.<TimestampPair, Duration>independent(
+                        elements -> processBatch(delegate, elements, ticker))
                 .safeLoggablePurpose("write-batching-transaction-service")
                 .batchFunctionTimeout(Duration.ofMinutes(5))
                 .build();
@@ -127,15 +133,17 @@ public final class WriteBatchingTransactionService implements TransactionService
      * requests).
      */
     @VisibleForTesting
-    static void processBatch(
-            EncodingTransactionService delegate, List<BatchElement<TimestampPair, Void>> batchElements) {
-        Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements =
+    static Duration processBatch(
+            EncodingTransactionService delegate,
+            List<BatchElement<TimestampPair, Duration>> batchElements,
+            Ticker ticker) {
+        Multimap<Long, BatchElement<TimestampPair, Duration>> startTimestampKeyedBatchElements =
                 MultimapBuilder.hashKeys().hashSetValues().build();
         batchElements.forEach(batchElement ->
                 startTimestampKeyedBatchElements.put(batchElement.argument().startTimestamp(), batchElement));
-
+        Stopwatch stopwatch = Stopwatch.createStarted(ticker);
         while (!startTimestampKeyedBatchElements.isEmpty()) {
-            Map<Long, BatchElement<TimestampPair, Void>> batch =
+            Map<Long, BatchElement<TimestampPair, Duration>> batch =
                     extractSingleBatchForQuerying(startTimestampKeyedBatchElements);
             try {
                 delegate.putUnlessExistsMultiple(KeyedStream.stream(batch)
@@ -143,21 +151,23 @@ public final class WriteBatchingTransactionService implements TransactionService
                         .collectToMap());
                 markBatchSuccessful(startTimestampKeyedBatchElements, batch);
                 markAllRemainingRequestsAsFailed(delegate, startTimestampKeyedBatchElements.values());
-                return;
+                return stopwatch.elapsed();
             } catch (KeyAlreadyExistsException exception) {
                 handleFailedTimestamps(delegate, startTimestampKeyedBatchElements, batch, exception);
                 handleSuccessfulTimestamps(delegate, startTimestampKeyedBatchElements, batch, exception);
             }
         }
+        return stopwatch.elapsed();
     }
 
     private static void markAllRemainingRequestsAsFailed(
-            EncodingTransactionService delegate, Collection<BatchElement<TimestampPair, Void>> batchElementsToFail) {
+            EncodingTransactionService delegate,
+            Collection<BatchElement<TimestampPair, Duration>> batchElementsToFail) {
         batchElementsToFail.forEach(batchElem -> markPreemptivelyAsFailure(delegate, batchElem));
     }
 
     private static void markPreemptivelyAsFailure(
-            EncodingTransactionService delegate, BatchElement<TimestampPair, Void> batchElem) {
+            EncodingTransactionService delegate, BatchElement<TimestampPair, Duration> batchElem) {
         Cell cell = delegate.getCellEncodingStrategy()
                 .encodeStartTimestampAsCell(batchElem.argument().startTimestamp());
         KeyAlreadyExistsException exception = new KeyAlreadyExistsException(
@@ -167,8 +177,8 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     private static void handleFailedTimestamps(
             EncodingTransactionService delegate,
-            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
-            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            Multimap<Long, BatchElement<TimestampPair, Duration>> startTimestampKeyedBatchElements,
+            Map<Long, BatchElement<TimestampPair, Duration>> batch,
             KeyAlreadyExistsException exception) {
         Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, batch.keySet(), exception);
         Map<Boolean, List<Long>> wereFailedTimestampsExpected =
@@ -180,7 +190,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static void handleExpectedFailedTimestamps(
-            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            Map<Long, BatchElement<TimestampPair, Duration>> batch,
             KeyAlreadyExistsException exception,
             Set<Long> failedTimestamps,
             Map<Boolean, List<Long>> wereFailedTimestampsExpected) {
@@ -194,13 +204,14 @@ public final class WriteBatchingTransactionService implements TransactionService
                     SafeArg.of("failedTimestamps", failedTimestamps));
         }
         expectedFailedTimestamps.forEach(timestamp -> {
-            BatchElement<TimestampPair, Void> batchElement = batch.get(timestamp);
+            BatchElement<TimestampPair, Duration> batchElement = batch.get(timestamp);
             batchElement.result().setException(exception);
         });
     }
 
     private static void handleUnexpectedFailedTimestamps(
-            Map<Long, BatchElement<TimestampPair, Void>> batch, Map<Boolean, List<Long>> wereFailedTimestampsExpected) {
+            Map<Long, BatchElement<TimestampPair, Duration>> batch,
+            Map<Boolean, List<Long>> wereFailedTimestampsExpected) {
         List<Long> unexpectedFailedTimestamps = wereFailedTimestampsExpected.get(false);
         if (unexpectedFailedTimestamps != null) {
             log.warn(
@@ -213,8 +224,8 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     private static void handleSuccessfulTimestamps(
             EncodingTransactionService delegate,
-            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
-            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            Multimap<Long, BatchElement<TimestampPair, Duration>> startTimestampKeyedBatchElements,
+            Map<Long, BatchElement<TimestampPair, Duration>> batch,
             KeyAlreadyExistsException exception) {
         Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
         Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected =
@@ -227,7 +238,7 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     private static void markAllRemainingRequestsForTimestampsAsFailed(
             EncodingTransactionService delegate,
-            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
+            Multimap<Long, BatchElement<TimestampPair, Duration>> startTimestampKeyedBatchElements,
             Set<Long> timestampsToFail) {
         timestampsToFail.stream()
                 .map(startTimestampKeyedBatchElements::get)
@@ -236,19 +247,19 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static void handleExpectedSuccesses(
-            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            Map<Long, BatchElement<TimestampPair, Duration>> batch,
             Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected) {
         List<Long> expectedSuccessfulTimestamps = wereSuccessfulTimestampsExpected.get(true);
         if (expectedSuccessfulTimestamps != null) {
             expectedSuccessfulTimestamps.forEach(timestamp -> {
-                BatchElement<TimestampPair, Void> batchElement = batch.get(timestamp);
+                BatchElement<TimestampPair, Duration> batchElement = batch.get(timestamp);
                 markSuccessful(batchElement.result());
             });
         }
     }
 
     private static void handleUnexpectedSuccesses(
-            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            Map<Long, BatchElement<TimestampPair, Duration>> batch,
             Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected) {
         List<Long> unexpectedSuccessfulTimestamps = wereSuccessfulTimestampsExpected.get(false);
         if (unexpectedSuccessfulTimestamps != null) {
@@ -261,15 +272,15 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static void markBatchSuccessful(
-            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
-            Map<Long, BatchElement<TimestampPair, Void>> batch) {
+            Multimap<Long, BatchElement<TimestampPair, Duration>> startTimestampKeyedBatchElements,
+            Map<Long, BatchElement<TimestampPair, Duration>> batch) {
         batch.forEach((startTimestamp, batchElement) -> {
             startTimestampKeyedBatchElements.remove(startTimestamp, batchElement);
             markSuccessful(batchElement.result());
         });
     }
 
-    private static void markSuccessful(DisruptorAutobatcher.DisruptorFuture<Void> result) {
+    private static void markSuccessful(DisruptorAutobatcher.DisruptorFuture<Duration> result) {
         result.set(null);
     }
 
@@ -302,11 +313,11 @@ public final class WriteBatchingTransactionService implements TransactionService
                 .collect(Collectors.toSet());
     }
 
-    private static Map<Long, BatchElement<TimestampPair, Void>> extractSingleBatchForQuerying(
-            Multimap<Long, BatchElement<TimestampPair, Void>> requests) {
-        Map<Long, BatchElement<TimestampPair, Void>> result =
+    private static Map<Long, BatchElement<TimestampPair, Duration>> extractSingleBatchForQuerying(
+            Multimap<Long, BatchElement<TimestampPair, Duration>> requests) {
+        Map<Long, BatchElement<TimestampPair, Duration>> result =
                 Maps.newHashMapWithExpectedSize(requests.keySet().size());
-        for (Map.Entry<Long, Collection<BatchElement<TimestampPair, Void>>> entry :
+        for (Map.Entry<Long, Collection<BatchElement<TimestampPair, Duration>>> entry :
                 Multimaps.asMap(requests).entrySet()) {
             result.put(entry.getKey(), entry.getValue().iterator().next());
         }
