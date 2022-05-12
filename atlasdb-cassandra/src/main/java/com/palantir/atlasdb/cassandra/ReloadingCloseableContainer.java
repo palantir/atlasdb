@@ -54,7 +54,7 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
     private final ReadWriteLock isClosedLock;
 
     @GuardedBy("isClosedLock")
-    private boolean isClosed;
+    private volatile boolean isClosed;
 
     private <K> ReloadingCloseableContainer(Refreshable<K> refreshableFactoryArgument, Function<K, T> factory) {
         this.isClosed = false;
@@ -74,7 +74,7 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
     }
 
     /**
-     * Synchronized: See {@link #close()}.
+     * isClosedLock: See {@link #close()}.
      */
     private <K> T createNewResource(K factoryArg, Function<K, T> factory) {
         if (!isClosed) {
