@@ -109,7 +109,7 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
      * The resource returned will be closed after {@link #close} is called, or the refreshable is refreshed, even
      * if the resource is in active use.
      *
-     * @throws SafeIllegalStateException if the container is closed prior to getting a resource.
+     * @throws SafeIllegalStateException if the container was closed prior to getting a resource.
      */
     public T get() {
         if (!isClosed) {
