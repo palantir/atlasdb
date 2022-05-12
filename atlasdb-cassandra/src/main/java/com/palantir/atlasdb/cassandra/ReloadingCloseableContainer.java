@@ -41,6 +41,11 @@ import javax.annotation.concurrent.GuardedBy;
  * closed.
  */
 public final class ReloadingCloseableContainer<T extends AutoCloseable> implements AutoCloseable {
+    private static final String CREATION_AFTER_CLOSE_ERROR_MESSAGE =
+            "Attempted to create a new cluster after the container was closed. If this happens repeatedly, this is "
+                    + "likely a bug in closing the container.";
+
+    private static final String GET_AFTER_CLOSE_ERROR_MESSAGE = "Attempted to get a resource from a closed container";
     private static final SafeLogger log = SafeLoggerFactory.get(ReloadingCloseableContainer.class);
 
     private final AtomicReference<Optional<T>> currentResource;
@@ -75,25 +80,17 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
         if (!isClosed) {
             return runWithReadLock(() -> {
                 if (isClosed) {
-                    throw new SafeIllegalStateException(
-                            "Attempted to create a new cluster after the container was closed. If this happens"
-                                + " repeatedly, this is likely a bug in closing the container. Otherwise, it is highly"
-                                + " likely that the container was closed at the same time as the refreshable was"
-                                + " updated. If so, this error can be ignored.");
+                    throw new SafeIllegalStateException(CREATION_AFTER_CLOSE_ERROR_MESSAGE);
                 }
                 return factory.apply(factoryArg);
             });
         }
-        throw new SafeIllegalStateException(
-                "Attempted to create a new cluster after the container was closed. If this happens repeatedly,"
-                        + " this is likely a bug in closing the container. Otherwise, it is highly likely that the"
-                        + " container was closed at the same time as the refreshable was updated. If so, this error"
-                        + " can be ignored.");
+        throw new SafeIllegalStateException(CREATION_AFTER_CLOSE_ERROR_MESSAGE);
     }
 
     /**
-     * Synchronized: A lock is taken out to ensure no new CQL Clusters are created after retrieving the current stored
-     * cql cluster to close. By doing so, we avoid closing a cluster and subsequently creating a new one that is
+     * A lock is taken out to ensure no new resources are created after retrieving the current stored
+     * resource to close. By doing so, we avoid closing a cluster and subsequently creating a new one that is
      * never closed.
      */
     @Override
@@ -111,17 +108,19 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
      *
      * The resource returned will be closed after {@link #close} is called, or the refreshable is refreshed, even
      * if the resource is in active use.
+     *
+     * @throws SafeIllegalStateException if the container is closed prior to getting a resource.
      */
     public T get() {
         if (!isClosed) {
             return runWithReadLock(() -> {
                 if (isClosed) {
-                    throw new SafeIllegalStateException("Attempted to get a resource from a closed container");
+                    throw new SafeIllegalStateException(GET_AFTER_CLOSE_ERROR_MESSAGE);
                 }
                 return refreshableResource.get();
             });
         }
-        throw new SafeIllegalStateException("Attempted to get a resource from a closed container");
+        throw new SafeIllegalStateException(GET_AFTER_CLOSE_ERROR_MESSAGE);
     }
 
     private <K> K runWithReadLock(Supplier<K> supplier) {
