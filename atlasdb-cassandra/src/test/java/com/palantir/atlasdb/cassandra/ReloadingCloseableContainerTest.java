@@ -90,7 +90,7 @@ public class ReloadingCloseableContainerTest {
         verify(resourceFactory, never()).apply(UPDATED_VALUE);
     }
 
-    private java.lang.AutoCloseable mockFactory(int factoryArg) {
+    private AutoCloseable mockFactory(int factoryArg) {
         java.lang.AutoCloseable autoCloseable = mock(java.lang.AutoCloseable.class);
         when(resourceFactory.apply(factoryArg)).thenReturn(autoCloseable);
         return autoCloseable;
