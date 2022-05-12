@@ -19,6 +19,7 @@ package com.palantir.atlasdb.pue;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
@@ -28,10 +29,17 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.common.time.Clock;
+import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,12 +50,14 @@ import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
+    private static final SafeLogger log = SafeLoggerFactory.get(ResilientCommitTimestampPutUnlessExistsTable.class);
     private static final int TOUCH_CACHE_SIZE = 1000;
+    private static final Duration COMMIT_THRESHOLD = Duration.ofSeconds(1);
 
     private final ConsensusForgettingStore store;
     private final TwoPhaseEncodingStrategy encodingStrategy;
     private final Supplier<Boolean> acceptStagingReadsAsCommitted;
-
+    private final Clock clock;
     private final Map<ByteBuffer, Object> rowLocks = new ConcurrentHashMap<>();
 
     private final LoadingCache<CellInfo, Long> touchCache = Caffeine.newBuilder()
@@ -56,11 +66,13 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 @Override
                 @Nonnull
                 public Long load(@Nonnull CellInfo cellInfo) {
-                    Object lock = rowLocks.computeIfAbsent(
-                            ByteBuffer.wrap(cellInfo.cell().getRowName()), x -> x);
-                    FollowUpAction followUpAction;
-                    synchronized (lock) {
-                        followUpAction = touchAndReturn(cellInfo);
+                    FollowUpAction followUpAction = FollowUpAction.PUT;
+                    if (clock.instant().isAfter(acceptStagingUntil) && !acceptStagingReadsAsCommitted.get()) {
+                        synchronized (
+                                rowLocks.computeIfAbsent(
+                                        ByteBuffer.wrap(cellInfo.cell().getRowName()), x -> x)) {
+                            followUpAction = touchAndReturn(cellInfo);
+                        }
                     }
                     if (followUpAction == FollowUpAction.PUT) {
                         store.put(ImmutableMap.of(
@@ -69,6 +81,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                     return cellInfo.commitTs();
                 }
             });
+
+    private volatile Instant acceptStagingUntil = Instant.EPOCH;
 
     public ResilientCommitTimestampPutUnlessExistsTable(
             ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
@@ -79,9 +93,19 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
+        this(store, encodingStrategy, acceptStagingReadsAsCommitted, new SystemClock());
+    }
+
+    @VisibleForTesting
+    ResilientCommitTimestampPutUnlessExistsTable(
+            ConsensusForgettingStore store,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            Clock clock) {
         this.store = store;
         this.encodingStrategy = encodingStrategy;
         this.acceptStagingReadsAsCommitted = acceptStagingReadsAsCommitted;
+        this.clock = clock;
     }
 
     @Override
@@ -152,9 +176,29 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
-            // todo(gmaretic): time this call, if it gets too slow or starts throwing we can temporarily start accepting
-            // staging values
-            resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
+            try {
+                Instant startTime = clock.instant();
+                resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
+                Duration timeTaken = Duration.between(startTime, clock.instant());
+                if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
+                    acceptStagingUntil = clock.instant().plusSeconds(60);
+                    log.warn(
+                            "Committing a staging value for the transactions table took too long. "
+                                    + "Treating staging values as committed for 60 seconds to ensure liveness.",
+                            SafeArg.of("startTs", startTs),
+                            SafeArg.of("commitTs", commitTs),
+                            SafeArg.of("timeTaken", timeTaken));
+                }
+            } catch (AtlasDbDependencyException e) {
+                acceptStagingUntil = clock.instant().plusSeconds(60);
+                log.warn(
+                        "Encountered exception attempting to commit a staging value for the transactions table. "
+                                + "Treating staging values as committed for 60 seconds to ensure liveness.",
+                        SafeArg.of("startTs", startTs),
+                        SafeArg.of("commitTs", commitTs),
+                        e);
+                throw e;
+            }
         }
         return resultBuilder.build();
     }

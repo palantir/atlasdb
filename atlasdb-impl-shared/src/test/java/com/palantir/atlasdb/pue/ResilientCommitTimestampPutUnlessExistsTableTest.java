@@ -23,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -40,7 +39,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
-import java.lang.reflect.Method;
+import com.palantir.common.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,6 +53,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -60,7 +61,6 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.mockito.invocation.Invocation;
 
 @RunWith(Parameterized.class)
 public class ResilientCommitTimestampPutUnlessExistsTableTest {
@@ -73,11 +73,13 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     private final boolean validating;
     private final PutUnlessExistsTable<Long, Long> pueTable;
+    private final AtomicLong clockLong = new AtomicLong(1000);
+    private final Clock clock = clockLong::get;
 
     public ResilientCommitTimestampPutUnlessExistsTableTest(String name, Object parameter) {
         validating = !(boolean) parameter;
         pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
-                spiedStore, TwoPhaseEncodingStrategy.INSTANCE, () -> !validating);
+                spiedStore, TwoPhaseEncodingStrategy.INSTANCE, () -> !validating, clock);
     }
 
     @Parameterized.Parameters(name = "{0}")
@@ -301,20 +303,32 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         verify(spiedStore, times(1)).put(anyMap());
     }
 
+    @Test
+    public void acceptStagingAsCommittedWhenCommittingIsSlow() throws ExecutionException, InterruptedException {
+        Assume.assumeTrue(validating);
+        setupStagingValues(5);
+        spiedStore.stopFailingPuts();
+        spiedStore.startSlowPue();
+
+        assertThat(pueTable.get(0L).get()).isEqualTo(0L);
+        assertThat(pueTable.get(1L).get()).isEqualTo(1L);
+
+        verify(spiedKvs, times(1)).checkAndSet(any());
+        verify(spiedStore, times(1 + 2)).put(anyMap());
+
+        clockLong.accumulateAndGet(Duration.ofSeconds(62).toMillis(), Long::sum);
+
+        assertThat(pueTable.get(2L).get()).isEqualTo(2L);
+        verify(spiedKvs, times(2)).checkAndSet(any());
+        verify(spiedStore, times(1 + 3)).put(anyMap());
+    }
+
     private void setupStagingValues(int num) {
         spiedStore.startFailingPuts();
         Map<Long, Long> initialWrites = LongStream.range(0, num).boxed().collect(Collectors.toMap(x -> x, x -> x));
         assertThatThrownBy(() -> pueTable.putUnlessExistsMultiple(initialWrites))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to set value");
-    }
-
-    private static long getNumberOfInvocations(Object mock, String put) {
-        return mockingDetails(mock).getInvocations().stream()
-                .map(Invocation::getMethod)
-                .map(Method::getName)
-                .filter(name -> name.equals(put))
-                .count();
     }
 
     private static Optional<Long> tryPue(
@@ -346,11 +360,12 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
      * {@link KvsConsensusForgettingStore} and {@link ResilientCommitTimestampPutUnlessExistsTable}. If implementation
      * details are changed, it may invalidate tests relying on this class.
      */
-    private static class UnreliableKvsConsensusForgettingStore extends KvsConsensusForgettingStore {
+    private class UnreliableKvsConsensusForgettingStore extends KvsConsensusForgettingStore {
         private volatile boolean failPuts = false;
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
         private final AtomicInteger maximumConcurrentTouches = new AtomicInteger(0);
-        private boolean commitUnderUs = false;
+        private volatile boolean commitUnderUs = false;
+        private volatile long millisForPue = 0;
 
         public UnreliableKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
             super(kvs, tableRef);
@@ -378,6 +393,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
                 maximumConcurrentTouches.accumulateAndGet(current, Math::max);
             }
             super.checkAndTouch(cell, value);
+            clockLong.getAndAccumulate(millisForPue, Long::sum);
             concurrentTouches.decrementAndGet();
         }
 
@@ -394,6 +410,10 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         public int maximumConcurrentTouches() {
             return maximumConcurrentTouches.get();
+        }
+
+        public void startSlowPue() {
+            millisForPue = Duration.ofSeconds(2).toMillis();
         }
 
         /**
