@@ -76,7 +76,7 @@ public class ReloadingCloseableContainerTest {
     public void newResourceCreatedWithUpdatedRefreshableValueAfterRefresh() throws Exception {
         AutoCloseable resource = reloadingCloseableContainer.get();
 
-        refreshableFactoryArg.update(INITIAL_VALUE);
+        refreshableFactoryArg.update(UPDATED_VALUE);
 
         AutoCloseable secondResource = reloadingCloseableContainer.get();
 
