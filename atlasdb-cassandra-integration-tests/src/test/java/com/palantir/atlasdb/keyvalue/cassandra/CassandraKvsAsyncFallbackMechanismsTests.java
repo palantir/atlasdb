@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -67,8 +68,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Before
     public void setUp() {
-        when(asyncKeyValueService.getAsync(any(), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
-        when(throwingAsyncKeyValueService.getAsync(any(), any())).thenThrow(new IllegalStateException());
+        lenient().when(asyncKeyValueService.getAsync(any(), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
+        lenient().when(throwingAsyncKeyValueService.getAsync(any(), any())).thenThrow(new IllegalStateException());
     }
 
     @After
