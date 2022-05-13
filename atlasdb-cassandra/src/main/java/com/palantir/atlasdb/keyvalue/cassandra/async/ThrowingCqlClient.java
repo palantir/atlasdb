@@ -35,4 +35,9 @@ public class ThrowingCqlClient implements CqlClient {
     public void close() {
         // no-op, nothing to close
     }
+
+    @Override
+    public boolean isValid() {
+        return false;
+    }
 }

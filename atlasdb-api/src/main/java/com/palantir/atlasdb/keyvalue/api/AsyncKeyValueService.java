@@ -29,6 +29,7 @@ public interface AsyncKeyValueService extends AutoCloseable {
      * @param tableRef        the name of the table to retrieve values from.
      * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to retrieve that
      *                        row's value.
+     *
      * @return listenable future containing map of retrieved values. Values which do not exist (either because they were
      * deleted or never created in the first place) are simply not returned.
      */
@@ -38,4 +39,8 @@ public interface AsyncKeyValueService extends AutoCloseable {
 
     @Override
     void close();
+
+    default boolean isValid() {
+        return true;
+    }
 }

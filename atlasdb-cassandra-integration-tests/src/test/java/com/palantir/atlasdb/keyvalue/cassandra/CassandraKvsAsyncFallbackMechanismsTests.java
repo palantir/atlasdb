@@ -99,11 +99,30 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     }
 
     @Test
-    public void testGetAsyncFallingBackToSynchronous() {
+    public void testGetAsyncFallingBackToSynchronousOnException() {
         when(factory.constructAsyncKeyValueService(
                         any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(throwingAsyncKeyValueService);
 
+        CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(CASSANDRA_RESOURCE.getConfig())
+                .asyncKeyValueServiceFactory(factory)
+                .build();
+
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
+
+        verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
+    }
+
+    @Test
+    public void testGetAsyncFallingBackToSynchronousOnInvalidAsyncKvs() {
+        when(factory.constructAsyncKeyValueService(
+                any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
+                .thenReturn(asyncKeyValueService);
+        when(asyncKeyValueService.isValid()).thenReturn(false);
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(CASSANDRA_RESOURCE.getConfig())
                 .asyncKeyValueServiceFactory(factory)

@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.GetQuerySpec;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableCqlQueryContext;
 import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryParameters;
 import com.palantir.common.random.RandomBytes;
-import com.palantir.refreshable.Refreshable;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -65,13 +64,14 @@ public class CassandraAsyncKeyValueServiceTests {
     @Mock
     private CqlClient cqlClient;
 
-    private final ReloadingCloseableContainer<CqlClient> cqlClientContainer =
-            ReloadingCloseableContainer.of(Refreshable.only(Optional.empty()), _ignored -> cqlClient);
+    @Mock
+    private ReloadingCloseableContainer<CqlClient> cqlClientContainer;
 
     @Before
     public void setUp() {
         asyncKeyValueService = CassandraAsyncKeyValueService.create(
                 KEYSPACE, cqlClientContainer, AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
+        when(cqlClientContainer.get()).thenReturn(cqlClient);
     }
 
     @After
@@ -112,6 +112,24 @@ public class CassandraAsyncKeyValueServiceTests {
         Map<Cell, Value> result = asyncKeyValueService.getAsync(TABLE, request).get();
 
         assertThat(result).containsOnlyKeys(VISIBLE_CELL_1, VISIBLE_CELL_2);
+    }
+
+    @Test
+    public void testIsValidFalseWhenClientContainerClose() {
+        when(cqlClientContainer.isClosed()).thenReturn(true);
+        assertThat(asyncKeyValueService.isValid()).isFalse();
+    }
+
+    @Test
+    public void testIsValidFalseWhenClientIsInvalid() {
+        when(cqlClient.isValid()).thenReturn(false);
+        assertThat(asyncKeyValueService.isValid()).isFalse();
+    }
+
+    @Test
+    public void testIsValidTrueWhenContainerOpenAndClientValid() {
+        when(cqlClient.isValid()).thenReturn(true);
+        assertThat(asyncKeyValueService.isValid()).isTrue();
     }
 
     private void setUpVisibleCells(Cell... cells) {
