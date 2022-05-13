@@ -238,7 +238,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
-    private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier;
+    private final Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private final CassandraVerifierConfig verifierConfig;
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
@@ -446,8 +446,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
         this.cassandraTableDropper =
                 new CassandraTableDropper(config, clientPool, tableMetadata, cassandraTableTruncator);
-        this.runtimeConfigSupplier = runtimeConfig;
-        this.verifierConfig = CassandraVerifierConfig.of(config);
+        this.runtimeConfig = runtimeConfig;
+        this.verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
     }
 
     private static ExecutorService createBlockingThreadpool(
@@ -656,7 +656,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         List<KeyPredicate> query = rows.stream()
                 .map(row -> keyPredicate(
                         ByteBuffer.wrap(row),
-                        allPredicateWithLimit(runtimeConfigSupplier.get().fetchReadLimitPerRow())))
+                        allPredicateWithLimit(runtimeConfig.get().fetchReadLimitPerRow())))
                 .collect(Collectors.toList());
 
         while (!query.isEmpty()) {
@@ -736,7 +736,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         return SlicePredicates.create(
                 Range.of(nextLexicographicColumn, Range.UNBOUND_END),
-                Limit.of(runtimeConfigSupplier.get().fetchReadLimitPerRow()));
+                Limit.of(runtimeConfig.get().fetchReadLimitPerRow()));
     }
 
     private static List<ByteBuffer> wrap(List<byte[]> arrays) {

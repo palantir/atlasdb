@@ -42,6 +42,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
@@ -112,6 +112,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraService cassandra;
 
     private final CassandraKeyValueServiceConfig config;
+    private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private final CassandraClientConfig clientConfig;
     private final StartupChecks startupChecks;
     private final ScheduledExecutorService refreshDaemon;
@@ -131,6 +132,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
                 config,
+                Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault()),
                 startupChecks,
                 exceptionHandler,
                 blacklist,
@@ -150,6 +152,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 config,
+                Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault()),
                 startupChecks,
                 initializeableExecutorSupplier,
                 exceptionHandler,
@@ -163,7 +166,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     public static CassandraClientPool create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             boolean initializeAsync) {
         Blacklist blacklist = new Blacklist(config);
         CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
@@ -174,6 +177,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
                 config,
+                runtimeConfig,
                 StartupChecks.RUN,
                 exceptionHandler,
                 blacklist,
@@ -185,12 +189,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private CassandraClientPoolImpl(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraClientPoolMetrics metrics) {
         this(
                 config,
+                runtimeConfig,
                 startupChecks,
                 SHARED_EXECUTOR_SUPPLIER,
                 exceptionHandler,
@@ -201,6 +207,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private CassandraClientPoolImpl(
             CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
             InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             CassandraRequestExceptionHandler exceptionHandler,
@@ -208,6 +215,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraService cassandra,
             CassandraClientPoolMetrics metrics) {
         this.config = config;
+        this.runtimeConfig = runtimeConfig;
         this.clientConfig = CassandraClientConfig.of(config);
         this.startupChecks = startupChecks;
         initializeableExecutorSupplier.initialize(config.numPoolRefreshingThreads());
@@ -359,7 +367,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void runOneTimeStartupChecks() {
-        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config);
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, verifierConfig);
         } catch (Exception e) {

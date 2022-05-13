@@ -18,6 +18,7 @@ dependencies {
     implementation 'com.datastax.cassandra:cassandra-driver-core'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.refreshable:refreshable'
     implementation 'commons-io:commons-io'
     implementation 'io.netty:netty-transport'
     implementation 'junit:junit'

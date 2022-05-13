@@ -28,6 +28,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -403,7 +404,8 @@ public final class CassandraVerifier {
 
         int schemaMutationTimeoutMillis();
 
-        static CassandraVerifierConfig of(CassandraKeyValueServiceConfig config) {
+        static CassandraVerifierConfig of(CassandraKeyValueServiceConfig config,
+                CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
             return builder()
                     .keyspace(config.getKeyspaceOrThrow())
                     .clientConfig(CassandraClientConfig.of(config))
