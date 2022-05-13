@@ -68,7 +68,9 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Before
     public void setUp() {
-        lenient().when(asyncKeyValueService.getAsync(any(), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
+        lenient()
+                .when(asyncKeyValueService.getAsync(any(), any()))
+                .thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         lenient().when(throwingAsyncKeyValueService.getAsync(any(), any())).thenThrow(new IllegalStateException());
     }
 
