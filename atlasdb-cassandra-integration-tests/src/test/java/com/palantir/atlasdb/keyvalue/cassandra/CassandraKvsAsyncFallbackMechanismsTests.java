@@ -86,7 +86,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         when(factory.constructAsyncKeyValueService(
                         any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(asyncKeyValueService);
-
+        when(asyncKeyValueService.isValid()).thenReturn(true);
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(CASSANDRA_RESOURCE.getConfig())
                 .asyncKeyValueServiceFactory(factory)
