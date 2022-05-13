@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,12 +36,15 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
-import java.util.Optional;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class CassandraKvsAsyncFallbackMechanismsTests {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
@@ -51,14 +53,19 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     public static final CassandraResource CASSANDRA_RESOURCE = new CassandraResource();
 
     private KeyValueService keyValueService;
+    @Mock
     private AsyncKeyValueService asyncKeyValueService;
+
+    @Mock
+    private AsyncKeyValueService throwingAsyncKeyValueService;
+
+    @Mock
     private CassandraAsyncKeyValueServiceFactory factory;
 
     @Before
     public void setUp() {
-        asyncKeyValueService = mock(AsyncKeyValueService.class);
         when(asyncKeyValueService.getAsync(any(), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
-        factory = mock(CassandraAsyncKeyValueServiceFactory.class);
+        when(throwingAsyncKeyValueService.getAsync(any(), any())).thenThrow(new IllegalStateException());
     }
 
     @After
@@ -74,8 +81,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     @Test
     public void testGetFallBackNotNeeded() {
         when(factory.constructAsyncKeyValueService(
-                        any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
-                .thenReturn(Optional.of(asyncKeyValueService));
+                any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
+                .thenReturn(asyncKeyValueService);
 
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(CASSANDRA_RESOURCE.getConfig())
@@ -91,8 +98,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     @Test
     public void testGetFallingBackToSynchronous() {
         when(factory.constructAsyncKeyValueService(
-                        any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
-                .thenReturn(Optional.empty());
+                any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
+                .thenReturn(throwingAsyncKeyValueService);
 
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(CASSANDRA_RESOURCE.getConfig())
@@ -104,6 +111,6 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
         keyValueService.getAsync(TEST_TABLE, ImmutableMap.of(CELL, 3L));
 
-        verify(asyncKeyValueService, never()).getAsync(any(), any());
+        verify(throwingAsyncKeyValueService, never()).getAsync(any(), any());
     }
 }
