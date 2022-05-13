@@ -92,9 +92,11 @@ public class ReloadingCloseableContainerTest {
         verify(resourceFactory, never()).apply(UPDATED_VALUE);
     }
 
-    private AutoCloseable mockFactory(int factoryArg) {
-        AutoCloseable autoCloseable = mock(AutoCloseable.class);
-        when(resourceFactory.apply(factoryArg)).thenReturn(autoCloseable);
-        return autoCloseable;
+    @Test
+    public void getAfterCloseThrowsIllegalStateException() {
+        reloadingCloseableContainer.close();
+        assertThatLoggableExceptionThrownBy(reloadingCloseableContainer::get)
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("Attempted to get a resource after the container was closed");
     }
 }
