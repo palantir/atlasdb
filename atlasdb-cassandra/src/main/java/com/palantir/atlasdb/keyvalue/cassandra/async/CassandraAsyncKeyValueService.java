@@ -96,6 +96,6 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
 
     @Override
     public boolean isValid() {
-        return (!cqlClientContainer.isClosed()) && cqlClientContainer.get().isValid();
+        return !cqlClientContainer.isClosed() && cqlClientContainer.get().isValid();
     }
 }
