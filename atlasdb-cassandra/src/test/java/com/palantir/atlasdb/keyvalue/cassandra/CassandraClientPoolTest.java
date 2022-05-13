@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -39,6 +40,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -89,12 +91,18 @@ public class CassandraClientPoolTest {
     private Set<CassandraServer> poolServers = new HashSet<>();
 
     private CassandraKeyValueServiceConfig config;
+    private CassandraKeyValueServiceRuntimeConfig runtimeConfig;
+
+    private Refreshable<CassandraKeyValueServiceRuntimeConfig> refreshableRuntimeConfig;
+
     private Blacklist blacklist;
     private CassandraService cassandra = mock(CassandraService.class);
 
     @Before
     public void setup() {
         config = mock(CassandraKeyValueServiceConfig.class);
+        runtimeConfig = mock(CassandraKeyValueServiceRuntimeConfig.class);
+        refreshableRuntimeConfig = Refreshable.only(runtimeConfig);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
@@ -276,6 +284,7 @@ public class CassandraClientPoolTest {
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
+                refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist);
 
@@ -427,6 +436,7 @@ public class CassandraClientPoolTest {
         return CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.createForTests(),
                 config,
+                refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 InitializeableScheduledExecutorServiceSupplier.createForTests(deterministicExecutor),
                 blacklist,
@@ -504,6 +514,7 @@ public class CassandraClientPoolTest {
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
+                refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist);
 
