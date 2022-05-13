@@ -65,24 +65,24 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void throwsWhenPreprocessingNonCassandraKvsConfig() {
         assertThatThrownBy(() -> {
-            KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
-            FACTORY.createMergedKeyValueServiceConfig(
-                    keyValueServiceConfig, Refreshable.only(Optional.empty()), Optional.empty());
-        })
+                    KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
+                    FACTORY.createMergedKeyValueServiceConfig(
+                            keyValueServiceConfig, Refreshable.only(Optional.empty()), Optional.empty());
+                })
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
         assertThatThrownBy(() -> FACTORY.createMergedKeyValueServiceConfig(
-                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty()))
+                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
         assertThatThrownBy(() -> FACTORY.createMergedKeyValueServiceConfig(
-                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE_2)))
+                        CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -120,8 +120,9 @@ public class CassandraAtlasDbFactoryTest {
 
     @Test
     public void emptyRuntimeConfigShouldResolveToDefaultConfig() {
-        CassandraKeyValueServiceRuntimeConfig returnedConfig =
-                FACTORY.preprocessKvsRuntimeConfig(Refreshable.only(Optional.empty())).get();
+        CassandraKeyValueServiceRuntimeConfig returnedConfig = FACTORY.preprocessKvsRuntimeConfig(
+                        Refreshable.only(Optional.empty()))
+                .get();
 
         assertThat(returnedConfig)
                 .describedAs("Empty config should resolve to default")
@@ -131,7 +132,8 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void preservesValidRuntimeConfigIfFollowingLaterConfigIsNotValid() {
         AtomicBoolean first = new AtomicBoolean(true);
-        SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig = Refreshable.create(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
+        SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig =
+                Refreshable.create(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
 
         Refreshable<CassandraKeyValueServiceRuntimeConfig> processedRuntimeConfig =
                 FACTORY.preprocessKvsRuntimeConfig(runtimeConfig);

@@ -404,8 +404,8 @@ public final class CassandraVerifier {
 
         int schemaMutationTimeoutMillis();
 
-        static CassandraVerifierConfig of(CassandraKeyValueServiceConfig config,
-                CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
+        static CassandraVerifierConfig of(
+                CassandraKeyValueServiceConfig config, CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
             return builder()
                     .keyspace(config.getKeyspaceOrThrow())
                     .clientConfig(CassandraClientConfig.of(config))

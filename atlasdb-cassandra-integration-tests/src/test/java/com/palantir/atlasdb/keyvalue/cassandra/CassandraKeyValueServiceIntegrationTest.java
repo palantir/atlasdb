@@ -111,8 +111,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, UnaryOperator.identity()},
-                {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
+            {SYNC, UnaryOperator.identity()},
+            {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -238,7 +238,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .collect(Collectors.toList()));
 
         assertThat(ColumnFamilyDefinitions.isMatchingCf(
-                kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
+                        kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
                 .as("After serialization and deserialization to database, Cf metadata did not match.")
                 .isTrue();
     }
@@ -490,20 +490,20 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.putUnlessExists(userTable, ImmutableMap.of(CELL, sad));
         assertThat(keyValueService
-                .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
-                .get(CELL)
-                .getContents())
+                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                        .get(CELL)
+                        .getContents())
                 .containsExactly(sad);
 
         keyValueService.setOnce(userTable, ImmutableMap.of(CELL, happy));
         assertThat(keyValueService
-                .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
-                .get(CELL)
-                .getContents())
+                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                        .get(CELL)
+                        .getContents())
                 .containsExactly(happy);
         assertThat(keyValueService
-                .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
-                .size())
+                        .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
+                        .size())
                 .isEqualTo(1);
         keyValueService.truncateTable(userTable);
     }

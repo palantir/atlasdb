@@ -242,15 +242,15 @@ public final class CassandraRepairEteTest {
         Set<Range<LightweightOppToken>> thriftRanges = fullTokenMap.get(cassandraServer);
 
         cqlRangesForHost.asRanges().forEach(range -> assertThat(
-                thriftRanges.stream().anyMatch(containsEntirely(range)))
+                        thriftRanges.stream().anyMatch(containsEntirely(range)))
                 .isTrue());
     }
 
     private Predicate<Range<LightweightOppToken>> containsEntirely(Range<LightweightOppToken> range) {
         return thriftRange -> safeLowerBound(thriftRange).equals(safeLowerBound(range))
                 && (thriftRange.hasUpperBound()
-                ? range.hasUpperBound() && thriftRange.upperEndpoint().compareTo(range.upperEndpoint()) >= 0
-                : !range.hasUpperBound());
+                        ? range.hasUpperBound() && thriftRange.upperEndpoint().compareTo(range.upperEndpoint()) >= 0
+                        : !range.hasUpperBound());
     }
 
     private Optional<LightweightOppToken> safeLowerBound(Range<LightweightOppToken> range) {

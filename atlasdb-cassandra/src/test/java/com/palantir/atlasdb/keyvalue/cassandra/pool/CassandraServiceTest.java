@@ -215,13 +215,13 @@ public class CassandraServiceTest {
         cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(SERVER_1, DC_1, SERVER_2, DC_2, SERVER_3, DC_1));
 
         assertThat(cassandra
-                .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_1))
-                .map(CassandraClientPoolingContainer::getCassandraServer))
+                        .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_1))
+                        .map(CassandraClientPoolingContainer::getCassandraServer))
                 .as("obeys the predicate even if this host was already tried")
                 .hasValue(SERVER_1);
         assertThat(cassandra
-                .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_3))
-                .map(CassandraClientPoolingContainer::getCassandraServer))
+                        .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_3))
+                        .map(CassandraClientPoolingContainer::getCassandraServer))
                 .as("obeys the predicate even if another host in this datacenter was already tried")
                 .hasValue(SERVER_1);
     }
@@ -297,8 +297,8 @@ public class CassandraServiceTest {
         blacklist = new Blacklist(config);
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        CassandraService service =
-                new CassandraService(metricsManager, config, runtimeConfig, blacklist, new CassandraClientPoolMetrics(metricsManager));
+        CassandraService service = new CassandraService(
+                metricsManager, config, runtimeConfig, blacklist, new CassandraClientPoolMetrics(metricsManager));
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

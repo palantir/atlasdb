@@ -121,8 +121,8 @@ public class CassandraService implements AutoCloseable {
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
-        CassandraService cassandraService = new CassandraService(metricsManager, config, runtimeConfig, blacklist,
-                poolMetrics);
+        CassandraService cassandraService =
+                new CassandraService(metricsManager, config, runtimeConfig, blacklist, poolMetrics);
         cassandraService.cacheInitialCassandraHosts();
         cassandraService.refreshTokenRangesAndGetServers();
         return cassandraService;

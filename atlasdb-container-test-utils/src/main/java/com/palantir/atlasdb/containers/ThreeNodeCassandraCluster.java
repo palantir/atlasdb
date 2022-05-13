@@ -97,7 +97,7 @@ public class ThreeNodeCassandraCluster extends Container {
         return SuccessOrFailure.onResultOf(() -> {
             try {
                 return new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION)
-                        .nodetoolShowsThreeCassandraNodesUp()
+                                .nodetoolShowsThreeCassandraNodesUp()
                         && canCreateCassandraKeyValueService();
 
             } catch (Exception e) {

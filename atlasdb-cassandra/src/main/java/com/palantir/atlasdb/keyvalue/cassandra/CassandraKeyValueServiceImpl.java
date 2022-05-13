@@ -325,13 +325,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 CassandraClientPoolImpl.create(metricsManager, config, runtimeConfig, initializeAsync);
 
         return createOrShutdownClientPool(
-                metricsManager,
-                config,
-                runtimeConfig,
-                clientPool,
-                mutationTimestampProvider,
-                log,
-                initializeAsync);
+                metricsManager, config, runtimeConfig, clientPool, mutationTimestampProvider, log, initializeAsync);
     }
 
     private static CassandraKeyValueService createOrShutdownClientPool(
@@ -344,13 +338,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             boolean initializeAsync) {
         try {
             return createWithCqlClient(
-                    metricsManager,
-                    config,
-                    runtimeConfig,
-                    clientPool,
-                    mutationTimestampProvider,
-                    log,
-                    initializeAsync);
+                    metricsManager, config, runtimeConfig, clientPool, mutationTimestampProvider, log, initializeAsync);
         } catch (Exception e) {
             log.warn("Error occurred in creating Cassandra KVS. Now attempting to shut down client pool...", e);
             try {
@@ -427,8 +415,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.clientPool = clientPool;
         this.asyncKeyValueService = asyncKeyValueService;
         this.mutationTimestampProvider = mutationTimestampProvider;
-        this.queryRunner =
-                new TracingQueryRunner(log, () -> runtimeConfig.get().tracing());
+        this.queryRunner = new TracingQueryRunner(log, () -> runtimeConfig.get().tracing());
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
@@ -451,7 +438,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static ExecutorService createBlockingThreadpool(
-            CassandraKeyValueServiceConfig config, CassandraServersConfig serversConfig,
+            CassandraKeyValueServiceConfig config,
+            CassandraServersConfig serversConfig,
             MetricsManager metricsManager) {
         return config.thriftExecutorServiceFactory()
                 .orElseGet(() -> instrumentedFixedThreadPoolSupplier(
@@ -1085,10 +1073,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             boolean completedCell, byte[] lastCol, int numRawResults, BatchColumnRangeSelection columnRangeSelection) {
         return (numRawResults < columnRangeSelection.getBatchHint())
                 || (completedCell
-                && (RangeRequests.isLastRowName(lastCol)
-                || Arrays.equals(
-                RangeRequests.nextLexicographicName(lastCol),
-                columnRangeSelection.getEndCol())));
+                        && (RangeRequests.isLastRowName(lastCol)
+                                || Arrays.equals(
+                                        RangeRequests.nextLexicographicName(lastCol),
+                                        columnRangeSelection.getEndCol())));
     }
 
     private static byte[] getNextColumnRangeColumn(boolean completedCell, byte[] lastCol) {
@@ -1301,10 +1289,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         new CellDeleter(
-                clientPool,
-                wrappingQueryRunner,
-                DELETE_CONSISTENCY,
-                mutationTimestampProvider.getDeletionTimestampOperatorForBatchDelete())
+                        clientPool,
+                        wrappingQueryRunner,
+                        DELETE_CONSISTENCY,
+                        mutationTimestampProvider.getDeletionTimestampOperatorForBatchDelete())
                 .delete(tableRef, keys);
     }
 
@@ -1786,10 +1774,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         new CellRangeDeleter(
-                clientPool,
-                wrappingQueryRunner,
-                DELETE_CONSISTENCY,
-                mutationTimestampProvider::getRangeTombstoneTimestamp)
+                        clientPool,
+                        wrappingQueryRunner,
+                        DELETE_CONSISTENCY,
+                        mutationTimestampProvider::getRangeTombstoneTimestamp)
                 .deleteAllTimestamps(tableRef, deletes);
     }
 
@@ -1928,9 +1916,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static Column prepareColumnForPutUnlessExists(Map.Entry<Cell, byte[]> insertion) {
         return new Column(CassandraKeyValueServices.makeCompositeBuffer(
-                insertion.getKey().getColumnName(),
-                // Atlas timestamp
-                CassandraConstants.CAS_TABLE_TIMESTAMP))
+                        insertion.getKey().getColumnName(),
+                        // Atlas timestamp
+                        CassandraConstants.CAS_TABLE_TIMESTAMP))
                 // Cassandra timestamp
                 .setTimestamp(CassandraConstants.CAS_TABLE_TIMESTAMP)
                 .setValue(insertion.getValue());

@@ -103,8 +103,8 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
-        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(CASSANDRA.getConfig(),
-                CASSANDRA.getRuntimeConfig().get());
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(
+                CASSANDRA.getConfig(), CASSANDRA.getRuntimeConfig().get());
         clientPool.run(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, verifierConfig);
@@ -118,7 +118,8 @@ public class CassandraClientPoolIntegrationTest {
     @Test
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorInConfig() {
         CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.builder()
-                .from(CassandraVerifierConfig.of(CASSANDRA.getConfig(), CASSANDRA.getRuntimeConfig().get()))
+                .from(CassandraVerifierConfig.of(
+                        CASSANDRA.getConfig(), CASSANDRA.getRuntimeConfig().get()))
                 .replicationFactor(modifiedReplicationFactor)
                 .build();
 
@@ -136,8 +137,8 @@ public class CassandraClientPoolIntegrationTest {
     @Test
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorOnCassandra() throws TException {
         changeReplicationFactor(modifiedReplicationFactor);
-        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(CASSANDRA.getConfig(),
-                CASSANDRA.getRuntimeConfig().get());
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(
+                CASSANDRA.getConfig(), CASSANDRA.getRuntimeConfig().get());
         clientPool.run(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, verifierConfig);

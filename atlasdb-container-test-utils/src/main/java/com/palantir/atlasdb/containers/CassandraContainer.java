@@ -124,13 +124,13 @@ public class CassandraContainer extends Container {
     public CassandraKeyValueServiceConfig getConfig() {
         return config;
     }
+
     public Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
         return runtimeConfig;
     }
 
     public CassandraKeyValueServiceConfig getConfigWithProxy(SocketAddress proxyAddress) {
-        Preconditions.checkState(config.servers() instanceof CqlCapableConfig, "Has to be "
-                + "CqlCapableConfig");
+        Preconditions.checkState(config.servers() instanceof CqlCapableConfig, "Has to be " + "CqlCapableConfig");
 
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(config)
