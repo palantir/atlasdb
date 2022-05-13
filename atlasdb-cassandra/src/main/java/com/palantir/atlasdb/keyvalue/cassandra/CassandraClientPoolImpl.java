@@ -201,7 +201,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 SHARED_EXECUTOR_SUPPLIER,
                 exceptionHandler,
                 blacklist,
-                new CassandraService(metricsManager, config, blacklist, metrics),
+                new CassandraService(metricsManager, config, runtimeConfig, blacklist, metrics),
                 metrics);
     }
 

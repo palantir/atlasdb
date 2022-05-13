@@ -17,6 +17,7 @@ package com.palantir.atlasdb.containers;
 
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
@@ -25,6 +26,7 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
@@ -76,6 +78,10 @@ public class ThreeNodeCassandraCluster extends Container {
                 .build();
     }
 
+    public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
+        return Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
+    }
+
     @Override
     public String getDockerComposeFile() {
         return "/docker-compose-cassandra-three-node.yml";
@@ -91,7 +97,7 @@ public class ThreeNodeCassandraCluster extends Container {
         return SuccessOrFailure.onResultOf(() -> {
             try {
                 return new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION)
-                                .nodetoolShowsThreeCassandraNodesUp()
+                        .nodetoolShowsThreeCassandraNodesUp()
                         && canCreateCassandraKeyValueService();
 
             } catch (Exception e) {

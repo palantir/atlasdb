@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
@@ -28,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
@@ -213,13 +215,13 @@ public class CassandraServiceTest {
         cassandra.overrideHostToDatacenterMapping(ImmutableMap.of(SERVER_1, DC_1, SERVER_2, DC_2, SERVER_3, DC_1));
 
         assertThat(cassandra
-                        .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_1))
-                        .map(CassandraClientPoolingContainer::getCassandraServer))
+                .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_1))
+                .map(CassandraClientPoolingContainer::getCassandraServer))
                 .as("obeys the predicate even if this host was already tried")
                 .hasValue(SERVER_1);
         assertThat(cassandra
-                        .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_3))
-                        .map(CassandraClientPoolingContainer::getCassandraServer))
+                .getRandomGoodHostForPredicate(address -> address.equals(SERVER_1), ImmutableSet.of(SERVER_3))
+                .map(CassandraClientPoolingContainer::getCassandraServer))
                 .as("obeys the predicate even if another host in this datacenter was already tried")
                 .hasValue(SERVER_1);
     }
@@ -289,12 +291,14 @@ public class CassandraServiceTest {
                 .consecutiveAbsencesBeforePoolRemoval(1)
                 .keyspace("ks")
                 .build();
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig =
+                Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
 
         blacklist = new Blacklist(config);
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraService service =
-                new CassandraService(metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
+                new CassandraService(metricsManager, config, runtimeConfig, blacklist, new CassandraClientPoolMetrics(metricsManager));
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

@@ -31,6 +31,7 @@ import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
@@ -91,12 +92,14 @@ public final class CassandraRepairEteTest {
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
+    private Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private Cluster cluster;
     private CqlCluster cqlCluster;
 
     @Before
     public void setUp() {
         config = ThreeNodeCassandraCluster.getKvsConfig(2);
+        runtimeConfig = ThreeNodeCassandraCluster.getRuntimeConfig();
         kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         TransactionTables.createTables(kvs);
 
@@ -239,15 +242,15 @@ public final class CassandraRepairEteTest {
         Set<Range<LightweightOppToken>> thriftRanges = fullTokenMap.get(cassandraServer);
 
         cqlRangesForHost.asRanges().forEach(range -> assertThat(
-                        thriftRanges.stream().anyMatch(containsEntirely(range)))
+                thriftRanges.stream().anyMatch(containsEntirely(range)))
                 .isTrue());
     }
 
     private Predicate<Range<LightweightOppToken>> containsEntirely(Range<LightweightOppToken> range) {
         return thriftRange -> safeLowerBound(thriftRange).equals(safeLowerBound(range))
                 && (thriftRange.hasUpperBound()
-                        ? range.hasUpperBound() && thriftRange.upperEndpoint().compareTo(range.upperEndpoint()) >= 0
-                        : !range.hasUpperBound());
+                ? range.hasUpperBound() && thriftRange.upperEndpoint().compareTo(range.upperEndpoint()) >= 0
+                : !range.hasUpperBound());
     }
 
     private Optional<LightweightOppToken> safeLowerBound(Range<LightweightOppToken> range) {
@@ -259,6 +262,7 @@ public final class CassandraRepairEteTest {
         CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
                 config,
+                runtimeConfig,
                 new Blacklist(config),
                 new CassandraClientPoolMetrics(MetricsManagers.createForTests()));
         return invert(cassandraService.getTokenMap());
