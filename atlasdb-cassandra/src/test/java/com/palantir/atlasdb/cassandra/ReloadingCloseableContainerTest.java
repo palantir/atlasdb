@@ -17,11 +17,12 @@
 package com.palantir.atlasdb.cassandra;
 
 import static com.palantir.logsafe.testing.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.util.function.Function;
@@ -39,8 +40,10 @@ public class ReloadingCloseableContainerTest {
     @Mock
     private Function<Integer, AutoCloseable> resourceFactory;
 
+    @Mock
     private AutoCloseable initialResource;
 
+    @Mock
     private AutoCloseable refreshedResource;
 
     private SettableRefreshable<Integer> refreshableFactoryArg;
@@ -49,28 +52,28 @@ public class ReloadingCloseableContainerTest {
 
     @Before
     public void setUp() {
-        initialResource = mockFactory(INITIAL_VALUE);
-        refreshedResource = mockFactory(UPDATED_VALUE);
+        when(resourceFactory.apply(INITIAL_VALUE)).thenReturn(initialResource);
+        when(resourceFactory.apply(UPDATED_VALUE)).thenReturn(refreshedResource);
         refreshableFactoryArg = Refreshable.create(INITIAL_VALUE);
         reloadingCloseableContainer = ReloadingCloseableContainer.of(refreshableFactoryArg, resourceFactory);
     }
 
     @Test
-    public void lastCqlClusterClosedAfterClose() throws Exception {
+    public void lastResourceClosedAfterClose() throws Exception {
         AutoCloseable resource = reloadingCloseableContainer.get();
         reloadingCloseableContainer.close();
         verify(resource).close();
     }
 
     @Test
-    public void previousCqlClusterIsClosedAfterRefresh() throws Exception {
+    public void previousResourceIsClosedAfterRefresh() throws Exception {
         AutoCloseable resource = reloadingCloseableContainer.get();
         refreshableFactoryArg.update(UPDATED_VALUE);
         verify(resource).close();
     }
 
     @Test
-    public void newCqlClusterCreatedWithNewServerListAfterRefresh() throws Exception {
+    public void newResourceCreatedWithUpdatedRefreshableValueAfterRefresh() throws Exception {
         AutoCloseable resource = reloadingCloseableContainer.get();
 
         refreshableFactoryArg.update(INITIAL_VALUE);
@@ -83,7 +86,7 @@ public class ReloadingCloseableContainerTest {
     }
 
     @Test
-    public void noNewClustersAfterClose() {
+    public void noNewResourcesAfterClose() {
         reloadingCloseableContainer.close();
         refreshableFactoryArg.update(UPDATED_VALUE);
         assertThat(reloadingCloseableContainer.get()).isEqualTo(initialResource);
