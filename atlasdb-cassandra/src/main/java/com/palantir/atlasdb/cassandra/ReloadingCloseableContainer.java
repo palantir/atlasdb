@@ -52,11 +52,11 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
     @GuardedBy("isClosedLock")
     private volatile boolean isClosed;
 
-    private <K> ReloadingCloseableContainer(Refreshable<K> refreshableFactoryArgument, Function<K, T> factory) {
+    private <K> ReloadingCloseableContainer(Refreshable<K> refreshableParameter, Function<K, T> factory) {
         this.isClosed = false;
         this.isClosedLock = new ReentrantReadWriteLock(true);
         this.currentResource = new AtomicReference<>(Optional.empty());
-        this.refreshableResource = refreshableFactoryArgument.map(factoryArg -> createNewResource(factoryArg, factory));
+        this.refreshableResource = refreshableParameter.map(factoryArg -> createNewResource(factoryArg, factory));
 
         this.refreshableSubscriptionDisposable = refreshableResource.subscribe(resource -> {
             Optional<T> maybeResourceToClose = currentResource.getAndSet(Optional.of(resource));
@@ -65,13 +65,10 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
     }
 
     public static <T extends AutoCloseable, K> ReloadingCloseableContainer<T> of(
-            Refreshable<K> refreshableFactoryArgument, Function<K, T> factory) {
-        return new ReloadingCloseableContainer<>(refreshableFactoryArgument, factory);
+            Refreshable<K> refreshableParameter, Function<K, T> factory) {
+        return new ReloadingCloseableContainer<>(refreshableParameter, factory);
     }
 
-    /**
-     * isClosedLock: See {@link #close()}.
-     */
     private <K> T createNewResource(K factoryArg, Function<K, T> factory) {
         return runIfNotClosed(
                 () -> factory.apply(factoryArg), "Attempted to create a new resource after the container was closed.");
@@ -84,7 +81,7 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
      */
     @Override
     public void close() {
-        runWithWriteLock(() -> {
+        runWithIsClosedWriteLock(() -> {
             isClosed = true;
             refreshableSubscriptionDisposable.dispose();
             currentResource.get().ifPresent(this::shutdownResource);
@@ -106,17 +103,19 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
 
     private <K> K runIfNotClosed(Supplier<K> supplier, @CompileTimeConstant String ifClosedExceptionMessage) {
         if (!isClosed) {
-            return runWithReadLock(() -> {
+            return runWithIsClosedReadLock(() -> {
                 if (isClosed) {
                     throw new SafeIllegalStateException(ifClosedExceptionMessage);
+                } else {
+                    return supplier.get();
                 }
-                return supplier.get();
             });
+        } else {
+            throw new SafeIllegalStateException(ifClosedExceptionMessage);
         }
-        throw new SafeIllegalStateException(ifClosedExceptionMessage);
     }
 
-    private <K> K runWithReadLock(Supplier<K> supplier) {
+    private <K> K runWithIsClosedReadLock(Supplier<K> supplier) {
         Lock readLock = isClosedLock.readLock();
         readLock.lock();
         try {
@@ -126,7 +125,7 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
         }
     }
 
-    private void runWithWriteLock(Runnable runnable) {
+    private void runWithIsClosedWriteLock(Runnable runnable) {
         Lock writeLock = isClosedLock.writeLock();
         writeLock.lock();
         try {
