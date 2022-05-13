@@ -63,6 +63,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -72,7 +73,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -103,16 +103,16 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             TableReference.createFromFullyQualifiedName("ns.default_table");
     private static final String CASSANDRA_DEFAULT_TABLE_NAME =
             AbstractKeyValueService.internalTableName(ATLAS_DEFAULT_TABLE_REFERENCE);
-    private static final Supplier<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG_SUPPLIER =
-            () -> ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+    private static final Refreshable<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG =
+            Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                     .fetchReadLimitPerRow(100)
-                    .build();
+                    .build());
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-            {SYNC, UnaryOperator.identity()},
-            {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
+                {SYNC, UnaryOperator.identity()},
+                {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -125,7 +125,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
-                RUNTIME_CONFIG_SUPPLIER,
+                RUNTIME_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 logger,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -238,7 +238,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .collect(Collectors.toList()));
 
         assertThat(ColumnFamilyDefinitions.isMatchingCf(
-                        kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
+                kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
                 .as("After serialization and deserialization to database, Cf metadata did not match.")
                 .isTrue();
     }
@@ -490,20 +490,20 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.putUnlessExists(userTable, ImmutableMap.of(CELL, sad));
         assertThat(keyValueService
-                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
-                        .get(CELL)
-                        .getContents())
+                .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                .get(CELL)
+                .getContents())
                 .containsExactly(sad);
 
         keyValueService.setOnce(userTable, ImmutableMap.of(CELL, happy));
         assertThat(keyValueService
-                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
-                        .get(CELL)
-                        .getContents())
+                .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                .get(CELL)
+                .getContents())
                 .containsExactly(happy);
         assertThat(keyValueService
-                        .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
-                        .size())
+                .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
+                .size())
                 .isEqualTo(1);
         keyValueService.truncateTable(userTable);
     }
