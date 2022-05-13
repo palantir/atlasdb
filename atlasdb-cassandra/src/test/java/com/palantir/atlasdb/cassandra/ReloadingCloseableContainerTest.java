@@ -89,7 +89,6 @@ public class ReloadingCloseableContainerTest {
     public void noNewResourcesAfterClose() {
         reloadingCloseableContainer.close();
         refreshableFactoryArg.update(UPDATED_VALUE);
-        assertThat(reloadingCloseableContainer.get()).isEqualTo(initialResource);
         verify(resourceFactory, never()).apply(UPDATED_VALUE);
     }
 
