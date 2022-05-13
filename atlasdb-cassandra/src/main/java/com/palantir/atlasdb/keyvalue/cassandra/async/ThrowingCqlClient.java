@@ -24,7 +24,10 @@ public class ThrowingCqlClient implements CqlClient {
 
     @Override
     public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
-        throw new SafeIllegalStateException("CQL config invalid or not provided.");
+        throw new SafeIllegalStateException(
+                "The CQL config is invalid or not present. If intending to use CQL Clients (Async KVS) please ensure "
+                        + "you have AtlasDB to use CQL, and that the configured set of CQL hosts match the set of "
+                        + " Thrift hosts.");
     }
 
     public static ThrowingCqlClient of() {
