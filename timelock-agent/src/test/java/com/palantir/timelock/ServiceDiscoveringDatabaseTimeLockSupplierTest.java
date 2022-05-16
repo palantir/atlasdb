@@ -51,7 +51,7 @@ public class ServiceDiscoveringDatabaseTimeLockSupplierTest {
 
     private final ServiceDiscoveringDatabaseTimeLockSupplier timeLockSupplier =
             new ServiceDiscoveringDatabaseTimeLockSupplier(
-                    metricsManager, keyValueServiceConfig, Refreshable.only(Optional.empty()), leaderConfig);
+                    metricsManager, keyValueServiceConfig, Refreshable.only(Optional.empty()), leaderConfig, false);
 
     @Test
     public void canGetTimestampServiceForDifferentSeries() {

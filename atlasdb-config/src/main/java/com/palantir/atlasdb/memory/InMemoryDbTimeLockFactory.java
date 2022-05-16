@@ -49,7 +49,8 @@ public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
             MetricsManager metricManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            LeaderConfig leaderConfig) {
+            LeaderConfig leaderConfig,
+            boolean _initializeAsync) {
         return new InMemoryKeyValueService(true);
     }
 
