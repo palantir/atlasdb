@@ -53,7 +53,7 @@ import org.junit.runners.Parameterized;
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 @RunWith(Parameterized.class)
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
-    private static final String SYNC_TRANSACTIONS_1 /Users/gmaretic/git/atlasdb2/atlasdb-client/src/main/java/com/palantir/atlasdb/ptobject/EncodingUtils.java= "sync, transactions1";
+    private static final String SYNC_TRANSACTIONS_1 = "sync, transactions1";
     private static final String ASYNC_TRANSACTIONS_2 = "async, transactions2";
     private static final String ASYNC_TRANSACTIONS_3 = "async, transactions3";
     private static final Supplier<KeyValueService> KVS_SUPPLIER =
