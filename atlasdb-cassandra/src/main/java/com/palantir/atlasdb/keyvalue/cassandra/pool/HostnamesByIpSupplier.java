@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -26,6 +28,8 @@ import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -43,20 +47,48 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
     private static final String HOSTNAME_COLUMN = "hostname";
     private static final String IP_COLUMN = "ip";
 
-    private final Supplier<PoolingContainer<CassandraClient>> randomGoodHostSupplier;
+    private final Supplier<List<PoolingContainer<CassandraClient>>> hosts;
+    private final Duration timeout;
 
-    public HostnamesByIpSupplier(Supplier<PoolingContainer<CassandraClient>> randomGoodHostSupplier) {
-        this.randomGoodHostSupplier = randomGoodHostSupplier;
+    public HostnamesByIpSupplier(Supplier<List<PoolingContainer<CassandraClient>>> hosts) {
+        this(hosts, Duration.ofSeconds(60));
+    }
+
+    @VisibleForTesting
+    HostnamesByIpSupplier(Supplier<List<PoolingContainer<CassandraClient>>> hosts, Duration timeout) {
+        this.hosts = hosts;
+        this.timeout = timeout;
     }
 
     @Override
     public Map<String, String> get() {
-        try {
-            return randomGoodHostSupplier.get().runWithPooledResource(getHostnamesByIp());
-        } catch (Exception e) {
-            log.warn("Could not get hostnames by ip from Cassandra", e);
-            return ImmutableMap.of();
+        List<PoolingContainer<CassandraClient>> containers = hosts.get();
+        Stopwatch timer = Stopwatch.createStarted();
+        for (PoolingContainer<CassandraClient> container : containers) {
+            try {
+                return container.runWithPooledResource(getHostnamesByIp());
+            } catch (Exception | Error e) {
+                log.warn(
+                        "Could not get hostnames by IP from Cassandra",
+                        SafeArg.of("poolSize", containers.size()),
+                        SafeArg.of("elapsed", timer.elapsed()),
+                        e);
+            }
+
+            if (timer.elapsed().compareTo(timeout) >= 0) {
+                log.warn(
+                        "Could not find hostnames by IP mapping for pool within timeout",
+                        SafeArg.of("poolSize", containers.size()),
+                        SafeArg.of("elapsed", timer.elapsed()));
+                return ImmutableMap.of();
+            }
         }
+
+        log.warn(
+                "Could not find hostnames by IP mapping for pool",
+                SafeArg.of("poolSize", containers.size()),
+                SafeArg.of("elapsed", timer.elapsed()));
+        return ImmutableMap.of();
     }
 
     public FunctionCheckedException<CassandraClient, Map<String, String>, Exception> getHostnamesByIp() {

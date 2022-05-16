@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: The Atlas backup and restore services now take AtlasService arguments
+    rather than Namespace arguments. An AtlasService is a Namespace paired with a
+    ServiceId (a String).
+  links:
+  - https://github.com/palantir/atlasdb/pull/6001

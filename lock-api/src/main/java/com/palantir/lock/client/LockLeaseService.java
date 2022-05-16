@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("DangerousIdentityKey")
 public class LockLeaseService implements AutoCloseable {
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;

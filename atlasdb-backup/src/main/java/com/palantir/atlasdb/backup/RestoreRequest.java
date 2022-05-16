@@ -18,16 +18,16 @@ package com.palantir.atlasdb.backup;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableRestoreRequest.class)
 @JsonSerialize(as = ImmutableRestoreRequest.class)
 @Value.Immutable
 public interface RestoreRequest {
-    Namespace oldNamespace();
+    AtlasService oldAtlasService();
 
-    Namespace newNamespace();
+    AtlasService newAtlasService();
 
     class Builder extends ImmutableRestoreRequest.Builder {}
 

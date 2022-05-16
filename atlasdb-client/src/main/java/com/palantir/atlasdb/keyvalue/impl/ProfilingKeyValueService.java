@@ -238,7 +238,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
         return maybeLog(
                 () -> delegate.getAllTimestamps(tableRef, cells, timestamp),
-                logCellsAndSize("getAllTimestamps", tableRef, cells.size(), cells.size() * Longs.BYTES));
+                logCellsAndSize("getAllTimestamps", tableRef, cells.size(), cells.size() * ((long) Longs.BYTES)));
     }
 
     @Override

@@ -304,7 +304,8 @@ public class TimeLockAgent {
                 metricsManager,
                 timestampBoundPersistence.keyValueServiceConfig(),
                 runtime.map(TimeLockAgent::getKeyValueServiceRuntimeConfig),
-                createLeaderConfig());
+                createLeaderConfig(),
+                timestampBoundPersistence.initializeAsync());
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
                 .persistentNamespaceContext(PersistentNamespaceContexts.dbBound(

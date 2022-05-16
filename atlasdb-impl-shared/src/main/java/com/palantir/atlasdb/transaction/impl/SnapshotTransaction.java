@@ -1695,6 +1695,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
                 transactionOutcomeMetrics.markAbort();
+                if (perfLogger.isDebugEnabled()) {
+                    long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
+                    perfLogger.debug(
+                            "Aborted transaction {} in {} ms",
+                            SafeArg.of("startTimestamp", getStartTimestamp()),
+                            SafeArg.of("transactionTimeMillis", transactionMillis));
+                }
                 return;
             }
         }

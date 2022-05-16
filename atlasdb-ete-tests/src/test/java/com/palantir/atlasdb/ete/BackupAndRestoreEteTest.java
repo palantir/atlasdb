@@ -23,7 +23,9 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.backup.BackupAndRestoreResource;
 import com.palantir.atlasdb.backup.RestoreRequest;
 import com.palantir.atlasdb.backup.RestoreRequestWithId;
+import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
+import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -33,13 +35,18 @@ import com.palantir.conjure.java.api.errors.ErrorType;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.Test;
 
 public class BackupAndRestoreEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Namespace NAMESPACE = Namespace.of("atlasete");
-    private static final ImmutableSet<Namespace> NAMESPACES = ImmutableSet.of(NAMESPACE);
+    private static final AtlasService ATLAS_SERVICE = AtlasService.of(ServiceId.of("a"), NAMESPACE);
+    private static final Namespace NAMESPACE_2 = Namespace.of("atlasete-2");
+    private static final AtlasService ATLAS_SERVICE_2 = AtlasService.of(ServiceId.of("b"), NAMESPACE_2);
+    private static final ImmutableSet<AtlasService> ATLAS_SERVICES = ImmutableSet.of(ATLAS_SERVICE, ATLAS_SERVICE_2);
+    private static final String BACKUP_ID = "backupId";
 
     private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
     private final BackupAndRestoreResource backupResource =
@@ -49,29 +56,29 @@ public class BackupAndRestoreEteTest {
     @Test
     public void canPrepareBackup() {
         addTodo();
-        assertThat(backupResource.getStoredImmutableTimestamp(NAMESPACE)).isEmpty();
+        assertThat(backupResource.getStoredImmutableTimestamp(ATLAS_SERVICE)).isEmpty();
 
-        Set<Namespace> preparedNamespaces = backupResource.prepareBackup(NAMESPACES);
-        assertThat(preparedNamespaces).containsExactly(NAMESPACE);
+        Set<AtlasService> preparedAtlasServices = backupResource.prepareBackup(ATLAS_SERVICES);
+        assertThat(preparedAtlasServices).containsExactlyInAnyOrder(ATLAS_SERVICE, ATLAS_SERVICE_2);
 
         // verify we persisted the immutable timestamp to disk
-        assertThat(backupResource.getStoredImmutableTimestamp(NAMESPACE)).isNotEmpty();
+        assertThat(backupResource.getStoredImmutableTimestamp(ATLAS_SERVICE)).isNotEmpty();
     }
 
     @Test
     public void canCompletePreparedBackup() {
         addTodo();
-        backupResource.prepareBackup(NAMESPACES);
+        backupResource.prepareBackup(ATLAS_SERVICES);
 
         Long immutableTimestamp =
-                backupResource.getStoredImmutableTimestamp(NAMESPACE).orElseThrow();
+                backupResource.getStoredImmutableTimestamp(ATLAS_SERVICE).orElseThrow();
 
-        assertThat(backupResource.getStoredBackup(NAMESPACE)).isEmpty();
+        assertThat(backupResource.getStoredBackup(ATLAS_SERVICE)).isEmpty();
 
-        Set<Namespace> completedNamespaces = backupResource.completeBackup(NAMESPACES);
-        assertThat(completedNamespaces).containsExactly(NAMESPACE);
+        Set<AtlasService> completedAtlasServices = backupResource.completeBackup(ATLAS_SERVICES);
+        assertThat(completedAtlasServices).containsExactlyInAnyOrder(ATLAS_SERVICE, ATLAS_SERVICE_2);
 
-        Optional<CompletedBackup> storedBackup = backupResource.getStoredBackup(NAMESPACE);
+        Optional<CompletedBackup> storedBackup = backupResource.getStoredBackup(ATLAS_SERVICE);
         assertThat(storedBackup).isNotEmpty();
         assertThat(storedBackup.get().getImmutableTimestamp()).isEqualTo(immutableTimestamp);
     }
@@ -79,30 +86,33 @@ public class BackupAndRestoreEteTest {
     @Test
     public void canPrepareAndCompleteRestore() {
         addTodo();
-        backupResource.prepareBackup(NAMESPACES);
-        backupResource.completeBackup(NAMESPACES);
+        backupResource.prepareBackup(ATLAS_SERVICES);
+        backupResource.completeBackup(ATLAS_SERVICES);
 
         assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
 
-        String backupId = "backupId";
-        RestoreRequest restoreRequest = RestoreRequest.builder()
-                .oldNamespace(NAMESPACE)
-                .newNamespace(NAMESPACE)
-                .build();
-        Set<Namespace> preparedNamespaces =
-                backupResource.prepareRestore(RestoreRequestWithId.of(restoreRequest, backupId));
-        assertThat(preparedNamespaces).containsExactly(NAMESPACE);
+        Set<RestoreRequestWithId> restoreRequests =
+                ATLAS_SERVICES.stream().map(this::getRestoreRequest).collect(Collectors.toSet());
+        Set<AtlasService> preparedAtlasServices = backupResource.prepareRestore(restoreRequests);
+        assertThat(preparedAtlasServices).containsAll(ATLAS_SERVICES);
 
         // verify TimeLock is disabled
         assertThatRemoteExceptionThrownBy(timestampClient::getFreshTimestamp)
                 .isGeneratedFromErrorType(ErrorType.INTERNAL);
 
-        Set<Namespace> completedNamespaces =
-                backupResource.completeRestore(RestoreRequestWithId.of(restoreRequest, backupId));
-        assertThat(completedNamespaces).containsExactly(NAMESPACE);
+        Set<AtlasService> completedAtlasServices = backupResource.completeRestore(restoreRequests);
+        assertThat(completedAtlasServices).containsAll(ATLAS_SERVICES);
 
         // verify TimeLock is re-enabled
         assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(0L);
+    }
+
+    private RestoreRequestWithId getRestoreRequest(AtlasService atlasService) {
+        RestoreRequest restoreRequest = RestoreRequest.builder()
+                .oldAtlasService(atlasService)
+                .newAtlasService(atlasService)
+                .build();
+        return RestoreRequestWithId.of(restoreRequest, BACKUP_ID);
     }
 
     private void addTodo() {

@@ -76,10 +76,7 @@ public final class CloseTracking {
         @SuppressWarnings("BadAssert") // only fail close check with asserts enabled
         public synchronized void check() {
             if (!closed) {
-                log.error(
-                        "{} never closed!",
-                        UnsafeArg.of("typeName", typeName),
-                        UnsafeArg.of("createTrace", createTrace));
+                log.error("{} never closed!", UnsafeArg.of("typeName", typeName), createTrace);
                 assert false : typeName + " never closed!" + "\n" + Arrays.toString(createTrace.getStackTrace());
             }
         }
@@ -106,7 +103,9 @@ public final class CloseTracking {
 
     // We maintain hard references to the custom weak references since
     // otherwise they themselves can get collected and thus never enqueued.
+    @SuppressWarnings("DangerousIdentityKey")
     private static final Set<MyReference<?>> destructorReferences =
             Sets.newSetFromMap(new ConcurrentHashMap<MyReference<?>, Boolean>());
+
     private static final FinalizableReferenceQueue destructorQueue = new FinalizableReferenceQueue();
 }

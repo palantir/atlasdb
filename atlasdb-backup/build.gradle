@@ -20,10 +20,12 @@ dependencies {
     implementation project(':atlasdb-coordination-impl')
     implementation project(':atlasdb-impl-shared')
     implementation project(':commons-annotations')
+    implementation project(':commons-executors')
     implementation project(':timelock-api:timelock-api-dialogue')
     implementation project(':timelock-api:timelock-api-objects')
     implementation project(':timestamp-impl')
 
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'commons-codec:commons-codec'
 

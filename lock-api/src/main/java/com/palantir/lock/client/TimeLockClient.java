@@ -23,6 +23,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -50,7 +51,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     private final TimelockService delegate;
     private final CloseableTimestampService timestampService;
-    private final LockRefresher lockRefresher;
+    private final LockRefresher<LockToken> lockRefresher;
     private final TimeLockUnlocker unlocker;
 
     public static TimeLockClient createDefault(TimelockService timelockService) {
@@ -71,7 +72,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     TimeLockClient(
             TimelockService delegate,
             CloseableTimestampService timestampService,
-            LockRefresher lockRefresher,
+            LockRefresher<LockToken> lockRefresher,
             TimeLockUnlocker unlocker) {
         this.delegate = delegate;
         this.timestampService = timestampService;
@@ -200,8 +201,9 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         timestampService.close();
     }
 
-    private static LockRefresher createLockRefresher(TimelockService timelockService) {
-        return new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
+    private static LockRefresher<LockToken> createLockRefresher(TimelockService timelockService) {
+        LockLeaseRefresher<LockToken> lockTokenRefresher = timelockService::refreshLockLeases;
+        return new LockRefresher<>(refreshExecutor, lockTokenRefresher, REFRESH_INTERVAL_MILLIS);
     }
 
     private static ScheduledExecutorService createSingleThreadScheduledExecutor(String operation) {

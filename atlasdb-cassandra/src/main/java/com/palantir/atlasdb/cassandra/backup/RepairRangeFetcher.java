@@ -21,10 +21,11 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -42,51 +43,51 @@ final class RepairRangeFetcher {
 
     private final CqlSession cqlSession;
     private final CqlMetadata cqlMetadata;
-    private final CassandraKeyValueServiceConfig config;
+    private final Namespace namespace;
+    private final CassandraServersConfig cassandraServersConfig;
 
-    public RepairRangeFetcher(CqlSession cqlSession, CassandraKeyValueServiceConfig config) {
+    public RepairRangeFetcher(
+            CqlSession cqlSession, Namespace namespace, CassandraServersConfig cassandraServersConfig) {
         this.cqlSession = cqlSession;
         this.cqlMetadata = cqlSession.getMetadata();
-        this.config = config;
+        this.namespace = namespace;
+        this.cassandraServersConfig = cassandraServersConfig;
     }
 
     public Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> getTransactionTableRangesForRepair(
             List<TransactionsTableInteraction> transactionsTableInteractions) {
-        String keyspaceName = config.getKeyspaceOrThrow();
 
         Map<String, Set<LightweightOppToken>> partitionKeysByTable =
-                getPartitionTokensByTable(transactionsTableInteractions, keyspaceName);
+                getPartitionTokensByTable(transactionsTableInteractions);
 
         maybeLogTokenRanges(transactionsTableInteractions, partitionKeysByTable);
 
-        Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(config);
+        Set<InetSocketAddress> hosts = CassandraServersConfigs.getCqlHosts(cassandraServersConfig);
         return KeyedStream.stream(partitionKeysByTable)
-                .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, cqlMetadata, keyspaceName, ranges))
+                .map(ranges -> ClusterMetadataUtils.getTokenMapping(hosts, cqlMetadata, namespace, ranges))
                 .collectToMap();
     }
 
     private Map<String, Set<LightweightOppToken>> getPartitionTokensByTable(
-            List<TransactionsTableInteraction> transactionsTableInteractions, String keyspaceName) {
+            List<TransactionsTableInteraction> transactionsTableInteractions) {
         Multimap<String, TransactionsTableInteraction> interactionsByTable =
                 Multimaps.index(transactionsTableInteractions, TransactionsTableInteraction::getTransactionsTableName);
         return KeyedStream.stream(interactionsByTable.asMap())
-                .map(interactionsForTable ->
-                        getPartitionsTokenForSingleTransactionsTable(keyspaceName, interactionsForTable))
+                .map(this::getPartitionsTokenForSingleTransactionsTable)
                 .collectToMap();
     }
 
     private Set<LightweightOppToken> getPartitionsTokenForSingleTransactionsTable(
-            String keyspaceName, Collection<TransactionsTableInteraction> interactions) {
+            Collection<TransactionsTableInteraction> interactions) {
         return interactions.stream()
-                .map(interaction -> getPartitionTokensForTransactionsTable(keyspaceName, interaction))
+                .map(this::getPartitionTokensForTransactionsTable)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
     }
 
-    private Set<LightweightOppToken> getPartitionTokensForTransactionsTable(
-            String keyspaceName, TransactionsTableInteraction interaction) {
-        TableMetadata transactionsTableMetadata = ClusterMetadataUtils.getTableMetadata(
-                cqlMetadata, keyspaceName, interaction.getTransactionsTableName());
+    private Set<LightweightOppToken> getPartitionTokensForTransactionsTable(TransactionsTableInteraction interaction) {
+        TableMetadata transactionsTableMetadata =
+                ClusterMetadataUtils.getTableMetadata(cqlMetadata, namespace, interaction.getTransactionsTableName());
         List<Statement> selectStatements =
                 interaction.createSelectStatementsForScanningFullTimestampRange(transactionsTableMetadata);
         return cqlSession.retrieveRowKeysAtConsistencyAll(selectStatements);

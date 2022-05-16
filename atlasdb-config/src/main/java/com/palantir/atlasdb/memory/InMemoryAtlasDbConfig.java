@@ -38,10 +38,13 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
         return this == other || (other != null && this.getClass() == other.getClass());
     }
 
-    @Override
     @Value.Default
     public int concurrentGetRangesThreadPoolSize() {
         return 64;
+    }
+
+    public Optional<Integer> defaultGetRangesConcurrency() {
+        return Optional.empty();
     }
 
     @Override

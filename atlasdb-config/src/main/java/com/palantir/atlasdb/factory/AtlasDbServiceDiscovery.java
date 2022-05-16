@@ -29,8 +29,7 @@ public final class AtlasDbServiceDiscovery {
         // util
     }
 
-    public static <T extends KeyValueServiceConfig> AtlasDbFactory<T> createAtlasFactoryOfCorrectType(
-            KeyValueServiceConfig config) {
+    public static AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig config) {
         return createAtlasDbServiceOfCorrectType(config, AtlasDbFactory::getType, AtlasDbFactory.class);
     }
 

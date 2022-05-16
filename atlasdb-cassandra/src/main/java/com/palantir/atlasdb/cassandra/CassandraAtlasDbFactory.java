@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -45,7 +46,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 @AutoService(AtlasDbFactory.class)
-public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadableKvsConfig> {
+public class CassandraAtlasDbFactory implements AtlasDbFactory {
     private static SafeLogger log = SafeLoggerFactory.get(CassandraAtlasDbFactory.class);
     private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
@@ -53,7 +54,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
     @Override
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            CassandraReloadableKvsConfig config,
+            KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> unused,
             Optional<String> namespace,
@@ -64,14 +65,25 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
                 preprocessKvsRuntimeConfig(runtimeConfig);
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
-                toCassandraConfig(config),
+                createMergedKeyValueServiceConfig(config, runtimeConfig, namespace),
                 cassandraRuntimeConfig,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync);
     }
 
     @Override
-    public CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
+    public DerivedSnapshotConfig createDerivedSnapshotConfig(
+            KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
+        CassandraReloadableKvsConfig cassandraReloadableKvsConfig =
+                new CassandraReloadableKvsConfig(toCassandraConfig(config), Refreshable.only(runtimeConfigSnapshot));
+        return DerivedSnapshotConfig.builder()
+                .concurrentGetRangesThreadPoolSize(cassandraReloadableKvsConfig.concurrentGetRangesThreadPoolSize())
+                .defaultGetRangesConcurrencyOverride(cassandraReloadableKvsConfig.defaultGetRangesConcurrency())
+                .build();
+    }
+
+    @VisibleForTesting
+    static CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {

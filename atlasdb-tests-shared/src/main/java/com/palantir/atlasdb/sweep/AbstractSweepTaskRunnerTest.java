@@ -142,7 +142,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
 
         assertThat(sweepResults.getCellTsPairsExamined())
                 .describedAs("Expected Ts Pairs Examined should add up to entire table (2 values in each cell)")
-                .isEqualTo(2 * BIG_LIST_OF_CELLS.size());
+                .isEqualTo(2L * BIG_LIST_OF_CELLS.size());
     }
 
     @Test(timeout = 50000)
@@ -168,7 +168,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
 
         assertThat(sweepResults.getCellTsPairsExamined())
                 .describedAs("Expected Ts Pairs Examined should add up to entire table (2 values in each cell)")
-                .isEqualTo(2 * BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS.size());
+                .isEqualTo(2L * BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS.size());
     }
 
     @Test(timeout = 50000)

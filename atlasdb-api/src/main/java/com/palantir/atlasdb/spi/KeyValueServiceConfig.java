@@ -28,18 +28,5 @@ public interface KeyValueServiceConfig {
 
     Optional<String> namespace();
 
-    /**
-     * The size of the thread pool used for concurrently running range requests.
-     */
-    int concurrentGetRangesThreadPoolSize();
-
     Optional<SharedResourcesConfig> sharedResourcesConfig();
-
-    /**
-     * The maximum number of threads from the pool of {@link #concurrentGetRangesThreadPoolSize()} to use
-     * for a single getRanges request when the user does not explicitly provide a value.
-     */
-    default int defaultGetRangesConcurrency() {
-        return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
-    }
 }

@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: Added functionality to accept staging reads on transactions3 if `internalSchema.acceptStagingReadsOnVersionThreeDangerousIKnowWhatIAmDoing`
+    in runtime config is set to true. This should NEVER be used without a good reason,
+    but makes sense at internal shopping product where the volume of reads is too
+    high.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6022

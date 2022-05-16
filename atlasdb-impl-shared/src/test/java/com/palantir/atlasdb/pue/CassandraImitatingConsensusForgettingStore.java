@@ -203,6 +203,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         });
     }
 
+    @SuppressWarnings("DangerousIdentityKey")
     private Set<Node> getQuorumNodes() {
         return nodes.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(ArrayList::new), list -> {
             Collections.shuffle(list);

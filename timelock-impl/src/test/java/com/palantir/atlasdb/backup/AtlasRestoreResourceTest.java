@@ -68,8 +68,9 @@ public class AtlasRestoreResourceTest {
 
     @Before
     public void setUp() {
-        when(authHeaderValidator.suppliedTokenIsValid(AUTH_HEADER)).thenReturn(true);
-        when(authHeaderValidator.suppliedTokenIsValid(not(eq(AUTH_HEADER)))).thenReturn(false);
+        when(authHeaderValidator.suppliedHeaderMatchesConfig(AUTH_HEADER)).thenReturn(true);
+        when(authHeaderValidator.suppliedHeaderMatchesConfig(not(eq(AUTH_HEADER))))
+                .thenReturn(false);
 
         atlasRestoreResource = new AtlasRestoreResource(
                 authHeaderValidator, TARGETER, str -> str.equals("test") ? mockTimelock : otherTimelock);

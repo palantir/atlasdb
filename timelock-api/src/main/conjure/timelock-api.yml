@@ -122,6 +122,14 @@ types:
         fields:
           leaderTimes: map<Namespace, LeaderTime>
       # backup and restore
+      ServiceId:
+        package: com.palantir.atlasdb.backup.api
+        alias: string
+      AtlasService:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          serviceId: ServiceId
+          namespace: Namespace
       InProgressBackupToken:
         package: com.palantir.atlasdb.backup.api
         fields:
@@ -144,6 +152,14 @@ types:
         package: com.palantir.atlasdb.backup.api
         fields:
           successful: set<InProgressBackupToken>
+      RefreshBackupRequest:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          tokens: set<InProgressBackupToken>
+      RefreshBackupResponse:
+        package: com.palantir.atlasdb.backup.api
+        fields:
+          refreshedTokens: set<InProgressBackupToken>
       CompleteBackupRequest:
         package: com.palantir.atlasdb.backup.api
         fields:
@@ -177,6 +193,11 @@ services:
         args:
           request: PrepareBackupRequest
         returns: PrepareBackupResponse
+      refreshBackup:
+        http: POST /refresh
+        args:
+          request: RefreshBackupRequest
+        returns: RefreshBackupResponse
       completeBackup:
         http: POST /complete
         args:

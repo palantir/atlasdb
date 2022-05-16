@@ -131,6 +131,9 @@ public interface TransactionManager extends AutoCloseable {
     /**
      * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
      * acquire locks right before the transaction is created and release them after the task is complete.
+     * If the lock request provided has a blocking mode of type {@link com.palantir.lock.BlockingMode#DO_NOT_BLOCK},
+     * the lock request will NOT be retried if it fails. Otherwise, the lock request will be retried on failure for a
+     * finite number of times (though users must of course be prepared for the case where all retries fail).
      * <p>
      * The created transaction will not commit successfully if these locks are invalid by the time commit is run.
      *

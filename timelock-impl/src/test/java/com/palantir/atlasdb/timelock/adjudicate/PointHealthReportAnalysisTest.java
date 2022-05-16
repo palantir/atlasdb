@@ -40,7 +40,7 @@ public class PointHealthReportAnalysisTest {
     public void reportIsHealthyWhenEverythingIsRight() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics.builder()
-                .p99(P_99 - 1)
+                .p99((double) (P_99 - 1))
                 .oneMin(RATE + 1)
                 .errorRate(0)
                 .build();
@@ -52,7 +52,7 @@ public class PointHealthReportAnalysisTest {
     public void reportStatusIsUnknownIfReqRateIsBelowThreshold() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics.builder()
-                .p99(P_99 + 1)
+                .p99((double) (P_99 + 1))
                 .oneMin(RATE - 0.01)
                 .errorRate(ERROR_PROPORTION * RATE + 0.1)
                 .build();
@@ -64,7 +64,7 @@ public class PointHealthReportAnalysisTest {
     public void reportStatusIsUnhealthyIfErrProportionIsHigh() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics.builder()
-                .p99(P_99 + 1)
+                .p99((double) (P_99 + 1))
                 .oneMin(RATE + 0.01)
                 .errorRate(ERROR_PROPORTION * RATE + 0.1)
                 .build();
@@ -76,7 +76,7 @@ public class PointHealthReportAnalysisTest {
     public void reportStatusIsUnhealthyIfP99IsAboveThreshold() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics.builder()
-                .p99(P_99 + 1)
+                .p99((double) (P_99 + 1))
                 .oneMin(RATE + 0.01)
                 .errorRate(ERROR_PROPORTION * RATE)
                 .build();
@@ -88,7 +88,7 @@ public class PointHealthReportAnalysisTest {
     public void reportStatusIsUnhealthyIfQuietP99IsAboveThreshold() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
         EndpointStatistics statistics = EndpointStatistics.builder()
-                .p99(QUIET_P99 + 1)
+                .p99((double) (QUIET_P99 + 1))
                 .oneMin(RATE - 0.01)
                 .errorRate(0)
                 .build();

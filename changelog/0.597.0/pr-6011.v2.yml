@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Added AtlasBackupService.cleanupBackup, which must be called at the
+    end of the backup process (including after any intermediate step fails). This
+    function will release any locks that were held during backups.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6011

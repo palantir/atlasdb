@@ -134,6 +134,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
         futures.forEach(result -> result.set(outcome));
     }
 
+    @SuppressWarnings("ImmutablesReferenceEquality")
     private void throwIfInvalidSetup(
             LeaderPingerContext<BatchPingableLeader> cachedService,
             LeaderPingerContext<BatchPingableLeader> pingedService,

@@ -31,9 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -283,12 +281,13 @@ public final class WriteBatchingTransactionService implements TransactionService
     private static Set<Long> getAlreadyExistingStartTimestamps(
             EncodingTransactionService delegate, Set<Long> startTimestamps, KeyAlreadyExistsException exception) {
         Set<Long> existingTimestamps = decodeCellsToTimestamps(delegate, exception.getExistingKeys());
-        Preconditions.checkState(
-                !existingTimestamps.isEmpty(),
-                "The underlying service threw a KeyAlreadyExistsException, but claimed no keys already existed!"
-                        + " This is likely to be a product bug - please contact support.",
-                SafeArg.of("startTimestamps", startTimestamps),
-                UnsafeArg.of("exception", exception));
+        if (existingTimestamps.isEmpty()) {
+            throw new SafeIllegalStateException(
+                    "The underlying service threw a KeyAlreadyExistsException, but claimed no keys already existed!"
+                            + " This is likely to be a product bug - please contact support.",
+                    exception,
+                    SafeArg.of("startTimestamps", startTimestamps));
+        }
         return existingTimestamps;
     }
 

@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: update ojdbc8 to ojdbc11
+  links:
+  - https://github.com/palantir/atlasdb/pull/6007

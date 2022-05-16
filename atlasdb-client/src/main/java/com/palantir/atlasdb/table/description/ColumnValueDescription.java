@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import com.google.protobuf.Descriptors.Descriptor;
@@ -24,8 +22,6 @@ import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
-import com.googlecode.protobuf.format.JsonFormat;
-import com.googlecode.protobuf.format.JsonFormat.ParseException;
 import com.palantir.atlasdb.annotation.Reusable;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.persist.api.Persister;
@@ -37,10 +33,8 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import javax.annotation.Nullable;
@@ -253,47 +247,6 @@ public final class ColumnValueDescription {
                 + "com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
     }
 
-    public byte[] persistJsonToBytes(String str) throws ParseException {
-        return persistJsonToBytes(Thread.currentThread().getContextClassLoader(), str);
-    }
-
-    @SuppressWarnings("unchecked")
-    public byte[] persistJsonToBytes(ClassLoader classLoader, String str) throws ParseException {
-        final byte[] bytes;
-        if (format == Format.PERSISTABLE) {
-            throw new SafeIllegalArgumentException("Tried to pass json into a persistable type.");
-        } else if (format == Format.PERSISTER) {
-            Persister<?> persister = getPersister();
-            if (JsonNode.class == persister.getPersistingClassType()) {
-                try {
-                    JsonNode jsonNode = new ObjectMapper().readValue(str, JsonNode.class);
-                    return ((Persister<JsonNode>) persister).persistToBytes(jsonNode);
-                } catch (IOException e) {
-                    throw Throwables.throwUncheckedException(e);
-                }
-            } else {
-                throw new SafeIllegalArgumentException("Tried to write json to a Persister that isn't for JsonNode.");
-            }
-        } else if (format == Format.PROTO) {
-            Message.Builder builder = createBuilder(classLoader);
-            // This will have issues with base64 blobs
-            JsonFormat.merge(str, builder);
-            bytes = builder.build().toByteArray();
-        } else {
-            bytes = type.convertFromString(str);
-        }
-        return CompressionUtils.compress(bytes, compression);
-    }
-
-    private Message.Builder createBuilder(ClassLoader classLoader) {
-        try {
-            Method method = getImportClass(classLoader).getMethod("newBuilder");
-            return (Message.Builder) method.invoke(null);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-    }
-
     public Class<?> getImportClass() {
         return getImportClass(Thread.currentThread().getContextClassLoader());
     }
@@ -352,20 +305,6 @@ public final class ColumnValueDescription {
     public String getInstantiateReusablePersisterCode(boolean isStatic) {
         return "private " + (isStatic ? "static " : "") + "final " + canonicalClassName + " REUSABLE_PERSISTER = new "
                 + canonicalClassName + "();";
-    }
-
-    @SuppressWarnings("unchecked")
-    public Persistable hydratePersistable(ClassLoader classLoader, byte[] value) {
-        Preconditions.checkState(format == Format.PERSISTABLE, "Column value is not a Persistable.");
-        return ColumnValues.parsePersistable(
-                (Class<? extends Persistable>) getImportClass(classLoader),
-                CompressionUtils.decompress(value, compression));
-    }
-
-    public Object hydratePersister(ClassLoader classLoader, byte[] value) {
-        Preconditions.checkState(format == Format.PERSISTER, "Column value is not a Persister.");
-        Persister<?> persister = getPersister();
-        return persister.hydrateFromBytes(CompressionUtils.decompress(value, compression));
     }
 
     @SuppressWarnings("unchecked")

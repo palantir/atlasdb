@@ -196,8 +196,8 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                     .map(cell ->
                             ThreadLocalRandom.current().nextBoolean() ? cell.getRowName() : PtBytes.EMPTY_BYTE_ARRAY)
                     .collectToMap();
-            kvs.put(TABLE_1, writes, 100L + 2 * i);
-            txService.putUnlessExists(100L + 2 * i, 101L + 2 * i);
+            kvs.put(TABLE_1, writes, 100L + 2L * i);
+            txService.putUnlessExists(100L + 2L * i, 101L + 2L * i);
         }
 
         Map<Cell, Long> readMap = KeyedStream.of(cells).map(_ignore -> 102L).collectToMap();
