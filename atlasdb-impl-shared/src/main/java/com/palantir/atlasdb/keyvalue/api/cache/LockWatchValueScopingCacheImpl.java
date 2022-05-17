@@ -195,10 +195,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
-        currentVersion.map(LockWatchVersion::version).map(Sequence::of).ifPresent(sequence -> Optional.of(
-                        reversedMap.get(sequence))
-                .ifPresent(startTimestamps ->
-                        snapshotStore.storeSnapshot(sequence, startTimestamps, valueStore.getSnapshot())));
+        currentVersion
+                .map(LockWatchVersion::version)
+                .map(Sequence::of)
+                .ifPresent(sequence ->
+                        snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot()));
 
         updateForTransactions.events().stream().filter(this::isNewEvent).forEach(event -> {
             valueStore.applyEvent(event);
