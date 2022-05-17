@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Add more information when clearing the lock watch value cache.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6038
