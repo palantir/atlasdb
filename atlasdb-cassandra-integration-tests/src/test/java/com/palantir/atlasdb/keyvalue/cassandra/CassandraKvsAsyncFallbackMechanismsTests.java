@@ -115,6 +115,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetAsyncFallingBackToSynchronousOnException() {
+        when(throwingAsyncKeyValueService.isValid()).thenReturn(true);
         when(factory.constructAsyncKeyValueService(
                         any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(throwingAsyncKeyValueService);
@@ -154,7 +155,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     // TODO: Cleanup!! DO NOT MERGE
     @Test
     public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
-        when(asyncKeyValueService.isValid()).thenReturn(false);
+        when(asyncKeyValueService.isValid()).thenReturn(true);
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
         Cluster cluster = spy(new ClusterFactory(Cluster::builder)
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
