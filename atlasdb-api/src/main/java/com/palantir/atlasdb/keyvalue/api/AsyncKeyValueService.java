@@ -40,6 +40,18 @@ public interface AsyncKeyValueService extends AutoCloseable {
     @Override
     void close();
 
+    /**
+     * Denotes whether the AsyncKeyValueService is currently capable of handling requests.
+     * Reasons for an AsyncKeyValueService to be invalid include e.g being closed, in the process of being refreshed, or
+     * incorrectly configured.
+     *
+     * Use this value to shortcircuit async requests. However, it is not guaranteed that a {@link #getAsync} call will
+     * not fail even after isValid has returned true - the AsyncKeyValueService may transition to invalid between the
+     * `isValid` call and a `getAsync` call.
+     *
+     * @return true iff the AsyncKeyValueService is currently capable of handling requests at the instant this method
+     * was called, otherwise false.
+     */
     default boolean isValid() {
         return true;
     }
