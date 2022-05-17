@@ -21,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.CqlQuerySpec;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class ThrowingCqlClient implements CqlClient {
+    private static final ThrowingCqlClient INSTANCE = new ThrowingCqlClient();
 
     @Override
     public <V> ListenableFuture<V> executeQuery(CqlQuerySpec<V> querySpec) {
@@ -31,7 +32,7 @@ public class ThrowingCqlClient implements CqlClient {
     }
 
     public static ThrowingCqlClient of() {
-        return new ThrowingCqlClient();
+        return INSTANCE;
     }
 
     @Override
