@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryPa
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
@@ -100,9 +101,9 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
                 !cqlClientContainer.isClosed() && cqlClientContainer.get().isValid();
         if (!isValid) {
             if (cqlClientContainer.isClosed()) {
-                throw new RuntimeException("Container is closed");
+                throw new SafeRuntimeException("Container is closed");
             } else {
-                throw new RuntimeException("The cql client is not valid...");
+                throw new SafeRuntimeException("The cql client is not valid...");
             }
         }
         return true;
