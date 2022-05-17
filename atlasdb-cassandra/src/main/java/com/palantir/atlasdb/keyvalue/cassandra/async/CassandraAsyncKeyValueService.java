@@ -31,7 +31,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.queries.ImmutableGetQueryPa
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
@@ -97,12 +96,15 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
 
     @Override
     public boolean isValid() {
-        try {
-            return !cqlClientContainer.isClosed() && cqlClientContainer.get().isValid();
-        } catch (SafeIllegalStateException e) {
-            // If cqlClientContainer is closed between the isClosed check and the get(), then the container will
-            // throw on the latter call. The container isn't in a valid state, so we're not valid.
-            return false;
+        boolean isValid =
+                !cqlClientContainer.isClosed() && cqlClientContainer.get().isValid();
+        if (!isValid) {
+            if (cqlClientContainer.isClosed()) {
+                throw new RuntimeException("Container is closed");
+            } else {
+                throw new RuntimeException("The cql client is not valid...");
+            }
         }
+        return true;
     }
 }

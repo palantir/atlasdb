@@ -2107,7 +2107,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             //         executor);
         } else {
             throw new SafeIllegalArgumentException("Why are we not valid?");
-//            return Futures.immediateFuture(this.get(tableRef, timestampByCell));
+            //            return Futures.immediateFuture(this.get(tableRef, timestampByCell));
         }
     }
 
