@@ -19,17 +19,22 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
@@ -37,6 +42,13 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
@@ -132,6 +144,36 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .build();
 
         keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
+
+        verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
+    }
+
+    //TODO: Cleanup!! DO NOT MERGE
+    @Test
+    public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
+        when(asyncKeyValueService.isValid()).thenReturn(false);
+        CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
+        Cluster cluster = new ClusterFactory(Cluster::builder)
+                .constructCluster(CassandraClusterConfig.of(config), config.servers());
+        Session session = spy(cluster.connect());
+        when(session.isClosed()).thenReturn(true);
+        session.close();
+        cluster.close();
+        CqlClient cqlClient = CqlClientImpl.create(
+                new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false);
+        CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
+                new DefaultCassandraAsyncKeyValueServiceFactory((_ignored1, _ignored2, _ignored3, _ignored4) ->
+                        ReloadingCloseableContainer.of(Refreshable.only(0), _ignored -> cqlClient));
+
+        CassandraKeyValueServiceConfig configWithNewFactory = ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(CASSANDRA_RESOURCE.getConfig())
+                .asyncKeyValueServiceFactory(cassandraAsyncKeyValueServiceFactory)
+                .build();
+
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(configWithNewFactory));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
