@@ -52,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFact
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Map;
+import org.apache.cassandra.cql3.Json.Prepared;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -155,6 +156,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
+        PreparedStatement statement = session.prepare("SELECT * FROM users");
+        when(session.prepare((String) any())).thenReturn(statement);
         when(session.isClosed()).thenReturn(true);
         when(cluster.connect()).thenReturn(session);
 
