@@ -156,12 +156,12 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
         when(asyncKeyValueService.isValid()).thenReturn(false);
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
-        Cluster cluster = new ClusterFactory(Cluster::builder)
-                .constructCluster(CassandraClusterConfig.of(config), config.servers());
+        Cluster cluster = spy(new ClusterFactory(Cluster::builder)
+                .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
         when(session.isClosed()).thenReturn(true);
+        when(cluster.connect()).thenReturn(session);
         session.close();
-        cluster.close();
         CqlClient cqlClient = CqlClientImpl.create(
                 new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false);
         CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
