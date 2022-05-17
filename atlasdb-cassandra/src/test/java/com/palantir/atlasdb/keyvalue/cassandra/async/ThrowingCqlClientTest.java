@@ -34,8 +34,8 @@ public class ThrowingCqlClientTest {
 
     @Test
     public void executeQueryThrowsException() {
-        assertThatLoggableExceptionThrownBy(() -> ThrowingCqlClient.of().executeQuery(cqlQuerySpec)).isInstanceOf(
-                SafeIllegalStateException.class);
+        assertThatLoggableExceptionThrownBy(() -> ThrowingCqlClient.of().executeQuery(cqlQuerySpec))
+                .isInstanceOf(SafeIllegalStateException.class);
     }
 
     @Test

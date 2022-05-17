@@ -34,6 +34,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CqlClientImplTest {
     public static final boolean INITIALIZE_ASYNC = false;
     private static final TaggedMetricRegistry REGISTRY = new DefaultTaggedMetricRegistry();
+
     @Mock
     private Cluster cluster;
 
@@ -50,16 +51,14 @@ public class CqlClientImplTest {
 
     @Test
     public void cqlClientInvalidWhenSessionIsClosed() {
-        CqlClient cqlClient = CqlClientImpl.create(REGISTRY, cluster,
-                cqlCapableConfigTuning, INITIALIZE_ASYNC);
+        CqlClient cqlClient = CqlClientImpl.create(REGISTRY, cluster, cqlCapableConfigTuning, INITIALIZE_ASYNC);
         when(session.isClosed()).thenReturn(true);
         assertThat(cqlClient.isValid()).isFalse();
     }
 
     @Test
     public void cqlClientValidWhenSessionOpen() {
-        CqlClient cqlClient = CqlClientImpl.create(REGISTRY, cluster,
-                cqlCapableConfigTuning, INITIALIZE_ASYNC);
+        CqlClient cqlClient = CqlClientImpl.create(REGISTRY, cluster, cqlCapableConfigTuning, INITIALIZE_ASYNC);
         when(session.isClosed()).thenReturn(false);
         assertThat(cqlClient.isValid()).isTrue();
     }
