@@ -45,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServi
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.async.ThrowingCqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.refreshable.Refreshable;
@@ -73,9 +74,6 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     private AsyncKeyValueService asyncKeyValueService;
 
     @Mock
-    private AsyncKeyValueService throwingAsyncKeyValueService;
-
-    @Mock
     private CassandraAsyncKeyValueServiceFactory factory;
 
     @Before
@@ -83,7 +81,6 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         lenient()
                 .when(asyncKeyValueService.getAsync(any(), any()))
                 .thenReturn(Futures.immediateFuture(ImmutableMap.of()));
-        lenient().when(throwingAsyncKeyValueService.getAsync(any(), any())).thenThrow(new IllegalStateException());
     }
 
     @After
@@ -114,14 +111,13 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     }
 
     @Test
-    public void testGetAsyncFallingBackToSynchronousOnException() {
-        when(factory.constructAsyncKeyValueService(
-                        any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
-                .thenReturn(throwingAsyncKeyValueService);
-
+    public void testGetAsyncFallingBackToSynchronousOnThrowingClient() {
+        CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
+                new DefaultCassandraAsyncKeyValueServiceFactory((_ignored1, _ignored2, _ignored3, _ignored4) ->
+                        ReloadingCloseableContainer.of(Refreshable.only(0), _ignored -> ThrowingCqlClient.of()));
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(CASSANDRA_RESOURCE.getConfig())
-                .asyncKeyValueServiceFactory(factory)
+                .asyncKeyValueServiceFactory(cassandraAsyncKeyValueServiceFactory)
                 .build();
 
         keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
