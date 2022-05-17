@@ -115,7 +115,7 @@ public final class CqlClientImpl implements CqlClient {
 
     @Override
     public boolean isValid() {
-        return session.isClosed();
+        return !session.isClosed();
     }
 
     @Override
