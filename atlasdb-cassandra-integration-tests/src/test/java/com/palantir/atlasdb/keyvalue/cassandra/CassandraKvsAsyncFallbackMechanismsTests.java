@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -156,15 +157,18 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         Session session = spy(cluster.connect());
         when(session.isClosed()).thenReturn(false);
         when(cluster.connect()).thenReturn(session);
-        session.close();
+
+//        session.close();
+
         CqlClient cqlClient = CqlClientImpl.create(
                 new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false);
+
         CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
                 new DefaultCassandraAsyncKeyValueServiceFactory((_ignored1, _ignored2, _ignored3, _ignored4) ->
                         ReloadingCloseableContainer.of(Refreshable.only(0), _ignored -> cqlClient));
 
         CassandraKeyValueServiceConfig configWithNewFactory = ImmutableCassandraKeyValueServiceConfig.builder()
-                .from(CASSANDRA_RESOURCE.getConfig())
+                .from(config)
                 .asyncKeyValueServiceFactory(cassandraAsyncKeyValueServiceFactory)
                 .build();
 
