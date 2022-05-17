@@ -151,7 +151,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
     }
 
-    //TODO: Cleanup!! DO NOT MERGE
+    // TODO: Cleanup!! DO NOT MERGE
     @Test
     public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
         when(asyncKeyValueService.isValid()).thenReturn(false);
