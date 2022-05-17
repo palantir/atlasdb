@@ -150,12 +150,11 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     // TODO: Cleanup!! DO NOT MERGE
     @Test
     public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
-        when(asyncKeyValueService.isValid()).thenReturn(true);
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
         Cluster cluster = spy(new ClusterFactory(Cluster::builder)
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
-        when(session.isClosed()).thenReturn(true);
+        when(session.isClosed()).thenReturn(false);
         when(cluster.connect()).thenReturn(session);
         session.close();
         CqlClient cqlClient = CqlClientImpl.create(
