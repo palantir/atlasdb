@@ -156,7 +156,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     @Test
     public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
-        Cluster cluster = spy(new ClusterFactory(Cluster::builder)
+        Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
         when(session.isClosed()).thenReturn(false);
