@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
@@ -36,13 +37,14 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
@@ -96,12 +98,14 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
 
+        Optional<LockWatchVersion> latestVersionFromUpdate = computeMaxUpdateVersion(updateForTransactions);
+
         if (updateForTransactions.clearCache()) {
-            clearCache();
+            clearCache(updateForTransactions, latestVersionFromUpdate);
         }
 
         updateStores(updateForTransactions);
-        updateCurrentVersion(updateForTransactions);
+        updateCurrentVersion(latestVersionFromUpdate);
     }
 
     @Override
@@ -192,7 +196,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
-        currentVersion.map(LockWatchVersion::version).map(Sequence::of).ifPresent(sequence -> Optional.ofNullable(
+        currentVersion.map(LockWatchVersion::version).map(Sequence::of).ifPresent(sequence -> Optional.of(
                         reversedMap.get(sequence))
                 .ifPresent(startTimestamps ->
                         snapshotStore.storeSnapshot(sequence, startTimestamps, valueStore.getSnapshot())));
@@ -236,20 +240,29 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
     }
 
-    private synchronized void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
-        Optional<LockWatchVersion> maybeUpdateVersion = updateForTransactions.startTsToSequence().values().stream()
-                .max(Comparator.comparingLong(LockWatchVersion::version));
-
+    private synchronized void updateCurrentVersion(Optional<LockWatchVersion> maybeUpdateVersion) {
         maybeUpdateVersion
                 .filter(this::shouldUpdateVersion)
                 .ifPresent(updateVersion -> currentVersion = Optional.of(updateVersion));
+    }
+
+    private Optional<LockWatchVersion> computeMaxUpdateVersion(TransactionsLockWatchUpdate updateForTransactions) {
+        return updateForTransactions.startTsToSequence().values().stream()
+                .max(Comparator.comparingLong(LockWatchVersion::version));
     }
 
     private synchronized boolean shouldUpdateVersion(LockWatchVersion updateVersion) {
         return currentVersion.isEmpty() || currentVersion.get().version() < updateVersion.version();
     }
 
-    private synchronized void clearCache() {
+    private synchronized void clearCache(
+            TransactionsLockWatchUpdate updateForTransactions, Optional<LockWatchVersion> latestVersionFromUpdate) {
+        log.info(
+                "Clearing all value cache state",
+                SafeArg.of("currentVersion", currentVersion),
+                SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
+                SafeArg.of("firstEventSequence", Iterables.getFirst(updateForTransactions.events(), null)),
+                SafeArg.of("lastEventSequence", Iterables.getLast(updateForTransactions.events(), null)));
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
