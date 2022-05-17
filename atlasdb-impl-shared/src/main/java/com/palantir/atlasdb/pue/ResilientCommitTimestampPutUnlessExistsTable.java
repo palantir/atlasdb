@@ -35,8 +35,8 @@ import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
@@ -50,7 +50,8 @@ import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
-    private static final SafeLogger log = SafeLoggerFactory.get(ResilientCommitTimestampPutUnlessExistsTable.class);
+    private static final RateLimitedLogger log = new RateLimitedLogger(
+            SafeLoggerFactory.get(ResilientCommitTimestampPutUnlessExistsTable.class), 1.0 / 3600);
     private static final int TOUCH_CACHE_SIZE = 1000;
     private static final Duration COMMIT_THRESHOLD = Duration.ofSeconds(1);
 
@@ -67,7 +68,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 @Nonnull
                 public Long load(@Nonnull CellInfo cellInfo) {
                     FollowUpAction followUpAction = FollowUpAction.PUT;
-                    if (clock.instant().isAfter(acceptStagingUntil) && !acceptStagingReadsAsCommitted.get()) {
+                    if (shouldTouch()) {
                         synchronized (
                                 rowLocks.computeIfAbsent(
                                         ByteBuffer.wrap(cellInfo.cell().getRowName()), x -> x)) {
@@ -134,7 +135,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     private FollowUpAction touchAndReturn(CellInfo cellAndValue) {
-        if (acceptStagingReadsAsCommitted.get()) {
+        if (!shouldTouch()) {
             return FollowUpAction.PUT;
         }
         Cell cell = cellAndValue.cell();
@@ -182,25 +183,32 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 Duration timeTaken = Duration.between(startTime, clock.instant());
                 if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
                     acceptStagingUntil = clock.instant().plusSeconds(60);
-                    log.warn(
+                    log.log(logger -> logger.warn(
                             "Committing a staging value for the transactions table took too long. "
                                     + "Treating staging values as committed for 60 seconds to ensure liveness.",
                             SafeArg.of("startTs", startTs),
                             SafeArg.of("commitTs", commitTs),
-                            SafeArg.of("timeTaken", timeTaken));
+                            SafeArg.of("timeTaken", timeTaken)));
                 }
+                /**
+                 * This in particular catches {@link com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException}
+                 */
             } catch (AtlasDbDependencyException e) {
                 acceptStagingUntil = clock.instant().plusSeconds(60);
-                log.warn(
+                log.log(logger -> logger.warn(
                         "Encountered exception attempting to commit a staging value for the transactions table. "
                                 + "Treating staging values as committed for 60 seconds to ensure liveness.",
                         SafeArg.of("startTs", startTs),
                         SafeArg.of("commitTs", commitTs),
-                        e);
+                        e));
                 throw e;
             }
         }
         return resultBuilder.build();
+    }
+
+    private boolean shouldTouch() {
+        return clock.instant().isAfter(acceptStagingUntil) && !acceptStagingReadsAsCommitted.get();
     }
 
     @Value.Immutable

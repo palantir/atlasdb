@@ -30,11 +30,13 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
@@ -77,7 +79,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     private final Clock clock = clockLong::get;
 
     public ResilientCommitTimestampPutUnlessExistsTableTest(String name, Object parameter) {
-        validating = !(boolean) parameter;
+        validating = (boolean) parameter;
         pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
                 spiedStore, TwoPhaseEncodingStrategy.INSTANCE, () -> !validating, clock);
     }
@@ -85,8 +87,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-            {VALIDATING_STAGING_VALUES, false},
-            {NOT_VALIDATING_STAGING_VALUES, true}
+            {VALIDATING_STAGING_VALUES, true},
+            {NOT_VALIDATING_STAGING_VALUES, false}
         };
         return Arrays.asList(data);
     }
@@ -240,21 +242,21 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         ExecutorService writers = Executors.newFixedThreadPool(parallelism);
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
+        List<Future<Long>> results = new ArrayList<>();
         int numberOfReads = parallelism * 100;
         for (int i = 0; i < numberOfReads; i++) {
             // all timestamps go into the same row
-            results.add(writers.submit(() -> pueTable.get(random.nextLong(10) * rowsPerQuantum)));
+            results.add(Futures.submitAsync(() -> pueTable.get(random.nextLong(10) * rowsPerQuantum), writers));
         }
-        results.forEach(future -> assertThatThrownBy(() -> future.get().get())
+        results.forEach(future -> assertThatThrownBy(future::get)
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(RuntimeException.class));
         spiedStore.stopFailingPuts();
         results.clear();
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(writers.submit(() -> pueTable.get(random.nextLong(10) * rowsPerQuantum)));
+            results.add(Futures.submitAsync(() -> pueTable.get(random.nextLong(10) * rowsPerQuantum), writers));
         }
-        results.forEach(future -> assertThatCode(() -> future.get().get()).doesNotThrowAnyException());
+        results.forEach(future -> assertThatCode(future::get).doesNotThrowAnyException());
         writers.shutdownNow();
 
         assertThat(spiedStore.maximumConcurrentTouches()).isEqualTo(validating ? 1 : 0);
@@ -267,20 +269,20 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         ExecutorService writers = Executors.newFixedThreadPool(maximumParallelism * 10);
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        List<Future<ListenableFuture<Long>>> results = new ArrayList<>();
+        List<ListenableFuture<Long>> results = new ArrayList<>();
         int numberOfReads = maximumParallelism * 100;
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(writers.submit(() -> pueTable.get(random.nextLong(maximumParallelism * 2))));
+            results.add(Futures.submitAsync(() -> pueTable.get(random.nextLong(maximumParallelism * 2)), writers));
         }
-        results.forEach(future -> assertThatThrownBy(() -> future.get().get())
+        results.forEach(future -> assertThatThrownBy(future::get)
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(RuntimeException.class));
         spiedStore.stopFailingPuts();
         results.clear();
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(writers.submit(() -> pueTable.get(random.nextLong(maximumParallelism * 2))));
+            results.add(Futures.submitAsync(() -> pueTable.get(random.nextLong(maximumParallelism * 2)), writers));
         }
-        results.forEach(future -> assertThatCode(() -> future.get().get()).doesNotThrowAnyException());
+        results.forEach(future -> assertThatCode(future::get).doesNotThrowAnyException());
         writers.shutdownNow();
 
         if (validating) {
@@ -313,6 +315,28 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         assertThat(pueTable.get(0L).get()).isEqualTo(0L);
         assertThat(pueTable.get(1L).get()).isEqualTo(1L);
 
+        verify(spiedKvs, times(1)).checkAndSet(any());
+        verify(spiedStore, times(1 + 2)).put(anyMap());
+
+        clockLong.accumulateAndGet(Duration.ofSeconds(62).toMillis(), Long::sum);
+
+        assertThat(pueTable.get(2L).get()).isEqualTo(2L);
+        verify(spiedKvs, times(2)).checkAndSet(any());
+        verify(spiedStore, times(1 + 3)).put(anyMap());
+    }
+
+    @Test
+    public void acceptStagingAsCommittedWhenRetryingTooMuch() throws ExecutionException, InterruptedException {
+        Assume.assumeTrue(validating);
+        setupStagingValues(5);
+        spiedStore.failPutsWithAtlasdbDependencyException();
+
+        assertThatThrownBy(() -> pueTable.get(0L).get())
+                .isInstanceOf(ExecutionException.class)
+                .hasCauseInstanceOf(RetryLimitReachedException.class);
+        spiedStore.stopFailingPuts();
+
+        assertThat(pueTable.get(1L).get()).isEqualTo(1L);
         verify(spiedKvs, times(1)).checkAndSet(any());
         verify(spiedStore, times(1 + 2)).put(anyMap());
 
@@ -361,7 +385,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
      * details are changed, it may invalidate tests relying on this class.
      */
     private class UnreliableKvsConsensusForgettingStore extends KvsConsensusForgettingStore {
-        private volatile boolean failPuts = false;
+        private volatile Optional<RuntimeException> putException = Optional.empty();
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
         private final AtomicInteger maximumConcurrentTouches = new AtomicInteger(0);
         private volatile boolean commitUnderUs = false;
@@ -373,8 +397,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         @Override
         public void put(Map<Cell, byte[]> values) {
-            if (failPuts) {
-                throw new RuntimeException("Failed to set value");
+            if (putException.isPresent()) {
+                throw putException.get();
             }
             super.put(values);
         }
@@ -401,11 +425,15 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
          * This effectively causes all newly put values to be stuck in staging
          */
         public void startFailingPuts() {
-            failPuts = true;
+            putException = Optional.of(new RuntimeException("Failed to set value"));
         }
 
         public void stopFailingPuts() {
-            failPuts = false;
+            putException = Optional.empty();
+        }
+
+        public void failPutsWithAtlasdbDependencyException() {
+            putException = Optional.of(new RetryLimitReachedException(ImmutableList.of()));
         }
 
         public int maximumConcurrentTouches() {
