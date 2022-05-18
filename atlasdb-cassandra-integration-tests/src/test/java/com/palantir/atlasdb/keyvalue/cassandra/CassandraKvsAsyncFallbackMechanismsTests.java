@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -29,7 +28,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
@@ -166,18 +164,10 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
-        PreparedStatement statement = mock(PreparedStatement.class);
-        BoundStatement boundStatement = mock(BoundStatement.class);
-        doReturn(boundStatement).when(statement).bind();
-        doReturn(boundStatement).when(boundStatement).setBytes(any(), any());
-        doReturn(boundStatement).when(boundStatement).setLong(anyString(), anyLong());
-        doReturn(boundStatement).when(boundStatement).setConsistencyLevel(any());
-
-        doReturn(null).when(boundStatement).getOutgoingPayload();
-
-        doReturn(statement).when(session).prepare((String) any());
+        PreparedStatement preparedStatement = session.prepare("SELECT * from users USE \"Excalibur\"");
 
         doReturn(session).when(cluster).connect();
+        doReturn(preparedStatement).when(session).prepare(anyString());
 
         session.close();
 
