@@ -13,7 +13,7 @@ function checkDocsBuild {
      make html
 }
 
-CONTAINER_1=(":atlasdb-cassandra-integration-tests:test --tests *testGetAsyncFallingBackToSynchronousOnSessionClosed")
+CONTAINER_1=(":atlasdb-cassandra-integration-tests:test --tests *testGetAsyncFallingBackToSynchronousOnSessionClosedBeforeStatementPreparation")
 
 CONTAINER_11=('compileJava' 'compileTestJava')
 
