@@ -27,6 +27,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
@@ -58,7 +59,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -164,9 +164,15 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
-        PreparedStatement statement = mock(PreparedStatement.class, Answers.RETURNS_DEEP_STUBS);
-        doReturn(statement).when(session).prepare((String) any());
+        PreparedStatement statement = mock(PreparedStatement.class);
+        BoundStatement boundStatement = mock(BoundStatement.class);
+        doReturn(boundStatement).when(statement).bind();
+        doReturn(boundStatement).when(boundStatement).setBytes(any(), any());
+        doReturn(boundStatement).when(boundStatement).setLong((String) any(), any());
+        doReturn(boundStatement).when(boundStatement).setConsistencyLevel(any());
         doReturn(null).when(statement).getOutgoingPayload();
+
+        doReturn(statement).when(session).prepare((String) any());
 
         doReturn(session).when(cluster).connect();
 
