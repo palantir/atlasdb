@@ -1,5 +1,5 @@
 type: improvement
 improvement:
-  description: Rescue can now deserialise metadata persisted from older formats.
+  description: Backup Service can now deserialise metadata persisted from older formats.
   links:
   - https://github.com/palantir/atlasdb/pull/6040
