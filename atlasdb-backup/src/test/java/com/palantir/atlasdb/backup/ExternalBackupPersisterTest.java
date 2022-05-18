@@ -108,12 +108,16 @@ public class ExternalBackupPersisterTest {
     @Test
     public void testLegacyCasing() throws IOException {
         String legacyState = "{\"value\":{\"value\":{\"timestampToTransactionsTableSchemaVersion\":{\"timestampMappings"
-                + "\":[{\"longRange\":{\"lower-endpoint\":1316020054,\"lower-bound-type\":\"CLOSED\"},\"value\":3},{\"longRange\":{\"lower-endpoint\":1,\"lower-bound-type\":\"CLOSED\",\"upper-endpoint\":1316020054,\"upper-bound-type\":\"OPEN\"},\"value\":1}]}},\"bound\":1318613869}}";
+            + "\":[{\"longRange\":{\"lower-endpoint\":1316020054,\"lower-bound-type\":\"CLOSED\"},\"value\":3},{\"longRange\":{\"lower-endpoint\":1,\"lower-bound-type\":\"CLOSED\",\"upper-endpoint\":1316020054,\"upper-bound-type\":\"OPEN\"},\"value\":1}]}},\"bound\":1318613869}}";
         File tempFile = tempFolder.newFile();
-        Files.copy(new ByteArrayInputStream(legacyState.getBytes(StandardCharsets.UTF_8)), tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(
+                new ByteArrayInputStream(legacyState.getBytes(StandardCharsets.UTF_8)),
+                tempFile.toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
 
-        InternalSchemaMetadataState parsed = externalBackupPersister.loadFromFile(ATLAS_SERVICE, tempFile,
-                InternalSchemaMetadataState.class).get();
+        InternalSchemaMetadataState parsed = externalBackupPersister
+                .loadFromFile(ATLAS_SERVICE, tempFile, InternalSchemaMetadataState.class)
+                .get();
         assertThat(parsed).isNotNull();
     }
 

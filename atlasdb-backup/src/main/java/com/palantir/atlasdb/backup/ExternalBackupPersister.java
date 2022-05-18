@@ -161,9 +161,8 @@ public class ExternalBackupPersister implements BackupPersister {
                 return Optional.of(state);
             } catch (MismatchedInputException e) {
                 log.info("Using old mapper format", e);
-                ObjectMapper camelCaseObjectMapper = OBJECT_MAPPER
-                        .copy()
-                        .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE);
+                ObjectMapper camelCaseObjectMapper =
+                        OBJECT_MAPPER.copy().setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE);
                 T state = camelCaseObjectMapper.readValue(file, clazz);
                 log.info(
                         "Successfully loaded file",
@@ -181,4 +180,3 @@ public class ExternalBackupPersister implements BackupPersister {
         }
     }
 }
-
