@@ -172,7 +172,8 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         doReturn(boundStatement).when(boundStatement).setBytes(any(), any());
         doReturn(boundStatement).when(boundStatement).setLong(anyString(), anyLong());
         doReturn(boundStatement).when(boundStatement).setConsistencyLevel(any());
-        doReturn(null).when(statement).getOutgoingPayload();
+
+        doReturn(null).when(boundStatement).getOutgoingPayload();
 
         doReturn(statement).when(session).prepare((String) any());
 
