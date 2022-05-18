@@ -164,7 +164,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
-        PreparedStatement preparedStatement = session.prepare("SELECT * from Excalibur.users");
+        PreparedStatement preparedStatement = session.prepare("SELECT * from ns.pt_kvs_test");
 
         doReturn(session).when(cluster).connect();
         doReturn(preparedStatement).when(session).prepare(anyString());
