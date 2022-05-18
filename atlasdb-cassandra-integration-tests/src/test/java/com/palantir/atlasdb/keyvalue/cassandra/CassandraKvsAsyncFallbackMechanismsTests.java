@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
@@ -168,7 +170,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         BoundStatement boundStatement = mock(BoundStatement.class);
         doReturn(boundStatement).when(statement).bind();
         doReturn(boundStatement).when(boundStatement).setBytes(any(), any());
-        doReturn(boundStatement).when(boundStatement).setLong((String) any(), any());
+        doReturn(boundStatement).when(boundStatement).setLong(anyString(), anyLong());
         doReturn(boundStatement).when(boundStatement).setConsistencyLevel(any());
         doReturn(null).when(statement).getOutgoingPayload();
 
