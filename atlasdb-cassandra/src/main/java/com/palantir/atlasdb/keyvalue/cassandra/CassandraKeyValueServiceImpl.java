@@ -2093,7 +2093,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             try {
                 return Futures.catching(
                         asyncKeyValueService.getAsync(tableRef, timestampByCell),
-                        IllegalStateException.class,
+                        RuntimeException.class,
                         e -> {
                             log.warn(
                                     "CQL Client closed during getAsync. Delegating to synchronous get. This should be"
