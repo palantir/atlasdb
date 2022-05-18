@@ -166,7 +166,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         Session session = spy(cluster.connect());
         PreparedStatement statement = mock(PreparedStatement.class, Answers.RETURNS_DEEP_STUBS);
         doReturn(statement).when(session).prepare((String) any());
-        when(statement.getOutgoingPayload()).thenReturn(null);
+        doReturn(null).when(statement).getOutgoingPayload();
 
         doReturn(session).when(cluster).connect();
 
