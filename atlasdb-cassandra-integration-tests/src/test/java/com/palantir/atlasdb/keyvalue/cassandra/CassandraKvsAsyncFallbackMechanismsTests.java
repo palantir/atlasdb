@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -115,6 +116,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetAsyncFallingBackToSynchronousOnException() {
+        when(throwingAsyncKeyValueService.isValid()).thenReturn(true);
         when(factory.constructAsyncKeyValueService(
                         any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(throwingAsyncKeyValueService);
@@ -151,19 +153,23 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
     }
 
-    //TODO: Cleanup!! DO NOT MERGE
+    // TODO: Cleanup!! DO NOT MERGE
     @Test
     public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
-        when(asyncKeyValueService.isValid()).thenReturn(false);
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
-        Cluster cluster = spy(new ClusterFactory(Cluster::builder)
+        Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
-        when(session.isClosed()).thenReturn(true);
-        when(cluster.connect()).thenReturn(session);
+
+        doReturn(true).when(session.isClosed());
+        doReturn(session).when(cluster.connect());
+
         session.close();
-        CqlClient cqlClient = CqlClientImpl.create(
-                new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false);
+
+        CqlClient cqlClient = spy(CqlClientImpl.create(
+                new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false));
+
+        doReturn(true).when(cqlClient.isValid());
         CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
                 new DefaultCassandraAsyncKeyValueServiceFactory((_ignored1, _ignored2, _ignored3, _ignored4) ->
                         ReloadingCloseableContainer.of(Refreshable.only(0), _ignored -> cqlClient));
