@@ -181,7 +181,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
         keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(configWithNewFactory));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        PreparedStatement preparedStatement = session.prepare("SELECT * from ns.pt_kvs_test");
+        PreparedStatement preparedStatement = session.prepare("SELECT COUNT(*) FROM system.IndexInfo;");
 
         doReturn(preparedStatement).when(session).prepare(anyString());
 
