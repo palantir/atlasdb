@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -57,6 +58,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -162,7 +164,9 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
-
+        doReturn(mock(PreparedStatement.class, Answers.RETURNS_DEEP_STUBS))
+                .when(session)
+                .prepare((String) any());
         doReturn(session).when(cluster).connect();
 
         session.close();
