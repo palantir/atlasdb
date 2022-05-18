@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
@@ -181,8 +183,13 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
         keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(configWithNewFactory));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        PreparedStatement preparedStatement = session.prepare("SELECT COUNT(*) FROM system.schema_columns;");
+        PreparedStatement preparedStatement = spy(session.prepare("SELECT COUNT(*) FROM system.schema_columns;"));
+        BoundStatement boundStatement = spy(preparedStatement.bind());
+        doReturn(boundStatement).when(boundStatement).setBytes(any(), any());
+        doReturn(boundStatement).when(boundStatement).setLong(anyString(), anyLong());
+        doReturn(boundStatement).when(boundStatement).setConsistencyLevel(any());
 
+        doReturn(boundStatement).when(preparedStatement).bind();
         doReturn(preparedStatement).when(session).prepare(anyString());
 
         session.close();
