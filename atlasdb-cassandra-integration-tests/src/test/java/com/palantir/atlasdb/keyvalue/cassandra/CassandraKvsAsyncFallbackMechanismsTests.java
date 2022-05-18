@@ -164,12 +164,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
-        PreparedStatement preparedStatement = session.prepare("SELECT * from ns.pt_kvs_test");
-
         doReturn(session).when(cluster).connect();
-        doReturn(preparedStatement).when(session).prepare(anyString());
-
-        session.close();
 
         CqlClient cqlClient = spy(CqlClientImpl.create(
                 new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false));
@@ -186,6 +181,11 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
         keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(configWithNewFactory));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        PreparedStatement preparedStatement = session.prepare("SELECT * from ns.pt_kvs_test");
+
+        doReturn(preparedStatement).when(session).prepare(anyString());
+
+        session.close();
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
 
