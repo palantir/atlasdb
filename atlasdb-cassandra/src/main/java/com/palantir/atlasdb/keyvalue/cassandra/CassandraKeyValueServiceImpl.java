@@ -2089,8 +2089,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             log.info("Attempted get with no specified cells", LoggingArgs.tableRef(tableRef));
             return Futures.immediateFuture(ImmutableMap.of());
         }
-        try {
-            if (asyncKeyValueService.isValid()) {
+        if (asyncKeyValueService.isValid()) {
+            try {
                 return Futures.catching(
                         asyncKeyValueService.getAsync(tableRef, timestampByCell),
                         IllegalStateException.class,
@@ -2103,12 +2103,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             return this.get(tableRef, timestampByCell);
                         },
                         executor);
-            } else {
+            } catch (IllegalStateException e) {
+                // If the container is closed, or we've reloaded into an invalid ThrowingCqlClient, after testing for
+                // validity
                 return Futures.immediateFuture(this.get(tableRef, timestampByCell));
             }
-        } catch (IllegalStateException e) {
-            // If the container is closed, or we've reloaded into an invalid ThrowingCqlClient, after testing for
-            // validity
+        } else {
             return Futures.immediateFuture(this.get(tableRef, timestampByCell));
         }
     }
