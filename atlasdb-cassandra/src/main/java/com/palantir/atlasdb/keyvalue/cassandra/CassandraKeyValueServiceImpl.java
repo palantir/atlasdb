@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.datastax.driver.core.exceptions.DriverException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
@@ -2103,9 +2104,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             return this.get(tableRef, timestampByCell);
                         },
                         executor);
-            } catch (IllegalStateException e) {
-                // If the container is closed, or we've reloaded into an invalid ThrowingCqlClient, after testing for
-                // validity
+            } catch (IllegalStateException | DriverException e) {
+                // If the container is closed, or we've reloaded into an invalid ThrowingCqlClient, or the session is
+                // closed after testing for validity (IllegalStateException for the first two, DriverException for the
+                // latter)
                 return Futures.immediateFuture(this.get(tableRef, timestampByCell));
             }
         } else {
