@@ -122,6 +122,7 @@ public class CassandraAsyncKeyValueServiceTests {
 
     @Test
     public void testIsValidFalseWhenClientIsInvalid() {
+        when(cqlClientContainer.isClosed()).thenReturn(false);
         when(cqlClient.isValid()).thenReturn(false);
         assertThat(asyncKeyValueService.isValid()).isFalse();
     }
