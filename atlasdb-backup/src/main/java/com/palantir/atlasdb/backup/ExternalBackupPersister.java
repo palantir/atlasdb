@@ -17,6 +17,9 @@
 package com.palantir.atlasdb.backup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
@@ -138,7 +141,8 @@ public class ExternalBackupPersister implements BackupPersister {
         }
     }
 
-    private <T> Optional<T> loadFromFile(AtlasService atlasService, File file, Class<T> clazz) {
+    @VisibleForTesting
+    <T> Optional<T> loadFromFile(AtlasService atlasService, File file, Class<T> clazz) {
         if (!file.exists()) {
             log.info(
                     "Tried to load file, but it did not exist",
@@ -148,12 +152,25 @@ public class ExternalBackupPersister implements BackupPersister {
         }
 
         try {
-            T state = OBJECT_MAPPER.readValue(file, clazz);
-            log.info(
-                    "Successfully loaded file",
-                    SafeArg.of("fileName", file.getName()),
-                    SafeArg.of("atlasService", atlasService));
-            return Optional.of(state);
+            try {
+                T state = OBJECT_MAPPER.readValue(file, clazz);
+                log.info(
+                        "Successfully loaded file",
+                        SafeArg.of("fileName", file.getName()),
+                        SafeArg.of("namespace", atlasService));
+                return Optional.of(state);
+            } catch (MismatchedInputException e) {
+                log.info("Using old mapper format", e);
+                ObjectMapper camelCaseObjectMapper = OBJECT_MAPPER
+                        .copy()
+                        .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE);
+                T state = camelCaseObjectMapper.readValue(file, clazz);
+                log.info(
+                        "Successfully loaded file",
+                        SafeArg.of("fileName", file.getName()),
+                        SafeArg.of("namespace", atlasService));
+                return Optional.of(state);
+            }
         } catch (IOException e) {
             log.warn(
                     "Failed to read file",
@@ -164,3 +181,4 @@ public class ExternalBackupPersister implements BackupPersister {
         }
     }
 }
+
