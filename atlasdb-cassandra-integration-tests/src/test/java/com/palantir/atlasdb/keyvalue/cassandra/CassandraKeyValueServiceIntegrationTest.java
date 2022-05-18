@@ -111,8 +111,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, UnaryOperator.identity()},
-                {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
+            {SYNC, UnaryOperator.identity()},
+            {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -182,18 +182,21 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
         Logger testLogger = mock(Logger.class);
         // nth startup
-        CassandraKeyValueService kvs = createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), testLogger);
+        CassandraKeyValueService kvs =
+                createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), CASSANDRA.getRuntimeConfig(), testLogger);
         kvs.createTable(NEVER_SEEN, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertThatGcGraceSecondsIs(kvs, FOUR_DAYS_IN_SECONDS);
         kvs.close();
 
-        CassandraKeyValueService kvs2 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
+        CassandraKeyValueService kvs2 =
+                createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), CASSANDRA.getRuntimeConfig(), testLogger);
         assertThatGcGraceSecondsIs(kvs2, ONE_HOUR_IN_SECONDS);
         kvs2.close();
         // n+1th startup with different GC grace seconds - should upgrade
         verify(testLogger, times(1)).info(startsWith("New table-related settings were applied on startup!!"));
 
-        CassandraKeyValueService kvs3 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
+        CassandraKeyValueService kvs3 =
+                createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), CASSANDRA.getRuntimeConfig(), testLogger);
         assertThatGcGraceSecondsIs(kvs3, ONE_HOUR_IN_SECONDS);
         // startup with same gc grace seconds as previous one - no upgrade
         verify(testLogger, times(2))
@@ -238,7 +241,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .collect(Collectors.toList()));
 
         assertThat(ColumnFamilyDefinitions.isMatchingCf(
-                kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
+                        kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
                 .as("After serialization and deserialization to database, Cf metadata did not match.")
                 .isTrue();
     }
@@ -490,29 +493,33 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.putUnlessExists(userTable, ImmutableMap.of(CELL, sad));
         assertThat(keyValueService
-                .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
-                .get(CELL)
-                .getContents())
+                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                        .get(CELL)
+                        .getContents())
                 .containsExactly(sad);
 
         keyValueService.setOnce(userTable, ImmutableMap.of(CELL, happy));
         assertThat(keyValueService
-                .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
-                .get(CELL)
-                .getContents())
+                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                        .get(CELL)
+                        .getContents())
                 .containsExactly(happy);
         assertThat(keyValueService
-                .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
-                .size())
+                        .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
+                        .size())
                 .isEqualTo(1);
         keyValueService.truncateTable(userTable);
     }
 
-    private static CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+    private static CassandraKeyValueService createKvs(
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Logger testLogger) {
         // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
+                runtimeConfig,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 testLogger);
     }

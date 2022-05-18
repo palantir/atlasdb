@@ -195,6 +195,6 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.copyOf(
                         CASSANDRA.getConfig())
                 .withSchemaMutationTimeoutMillis(millis);
-        return CassandraKeyValueServiceImpl.createForTesting(config);
+        return CassandraKeyValueServiceImpl.createForTesting(config, CASSANDRA.getRuntimeConfig());
     }
 }

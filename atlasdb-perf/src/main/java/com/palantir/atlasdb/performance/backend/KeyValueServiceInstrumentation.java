@@ -19,9 +19,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -53,6 +55,8 @@ public abstract class KeyValueServiceInstrumentation {
     }
 
     public abstract KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
+
+    public abstract Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(InetSocketAddress addr);
 
     public abstract boolean canConnect(InetSocketAddress addr);
 

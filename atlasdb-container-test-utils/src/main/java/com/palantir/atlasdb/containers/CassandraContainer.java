@@ -18,6 +18,7 @@ package com.palantir.atlasdb.containers;
 import com.datastax.driver.core.Cluster;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlC
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
@@ -56,6 +58,7 @@ public class CassandraContainer extends Container {
     private final CassandraKeyValueServiceConfig config;
     private final String dockerComposeFile;
     private final String name;
+    private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
 
     public CassandraContainer() {
         this("/docker-compose-cassandra.yml", CONTAINER_NAME);
@@ -80,6 +83,7 @@ public class CassandraContainer extends Container {
                 .replicationFactor(1)
                 .consecutiveAbsencesBeforePoolRemoval(0)
                 .build();
+        this.runtimeConfig = Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
         this.dockerComposeFile = dockerComposeFile;
         this.name = name;
     }
@@ -101,7 +105,7 @@ public class CassandraContainer extends Container {
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         try (CassandraKeyValueService cassandraKeyValueService = CassandraKeyValueServiceImpl.createForTesting(
-                getConfigWithProxy(Containers.getSocksProxy(name).address()))) {
+                getConfigWithProxy(Containers.getSocksProxy(name).address()), getRuntimeConfig())) {
             return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);
         } catch (Exception e) {
             return SuccessOrFailure.failure(e.getMessage());
@@ -120,6 +124,10 @@ public class CassandraContainer extends Container {
 
     public CassandraKeyValueServiceConfig getConfig() {
         return config;
+    }
+
+    public Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
+        return runtimeConfig;
     }
 
     public CassandraKeyValueServiceConfig getConfigWithProxy(SocketAddress proxyAddress) {
