@@ -198,4 +198,36 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
         verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
     }
+
+    @Test
+    public void testGetAsyncFallingBackToSynchronousOnSessionClosedBeforeStatementPreparation() {
+        CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
+        Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
+                .constructCluster(CassandraClusterConfig.of(config), config.servers()));
+        Session session = spy(cluster.connect());
+
+        doReturn(session).when(cluster).connect();
+
+        session.close();
+
+        CqlClient cqlClient = spy(CqlClientImpl.create(
+                new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false));
+
+        doReturn(true).when(cqlClient).isValid();
+        CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
+                new DefaultCassandraAsyncKeyValueServiceFactory((_ignored1, _ignored2, _ignored3, _ignored4) ->
+                        ReloadingCloseableContainer.of(Refreshable.only(0), _ignored -> cqlClient));
+
+        CassandraKeyValueServiceConfig configWithNewFactory = ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(CASSANDRA_RESOURCE.getConfig())
+                .asyncKeyValueServiceFactory(cassandraAsyncKeyValueServiceFactory)
+                .build();
+
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(configWithNewFactory));
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
+
+        verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
+    }
 }
