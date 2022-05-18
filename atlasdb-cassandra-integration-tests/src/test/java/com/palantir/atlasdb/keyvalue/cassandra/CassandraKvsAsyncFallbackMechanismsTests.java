@@ -161,15 +161,14 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
         Session session = spy(cluster.connect());
 
-        doReturn(true).when(session.isClosed());
-        doReturn(session).when(cluster.connect());
+        doReturn(session).when(cluster).connect();
 
         session.close();
 
         CqlClient cqlClient = spy(CqlClientImpl.create(
                 new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false));
 
-        doReturn(true).when(cqlClient.isValid());
+        doReturn(true).when(cqlClient).isValid();
         CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
                 new DefaultCassandraAsyncKeyValueServiceFactory((_ignored1, _ignored2, _ignored3, _ignored4) ->
                         ReloadingCloseableContainer.of(Refreshable.only(0), _ignored -> cqlClient));
