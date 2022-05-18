@@ -47,7 +47,7 @@ import java.util.function.LongSupplier;
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
     private static SafeLogger log = SafeLoggerFactory.get(CassandraAtlasDbFactory.class);
-    private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
+    private volatile CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
 
     @Override
@@ -82,17 +82,12 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
 
     @VisibleForTesting
-    static CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
+    CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
-        CassandraKeyValueServiceConfig cassandraConfig = toCassandraConfig(config);
-
-        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
-        CassandraKeyValueServiceConfig configWithNamespace =
-                CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
-
-        return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
+        CassandraKeyValueServiceConfig cassandraConfig = getConfigWithNamespace(config, namespace);
+        return new CassandraReloadableKvsConfig(cassandraConfig, runtimeConfig);
     }
 
     private static CassandraKeyValueServiceConfig toCassandraConfig(KeyValueServiceConfig config) {
@@ -117,11 +112,20 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                                 SafeArg.of("configClass", config.getClass()));
                         return latestValidRuntimeConfig;
                     }
-
                     latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
                     return latestValidRuntimeConfig;
                 })
                 .orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault));
+    }
+
+    @VisibleForTesting
+    CassandraKeyValueServiceConfig getConfigWithNamespace(KeyValueServiceConfig config, Optional<String> namespace) {
+        CassandraKeyValueServiceConfig cassandraConfig = toCassandraConfig(config);
+
+        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
+        CassandraKeyValueServiceConfig configWithNamespace =
+                CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
+        return configWithNamespace;
     }
 
     @Override

@@ -26,7 +26,6 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.net.InetSocketAddress;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 
 public class CassandraAtlasDbFactoryTest {
@@ -57,81 +56,78 @@ public class CassandraAtlasDbFactoryTest {
                     .credentials(CREDENTIALS)
                     .build();
 
-    private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
-    private static final KeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
+    private static final CassandraKeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
+
+    private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
+
     private static final CassandraAtlasDbFactory FACTORY = new CassandraAtlasDbFactory();
 
     @Test
     public void throwsWhenPreprocessingNonCassandraKvsConfig() {
         assertThatThrownBy(() -> {
-            KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
-            FACTORY.createMergedKeyValueServiceConfig(
-                    keyValueServiceConfig, Refreshable.only(Optional.empty()), Optional.empty());
-        })
+                    KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
+                    FACTORY.getConfigWithNamespace(keyValueServiceConfig, Optional.empty());
+                })
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
-        assertThatThrownBy(() -> FACTORY.createMergedKeyValueServiceConfig(
-                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty()))
+        assertThatThrownBy(() -> FACTORY.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
-        assertThatThrownBy(() -> FACTORY.createMergedKeyValueServiceConfig(
-                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE_2)))
+        assertThatThrownBy(() -> FACTORY.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void resolvesConfigWithOriginalKeyspaceIfNoNamespaceProvided() {
-        CassandraKeyValueServiceConfig newConfig = FACTORY.createMergedKeyValueServiceConfig(
-                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty());
+        CassandraKeyValueServiceConfig newConfig =
+                FACTORY.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.empty());
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(CONFIG_WITH_KEYSPACE.getKeyspaceOrThrow());
     }
 
     @Test
     public void resolvesConfigWithNamespaceIfNoKeyspaceProvided() {
-        CassandraKeyValueServiceConfig newConfig = FACTORY.createMergedKeyValueServiceConfig(
-                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
+        CassandraKeyValueServiceConfig newConfig =
+                FACTORY.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
     public void preservesOtherPropertiesOnResolvedConfigWithNamespace() {
-        CassandraKeyValueServiceConfig newConfig = FACTORY.createMergedKeyValueServiceConfig(
-                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
-        assertThat(newConfig.servers())
-                .isEqualTo(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(SERVERS)
-                        .build());
+        CassandraKeyValueServiceConfig newConfig =
+                FACTORY.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.of(KEYSPACE));
+        assertThat(newConfig.credentials()).isEqualTo(CREDENTIALS);
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
     }
 
     @Test
     public void resolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
-        CassandraKeyValueServiceConfig newConfig = FACTORY.createMergedKeyValueServiceConfig(
-                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
+        CassandraKeyValueServiceConfig newConfig =
+                FACTORY.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
     public void emptyRuntimeConfigShouldResolveToDefaultConfig() {
-        CassandraKeyValueServiceRuntimeConfig returnedConfig =
-                FACTORY.preprocessKvsRuntimeConfig(Refreshable.only(Optional.empty())).get();
+        CassandraKeyValueServiceRuntimeConfig returnedConfig = FACTORY.preprocessKvsRuntimeConfig(
+                        Refreshable.only(Optional.empty()))
+                .get();
 
         assertThat(returnedConfig)
                 .describedAs("Empty config should resolve to default")
-                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+                .isEqualTo(CassandraKeyValueServiceRuntimeConfig.getDefault());
     }
 
     @Test
     public void preservesValidRuntimeConfigIfFollowingLaterConfigIsNotValid() {
-        AtomicBoolean first = new AtomicBoolean(true);
-        SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig = Refreshable.create(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
+        SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig =
+                Refreshable.create(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
 
         Refreshable<CassandraKeyValueServiceRuntimeConfig> processedRuntimeConfig =
                 FACTORY.preprocessKvsRuntimeConfig(runtimeConfig);
