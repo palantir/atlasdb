@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
@@ -27,7 +29,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +56,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFact
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -157,7 +162,46 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     // TODO: Cleanup!! DO NOT MERGE
     @Test
-    public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
+    public void testGetAsyncFallingBackToSynchronousOnSessionClosedForExecuteAsync() throws ExecutionException,
+            InterruptedException {
+        CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
+        Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
+                .constructCluster(CassandraClusterConfig.of(config), config.servers()));
+        Session session = spy(cluster.connect());
+        doReturn(session).when(cluster).connect();
+
+        CqlClient cqlClient = spy(CqlClientImpl.create(
+                new DefaultTaggedMetricRegistry(), cluster, mock(CqlCapableConfigTuning.class), false));
+
+        doReturn(true).when(cqlClient).isValid();
+        CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
+                new DefaultCassandraAsyncKeyValueServiceFactory((_ignored1, _ignored2, _ignored3, _ignored4) ->
+                        ReloadingCloseableContainer.of(Refreshable.only(0), _ignored -> cqlClient));
+
+        CassandraKeyValueServiceConfig configWithNewFactory = ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(CASSANDRA_RESOURCE.getConfig())
+                .asyncKeyValueServiceFactory(cassandraAsyncKeyValueServiceFactory)
+                .build();
+
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(configWithNewFactory));
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        PreparedStatement preparedStatement = spy(session.prepare("SELECT COUNT(*) FROM system.schema_columns;"));
+        BoundStatement boundStatement = spy(preparedStatement.bind());
+        doReturn(boundStatement).when(boundStatement).setBytes(any(), any());
+        doReturn(boundStatement).when(boundStatement).setLong(anyString(), anyLong());
+
+        doReturn(boundStatement).when(preparedStatement).bind();
+        doReturn(preparedStatement).when(session).prepare(anyString());
+
+        session.close();
+
+        keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL).get();
+
+        verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
+    }
+
+    @Test
+    public void testGetAsyncFallingBackToSynchronousOnSessionClosedBeforeStatementPreparation() {
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
@@ -187,4 +231,6 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
         verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
     }
+
+
 }
