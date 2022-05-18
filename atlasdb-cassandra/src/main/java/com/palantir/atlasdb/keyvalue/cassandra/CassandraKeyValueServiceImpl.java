@@ -2092,18 +2092,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
         if (asyncKeyValueService.isValid()) {
             try {
-                return Futures.catching(
-                        asyncKeyValueService.getAsync(tableRef, timestampByCell),
-                        RuntimeException.class,
-                        e -> {
-                            log.warn(
-                                    "CQL Client closed during getAsync. Delegating to synchronous get. This should be"
-                                            + " very rare, and only happen once after the Cassandra Server list has"
-                                            + " changed.",
-                                    e);
-                            return this.get(tableRef, timestampByCell);
-                        },
-                        executor);
+                return asyncKeyValueService.getAsync(tableRef, timestampByCell);
             } catch (IllegalStateException | DriverException e) {
                 // If the container is closed, or we've reloaded into an invalid ThrowingCqlClient, or the session is
                 // closed after testing for validity (IllegalStateException for the first two, DriverException for the
