@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
@@ -257,12 +256,19 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
 
     private synchronized void clearCache(
             TransactionsLockWatchUpdate updateForTransactions, Optional<LockWatchVersion> latestVersionFromUpdate) {
+        LockWatchEvent firstEvent = null;
+        LockWatchEvent lastEvent = null;
+        List<LockWatchEvent> events = updateForTransactions.events();
+        if (!events.isEmpty()) {
+            firstEvent = events.get(0);
+            lastEvent = events.get(events.size() - 1);
+        }
         log.info(
                 "Clearing all value cache state",
                 SafeArg.of("currentVersion", currentVersion),
                 SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
-                SafeArg.of("firstEventSequence", Iterables.getFirst(updateForTransactions.events(), null)),
-                SafeArg.of("lastEventSequence", Iterables.getLast(updateForTransactions.events(), null)));
+                SafeArg.of("firstEventSequence", firstEvent),
+                SafeArg.of("lastEventSequence", lastEvent));
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
