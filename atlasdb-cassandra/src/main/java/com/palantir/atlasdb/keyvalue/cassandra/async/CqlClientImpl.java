@@ -35,7 +35,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.Stateme
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.concurrent.Executor;
 
-public final class CqlClientImpl implements CqlClient {
+@SuppressWarnings({"FinalClass", "Not final for spying in tests"})
+public class CqlClientImpl implements CqlClient {
     private static final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CqlClient {
 
         private final TaggedMetricRegistry taggedMetricRegistry;
