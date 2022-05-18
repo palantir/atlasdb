@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -108,10 +109,11 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = CassandraKeyValueServiceImpl.createForTesting(config);
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
 
         verify(asyncKeyValueService, times(1)).getAsync(any(), any());
+        verify(keyValueService, never()).get(any(), any());
     }
 
     @Test
