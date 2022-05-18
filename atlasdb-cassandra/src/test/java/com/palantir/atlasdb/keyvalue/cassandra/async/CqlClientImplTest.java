@@ -32,7 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CqlClientImplTest {
-    public static final boolean INITIALIZE_ASYNC = false;
+    private static final boolean INITIALIZE_ASYNC = false;
     private static final TaggedMetricRegistry REGISTRY = new DefaultTaggedMetricRegistry();
 
     @Mock
