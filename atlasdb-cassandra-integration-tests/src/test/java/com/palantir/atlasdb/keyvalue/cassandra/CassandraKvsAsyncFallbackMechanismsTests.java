@@ -56,6 +56,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFact
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -161,7 +162,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     // TODO: Cleanup!! DO NOT MERGE
     @Test
-    public void testGetAsyncFallingBackToSynchronousOnSessionClosed() {
+    public void testGetAsyncFallingBackToSynchronousOnSessionClosed() throws ExecutionException, InterruptedException {
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
                 .constructCluster(CassandraClusterConfig.of(config), config.servers()));
@@ -193,7 +194,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
         session.close();
 
-        keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
+        keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL).get();
 
         verify(keyValueService).get(TEST_TABLE, TIMESTAMP_BY_CELL);
     }
