@@ -96,12 +96,14 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
 
+        Optional<LockWatchVersion> latestVersionFromUpdate = computeMaxUpdateVersion(updateForTransactions);
+
         if (updateForTransactions.clearCache()) {
-            clearCache();
+            clearCache(updateForTransactions, latestVersionFromUpdate);
         }
 
         updateStores(updateForTransactions);
-        updateCurrentVersion(updateForTransactions);
+        updateCurrentVersion(latestVersionFromUpdate);
     }
 
     @Override
@@ -192,10 +194,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
-        currentVersion.map(LockWatchVersion::version).map(Sequence::of).ifPresent(sequence -> Optional.ofNullable(
-                        reversedMap.get(sequence))
-                .ifPresent(startTimestamps ->
-                        snapshotStore.storeSnapshot(sequence, startTimestamps, valueStore.getSnapshot())));
+        currentVersion
+                .map(LockWatchVersion::version)
+                .map(Sequence::of)
+                .ifPresent(sequence ->
+                        snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot()));
 
         updateForTransactions.events().stream().filter(this::isNewEvent).forEach(event -> {
             valueStore.applyEvent(event);
@@ -236,20 +239,36 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
     }
 
-    private synchronized void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
-        Optional<LockWatchVersion> maybeUpdateVersion = updateForTransactions.startTsToSequence().values().stream()
-                .max(Comparator.comparingLong(LockWatchVersion::version));
-
+    private synchronized void updateCurrentVersion(Optional<LockWatchVersion> maybeUpdateVersion) {
         maybeUpdateVersion
                 .filter(this::shouldUpdateVersion)
                 .ifPresent(updateVersion -> currentVersion = Optional.of(updateVersion));
+    }
+
+    private Optional<LockWatchVersion> computeMaxUpdateVersion(TransactionsLockWatchUpdate updateForTransactions) {
+        return updateForTransactions.startTsToSequence().values().stream()
+                .max(Comparator.comparingLong(LockWatchVersion::version));
     }
 
     private synchronized boolean shouldUpdateVersion(LockWatchVersion updateVersion) {
         return currentVersion.isEmpty() || currentVersion.get().version() < updateVersion.version();
     }
 
-    private synchronized void clearCache() {
+    private synchronized void clearCache(
+            TransactionsLockWatchUpdate updateForTransactions, Optional<LockWatchVersion> latestVersionFromUpdate) {
+        LockWatchEvent firstEvent = null;
+        LockWatchEvent lastEvent = null;
+        List<LockWatchEvent> events = updateForTransactions.events();
+        if (!events.isEmpty()) {
+            firstEvent = events.get(0);
+            lastEvent = events.get(events.size() - 1);
+        }
+        log.info(
+                "Clearing all value cache state",
+                SafeArg.of("currentVersion", currentVersion),
+                SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
+                SafeArg.of("firstEventSequence", firstEvent),
+                SafeArg.of("lastEventSequence", lastEvent));
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
