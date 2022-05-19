@@ -567,7 +567,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 String dc = dcs.iterator().next();
                 if (strategyOptions.get(dc) != null) {
                     int currentRf = Integer.parseInt(strategyOptions.get(dc));
-                    if (currentRf == config.replicationFactor()) {
+                    if (currentRf == runtimeConfig.get().replicationFactor()) {
                         if (currentRf == 2 && config.clusterMeetsNormalConsistencyGuarantees()) {
                             log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
                             readConsistencyProvider.lowerConsistencyLevelToOne();
@@ -2043,7 +2043,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private boolean isQuorumAvailable(int countUnreachableNodes) {
-        int replicationFactor = config.replicationFactor();
+        int replicationFactor = runtimeConfig.get().replicationFactor();
         return countUnreachableNodes < (replicationFactor + 1) / 2;
     }
 

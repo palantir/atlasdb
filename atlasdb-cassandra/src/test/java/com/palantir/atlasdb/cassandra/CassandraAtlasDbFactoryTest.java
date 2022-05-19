@@ -41,13 +41,11 @@ public class CassandraAtlasDbFactoryTest {
 
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .keyspace(KEYSPACE)
-                    .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
 
@@ -106,7 +104,6 @@ public class CassandraAtlasDbFactoryTest {
         CassandraKeyValueServiceConfig newConfig =
                 factory.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.of(KEYSPACE));
         assertThat(newConfig.credentials()).isEqualTo(CREDENTIALS);
-        assertThat(newConfig.replicationFactor()).isEqualTo(1);
     }
 
     @Test

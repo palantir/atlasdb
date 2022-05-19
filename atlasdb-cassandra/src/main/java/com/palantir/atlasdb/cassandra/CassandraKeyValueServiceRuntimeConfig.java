@@ -51,6 +51,10 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return ImmutableDefaultConfig.of();
     }
 
+    // TODO: Use the optional resolvers or just make this have a default
+    // Right now, we're seeing if anything in AtlasDB isn't setting it.
+    public abstract int replicationFactor();
+
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
      */

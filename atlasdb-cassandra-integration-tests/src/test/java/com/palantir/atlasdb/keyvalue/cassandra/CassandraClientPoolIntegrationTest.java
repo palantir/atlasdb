@@ -55,7 +55,7 @@ public class CassandraClientPoolIntegrationTest {
     @Before
     public void setUp() {
         blacklist = new Blacklist(CASSANDRA.getConfig());
-        modifiedReplicationFactor = CASSANDRA.getConfig().replicationFactor() + 1;
+        modifiedReplicationFactor = CASSANDRA.getRuntimeConfig().get().replicationFactor() + 1;
         clientPool = CassandraClientPoolImpl.createImplForTest(
                 metricsManager,
                 CASSANDRA.getConfig(),

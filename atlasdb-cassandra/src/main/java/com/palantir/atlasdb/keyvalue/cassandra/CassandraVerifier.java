@@ -410,7 +410,7 @@ public final class CassandraVerifier {
                     .keyspace(config.getKeyspaceOrThrow())
                     .clientConfig(CassandraClientConfig.of(config))
                     .servers(runtimeConfig.servers())
-                    .replicationFactor(config.replicationFactor())
+                    .replicationFactor(runtimeConfig.replicationFactor())
                     .ignoreNodeTopologyChecks(config.ignoreNodeTopologyChecks())
                     .ignoreDatacenterConfigurationChecks(config.ignoreDatacenterConfigurationChecks())
                     .schemaMutationTimeoutMillis(config.schemaMutationTimeoutMillis())

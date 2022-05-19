@@ -40,13 +40,11 @@ public class CassandraKeyValueServiceConfigsTest {
             .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .keyspace(KEYSPACE)
-                    .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
 
@@ -54,7 +52,6 @@ public class CassandraKeyValueServiceConfigsTest {
     public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
-                .replicationFactor(1)
                 .credentials(CREDENTIALS)
                 .build();
         // TODO: look at this class
@@ -77,7 +74,6 @@ public class CassandraKeyValueServiceConfigsTest {
     public void otherPropertiesConservedWhenAddingKeyspace() {
         CassandraKeyValueServiceConfig newConfig =
                 CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
-        assertThat(newConfig.replicationFactor()).isEqualTo(1);
         assertThat(newConfig.credentials()).isEqualTo(CREDENTIALS);
     }
 

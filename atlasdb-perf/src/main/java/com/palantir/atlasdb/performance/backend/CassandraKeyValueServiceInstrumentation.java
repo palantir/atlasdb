@@ -44,7 +44,6 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
                         .password("cassandra")
                         .build())
                 .ssl(false)
-                .replicationFactor(1)
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
@@ -56,6 +55,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     public Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(InetSocketAddress addr) {
         return Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .servers(ImmutableDefaultConfig.builder().addThriftHosts(addr).build())
+                .replicationFactor(1)
                 .build());
     }
 

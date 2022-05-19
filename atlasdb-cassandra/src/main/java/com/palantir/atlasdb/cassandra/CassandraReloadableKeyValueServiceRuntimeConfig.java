@@ -53,6 +53,14 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
         return runtimeConfig.servers();
     }
 
+    @Override
+    public int replicationFactor() {
+        if (installConfig.replicationFactor() >= 0) {
+            return installConfig.replicationFactor();
+        }
+        return runtimeConfig.replicationFactor();
+    }
+
     public int concurrentGetRangesThreadPoolSize() {
         if (installConfig.concurrentGetRangesThreadPoolSize() > 0) {
             return installConfig.concurrentGetRangesThreadPoolSize();
@@ -71,6 +79,10 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
         checkArgument(servers().numberOfThriftHosts() > 0, "'servers' must have at least one defined host");
     }
 
+    private void checkNonNegativeReplicationFactor() {
+        checkArgument(replicationFactor() >= 0, "'replicationFactor' must be non-negative");
+    }
+
     private void checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool() {
         installConfig
                 .sharedResourcesConfig()
@@ -83,6 +95,7 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
 
     private static CassandraReloadableKeyValueServiceRuntimeConfig validate(
             CassandraReloadableKeyValueServiceRuntimeConfig instance) {
+        instance.checkNonNegativeReplicationFactor();
         instance.checkPositiveNumberOfThriftHosts();
         instance.checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool();
         return instance;

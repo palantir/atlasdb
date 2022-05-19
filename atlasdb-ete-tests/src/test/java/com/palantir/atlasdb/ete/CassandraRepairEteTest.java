@@ -98,8 +98,9 @@ public final class CassandraRepairEteTest {
 
     @Before
     public void setUp() {
-        config = ThreeNodeCassandraCluster.getKvsConfig(2);
-        runtimeConfig = ThreeNodeCassandraCluster.getRuntimeConfig();
+        int replicationFactor = 2;
+        config = ThreeNodeCassandraCluster.getKvsConfig();
+        runtimeConfig = ThreeNodeCassandraCluster.getRuntimeConfig(replicationFactor);
         kvs = CassandraKeyValueServiceImpl.createForTesting(config, runtimeConfig);
         TransactionTables.createTables(kvs);
 

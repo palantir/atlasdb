@@ -46,15 +46,15 @@ public class ThreeNodeCassandraCluster extends Container {
             .build();
 
     private static final int DEFAULT_REPLICATION_FACTOR = 3;
-    public static final CassandraKeyValueServiceConfig KVS_CONFIG = getKvsConfig(DEFAULT_REPLICATION_FACTOR);
-    public static final Refreshable<CassandraKeyValueServiceRuntimeConfig> KVS_RUNTIME_CONFIG = getRuntimeConfig();
+    public static final CassandraKeyValueServiceConfig KVS_CONFIG = getKvsConfig();
+    public static final Refreshable<CassandraKeyValueServiceRuntimeConfig> KVS_RUNTIME_CONFIG =
+            getRuntimeConfig(DEFAULT_REPLICATION_FACTOR);
 
     @SuppressWarnings("DnsLookup")
-    public static CassandraKeyValueServiceConfig getKvsConfig(int replicationFactor) {
+    public static CassandraKeyValueServiceConfig getKvsConfig() {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .poolSize(20)
                 .keyspace("atlasdb")
-                .replicationFactor(replicationFactor)
                 .ignoreNodeTopologyChecks(true)
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
@@ -64,7 +64,7 @@ public class ThreeNodeCassandraCluster extends Container {
                 .build();
     }
 
-    public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
+    public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig(int replicationFactor) {
         return Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
@@ -82,6 +82,7 @@ public class ThreeNodeCassandraCluster extends Container {
                                 new InetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
+                .replicationFactor(replicationFactor)
                 .build());
     }
 

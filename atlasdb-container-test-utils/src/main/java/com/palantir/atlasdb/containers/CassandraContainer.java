@@ -78,7 +78,6 @@ public class CassandraContainer extends Container {
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
-                .replicationFactor(1)
                 .consecutiveAbsencesBeforePoolRemoval(0)
                 .build();
         this.runtimeConfig = Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
@@ -86,6 +85,7 @@ public class CassandraContainer extends Container {
                         .addCqlHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_CQL_PORT))
                         .addThriftHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_THRIFT_PORT))
                         .build())
+                .replicationFactor(1)
                 .build());
         this.dockerComposeFile = dockerComposeFile;
         this.name = name;

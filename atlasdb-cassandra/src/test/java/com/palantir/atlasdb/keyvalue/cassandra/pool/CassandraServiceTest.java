@@ -279,7 +279,6 @@ public class CassandraServiceTest {
     private CassandraService clientPoolWithParams(
             Set<CassandraServer> servers, Set<CassandraServer> serversInPool, double weighting) {
         config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .replicationFactor(3)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username("username")
                         .password("password")
@@ -295,6 +294,7 @@ public class CassandraServiceTest {
                                         .map(CassandraServer::proxy)
                                         .collect(Collectors.toSet()))
                                 .build())
+                        .replicationFactor(3)
                         .build());
 
         blacklist = new Blacklist(config);
