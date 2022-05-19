@@ -51,10 +51,10 @@ public class CassandraAtlasDbFactoryTest {
                     .credentials(CREDENTIALS)
                     .build();
 
+    private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
     private static final CassandraKeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
 
-    private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
     private CassandraAtlasDbFactory factory;
 
     @Before
