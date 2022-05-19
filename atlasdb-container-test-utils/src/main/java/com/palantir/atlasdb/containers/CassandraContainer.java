@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.containers;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Cluster.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
@@ -149,7 +148,7 @@ public class CassandraContainer extends Container {
         return name;
     }
 
-    public Supplier<Builder> getClusterBuilderWithProxy(SocketAddress proxyAddress) {
+    public Supplier<Cluster.Builder> getClusterBuilderWithProxy(SocketAddress proxyAddress) {
         return () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(proxyAddress));
     }
 }

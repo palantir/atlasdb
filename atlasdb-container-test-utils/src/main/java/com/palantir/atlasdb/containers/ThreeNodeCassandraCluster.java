@@ -50,7 +50,6 @@ public class ThreeNodeCassandraCluster extends Container {
     public static final Refreshable<CassandraKeyValueServiceRuntimeConfig> KVS_RUNTIME_CONFIG =
             getRuntimeConfig(DEFAULT_REPLICATION_FACTOR);
 
-    @SuppressWarnings("DnsLookup")
     public static CassandraKeyValueServiceConfig getKvsConfig() {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .poolSize(20)
@@ -64,6 +63,7 @@ public class ThreeNodeCassandraCluster extends Container {
                 .build();
     }
 
+    @SuppressWarnings("DnsLookup")
     public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig(int replicationFactor) {
         return Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
