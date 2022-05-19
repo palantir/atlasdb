@@ -166,6 +166,8 @@ public class CassandraReloadableKvsConfigTest {
     }
 
     private ImmutableCassandraKeyValueServiceRuntimeConfig.Builder runtimeConfigBuilder() {
-        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder();
+        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .servers(SERVERS_1)
+                .replicationFactor(1);
     }
 }

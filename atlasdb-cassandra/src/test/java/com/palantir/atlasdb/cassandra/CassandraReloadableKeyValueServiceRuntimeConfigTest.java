@@ -124,8 +124,9 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     public void mergedConfigPrioritisesInstallForServers() {
         CassandraKeyValueServiceConfig config =
                 configBuilderWithDefaultCredentials().servers(SERVERS_1).build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
-                runtimeConfigBuilder().servers(SERVERS_2).build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigBuilderWithDefaultReplicationFactor()
+                .servers(SERVERS_2)
+                .build();
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig));
@@ -137,8 +138,9 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     public void mergedConfigDelegatesToRuntimeServersIfInstallIsEmpty() {
         CassandraKeyValueServiceConfig config =
                 configBuilderWithDefaultCredentials().build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
-                runtimeConfigBuilder().servers(SERVERS_2).build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigBuilderWithDefaultReplicationFactor()
+                .servers(SERVERS_2)
+                .build();
 
         Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> reloadableConfig =
                 CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig));
@@ -150,8 +152,9 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     public void mergedConfigServersEmptyFailsInitialisation() {
         CassandraKeyValueServiceConfig config =
                 configBuilderWithDefaultCredentials().build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
-                runtimeConfigBuilder().servers(ImmutableDefaultConfig.of()).build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigBuilderWithDefaultReplicationFactor()
+                .servers(ImmutableDefaultConfig.of())
+                .build();
 
         assertThatLoggableExceptionThrownBy(() -> CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(
                         config, Refreshable.only(runtimeConfig)))
@@ -237,7 +240,7 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
     public void mergedConfigReplicationFactorNegativeFailsInitialisation() {
         CassandraKeyValueServiceConfig config =
                 configBuilderWithDefaultCredentials().replicationFactor(-1).build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigBuilder()
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigBuilderWithDefaultReplicationFactor()
                 .servers(ImmutableDefaultConfig.of())
                 .replicationFactor(-1)
                 .build();
@@ -252,12 +255,13 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
         return ImmutableCassandraKeyValueServiceConfig.builder().credentials(CREDENTIALS);
     }
 
-    private static ImmutableCassandraKeyValueServiceRuntimeConfig.Builder runtimeConfigBuilder() {
-        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder();
+    private static ImmutableCassandraKeyValueServiceRuntimeConfig.Builder
+            runtimeConfigBuilderWithDefaultReplicationFactor() {
+        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder().replicationFactor(1);
     }
 
     private static ImmutableCassandraKeyValueServiceRuntimeConfig.Builder
             runtimeConfigBuilderWithDefaultServersAndReplicationFactor() {
-        return runtimeConfigBuilder().servers(SERVERS_1).replicationFactor(1);
+        return runtimeConfigBuilderWithDefaultReplicationFactor().servers(SERVERS_1);
     }
 }

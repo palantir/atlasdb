@@ -51,7 +51,11 @@ public class CassandraKeyValueServiceConfigsTest {
     @Test
     public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .servers(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(SERVERS)
+                        .build())
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
+                .replicationFactor(1)
                 .credentials(CREDENTIALS)
                 .build();
         // TODO: look at this class
@@ -94,6 +98,10 @@ public class CassandraKeyValueServiceConfigsTest {
                         .singleQueryLoadBatchLimit(424242)
                         .build())
                 .conservativeRequestExceptionHandler(true)
+                .servers(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(SERVERS)
+                        .build())
+                .replicationFactor(1)
                 .build();
 
         URL configUrl =

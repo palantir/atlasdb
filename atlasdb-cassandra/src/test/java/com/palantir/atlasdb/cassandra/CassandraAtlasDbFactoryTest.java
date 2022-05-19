@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
@@ -32,8 +33,9 @@ import org.junit.Test;
 public class CassandraAtlasDbFactoryTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
-    private static final ImmutableSet<InetSocketAddress> SERVERS =
-            ImmutableSet.of(InetSocketAddress.createUnresolved("foo", 42));
+    private static final CassandraServersConfig SERVERS = ImmutableDefaultConfig.builder()
+            .addAllThriftHosts(ImmutableSet.of(InetSocketAddress.createUnresolved("foo", 42)))
+            .build();
     private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
             .username("username")
             .password("password")
@@ -51,9 +53,8 @@ public class CassandraAtlasDbFactoryTest {
 
     private static final CassandraKeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
             ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
+                    .servers(SERVERS)
+                    .replicationFactor(1)
                     .build();
 
     private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
@@ -129,6 +130,8 @@ public class CassandraAtlasDbFactoryTest {
         CassandraKeyValueServiceRuntimeConfig baseRuntimeConfig =
                 ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                         .sweepReadThreads(12341)
+                        .servers(SERVERS)
+                        .replicationFactor(1)
                         .build();
         SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig =
                 Refreshable.create(Optional.of(baseRuntimeConfig));
