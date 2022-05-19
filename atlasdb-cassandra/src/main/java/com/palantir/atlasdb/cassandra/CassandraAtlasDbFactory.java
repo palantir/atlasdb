@@ -61,8 +61,11 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig configWithNamespace = getConfigWithNamespace(config, namespace);
-        Refreshable<CassandraKeyValueServiceRuntimeConfig> mergedRuntimeConfig =
-                createMergedKeyValueServiceConfig(configWithNamespace, preprocessKvsRuntimeConfig(runtimeConfig));
+        // Safety: CassandraReloadableKVSRuntimeConfig is a subtype of CassandraKVSRuntimeConfig, but Refreshable isn't
+        // covariant in the generic type arg, so the cast is required.
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> mergedRuntimeConfig = createMergedKeyValueServiceConfig(
+                        configWithNamespace, preprocessKvsRuntimeConfig(runtimeConfig))
+                .map(CassandraKeyValueServiceRuntimeConfig.class::cast);
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 configWithNamespace,
@@ -86,12 +89,9 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
 
     @VisibleForTesting
-    Refreshable<CassandraKeyValueServiceRuntimeConfig> createMergedKeyValueServiceConfig(
+    Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> createMergedKeyValueServiceConfig(
             CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
-        // TODO:
-        return null;
-        // return CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config,
-        //         runtimeConfig);
+        return CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, runtimeConfig);
     }
 
     private static CassandraKeyValueServiceConfig toCassandraConfig(KeyValueServiceConfig config) {
