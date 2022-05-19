@@ -57,7 +57,11 @@ public class CassandraClientPoolIntegrationTest {
         blacklist = new Blacklist(CASSANDRA.getConfig());
         modifiedReplicationFactor = CASSANDRA.getConfig().replicationFactor() + 1;
         clientPool = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+                metricsManager,
+                CASSANDRA.getConfig(),
+                CASSANDRA.getRuntimeConfig(),
+                CassandraClientPoolImpl.StartupChecks.RUN,
+                blacklist);
     }
 
     @Test
@@ -96,7 +100,11 @@ public class CassandraClientPoolIntegrationTest {
                 .build();
 
         CassandraClientPoolImpl clientPoolWithLocation = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+                metricsManager,
+                configHostWithLocation,
+                CASSANDRA.getRuntimeConfig(),
+                CassandraClientPoolImpl.StartupChecks.RUN,
+                blacklist);
 
         return clientPoolWithLocation.getLocalHosts();
     }
