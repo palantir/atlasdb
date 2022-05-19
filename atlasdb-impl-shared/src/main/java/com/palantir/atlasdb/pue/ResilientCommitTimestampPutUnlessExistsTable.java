@@ -44,6 +44,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -62,6 +63,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     private final Clock clock;
     private final PutUnlessExistsTableMetrics metrics;
     private final Map<ByteBuffer, Object> rowLocks = new ConcurrentHashMap<>();
+    private final AtomicLong fallbacks = new AtomicLong(0);
 
     private final LoadingCache<CellInfo, Long> touchCache = Caffeine.newBuilder()
             .maximumSize(TOUCH_CACHE_SIZE)
@@ -110,12 +112,13 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             Clock clock,
-            TaggedMetricRegistry metrics) {
+            TaggedMetricRegistry metricRegistry) {
         this.store = store;
         this.encodingStrategy = encodingStrategy;
         this.acceptStagingReadsAsCommitted = acceptStagingReadsAsCommitted;
         this.clock = clock;
-        this.metrics = PutUnlessExistsTableMetrics.of(metrics);
+        this.metrics = PutUnlessExistsTableMetrics.of(metricRegistry);
+        metrics.acceptStagingTriggered(fallbacks::get);
     }
 
     @Override
@@ -198,6 +201,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                             SafeArg.of("startTs", startTs),
                             SafeArg.of("commitTs", commitTs),
                             SafeArg.of("timeTaken", timeTaken)));
+                    fallbacks.incrementAndGet();
                 }
                 /**
                  * This in particular catches {@link com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException}
@@ -210,6 +214,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                         SafeArg.of("startTs", startTs),
                         SafeArg.of("commitTs", commitTs),
                         e));
+                fallbacks.incrementAndGet();
                 throw e;
             }
         }

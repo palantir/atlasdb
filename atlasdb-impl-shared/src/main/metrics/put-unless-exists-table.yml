@@ -5,6 +5,9 @@ namespaces:
   putUnlessExistsTable:
     docs: Metrics for tracking operations on the put unless exists table.
     metrics:
+      acceptStagingTriggered:
+        type: gauge
+        docs: The number of times we started accepting staging values for performance reasons.
       touchCacheLoad:
         type: timer
         docs: The time required for loading a commit timestamp to the touchCache. This can range from a simple put to a
