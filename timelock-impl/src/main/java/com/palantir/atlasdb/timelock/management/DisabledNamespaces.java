@@ -66,8 +66,10 @@ public class DisabledNamespaces {
     }
 
     private void btgReEnableAll() {
-        execute(Queries::getAllStates)
-                .forEach(str -> execute(dao -> dao.delete(str)));
+        execute(queries -> {
+            queries.getAllStates().forEach(queries::delete);
+            return null;
+        });
     }
 
     public boolean isDisabled(Namespace namespace) {
