@@ -61,10 +61,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * to generate the initial connection(s) to the cluster, or as part of startup checks.
      */
     @Deprecated
-    @Value.Default
-    default CassandraServersConfig servers() {
-        return ImmutableDefaultConfig.of();
-    }
+    Optional<CassandraServersConfig> servers();
 
     // Todo(snanda): the field is no longer in use
     @Value.Default
@@ -242,10 +239,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory();
 
-    @Value.Default
-    default int replicationFactor() {
-        return 0;
-    }
+    Optional<Integer> replicationFactor();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
@@ -391,20 +385,23 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * {@link CassandraReloadableKvsConfig} uses the value below if and only if it is greater than 0, otherwise
-     * deriving fom {@link CassandraKeyValueServiceRuntimeConfig#servers()} in a similar fashion.
+     * {@link CassandraReloadableKeyValueServiceRuntimeConfig} uses the value below if and only if it is greater than
+     * 0, otherwise deriving fom {@link CassandraKeyValueServiceRuntimeConfig#servers()} in a similar fashion.
      *
      * As a result, if the below derivation is changed to be non-zero when {@link #servers()} is empty, then this
      * will always take precedence over the derived value from the reloadable config.
      *
-     * If such a change happens, {@link CassandraReloadableKvsConfig#concurrentGetRangesThreadPoolSize()} should be
+     * If such a change happens,
+     * {@link CassandraReloadableKeyValueServiceRuntimeConfig#concurrentGetRangesThreadPoolSize()}  should be
      * updated to compare against a new sentinel value (e.g the calculated value when servers is empty) so that the
      * reloadable config correctly flips over to using the runtime derived value when appropriate.
      *
      */
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().numberOfThriftHosts();
+        return servers()
+                .map(servers -> servers.numberOfThriftHosts() * poolSize())
+                .orElse(0);
     }
 
     @Value.Default

@@ -47,18 +47,12 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
 
     @Override
     public CassandraServersConfig servers() {
-        if (installConfig.servers().numberOfThriftHosts() > 0) {
-            return installConfig.servers();
-        }
-        return runtimeConfig.servers();
+        return installConfig.servers().orElseGet(runtimeConfig::servers);
     }
 
     @Override
     public int replicationFactor() {
-        if (installConfig.replicationFactor() >= 0) {
-            return installConfig.replicationFactor();
-        }
-        return runtimeConfig.replicationFactor();
+        return installConfig.replicationFactor().orElseGet(runtimeConfig::replicationFactor);
     }
 
     public int concurrentGetRangesThreadPoolSize() {

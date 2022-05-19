@@ -46,11 +46,19 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return TYPE;
     }
 
-    public abstract CassandraServersConfig servers();
+    @Value.Default
+    public CassandraServersConfig servers() {
+        return ImmutableDefaultConfig.of();
+    }
 
-    // TODO: Use the optional resolvers or just make this have a default
-    // Right now, we're seeing if anything in AtlasDB isn't setting it.
-    public abstract int replicationFactor();
+    @Value.Default
+    public int replicationFactor() {
+        // Temporary sentinel while users may provide replication factor in install or runtime config, and we don't want
+        // to break existing runtime configs just yet by making this mandatory.
+        // The merged config `CassandraReloadableKeyValueServiceRuntimeConfig` verifies that at least 1 of the install
+        // or runtime config replicationFactor is set to at least a non-negative value.
+        return -1;
+    }
 
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
@@ -139,10 +147,6 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
     }
 
     public static CassandraKeyValueServiceRuntimeConfig getDefault() {
-        // TODO: Undo
-        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
-                .servers(ImmutableDefaultConfig.of())
-                .replicationFactor(1)
-                .build();
+        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build();
     }
 }
