@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.time.Clock;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,7 +82,11 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     public ResilientCommitTimestampPutUnlessExistsTableTest(String name, Object parameter) {
         validating = (boolean) parameter;
         pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
-                spiedStore, TwoPhaseEncodingStrategy.INSTANCE, () -> !validating, clock);
+                spiedStore,
+                TwoPhaseEncodingStrategy.INSTANCE,
+                () -> !validating,
+                clock,
+                new DefaultTaggedMetricRegistry());
     }
 
     @Parameterized.Parameters(name = "{0}")
@@ -157,7 +162,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     @Test
     public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
         PutUnlessExistsTable<Long, Long> putUnlessExistsTable = new ResilientCommitTimestampPutUnlessExistsTable(
-                new CassandraImitatingConsensusForgettingStore(0.5d), TwoPhaseEncodingStrategy.INSTANCE);
+                new CassandraImitatingConsensusForgettingStore(0.5d),
+                TwoPhaseEncodingStrategy.INSTANCE,
+                new DefaultTaggedMetricRegistry());
 
         for (long startTs = 1L; startTs < 1000; startTs++) {
             long ts = startTs;

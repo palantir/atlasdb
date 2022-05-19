@@ -25,6 +25,7 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,8 +48,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
     private final ConsensusForgettingStore forgettingStore =
             new CassandraImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
-    private final PutUnlessExistsTable<Long, Long> pueTable =
-            new ResilientCommitTimestampPutUnlessExistsTable(forgettingStore, TwoPhaseEncodingStrategy.INSTANCE);
+    private final PutUnlessExistsTable<Long, Long> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
+            forgettingStore, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
 
     @Test
     public void repeatableReads() throws InterruptedException {

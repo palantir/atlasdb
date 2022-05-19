@@ -36,6 +36,7 @@ import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.RateLimitedLogger;
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -59,6 +60,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     private final TwoPhaseEncodingStrategy encodingStrategy;
     private final Supplier<Boolean> acceptStagingReadsAsCommitted;
     private final Clock clock;
+    private final PutUnlessExistsTableMetrics metrics;
     private final Map<ByteBuffer, Object> rowLocks = new ConcurrentHashMap<>();
 
     private final LoadingCache<CellInfo, Long> touchCache = Caffeine.newBuilder()
@@ -67,18 +69,20 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 @Override
                 @Nonnull
                 public Long load(@Nonnull CellInfo cellInfo) {
-                    FollowUpAction followUpAction = FollowUpAction.PUT;
-                    if (shouldTouch()) {
-                        synchronized (
-                                rowLocks.computeIfAbsent(
-                                        ByteBuffer.wrap(cellInfo.cell().getRowName()), x -> x)) {
-                            followUpAction = touchAndReturn(cellInfo);
+                    metrics.touchCacheLoad().time(() -> {
+                        FollowUpAction followUpAction = FollowUpAction.PUT;
+                        if (shouldTouch()) {
+                            synchronized (
+                                    rowLocks.computeIfAbsent(
+                                            ByteBuffer.wrap(cellInfo.cell().getRowName()), x -> x)) {
+                                followUpAction = touchAndReturn(cellInfo);
+                            }
                         }
-                    }
-                    if (followUpAction == FollowUpAction.PUT) {
-                        store.put(ImmutableMap.of(
-                                cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
-                    }
+                        if (followUpAction == FollowUpAction.PUT) {
+                            store.put(ImmutableMap.of(
+                                    cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
+                        }
+                    });
                     return cellInfo.commitTs();
                 }
             });
@@ -86,15 +90,18 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     private volatile Instant acceptStagingUntil = Instant.EPOCH;
 
     public ResilientCommitTimestampPutUnlessExistsTable(
-            ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
-        this(store, encodingStrategy, () -> false);
+            ConsensusForgettingStore store,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            TaggedMetricRegistry metricRegistry) {
+        this(store, encodingStrategy, () -> false, metricRegistry);
     }
 
     public ResilientCommitTimestampPutUnlessExistsTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
-            Supplier<Boolean> acceptStagingReadsAsCommitted) {
-        this(store, encodingStrategy, acceptStagingReadsAsCommitted, new SystemClock());
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            TaggedMetricRegistry metricRegistry) {
+        this(store, encodingStrategy, acceptStagingReadsAsCommitted, new SystemClock(), metricRegistry);
     }
 
     @VisibleForTesting
@@ -102,11 +109,13 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
-            Clock clock) {
+            Clock clock,
+            TaggedMetricRegistry metrics) {
         this.store = store;
         this.encodingStrategy = encodingStrategy;
         this.acceptStagingReadsAsCommitted = acceptStagingReadsAsCommitted;
         this.clock = clock;
+        this.metrics = PutUnlessExistsTableMetrics.of(metrics);
     }
 
     @Override

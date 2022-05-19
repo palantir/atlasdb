@@ -1,0 +1,11 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.pue'
+
+namespaces:
+  putUnlessExistsTable:
+    docs: Metrics for tracking operations on the put unless exists table.
+    metrics:
+      touchCacheLoad:
+        type: timer
+        docs: The time required for loading a commit timestamp to the touchCache. This can range from a simple put to a
+              synchronized checkAndTouch followed by a put.
