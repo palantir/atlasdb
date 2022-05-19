@@ -100,7 +100,7 @@ public final class EncodingUtils {
     }
 
     public static int sizeOfVarLong(long value) {
-        return CodedOutputStream.computeRawVarint64Size(value);
+        return CodedOutputStream.computeUInt64SizeNoTag(value);
     }
 
     public static int sizeOfUnsignedVarLong(long value) {

@@ -74,7 +74,7 @@ public final class HistoryAnalyzerTest {
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotTheGreatestAcceptedValue() {
-        helper.writeLogsOnDefaultLocalAndRemote(9, MAX_ROWS_ALLOWED - 1);
+        helper.writeLogsOnDefaultLocalAndRemote(5, MAX_ROWS_ALLOWED - 1);
         helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(MAX_ROWS_ALLOWED / 2);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();

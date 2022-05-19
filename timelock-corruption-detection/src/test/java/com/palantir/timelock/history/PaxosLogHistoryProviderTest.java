@@ -92,7 +92,7 @@ public class PaxosLogHistoryProviderTest {
 
     @Test
     public void canFetchAndCombineHistoriesForLocalAndRemote() {
-        Set<PaxosValue> paxosValues = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 1, 100);
+        Set<PaxosValue> paxosValues = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 1, 9);
 
         int lastVerified = -1;
 
@@ -110,13 +110,13 @@ public class PaxosLogHistoryProviderTest {
                 Iterables.getOnlyElement(completeHistory);
         assertThat(historyForNamespaceAndUseCase.namespace()).isEqualTo(DEFAULT_CLIENT);
         assertSanityWithValuesOfFetchedRecords(
-                historyForNamespaceAndUseCase, DEFAULT_CLIENT, DEFAULT_USE_CASE, 100, paxosValues);
+                historyForNamespaceAndUseCase, DEFAULT_CLIENT, DEFAULT_USE_CASE, 9, paxosValues);
     }
 
     @Test
     public void canFetchAndCombineDiscontinuousLogs() {
-        Set<PaxosValue> paxosValues1 = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 7, 54);
-        Set<PaxosValue> paxosValues2 = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 98, 127);
+        Set<PaxosValue> paxosValues1 = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 1, 4);
+        Set<PaxosValue> paxosValues2 = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 6, 9);
 
         Set<PaxosValue> paxosValues = ImmutableSet.<PaxosValue>builder()
                 .addAll(paxosValues1)
@@ -142,7 +142,7 @@ public class PaxosLogHistoryProviderTest {
                 historyForNamespaceAndUseCase,
                 DEFAULT_CLIENT,
                 DEFAULT_USE_CASE,
-                (54 - 7 + 1) + (127 - 98 + 1),
+                (4 - 1 + 1) + (9 - 6 + 1),
                 paxosValues);
     }
 
@@ -155,8 +155,8 @@ public class PaxosLogHistoryProviderTest {
 
     @Test
     public void canFetchAndCombineHistoriesSinceLastVerifiedState() {
-        Set<PaxosValue> paxosValues = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 1, 100);
-        int lastVerified = 17;
+        Set<PaxosValue> paxosValues = PaxosSerializationTestUtils.writeToLogs(acceptorLog, learnerLog, 1, 9);
+        int lastVerified = 3;
 
         Set<PaxosValue> expectedPaxosValues = paxosValues.stream()
                 .filter(val -> val.getRound() > lastVerified)
@@ -180,11 +180,7 @@ public class PaxosLogHistoryProviderTest {
                 Iterables.getOnlyElement(completeHistory);
 
         assertSanityWithValuesOfFetchedRecords(
-                historyForNamespaceAndUseCase,
-                DEFAULT_CLIENT,
-                DEFAULT_USE_CASE,
-                100 - lastVerified,
-                expectedPaxosValues);
+                historyForNamespaceAndUseCase, DEFAULT_CLIENT, DEFAULT_USE_CASE, 9 - lastVerified, expectedPaxosValues);
     }
 
     @Test
@@ -202,7 +198,7 @@ public class PaxosLogHistoryProviderTest {
         when(remote.getPaxosHistory(any(), any())).thenReturn(PaxosHistoryOnRemote.of(remoteHistory));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
-        assertThat(completeHistory).hasSize(100);
+        assertThat(completeHistory).hasSize(9);
 
         Set<NamespaceAndUseCase> namespaceAndUseCasesWithHistory = completeHistory.stream()
                 .map(historyForNamespaceAndUseCase -> {
@@ -225,7 +221,7 @@ public class PaxosLogHistoryProviderTest {
 
     // utils
     private Map<NamespaceAndUseCase, Set<PaxosValue>> writeLogsForRangeOfNamespaceUseCasePairs() {
-        return KeyedStream.of(IntStream.rangeClosed(1, 100).boxed())
+        return KeyedStream.of(IntStream.rangeClosed(1, 9).boxed())
                 .mapEntries((idx, unused) -> {
                     String useCase = String.valueOf(idx);
                     Client client = Client.of(useCase);
