@@ -139,6 +139,10 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
     }
 
     public static CassandraKeyValueServiceRuntimeConfig getDefault() {
-        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build();
+        // TODO: Undo
+        return ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .servers(ImmutableDefaultConfig.of())
+                .replicationFactor(1)
+                .build();
     }
 }
