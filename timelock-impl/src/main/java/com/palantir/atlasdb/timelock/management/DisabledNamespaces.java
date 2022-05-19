@@ -61,15 +61,7 @@ public class DisabledNamespaces {
 
     private void initialize() {
         execute(Queries::createTable);
-        btgReEnableAll();
         disabledNamespaces = disabledNamespaces();
-    }
-
-    private void btgReEnableAll() {
-        execute(queries -> {
-            queries.getAllStates().forEach(queries::delete);
-            return null;
-        });
     }
 
     public boolean isDisabled(Namespace namespace) {
