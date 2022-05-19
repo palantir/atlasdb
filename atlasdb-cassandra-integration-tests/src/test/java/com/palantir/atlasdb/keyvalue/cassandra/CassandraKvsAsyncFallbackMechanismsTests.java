@@ -135,7 +135,6 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetAsyncFallingBackToSynchronousOnInvalidAsyncKvs() {
-        when(asyncKeyValueService.getAsync(any(), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         when(factory.constructAsyncKeyValueService(
                         any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(asyncKeyValueService);
