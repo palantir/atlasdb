@@ -121,13 +121,17 @@ public class CassandraAtlasDbFactoryTest {
 
         assertThat(returnedConfig)
                 .describedAs("Empty config should resolve to default")
-                .isEqualTo(CassandraKeyValueServiceRuntimeConfig.getDefault());
+                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
     }
 
     @Test
     public void preservesValidRuntimeConfigIfFollowingLaterConfigIsNotValid() {
+        CassandraKeyValueServiceRuntimeConfig baseRuntimeConfig =
+                ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .sweepReadThreads(12341)
+                        .build();
         SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig =
-                Refreshable.create(Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
+                Refreshable.create(Optional.of(baseRuntimeConfig));
 
         Refreshable<CassandraKeyValueServiceRuntimeConfig> processedRuntimeConfig =
                 FACTORY.preprocessKvsRuntimeConfig(runtimeConfig);
@@ -138,10 +142,10 @@ public class CassandraAtlasDbFactoryTest {
 
         assertThat(firstReturnedConfig)
                 .describedAs("First returned config should be valid")
-                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+                .isEqualTo(baseRuntimeConfig);
         assertThat(secondReturnedConfig)
                 .describedAs("Second invalid config should be ignored")
-                .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+                .isEqualTo(baseRuntimeConfig);
     }
 
     @Test
