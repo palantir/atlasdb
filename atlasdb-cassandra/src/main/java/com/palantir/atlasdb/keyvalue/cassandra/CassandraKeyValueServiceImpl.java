@@ -446,7 +446,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableDropper =
                 new CassandraTableDropper(config, clientPool, tableMetadata, cassandraTableTruncator);
         this.runtimeConfig = runtimeConfig;
-        this.verifierConfig = CassandraVerifierConfig.of(config);
+        this.verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
     }
 
     private static ExecutorService createBlockingThreadpool(

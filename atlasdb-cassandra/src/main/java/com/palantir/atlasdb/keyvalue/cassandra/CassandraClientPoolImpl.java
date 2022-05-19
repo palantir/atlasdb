@@ -369,7 +369,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void runOneTimeStartupChecks() {
-        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config);
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, verifierConfig);
         } catch (Exception e) {
