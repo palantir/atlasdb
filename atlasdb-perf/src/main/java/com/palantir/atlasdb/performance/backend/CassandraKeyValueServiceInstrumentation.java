@@ -16,12 +16,16 @@
 package com.palantir.atlasdb.performance.backend;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 
 public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
@@ -49,9 +53,16 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     }
 
     @Override
+    public Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(InetSocketAddress addr) {
+        return Optional.of(CassandraKeyValueServiceRuntimeConfig.getDefault());
+    }
+
+    @Override
     public boolean canConnect(InetSocketAddress addr) {
         return CassandraKeyValueServiceImpl.createForTesting(
-                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr))
+                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
+                        Refreshable.only((CassandraKeyValueServiceRuntimeConfig)
+                                getKeyValueServiceRuntimeConfig(addr).orElseThrow()))
                 .isInitialized();
     }
 

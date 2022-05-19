@@ -17,12 +17,14 @@ package com.palantir.cassandra.multinode;
 
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.refreshable.Refreshable;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
@@ -35,6 +37,8 @@ public abstract class NodesDownTestSetup {
     private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig.copyOf(
                     ThreeNodeCassandraCluster.KVS_CONFIG)
             .withSchemaMutationTimeoutMillis(3_000);
+    private static final Refreshable<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG =
+            ThreeNodeCassandraCluster.KVS_RUNTIME_CONFIG;
 
     @ClassRule
     public static final Containers CONTAINERS =
@@ -54,7 +58,7 @@ public abstract class NodesDownTestSetup {
     }
 
     private static CassandraKeyValueService createKvs(Class<?> testClass) {
-        return CassandraKeyValueServiceImpl.createForTesting(getConfig(testClass));
+        return CassandraKeyValueServiceImpl.createForTesting(getConfig(testClass), RUNTIME_CONFIG);
     }
 
     static CassandraKeyValueServiceConfig getConfig(Class<?> testClass) {

@@ -52,6 +52,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
+                CASSANDRA.getRuntimeConfig(),
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, services));
     }
 

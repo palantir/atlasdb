@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
@@ -72,6 +73,9 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     @ClassRule
     public static final CassandraResource CASSANDRA_RESOURCE = new CassandraResource();
 
+    private static final Refreshable<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG =
+            CASSANDRA_RESOURCE.getRuntimeConfig();
+
     private KeyValueService keyValueService;
 
     @Mock
@@ -105,7 +109,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
 
         verify(asyncKeyValueService, times(1)).getAsync(any(), any());
@@ -125,7 +129,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
@@ -144,7 +148,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
@@ -157,7 +161,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
             throws ExecutionException, InterruptedException {
         CassandraKeyValueServiceConfig config = getConfigWithAsyncFactoryUsingClosedSession(true);
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL).get();
@@ -168,7 +172,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     @Test
     public void testGetAsyncFallingBackToSynchronousOnSessionClosedBeforeStatementPreparation() {
         CassandraKeyValueServiceConfig config = getConfigWithAsyncFactoryUsingClosedSession(false);
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);

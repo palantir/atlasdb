@@ -31,6 +31,7 @@ import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
@@ -91,13 +92,15 @@ public final class CassandraRepairEteTest {
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
+    private Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private Cluster cluster;
     private CqlCluster cqlCluster;
 
     @Before
     public void setUp() {
         config = ThreeNodeCassandraCluster.getKvsConfig(2);
-        kvs = CassandraKeyValueServiceImpl.createForTesting(config);
+        runtimeConfig = ThreeNodeCassandraCluster.getRuntimeConfig();
+        kvs = CassandraKeyValueServiceImpl.createForTesting(config, runtimeConfig);
         TransactionTables.createTables(kvs);
 
         kvs.createTable(TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
