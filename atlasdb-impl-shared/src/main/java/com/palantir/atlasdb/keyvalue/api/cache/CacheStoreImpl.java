@@ -81,7 +81,6 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public void reset() {
-        log.info("Clearing all cache state");
         cacheMap.clear();
     }
 

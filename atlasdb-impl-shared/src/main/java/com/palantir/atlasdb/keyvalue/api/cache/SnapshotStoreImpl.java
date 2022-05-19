@@ -90,9 +90,8 @@ final class SnapshotStoreImpl implements SnapshotStore {
 
     @Override
     public void removeTimestamp(StartTimestamp timestamp) {
-        Optional.ofNullable(timestampMap.remove(timestamp)).ifPresent(sequence -> {
-            liveSequences.remove(sequence, timestamp);
-        });
+        Optional.ofNullable(timestampMap.remove(timestamp))
+                .ifPresent(sequence -> liveSequences.remove(sequence, timestamp));
 
         if (retentionRateLimiter.tryAcquire()) {
             retentionSnapshots();
