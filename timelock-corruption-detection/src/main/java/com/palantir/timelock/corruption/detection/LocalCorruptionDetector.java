@@ -27,7 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public final class LocalCorruptionDetector implements CorruptionDetector {
-    private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(5);
+    private static final Duration TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL = Duration.ofMinutes(60);
     private static final String CORRUPTION_DETECTOR_THREAD_PREFIX = "timelock-corruption-detector";
 
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
