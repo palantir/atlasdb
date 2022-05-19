@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
@@ -28,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
@@ -289,12 +291,14 @@ public class CassandraServiceTest {
                 .consecutiveAbsencesBeforePoolRemoval(1)
                 .keyspace("ks")
                 .build();
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig =
+                Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
 
         blacklist = new Blacklist(config);
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        CassandraService service =
-                new CassandraService(metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
+        CassandraService service = new CassandraService(
+                metricsManager, config, runtimeConfig, blacklist, new CassandraClientPoolMetrics(metricsManager));
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

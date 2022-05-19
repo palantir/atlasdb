@@ -262,6 +262,7 @@ public final class CassandraRepairEteTest {
         CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
                 config,
+                runtimeConfig,
                 new Blacklist(config),
                 new CassandraClientPoolMetrics(MetricsManagers.createForTests()));
         return invert(cassandraService.getTokenMap());
