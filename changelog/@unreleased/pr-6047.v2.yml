@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Hard re-enable namespaces.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6047
