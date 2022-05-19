@@ -57,7 +57,7 @@ public class CassandraKeyValueServiceConfigsTest {
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
                 .build();
-        // TODO: look at this class
+
         URL configUrl =
                 CassandraKeyValueServiceConfigsTest.class.getClassLoader().getResource("testConfig.yml");
         CassandraKeyValueServiceConfig deserializedTestConfig = AtlasDbConfigs.OBJECT_MAPPER.readValue(
