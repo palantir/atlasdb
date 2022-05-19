@@ -46,10 +46,7 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return TYPE;
     }
 
-    @Value.Default
-    public CassandraServersConfig servers() {
-        return ImmutableDefaultConfig.of();
-    }
+    public abstract CassandraServersConfig servers();
 
     // TODO: Use the optional resolvers or just make this have a default
     // Right now, we're seeing if anything in AtlasDB isn't setting it.
