@@ -61,7 +61,13 @@ public class DisabledNamespaces {
 
     private void initialize() {
         execute(Queries::createTable);
+        btgReEnableAll();
         disabledNamespaces = disabledNamespaces();
+    }
+
+    private void btgReEnableAll() {
+        execute(Queries::getAllStates)
+                .forEach(str -> execute(dao -> dao.delete(str)));
     }
 
     public boolean isDisabled(Namespace namespace) {
