@@ -26,6 +26,7 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.net.InetSocketAddress;
 import java.util.Optional;
+import org.junit.Before;
 import org.junit.Test;
 
 public class CassandraAtlasDbFactoryTest {
@@ -59,47 +60,52 @@ public class CassandraAtlasDbFactoryTest {
     private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
     private static final KeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
-    private static final CassandraAtlasDbFactory FACTORY = new CassandraAtlasDbFactory();
+    private CassandraAtlasDbFactory factory;
+
+    @Before
+    public void setUp() {
+        factory = new CassandraAtlasDbFactory();
+    }
 
     @Test
     public void throwsWhenPreprocessingNonCassandraKvsConfig() {
         assertThatThrownBy(() -> {
                     KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
-                    FACTORY.getConfigWithNamespace(keyValueServiceConfig, Optional.empty());
+                    factory.getConfigWithNamespace(keyValueServiceConfig, Optional.empty());
                 })
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
-        assertThatThrownBy(() -> FACTORY.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.empty()))
+        assertThatThrownBy(() -> factory.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
-        assertThatThrownBy(() -> FACTORY.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE_2)))
+        assertThatThrownBy(() -> factory.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void resolvesConfigWithOriginalKeyspaceIfNoNamespaceProvided() {
         CassandraKeyValueServiceConfig newConfig =
-                FACTORY.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.empty());
+                factory.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.empty());
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(CONFIG_WITH_KEYSPACE.getKeyspaceOrThrow());
     }
 
     @Test
     public void resolvesConfigWithNamespaceIfNoKeyspaceProvided() {
         CassandraKeyValueServiceConfig newConfig =
-                FACTORY.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.of(KEYSPACE));
+                factory.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
     public void preservesOtherPropertiesOnResolvedConfigWithNamespace() {
         CassandraKeyValueServiceConfig newConfig =
-                FACTORY.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.of(KEYSPACE));
+                factory.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.of(KEYSPACE));
         assertThat(newConfig.credentials()).isEqualTo(CREDENTIALS);
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
     }
@@ -107,13 +113,13 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void resolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
         CassandraKeyValueServiceConfig newConfig =
-                FACTORY.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE));
+                factory.getConfigWithNamespace(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
     public void emptyRuntimeConfigShouldResolveToDefaultConfig() {
-        CassandraKeyValueServiceRuntimeConfig returnedConfig = FACTORY.preprocessKvsRuntimeConfig(
+        CassandraKeyValueServiceRuntimeConfig returnedConfig = factory.preprocessKvsRuntimeConfig(
                         Refreshable.only(Optional.empty()))
                 .get();
 
@@ -132,7 +138,7 @@ public class CassandraAtlasDbFactoryTest {
                 Refreshable.create(Optional.of(baseRuntimeConfig));
 
         Refreshable<CassandraKeyValueServiceRuntimeConfig> processedRuntimeConfig =
-                FACTORY.preprocessKvsRuntimeConfig(runtimeConfig);
+                factory.preprocessKvsRuntimeConfig(runtimeConfig);
         CassandraKeyValueServiceRuntimeConfig firstReturnedConfig = processedRuntimeConfig.get();
 
         runtimeConfig.update(Optional.of(INVALID_CKVS_RUNTIME_CONFIG));
@@ -148,7 +154,7 @@ public class CassandraAtlasDbFactoryTest {
 
     @Test
     public void firstConfigInvalidShouldResolveToDefault() {
-        CassandraKeyValueServiceRuntimeConfig returnedConfig = FACTORY.preprocessKvsRuntimeConfig(
+        CassandraKeyValueServiceRuntimeConfig returnedConfig = factory.preprocessKvsRuntimeConfig(
                         Refreshable.only(Optional.of(INVALID_CKVS_RUNTIME_CONFIG)))
                 .get();
 
@@ -165,7 +171,7 @@ public class CassandraAtlasDbFactoryTest {
                 .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
                 .build();
         DerivedSnapshotConfig derivedSnapshotConfig =
-                FACTORY.createDerivedSnapshotConfig(installConfig, Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
+                factory.createDerivedSnapshotConfig(installConfig, Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
         assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(defaultGetRangesConcurrencyOverride);
     }
 }
