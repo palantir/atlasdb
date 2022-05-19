@@ -101,6 +101,10 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
         return runIfNotClosed(refreshableResource, "Attempted to get a resource after the container was closed");
     }
 
+    public boolean isClosed() {
+        return isClosed;
+    }
+
     private <K> K runIfNotClosed(Supplier<K> supplier, @CompileTimeConstant String ifClosedExceptionMessage) {
         if (!isClosed) {
             return runWithIsClosedReadLock(() -> {

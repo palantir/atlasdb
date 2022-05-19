@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.containers;
 
+import com.datastax.driver.core.Cluster;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
@@ -90,5 +91,9 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
 
     public CassandraKeyValueServiceConfig getConfig() {
         return containerInstance.getConfigWithProxy(socksProxy.address());
+    }
+
+    public Supplier<Cluster.Builder> getClusterBuilderWithProxy() {
+        return containerInstance.getClusterBuilderWithProxy(socksProxy.address());
     }
 }

@@ -36,6 +36,7 @@ import java.net.SocketAddress;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 public class CassandraContainer extends Container {
     static final int CASSANDRA_CQL_PORT = 9042;
@@ -130,13 +131,16 @@ public class CassandraContainer extends Container {
                 .servers(ImmutableCqlCapableConfig.builder()
                         .from(cqlCapableConfig)
                         .build())
-                .asyncKeyValueServiceFactory(
-                        new DefaultCassandraAsyncKeyValueServiceFactory(new DefaultCqlClientFactory(
-                                () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(proxyAddress)))))
+                .asyncKeyValueServiceFactory(new DefaultCassandraAsyncKeyValueServiceFactory(
+                        new DefaultCqlClientFactory(getClusterBuilderWithProxy(proxyAddress))))
                 .build();
     }
 
     public String getServiceName() {
         return name;
+    }
+
+    public Supplier<Cluster.Builder> getClusterBuilderWithProxy(SocketAddress proxyAddress) {
+        return () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(proxyAddress));
     }
 }
