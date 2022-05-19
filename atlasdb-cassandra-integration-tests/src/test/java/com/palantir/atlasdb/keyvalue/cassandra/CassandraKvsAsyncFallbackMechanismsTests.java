@@ -48,12 +48,12 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
-import com.palantir.refreshable.Refreshable;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -129,7 +129,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config,  RUNTIME_CONFIG));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
