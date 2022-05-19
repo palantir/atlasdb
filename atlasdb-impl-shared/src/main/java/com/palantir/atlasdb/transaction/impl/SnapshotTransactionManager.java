@@ -218,11 +218,11 @@ import javax.validation.constraints.NotNull;
             openTransactionCounter.inc(transactions.size());
             return transactions;
         } catch (Throwable t) {
+            responses.forEach(response -> lockWatchManager.removeTransactionStateFromCache(
+                    response.startTimestampAndPartition().timestamp()));
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
-            responses.forEach(response -> lockWatchManager.removeTransactionStateFromCache(
-                    response.startTimestampAndPartition().timestamp()));
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
