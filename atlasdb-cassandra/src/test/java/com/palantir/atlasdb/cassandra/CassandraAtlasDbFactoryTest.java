@@ -52,10 +52,7 @@ public class CassandraAtlasDbFactoryTest {
                     .build();
 
     private static final CassandraKeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
-            ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
-                    .servers(SERVERS)
-                    .replicationFactor(1)
-                    .build();
+            CassandraKeyValueServiceRuntimeConfig.getDefault();
 
     private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
     private CassandraAtlasDbFactory factory;
@@ -169,8 +166,13 @@ public class CassandraAtlasDbFactoryTest {
                 .from(CONFIG_WITH_KEYSPACE)
                 .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
                 .build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .from(DEFAULT_CKVS_RUNTIME_CONFIG)
+                .servers(SERVERS)
+                .replicationFactor(1)
+                .build();
         DerivedSnapshotConfig derivedSnapshotConfig =
-                factory.createDerivedSnapshotConfig(installConfig, Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
+                factory.createDerivedSnapshotConfig(installConfig, Optional.of(runtimeConfig));
         assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(defaultGetRangesConcurrencyOverride);
     }
 }
