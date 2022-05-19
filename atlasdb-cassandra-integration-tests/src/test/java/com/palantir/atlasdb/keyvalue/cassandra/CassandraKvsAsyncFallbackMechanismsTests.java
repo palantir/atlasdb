@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -58,7 +57,6 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,14 +83,6 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     @Mock
     private CassandraAsyncKeyValueServiceFactory factory;
 
-    @Before
-    public void setUp() {
-        lenient()
-                .when(asyncKeyValueService.getAsync(any(), any()))
-                .thenReturn(Futures.immediateFuture(ImmutableMap.of()));
-        lenient().when(throwingAsyncKeyValueService.getAsync(any(), any())).thenThrow(new IllegalStateException());
-    }
-
     @After
     public void tearDown() {
         try {
@@ -105,6 +95,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetAsyncFallBackNotNeeded() {
+        when(asyncKeyValueService.getAsync(any(), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         when(factory.constructAsyncKeyValueService(
                         any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(asyncKeyValueService);
@@ -123,6 +114,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetAsyncFallingBackToSynchronousOnException() {
+        when(throwingAsyncKeyValueService.getAsync(any(), any())).thenThrow(new IllegalStateException());
         when(throwingAsyncKeyValueService.isValid()).thenReturn(true);
         when(factory.constructAsyncKeyValueService(
                         any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
@@ -143,6 +135,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
 
     @Test
     public void testGetAsyncFallingBackToSynchronousOnInvalidAsyncKvs() {
+        when(asyncKeyValueService.getAsync(any(), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         when(factory.constructAsyncKeyValueService(
                         any(), any(), any(), any(), eq(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)))
                 .thenReturn(asyncKeyValueService);
