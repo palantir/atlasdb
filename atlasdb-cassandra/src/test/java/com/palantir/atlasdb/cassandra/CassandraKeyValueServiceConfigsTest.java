@@ -40,17 +40,11 @@ public class CassandraKeyValueServiceConfigsTest {
             .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
@@ -59,14 +53,11 @@ public class CassandraKeyValueServiceConfigsTest {
     @Test
     public void canDeserialize() throws IOException, URISyntaxException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(SERVERS)
-                        .build())
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
                 .build();
-
+        // TODO: look at this class
         URL configUrl =
                 CassandraKeyValueServiceConfigsTest.class.getClassLoader().getResource("testConfig.yml");
         CassandraKeyValueServiceConfig deserializedTestConfig = AtlasDbConfigs.OBJECT_MAPPER.readValue(
@@ -87,10 +78,7 @@ public class CassandraKeyValueServiceConfigsTest {
         CassandraKeyValueServiceConfig newConfig =
                 CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
         assertThat(newConfig.replicationFactor()).isEqualTo(1);
-        assertThat(newConfig.servers())
-                .isEqualTo(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(SERVERS)
-                        .build());
+        assertThat(newConfig.credentials()).isEqualTo(CREDENTIALS);
     }
 
     @Test

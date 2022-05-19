@@ -183,8 +183,10 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     private CassandraKeyValueServiceConfig getConfigWithAsyncFactoryUsingClosedSession(
             boolean useSpyPreparedStatement) {
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig = CASSANDRA_RESOURCE.getRuntimeConfig();
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
-                .constructCluster(CassandraClusterConfig.of(config), config.servers()));
+                .constructCluster(
+                        CassandraClusterConfig.of(config), runtimeConfig.get().servers()));
         Session session = spy(cluster.connect());
 
         doReturn(session).when(cluster).connect();

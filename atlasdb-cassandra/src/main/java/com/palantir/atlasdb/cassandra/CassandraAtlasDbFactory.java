@@ -60,12 +60,13 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
-        Refreshable<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig =
-                preprocessKvsRuntimeConfig(runtimeConfig);
+        CassandraKeyValueServiceConfig configWithNamespace = getConfigWithNamespace(config, namespace);
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> mergedRuntimeConfig =
+                createMergedKeyValueServiceConfig(configWithNamespace, preprocessKvsRuntimeConfig(runtimeConfig));
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
-                createMergedKeyValueServiceConfig(config, runtimeConfig, namespace),
-                cassandraRuntimeConfig,
+                configWithNamespace,
+                mergedRuntimeConfig,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync);
     }
@@ -73,21 +74,24 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
-        CassandraReloadableKvsConfig cassandraReloadableKvsConfig =
-                new CassandraReloadableKvsConfig(toCassandraConfig(config), Refreshable.only(runtimeConfigSnapshot));
+        CassandraReloadableKeyValueServiceRuntimeConfig runtimeConfig =
+                CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(
+                                toCassandraConfig(config),
+                                preprocessKvsRuntimeConfig(Refreshable.only(runtimeConfigSnapshot)))
+                        .get();
         return DerivedSnapshotConfig.builder()
-                .concurrentGetRangesThreadPoolSize(cassandraReloadableKvsConfig.concurrentGetRangesThreadPoolSize())
-                .defaultGetRangesConcurrencyOverride(cassandraReloadableKvsConfig.defaultGetRangesConcurrency())
+                .concurrentGetRangesThreadPoolSize(runtimeConfig.concurrentGetRangesThreadPoolSize())
+                .defaultGetRangesConcurrencyOverride(runtimeConfig.defaultGetRangesConcurrency())
                 .build();
     }
 
     @VisibleForTesting
-    CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
-            KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<String> namespace) {
-        CassandraKeyValueServiceConfig cassandraConfig = getConfigWithNamespace(config, namespace);
-        return new CassandraReloadableKvsConfig(cassandraConfig, runtimeConfig);
+    Refreshable<CassandraKeyValueServiceRuntimeConfig> createMergedKeyValueServiceConfig(
+            CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
+        // TODO:
+        return null;
+        // return CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config,
+        //         runtimeConfig);
     }
 
     private static CassandraKeyValueServiceConfig toCassandraConfig(KeyValueServiceConfig config) {

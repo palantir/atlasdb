@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -51,6 +52,20 @@ public class ThreeNodeCassandraCluster extends Container {
     @SuppressWarnings("DnsLookup")
     public static CassandraKeyValueServiceConfig getKvsConfig(int replicationFactor) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
+                .poolSize(20)
+                .keyspace("atlasdb")
+                .replicationFactor(replicationFactor)
+                .ignoreNodeTopologyChecks(true)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
+                .autoRefreshNodes(false)
+                .credentials(CREDENTIALS)
+                .build();
+    }
+
+    public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
+        return Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
                                 new InetSocketAddress(
@@ -67,20 +82,7 @@ public class ThreeNodeCassandraCluster extends Container {
                                 new InetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
-                .poolSize(20)
-                .keyspace("atlasdb")
-                .replicationFactor(replicationFactor)
-                .ignoreNodeTopologyChecks(true)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
-                .autoRefreshNodes(false)
-                .credentials(CREDENTIALS)
-                .build();
-    }
-
-    public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
-        return Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
+                .build());
     }
 
     @Override

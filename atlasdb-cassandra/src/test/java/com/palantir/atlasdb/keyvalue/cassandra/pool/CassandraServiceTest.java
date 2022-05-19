@@ -24,6 +24,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -283,16 +284,18 @@ public class CassandraServiceTest {
                         .username("username")
                         .password("password")
                         .build())
-                .servers(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(
-                                servers.stream().map(CassandraServer::proxy).collect(Collectors.toSet()))
-                        .build())
                 .localHostWeighting(weighting)
                 .consecutiveAbsencesBeforePoolRemoval(1)
                 .keyspace("ks")
                 .build();
         Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig =
-                Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
+                Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .servers(ImmutableDefaultConfig.builder()
+                                .addAllThriftHosts(servers.stream()
+                                        .map(CassandraServer::proxy)
+                                        .collect(Collectors.toSet()))
+                                .build())
+                        .build());
 
         blacklist = new Blacklist(config);
 

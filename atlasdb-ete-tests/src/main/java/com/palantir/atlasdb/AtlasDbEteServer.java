@@ -34,6 +34,7 @@ import com.palantir.atlasdb.backup.api.AtlasRestoreClient;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -190,12 +191,17 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
         Function<AtlasService, CassandraKeyValueServiceConfig> keyValueServiceConfigFactory = _unused ->
                 (CassandraKeyValueServiceConfig) config.getAtlasDbConfig().keyValueService();
+        Function<AtlasService, CassandraKeyValueServiceRuntimeConfig> runtimeConfigFactory =
+                _unused -> (CassandraKeyValueServiceRuntimeConfig) config.getAtlasDbRuntimeConfig()
+                        .orElseThrow()
+                        .keyValueService()
+                        .orElseThrow();
 
         Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory =
                 keyValueServiceConfigFactory.andThen(CassandraClusterConfig::of);
 
         Function<AtlasService, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory =
-                keyValueServiceConfigFactory.andThen(installConfig -> Refreshable.only(installConfig.servers()));
+                runtimeConfigFactory.andThen(runtimeConfig -> Refreshable.only(runtimeConfig.servers()));
 
         AtlasRestoreService atlasRestoreService = AtlasRestoreService.createForTests(
                 authHeader,

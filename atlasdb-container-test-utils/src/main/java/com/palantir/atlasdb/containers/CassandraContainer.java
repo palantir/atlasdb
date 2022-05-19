@@ -16,12 +16,14 @@
 package com.palantir.atlasdb.containers;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Cluster.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -67,10 +69,6 @@ public class CassandraContainer extends Container {
     private CassandraContainer(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableCqlCapableConfig.builder()
-                        .addCqlHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_CQL_PORT))
-                        .addThriftHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_THRIFT_PORT))
-                        .build())
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username(USERNAME)
@@ -83,7 +81,12 @@ public class CassandraContainer extends Container {
                 .replicationFactor(1)
                 .consecutiveAbsencesBeforePoolRemoval(0)
                 .build();
-        this.runtimeConfig = Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
+        this.runtimeConfig = Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .servers(ImmutableCqlCapableConfig.builder()
+                        .addCqlHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_CQL_PORT))
+                        .addThriftHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_THRIFT_PORT))
+                        .build())
+                .build());
         this.dockerComposeFile = dockerComposeFile;
         this.name = name;
     }
@@ -131,16 +134,14 @@ public class CassandraContainer extends Container {
     }
 
     public CassandraKeyValueServiceConfig getConfigWithProxy(SocketAddress proxyAddress) {
-        Preconditions.checkState(config.servers() instanceof CqlCapableConfig, "Has to be CqlCapableConfig");
-        CqlCapableConfig cqlCapableConfig = (CqlCapableConfig) config.servers();
+        Preconditions.checkState(
+                getRuntimeConfig().get().servers() instanceof CqlCapableConfig, "Has to be " + "CqlCapableConfig");
 
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(config)
-                .servers(ImmutableCqlCapableConfig.builder()
-                        .from(cqlCapableConfig)
-                        .build())
-                .asyncKeyValueServiceFactory(new DefaultCassandraAsyncKeyValueServiceFactory(
-                        new DefaultCqlClientFactory(getClusterBuilderWithProxy(proxyAddress))))
+                .asyncKeyValueServiceFactory(
+                        new DefaultCassandraAsyncKeyValueServiceFactory(new DefaultCqlClientFactory(
+                                () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(proxyAddress)))))
                 .build();
     }
 
@@ -148,7 +149,7 @@ public class CassandraContainer extends Container {
         return name;
     }
 
-    public Supplier<Cluster.Builder> getClusterBuilderWithProxy(SocketAddress proxyAddress) {
+    public Supplier<Builder> getClusterBuilderWithProxy(SocketAddress proxyAddress) {
         return () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(proxyAddress));
     }
 }

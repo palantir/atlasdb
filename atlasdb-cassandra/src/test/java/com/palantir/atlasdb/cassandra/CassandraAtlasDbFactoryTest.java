@@ -41,25 +41,24 @@ public class CassandraAtlasDbFactoryTest {
 
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
 
+    private static final CassandraKeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
+            ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                    .servers(ImmutableDefaultConfig.builder()
+                            .addAllThriftHosts(SERVERS)
+                            .build())
+                    .build();
+
     private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
-    private static final KeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
-            CassandraKeyValueServiceRuntimeConfig.getDefault();
     private CassandraAtlasDbFactory factory;
 
     @Before

@@ -108,10 +108,13 @@ public final class CassandraRepairEteTest {
 
         KvsRunner kvsRunner = KvsRunner.create(_unused -> kvs);
         Function<AtlasService, CassandraKeyValueServiceConfig> configFactory = _unused -> config;
+        Function<AtlasService, Refreshable<CassandraKeyValueServiceRuntimeConfig>> runtimeConfigFactory =
+                _unused -> runtimeConfig;
         Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFunction =
                 configFactory.andThen(CassandraClusterConfig::of);
         Function<AtlasService, Refreshable<CassandraServersConfig>> cassandraServersConfigFactory =
-                configFactory.andThen(config -> Refreshable.only(config.servers()));
+                runtimeConfigFactory.andThen(
+                        runtimeConfig -> runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::servers));
 
         cassandraRepairHelper =
                 new CassandraRepairHelper(kvsRunner, cassandraClusterConfigFunction, cassandraServersConfigFactory);

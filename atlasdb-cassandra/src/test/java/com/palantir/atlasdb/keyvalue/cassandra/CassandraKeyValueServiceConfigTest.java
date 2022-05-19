@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.net.InetSocketAddress;
 import java.nio.file.Paths;
@@ -36,9 +35,6 @@ public class CassandraKeyValueServiceConfigTest {
 
     private static final ImmutableCassandraKeyValueServiceConfig CASSANDRA_CONFIG =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addThriftHosts(SERVER_ADDRESS)
-                            .build())
                     .replicationFactor(1)
                     .keyspace("atlasdb")
                     .credentials(CREDENTIALS)

@@ -373,7 +373,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             metricsManager,
                             config.getKeyspaceOrThrow(),
                             clusterConfig,
-                            Refreshable.only(config.servers()),
+                            runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::servers),
                             initializeAsync);
 
             return createAndInitialize(
@@ -420,7 +420,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createBlockingThreadpool(config, config.servers(), metricsManager));
+        super(createBlockingThreadpool(config, runtimeConfig.get().servers(), metricsManager));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;

@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import java.net.InetSocketAddress;
@@ -47,9 +46,6 @@ public class BlacklistTest {
     private static final Duration ONE_SECOND = Duration.ofSeconds(1);
 
     private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .servers(ImmutableDefaultConfig.builder()
-                    .addThriftHosts(SERVER_1.proxy())
-                    .build())
             .credentials(ImmutableCassandraCredentialsConfig.builder()
                     .username("a")
                     .password("b")
