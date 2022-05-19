@@ -239,6 +239,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory();
 
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#replicationFactor()}.
+     */
+    @Deprecated
     Optional<Integer> replicationFactor();
 
     /**
