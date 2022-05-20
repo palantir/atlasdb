@@ -24,6 +24,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Iterator;
@@ -40,16 +41,22 @@ public class Blacklist {
 
     private final CassandraKeyValueServiceConfig config;
     private final Clock clock;
+    private final Refreshable<Integer> unresponsiveHostBackoffTimeSecondsRefreshable;
 
     private Map<CassandraServer, Long> blacklist;
 
-    public Blacklist(CassandraKeyValueServiceConfig config) {
-        this(config, Clock.systemUTC());
+    public Blacklist(
+            CassandraKeyValueServiceConfig config, Refreshable<Integer> unresponsiveHostBackoffTimeSecondsRefreshable) {
+        this(config, unresponsiveHostBackoffTimeSecondsRefreshable, Clock.systemUTC());
     }
 
     @VisibleForTesting
-    Blacklist(CassandraKeyValueServiceConfig config, Clock clock) {
+    Blacklist(
+            CassandraKeyValueServiceConfig config,
+            Refreshable<Integer> unresponsiveHostBackoffTimeSecondsRefreshable,
+            Clock clock) {
         this.config = config;
+        this.unresponsiveHostBackoffTimeSecondsRefreshable = unresponsiveHostBackoffTimeSecondsRefreshable;
         this.blacklist = new ConcurrentHashMap<>();
         this.clock = clock;
     }
@@ -80,7 +87,7 @@ public class Blacklist {
     }
 
     private boolean coolOffPeriodExpired(Map.Entry<CassandraServer, Long> blacklistedEntry) {
-        long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
+        long backoffTimeMillis = TimeUnit.SECONDS.toMillis(unresponsiveHostBackoffTimeSecondsRefreshable.get());
         return blacklistedEntry.getValue() + backoffTimeMillis < clock.millis();
     }
 

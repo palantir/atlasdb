@@ -55,9 +55,6 @@ public class ThreeNodeCassandraCluster extends Container {
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .ignoreNodeTopologyChecks(true)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
                 .autoRefreshNodes(false)
                 .credentials(CREDENTIALS)
                 .build();
@@ -82,6 +79,9 @@ public class ThreeNodeCassandraCluster extends Container {
                                 new InetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
                 .replicationFactor(replicationFactor)
                 .build());
     }

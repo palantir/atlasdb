@@ -27,6 +27,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.time.Duration;
@@ -51,8 +52,9 @@ public class BlacklistTest {
                     .password("b")
                     .build())
             .consecutiveAbsencesBeforePoolRemoval(1)
-            .unresponsiveHostBackoffTimeSeconds(1)
             .build();
+
+    private static final Refreshable<Integer> UNRESPONSIVE_HOST_BACKOFF_TIME = Refreshable.only(1);
 
     private final AtomicLong time = new AtomicLong();
     private final Clock clock = mock(Clock.class);
@@ -60,7 +62,7 @@ public class BlacklistTest {
     private final CassandraClientPoolingContainer goodContainer = mock(CassandraClientPoolingContainer.class);
     private final CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
 
-    private final Blacklist blacklist = new Blacklist(CONFIG, clock);
+    private final Blacklist blacklist = new Blacklist(CONFIG, UNRESPONSIVE_HOST_BACKOFF_TIME, clock);
 
     @Before
     @SuppressWarnings("unchecked") // Mock type is correct

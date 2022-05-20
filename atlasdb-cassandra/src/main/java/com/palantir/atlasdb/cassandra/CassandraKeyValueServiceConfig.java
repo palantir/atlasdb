@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
@@ -124,15 +123,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it has been blacklisted.
      *
-     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make this
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make
+     * this
      * value live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int unresponsiveHostBackoffTimeSeconds() {
-        return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
-    }
+    Optional<Integer> unresponsiveHostBackoffTimeSeconds();
 
     /**
      * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra as data
@@ -249,34 +245,22 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
      * live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int mutationBatchCount() {
-        return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
-    }
+    Optional<Integer> mutationBatchCount();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchSizeBytes()} to make this value
      * live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int mutationBatchSizeBytes() {
-        return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
-    }
+    Optional<Integer> mutationBatchSizeBytes();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#fetchBatchCount()} to make this value
      * live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int fetchBatchCount() {
-        return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
-    }
+    Optional<Integer> fetchBatchCount();
 
     @Value.Default
     default boolean ignoreNodeTopologyChecks() {
@@ -374,12 +358,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#sweepReadThreads()} to make this value
      * live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default Integer sweepReadThreads() {
-        return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
-    }
+    Optional<Integer> sweepReadThreads();
 
     Optional<CassandraJmxCompactionConfig> jmx();
 

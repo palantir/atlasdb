@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.refreshable.Refreshable;
 import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.NoSuchElementException;
@@ -36,7 +37,10 @@ import org.junit.Test;
 public class CassandraRequestExceptionHandlerTest {
     private static final String MESSAGE = "a exception";
     private static final Exception CAUSE = new Exception();
+    private static final Refreshable<Integer> UNRESPONSIVE_HOST_BACKOFF_TIME = Refreshable.only(0);
+
     private static final CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
+
     private static final int MAX_RETRIES_PER_HOST = 3;
     private static final int MAX_RETRIES_TOTAL = 6;
 
@@ -69,10 +73,16 @@ public class CassandraRequestExceptionHandlerTest {
     @Before
     public void setup() {
         handlerLegacy = new CassandraRequestExceptionHandler(
-                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, () -> false, new Blacklist(config));
+                () -> MAX_RETRIES_PER_HOST,
+                () -> MAX_RETRIES_TOTAL,
+                () -> false,
+                new Blacklist(config, UNRESPONSIVE_HOST_BACKOFF_TIME));
 
         handlerConservative = new CassandraRequestExceptionHandler(
-                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, () -> true, new Blacklist(config));
+                () -> MAX_RETRIES_PER_HOST,
+                () -> MAX_RETRIES_TOTAL,
+                () -> true,
+                new Blacklist(config, UNRESPONSIVE_HOST_BACKOFF_TIME));
     }
 
     @Test
@@ -299,7 +309,10 @@ public class CassandraRequestExceptionHandlerTest {
     public void changingHandlerModeHasNoEffectWithoutGetStrategy() {
         Exception ex = Iterables.get(TRANSIENT_EXCEPTIONS, 0);
         CassandraRequestExceptionHandler handler = new CassandraRequestExceptionHandler(
-                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, this::mutableMode, new Blacklist(config));
+                () -> MAX_RETRIES_PER_HOST,
+                () -> MAX_RETRIES_TOTAL,
+                this::mutableMode,
+                new Blacklist(config, UNRESPONSIVE_HOST_BACKOFF_TIME));
         CassandraRequestExceptionHandler.RequestExceptionHandlerStrategy conservativeStrategy = handler.getStrategy();
         assertThat(handler.shouldBackoff(ex, handler.getStrategy())).isTrue();
 

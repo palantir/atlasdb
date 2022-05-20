@@ -105,10 +105,10 @@ public class CassandraClientPoolTest {
         refreshableRuntimeConfig = Refreshable.only(runtimeConfig);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
-        when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
+        when(runtimeConfig.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
         when(config.credentials()).thenReturn(mock(CassandraCredentialsConfig.class));
         when(config.getKeyspaceOrThrow()).thenReturn("ks");
-        blacklist = new Blacklist(config);
+        blacklist = new Blacklist(config, Refreshable.only(runtimeConfig.unresponsiveHostBackoffTimeSeconds()));
 
         doAnswer(invocation -> {
                     Set<InetSocketAddress> inetSocketAddresses =
