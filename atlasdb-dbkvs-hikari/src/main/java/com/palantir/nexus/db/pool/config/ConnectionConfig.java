@@ -24,11 +24,13 @@ import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.InterceptorDataSource;
 import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.SQLExceptionOverride;
 import com.zaxxer.hikari.util.DriverDataSource;
 import java.sql.Connection;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
 
@@ -177,9 +179,8 @@ public abstract class ConnectionConfig {
             config.setConnectionTestQuery(getTestQuery());
         }
 
-        if (getSqlExceptionOverrideClassname() != null
-                && !getSqlExceptionOverrideClassname().isEmpty()) {
-            config.setExceptionOverrideClassName(getSqlExceptionOverrideClassname());
+        if (getSqlExceptionOverrideClass() != null) {
+            config.setExceptionOverrideClassName(getSqlExceptionOverrideClass().getName());
         }
 
         if (!props.isEmpty()) {
@@ -204,8 +205,9 @@ public abstract class ConnectionConfig {
     }
 
     @JsonIgnore
+    @Nullable
     @Value.Default
-    public String getSqlExceptionOverrideClassname() {
-        return "";
+    public Class<? extends SQLExceptionOverride> getSqlExceptionOverrideClass() {
+        return null;
     }
 }

@@ -2,8 +2,8 @@ type: improvement
 improvement:
   description: |-
     Allow specification of an SQLExceptionOverride handler to Hikari, and don't treat SQLTimeoutException an evictable for Oracle
-      by default (as we the case pre Hikari-3.2.0).
-    Allow null testQuery (and use Connection.isActive() in that case). Oracle will now use isActive() by default.
+      by default (as wass the case pre Hikari-3.2.0).
+    Allow empty testQuery (and use Connection.isValid() in that case). Oracle will now use isValid() by default.
     Allow control of whether connections are re-tested before being handed out from connection pool. Default remains true.
   links:
   - https://github.com/palantir/atlasdb/pull/6018

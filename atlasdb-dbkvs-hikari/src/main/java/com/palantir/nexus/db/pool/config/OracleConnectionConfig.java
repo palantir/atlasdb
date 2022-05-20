@@ -90,7 +90,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Override
     @Value.Default
     public String getTestQuery() {
-        return "SELECT 1 FROM dual";
+        return "";
     }
 
     public abstract Optional<String> getSid();
@@ -255,8 +255,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     }
 
     @Override
-    public String getSqlExceptionOverrideClassname() {
-        return OracleSqlExceptionOverride.class.getName();
+    public Class<? extends SQLExceptionOverride> getSqlExceptionOverrideClass() {
+        return OracleSqlExceptionOverride.class;
     }
 
     public static class OracleSqlExceptionOverride implements SQLExceptionOverride {
@@ -269,14 +269,14 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
          * HikariCP introduced a "bug" in https://github.com/brettwooldridge/HikariCP/issues/1308
          * which treats QueryTimeout as a connection close + evict event.
          * This is not correct - SQLTimeoutException inherits from SQLTransientException
-         * and therefore Hikari should not close the connection. We have existing Gotham tests that assert this
-         * behaviour.
+         * and therefore Hikari should not close the connection. We have existing tests in a large
+         * internal product that depend on this behaviour.
          */
         @java.lang.Override
         public SQLExceptionOverride.Override adjudicate(SQLException sqlException) {
             return sqlException instanceof SQLTimeoutException
                     ? SQLExceptionOverride.Override.DO_NOT_EVICT
-                    : SQLExceptionOverride.Override.CONTINUE_EVICT;
+                    : SQLExceptionOverride.super.adjudicate(sqlException);
         }
     }
 }
