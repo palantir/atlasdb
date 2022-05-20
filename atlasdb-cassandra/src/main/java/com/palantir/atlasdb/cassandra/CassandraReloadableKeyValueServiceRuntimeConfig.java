@@ -33,7 +33,7 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
         this.runtimeConfig = runtimeConfig;
     }
 
-    static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
+    public static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
             CassandraKeyValueServiceConfig installConfig,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
         return runtimeConfigRefreshable.map(runtimeConfig ->
