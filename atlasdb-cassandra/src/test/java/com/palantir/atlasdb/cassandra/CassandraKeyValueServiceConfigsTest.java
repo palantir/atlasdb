@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -110,5 +112,12 @@ public class CassandraKeyValueServiceConfigsTest {
                 new File(configUrl.getPath()), CassandraKeyValueServiceRuntimeConfig.class);
 
         assertThat(deserializedConfig).isEqualTo(expectedConfig);
+    }
+
+    @Test
+    public void canParseRuntimeDeprecatedConfigType() {
+        assertThatNoException()
+                .isThrownBy(() -> AtlasDbConfigs.OBJECT_MAPPER.readValue(
+                        "type: CassandraKeyValueServiceRuntimeConfig", KeyValueServiceRuntimeConfig.class));
     }
 }
