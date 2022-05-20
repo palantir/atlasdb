@@ -116,7 +116,7 @@ public class CassandraClientPoolTest {
                     return inetSocketAddresses.stream().map(CassandraServer::of).collect(Collectors.toSet());
                 })
                 .when(cassandra)
-                .getInitialServerList();
+                .getCurrentServerListFromConfig();
         doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
                 .when(cassandra)
                 .addPool(any());
