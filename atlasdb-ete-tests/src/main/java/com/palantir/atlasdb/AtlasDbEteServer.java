@@ -197,7 +197,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                         .orElseThrow();
 
         Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory =
-                keyValueServiceConfigFactory.andThen(CassandraClusterConfig::of);
+                atlasService -> CassandraClusterConfig.of(
+                        keyValueServiceConfigFactory.apply(atlasService), runtimeConfigFactory.apply(atlasService));
 
         Function<AtlasService, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory =
                 runtimeConfigFactory.andThen(runtimeConfig -> Refreshable.only(runtimeConfig.servers()));

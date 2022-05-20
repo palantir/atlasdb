@@ -297,7 +297,8 @@ public class CassandraServiceTest {
                         .replicationFactor(3)
                         .build());
 
-        blacklist = new Blacklist(config);
+        blacklist = new Blacklist(
+                config, runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds));
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraService service = new CassandraService(

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -24,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.refreshable.Refreshable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -39,7 +39,7 @@ public class GetCellTimestamps {
     private final TableReference tableRef;
     private final byte[] startRowInclusive;
     private final int batchHint;
-    private CassandraKeyValueServiceConfig config;
+    private Refreshable<Integer> sweepReadThreadsRefreshable;
 
     private final Collection<CellWithTimestamp> timestamps = new ArrayList<>();
 
@@ -49,13 +49,13 @@ public class GetCellTimestamps {
             TableReference tableRef,
             byte[] startRowInclusive,
             int batchHint,
-            CassandraKeyValueServiceConfig config) {
+            Refreshable<Integer> sweepReadThreadsRefreshable) {
         this.cqlExecutor = cqlExecutor;
         this.rowGetter = rowGetter;
         this.tableRef = tableRef;
         this.startRowInclusive = startRowInclusive;
         this.batchHint = batchHint;
-        this.config = config;
+        this.sweepReadThreadsRefreshable = sweepReadThreadsRefreshable;
     }
 
     /**
@@ -94,7 +94,7 @@ public class GetCellTimestamps {
     private void fetchBatchOfTimestampsBeginningAtStartRow() {
         byte[] rangeStart = startRowInclusive;
 
-        Integer executorThreads = config.sweepReadThreads();
+        Integer executorThreads = sweepReadThreadsRefreshable.get();
         ExecutorService executor = PTExecutors.newFixedThreadPool(executorThreads);
 
         while (timestamps.isEmpty()) {

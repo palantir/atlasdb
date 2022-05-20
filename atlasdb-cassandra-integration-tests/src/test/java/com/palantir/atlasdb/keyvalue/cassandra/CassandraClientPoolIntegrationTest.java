@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
@@ -30,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.refreshable.Refreshable;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +56,11 @@ public class CassandraClientPoolIntegrationTest {
 
     @Before
     public void setUp() {
-        blacklist = new Blacklist(CASSANDRA.getConfig());
-        modifiedReplicationFactor = CASSANDRA.getRuntimeConfig().get().replicationFactor() + 1;
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig = CASSANDRA.getRuntimeConfig();
+        blacklist = new Blacklist(
+                CASSANDRA.getConfig(),
+                runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds));
+        modifiedReplicationFactor = runtimeConfig.get().replicationFactor() + 1;
         clientPool = CassandraClientPoolImpl.createImplForTest(
                 metricsManager,
                 CASSANDRA.getConfig(),

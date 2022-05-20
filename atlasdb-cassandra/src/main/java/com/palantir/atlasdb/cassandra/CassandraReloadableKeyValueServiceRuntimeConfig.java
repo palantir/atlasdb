@@ -51,6 +51,33 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
     }
 
     @Override
+    public int unresponsiveHostBackoffTimeSeconds() {
+        return installConfig
+                .unresponsiveHostBackoffTimeSeconds()
+                .orElseGet(runtimeConfig::unresponsiveHostBackoffTimeSeconds);
+    }
+
+    @Override
+    public int mutationBatchCount() {
+        return installConfig.mutationBatchCount().orElseGet(runtimeConfig::mutationBatchCount);
+    }
+
+    @Override
+    public int mutationBatchSizeBytes() {
+        return installConfig.mutationBatchSizeBytes().orElseGet(runtimeConfig::mutationBatchSizeBytes);
+    }
+
+    @Override
+    public int fetchBatchCount() {
+        return installConfig.fetchBatchCount().orElseGet(runtimeConfig::fetchBatchCount);
+    }
+
+    @Override
+    public Integer sweepReadThreads() {
+        return installConfig.sweepReadThreads().orElseGet(runtimeConfig::sweepReadThreads);
+    }
+
+    @Override
     public int replicationFactor() {
         return installConfig.replicationFactor().orElseGet(runtimeConfig::replicationFactor);
     }

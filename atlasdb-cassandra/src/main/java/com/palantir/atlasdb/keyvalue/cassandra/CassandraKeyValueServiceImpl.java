@@ -247,7 +247,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, config, runtimeConfig, StartupChecks.RUN, new Blacklist(config));
+                metricsManager,
+                config,
+                runtimeConfig,
+                StartupChecks.RUN,
+                new Blacklist(
+                        config,
+                        runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)));
 
         return createOrShutdownClientPool(
                 metricsManager,
@@ -367,7 +373,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config);
+            CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config, runtimeConfig.get());
             AsyncKeyValueService asyncKeyValueService = config.asyncKeyValueServiceFactory()
                     .constructAsyncKeyValueService(
                             metricsManager,
@@ -434,7 +440,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfig);
         this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistencyProvider);
         this.cellValuePutter = new CellValuePutter(
-                config,
+                runtimeConfig,
                 clientPool,
                 taskRunner,
                 wrappingQueryRunner,
@@ -628,7 +634,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             int rowCount = 0;
             final Map<Cell, Value> result = new HashMap<>();
-            int fetchBatchCount = config.fetchBatchCount();
+            int fetchBatchCount = runtimeConfig.get().fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
                 result.putAll(getAllCellsForRows(host, tableRef, batch, startTs));
@@ -1155,7 +1161,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     protected int getMultiPutBatchCount() {
-        return config.mutationBatchCount();
+        return runtimeConfig.get().mutationBatchCount();
     }
 
     /**
@@ -1393,7 +1399,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 rowGetter,
                 tableRef,
                 request,
-                config);
+                runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::sweepReadThreads));
     }
 
     /**

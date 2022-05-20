@@ -112,7 +112,9 @@ public final class CassandraRepairEteTest {
         Function<AtlasService, Refreshable<CassandraKeyValueServiceRuntimeConfig>> runtimeConfigFactory =
                 _unused -> runtimeConfig;
         Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFunction =
-                configFactory.andThen(CassandraClusterConfig::of);
+                atlasService -> CassandraClusterConfig.of(
+                        configFactory.apply(atlasService),
+                        runtimeConfigFactory.apply(atlasService).get());
         Function<AtlasService, Refreshable<CassandraServersConfig>> cassandraServersConfigFactory =
                 runtimeConfigFactory.andThen(
                         runtimeConfig -> runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::servers));
@@ -267,7 +269,9 @@ public final class CassandraRepairEteTest {
                 MetricsManagers.createForTests(),
                 config,
                 runtimeConfig,
-                new Blacklist(config),
+                new Blacklist(
+                        config,
+                        runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)),
                 new CassandraClientPoolMetrics(MetricsManagers.createForTests()));
         return invert(cassandraService.getTokenMap());
     }
