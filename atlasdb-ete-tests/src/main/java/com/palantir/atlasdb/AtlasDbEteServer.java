@@ -193,8 +193,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 (CassandraKeyValueServiceConfig) config.getAtlasDbConfig().keyValueService();
         Function<AtlasService, CassandraKeyValueServiceRuntimeConfig> runtimeConfigFactory =
                 _unused -> (CassandraKeyValueServiceRuntimeConfig) config.getAtlasDbRuntimeConfig()
-                        .orElseThrow()
-                        .keyValueService()
+                        .flatMap(AtlasDbRuntimeConfig::keyValueService)
                         .orElseThrow();
 
         Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory =
