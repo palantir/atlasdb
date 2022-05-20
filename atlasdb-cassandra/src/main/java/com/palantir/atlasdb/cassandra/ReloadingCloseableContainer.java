@@ -41,7 +41,7 @@ import javax.annotation.concurrent.GuardedBy;
  * After {@link #close()} has returned, no further resources will be created, and all managed resources will be
  * closed.
  */
-public final class ReloadingCloseableContainer<T extends AutoCloseable> implements AutoCloseable {
+public final class ReloadingCloseableContainer<T extends AutoCloseable> implements AutoCloseableSupplier<T> {
     private static final SafeLogger log = SafeLoggerFactory.get(ReloadingCloseableContainer.class);
 
     private final AtomicReference<Optional<T>> currentResource;
