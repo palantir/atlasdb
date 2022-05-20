@@ -138,9 +138,8 @@ public class CassandraContainer extends Container {
 
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(config)
-                .asyncKeyValueServiceFactory(
-                        new DefaultCassandraAsyncKeyValueServiceFactory(new DefaultCqlClientFactory(
-                                () -> Cluster.builder().withNettyOptions(new SocksProxyNettyOptions(proxyAddress)))))
+                .asyncKeyValueServiceFactory(new DefaultCassandraAsyncKeyValueServiceFactory(
+                        new DefaultCqlClientFactory(getClusterBuilderWithProxy(proxyAddress))))
                 .build();
     }
 
