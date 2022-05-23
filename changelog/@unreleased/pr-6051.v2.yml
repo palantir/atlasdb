@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: The local timestamp invariant verifier is now more defensive.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6051
