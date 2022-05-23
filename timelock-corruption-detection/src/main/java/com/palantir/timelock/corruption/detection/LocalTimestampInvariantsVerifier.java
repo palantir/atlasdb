@@ -46,7 +46,7 @@ import one.util.streamex.StreamEx;
  * */
 public class LocalTimestampInvariantsVerifier {
     @VisibleForTesting
-    static final int LEARNER_LOG_BATCH_SIZE_LIMIT = 250;
+    static final int LEARNER_LOG_BATCH_SIZE_LIMIT = 10;
 
     public static final long MIN_SEQUENCE_TO_BE_VERIFIED = Long.MIN_VALUE;
 

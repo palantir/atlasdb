@@ -146,7 +146,8 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     }
 
     private static KeyValueService createAndRegisterKeyValueService() {
-        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(CASSANDRA.getConfig());
+        CassandraKeyValueService kvs =
+                CassandraKeyValueServiceImpl.createForTesting(CASSANDRA.getConfig(), CASSANDRA.getRuntimeConfig());
         CASSANDRA.registerKvs(kvs);
         return kvs;
     }

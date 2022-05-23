@@ -16,12 +16,17 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
+import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.Optional;
 
 public interface CqlClientFactory {
-    Optional<CqlClient> constructClient(
-            TaggedMetricRegistry taggedMetricRegistry, CassandraKeyValueServiceConfig config, boolean initializeAsync);
+    ReloadingCloseableContainer<CqlClient> constructReloadingClientContainer(
+            TaggedMetricRegistry taggedMetricRegistry,
+            Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable,
+            CassandraClusterConfig cassandraClusterConfig,
+            boolean initializeAsync);
 }

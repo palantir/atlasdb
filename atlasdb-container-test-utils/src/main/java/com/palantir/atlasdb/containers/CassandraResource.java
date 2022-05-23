@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.containers;
 
+import com.datastax.driver.core.Cluster;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -24,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.refreshable.Refreshable;
 import java.net.Proxy;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -39,7 +42,7 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     private Proxy socksProxy;
 
     public CassandraResource() {
-        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(getConfig());
+        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(getConfig(), getRuntimeConfig());
     }
 
     public CassandraResource(Supplier<KeyValueService> supplier) {
@@ -90,5 +93,13 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
 
     public CassandraKeyValueServiceConfig getConfig() {
         return containerInstance.getConfigWithProxy(socksProxy.address());
+    }
+
+    public Supplier<Cluster.Builder> getClusterBuilderWithProxy() {
+        return containerInstance.getClusterBuilderWithProxy(socksProxy.address());
+    }
+
+    public Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
+        return containerInstance.getRuntimeConfig();
     }
 }

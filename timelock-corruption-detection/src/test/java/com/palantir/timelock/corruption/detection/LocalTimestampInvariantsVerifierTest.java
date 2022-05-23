@@ -57,10 +57,10 @@ public class LocalTimestampInvariantsVerifierTest {
 
     @Test
     public void detectsClockWentBackwardsForDiscontinuousLogs() {
-        helper.writeLogsOnDefaultLocalServer(1, 27);
-        helper.writeLogsOnDefaultLocalServer(LEARNER_LOG_BATCH_SIZE_LIMIT, LEARNER_LOG_BATCH_SIZE_LIMIT + 97);
+        helper.writeLogsOnDefaultLocalServer(1, 4);
+        helper.writeLogsOnDefaultLocalServer(LEARNER_LOG_BATCH_SIZE_LIMIT, 2 * LEARNER_LOG_BATCH_SIZE_LIMIT);
 
-        helper.createTimestampInversion(72);
+        helper.createTimestampInversion(8);
         helper.assertClockGoesBackwardsInNextBatch();
     }
 

@@ -71,6 +71,11 @@ public final class CqlClientImpl implements CqlClient {
                 internalImpl.close();
             }
         }
+
+        @Override
+        public boolean isValid() {
+            return (internalImpl != null) && internalImpl.isValid();
+        }
     }
 
     private final Session session;
@@ -106,6 +111,11 @@ public final class CqlClientImpl implements CqlClient {
         Cluster cluster = session.getCluster();
         session.close();
         cluster.close();
+    }
+
+    @Override
+    public boolean isValid() {
+        return !session.isClosed();
     }
 
     @Override

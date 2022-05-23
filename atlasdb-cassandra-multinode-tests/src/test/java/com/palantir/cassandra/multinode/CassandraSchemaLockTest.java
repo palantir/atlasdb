@@ -20,11 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.refreshable.Refreshable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
@@ -56,12 +58,14 @@ public class CassandraSchemaLockTest {
     public void shouldCreateTablesConsistentlyWithMultipleCassandraNodes() throws Exception {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
         CassandraKeyValueServiceConfig config = ThreeNodeCassandraCluster.KVS_CONFIG;
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig = ThreeNodeCassandraCluster.KVS_RUNTIME_CONFIG;
 
         try {
             CyclicBarrier barrier = new CyclicBarrier(THREAD_COUNT);
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
-                    CassandraKeyValueService keyValueService = CassandraKeyValueServiceImpl.createForTesting(config);
+                    CassandraKeyValueService keyValueService =
+                            CassandraKeyValueServiceImpl.createForTesting(config, runtimeConfig);
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -72,7 +76,7 @@ public class CassandraSchemaLockTest {
             assertThat(executorService.awaitTermination(4, TimeUnit.MINUTES)).isTrue();
         }
 
-        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
+        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config, runtimeConfig);
         assertThat(kvs.getAllTableNames()).contains(table1);
 
         assertThat(new File(CONTAINERS.getLogDirectory()).listFiles()).allSatisfy(file -> {

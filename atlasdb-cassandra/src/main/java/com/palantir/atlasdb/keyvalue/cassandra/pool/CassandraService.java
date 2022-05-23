@@ -29,6 +29,7 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
@@ -46,6 +47,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -80,6 +82,7 @@ public class CassandraService implements AutoCloseable {
     private final CassandraKeyValueServiceConfig config;
     private final Blacklist blacklist;
     private final CassandraClientPoolMetrics poolMetrics;
+    private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
 
     private volatile RangeMap<LightweightOppToken, List<CassandraServer>> tokenMap = ImmutableRangeMap.of();
     private final Map<CassandraServer, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
@@ -96,10 +99,12 @@ public class CassandraService implements AutoCloseable {
     public CassandraService(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
         this.config = config;
+        this.runtimeConfig = runtimeConfig;
         this.myLocationSupplier =
                 AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation()));
         this.blacklist = blacklist;
@@ -113,9 +118,11 @@ public class CassandraService implements AutoCloseable {
     public static CassandraService createInitialized(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
-        CassandraService cassandraService = new CassandraService(metricsManager, config, blacklist, poolMetrics);
+        CassandraService cassandraService =
+                new CassandraService(metricsManager, config, runtimeConfig, blacklist, poolMetrics);
         cassandraService.cacheInitialCassandraHosts();
         cassandraService.refreshTokenRangesAndGetServers();
         return cassandraService;
