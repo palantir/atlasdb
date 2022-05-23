@@ -97,10 +97,12 @@ public final class ReloadingCloseableContainer<T extends AutoCloseable> implemen
      *
      * @throws SafeIllegalStateException if the container was closed prior to getting a resource.
      */
+    @Override
     public T get() {
         return runIfNotClosed(refreshableResource, "Attempted to get a resource after the container was closed");
     }
 
+    @Override
     public boolean isClosed() {
         return isClosed;
     }
