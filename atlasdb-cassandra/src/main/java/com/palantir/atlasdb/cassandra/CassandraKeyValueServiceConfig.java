@@ -124,8 +124,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * The minimal period we wait to check if a Cassandra node is healthy after it has been blacklisted.
      *
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make
-     * this
-     * value live-reloadable.
+     * this value live-reloadable.
      */
     @Deprecated
     Optional<Integer> unresponsiveHostBackoffTimeSeconds();
