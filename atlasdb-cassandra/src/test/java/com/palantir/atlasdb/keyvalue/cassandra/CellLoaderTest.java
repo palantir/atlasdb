@@ -42,5 +42,10 @@ public class CellLoaderTest {
         assertThat(zipped.get(4)).isEqualTo("D1");
         assertThatThrownBy(() -> zipped.get(-1)).isInstanceOf(IndexOutOfBoundsException.class);
         assertThatThrownBy(() -> zipped.get(6)).isInstanceOf(IndexOutOfBoundsException.class);
+        assertThatThrownBy(() -> zipped.add("Z")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> zipped.add(0, "Z")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> zipped.set(0, "Z")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> zipped.remove(0)).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> zipped.remove("A1")).isInstanceOf(UnsupportedOperationException.class);
     }
 }
