@@ -10,7 +10,6 @@ license {
 libsDirName = file('build/artifacts')
 dependencies {
     api project(':lock-conjure-api:lock-conjure-api-dialogue')
-    api project(':lock-conjure-api:lock-conjure-api-jersey')
     api project(':lock-api-objects')
     api project(':timelock-api:timelock-api-dialogue')
     api project(':timelock-api:timelock-api-jersey')
