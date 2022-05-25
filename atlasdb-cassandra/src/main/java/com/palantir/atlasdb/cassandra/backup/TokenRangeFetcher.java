@@ -59,8 +59,14 @@ final class TokenRangeFetcher {
 
     public Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRange(String tableName) {
         KeyspaceMetadata keyspaceMetadata = cqlMetadata.getKeyspaceMetadata(namespace);
-        TableMetadata tableMetadata = keyspaceMetadata.getTable(tableName);
+        if (keyspaceMetadata == null) {
+            log.error(
+                    "Could not find metadata for a keyspace that is supposed to exist",
+                    SafeArg.of("keyspace", namespace));
+            return ImmutableMap.of();
+        }
 
+        TableMetadata tableMetadata = keyspaceMetadata.getTable(tableName);
         if (tableMetadata == null) {
             log.error(
                     "Could not find metadata for table that is supposed to exist",
