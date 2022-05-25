@@ -63,7 +63,7 @@ final class TokenRangeFetcher {
             log.error(
                     "Could not find metadata for a keyspace that is supposed to exist",
                     SafeArg.of("keyspace", namespace));
-            return null;
+            return ImmutableMap.of();
         }
 
         TableMetadata tableMetadata = keyspaceMetadata.getTable(tableName);
