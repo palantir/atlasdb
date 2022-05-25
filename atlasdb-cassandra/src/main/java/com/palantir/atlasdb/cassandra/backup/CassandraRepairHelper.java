@@ -121,7 +121,8 @@ public class CassandraRepairHelper {
                 getRangesForRepairByTable(atlasService, transactionsTableInteractions);
 
         tokenRangesForRepair.forEach((table, ranges) -> {
-            log.info("Repairing ranges for table",
+            log.info(
+                    "Repairing ranges for table",
                     SafeArg.of("namespace", atlasService.getNamespace()),
                     SafeArg.of("table", table));
             repairTable.accept(table, ranges);
