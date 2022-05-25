@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
@@ -35,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class ExternalBackupPersister implements BackupPersister {
     private static final SafeLogger log = SafeLoggerFactory.get(ExternalBackupPersister.class);
@@ -46,9 +48,12 @@ public class ExternalBackupPersister implements BackupPersister {
     private static final String FAST_FORWARD_TIMESTAMP_FILE_NAME = "fast-forward.timestamp";
 
     private final Function<AtlasService, Path> pathFactory;
+    private final Supplier<ObjectMapper> legacyObjectMapper;
 
     public ExternalBackupPersister(Function<AtlasService, Path> pathFactory) {
         this.pathFactory = pathFactory;
+        this.legacyObjectMapper = Suppliers.memoize(() ->
+                OBJECT_MAPPER.copy().setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE));
     }
 
     @Override
@@ -147,29 +152,17 @@ public class ExternalBackupPersister implements BackupPersister {
             log.info(
                     "Tried to load file, but it did not exist",
                     SafeArg.of("fileName", file.getName()),
-                    SafeArg.of("atlasService", atlasService));
+                    SafeArg.of("namespace", atlasService.getNamespace()));
             return Optional.empty();
         }
 
         try {
-            try {
-                T state = OBJECT_MAPPER.readValue(file, clazz);
-                log.info(
-                        "Successfully loaded file",
-                        SafeArg.of("fileName", file.getName()),
-                        SafeArg.of("namespace", atlasService));
-                return Optional.of(state);
-            } catch (MismatchedInputException e) {
-                log.info("Using old mapper format", e);
-                ObjectMapper camelCaseObjectMapper =
-                        OBJECT_MAPPER.copy().setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE);
-                T state = camelCaseObjectMapper.readValue(file, clazz);
-                log.info(
-                        "Successfully loaded file",
-                        SafeArg.of("fileName", file.getName()),
-                        SafeArg.of("namespace", atlasService));
-                return Optional.of(state);
-            }
+            T state = tryLoadFromFile(file, clazz);
+            log.info(
+                    "Successfully loaded file",
+                    SafeArg.of("fileName", file.getName()),
+                    SafeArg.of("namespace", atlasService.getNamespace()));
+            return Optional.of(state);
         } catch (IOException e) {
             log.warn(
                     "Failed to read file",
@@ -177,6 +170,15 @@ public class ExternalBackupPersister implements BackupPersister {
                     SafeArg.of("atlasService", atlasService),
                     e);
             return Optional.empty();
+        }
+    }
+
+    private <T> T tryLoadFromFile(File file, Class<T> clazz) throws IOException {
+        try {
+            return OBJECT_MAPPER.readValue(file, clazz);
+        } catch (MismatchedInputException e) {
+            log.debug("Using old mapper format", e);
+            return legacyObjectMapper.get().readValue(file, clazz);
         }
     }
 }
