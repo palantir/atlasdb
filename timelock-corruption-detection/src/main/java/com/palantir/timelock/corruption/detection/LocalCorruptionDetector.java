@@ -46,7 +46,10 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
         LocalCorruptionDetector localCorruptionDetector =
                 new LocalCorruptionDetector(historyProvider, corruptionNotifiers, timestampInvariants);
 
-        localCorruptionDetector.scheduleWithFixedDelay();
+        // TODO(mdaudali): Decide whether to re-enable once we've determined whether corruption detection will not kill
+        // the node timelock is running on
+
+        // localCorruptionDetector.scheduleWithFixedDelay();
         return localCorruptionDetector;
     }
 
