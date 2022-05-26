@@ -23,7 +23,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
-import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainerImpl;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
@@ -52,8 +52,9 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
             CassandraClusterConfig cassandraClusterConfig,
             Refreshable<CassandraServersConfig> refreshable,
             boolean initializeAsync) {
-        ReloadingCloseableContainer<CqlClient> cqlClientContainer = cqlClientFactory.constructReloadingClientContainer(
-                metricsManager.getTaggedRegistry(), refreshable, cassandraClusterConfig, initializeAsync);
+        ReloadingCloseableContainerImpl<CqlClient> cqlClientContainer =
+                cqlClientFactory.constructReloadingClientContainer(
+                        metricsManager.getTaggedRegistry(), refreshable, cassandraClusterConfig, initializeAsync);
 
         ExecutorService executorService = refreshable.get().accept(new Visitor<ExecutorService>() {
             @Override

@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainerImpl;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
@@ -65,7 +65,7 @@ public class CassandraAsyncKeyValueServiceTests {
     private CqlClient cqlClient;
 
     @Mock
-    private ReloadingCloseableContainer<CqlClient> cqlClientContainer;
+    private ReloadingCloseableContainerImpl<CqlClient> cqlClientContainer;
 
     @Before
     public void setUp() {

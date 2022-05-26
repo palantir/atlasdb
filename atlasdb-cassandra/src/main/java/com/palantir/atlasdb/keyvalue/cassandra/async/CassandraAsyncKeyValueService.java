@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.cassandra.AutoCloseableSupplier;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
 import com.palantir.atlasdb.futures.FuturesCombiner;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -41,16 +41,20 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAsyncKeyValueService.class);
 
     private final String keyspace;
-    private final AutoCloseableSupplier<CqlClient> cqlClientContainer;
+    private final ReloadingCloseableContainer<CqlClient> cqlClientContainer;
     private final FuturesCombiner futuresCombiner;
 
     public static AsyncKeyValueService create(
-            String keyspace, AutoCloseableSupplier<CqlClient> cqlClientContainer, FuturesCombiner futuresCombiner) {
+            String keyspace,
+            ReloadingCloseableContainer<CqlClient> cqlClientContainer,
+            FuturesCombiner futuresCombiner) {
         return new CassandraAsyncKeyValueService(keyspace, cqlClientContainer, futuresCombiner);
     }
 
     private CassandraAsyncKeyValueService(
-            String keyspace, AutoCloseableSupplier<CqlClient> cqlClientContainer, FuturesCombiner futuresCombiner) {
+            String keyspace,
+            ReloadingCloseableContainer<CqlClient> cqlClientContainer,
+            FuturesCombiner futuresCombiner) {
         this.keyspace = keyspace;
         this.cqlClientContainer = cqlClientContainer;
         this.futuresCombiner = futuresCombiner;

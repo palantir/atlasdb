@@ -33,7 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ReloadingCloseableContainerTest {
+public class ReloadingCloseableContainerImplTest {
     private static final int INITIAL_VALUE = 0;
     private static final int UPDATED_VALUE = 1;
 
@@ -48,14 +48,14 @@ public class ReloadingCloseableContainerTest {
 
     private SettableRefreshable<Integer> refreshableFactoryArg;
 
-    private ReloadingCloseableContainer<AutoCloseable> reloadingCloseableContainer;
+    private ReloadingCloseableContainerImpl<AutoCloseable> reloadingCloseableContainer;
 
     @Before
     public void setUp() {
         when(resourceFactory.apply(INITIAL_VALUE)).thenReturn(initialResource);
         when(resourceFactory.apply(UPDATED_VALUE)).thenReturn(refreshedResource);
         refreshableFactoryArg = Refreshable.create(INITIAL_VALUE);
-        reloadingCloseableContainer = ReloadingCloseableContainer.of(refreshableFactoryArg, resourceFactory);
+        reloadingCloseableContainer = ReloadingCloseableContainerImpl.of(refreshableFactoryArg, resourceFactory);
     }
 
     @Test

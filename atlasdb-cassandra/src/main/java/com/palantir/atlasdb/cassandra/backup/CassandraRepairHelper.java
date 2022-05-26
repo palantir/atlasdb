@@ -26,7 +26,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainerImpl;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -57,7 +57,7 @@ public class CassandraRepairHelper {
 
     private final Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory;
     private final Function<AtlasService, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory;
-    private final LoadingCache<AtlasService, ReloadingCloseableContainer<CqlCluster>> cqlClusterContainers;
+    private final LoadingCache<AtlasService, ReloadingCloseableContainerImpl<CqlCluster>> cqlClusterContainers;
     private final KvsRunner kvsRunner;
 
     public CassandraRepairHelper(
@@ -77,18 +77,18 @@ public class CassandraRepairHelper {
 
     private static void onRemoval(
             AtlasService atlasService,
-            ReloadingCloseableContainer<CqlCluster> reloadingCloseableContainer,
+            ReloadingCloseableContainerImpl<CqlCluster> reloadingCloseableContainer,
             RemovalCause _removalCause) {
         log.info("Closing cql cluster container", SafeArg.of("atlasService", atlasService));
         reloadingCloseableContainer.close();
     }
 
-    private ReloadingCloseableContainer<CqlCluster> getCqlClusterUncached(AtlasService atlasService) {
+    private ReloadingCloseableContainerImpl<CqlCluster> getCqlClusterUncached(AtlasService atlasService) {
         CassandraClusterConfig cassandraClusterConfig = cassandraClusterConfigFactory.apply(atlasService);
         Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable =
                 refreshableCassandraServersConfigFactory.apply(atlasService);
 
-        return ReloadingCloseableContainer.of(
+        return ReloadingCloseableContainerImpl.of(
                 cassandraServersConfigRefreshable,
                 cassandraServersConfig ->
                         CqlCluster.create(cassandraClusterConfig, cassandraServersConfig, atlasService.getNamespace()));
