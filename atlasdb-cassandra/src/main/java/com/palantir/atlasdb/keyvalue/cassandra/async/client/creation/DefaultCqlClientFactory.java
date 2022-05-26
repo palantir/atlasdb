@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.async.client.creation;
 import com.datastax.driver.core.Cluster;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
 import com.palantir.atlasdb.cassandra.ReloadingCloseableContainerImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
@@ -48,7 +49,7 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
     }
 
     @Override
-    public ReloadingCloseableContainerImpl<CqlClient> constructReloadingClientContainer(
+    public ReloadingCloseableContainer<CqlClient> constructReloadingClientContainer(
             TaggedMetricRegistry taggedMetricRegistry,
             Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable,
             CassandraClusterConfig cassandraClusterConfig,
