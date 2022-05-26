@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Switch off local corruption detection
+  links:
+  - https://github.com/palantir/atlasdb/pull/6060
