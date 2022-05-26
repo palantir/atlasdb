@@ -52,8 +52,8 @@ public class ExternalBackupPersister implements BackupPersister {
 
     public ExternalBackupPersister(Function<AtlasService, Path> pathFactory) {
         this.pathFactory = pathFactory;
-        this.legacyObjectMapper = Suppliers.memoize(() ->
-                OBJECT_MAPPER.copy().setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE));
+        this.legacyObjectMapper = Suppliers.memoize(
+                () -> OBJECT_MAPPER.copy().setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE));
     }
 
     @Override
