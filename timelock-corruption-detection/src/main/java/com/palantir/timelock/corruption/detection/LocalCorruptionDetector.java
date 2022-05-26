@@ -63,6 +63,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
     }
 
+    @SuppressWarnings("UnusedMethod") // Remove when re-enabling local corruption
     private void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(
                 () -> {
