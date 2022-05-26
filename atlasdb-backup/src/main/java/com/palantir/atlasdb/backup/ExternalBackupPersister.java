@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.CompletedBackup;
 import com.palantir.atlasdb.backup.api.InProgressBackupToken;
@@ -36,24 +35,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class ExternalBackupPersister implements BackupPersister {
     private static final SafeLogger log = SafeLoggerFactory.get(ExternalBackupPersister.class);
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newClientObjectMapper();
+    private static final ObjectMapper LEGACY_OBJECT_MAPPER =
+            OBJECT_MAPPER.copy().setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE);
+
     private static final String SCHEMA_METADATA_FILE_NAME = "internal_schema_metadata_state";
     private static final String BACKUP_TIMESTAMP_FILE_NAME = "backup.timestamp";
     private static final String IMMUTABLE_TIMESTAMP_FILE_NAME = "immutable.timestamp";
     private static final String FAST_FORWARD_TIMESTAMP_FILE_NAME = "fast-forward.timestamp";
 
     private final Function<AtlasService, Path> pathFactory;
-    private final Supplier<ObjectMapper> legacyObjectMapper;
 
     public ExternalBackupPersister(Function<AtlasService, Path> pathFactory) {
         this.pathFactory = pathFactory;
-        this.legacyObjectMapper = Suppliers.memoize(
-                () -> OBJECT_MAPPER.copy().setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE));
     }
 
     @Override
@@ -178,7 +176,7 @@ public class ExternalBackupPersister implements BackupPersister {
             return OBJECT_MAPPER.readValue(file, clazz);
         } catch (MismatchedInputException e) {
             log.debug("Using old mapper format", e);
-            return legacyObjectMapper.get().readValue(file, clazz);
+            return LEGACY_OBJECT_MAPPER.readValue(file, clazz);
         }
     }
 }
