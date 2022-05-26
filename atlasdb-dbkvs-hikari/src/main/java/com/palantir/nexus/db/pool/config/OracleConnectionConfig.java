@@ -255,8 +255,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     }
 
     @Override
-    public Class<? extends SQLExceptionOverride> getSqlExceptionOverrideClass() {
-        return OracleSqlExceptionOverride.class;
+    public Optional<Class<? extends SQLExceptionOverride>> getSqlExceptionOverrideClass() {
+        return Optional.of(OracleSqlExceptionOverride.class);
     }
 
     public static class OracleSqlExceptionOverride implements SQLExceptionOverride {

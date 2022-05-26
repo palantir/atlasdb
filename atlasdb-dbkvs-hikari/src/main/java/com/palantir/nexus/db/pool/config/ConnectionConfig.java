@@ -30,7 +30,6 @@ import java.sql.Connection;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
 
@@ -179,8 +178,9 @@ public abstract class ConnectionConfig {
             config.setConnectionTestQuery(getTestQuery());
         }
 
-        if (getSqlExceptionOverrideClass() != null) {
-            config.setExceptionOverrideClassName(getSqlExceptionOverrideClass().getName());
+        if (getSqlExceptionOverrideClass().isPresent()) {
+            config.setExceptionOverrideClassName(
+                    getSqlExceptionOverrideClass().get().getName());
         }
 
         if (!props.isEmpty()) {
@@ -205,9 +205,7 @@ public abstract class ConnectionConfig {
     }
 
     @JsonIgnore
-    @Nullable
-    @Value.Default
-    public Class<? extends SQLExceptionOverride> getSqlExceptionOverrideClass() {
-        return null;
+    public Optional<Class<? extends SQLExceptionOverride>> getSqlExceptionOverrideClass() {
+        return Optional.empty();
     }
 }
