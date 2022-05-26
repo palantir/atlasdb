@@ -98,8 +98,9 @@ public final class CassandraRepairEteTest {
 
     @Before
     public void setUp() {
-        config = ThreeNodeCassandraCluster.getKvsConfig(2);
-        runtimeConfig = ThreeNodeCassandraCluster.getRuntimeConfig();
+        int replicationFactor = 2;
+        config = ThreeNodeCassandraCluster.getKvsConfig();
+        runtimeConfig = ThreeNodeCassandraCluster.getRuntimeConfig(replicationFactor);
         kvs = CassandraKeyValueServiceImpl.createForTesting(config, runtimeConfig);
         TransactionTables.createTables(kvs);
 
@@ -108,10 +109,15 @@ public final class CassandraRepairEteTest {
 
         KvsRunner kvsRunner = KvsRunner.create(_unused -> kvs);
         Function<AtlasService, CassandraKeyValueServiceConfig> configFactory = _unused -> config;
+        Function<AtlasService, Refreshable<CassandraKeyValueServiceRuntimeConfig>> runtimeConfigFactory =
+                _unused -> runtimeConfig;
         Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFunction =
-                configFactory.andThen(CassandraClusterConfig::of);
+                atlasService -> CassandraClusterConfig.of(
+                        configFactory.apply(atlasService),
+                        runtimeConfigFactory.apply(atlasService).get());
         Function<AtlasService, Refreshable<CassandraServersConfig>> cassandraServersConfigFactory =
-                configFactory.andThen(config -> Refreshable.only(config.servers()));
+                runtimeConfigFactory.andThen(
+                        runtimeConfig -> runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::servers));
 
         cassandraRepairHelper =
                 new CassandraRepairHelper(kvsRunner, cassandraClusterConfigFunction, cassandraServersConfigFactory);
@@ -263,7 +269,9 @@ public final class CassandraRepairEteTest {
                 MetricsManagers.createForTests(),
                 config,
                 runtimeConfig,
-                new Blacklist(config),
+                new Blacklist(
+                        config,
+                        runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)),
                 new CassandraClientPoolMetrics(MetricsManagers.createForTests()));
         return invert(cassandraService.getTokenMap());
     }

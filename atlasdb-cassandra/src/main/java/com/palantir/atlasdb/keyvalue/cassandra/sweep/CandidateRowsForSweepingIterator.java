@@ -17,13 +17,13 @@ package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.refreshable.Refreshable;
 import java.util.List;
 
 public class CandidateRowsForSweepingIterator extends AbstractIterator<List<CandidateRowForSweeping>>
@@ -36,7 +36,7 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
     private final CandidateCellForSweepingRequest request;
 
     byte[] nextStartRow;
-    private CassandraKeyValueServiceConfig config;
+    private Refreshable<Integer> sweepReadThreadsRefreshable;
 
     public CandidateRowsForSweepingIterator(
             ValuesLoader valuesLoader,
@@ -44,13 +44,13 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
             RowGetter rowGetter,
             TableReference table,
             CandidateCellForSweepingRequest request,
-            CassandraKeyValueServiceConfig config) {
+            Refreshable<Integer> sweepReadThreadsRefreshable) {
         this.valuesLoader = valuesLoader;
         this.cqlExecutor = cqlExecutor;
         this.rowGetter = rowGetter;
         this.table = table;
         this.request = request;
-        this.config = config;
+        this.sweepReadThreadsRefreshable = sweepReadThreadsRefreshable;
 
         nextStartRow = request.startRowInclusive();
     }
@@ -70,7 +70,12 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
 
     private List<CandidateRowForSweeping> getCandidateCellsForSweepingBatch() {
         return new GetCandidateRowsForSweeping(
-                        valuesLoader, cqlExecutor, rowGetter, table, request.withStartRow(nextStartRow), config)
+                        valuesLoader,
+                        cqlExecutor,
+                        rowGetter,
+                        table,
+                        request.withStartRow(nextStartRow),
+                        sweepReadThreadsRefreshable)
                 .execute();
     }
 }

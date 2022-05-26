@@ -103,10 +103,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             TableReference.createFromFullyQualifiedName("ns.default_table");
     private static final String CASSANDRA_DEFAULT_TABLE_NAME =
             AbstractKeyValueService.internalTableName(ATLAS_DEFAULT_TABLE_REFERENCE);
-    private static final Refreshable<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG =
-            Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
-                    .fetchReadLimitPerRow(100)
-                    .build());
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -125,7 +121,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
-                RUNTIME_CONFIG,
+                getRuntimeConfig(),
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 logger,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -183,20 +179,20 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Logger testLogger = mock(Logger.class);
         // nth startup
         CassandraKeyValueService kvs =
-                createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), CASSANDRA.getRuntimeConfig(), testLogger);
+                createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), getRuntimeConfig(), testLogger);
         kvs.createTable(NEVER_SEEN, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertThatGcGraceSecondsIs(kvs, FOUR_DAYS_IN_SECONDS);
         kvs.close();
 
         CassandraKeyValueService kvs2 =
-                createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), CASSANDRA.getRuntimeConfig(), testLogger);
+                createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), getRuntimeConfig(), testLogger);
         assertThatGcGraceSecondsIs(kvs2, ONE_HOUR_IN_SECONDS);
         kvs2.close();
         // n+1th startup with different GC grace seconds - should upgrade
         verify(testLogger, times(1)).info(startsWith("New table-related settings were applied on startup!!"));
 
         CassandraKeyValueService kvs3 =
-                createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), CASSANDRA.getRuntimeConfig(), testLogger);
+                createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), getRuntimeConfig(), testLogger);
         assertThatGcGraceSecondsIs(kvs3, ONE_HOUR_IN_SECONDS);
         // startup with same gc grace seconds as previous one - no upgrade
         verify(testLogger, times(2))
@@ -249,6 +245,13 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig.copyOf(CASSANDRA.getConfig())
                 .withGcGraceSeconds(gcGraceSeconds);
+    }
+
+    private static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
+        return CASSANDRA.getRuntimeConfig().map(config -> ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .from(config)
+                .fetchReadLimitPerRow(100)
+                .build());
     }
 
     private static String getInternalTestTableName() {

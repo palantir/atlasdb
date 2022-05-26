@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Async KVS now supports reloading a server list. CassandraKeyValueService
+    delegates to a synchronous get if the Async KVS is misconfigured.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6034

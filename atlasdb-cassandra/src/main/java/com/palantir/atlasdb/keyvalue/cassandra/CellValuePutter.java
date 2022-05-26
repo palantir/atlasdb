@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -29,6 +29,7 @@ import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.refreshable.Refreshable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,18 +51,18 @@ public class CellValuePutter {
 
     private final LongSupplier timestampOverrideSupplier;
 
-    private final CassandraKeyValueServiceConfig config;
+    private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private final CassandraClientPool clientPool;
     private final TaskRunner taskRunner;
     private final WrappingQueryRunner queryRunner;
 
     public CellValuePutter(
-            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraClientPool clientPool,
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
             LongSupplier timestampOverrideSupplier) {
-        this.config = config;
+        this.runtimeConfig = runtimeConfig;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
         this.queryRunner = queryRunner;
@@ -126,8 +127,8 @@ public class CellValuePutter {
         clientPool.runWithRetryOnServer(server, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
-                int mutationBatchCount = config.mutationBatchCount();
-                int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
+                int mutationBatchCount = runtimeConfig.get().mutationBatchCount();
+                int mutationBatchSizeBytes = runtimeConfig.get().mutationBatchSizeBytes();
 
                 for (List<Map.Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(
                         values, mutationBatchCount, mutationBatchSizeBytes, tableRef, CellValuePutter::getEntrySize)) {

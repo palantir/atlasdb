@@ -27,6 +27,7 @@ import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainerImpl;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -80,7 +81,11 @@ public class CassandraRepairHelper {
             ReloadingCloseableContainer<CqlCluster> reloadingCloseableContainer,
             RemovalCause _removalCause) {
         log.info("Closing cql cluster container", SafeArg.of("atlasService", atlasService));
-        reloadingCloseableContainer.close();
+        try {
+            reloadingCloseableContainer.close();
+        } catch (Exception e) {
+            log.warn("Failed to close cql cluster container", SafeArg.of("atlasService", atlasService), e);
+        }
     }
 
     private ReloadingCloseableContainer<CqlCluster> getCqlClusterUncached(AtlasService atlasService) {
@@ -88,7 +93,7 @@ public class CassandraRepairHelper {
         Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable =
                 refreshableCassandraServersConfigFactory.apply(atlasService);
 
-        return ReloadingCloseableContainer.of(
+        return ReloadingCloseableContainerImpl.of(
                 cassandraServersConfigRefreshable,
                 cassandraServersConfig ->
                         CqlCluster.create(cassandraClusterConfig, cassandraServersConfig, atlasService.getNamespace()));

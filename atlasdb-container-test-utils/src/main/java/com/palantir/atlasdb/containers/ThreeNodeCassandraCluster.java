@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -45,12 +46,23 @@ public class ThreeNodeCassandraCluster extends Container {
             .build();
 
     private static final int DEFAULT_REPLICATION_FACTOR = 3;
-    public static final CassandraKeyValueServiceConfig KVS_CONFIG = getKvsConfig(DEFAULT_REPLICATION_FACTOR);
-    public static final Refreshable<CassandraKeyValueServiceRuntimeConfig> KVS_RUNTIME_CONFIG = getRuntimeConfig();
+    public static final CassandraKeyValueServiceConfig KVS_CONFIG = getKvsConfig();
+    public static final Refreshable<CassandraKeyValueServiceRuntimeConfig> KVS_RUNTIME_CONFIG =
+            getRuntimeConfig(DEFAULT_REPLICATION_FACTOR);
+
+    public static CassandraKeyValueServiceConfig getKvsConfig() {
+        return ImmutableCassandraKeyValueServiceConfig.builder()
+                .poolSize(20)
+                .keyspace("atlasdb")
+                .ignoreNodeTopologyChecks(true)
+                .autoRefreshNodes(false)
+                .credentials(CREDENTIALS)
+                .build();
+    }
 
     @SuppressWarnings("DnsLookup")
-    public static CassandraKeyValueServiceConfig getKvsConfig(int replicationFactor) {
-        return ImmutableCassandraKeyValueServiceConfig.builder()
+    public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig(int replicationFactor) {
+        return Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
                                 new InetSocketAddress(
@@ -67,20 +79,11 @@ public class ThreeNodeCassandraCluster extends Container {
                                 new InetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
-                .poolSize(20)
-                .keyspace("atlasdb")
-                .replicationFactor(replicationFactor)
-                .ignoreNodeTopologyChecks(true)
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
-                .autoRefreshNodes(false)
-                .credentials(CREDENTIALS)
-                .build();
-    }
-
-    public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
-        return Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
+                .replicationFactor(replicationFactor)
+                .build());
     }
 
     @Override

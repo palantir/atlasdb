@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
@@ -32,8 +33,9 @@ import org.junit.Test;
 public class CassandraAtlasDbFactoryTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
-    private static final ImmutableSet<InetSocketAddress> SERVERS =
-            ImmutableSet.of(InetSocketAddress.createUnresolved("foo", 42));
+    private static final CassandraServersConfig SERVERS = ImmutableDefaultConfig.builder()
+            .addAllThriftHosts(ImmutableSet.of(InetSocketAddress.createUnresolved("foo", 42)))
+            .build();
     private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
             .username("username")
             .password("password")
@@ -41,25 +43,18 @@ public class CassandraAtlasDbFactoryTest {
 
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
-                    .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
                     .keyspace(KEYSPACE)
-                    .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
 
     private static final KeyValueServiceRuntimeConfig INVALID_CKVS_RUNTIME_CONFIG = () -> "test";
-    private static final KeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
+    private static final CassandraKeyValueServiceRuntimeConfig DEFAULT_CKVS_RUNTIME_CONFIG =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
+
     private CassandraAtlasDbFactory factory;
 
     @Before
@@ -107,7 +102,6 @@ public class CassandraAtlasDbFactoryTest {
         CassandraKeyValueServiceConfig newConfig =
                 factory.getConfigWithNamespace(CONFIG_WITHOUT_KEYSPACE, Optional.of(KEYSPACE));
         assertThat(newConfig.credentials()).isEqualTo(CREDENTIALS);
-        assertThat(newConfig.replicationFactor()).isEqualTo(1);
     }
 
     @Test
@@ -133,6 +127,8 @@ public class CassandraAtlasDbFactoryTest {
         CassandraKeyValueServiceRuntimeConfig baseRuntimeConfig =
                 ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                         .sweepReadThreads(12341)
+                        .servers(SERVERS)
+                        .replicationFactor(1)
                         .build();
         SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig =
                 Refreshable.create(Optional.of(baseRuntimeConfig));
@@ -170,8 +166,13 @@ public class CassandraAtlasDbFactoryTest {
                 .from(CONFIG_WITH_KEYSPACE)
                 .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
                 .build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .from(DEFAULT_CKVS_RUNTIME_CONFIG)
+                .servers(SERVERS)
+                .replicationFactor(1)
+                .build();
         DerivedSnapshotConfig derivedSnapshotConfig =
-                factory.createDerivedSnapshotConfig(installConfig, Optional.of(DEFAULT_CKVS_RUNTIME_CONFIG));
+                factory.createDerivedSnapshotConfig(installConfig, Optional.of(runtimeConfig));
         assertThat(derivedSnapshotConfig.defaultGetRangesConcurrency()).isEqualTo(defaultGetRangesConcurrencyOverride);
     }
 }

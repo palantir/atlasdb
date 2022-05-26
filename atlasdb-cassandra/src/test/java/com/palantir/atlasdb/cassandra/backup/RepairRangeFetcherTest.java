@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.Transactions1TableInteraction;
 import com.palantir.atlasdb.cassandra.backup.transaction.Transactions2TableInteraction;
 import com.palantir.atlasdb.cassandra.backup.transaction.Transactions3TableInteraction;
@@ -61,7 +61,7 @@ public class RepairRangeFetcherTest {
     private CqlMetadata cqlMetadata;
 
     @Mock
-    private CassandraKeyValueServiceConfig config;
+    private CassandraKeyValueServiceRuntimeConfig runtimeConfig;
 
     private RepairRangeFetcher repairRangeFetcher;
 
@@ -72,14 +72,14 @@ public class RepairRangeFetcherTest {
         when(keyspaceMetadata.getTables()).thenReturn(tableMetadatas);
 
         BackupTestUtils.mockTokenRanges(cqlSession, cqlMetadata);
-        BackupTestUtils.mockConfig(config);
+        BackupTestUtils.mockConfig(runtimeConfig);
 
         when(cqlSession.retrieveRowKeysAtConsistencyAll(anyList()))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.TOKEN_1, OTHER_TOKEN));
         when(cqlMetadata.getReplicas(eq(BackupTestUtils.NAMESPACE), any()))
                 .thenReturn(ImmutableSet.copyOf(BackupTestUtils.HOSTS));
 
-        repairRangeFetcher = new RepairRangeFetcher(cqlSession, BackupTestUtils.NAMESPACE, config.servers());
+        repairRangeFetcher = new RepairRangeFetcher(cqlSession, BackupTestUtils.NAMESPACE, runtimeConfig.servers());
     }
 
     @Test

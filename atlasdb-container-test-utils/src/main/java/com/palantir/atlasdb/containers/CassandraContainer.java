@@ -22,6 +22,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -67,23 +68,24 @@ public class CassandraContainer extends Container {
     private CassandraContainer(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableCqlCapableConfig.builder()
-                        .addCqlHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_CQL_PORT))
-                        .addThriftHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_THRIFT_PORT))
-                        .build())
                 .keyspace(keyspace)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username(USERNAME)
                         .password(PASSWORD)
                         .build())
                 .poolSize(20)
+                .consecutiveAbsencesBeforePoolRemoval(0)
+                .build();
+        this.runtimeConfig = Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .servers(ImmutableCqlCapableConfig.builder()
+                        .addCqlHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_CQL_PORT))
+                        .addThriftHosts(InetSocketAddress.createUnresolved(name, CASSANDRA_THRIFT_PORT))
+                        .build())
+                .replicationFactor(1)
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
-                .replicationFactor(1)
-                .consecutiveAbsencesBeforePoolRemoval(0)
-                .build();
-        this.runtimeConfig = Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
+                .build());
         this.dockerComposeFile = dockerComposeFile;
         this.name = name;
     }
@@ -131,14 +133,11 @@ public class CassandraContainer extends Container {
     }
 
     public CassandraKeyValueServiceConfig getConfigWithProxy(SocketAddress proxyAddress) {
-        Preconditions.checkState(config.servers() instanceof CqlCapableConfig, "Has to be CqlCapableConfig");
-        CqlCapableConfig cqlCapableConfig = (CqlCapableConfig) config.servers();
+        Preconditions.checkState(
+                getRuntimeConfig().get().servers() instanceof CqlCapableConfig, "Has to be CqlCapableConfig");
 
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(config)
-                .servers(ImmutableCqlCapableConfig.builder()
-                        .from(cqlCapableConfig)
-                        .build())
                 .asyncKeyValueServiceFactory(new DefaultCassandraAsyncKeyValueServiceFactory(
                         new DefaultCqlClientFactory(getClusterBuilderWithProxy(proxyAddress))))
                 .build();

@@ -105,18 +105,18 @@ public class CassandraClientPoolTest {
         refreshableRuntimeConfig = Refreshable.only(runtimeConfig);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
-        when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
+        when(runtimeConfig.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
         when(config.credentials()).thenReturn(mock(CassandraCredentialsConfig.class));
         when(config.getKeyspaceOrThrow()).thenReturn("ks");
-        blacklist = new Blacklist(config);
+        blacklist = new Blacklist(config, Refreshable.only(runtimeConfig.unresponsiveHostBackoffTimeSeconds()));
 
         doAnswer(invocation -> {
                     Set<InetSocketAddress> inetSocketAddresses =
-                            config.servers().accept(new ThriftHostsExtractingVisitor());
+                            runtimeConfig.servers().accept(new ThriftHostsExtractingVisitor());
                     return inetSocketAddresses.stream().map(CassandraServer::of).collect(Collectors.toSet());
                 })
                 .when(cassandra)
-                .getInitialServerList();
+                .getCurrentServerListFromConfig();
         doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
                 .when(cassandra)
                 .addPool(any());
@@ -279,7 +279,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void attemptsShouldBeCountedPerHost() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder().addThriftHosts().build());
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
@@ -301,7 +301,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnStartup() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy())
                         .build());
@@ -315,7 +315,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnRefresh() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy())
                         .build());
@@ -333,7 +333,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnStartup() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy())
                         .build());
@@ -347,7 +347,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnRefresh() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy())
                         .build());
@@ -365,7 +365,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy())
                         .build());
@@ -382,7 +382,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy())
                         .build());
@@ -503,7 +503,7 @@ public class CassandraClientPoolTest {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Unpacking it seems less readable
     private CassandraClientPoolImpl clientPoolWith(
             Set<InetSocketAddress> servers, Set<CassandraServer> serversInPool, Optional<Exception> failureMode) {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addAllThriftHosts(servers)
                         .build());

@@ -170,7 +170,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             boolean initializeAsync) {
-        Blacklist blacklist = new Blacklist(config);
+        Blacklist blacklist = new Blacklist(
+                config, runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds));
         CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
                 () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
                 () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
@@ -316,7 +317,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (config.autoRefreshNodes()) {
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
-            setServersInPoolTo(cassandra.getInitialServerList());
+            setServersInPoolTo(cassandra.getCurrentServerListFromConfig());
         }
 
         cassandra.debugLogStateOfPool();

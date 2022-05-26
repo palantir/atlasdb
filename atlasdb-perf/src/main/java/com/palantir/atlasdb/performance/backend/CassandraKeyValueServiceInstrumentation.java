@@ -19,6 +19,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -36,7 +37,6 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableDefaultConfig.builder().addThriftHosts(addr).build())
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -44,17 +44,19 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
                         .password("cassandra")
                         .build())
                 .ssl(false)
-                .replicationFactor(1)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
                 .autoRefreshNodes(false)
                 .build();
     }
 
     @Override
     public Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(InetSocketAddress addr) {
-        return Optional.of(CassandraKeyValueServiceRuntimeConfig.getDefault());
+        return Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .servers(ImmutableDefaultConfig.builder().addThriftHosts(addr).build())
+                .replicationFactor(1)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
+                .build());
     }
 
     @Override

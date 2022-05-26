@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -23,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.refreshable.Refreshable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,7 +44,7 @@ public class GetCandidateRowsForSweeping {
     private final TableReference table;
     private final CandidateCellForSweepingRequest request;
     private final int timestampsBatchSize;
-    private CassandraKeyValueServiceConfig config;
+    private Refreshable<Integer> sweepReadThreadsRefreshable;
     private final int valuesBatchSize;
 
     private List<CellWithTimestamps> cellTimestamps;
@@ -56,13 +56,13 @@ public class GetCandidateRowsForSweeping {
             RowGetter rowGetter,
             TableReference table,
             CandidateCellForSweepingRequest request,
-            CassandraKeyValueServiceConfig config) {
+            Refreshable<Integer> sweepReadThreadsRefreshable) {
         this.table = table;
         this.cqlExecutor = cqlExecutor;
         this.rowGetter = rowGetter;
         this.request = request;
         this.valuesLoader = valuesLoader;
-        this.config = config;
+        this.sweepReadThreadsRefreshable = sweepReadThreadsRefreshable;
 
         this.timestampsBatchSize = request.batchSizeHint().orElse(DEFAULT_TIMESTAMPS_BATCH_SIZE);
         // TODO(nziebart): this should probably be configurable
@@ -82,7 +82,12 @@ public class GetCandidateRowsForSweeping {
 
     private void fetchCellTimestamps() {
         cellTimestamps = new GetCellTimestamps(
-                        cqlExecutor, rowGetter, table, request.startRowInclusive(), timestampsBatchSize, config)
+                        cqlExecutor,
+                        rowGetter,
+                        table,
+                        request.startRowInclusive(),
+                        timestampsBatchSize,
+                        sweepReadThreadsRefreshable)
                 .execute();
     }
 

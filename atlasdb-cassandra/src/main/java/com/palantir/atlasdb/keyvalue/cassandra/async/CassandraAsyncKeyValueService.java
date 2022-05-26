@@ -91,7 +91,11 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
 
     @Override
     public void close() {
-        cqlClientContainer.close();
+        try {
+            cqlClientContainer.close();
+        } catch (Exception e) {
+            log.warn("Failed to close the CQL Client Container", e);
+        }
         futuresCombiner.close();
     }
 

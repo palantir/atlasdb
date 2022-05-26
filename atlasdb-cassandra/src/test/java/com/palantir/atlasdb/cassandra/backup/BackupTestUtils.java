@@ -24,7 +24,7 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
@@ -66,12 +66,12 @@ final class BackupTestUtils {
         when(cqlSession.getMetadata()).thenReturn(cqlMetadata);
     }
 
-    static void mockConfig(CassandraKeyValueServiceConfig config) {
+    static void mockConfig(CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
         CassandraServersConfigs.CqlCapableConfig cqlCapableConfig = ImmutableCqlCapableConfig.builder()
                 .addAllCqlHosts(HOSTS)
                 .addAllThriftHosts(HOSTS)
                 .build();
-        when(config.servers()).thenReturn(cqlCapableConfig);
+        when(runtimeConfig.servers()).thenReturn(cqlCapableConfig);
     }
 
     static List<TableMetadata> mockTableMetadatas(KeyspaceMetadata keyspaceMetadata, String... tableNames) {

@@ -17,14 +17,12 @@
 package com.palantir.atlasdb.containers;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.refreshable.Refreshable;
 import java.io.IOException;
 import java.net.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -86,7 +84,7 @@ public class UninitializedCassandraResource extends ExternalResource {
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 config,
-                Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault()),
+                containerInstance.getRuntimeConfig(),
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 true);
     }

@@ -40,7 +40,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainerImpl;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
@@ -183,8 +183,11 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     private CassandraKeyValueServiceConfig getConfigWithAsyncFactoryUsingClosedSession(
             boolean useSpyPreparedStatement) {
         CassandraKeyValueServiceConfig config = CASSANDRA_RESOURCE.getConfig();
+        Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig = CASSANDRA_RESOURCE.getRuntimeConfig();
         Cluster cluster = spy(new ClusterFactory(CASSANDRA_RESOURCE.getClusterBuilderWithProxy())
-                .constructCluster(CassandraClusterConfig.of(config), config.servers()));
+                .constructCluster(
+                        CassandraClusterConfig.of(config, runtimeConfig.get()),
+                        runtimeConfig.get().servers()));
         Session session = spy(cluster.connect());
 
         doReturn(session).when(cluster).connect();
@@ -210,7 +213,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
         doReturn(true).when(cqlClient).isValid();
         CassandraAsyncKeyValueServiceFactory cassandraAsyncKeyValueServiceFactory =
                 new DefaultCassandraAsyncKeyValueServiceFactory((_ignored1, _ignored2, _ignored3, _ignored4) ->
-                        ReloadingCloseableContainer.of(Refreshable.only(0), _ignored -> cqlClient));
+                        ReloadingCloseableContainerImpl.of(Refreshable.only(0), _ignored -> cqlClient));
 
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(CASSANDRA_RESOURCE.getConfig())

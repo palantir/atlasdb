@@ -189,7 +189,7 @@ public class CassandraService implements AutoCloseable {
 
             // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
             // conditions where the entire pool becomes invalid between refreshes.
-            Set<CassandraServer> resolvedConfigAddresses = getInitialServerList();
+            Set<CassandraServer> resolvedConfigAddresses = getCurrentServerListFromConfig();
 
             Set<CassandraServer> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream()
                     .flatMap(Collection::stream)
@@ -203,15 +203,15 @@ public class CassandraService implements AutoCloseable {
      * It is expected that config provides list of servers that are directly reachable and do not require special IP
      * resolution.
      * */
-    public Set<CassandraServer> getInitialServerList() {
-        Set<InetSocketAddress> inetSocketAddresses = getServersFromConfig();
+    public Set<CassandraServer> getCurrentServerListFromConfig() {
+        Set<InetSocketAddress> inetSocketAddresses = getServersSocketAddressesFromConfig();
         return inetSocketAddresses.stream()
                 .map(cassandraHost -> CassandraServer.of(cassandraHost.getHostString(), cassandraHost))
                 .collect(Collectors.toSet());
     }
 
-    private Set<InetSocketAddress> getServersFromConfig() {
-        return config.servers().accept(new ThriftHostsExtractingVisitor());
+    private Set<InetSocketAddress> getServersSocketAddressesFromConfig() {
+        return runtimeConfig.get().servers().accept(new ThriftHostsExtractingVisitor());
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
@@ -315,7 +315,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     private Set<InetSocketAddress> getAllKnownHosts() {
-        return ImmutableSet.copyOf(Sets.union(getProxiesFromCurrentPool(), getServersFromConfig()));
+        return ImmutableSet.copyOf(Sets.union(getProxiesFromCurrentPool(), getServersSocketAddressesFromConfig()));
     }
 
     private Set<InetSocketAddress> getProxiesFromCurrentPool() {
@@ -517,7 +517,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void cacheInitialCassandraHosts() {
-        Set<CassandraServer> thriftSocket = getInitialServerList();
+        Set<CassandraServer> thriftSocket = getCurrentServerListFromConfig();
 
         cassandraHosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(CassandraServer::cassandraHostName))

@@ -247,7 +247,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, config, runtimeConfig, StartupChecks.RUN, new Blacklist(config));
+                metricsManager,
+                config,
+                runtimeConfig,
+                StartupChecks.RUN,
+                new Blacklist(
+                        config,
+                        runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)));
 
         return createOrShutdownClientPool(
                 metricsManager,
@@ -367,13 +373,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config);
+            CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config, runtimeConfig.get());
             AsyncKeyValueService asyncKeyValueService = config.asyncKeyValueServiceFactory()
                     .constructAsyncKeyValueService(
                             metricsManager,
                             config.getKeyspaceOrThrow(),
                             clusterConfig,
-                            Refreshable.only(config.servers()),
+                            runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::servers),
                             initializeAsync);
 
             return createAndInitialize(
@@ -420,7 +426,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createBlockingThreadpool(config, config.servers(), metricsManager));
+        super(createBlockingThreadpool(config, runtimeConfig.get().servers(), metricsManager));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -434,7 +440,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfig);
         this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistencyProvider);
         this.cellValuePutter = new CellValuePutter(
-                config,
+                runtimeConfig,
                 clientPool,
                 taskRunner,
                 wrappingQueryRunner,
@@ -567,7 +573,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 String dc = dcs.iterator().next();
                 if (strategyOptions.get(dc) != null) {
                     int currentRf = Integer.parseInt(strategyOptions.get(dc));
-                    if (currentRf == config.replicationFactor()) {
+                    if (currentRf == runtimeConfig.get().replicationFactor()) {
                         if (currentRf == 2 && config.clusterMeetsNormalConsistencyGuarantees()) {
                             log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
                             readConsistencyProvider.lowerConsistencyLevelToOne();
@@ -628,7 +634,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             int rowCount = 0;
             final Map<Cell, Value> result = new HashMap<>();
-            int fetchBatchCount = config.fetchBatchCount();
+            int fetchBatchCount = runtimeConfig.get().fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
                 result.putAll(getAllCellsForRows(host, tableRef, batch, startTs));
@@ -1155,7 +1161,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     protected int getMultiPutBatchCount() {
-        return config.mutationBatchCount();
+        return runtimeConfig.get().mutationBatchCount();
     }
 
     /**
@@ -1393,7 +1399,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 rowGetter,
                 tableRef,
                 request,
-                config);
+                runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::sweepReadThreads));
     }
 
     /**
@@ -2043,7 +2049,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private boolean isQuorumAvailable(int countUnreachableNodes) {
-        int replicationFactor = config.replicationFactor();
+        int replicationFactor = runtimeConfig.get().replicationFactor();
         return countUnreachableNodes < (replicationFactor + 1) / 2;
     }
 

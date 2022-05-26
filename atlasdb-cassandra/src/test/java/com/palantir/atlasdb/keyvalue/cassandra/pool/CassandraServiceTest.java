@@ -24,6 +24,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -278,23 +279,26 @@ public class CassandraServiceTest {
     private CassandraService clientPoolWithParams(
             Set<CassandraServer> servers, Set<CassandraServer> serversInPool, double weighting) {
         config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .replicationFactor(3)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username("username")
                         .password("password")
-                        .build())
-                .servers(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(
-                                servers.stream().map(CassandraServer::proxy).collect(Collectors.toSet()))
                         .build())
                 .localHostWeighting(weighting)
                 .consecutiveAbsencesBeforePoolRemoval(1)
                 .keyspace("ks")
                 .build();
         Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig =
-                Refreshable.only(CassandraKeyValueServiceRuntimeConfig.getDefault());
+                Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .servers(ImmutableDefaultConfig.builder()
+                                .addAllThriftHosts(servers.stream()
+                                        .map(CassandraServer::proxy)
+                                        .collect(Collectors.toSet()))
+                                .build())
+                        .replicationFactor(3)
+                        .build());
 
-        blacklist = new Blacklist(config);
+        blacklist = new Blacklist(
+                config, runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds));
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraService service = new CassandraService(

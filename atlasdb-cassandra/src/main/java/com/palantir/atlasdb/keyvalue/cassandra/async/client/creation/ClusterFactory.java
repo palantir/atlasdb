@@ -32,6 +32,7 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
@@ -159,14 +160,15 @@ public class ClusterFactory {
             return ImmutableCassandraClusterConfig.builder();
         }
 
-        static CassandraClusterConfig of(CassandraKeyValueServiceConfig config) {
+        static CassandraClusterConfig of(
+                CassandraKeyValueServiceConfig config, CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
             return builder()
                     .autoRefreshNodes(config.autoRefreshNodes())
                     .cqlPoolTimeoutMillis(config.cqlPoolTimeoutMillis())
                     .poolSize(config.poolSize())
                     .socketQueryTimeoutMillis(config.socketQueryTimeoutMillis())
                     .credentials(config.credentials())
-                    .fetchBatchCount(config.fetchBatchCount())
+                    .fetchBatchCount(runtimeConfig.fetchBatchCount())
                     .usingSsl(config.usingSsl())
                     .sslConfiguration(config.sslConfiguration())
                     .build();
