@@ -27,4 +27,6 @@ public interface CqlClient extends AutoCloseable {
 
     @Override
     void close();
+
+    boolean isValid();
 }

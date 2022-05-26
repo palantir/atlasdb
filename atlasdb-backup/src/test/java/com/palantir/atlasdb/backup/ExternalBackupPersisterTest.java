@@ -27,9 +27,13 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LockToken;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Rule;
@@ -99,6 +103,22 @@ public class ExternalBackupPersisterTest {
         externalBackupPersister.storeCompletedBackup(ATLAS_SERVICE, completedBackup);
 
         assertThat(externalBackupPersister.getCompletedBackup(ATLAS_SERVICE)).contains(completedBackup);
+    }
+
+    @Test
+    public void testLegacyCasing() throws IOException {
+        String legacyState = "{\"value\":{\"value\":{\"timestampToTransactionsTableSchemaVersion\":{\"timestampMappings"
+            + "\":[{\"longRange\":{\"lower-endpoint\":1316020054,\"lower-bound-type\":\"CLOSED\"},\"value\":3},{\"longRange\":{\"lower-endpoint\":1,\"lower-bound-type\":\"CLOSED\",\"upper-endpoint\":1316020054,\"upper-bound-type\":\"OPEN\"},\"value\":1}]}},\"bound\":1318613869}}";
+        File tempFile = tempFolder.newFile();
+        Files.copy(
+                new ByteArrayInputStream(legacyState.getBytes(StandardCharsets.UTF_8)),
+                tempFile.toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
+
+        InternalSchemaMetadataState parsed = externalBackupPersister
+                .loadFromFile(ATLAS_SERVICE, tempFile, InternalSchemaMetadataState.class)
+                .get();
+        assertThat(parsed).isNotNull();
     }
 
     private Path getPath(AtlasService atlasService) {

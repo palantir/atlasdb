@@ -16,6 +16,7 @@ dependencies {
     implementation group: 'io.netty', name: 'netty-handler-proxy'
 
     implementation 'com.datastax.cassandra:cassandra-driver-core'
+    implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'commons-io:commons-io'

@@ -28,7 +28,7 @@ import javax.sql.DataSource;
 
 public class PaxosLogHistoryProgressTracker {
     // VisibleForTesting - used in corruption-detection tests
-    public static final int MAX_ROWS_ALLOWED = 250;
+    public static final int MAX_ROWS_ALLOWED = 10;
 
     private final LogVerificationProgressState logVerificationProgressState;
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;

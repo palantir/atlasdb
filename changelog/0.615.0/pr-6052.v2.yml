@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix NPE that can be encountered during restores.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6052

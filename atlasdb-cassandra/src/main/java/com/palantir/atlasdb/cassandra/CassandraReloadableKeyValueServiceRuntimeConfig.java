@@ -33,7 +33,7 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
         this.runtimeConfig = runtimeConfig;
     }
 
-    static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
+    public static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
             CassandraKeyValueServiceConfig installConfig,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
         return runtimeConfigRefreshable.map(runtimeConfig ->
@@ -47,10 +47,39 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
 
     @Override
     public CassandraServersConfig servers() {
-        if (installConfig.servers().numberOfThriftHosts() > 0) {
-            return installConfig.servers();
-        }
-        return runtimeConfig.servers();
+        return installConfig.servers().orElseGet(runtimeConfig::servers);
+    }
+
+    @Override
+    public int unresponsiveHostBackoffTimeSeconds() {
+        return installConfig
+                .unresponsiveHostBackoffTimeSeconds()
+                .orElseGet(runtimeConfig::unresponsiveHostBackoffTimeSeconds);
+    }
+
+    @Override
+    public int mutationBatchCount() {
+        return installConfig.mutationBatchCount().orElseGet(runtimeConfig::mutationBatchCount);
+    }
+
+    @Override
+    public int mutationBatchSizeBytes() {
+        return installConfig.mutationBatchSizeBytes().orElseGet(runtimeConfig::mutationBatchSizeBytes);
+    }
+
+    @Override
+    public int fetchBatchCount() {
+        return installConfig.fetchBatchCount().orElseGet(runtimeConfig::fetchBatchCount);
+    }
+
+    @Override
+    public Integer sweepReadThreads() {
+        return installConfig.sweepReadThreads().orElseGet(runtimeConfig::sweepReadThreads);
+    }
+
+    @Override
+    public int replicationFactor() {
+        return installConfig.replicationFactor().orElseGet(runtimeConfig::replicationFactor);
     }
 
     public int concurrentGetRangesThreadPoolSize() {
@@ -71,6 +100,10 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
         checkArgument(servers().numberOfThriftHosts() > 0, "'servers' must have at least one defined host");
     }
 
+    private void checkNonNegativeReplicationFactor() {
+        checkArgument(replicationFactor() >= 0, "'replicationFactor' must be non-negative");
+    }
+
     private void checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool() {
         installConfig
                 .sharedResourcesConfig()
@@ -83,6 +116,7 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
 
     private static CassandraReloadableKeyValueServiceRuntimeConfig validate(
             CassandraReloadableKeyValueServiceRuntimeConfig instance) {
+        instance.checkNonNegativeReplicationFactor();
         instance.checkPositiveNumberOfThriftHosts();
         instance.checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool();
         return instance;

@@ -110,7 +110,9 @@ public class LockAcquirer implements AutoCloseable {
                 unlockAll();
             });
             result.onTimeout(() -> {
-                log.info("Lock request timed out", SafeArg.of("requestId", requestId));
+                if (log.isDebugEnabled()) {
+                    log.debug("Lock request timed out", SafeArg.of("requestId", requestId));
+                }
                 unlockAll();
             });
         }

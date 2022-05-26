@@ -85,10 +85,12 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                 UnsafeArg.of("references", changedWatches.references())));
         changes.ifPresent(this::logLockWatchEvent);
         Set<LockWatchReference> allReferences = watches.get().references();
-        log.info(
-                "All references currently watched",
-                SafeArg.of("sizeOfReferences", allReferences.size()),
-                UnsafeArg.of("allWatchedTables", allReferences));
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "All references currently watched",
+                    SafeArg.of("sizeOfReferences", allReferences.size()),
+                    UnsafeArg.of("allWatchedTables", allReferences));
+        }
     }
 
     @Override

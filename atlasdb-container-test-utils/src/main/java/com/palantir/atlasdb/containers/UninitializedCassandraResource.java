@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.containers;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -85,7 +84,7 @@ public class UninitializedCassandraResource extends ExternalResource {
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
+                containerInstance.getRuntimeConfig(),
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 true);
     }

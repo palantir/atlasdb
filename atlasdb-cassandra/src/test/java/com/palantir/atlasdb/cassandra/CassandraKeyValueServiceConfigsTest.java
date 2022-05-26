@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -40,19 +41,11 @@ public class CassandraKeyValueServiceConfigsTest {
             .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
-                    .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
                     .keyspace(KEYSPACE)
-                    .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
 
@@ -86,11 +79,7 @@ public class CassandraKeyValueServiceConfigsTest {
     public void otherPropertiesConservedWhenAddingKeyspace() {
         CassandraKeyValueServiceConfig newConfig =
                 CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
-        assertThat(newConfig.replicationFactor()).isEqualTo(1);
-        assertThat(newConfig.servers())
-                .isEqualTo(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(SERVERS)
-                        .build());
+        assertThat(newConfig.credentials()).isEqualTo(CREDENTIALS);
     }
 
     @Test
@@ -110,6 +99,10 @@ public class CassandraKeyValueServiceConfigsTest {
                         .singleQueryLoadBatchLimit(424242)
                         .build())
                 .conservativeRequestExceptionHandler(true)
+                .servers(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(SERVERS)
+                        .build())
+                .replicationFactor(1)
                 .build();
 
         URL configUrl =
@@ -122,8 +115,9 @@ public class CassandraKeyValueServiceConfigsTest {
     }
 
     @Test
-    public void canParseRuntimeDeprecatedConfigType() throws IOException {
-        KeyValueServiceRuntimeConfig config = AtlasDbConfigs.OBJECT_MAPPER.readValue(
-                "type: CassandraKeyValueServiceRuntimeConfig", KeyValueServiceRuntimeConfig.class);
+    public void canParseRuntimeDeprecatedConfigType() {
+        assertThatNoException()
+                .isThrownBy(() -> AtlasDbConfigs.OBJECT_MAPPER.readValue(
+                        "type: CassandraKeyValueServiceRuntimeConfig", KeyValueServiceRuntimeConfig.class));
     }
 }

@@ -18,9 +18,11 @@ package com.palantir.atlasdb.performance.backend;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 
 public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
@@ -34,6 +36,11 @@ public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstr
                 .ddl(ImmutablePostgresDdlConfig.builder().build())
                 .connection(getImmutablePostgresConnectionConfig(addr))
                 .build();
+    }
+
+    @Override
+    public Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(InetSocketAddress addr) {
+        return Optional.empty();
     }
 
     private ImmutablePostgresConnectionConfig getImmutablePostgresConnectionConfig(InetSocketAddress addr) {

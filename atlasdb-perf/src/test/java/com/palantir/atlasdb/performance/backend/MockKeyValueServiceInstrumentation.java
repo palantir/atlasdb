@@ -16,7 +16,9 @@
 package com.palantir.atlasdb.performance.backend;
 
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 import org.mockito.Mockito;
 
 public class MockKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
@@ -28,6 +30,11 @@ public class MockKeyValueServiceInstrumentation extends KeyValueServiceInstrumen
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return Mockito.mock(KeyValueServiceConfig.class);
+    }
+
+    @Override
+    public Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(InetSocketAddress addr) {
+        return Optional.of(Mockito.mock(KeyValueServiceRuntimeConfig.class));
     }
 
     @Override

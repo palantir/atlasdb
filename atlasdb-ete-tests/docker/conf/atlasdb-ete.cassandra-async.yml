@@ -41,3 +41,10 @@ atlasdb:
       keyStorePath: "var/security/keyStore.jks"
       keyStorePassword: "keystore"
       trustStorePath: "var/security/trustStore.jks"
+
+atlasDbRuntime:
+  keyValueService:
+    type: cassandra
+    servers:
+      - cassandra:9160
+    replicationFactor: 1

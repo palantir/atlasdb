@@ -26,7 +26,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import com.palantir.atlasdb.cassandra.ReloadingCqlClusterContainer;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainerImpl;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -57,7 +58,7 @@ public class CassandraRepairHelper {
 
     private final Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFactory;
     private final Function<AtlasService, Refreshable<CassandraServersConfig>> refreshableCassandraServersConfigFactory;
-    private final LoadingCache<AtlasService, ReloadingCqlClusterContainer> cqlClusterContainers;
+    private final LoadingCache<AtlasService, ReloadingCloseableContainer<CqlCluster>> cqlClusterContainers;
     private final KvsRunner kvsRunner;
 
     public CassandraRepairHelper(
@@ -76,18 +77,26 @@ public class CassandraRepairHelper {
     }
 
     private static void onRemoval(
-            AtlasService atlasService, ReloadingCqlClusterContainer cqlClusterContainer, RemovalCause _removalCause) {
-        log.info("Closing cql cluster", SafeArg.of("atlasService", atlasService));
-        cqlClusterContainer.close();
+            AtlasService atlasService,
+            ReloadingCloseableContainer<CqlCluster> reloadingCloseableContainer,
+            RemovalCause _removalCause) {
+        log.info("Closing cql cluster container", SafeArg.of("atlasService", atlasService));
+        try {
+            reloadingCloseableContainer.close();
+        } catch (Exception e) {
+            log.warn("Failed to close cql cluster container", SafeArg.of("atlasService", atlasService), e);
+        }
     }
 
-    private ReloadingCqlClusterContainer getCqlClusterUncached(AtlasService atlasService) {
+    private ReloadingCloseableContainer<CqlCluster> getCqlClusterUncached(AtlasService atlasService) {
         CassandraClusterConfig cassandraClusterConfig = cassandraClusterConfigFactory.apply(atlasService);
         Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable =
                 refreshableCassandraServersConfigFactory.apply(atlasService);
 
-        return ReloadingCqlClusterContainer.of(
-                cassandraClusterConfig, cassandraServersConfigRefreshable, atlasService.getNamespace());
+        return ReloadingCloseableContainerImpl.of(
+                cassandraServersConfigRefreshable,
+                cassandraServersConfig ->
+                        CqlCluster.create(cassandraClusterConfig, cassandraServersConfig, atlasService.getNamespace()));
     }
 
     public void repairInternalTables(AtlasService atlasService, BiConsumer<String, RangesForRepair> repairTable) {
@@ -117,7 +126,10 @@ public class CassandraRepairHelper {
                 getRangesForRepairByTable(atlasService, transactionsTableInteractions);
 
         tokenRangesForRepair.forEach((table, ranges) -> {
-            log.info("Repairing ranges for table", SafeArg.of("table", table));
+            log.info(
+                    "Repairing ranges for table",
+                    SafeArg.of("namespace", atlasService.getNamespace()),
+                    SafeArg.of("table", table));
             repairTable.accept(table, ranges);
         });
     }

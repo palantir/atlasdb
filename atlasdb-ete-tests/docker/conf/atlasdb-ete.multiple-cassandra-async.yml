@@ -14,16 +14,7 @@ atlasdb:
     enableSweepQueueWrites: false
   keyValueService:
     type: cassandra
-    servers:
-      type: cqlCapable
-      hosts:
-        - cassandra1
-        - cassandra2
-        - cassandra3
-      cqlPort: 9042
-      thriftPort: 9160
     ssl: false
-    replicationFactor: 3
 
   initializeAsync: true
   namespace: atlasete
@@ -39,3 +30,16 @@ atlasdb:
       keyStorePath: "var/security/keyStore.jks"
       keyStorePassword: "keystore"
       trustStorePath: "var/security/trustStore.jks"
+
+atlasDbRuntime:
+  keyValueService:
+    type: cassandra
+    servers:
+      type: cqlCapable
+      hosts:
+        - cassandra1
+        - cassandra2
+        - cassandra3
+      cqlPort: 9042
+      thriftPort: 9160
+    replicationFactor: 3
