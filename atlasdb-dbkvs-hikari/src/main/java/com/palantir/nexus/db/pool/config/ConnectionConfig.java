@@ -24,6 +24,7 @@ import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.InterceptorDataSource;
 import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.SQLExceptionOverride;
 import com.zaxxer.hikari.util.DriverDataSource;
 import java.sql.Connection;
 import java.util.Optional;
@@ -79,8 +80,8 @@ public abstract class ConnectionConfig {
 
     /**
      * STIG O121-C2-016500 and Fedramp requires idle connections are closed within 15 mins.
-     * Because typically minimum pool sizes are > 0, we frequently create connections that are
-     * never used. Hence, this setting needs to be < 15 min - "a few seconds" (recommended in
+     * Because typically minimum pool sizes are @gt; 0, we frequently create connections that are
+     * never used. Hence, this setting needs to be @lt; 15 min - "a few seconds" (recommended in
      * Hikari docs to allow for client side latency). 900 - a dozen = 888.
      */
     @Value.Default
@@ -129,6 +130,11 @@ public abstract class ConnectionConfig {
         return String.format("%s-%s", getConnectionPoolIdentifier(), getConnId());
     }
 
+    @Value.Default
+    public boolean testConnectionBeforeHandout() {
+        return true;
+    }
+
     /**
      * This is JsonIgnore'd because it doesn't serialise. Serialisation is needed for atlasdb-dropwizard-bundle.
      */
@@ -168,8 +174,14 @@ public abstract class ConnectionConfig {
         // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
 
-        // TODO (bullman): See if driver supports JDBC4 (isValid()) and use it.
-        config.setConnectionTestQuery(getTestQuery());
+        if (getTestQuery() != null && !getTestQuery().isEmpty()) {
+            config.setConnectionTestQuery(getTestQuery());
+        }
+
+        if (getSqlExceptionOverrideClass().isPresent()) {
+            config.setExceptionOverrideClassName(
+                    getSqlExceptionOverrideClass().get().getName());
+        }
 
         if (!props.isEmpty()) {
             config.setDataSourceProperties(props);
@@ -190,5 +202,10 @@ public abstract class ConnectionConfig {
                 visitor.visit(conn);
             }
         });
+    }
+
+    @JsonIgnore
+    public Optional<Class<? extends SQLExceptionOverride>> getSqlExceptionOverrideClass() {
+        return Optional.empty();
     }
 }

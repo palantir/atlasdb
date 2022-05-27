@@ -25,7 +25,10 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
+import com.zaxxer.hikari.SQLExceptionOverride;
 import java.io.File;
+import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -87,7 +90,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Override
     @Value.Default
     public String getTestQuery() {
-        return "SELECT 1 FROM dual";
+        return "";
     }
 
     public abstract Optional<String> getSid();
@@ -249,5 +252,31 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         String namespaceOverride();
 
         class Builder extends ImmutableServiceNameConfiguration.Builder {}
+    }
+
+    @Override
+    public Optional<Class<? extends SQLExceptionOverride>> getSqlExceptionOverrideClass() {
+        return Optional.of(OracleSqlExceptionOverride.class);
+    }
+
+    public static class OracleSqlExceptionOverride implements SQLExceptionOverride {
+
+        // Must be public as Hikari instantiates via reflection
+        public OracleSqlExceptionOverride() {}
+
+        /*
+         * See https://github.com/brettwooldridge/HikariCP/pull/1838
+         * HikariCP introduced a "bug" in https://github.com/brettwooldridge/HikariCP/issues/1308
+         * which treats QueryTimeout as a connection close + evict event.
+         * This is not correct - SQLTimeoutException inherits from SQLTransientException
+         * and therefore Hikari should not close the connection. We have existing tests in a large
+         * internal product that depend on this behaviour.
+         */
+        @java.lang.Override
+        public SQLExceptionOverride.Override adjudicate(SQLException sqlException) {
+            return sqlException instanceof SQLTimeoutException
+                    ? SQLExceptionOverride.Override.DO_NOT_EVICT
+                    : SQLExceptionOverride.super.adjudicate(sqlException);
+        }
     }
 }
