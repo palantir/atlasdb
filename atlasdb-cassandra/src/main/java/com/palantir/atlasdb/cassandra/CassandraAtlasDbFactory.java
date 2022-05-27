@@ -34,8 +34,7 @@ import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
@@ -46,9 +45,6 @@ import java.util.function.LongSupplier;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
-    private static SafeLogger log = SafeLoggerFactory.get(CassandraAtlasDbFactory.class);
-    private volatile CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
-            CassandraKeyValueServiceRuntimeConfig.getDefault();
 
     @Override
     public KeyValueService createRawKeyValueService(
@@ -106,20 +102,23 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @VisibleForTesting
     Refreshable<CassandraKeyValueServiceRuntimeConfig> preprocessKvsRuntimeConfig(
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
-        return runtimeConfig.map(maybeConfig -> maybeConfig
-                .map(config -> {
-                    if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
-                        log.error(
-                                "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
-                                        + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
-                                        + " CassandraKeyValueServiceRuntimeConfig.",
-                                SafeArg.of("configClass", config.getClass()));
-                        return latestValidRuntimeConfig;
-                    }
-                    latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
-                    return latestValidRuntimeConfig;
-                })
-                .orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault));
+        Refreshable<KeyValueServiceRuntimeConfig> refreshableConfig = runtimeConfig.map(
+                maybeConfig -> maybeConfig.orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault));
+        return RefreshableWithInitialDefault.of(
+                refreshableConfig,
+                CassandraAtlasDbFactory::castOrThrow,
+                CassandraKeyValueServiceRuntimeConfig.getDefault());
+    }
+
+    private static CassandraKeyValueServiceRuntimeConfig castOrThrow(Object value) {
+        if (!(value instanceof CassandraKeyValueServiceRuntimeConfig)) {
+            throw new SafeIllegalArgumentException(
+                    "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
+                            + " type CassandraKeyValueServiceRuntimeConfig. Using latest valid"
+                            + " CassandraKeyValueServiceRuntimeConfig.",
+                    SafeArg.of("configClass", value.getClass()));
+        }
+        return (CassandraKeyValueServiceRuntimeConfig) value;
     }
 
     @VisibleForTesting
