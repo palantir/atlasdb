@@ -17,45 +17,61 @@ package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.refreshable.Refreshable;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Optional;
 import org.junit.Test;
 
 public class CassandraKeyValueServiceConfigsTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
-    private static final ImmutableSet<InetSocketAddress> SERVERS =
+    private static final ImmutableSet<InetSocketAddress> SERVERS_ADDRESSES =
             ImmutableSet.of(InetSocketAddress.createUnresolved("foo", 42));
+    public static final ImmutableDefaultConfig SERVERS = ImmutableDefaultConfig.builder()
+            .addAllThriftHosts(SERVERS_ADDRESSES)
+            .build();
     private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
             .username("username")
             .password("password")
             .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
+                    .replicationFactor(10)
+                    .servers(SERVERS)
                     .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
+                    .replicationFactor(10)
+                    .servers(SERVERS)
                     .keyspace(KEYSPACE)
                     .credentials(CREDENTIALS)
                     .build();
 
+    private static final CassandraKeyValueServiceConfigs CONFIGS_WITHOUT_KEYSPACE =
+            CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                    CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()));
+
+    private static final CassandraKeyValueServiceConfigs CONFIGS_WITH_KEYSPACE =
+            CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                    CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()));
+
     @Test
-    public void canDeserialize() throws IOException, URISyntaxException {
+    public void canDeserialize() throws IOException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(SERVERS)
-                        .build())
-                .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
+                .servers(SERVERS)
+                .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS_ADDRESSES)))
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
                 .build();
@@ -69,24 +85,73 @@ public class CassandraKeyValueServiceConfigsTest {
     }
 
     @Test
-    public void canAddKeyspace() {
-        CassandraKeyValueServiceConfig newConfig =
-                CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
-        assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
+    public void copyWithKeyspaceCanAddKeyspace() {
+        CassandraKeyValueServiceConfigs newConfigs = CONFIGS_WITHOUT_KEYSPACE.copyWithKeyspace(KEYSPACE);
+        assertThat(newConfigs.installConfig().getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
-    public void otherPropertiesConservedWhenAddingKeyspace() {
-        CassandraKeyValueServiceConfig newConfig =
-                CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
-        assertThat(newConfig.credentials()).isEqualTo(CREDENTIALS);
+    public void copyWithKeypsacePreserversOtherProperties() {
+        CassandraKeyValueServiceConfigs newConfigs = CONFIGS_WITHOUT_KEYSPACE.copyWithKeyspace(KEYSPACE);
+        assertThat(newConfigs.installConfig().credentials()).isEqualTo(CREDENTIALS);
     }
 
     @Test
-    public void canReplaceKeyspace() {
-        CassandraKeyValueServiceConfig newConfig =
-                CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITH_KEYSPACE, KEYSPACE_2);
-        assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE_2);
+    public void copyWithKeypsaceCanReplaceKeyspace() {
+        CassandraKeyValueServiceConfigs newConfigs = CONFIGS_WITHOUT_KEYSPACE.copyWithKeyspace(KEYSPACE_2);
+        assertThat(newConfigs.installConfig().getKeyspaceOrThrow()).isEqualTo(KEYSPACE_2);
+    }
+
+    @Test
+    public void fromKeyValueServiceConfigsOrThrowThrowsWhenPreprocessingNonCassandraKvsConfig() {
+        assertThatThrownBy(() -> {
+                    KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
+                    CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                            keyValueServiceConfig, Refreshable.only(Optional.empty()));
+                })
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void fromKeyValueServiceConfigsReturnsEmptyWhenPreprocessingNonCassandraKvsConfig() {
+        KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
+        assertThat(CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigs(
+                        keyValueServiceConfig, Refreshable.only(Optional.empty())))
+                .isEmpty();
+    }
+
+    @Test
+    public void copyWithResolvedKeyspaceOrThrowThrowsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
+        assertThatThrownBy(() -> CONFIGS_WITHOUT_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.empty()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void copyWithResolvedKeyspaceOrThrowThrowsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
+        assertThatThrownBy(() -> CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.of(KEYSPACE_2)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void copyWithResolvedKeyspaceOrThrowResolvesConfigWithOriginalKeyspaceIfNoNamespaceProvided() {
+        CassandraKeyValueServiceConfigs newConfigs =
+                CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.empty());
+        assertThat(newConfigs.installConfig().getKeyspaceOrThrow())
+                .isEqualTo(CONFIG_WITH_KEYSPACE.getKeyspaceOrThrow());
+    }
+
+    @Test
+    public void copyWithResolvedKeyspaceOrThrowResolvesConfigWithNamespaceIfNoKeyspaceProvided() {
+        CassandraKeyValueServiceConfigs newConfigs =
+                CONFIGS_WITHOUT_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.of(KEYSPACE));
+        assertThat(newConfigs.installConfig().getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
+    }
+
+    @Test
+    public void copyWithResolvedKeyspaceOrThrowResolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
+        CassandraKeyValueServiceConfigs newConfigs =
+                CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.of(KEYSPACE));
+        assertThat(newConfigs.installConfig().getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
@@ -99,9 +164,7 @@ public class CassandraKeyValueServiceConfigsTest {
                         .singleQueryLoadBatchLimit(424242)
                         .build())
                 .conservativeRequestExceptionHandler(true)
-                .servers(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(SERVERS)
-                        .build())
+                .servers(SERVERS)
                 .replicationFactor(1)
                 .build();
 
@@ -112,6 +175,28 @@ public class CassandraKeyValueServiceConfigsTest {
                 new File(configUrl.getPath()), CassandraKeyValueServiceRuntimeConfig.class);
 
         assertThat(deserializedConfig).isEqualTo(expectedConfig);
+    }
+
+    @Test
+    public void fromKeyValueServiceConfigMergesInstallAndRuntime() {
+        CassandraKeyValueServiceConfigs configs = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                CONFIG_WITHOUT_KEYSPACE,
+                Refreshable.only(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .replicationFactor(1010101)
+                        .build())));
+        assertThat(configs.runtimeConfig().get().replicationFactor())
+                .isEqualTo(configs.installConfig().replicationFactor().orElseThrow());
+    }
+
+    @Test
+    public void emptyRuntimeConfigShouldResolveToDefaultConfig() {
+        CassandraKeyValueServiceConfigs returnedConfigs =
+                CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()));
+
+        assertThat(returnedConfigs.runtimeConfig().get().mutationBatchCount())
+                .describedAs("Empty config should resolve to default")
+                .isEqualTo(CassandraKeyValueServiceRuntimeConfig.getDefault().mutationBatchCount());
     }
 
     @Test
