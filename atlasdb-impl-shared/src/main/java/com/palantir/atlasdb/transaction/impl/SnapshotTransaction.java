@@ -1704,7 +1704,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         transactionLengthLogger.debug(
                                 "Aborted transaction {} in {} ms",
                                 SafeArg.of("startTimestamp", getStartTimestamp()),
-                                SafeArg.of("transactionTimeMillis", transactionMillis));
+                                SafeArg.of("transactionLengthMillis", transactionMillis),
+                                SafeArg.of("transactionDuration", Duration.ofMillis(transactionMillis)));
                     }
                 }
                 return;
