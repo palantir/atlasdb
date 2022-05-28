@@ -246,9 +246,10 @@ public class CassandraServiceTest {
     }
 
     @Test
-    public void random() {
+    public void getRandomHostByActiveConnections() {
         Set<CassandraServer> servers = generateServers(24);
-        try (CassandraService service = clientPoolWithParams(servers, servers, 0.0)) {
+        try (CassandraService service = clientPoolWithParams(servers, servers, 1.0)) {
+            service.setLocalHosts(servers.stream().limit(8).collect(ImmutableSet.toImmutableSet()));
             Set<CassandraServer> desired = servers.stream().limit(3).collect(Collectors.toSet());
             for (int i = 0; i < 1_000_000; i++) {
                 assertThat(service.getRandomHostByActiveConnections(desired)).isPresent();
