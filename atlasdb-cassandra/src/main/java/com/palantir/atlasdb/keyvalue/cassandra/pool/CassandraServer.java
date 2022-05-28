@@ -22,7 +22,7 @@ import java.net.InetSocketAddress;
 import java.util.Set;
 import org.immutables.value.Value;
 
-@Value.Immutable
+@Value.Immutable(lazyhash = true)
 public interface CassandraServer {
     @Value.Parameter
     String cassandraHostName();
