@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
@@ -415,17 +416,13 @@ public class CassandraService implements AutoCloseable {
 
     @VisibleForTesting
     Optional<CassandraServer> getRandomHostByActiveConnections(Set<CassandraServer> desiredHosts) {
-
         Set<CassandraServer> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
-
-        Map<CassandraServer, CassandraClientPoolingContainer> matchingPools = KeyedStream.stream(
-                        ImmutableMap.copyOf(currentPools))
-                .filterKeys(localFilteredHosts::contains)
-                .collectToMap();
+        ImmutableMap<CassandraServer, CassandraClientPoolingContainer> matchingPools = currentPools.entrySet().stream()
+                .filter(e -> localFilteredHosts.contains(e.getKey()))
+                .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
         if (matchingPools.isEmpty()) {
             return Optional.empty();
         }
-
         return Optional.of(WeightedServers.create(matchingPools).getRandomServer());
     }
 
