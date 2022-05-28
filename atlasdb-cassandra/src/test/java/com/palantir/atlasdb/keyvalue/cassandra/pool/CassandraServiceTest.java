@@ -245,6 +245,25 @@ public class CassandraServiceTest {
         assertThat(suggestedHosts).containsExactlyInAnyOrderElementsOf(allHosts);
     }
 
+    @Test
+    public void random() {
+        Set<CassandraServer> servers = generateServers(24);
+        try (CassandraService service = clientPoolWithParams(servers, servers, 0.0)) {
+            Set<CassandraServer> desired = servers.stream().limit(3).collect(Collectors.toSet());
+            for (int i = 0; i < 1_000_000; i++) {
+                assertThat(service.getRandomHostByActiveConnections(desired)).isPresent();
+            }
+        }
+    }
+
+    private Set<CassandraServer> generateServers(int size) {
+        ImmutableSet.Builder<CassandraServer> servers = ImmutableSet.builder();
+        for (int i = 0; i < size; i++) {
+            servers.add(CassandraServer.of(InetSocketAddress.createUnresolved("10.0.0." + i, DEFAULT_PORT)));
+        }
+        return servers.build();
+    }
+
     private Set<CassandraServer> getRecommendedHostsFromAThousandTrials(
             CassandraService cassandra, Set<CassandraServer> hosts) {
         return IntStream.range(0, 1_000)

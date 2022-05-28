@@ -413,7 +413,8 @@ public class CassandraService implements AutoCloseable {
         return hosts;
     }
 
-    private Optional<CassandraServer> getRandomHostByActiveConnections(Set<CassandraServer> desiredHosts) {
+    @VisibleForTesting
+    Optional<CassandraServer> getRandomHostByActiveConnections(Set<CassandraServer> desiredHosts) {
 
         Set<CassandraServer> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
 
