@@ -62,8 +62,8 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldOnlyReturnLocalHosts() {
-        Set<CassandraServer> hosts = ImmutableSet.of(SERVER_1, SERVER_2);
-        Set<CassandraServer> localHosts = ImmutableSet.of(SERVER_1);
+        ImmutableSet<CassandraServer> hosts = ImmutableSet.of(SERVER_1, SERVER_2);
+        ImmutableSet<CassandraServer> localHosts = ImmutableSet.of(SERVER_1);
 
         CassandraService cassandra = clientPoolWithServersAndParams(hosts, 1.0);
 

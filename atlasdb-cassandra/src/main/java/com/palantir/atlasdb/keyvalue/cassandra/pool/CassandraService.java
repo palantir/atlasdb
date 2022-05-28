@@ -90,7 +90,7 @@ public class CassandraService implements AutoCloseable {
 
     private List<CassandraServer> cassandraHosts;
 
-    private volatile Set<CassandraServer> localHosts = ImmutableSet.of();
+    private volatile ImmutableSet<CassandraServer> localHosts = ImmutableSet.of();
     private final Supplier<Optional<HostLocation>> myLocationSupplier;
     private final Supplier<Map<String, String>> hostnameByIpSupplier;
 
@@ -239,20 +239,20 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    private Set<CassandraServer> refreshLocalHosts(List<TokenRange> tokenRanges) {
+    private ImmutableSet<CassandraServer> refreshLocalHosts(List<TokenRange> tokenRanges) {
         Optional<HostLocation> myLocation = myLocationSupplier.get();
 
         if (!myLocation.isPresent()) {
             return ImmutableSet.of();
         }
 
-        Set<CassandraServer> newLocalHosts = tokenRanges.stream()
+        ImmutableSet<CassandraServer> newLocalHosts = tokenRanges.stream()
                 .map(TokenRange::getEndpoint_details)
                 .flatMap(Collection::stream)
                 .filter(details -> isHostLocal(details, myLocation.get()))
                 .map(EndpointDetails::getHost)
                 .map(this::getAddressForHostThrowUnchecked)
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
 
         if (newLocalHosts.isEmpty()) {
             log.warn("No local hosts found");
@@ -269,7 +269,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     @VisibleForTesting
-    void setLocalHosts(Set<CassandraServer> localHosts) {
+    void setLocalHosts(ImmutableSet<CassandraServer> localHosts) {
         this.localHosts = localHosts;
     }
 
