@@ -45,7 +45,6 @@ import java.util.function.LongSupplier;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
-
     @Override
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
