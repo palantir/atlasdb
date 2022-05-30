@@ -42,11 +42,11 @@ final class RefreshableWithInitialDefault<T> implements Refreshable<T> {
 
     private final SettableRefreshable<T> delegate;
 
-    private <K> RefreshableWithInitialDefault(Refreshable<K> refreshable, Function<K, T> function, T defaultValue) {
+    private <K> RefreshableWithInitialDefault(Refreshable<K> refreshable, Function<K, T> mapper, T defaultValue) {
         delegate = Refreshable.create(defaultValue);
         refreshable.subscribe(value -> {
             try {
-                T newValue = function.apply(value);
+                T newValue = mapper.apply(value);
                 delegate.update(newValue);
             } catch (Exception e) {
                 log.warn("Failed to update refreshable", e);
@@ -55,8 +55,8 @@ final class RefreshableWithInitialDefault<T> implements Refreshable<T> {
     }
 
     public static <K, T> RefreshableWithInitialDefault<T> of(
-            Refreshable<K> refreshable, Function<K, T> function, T defaultValue) {
-        return new RefreshableWithInitialDefault<>(refreshable, function, defaultValue);
+            Refreshable<K> refreshable, Function<K, T> mapper, T defaultValue) {
+        return new RefreshableWithInitialDefault<>(refreshable, mapper, defaultValue);
     }
 
     @Override
