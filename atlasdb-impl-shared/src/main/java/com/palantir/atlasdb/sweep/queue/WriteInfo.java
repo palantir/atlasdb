@@ -60,8 +60,8 @@ public interface WriteInfo {
      */
     default int dayRotatingHash() {
         int hash = 5381;
-        hash = hash * 31 + writeRef().cellReference().goodHash();
-        hash = hash * 31 + LocalDate.now(ZoneId.of("UTC")).hashCode();
+        hash = hash * 1439 + writeRef().cellReference().goodHash();
+        hash = hash * 1439 + LocalDate.now(ZoneId.of("UTC")).hashCode();
         return hash;
     }
 
