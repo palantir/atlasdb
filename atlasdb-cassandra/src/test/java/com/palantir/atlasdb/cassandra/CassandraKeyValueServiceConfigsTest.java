@@ -169,8 +169,10 @@ public class CassandraKeyValueServiceConfigsTest {
                 CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
                         CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()));
 
-        assertThat(returnedConfigs.runtimeConfig().get().mutationBatchCount())
-                .isEqualTo(CassandraKeyValueServiceRuntimeConfig.getDefault().mutationBatchCount());
+        CassandraReloadableKeyValueServiceRuntimeConfig reloadableRuntimeConfig =
+                (CassandraReloadableKeyValueServiceRuntimeConfig)
+                        returnedConfigs.runtimeConfig().get();
+        assertThat(reloadableRuntimeConfig.delegate()).isEqualTo(CassandraKeyValueServiceRuntimeConfig.getDefault());
     }
 
     @Test
