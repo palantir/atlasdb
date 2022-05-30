@@ -36,11 +36,10 @@ import org.junit.Test;
 public class CassandraKeyValueServiceConfigsTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
-    private static final ImmutableSet<InetSocketAddress> SERVERS_ADDRESSES =
+    private static final ImmutableSet<InetSocketAddress> SERVER_ADDRESSES =
             ImmutableSet.of(InetSocketAddress.createUnresolved("foo", 42));
-    public static final ImmutableDefaultConfig SERVERS = ImmutableDefaultConfig.builder()
-            .addAllThriftHosts(SERVERS_ADDRESSES)
-            .build();
+    public static final ImmutableDefaultConfig SERVERS =
+            ImmutableDefaultConfig.builder().addAllThriftHosts(SERVER_ADDRESSES).build();
     private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
             .username("username")
             .password("password")
@@ -71,7 +70,7 @@ public class CassandraKeyValueServiceConfigsTest {
     public void canDeserialize() throws IOException {
         CassandraKeyValueServiceConfig testConfig = ImmutableCassandraKeyValueServiceConfig.builder()
                 .servers(SERVERS)
-                .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS_ADDRESSES)))
+                .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVER_ADDRESSES)))
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
                 .build();
