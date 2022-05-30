@@ -21,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
+import java.time.LocalDate;
 import org.immutables.value.Value;
 
 /**
@@ -49,7 +50,18 @@ public interface WriteInfo {
     }
 
     default int toShard(int numShards) {
-        return IntMath.mod(writeRef().cellReference().goodHash(), numShards);
+        return IntMath.mod(dayRotatingHash(), numShards);
+    }
+
+    /**
+     * The purpose of the rotating hash calculation is to redistribute shards every day to alleviate issues caused by
+     * imbalanced write patterns overloading few shards.
+     */
+    default int dayRotatingHash() {
+        int hash = 5381;
+        hash = hash * 31 + writeRef().cellReference().goodHash();
+        hash = hash * 31 + LocalDate.now().hashCode();
+        return hash;
     }
 
     static WriteInfo of(WriteReference writeRef, long timestamp) {
