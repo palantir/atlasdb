@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.util.function.Function;
@@ -38,11 +40,11 @@ public class RefreshableWithInitialDefaultTest {
         SettableRefreshable<Integer> underlyingRefreshable = Refreshable.create(1);
         String expectedValue = "hello";
         when(function.apply(1)).thenReturn(expectedValue);
-        when(function.apply(2)).thenThrow();
+        when(function.apply(2)).thenThrow(new SafeIllegalArgumentException());
 
         RefreshableWithInitialDefault<String> refreshable =
                 RefreshableWithInitialDefault.of(underlyingRefreshable, function, "bye");
-
+        verify(function).apply(1);
         String initial = refreshable.get();
 
         underlyingRefreshable.update(2);
@@ -66,5 +68,25 @@ public class RefreshableWithInitialDefaultTest {
         assertThat(refreshable.get())
                 .describedAs("First invalid value should resolve to default")
                 .isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void multipleUpdatesArePropagatedCorrectly() {
+        SettableRefreshable<Integer> underlyingRefreshable = Refreshable.create(1);
+        String expectedValue1 = "hello";
+        String expectedValue2 = "world";
+        when(function.apply(1)).thenReturn(expectedValue1);
+        when(function.apply(2)).thenReturn(expectedValue2);
+
+        RefreshableWithInitialDefault<String> refreshable =
+                RefreshableWithInitialDefault.of(underlyingRefreshable, function, "bye");
+
+        String initial = refreshable.get();
+
+        underlyingRefreshable.update(2);
+        String updated = refreshable.get();
+
+        assertThat(initial).isEqualTo(expectedValue1);
+        assertThat(updated).isEqualTo(expectedValue2);
     }
 }

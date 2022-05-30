@@ -16,25 +16,40 @@
 
 package com.palantir.atlasdb.cassandra;
 
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Disposable;
 import com.palantir.refreshable.Refreshable;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
+import com.palantir.refreshable.SettableRefreshable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/***
+ * This refreshable allows you to specify a default value if the initial mapping from another refreshable fails.
+ *
+ * {@link CassandraAtlasDbFactory} creates a default runtime config if the initial runtime config is not
+ * valid (i.e the refreshable map function throws an exception), and uses the previous refreshable value if a
+ * subsequent config is invalid.
+ *
+ * Whilst you could achieve the first requirement with standard refreshables (have the refreshable#map catch the
+ * exception and return the default), this does not provide the second requirement.
+ *
+ * Note: This is only required while {@link CassandraKeyValueServiceRuntimeConfig} has a default. Soon, the runtime
+ * config will be required, and so we can simply map (and throw) from the underlying KVS runtime config.
+ */
 final class RefreshableWithInitialDefault<T> implements Refreshable<T> {
-    private final AtomicReference<Optional<T>> latestValidValue = new AtomicReference<>(Optional.empty());
-    private final Refreshable<T> delegate;
+    private static final SafeLogger log = SafeLoggerFactory.get(RefreshableWithInitialDefault.class);
+
+    private final SettableRefreshable<T> delegate;
 
     private <K> RefreshableWithInitialDefault(Refreshable<K> refreshable, Function<K, T> function, T defaultValue) {
-        delegate = refreshable.map(value -> {
+        delegate = Refreshable.create(defaultValue);
+        refreshable.subscribe(value -> {
             try {
                 T newValue = function.apply(value);
-                latestValidValue.set(Optional.of(newValue));
-                return newValue;
+                delegate.update(newValue);
             } catch (Exception e) {
-                return latestValidValue.get().orElse(defaultValue);
+                log.warn("Failed to update refreshable", e);
             }
         });
     }
