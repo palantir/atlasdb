@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import org.immutables.value.Value;
 
 /**
@@ -60,7 +61,7 @@ public interface WriteInfo {
     default int dayRotatingHash() {
         int hash = 5381;
         hash = hash * 31 + writeRef().cellReference().goodHash();
-        hash = hash * 31 + LocalDate.now().hashCode();
+        hash = hash * 31 + LocalDate.now(ZoneId.of("UTC")).hashCode();
         return hash;
     }
 
