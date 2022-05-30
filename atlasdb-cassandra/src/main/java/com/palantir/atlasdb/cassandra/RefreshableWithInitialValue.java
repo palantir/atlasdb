@@ -25,7 +25,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /***
- * This refreshable allows you to specify a default value if the initial mapping from another refreshable fails.
+ * This refreshable allows you to specify an initial default value if the initial mapping from another refreshable
+ * fails.
  *
  * {@link CassandraAtlasDbFactory} creates a default runtime config if the initial runtime config is not
  * valid (i.e the refreshable map function throws an exception), and uses the previous refreshable value if a
@@ -37,13 +38,13 @@ import java.util.function.Function;
  * Note: This is only required while {@link CassandraKeyValueServiceRuntimeConfig} has a default. Soon, the runtime
  * config will be required, and so we can simply map (and throw) from the underlying KVS runtime config.
  */
-final class RefreshableWithInitialDefault<T> implements Refreshable<T> {
-    private static final SafeLogger log = SafeLoggerFactory.get(RefreshableWithInitialDefault.class);
+final class RefreshableWithInitialValue<T> implements Refreshable<T> {
+    private static final SafeLogger log = SafeLoggerFactory.get(RefreshableWithInitialValue.class);
 
     private final SettableRefreshable<T> delegate;
 
-    private <K> RefreshableWithInitialDefault(Refreshable<K> refreshable, Function<K, T> mapper, T defaultValue) {
-        delegate = Refreshable.create(defaultValue);
+    private <K> RefreshableWithInitialValue(Refreshable<K> refreshable, Function<K, T> mapper, T initialValue) {
+        delegate = Refreshable.create(initialValue);
         refreshable.subscribe(value -> {
             try {
                 T newValue = mapper.apply(value);
@@ -54,9 +55,9 @@ final class RefreshableWithInitialDefault<T> implements Refreshable<T> {
         });
     }
 
-    public static <K, T> RefreshableWithInitialDefault<T> of(
-            Refreshable<K> refreshable, Function<K, T> mapper, T defaultValue) {
-        return new RefreshableWithInitialDefault<>(refreshable, mapper, defaultValue);
+    public static <K, T> RefreshableWithInitialValue<T> of(
+            Refreshable<K> refreshable, Function<K, T> mapper, T initialValue) {
+        return new RefreshableWithInitialValue<>(refreshable, mapper, initialValue);
     }
 
     @Override

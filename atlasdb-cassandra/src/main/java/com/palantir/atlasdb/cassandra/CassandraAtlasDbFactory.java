@@ -103,13 +103,13 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
         Refreshable<KeyValueServiceRuntimeConfig> refreshableConfig = runtimeConfig.map(
                 maybeConfig -> maybeConfig.orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault));
-        return RefreshableWithInitialDefault.of(
+        return RefreshableWithInitialValue.of(
                 refreshableConfig,
                 CassandraAtlasDbFactory::castOrThrow,
                 CassandraKeyValueServiceRuntimeConfig.getDefault());
     }
 
-    private static CassandraKeyValueServiceRuntimeConfig castOrThrow(Object value) {
+    private static CassandraKeyValueServiceRuntimeConfig castOrThrow(KeyValueServiceRuntimeConfig value) {
         if (!(value instanceof CassandraKeyValueServiceRuntimeConfig)) {
             throw new SafeIllegalArgumentException(
                     "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"

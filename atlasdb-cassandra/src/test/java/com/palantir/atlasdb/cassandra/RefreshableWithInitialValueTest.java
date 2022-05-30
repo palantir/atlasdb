@@ -30,7 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RefreshableWithInitialDefaultTest {
+public class RefreshableWithInitialValueTest {
 
     @Mock
     Function<Integer, String> function;
@@ -42,8 +42,7 @@ public class RefreshableWithInitialDefaultTest {
         when(function.apply(1)).thenReturn(expectedValue);
         when(function.apply(2)).thenThrow(new SafeIllegalArgumentException());
 
-        RefreshableWithInitialDefault<String> refreshable =
-                RefreshableWithInitialDefault.of(underlyingRefreshable, function, "bye");
+        Refreshable<String> refreshable = RefreshableWithInitialValue.of(underlyingRefreshable, function, "bye");
         verify(function).apply(1);
         String initial = refreshable.get();
 
@@ -62,8 +61,8 @@ public class RefreshableWithInitialDefaultTest {
         String expectedValue = "hello";
         when(function.apply(1)).thenThrow();
 
-        RefreshableWithInitialDefault<String> refreshable =
-                RefreshableWithInitialDefault.of(underlyingRefreshable, function, expectedValue);
+        Refreshable<String> refreshable =
+                RefreshableWithInitialValue.of(underlyingRefreshable, function, expectedValue);
 
         assertThat(refreshable.get())
                 .describedAs("First invalid value should resolve to default")
@@ -78,8 +77,7 @@ public class RefreshableWithInitialDefaultTest {
         when(function.apply(1)).thenReturn(expectedValue1);
         when(function.apply(2)).thenReturn(expectedValue2);
 
-        RefreshableWithInitialDefault<String> refreshable =
-                RefreshableWithInitialDefault.of(underlyingRefreshable, function, "bye");
+        Refreshable<String> refreshable = RefreshableWithInitialValue.of(underlyingRefreshable, function, "bye");
 
         String initial = refreshable.get();
 
