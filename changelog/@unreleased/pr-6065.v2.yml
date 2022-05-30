@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: CassandraServer memoizes lazily computed hash code
+  links:
+  - https://github.com/palantir/atlasdb/pull/6065
