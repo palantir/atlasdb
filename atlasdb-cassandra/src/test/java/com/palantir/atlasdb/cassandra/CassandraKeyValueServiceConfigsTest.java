@@ -121,37 +121,84 @@ public class CassandraKeyValueServiceConfigsTest {
     }
 
     @Test
-    public void copyWithResolvedKeyspaceOrThrowThrowsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
-        assertThatThrownBy(() -> CONFIGS_WITHOUT_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.empty()))
+    public void copyWithResolvedKeyspaceThrowsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
+        assertThatThrownBy(() -> CONFIGS_WITHOUT_KEYSPACE.copyWithResolvedKeyspace(Optional.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    public void copyWithResolvedKeyspaceOrThrowThrowsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
-        assertThatThrownBy(() -> CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.of(KEYSPACE_2)))
+    public void copyWithResolvedKeyspaceThrowsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
+        assertThatThrownBy(() -> CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspace(Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    public void copyWithResolvedKeyspaceOrThrowResolvesConfigWithOriginalKeyspaceIfNoNamespaceProvided() {
-        CassandraKeyValueServiceConfigs newConfigs =
-                CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.empty());
+    public void copyWithResolvedKeyspaceResolvesConfigWithOriginalKeyspaceIfNoNamespaceProvided() {
+        CassandraKeyValueServiceConfigs newConfigs = CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspace(Optional.empty());
         assertThat(newConfigs.installConfig().getKeyspaceOrThrow())
                 .isEqualTo(CONFIG_WITH_KEYSPACE.getKeyspaceOrThrow());
     }
 
     @Test
-    public void copyWithResolvedKeyspaceOrThrowResolvesConfigWithNamespaceIfNoKeyspaceProvided() {
+    public void copyWithResolvedKeyspaceResolvesConfigWithNamespaceIfNoKeyspaceProvided() {
         CassandraKeyValueServiceConfigs newConfigs =
-                CONFIGS_WITHOUT_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.of(KEYSPACE));
+                CONFIGS_WITHOUT_KEYSPACE.copyWithResolvedKeyspace(Optional.of(KEYSPACE));
         assertThat(newConfigs.installConfig().getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
-    public void copyWithResolvedKeyspaceOrThrowResolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
+    public void copyWithResolvedKeyspaceResolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
         CassandraKeyValueServiceConfigs newConfigs =
-                CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspaceOrThrow(Optional.of(KEYSPACE));
+                CONFIGS_WITH_KEYSPACE.copyWithResolvedKeyspace(Optional.of(KEYSPACE));
         assertThat(newConfigs.installConfig().getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
+    }
+
+    @Test
+    public void fromKeyValueServiceConfigMergesInstallAndRuntime() {
+        CassandraKeyValueServiceConfigs configs = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                CONFIG_WITHOUT_KEYSPACE,
+                Refreshable.only(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .replicationFactor(1010101)
+                        .build())));
+        assertThat(configs.runtimeConfig().get().replicationFactor())
+                .isEqualTo(configs.installConfig().replicationFactor().orElseThrow());
+    }
+
+    @Test
+    public void emptyRuntimeConfigShouldResolveToDefaultRuntimeConfig() {
+        CassandraKeyValueServiceConfigs returnedConfigs =
+                CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()));
+
+        assertThat(returnedConfigs.runtimeConfig().get().mutationBatchCount())
+                .isEqualTo(CassandraKeyValueServiceRuntimeConfig.getDefault().mutationBatchCount());
+    }
+
+    @Test
+    public void derivedSnapshotConfigDefaultGetRangesConcurrencyOverriddenWhenInstallOverrideIsPresent() {
+        int defaultGetRangesConcurrencyOverride = 200;
+        CassandraKeyValueServiceConfig installConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(CONFIG_WITH_KEYSPACE)
+                .defaultGetRangesConcurrency(defaultGetRangesConcurrencyOverride)
+                .build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .from(CassandraKeyValueServiceRuntimeConfig.getDefault())
+                .servers(SERVERS)
+                .replicationFactor(1)
+                .build();
+
+        CassandraKeyValueServiceConfigs returnedConfigs =
+                CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                        installConfig, Refreshable.only(Optional.of(runtimeConfig)));
+        assertThat(returnedConfigs.derivedSnapshotConfig().defaultGetRangesConcurrency())
+                .isEqualTo(defaultGetRangesConcurrencyOverride);
+    }
+
+    @Test
+    public void canParseRuntimeDeprecatedConfigType() {
+        assertThatNoException()
+                .isThrownBy(() -> AtlasDbConfigs.OBJECT_MAPPER.readValue(
+                        "type: CassandraKeyValueServiceRuntimeConfig", KeyValueServiceRuntimeConfig.class));
     }
 
     @Test
@@ -175,34 +222,5 @@ public class CassandraKeyValueServiceConfigsTest {
                 new File(configUrl.getPath()), CassandraKeyValueServiceRuntimeConfig.class);
 
         assertThat(deserializedConfig).isEqualTo(expectedConfig);
-    }
-
-    @Test
-    public void fromKeyValueServiceConfigMergesInstallAndRuntime() {
-        CassandraKeyValueServiceConfigs configs = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
-                CONFIG_WITHOUT_KEYSPACE,
-                Refreshable.only(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
-                        .replicationFactor(1010101)
-                        .build())));
-        assertThat(configs.runtimeConfig().get().replicationFactor())
-                .isEqualTo(configs.installConfig().replicationFactor().orElseThrow());
-    }
-
-    @Test
-    public void emptyRuntimeConfigShouldResolveToDefaultConfig() {
-        CassandraKeyValueServiceConfigs returnedConfigs =
-                CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
-                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()));
-
-        assertThat(returnedConfigs.runtimeConfig().get().mutationBatchCount())
-                .describedAs("Empty config should resolve to default")
-                .isEqualTo(CassandraKeyValueServiceRuntimeConfig.getDefault().mutationBatchCount());
-    }
-
-    @Test
-    public void canParseRuntimeDeprecatedConfigType() {
-        assertThatNoException()
-                .isThrownBy(() -> AtlasDbConfigs.OBJECT_MAPPER.readValue(
-                        "type: CassandraKeyValueServiceRuntimeConfig", KeyValueServiceRuntimeConfig.class));
     }
 }
