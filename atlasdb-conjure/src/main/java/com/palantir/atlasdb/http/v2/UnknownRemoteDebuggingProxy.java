@@ -30,11 +30,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @SuppressWarnings("ProxyNonConstantType")
 public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationHandler {
     private static final SafeLogger log = SafeLoggerFactory.get(UnknownRemoteDebuggingProxy.class);
-    private final Refreshable<T> safeLoggableRefreshable;
+    private final Refreshable<SafeArg<T>> safeLoggableRefreshable;
     private final RateLimiter rateLimiter;
     private final V delegate;
 
-    private UnknownRemoteDebuggingProxy(Refreshable<T> safeLoggableRefreshable, V delegate) {
+    private UnknownRemoteDebuggingProxy(Refreshable<SafeArg<T>> safeLoggableRefreshable, V delegate) {
         this.safeLoggableRefreshable = safeLoggableRefreshable;
         this.delegate = delegate;
         this.rateLimiter = RateLimiter.create(0.05);
@@ -48,7 +48,7 @@ public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationH
             if (rateLimiter.tryAcquire()) {
                 log.warn(
                         "Encountered UnknownRemoteException; logging current state of refreshable",
-                        SafeArg.of("safeLoggableRefreshable", safeLoggableRefreshable.get()),
+                        safeLoggableRefreshable.get(),
                         e);
             }
             throw e;
@@ -56,7 +56,7 @@ public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationH
     }
 
     public static <T, U> U newProxyInstance(
-            Class<U> interfaceClass, Refreshable<T> safeLoggableRefreshable, U delegate) {
+            Class<U> interfaceClass, Refreshable<SafeArg<T>> safeLoggableRefreshable, U delegate) {
         UnknownRemoteDebuggingProxy<T, U> proxy = new UnknownRemoteDebuggingProxy<>(safeLoggableRefreshable, delegate);
 
         return (U) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass}, proxy);

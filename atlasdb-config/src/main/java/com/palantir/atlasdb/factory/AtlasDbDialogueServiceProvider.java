@@ -52,10 +52,12 @@ import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
 import com.palantir.lock.client.DialogueComposingLockRpcClient;
 import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Provides a mechanism for accessing services that use Dialogue for communication. A service is defined as a cluster of
@@ -74,7 +76,7 @@ public final class AtlasDbDialogueServiceProvider {
 
     private final DialogueClients.ReloadingFactory dialogueClientFactory;
     private final TaggedMetricRegistry taggedMetricRegistry;
-    private final Refreshable<ServerListConfig> timeLockServerListConfig;
+    private final Refreshable<SafeArg<Set<String>>> safeLoggableServerList;
 
     private AtlasDbDialogueServiceProvider(
             ReloadingFactory dialogueClientFactory,
@@ -82,7 +84,7 @@ public final class AtlasDbDialogueServiceProvider {
             Refreshable<ServerListConfig> timeLockServerListConfig) {
         this.dialogueClientFactory = dialogueClientFactory;
         this.taggedMetricRegistry = taggedMetricRegistry;
-        this.timeLockServerListConfig = timeLockServerListConfig;
+        this.safeLoggableServerList = timeLockServerListConfig.map(config -> SafeArg.of("servers", config.servers()));
     }
 
     public static AtlasDbDialogueServiceProvider create(
@@ -194,7 +196,7 @@ public final class AtlasDbDialogueServiceProvider {
     private <T> T wrapInProxy(Class<T> type, T service) {
         return UnknownRemoteDebuggingProxy.newProxyInstance(
                 type,
-                timeLockServerListConfig.map(ServerListConfig::servers),
+                safeLoggableServerList,
                 RetryOnSocketTimeoutExceptionProxy.newProxyInstance(
                         type, () -> FastFailoverProxy.newProxyInstance(type, () -> service)));
     }
