@@ -26,7 +26,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import javax.annotation.CheckForNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationHandler {
@@ -41,7 +40,6 @@ public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationH
         this.rateLimiter = RateLimiter.create(0.05);
     }
 
-    @CheckForNull
     @Override
     protected Object handleInvocation(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
         try {
