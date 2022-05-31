@@ -40,7 +40,7 @@ public interface CassandraKeyValueServiceConfigs {
             Refreshable<KeyValueServiceRuntimeConfig> kvsRuntime = runtimeConfig.map(
                     maybeConfig -> maybeConfig.orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault));
 
-            Refreshable<CassandraKeyValueServiceRuntimeConfig> cassRuntime = RefreshableWithInitialDefault.of(
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> cassRuntime = RefreshableWithInitialValue.of(
                     kvsRuntime,
                     CassandraKeyValueServiceConfigs::castOrThrow,
                     CassandraKeyValueServiceRuntimeConfig.getDefault());
@@ -108,7 +108,7 @@ public interface CassandraKeyValueServiceConfigs {
         return ImmutableCassandraKeyValueServiceConfigs.builder();
     }
 
-    private static CassandraKeyValueServiceRuntimeConfig castOrThrow(Object value) {
+    private static CassandraKeyValueServiceRuntimeConfig castOrThrow(KeyValueServiceRuntimeConfig value) {
         if (!(value instanceof CassandraKeyValueServiceRuntimeConfig)) {
             throw new SafeIllegalArgumentException(
                     "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
