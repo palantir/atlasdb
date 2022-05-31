@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: '`CassandraAtlasDbFactory` uses a `RefreshableWithInitialDefault` when
+    preprocessing the runtime config'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6063
