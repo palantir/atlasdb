@@ -81,7 +81,7 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
     }
 
     @Override
-    public int replicationFactor() {
+    public Integer replicationFactor() {
         return installConfig.replicationFactor().orElseGet(runtimeConfig::replicationFactor);
     }
 
