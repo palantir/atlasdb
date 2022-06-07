@@ -130,7 +130,9 @@ public final class Cell implements Serializable, Comparable<Cell> {
             return false;
         }
         Cell other = (Cell) obj;
-        return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
+        return this.hashCode() == other.hashCode()
+                && Arrays.equals(rowName, other.rowName)
+                && Arrays.equals(columnName, other.columnName);
     }
 
     @Override
