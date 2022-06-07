@@ -110,7 +110,8 @@ final class CellLoader {
         }
         int totalPartitions = hostsAndCells.keySet().size();
 
-        if (log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace(
                     "Loading {} cells from {} {}starting at timestamp {}, partitioned across {} nodes.",
                     SafeArg.of("cells", cells.size()),
@@ -122,7 +123,7 @@ final class CellLoader {
 
         List<Callable<Void>> tasks = new ArrayList<>();
         for (Map.Entry<CassandraServer, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace(
                         "Requesting {} cells from {} {}starting at timestamp {} on {}",
                         SafeArg.of("cells", hostsAndCells.values().size()),
