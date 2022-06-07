@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: '`servers`, `replicationFactor`, `unresponsiveHostBackoffTimeSeconds`,
+    `mutationBatchCount`, `mutationBatchSizeBytes`, `fetchBatchCount` and `sweepReadThreads`
+    are now provided via a runtime config. `CassandraReloadableKeyValueServiceRuntimeConfig`
+    is used to merge existing install and runtime config for Cassandra KVS constructed
+    by a `CassandraAtlasDbFactory`'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6050

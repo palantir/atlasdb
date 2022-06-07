@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -39,6 +40,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -89,26 +91,32 @@ public class CassandraClientPoolTest {
     private Set<CassandraServer> poolServers = new HashSet<>();
 
     private CassandraKeyValueServiceConfig config;
+    private CassandraKeyValueServiceRuntimeConfig runtimeConfig;
+
+    private Refreshable<CassandraKeyValueServiceRuntimeConfig> refreshableRuntimeConfig;
+
     private Blacklist blacklist;
     private CassandraService cassandra = mock(CassandraService.class);
 
     @Before
     public void setup() {
         config = mock(CassandraKeyValueServiceConfig.class);
+        runtimeConfig = mock(CassandraKeyValueServiceRuntimeConfig.class);
+        refreshableRuntimeConfig = Refreshable.only(runtimeConfig);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
-        when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
+        when(runtimeConfig.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
         when(config.credentials()).thenReturn(mock(CassandraCredentialsConfig.class));
         when(config.getKeyspaceOrThrow()).thenReturn("ks");
-        blacklist = new Blacklist(config);
+        blacklist = new Blacklist(config, Refreshable.only(runtimeConfig.unresponsiveHostBackoffTimeSeconds()));
 
         doAnswer(invocation -> {
                     Set<InetSocketAddress> inetSocketAddresses =
-                            config.servers().accept(new ThriftHostsExtractingVisitor());
+                            runtimeConfig.servers().accept(new ThriftHostsExtractingVisitor());
                     return inetSocketAddresses.stream().map(CassandraServer::of).collect(Collectors.toSet());
                 })
                 .when(cassandra)
-                .getInitialServerList();
+                .getCurrentServerListFromConfig();
         doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
                 .when(cassandra)
                 .addPool(any());
@@ -271,11 +279,12 @@ public class CassandraClientPoolTest {
 
     @Test
     public void attemptsShouldBeCountedPerHost() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder().addThriftHosts().build());
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
+                refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist);
 
@@ -292,7 +301,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnStartup() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy())
                         .build());
@@ -306,7 +315,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnRefresh() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy())
                         .build());
@@ -324,7 +333,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnStartup() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy())
                         .build());
@@ -338,7 +347,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnRefresh() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy())
                         .build());
@@ -356,7 +365,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy())
                         .build());
@@ -373,7 +382,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addThriftHosts(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy())
                         .build());
@@ -427,6 +436,7 @@ public class CassandraClientPoolTest {
         return CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.createForTests(),
                 config,
+                refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 InitializeableScheduledExecutorServiceSupplier.createForTests(deterministicExecutor),
                 blacklist,
@@ -493,7 +503,7 @@ public class CassandraClientPoolTest {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Unpacking it seems less readable
     private CassandraClientPoolImpl clientPoolWith(
             Set<InetSocketAddress> servers, Set<CassandraServer> serversInPool, Optional<Exception> failureMode) {
-        when(config.servers())
+        when(runtimeConfig.servers())
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addAllThriftHosts(servers)
                         .build());
@@ -504,6 +514,7 @@ public class CassandraClientPoolTest {
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
+                refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist);
 

@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -52,7 +52,7 @@ public class TokenRangeFetcherTest {
     private CqlMetadata cqlMetadata;
 
     @Mock
-    private CassandraKeyValueServiceConfig config;
+    private CassandraKeyValueServiceRuntimeConfig runtimeConfig;
 
     private TokenRangeFetcher tokenRangeFetcher;
 
@@ -62,13 +62,13 @@ public class TokenRangeFetcherTest {
         List<TableMetadata> tableMetadatas = BackupTestUtils.mockTableMetadatas(keyspaceMetadata, TABLE_NAME);
         when(keyspaceMetadata.getTable(TABLE_NAME)).thenReturn(Iterables.getOnlyElement(tableMetadatas));
 
-        BackupTestUtils.mockConfig(config);
+        BackupTestUtils.mockConfig(runtimeConfig);
         BackupTestUtils.mockTokenRanges(cqlSession, cqlMetadata);
 
         when(cqlSession.retrieveRowKeysAtConsistencyAll(anyList()))
                 .thenReturn(ImmutableSet.of(BackupTestUtils.TOKEN_1, BackupTestUtils.TOKEN_2, BackupTestUtils.TOKEN_3));
 
-        tokenRangeFetcher = new TokenRangeFetcher(cqlSession, BackupTestUtils.NAMESPACE, config.servers());
+        tokenRangeFetcher = new TokenRangeFetcher(cqlSession, BackupTestUtils.NAMESPACE, runtimeConfig.servers());
     }
 
     @Test

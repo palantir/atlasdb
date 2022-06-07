@@ -677,4 +677,10 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @DoDelegate
     @Deprecated
     List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults);
+
+    @DoDelegate
+    @Override
+    default boolean isValid() {
+        return true;
+    }
 }

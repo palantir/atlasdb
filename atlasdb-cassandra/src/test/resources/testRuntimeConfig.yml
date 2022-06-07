@@ -5,3 +5,6 @@
   cellLoadingConfig:
     crossColumnLoadBatchLimit: 42
     singleQueryLoadBatchLimit: 424242
+  servers:
+      - foo:42
+  replicationFactor: 1

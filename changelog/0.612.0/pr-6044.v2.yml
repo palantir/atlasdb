@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: '`CassandraClientPoolImpl` now takes in a refreshable runtime config
+    instead of a supplier, in preparation of using the runtime config provided servers
+    and replicationFactor from the current install config provided values.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6044

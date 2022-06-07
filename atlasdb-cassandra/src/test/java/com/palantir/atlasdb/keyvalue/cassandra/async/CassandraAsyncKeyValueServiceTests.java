@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.cassandra.ReloadingCloseableContainerImpl;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
@@ -63,10 +64,14 @@ public class CassandraAsyncKeyValueServiceTests {
     @Mock
     private CqlClient cqlClient;
 
+    @Mock
+    private ReloadingCloseableContainerImpl<CqlClient> cqlClientContainer;
+
     @Before
     public void setUp() {
         asyncKeyValueService = CassandraAsyncKeyValueService.create(
-                KEYSPACE, cqlClient, AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
+                KEYSPACE, cqlClientContainer, AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
+        when(cqlClientContainer.get()).thenReturn(cqlClient);
     }
 
     @After
@@ -107,6 +112,25 @@ public class CassandraAsyncKeyValueServiceTests {
         Map<Cell, Value> result = asyncKeyValueService.getAsync(TABLE, request).get();
 
         assertThat(result).containsOnlyKeys(VISIBLE_CELL_1, VISIBLE_CELL_2);
+    }
+
+    @Test
+    public void testIsValidFalseWhenClientContainerClose() {
+        when(cqlClientContainer.isClosed()).thenReturn(true);
+        assertThat(asyncKeyValueService.isValid()).isFalse();
+    }
+
+    @Test
+    public void testIsValidFalseWhenClientIsInvalid() {
+        when(cqlClientContainer.isClosed()).thenReturn(false);
+        when(cqlClient.isValid()).thenReturn(false);
+        assertThat(asyncKeyValueService.isValid()).isFalse();
+    }
+
+    @Test
+    public void testIsValidTrueWhenContainerOpenAndClientValid() {
+        when(cqlClient.isValid()).thenReturn(true);
+        assertThat(asyncKeyValueService.isValid()).isTrue();
     }
 
     private void setUpVisibleCells(Cell... cells) {

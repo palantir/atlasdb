@@ -62,11 +62,7 @@ Which will enable the following config object:
 #   keyValueService: (configuration for the storage backend)
 #     type:          (postgres|cassandra) type of key value store to use
 #     # cassandra specific config
-#     servers:       a list of cassandra nodes to use
-#       - [hostname] e.g. localhost
-#     port:          the port to communicate on (Cassandra default is 9160)
 #     ssl:           (true|false) true to use SSL
-#     replicationFactor: replication factor
 #     mutationBatchCount: (optional, default 5000)
 #     mutationBatchSizeBytes: (optional, default 4*1024*1024)
 #     fetchBatchCount:    (optional, default 5000)
@@ -95,17 +91,26 @@ Which will enable the following config object:
 #    acceptorLogDir: (optional, default var/data/paxos/acceptor) the persistence
 #                    directory for the acceptor, must actually persist between
 #                    executions of the server
-#
+#atlasDbRuntime:
+#    keyValueService:
+#        type: cassandra
+#        servers:       a list of cassandra nodes to use
+#         - [hostname] e.g. localhost
+#        replicationFactor: replication factor
+
+
 # Example: a default configuration for running a single process Jobs Service
 # backed by a single node Cassandra instance and using the embedded
 # lock-stamp services:
 # atlas:
 #   keyValueService:
 #     type: cassandra
-#     servers:
-#       - localhost
-#     port: 9160
 #     ssl: false
-#     replicationFactor: 1
-#
+
+# atlasDbRuntime:
+#    keyValueService:
+#      type: cassandra
+#      servers:
+#        - localhost:9160
+#      replicationFactor: 1
 ```

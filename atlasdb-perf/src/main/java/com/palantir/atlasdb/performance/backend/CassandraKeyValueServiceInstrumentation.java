@@ -16,12 +16,17 @@
 package com.palantir.atlasdb.performance.backend;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 
 public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
@@ -32,7 +37,6 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
-                .servers(ImmutableDefaultConfig.builder().addThriftHosts(addr).build())
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -40,18 +44,27 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
                         .password("cassandra")
                         .build())
                 .ssl(false)
-                .replicationFactor(1)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
                 .autoRefreshNodes(false)
                 .build();
     }
 
     @Override
+    public Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(InetSocketAddress addr) {
+        return Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .servers(ImmutableDefaultConfig.builder().addThriftHosts(addr).build())
+                .replicationFactor(1)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
+                .build());
+    }
+
+    @Override
     public boolean canConnect(InetSocketAddress addr) {
         return CassandraKeyValueServiceImpl.createForTesting(
-                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr))
+                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
+                        Refreshable.only((CassandraKeyValueServiceRuntimeConfig)
+                                getKeyValueServiceRuntimeConfig(addr).orElseThrow()))
                 .isInitialized();
     }
 

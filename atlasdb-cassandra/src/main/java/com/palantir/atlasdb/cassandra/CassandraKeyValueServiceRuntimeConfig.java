@@ -51,6 +51,15 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return ImmutableDefaultConfig.of();
     }
 
+    @Value.Default
+    public Integer replicationFactor() {
+        // Temporary sentinel while users may provide replication factor in install or runtime config, and we don't want
+        // to break existing runtime configs just yet by making this mandatory.
+        // The merged config `CassandraReloadableKeyValueServiceRuntimeConfig` verifies that at least 1 of the install
+        // or runtime config replicationFactor is set to at least a non-negative value.
+        return -1;
+    }
+
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
      */

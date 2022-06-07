@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: NotInitializedException now supports passing in a cause throwable.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6061

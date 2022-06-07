@@ -63,6 +63,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -72,7 +73,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -103,10 +103,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             TableReference.createFromFullyQualifiedName("ns.default_table");
     private static final String CASSANDRA_DEFAULT_TABLE_NAME =
             AbstractKeyValueService.internalTableName(ATLAS_DEFAULT_TABLE_REFERENCE);
-    private static final Supplier<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG_SUPPLIER =
-            () -> ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
-                    .fetchReadLimitPerRow(100)
-                    .build();
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -125,7 +121,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
-                RUNTIME_CONFIG_SUPPLIER,
+                getRuntimeConfig(),
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 logger,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -182,18 +178,21 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
         Logger testLogger = mock(Logger.class);
         // nth startup
-        CassandraKeyValueService kvs = createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), testLogger);
+        CassandraKeyValueService kvs =
+                createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), getRuntimeConfig(), testLogger);
         kvs.createTable(NEVER_SEEN, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertThatGcGraceSecondsIs(kvs, FOUR_DAYS_IN_SECONDS);
         kvs.close();
 
-        CassandraKeyValueService kvs2 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
+        CassandraKeyValueService kvs2 =
+                createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), getRuntimeConfig(), testLogger);
         assertThatGcGraceSecondsIs(kvs2, ONE_HOUR_IN_SECONDS);
         kvs2.close();
         // n+1th startup with different GC grace seconds - should upgrade
         verify(testLogger, times(1)).info(startsWith("New table-related settings were applied on startup!!"));
 
-        CassandraKeyValueService kvs3 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
+        CassandraKeyValueService kvs3 =
+                createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), getRuntimeConfig(), testLogger);
         assertThatGcGraceSecondsIs(kvs3, ONE_HOUR_IN_SECONDS);
         // startup with same gc grace seconds as previous one - no upgrade
         verify(testLogger, times(2))
@@ -246,6 +245,13 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig.copyOf(CASSANDRA.getConfig())
                 .withGcGraceSeconds(gcGraceSeconds);
+    }
+
+    private static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig() {
+        return CASSANDRA.getRuntimeConfig().map(config -> ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .from(config)
+                .fetchReadLimitPerRow(100)
+                .build());
     }
 
     private static String getInternalTestTableName() {
@@ -508,11 +514,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         keyValueService.truncateTable(userTable);
     }
 
-    private static CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+    private static CassandraKeyValueService createKvs(
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Logger testLogger) {
         // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
+                runtimeConfig,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 testLogger);
     }

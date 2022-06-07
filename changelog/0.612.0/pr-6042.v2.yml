@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: CassandraAtlasDbFactory now uses refreshables instead of suppliers
+    for runtime config.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6042

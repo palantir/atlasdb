@@ -31,6 +31,7 @@ import com.palantir.atlasdb.backup.KvsRunner;
 import com.palantir.atlasdb.backup.api.AtlasService;
 import com.palantir.atlasdb.backup.api.ServiceId;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper;
 import com.palantir.atlasdb.cassandra.backup.CqlCluster;
@@ -91,13 +92,16 @@ public final class CassandraRepairEteTest {
     private CassandraRepairHelper cassandraRepairHelper;
     private CassandraKeyValueService kvs;
     private CassandraKeyValueServiceConfig config;
+    private Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private Cluster cluster;
     private CqlCluster cqlCluster;
 
     @Before
     public void setUp() {
-        config = ThreeNodeCassandraCluster.getKvsConfig(2);
-        kvs = CassandraKeyValueServiceImpl.createForTesting(config);
+        int replicationFactor = 2;
+        config = ThreeNodeCassandraCluster.getKvsConfig();
+        runtimeConfig = ThreeNodeCassandraCluster.getRuntimeConfig(replicationFactor);
+        kvs = CassandraKeyValueServiceImpl.createForTesting(config, runtimeConfig);
         TransactionTables.createTables(kvs);
 
         kvs.createTable(TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -105,10 +109,15 @@ public final class CassandraRepairEteTest {
 
         KvsRunner kvsRunner = KvsRunner.create(_unused -> kvs);
         Function<AtlasService, CassandraKeyValueServiceConfig> configFactory = _unused -> config;
+        Function<AtlasService, Refreshable<CassandraKeyValueServiceRuntimeConfig>> runtimeConfigFactory =
+                _unused -> runtimeConfig;
         Function<AtlasService, CassandraClusterConfig> cassandraClusterConfigFunction =
-                configFactory.andThen(CassandraClusterConfig::of);
+                atlasService -> CassandraClusterConfig.of(
+                        configFactory.apply(atlasService),
+                        runtimeConfigFactory.apply(atlasService).get());
         Function<AtlasService, Refreshable<CassandraServersConfig>> cassandraServersConfigFactory =
-                configFactory.andThen(config -> Refreshable.only(config.servers()));
+                runtimeConfigFactory.andThen(
+                        runtimeConfig -> runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::servers));
 
         cassandraRepairHelper =
                 new CassandraRepairHelper(kvsRunner, cassandraClusterConfigFunction, cassandraServersConfigFactory);
@@ -259,7 +268,10 @@ public final class CassandraRepairEteTest {
         CassandraService cassandraService = CassandraService.createInitialized(
                 MetricsManagers.createForTests(),
                 config,
-                new Blacklist(config),
+                runtimeConfig,
+                new Blacklist(
+                        config,
+                        runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)),
                 new CassandraClientPoolMetrics(MetricsManagers.createForTests()));
         return invert(cassandraService.getTokenMap());
     }

@@ -5,6 +5,7 @@ dependencies {
     testImplementation 'com.google.guava:guava'
     testImplementation 'org.apache.thrift:libthrift'
     testImplementation 'org.awaitility:awaitility'
+    testImplementation 'com.palantir.refreshable:refreshable'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-commons')

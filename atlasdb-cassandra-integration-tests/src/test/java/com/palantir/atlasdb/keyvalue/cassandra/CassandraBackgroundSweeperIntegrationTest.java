@@ -35,6 +35,7 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
+                CASSANDRA.getRuntimeConfig(),
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, services));
     }
 }

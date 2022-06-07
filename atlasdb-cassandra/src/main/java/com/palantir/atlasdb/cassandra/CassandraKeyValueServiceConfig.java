@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
@@ -61,10 +60,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * to generate the initial connection(s) to the cluster, or as part of startup checks.
      */
     @Deprecated
-    @Value.Default
-    default CassandraServersConfig servers() {
-        return ImmutableDefaultConfig.of();
-    }
+    Optional<CassandraServersConfig> servers();
 
     // Todo(snanda): the field is no longer in use
     @Value.Default
@@ -127,15 +123,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it has been blacklisted.
      *
-     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make this
-     * value live-reloadable.
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make
+     * this value live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int unresponsiveHostBackoffTimeSeconds() {
-        return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
-    }
+    Optional<Integer> unresponsiveHostBackoffTimeSeconds();
 
     /**
      * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra as data
@@ -242,40 +234,32 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     Optional<Supplier<ExecutorService>> thriftExecutorServiceFactory();
 
-    int replicationFactor();
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#replicationFactor()}.
+     */
+    @Deprecated
+    Optional<Integer> replicationFactor();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
      * live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int mutationBatchCount() {
-        return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
-    }
+    Optional<Integer> mutationBatchCount();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchSizeBytes()} to make this value
      * live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int mutationBatchSizeBytes() {
-        return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
-    }
+    Optional<Integer> mutationBatchSizeBytes();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#fetchBatchCount()} to make this value
      * live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default int fetchBatchCount() {
-        return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
-    }
+    Optional<Integer> fetchBatchCount();
 
     @Value.Default
     default boolean ignoreNodeTopologyChecks() {
@@ -373,12 +357,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#sweepReadThreads()} to make this value
      * live-reloadable.
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Value.Default
     @Deprecated
-    default Integer sweepReadThreads() {
-        return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
-    }
+    Optional<Integer> sweepReadThreads();
 
     Optional<CassandraJmxCompactionConfig> jmx();
 
@@ -388,20 +368,23 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * {@link CassandraReloadableKvsConfig} uses the value below if and only if it is greater than 0, otherwise
-     * deriving fom {@link CassandraKeyValueServiceRuntimeConfig#servers()} in a similar fashion.
+     * {@link CassandraReloadableKeyValueServiceRuntimeConfig} uses the value below if and only if it is greater than
+     * 0, otherwise deriving fom {@link CassandraKeyValueServiceRuntimeConfig#servers()} in a similar fashion.
      *
      * As a result, if the below derivation is changed to be non-zero when {@link #servers()} is empty, then this
      * will always take precedence over the derived value from the reloadable config.
      *
-     * If such a change happens, {@link CassandraReloadableKvsConfig#concurrentGetRangesThreadPoolSize()} should be
+     * If such a change happens,
+     * {@link CassandraReloadableKeyValueServiceRuntimeConfig#concurrentGetRangesThreadPoolSize()}  should be
      * updated to compare against a new sentinel value (e.g the calculated value when servers is empty) so that the
      * reloadable config correctly flips over to using the runtime derived value when appropriate.
      *
      */
     @Value.Default
     default int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().numberOfThriftHosts();
+        return servers()
+                .map(servers -> servers.numberOfThriftHosts() * poolSize())
+                .orElse(0);
     }
 
     @Value.Default

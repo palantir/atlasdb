@@ -21,8 +21,10 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.Closeable;
+import java.util.Optional;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
@@ -46,10 +48,13 @@ public class AtlasDbServicesConnector implements Closeable {
         DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
         KeyValueServiceConfig config =
                 dburi.getKeyValueServiceInstrumentation().getKeyValueServiceConfig(dburi.getAddress());
+        Optional<KeyValueServiceRuntimeConfig> runtimeConfig =
+                dburi.getKeyValueServiceInstrumentation().getKeyValueServiceRuntimeConfig(dburi.getAddress());
         ImmutableAtlasDbConfig atlasDbConfig =
                 ImmutableAtlasDbConfig.builder().keyValueService(config).build();
-        ImmutableAtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.defaultRuntimeConfig();
-        ServicesConfigModule servicesConfigModule = ServicesConfigModule.create(atlasDbConfig, runtimeConfig);
+        ImmutableAtlasDbRuntimeConfig atlasDbRuntimeConfig =
+                ImmutableAtlasDbRuntimeConfig.defaultRuntimeConfig().withKeyValueService(runtimeConfig);
+        ServicesConfigModule servicesConfigModule = ServicesConfigModule.create(atlasDbConfig, atlasDbRuntimeConfig);
 
         services = DaggerAtlasDbServices.builder()
                 .servicesConfigModule(servicesConfigModule)

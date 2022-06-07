@@ -35,9 +35,9 @@ public abstract class CellReference {
      */
     public int goodHash() {
         int hash = 5381;
-        hash = hash * 31 + tableRef().hashCode();
-        hash = hash * 31 + rowHash.hashBytes(cell().getRowName()).asInt();
-        hash = hash * 31 + colHash.hashBytes(cell().getColumnName()).asInt();
+        hash = hash * 1439 + tableRef().hashCode();
+        hash = hash * 1439 + rowHash.hashBytes(cell().getRowName()).asInt();
+        hash = hash * 1439 + colHash.hashBytes(cell().getColumnName()).asInt();
         return hash;
     }
 

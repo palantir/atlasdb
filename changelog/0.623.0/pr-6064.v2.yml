@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: '`CassandraKeyValueServiceConfigs` enables library users to manage
+    their `CassandraKeyValueService(Runtime)Config`, including handling construction
+    of any merging variants.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6064

@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Cassandra CellLoader lazily computes read-only result lists
+
+    Avoid excessive collection copies when processing Cassandra results in
+    CellLoader to avoid memory allocation and GC pressure on hot code paths.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6054

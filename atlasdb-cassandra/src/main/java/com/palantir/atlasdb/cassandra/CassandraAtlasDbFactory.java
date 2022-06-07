@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.cassandra;
 
 import com.google.auto.service.AutoService;
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -34,8 +33,6 @@ import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
@@ -43,14 +40,9 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
-    private static SafeLogger log = SafeLoggerFactory.get(CassandraAtlasDbFactory.class);
-    private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
-            CassandraKeyValueServiceRuntimeConfig.getDefault();
-
     @Override
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
@@ -61,12 +53,16 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
-        Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig =
-                preprocessKvsRuntimeConfig(runtimeConfig);
+        CassandraKeyValueServiceConfigs configs =
+                CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(config, runtimeConfig);
+
+        CassandraKeyValueServiceConfigs configsWithNamespace = configs.copyWithKeyspace(
+                OptionalResolver.resolve(namespace, configs.installConfig().namespace()));
+
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
-                createMergedKeyValueServiceConfig(config, runtimeConfig, namespace),
-                cassandraRuntimeConfig,
+                configsWithNamespace.installConfig(),
+                configsWithNamespace.runtimeConfig(),
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync);
     }
@@ -74,59 +70,10 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
-        CassandraReloadableKvsConfig cassandraReloadableKvsConfig =
-                new CassandraReloadableKvsConfig(toCassandraConfig(config), Refreshable.only(runtimeConfigSnapshot));
-        return DerivedSnapshotConfig.builder()
-                .concurrentGetRangesThreadPoolSize(cassandraReloadableKvsConfig.concurrentGetRangesThreadPoolSize())
-                .defaultGetRangesConcurrencyOverride(cassandraReloadableKvsConfig.defaultGetRangesConcurrency())
-                .build();
-    }
+        CassandraKeyValueServiceConfigs configs = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                config, Refreshable.only(runtimeConfigSnapshot));
 
-    @VisibleForTesting
-    static CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
-            KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<String> namespace) {
-        CassandraKeyValueServiceConfig cassandraConfig = toCassandraConfig(config);
-
-        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
-        CassandraKeyValueServiceConfig configWithNamespace =
-                CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
-
-        return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
-    }
-
-    private static CassandraKeyValueServiceConfig toCassandraConfig(KeyValueServiceConfig config) {
-        Preconditions.checkArgument(
-                config instanceof CassandraKeyValueServiceConfig,
-                "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
-                        + " CassandraKeyValueServiceConfig, but found a different type.",
-                SafeArg.of("configType", config.getClass()));
-        return (CassandraKeyValueServiceConfig) config;
-    }
-
-    @VisibleForTesting
-    Supplier<CassandraKeyValueServiceRuntimeConfig> preprocessKvsRuntimeConfig(
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
-        return () -> {
-            Optional<KeyValueServiceRuntimeConfig> configOptional = runtimeConfig.get();
-
-            return configOptional
-                    .map(config -> {
-                        if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
-                            log.error(
-                                    "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
-                                        + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
-                                        + " CassandraKeyValueServiceRuntimeConfig.",
-                                    SafeArg.of("configClass", config.getClass()));
-                            return latestValidRuntimeConfig;
-                        }
-
-                        latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
-                        return latestValidRuntimeConfig;
-                    })
-                    .orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault);
-        };
+        return configs.derivedSnapshotConfig();
     }
 
     @Override

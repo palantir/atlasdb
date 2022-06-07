@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -33,6 +34,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import java.nio.ByteBuffer;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +43,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -179,9 +180,7 @@ final class CellLoader {
                             Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = queryRunner.multiget_multislice(
                                     kvsMethodName, client, tableRef, query, consistency);
                             Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults =
-                                    Maps.transformValues(results, lists -> lists.stream()
-                                            .flatMap(Collection::stream)
-                                            .collect(Collectors.toList()));
+                                    Maps.transformValues(results, CellLoader::flattenReadOnlyLists);
                             visitor.visit(aggregatedResults);
                             return null;
                         }
@@ -199,6 +198,39 @@ final class CellLoader {
                     multiGetCallable));
         }
         return tasks;
+    }
+
+    /**
+     * Returns an unmodifiable flattened list view of the provided lists, lazily joined in order.
+     * This is useful to reduce collection copies for collections that will be iterated over.
+     */
+    @VisibleForTesting
+    static <E> List<E> flattenReadOnlyLists(List<List<E>> lists) {
+        // assume underlying collections will not change size
+        int size = lists.stream().mapToInt(List::size).sum();
+        return new AbstractList<E>() {
+            @Override
+            public E get(int index) {
+                if (index < 0 || index >= size()) {
+                    throw new IndexOutOfBoundsException(index);
+                }
+                int localIndex = index;
+                for (List<E> list : lists) {
+                    int listSize = list.size();
+                    if (localIndex < listSize) {
+                        return list.get(localIndex);
+                    } else {
+                        localIndex -= listSize;
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            public int size() {
+                return size;
+            }
+        };
     }
 
     private static List<KeyPredicate> translatePartitionToKeyPredicates(
