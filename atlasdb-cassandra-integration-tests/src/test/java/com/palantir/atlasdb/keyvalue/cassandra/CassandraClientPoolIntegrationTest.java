@@ -20,6 +20,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
@@ -71,12 +72,12 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testTokenMapping() {
-        Map<Range<LightweightOppToken>, List<CassandraServer>> mapOfRanges =
+        Map<Range<LightweightOppToken>, ImmutableSet<CassandraServer>> mapOfRanges =
                 clientPool.getTokenMap().asMapOfRanges();
         assertThat(mapOfRanges).isNotEmpty();
-        for (Map.Entry<Range<LightweightOppToken>, List<CassandraServer>> entry : mapOfRanges.entrySet()) {
+        for (Map.Entry<Range<LightweightOppToken>, ImmutableSet<CassandraServer>> entry : mapOfRanges.entrySet()) {
             Range<LightweightOppToken> tokenRange = entry.getKey();
-            List<CassandraServer> hosts = entry.getValue();
+            ImmutableSet<CassandraServer> hosts = entry.getValue();
 
             clientPool.getRandomServerForKey("A".getBytes(StandardCharsets.UTF_8));
 

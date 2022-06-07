@@ -44,7 +44,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -302,7 +301,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    RangeMap<LightweightOppToken, List<CassandraServer>> getTokenMap() {
+    RangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> getTokenMap() {
         return cassandra.getTokenMap();
     }
 
