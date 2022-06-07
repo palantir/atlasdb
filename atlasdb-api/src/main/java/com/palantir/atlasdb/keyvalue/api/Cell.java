@@ -141,7 +141,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
          * allow for benign data races.
          */
         if (hashCode == 0) {
-            hashCode = Arrays.hashCode(rowName) ^ Arrays.hashCode(columnName);
+            hashCode = 31 * Arrays.hashCode(rowName) + Arrays.hashCode(columnName);
         }
         return hashCode;
     }
