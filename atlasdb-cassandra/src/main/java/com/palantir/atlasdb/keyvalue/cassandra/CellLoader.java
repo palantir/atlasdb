@@ -121,7 +121,7 @@ final class CellLoader {
                     SafeArg.of("totalPartitions", totalPartitions));
         }
 
-        List<Callable<Void>> tasks = new ArrayList<>();
+        List<Callable<Void>> tasks = new ArrayList<>(hostsAndCells.size());
         for (Map.Entry<CassandraServer, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (isTraceEnabled) {
                 log.trace(
@@ -160,8 +160,9 @@ final class CellLoader {
             final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        List<Callable<Void>> tasks = new ArrayList<>();
-        for (final List<Cell> partition : batcher.partitionIntoBatches(cells, cassandraServer, tableRef)) {
+        List<List<Cell>> batches = batcher.partitionIntoBatches(cells, cassandraServer, tableRef);
+        List<Callable<Void>> tasks = new ArrayList<>(batches.size());
+        for (final List<Cell> partition : batches) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnServer(
                     cassandraServer, new FunctionCheckedException<CassandraClient, Void, Exception>() {
                         @Override
