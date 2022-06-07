@@ -126,7 +126,7 @@ final class CellLoader {
             if (isTraceEnabled) {
                 log.trace(
                         "Requesting {} cells from {} {}starting at timestamp {} on {}",
-                        SafeArg.of("cells", hostsAndCells.values().size()),
+                        SafeArg.of("cells", hostAndCells.getValue().size()),
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                         SafeArg.of("startTs", startTs),
