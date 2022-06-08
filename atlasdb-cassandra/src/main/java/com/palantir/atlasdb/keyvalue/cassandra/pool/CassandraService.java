@@ -75,8 +75,8 @@ import org.apache.cassandra.thrift.TokenRange;
 
 public class CassandraService implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);
-    private static final Interner<RangeMap<LightweightOppToken, ImmutableSet<CassandraServer>>> tokensInterner =
-            Interners.newWeakInterner();
+    private static final Interner<ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>>>
+            tokensInterner = Interners.newWeakInterner();
 
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
@@ -84,7 +84,8 @@ public class CassandraService implements AutoCloseable {
     private final CassandraClientPoolMetrics poolMetrics;
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
 
-    private volatile RangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> tokenMap = ImmutableRangeMap.of();
+    private volatile ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> tokenMap =
+            ImmutableRangeMap.of();
     private final Map<CassandraServer, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
     private volatile Map<CassandraServer, String> hostToDatacenter = ImmutableMap.of();
 
