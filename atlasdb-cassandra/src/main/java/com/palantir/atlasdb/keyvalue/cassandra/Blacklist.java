@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -106,7 +107,7 @@ public class Blacklist {
         }
     }
 
-    public Set<CassandraServer> filterBlacklistedHostsFrom(Set<CassandraServer> potentialHosts) {
+    public Set<CassandraServer> filterBlacklistedHostsFrom(ImmutableSet<CassandraServer> potentialHosts) {
         return Sets.difference(potentialHosts, blacklist.keySet());
     }
 

@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -324,10 +325,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     void setServersInPoolTo(ImmutableSet<CassandraServer> desiredServers) {
         ImmutableSet<CassandraServer> cachedServers = getCachedServers();
-        ImmutableSet<CassandraServer> serversToAdd =
-                ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
-        ImmutableSet<CassandraServer> absentServers =
-                ImmutableSet.copyOf(Sets.difference(cachedServers, desiredServers));
+        SetView<CassandraServer> serversToAdd = Sets.difference(desiredServers, cachedServers);
+        SetView<CassandraServer> absentServers = Sets.difference(cachedServers, desiredServers);
 
         serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
         absentServers.forEach(cassandraServer -> {

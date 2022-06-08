@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
@@ -54,8 +55,6 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -87,7 +86,7 @@ public class CassandraService implements AutoCloseable {
     private volatile ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> tokenMap =
             ImmutableRangeMap.of();
     private final Map<CassandraServer, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
-    private volatile Map<CassandraServer, String> hostToDatacenter = ImmutableMap.of();
+    private volatile ImmutableMap<CassandraServer, String> hostToDatacenter = ImmutableMap.of();
 
     private List<CassandraServer> cassandraHosts;
 
@@ -133,8 +132,8 @@ public class CassandraService implements AutoCloseable {
     public void close() {}
 
     public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
-        Set<CassandraServer> servers = new HashSet<>();
-        Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
+        ImmutableSet.Builder<CassandraServer> servers = ImmutableSet.builder();
+        ImmutableMap.Builder<CassandraServer, String> hostToDatacentersThisRefresh = ImmutableMap.builder();
 
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, ImmutableSet<CassandraServer>> newTokenRing =
@@ -180,9 +179,9 @@ public class CassandraService implements AutoCloseable {
                 }
             }
             tokenMap = tokensInterner.intern(newTokenRing.build());
-            logHostToDatacenterMapping(hostToDatacentersThisRefresh);
-            hostToDatacenter = hostToDatacentersThisRefresh;
-            return ImmutableSet.copyOf(servers);
+            hostToDatacenter = hostToDatacentersThisRefresh.build();
+            logHostToDatacenterMapping(hostToDatacenter);
+            return servers.build();
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
@@ -212,7 +211,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     private ImmutableSet<InetSocketAddress> getServersSocketAddressesFromConfig() {
-        return ImmutableSet.copyOf(runtimeConfig.get().servers().accept(ThriftHostsExtractingVisitor.INSTANCE));
+        return runtimeConfig.get().servers().accept(ThriftHostsExtractingVisitor.INSTANCE);
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
@@ -314,7 +313,7 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    private Sets.SetView<InetSocketAddress> getAllKnownHosts() {
+    private SetView<InetSocketAddress> getAllKnownHosts() {
         return Sets.union(getProxiesFromCurrentPool(), getServersSocketAddressesFromConfig());
     }
 
@@ -333,12 +332,11 @@ public class CassandraService implements AutoCloseable {
 
     public Optional<CassandraClientPoolingContainer> getRandomGoodHostForPredicate(
             Predicate<CassandraServer> predicate, Set<CassandraServer> triedNodes) {
-        Map<CassandraServer, CassandraClientPoolingContainer> pools = currentPools;
-
-        Set<CassandraServer> hostsMatchingPredicate =
-                pools.keySet().stream().filter(predicate).collect(Collectors.toSet());
+        ImmutableSet<CassandraServer> hostsMatchingPredicate =
+                currentPools.keySet().stream().filter(predicate).collect(ImmutableSet.toImmutableSet());
+        ImmutableMap<CassandraServer, String> hostToDatacenterSnapshot = hostToDatacenter; // volatile read
         Map<String, Long> triedDatacenters = triedNodes.stream()
-                .map(hostToDatacenter::get)
+                .map(hostToDatacenterSnapshot::get)
                 .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         Optional<Long> maximumAttemptsPerDatacenter =
@@ -351,11 +349,13 @@ public class CassandraService implements AutoCloseable {
                 .keys()
                 .collect(Collectors.toSet());
 
-        Set<CassandraServer> hostsInPermittedDatacenters = Sets.filter(hostsMatchingPredicate, pool -> {
-            String datacenter = hostToDatacenter.get(pool);
-            return datacenter == null || !maximallyAttemptedDatacenters.contains(datacenter);
-        });
-        Set<CassandraServer> filteredHosts =
+        ImmutableSet<CassandraServer> hostsInPermittedDatacenters = hostsMatchingPredicate.stream()
+                .filter(pool -> {
+                    String datacenter = hostToDatacenterSnapshot.get(pool);
+                    return datacenter == null || !maximallyAttemptedDatacenters.contains(datacenter);
+                })
+                .collect(ImmutableSet.toImmutableSet());
+        ImmutableSet<CassandraServer> filteredHosts =
                 hostsInPermittedDatacenters.isEmpty() ? hostsMatchingPredicate : hostsInPermittedDatacenters;
 
         if (filteredHosts.isEmpty()) {
@@ -371,7 +371,7 @@ public class CassandraService implements AutoCloseable {
         }
 
         Optional<CassandraServer> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
-        return randomLivingHost.map(pools::get);
+        return randomLivingHost.map(currentPools::get);
     }
 
     public List<PoolingContainer<CassandraClient>> getAllNonBlacklistedHosts() {
@@ -525,7 +525,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     @VisibleForTesting
-    void overrideHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacenterOverride) {
+    void overrideHostToDatacenterMapping(ImmutableMap<CassandraServer, String> hostToDatacenterOverride) {
         this.hostToDatacenter = hostToDatacenterOverride;
     }
 }
