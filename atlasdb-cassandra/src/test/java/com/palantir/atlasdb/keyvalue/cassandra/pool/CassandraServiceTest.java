@@ -35,6 +35,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -246,23 +247,26 @@ public class CassandraServiceTest {
     }
 
     @Test
-    public void getRandomHostByActiveConnections() {
-        Set<CassandraServer> servers = generateServers(24);
+    public void getRandomHostByActiveConnectionsReturnsDesiredHost() {
+        ImmutableSet<CassandraServer> servers = IntStream.range(0, 24)
+                .mapToObj(i1 -> CassandraServer.of(InetSocketAddress.createUnresolved("10.0.0." + i1, DEFAULT_PORT)))
+                .collect(ImmutableSet.toImmutableSet());
         try (CassandraService service = clientPoolWithParams(servers, servers, 1.0)) {
             service.setLocalHosts(servers.stream().limit(8).collect(ImmutableSet.toImmutableSet()));
-            Set<CassandraServer> desired = servers.stream().limit(3).collect(Collectors.toSet());
-            for (int i = 0; i < 1_000_000; i++) {
-                assertThat(service.getRandomHostByActiveConnections(desired)).isPresent();
+            for (int i = 0; i < 500_000; i++) {
+                // select some random nodes
+                ImmutableSet<CassandraServer> desired = IntStream.generate(
+                                () -> ThreadLocalRandom.current().nextInt(servers.size()))
+                        .limit(3)
+                        .mapToObj(i1 -> servers.asList().get(i1))
+                        .collect(ImmutableSet.toImmutableSet());
+                assertThat(service.getRandomHostByActiveConnections(desired))
+                        .describedAs("Iteration %i - Expecting a node selected from desired: %s", i, desired)
+                        .isPresent()
+                        .get()
+                        .satisfies(server -> assertThat(desired).contains(server));
             }
         }
-    }
-
-    private Set<CassandraServer> generateServers(int size) {
-        ImmutableSet.Builder<CassandraServer> servers = ImmutableSet.builder();
-        for (int i = 0; i < size; i++) {
-            servers.add(CassandraServer.of(InetSocketAddress.createUnresolved("10.0.0." + i, DEFAULT_PORT)));
-        }
-        return servers.build();
     }
 
     private Set<CassandraServer> getRecommendedHostsFromAThousandTrials(
