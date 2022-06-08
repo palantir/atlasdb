@@ -76,7 +76,7 @@ public final class CellTest {
         assertThat(Cell.create(bytes("row"), bytes("col")))
                 .describedAs("Cell unfortunately has a non-ideal hashCode where swapped "
                         + "row and column values lead to the same hashCode and cannot be changed due "
-                        + "to backward compatibility. See goodHash")
+                        + "to backward compatibility. See CellReference#goodHash")
                 .hasSameHashCodeAs(Cell.create(bytes("col"), bytes("row")));
     }
 
