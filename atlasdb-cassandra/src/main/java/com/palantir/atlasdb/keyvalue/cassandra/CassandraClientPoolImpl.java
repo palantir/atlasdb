@@ -36,7 +36,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -323,15 +322,18 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    void setServersInPoolTo(Set<CassandraServer> desiredServers) {
-        Set<CassandraServer> cachedServers = getCachedServers();
-        Set<CassandraServer> serversToAdd = ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
-        Set<CassandraServer> absentServers = ImmutableSet.copyOf(Sets.difference(cachedServers, desiredServers));
+    void setServersInPoolTo(ImmutableSet<CassandraServer> desiredServers) {
+        ImmutableSet<CassandraServer> cachedServers = getCachedServers();
+        ImmutableSet<CassandraServer> serversToAdd =
+                ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
+        ImmutableSet<CassandraServer> absentServers =
+                ImmutableSet.copyOf(Sets.difference(cachedServers, desiredServers));
 
         serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
-        Map<CassandraServer, CassandraClientPoolingContainer> containersForAbsentHosts =
-                KeyedStream.of(absentServers).map(cassandra::removePool).collectToMap();
-        containersForAbsentHosts.forEach(absentHostTracker::trackAbsentCassandraServer);
+        absentServers.forEach(cassandraServer -> {
+            CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
+            absentHostTracker.trackAbsentCassandraServer(cassandraServer, container);
+        });
 
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
@@ -358,8 +360,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private Set<CassandraServer> getCachedServers() {
-        return cassandra.getPools().keySet();
+    private ImmutableSet<CassandraServer> getCachedServers() {
+        return ImmutableSet.copyOf(cassandra.getPools().keySet());
     }
 
     @Override

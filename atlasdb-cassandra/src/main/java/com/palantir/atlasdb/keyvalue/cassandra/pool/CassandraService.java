@@ -132,7 +132,7 @@ public class CassandraService implements AutoCloseable {
     @Override
     public void close() {}
 
-    public Set<CassandraServer> refreshTokenRangesAndGetServers() {
+    public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
         Set<CassandraServer> servers = new HashSet<>();
         Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
 
@@ -182,7 +182,7 @@ public class CassandraService implements AutoCloseable {
             tokenMap = tokensInterner.intern(newTokenRing.build());
             logHostToDatacenterMapping(hostToDatacentersThisRefresh);
             hostToDatacenter = hostToDatacentersThisRefresh;
-            return servers;
+            return ImmutableSet.copyOf(servers);
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
@@ -191,13 +191,13 @@ public class CassandraService implements AutoCloseable {
 
             // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
             // conditions where the entire pool becomes invalid between refreshes.
-            Set<CassandraServer> resolvedConfigAddresses = getCurrentServerListFromConfig();
+            ImmutableSet<CassandraServer> resolvedConfigAddresses = getCurrentServerListFromConfig();
 
-            Set<CassandraServer> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream()
+            ImmutableSet<CassandraServer> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream()
                     .flatMap(Collection::stream)
-                    .collect(Collectors.toSet());
+                    .collect(ImmutableSet.toImmutableSet());
 
-            return Sets.union(resolvedConfigAddresses, lastKnownAddresses);
+            return Sets.union(resolvedConfigAddresses, lastKnownAddresses).immutableCopy();
         }
     }
 
@@ -205,11 +205,10 @@ public class CassandraService implements AutoCloseable {
      * It is expected that config provides list of servers that are directly reachable and do not require special IP
      * resolution.
      * */
-    public Set<CassandraServer> getCurrentServerListFromConfig() {
-        Set<InetSocketAddress> inetSocketAddresses = getServersSocketAddressesFromConfig();
-        return inetSocketAddresses.stream()
+    public ImmutableSet<CassandraServer> getCurrentServerListFromConfig() {
+        return getServersSocketAddressesFromConfig().stream()
                 .map(cassandraHost -> CassandraServer.of(cassandraHost.getHostString(), cassandraHost))
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
     private ImmutableSet<InetSocketAddress> getServersSocketAddressesFromConfig() {
@@ -244,7 +243,7 @@ public class CassandraService implements AutoCloseable {
     private ImmutableSet<CassandraServer> refreshLocalHosts(List<TokenRange> tokenRanges) {
         Optional<HostLocation> myLocation = myLocationSupplier.get();
 
-        if (!myLocation.isPresent()) {
+        if (myLocation.isEmpty()) {
             return ImmutableSet.of();
         }
 
@@ -294,20 +293,19 @@ public class CassandraService implements AutoCloseable {
         return CassandraServer.of(cassandraHostName, getReachableProxies(cassandraHostName));
     }
 
-    private Set<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
+    private ImmutableSet<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
         InetAddress[] resolvedHosts = InetAddress.getAllByName(inputHost);
         int knownPort = getKnownPort();
 
         // It is okay to have reachable proxies that do not have a hostname
         return Stream.of(resolvedHosts)
                 .map(inetAddr -> new InetSocketAddress(inetAddr, knownPort))
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
     private int getKnownPort() throws UnknownHostException {
-        Set<InetSocketAddress> allKnownHosts = getAllKnownHosts();
-        Set<Integer> allKnownPorts =
-                allKnownHosts.stream().map(InetSocketAddress::getPort).collect(Collectors.toSet());
+        ImmutableSet<Integer> allKnownPorts =
+                getAllKnownHosts().stream().map(InetSocketAddress::getPort).collect(ImmutableSet.toImmutableSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
             return Iterables.getOnlyElement(allKnownPorts);
@@ -316,12 +314,12 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    private Set<InetSocketAddress> getAllKnownHosts() {
-        return ImmutableSet.copyOf(Sets.union(getProxiesFromCurrentPool(), getServersSocketAddressesFromConfig()));
+    private Sets.SetView<InetSocketAddress> getAllKnownHosts() {
+        return Sets.union(getProxiesFromCurrentPool(), getServersSocketAddressesFromConfig());
     }
 
-    private Set<InetSocketAddress> getProxiesFromCurrentPool() {
-        return currentPools.keySet().stream().map(CassandraServer::proxy).collect(Collectors.toSet());
+    private ImmutableSet<InetSocketAddress> getProxiesFromCurrentPool() {
+        return currentPools.keySet().stream().map(CassandraServer::proxy).collect(ImmutableSet.toImmutableSet());
     }
 
     private ImmutableSet<CassandraServer> getHostsFor(byte[] key) {
@@ -514,7 +512,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void cacheInitialCassandraHosts() {
-        Set<CassandraServer> thriftSocket = getCurrentServerListFromConfig();
+        ImmutableSet<CassandraServer> thriftSocket = getCurrentServerListFromConfig();
 
         cassandraHosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(CassandraServer::cassandraHostName))
