@@ -1,5 +1,9 @@
 type: improvement
 improvement:
-  description: Remove ImmutableMap copy from CassandraService.getRandomHostByActiveConnections(Set)
+  description: |-
+    Optimize CassandraService node selection.
+
+    Explicitly use ImmutableSet and SetView to identify snapshots and views of cluster state
+    both for clarity and to avoid excessive intermediate collection copies on hot code paths.
   links:
   - https://github.com/palantir/atlasdb/pull/6074
