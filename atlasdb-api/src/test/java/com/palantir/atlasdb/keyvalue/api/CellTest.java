@@ -56,12 +56,12 @@ public final class CellTest {
     public void testCompareTo() {
         assertThat(Cell.create(bytes("row"), bytes("col")))
                 .isEqualByComparingTo(Cell.create(bytes("row"), bytes("col")));
-        assertThat(Cell.create(bytes("row"), bytes("col")))
-                .isNotEqualByComparingTo(Cell.create(bytes("row2"), bytes("col")));
-        assertThat(Cell.create(bytes("row"), bytes("col")))
-                .isNotEqualByComparingTo(Cell.create(bytes("row2"), bytes("col2")));
-        assertThat(Cell.create(bytes("row1"), bytes("col"))).isLessThan(Cell.create(bytes("row2"), bytes("col")));
-        assertThat(Cell.create(bytes("row1"), bytes("col"))).isGreaterThan(Cell.create(bytes("row0"), bytes("col")));
+        assertThat(Cell.create(bytes("row1"), bytes("col1")))
+                .isNotEqualByComparingTo(Cell.create(bytes("row2"), bytes("col1")));
+        assertThat(Cell.create(bytes("row1"), bytes("col1")))
+                .isNotEqualByComparingTo(Cell.create(bytes("row1"), bytes("col2")));
+        assertThat(Cell.create(bytes("row1"), bytes("col1"))).isLessThan(Cell.create(bytes("row2"), bytes("col1")));
+        assertThat(Cell.create(bytes("row1"), bytes("col1"))).isLessThan(Cell.create(bytes("row1"), bytes("col2")));
     }
 
     @Test
