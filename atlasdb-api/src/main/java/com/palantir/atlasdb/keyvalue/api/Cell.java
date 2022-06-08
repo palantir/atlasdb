@@ -141,6 +141,11 @@ public final class Cell implements Serializable, Comparable<Cell> {
          * allow for benign data races.
          */
         if (hashCode == 0) {
+            /*
+             * This hashCode() implementation has a rather unfortunate case where it is always 0 if the row name and
+             * the column name match. We did not want to change it to keep backwards compatibility.
+             * See {@link CellReference#goodHash()}
+             */
             hashCode = Arrays.hashCode(rowName) ^ Arrays.hashCode(columnName);
         }
         return hashCode;
