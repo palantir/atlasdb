@@ -51,7 +51,8 @@ public final class CassandraServersConfigs {
         T visit(CqlCapableConfig cqlCapableConfig);
     }
 
-    public static final class ThriftHostsExtractingVisitor implements Visitor<Set<InetSocketAddress>> {
+    public enum ThriftHostsExtractingVisitor implements Visitor<Set<InetSocketAddress>> {
+        INSTANCE;
 
         @Override
         public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {

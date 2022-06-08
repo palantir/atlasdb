@@ -212,8 +212,8 @@ public class CassandraService implements AutoCloseable {
                 .collect(Collectors.toSet());
     }
 
-    private Set<InetSocketAddress> getServersSocketAddressesFromConfig() {
-        return runtimeConfig.get().servers().accept(new ThriftHostsExtractingVisitor());
+    private ImmutableSet<InetSocketAddress> getServersSocketAddressesFromConfig() {
+        return ImmutableSet.copyOf(runtimeConfig.get().servers().accept(ThriftHostsExtractingVisitor.INSTANCE));
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
