@@ -26,7 +26,7 @@ import org.junit.Test;
 public final class CellTest {
 
     @Test
-    public void create() {
+    public void testCreate() {
         Cell cell = Cell.create(bytes("row"), bytes("col"));
         assertThat(cell.getRowName()).isEqualTo(bytes("row"));
         assertThat(cell.getColumnName()).isEqualTo(bytes("col"));
@@ -43,7 +43,7 @@ public final class CellTest {
 
     @Test
     @SuppressWarnings("ConstantConditions") // explicitly testing conditions
-    public void isNameValid() {
+    public void testIsNameValid() {
         assertThat(Cell.isNameValid(bytes("row"))).isTrue();
         assertThat(Cell.isNameValid(null)).isFalse();
         assertThat(Cell.isNameValid(new byte[0])).isFalse();
@@ -53,7 +53,7 @@ public final class CellTest {
     }
 
     @Test
-    public void compareTo() {
+    public void testCompareTo() {
         assertThat(Cell.create(bytes("row"), bytes("col")))
                 .isEqualByComparingTo(Cell.create(bytes("row"), bytes("col")));
         assertThat(Cell.create(bytes("row"), bytes("col")))
