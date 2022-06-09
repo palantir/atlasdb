@@ -35,6 +35,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -62,8 +63,8 @@ public class CassandraServiceTest {
 
     @Test
     public void shouldOnlyReturnLocalHosts() {
-        Set<CassandraServer> hosts = ImmutableSet.of(SERVER_1, SERVER_2);
-        Set<CassandraServer> localHosts = ImmutableSet.of(SERVER_1);
+        ImmutableSet<CassandraServer> hosts = ImmutableSet.of(SERVER_1, SERVER_2);
+        ImmutableSet<CassandraServer> localHosts = ImmutableSet.of(SERVER_1);
 
         CassandraService cassandra = clientPoolWithServersAndParams(hosts, 1.0);
 
@@ -243,6 +244,29 @@ public class CassandraServiceTest {
         cassandra.overrideHostToDatacenterMapping(ImmutableMap.of());
         Set<CassandraServer> suggestedHosts = getRecommendedHostsFromAThousandTrials(cassandra, ImmutableSet.of());
         assertThat(suggestedHosts).containsExactlyInAnyOrderElementsOf(allHosts);
+    }
+
+    @Test
+    public void getRandomHostByActiveConnectionsReturnsDesiredHost() {
+        ImmutableSet<CassandraServer> servers = IntStream.range(0, 24)
+                .mapToObj(i1 -> CassandraServer.of(InetSocketAddress.createUnresolved("10.0.0." + i1, DEFAULT_PORT)))
+                .collect(ImmutableSet.toImmutableSet());
+        try (CassandraService service = clientPoolWithParams(servers, servers, 1.0)) {
+            service.setLocalHosts(servers.stream().limit(8).collect(ImmutableSet.toImmutableSet()));
+            for (int i = 0; i < 500_000; i++) {
+                // select some random nodes
+                ImmutableSet<CassandraServer> desired = IntStream.generate(
+                                () -> ThreadLocalRandom.current().nextInt(servers.size()))
+                        .limit(3)
+                        .mapToObj(i1 -> servers.asList().get(i1))
+                        .collect(ImmutableSet.toImmutableSet());
+                assertThat(service.getRandomHostByActiveConnections(desired))
+                        .describedAs("Iteration %i - Expecting a node selected from desired: %s", i, desired)
+                        .isPresent()
+                        .get()
+                        .satisfies(server -> assertThat(desired).contains(server));
+            }
+        }
     }
 
     private Set<CassandraServer> getRecommendedHostsFromAThousandTrials(

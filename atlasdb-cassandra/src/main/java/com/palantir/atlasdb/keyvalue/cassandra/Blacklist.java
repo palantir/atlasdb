@@ -26,7 +26,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import java.time.Clock;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -108,8 +107,8 @@ public class Blacklist {
         }
     }
 
-    public Set<CassandraServer> filterBlacklistedHostsFrom(Collection<CassandraServer> potentialHosts) {
-        return Sets.difference(ImmutableSet.copyOf(potentialHosts), blacklist.keySet());
+    public Set<CassandraServer> filterBlacklistedHostsFrom(ImmutableSet<CassandraServer> potentialHosts) {
+        return Sets.difference(potentialHosts, blacklist.keySet());
     }
 
     boolean contains(CassandraServer cassandraServer) {

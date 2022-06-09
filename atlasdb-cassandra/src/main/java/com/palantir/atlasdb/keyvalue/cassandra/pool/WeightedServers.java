@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.logsafe.Preconditions;
@@ -37,7 +38,7 @@ public final class WeightedServers {
 
     public static WeightedServers create(Map<CassandraServer, CassandraClientPoolingContainer> pools) {
         Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
-        return new WeightedServers(buildHostsWeightedByActiveConnections(pools));
+        return new WeightedServers(buildHostsWeightedByActiveConnections(ImmutableMap.copyOf(pools)));
     }
 
     /**
@@ -50,7 +51,7 @@ public final class WeightedServers {
      * than the previous key.
      */
     private static NavigableMap<Integer, CassandraServer> buildHostsWeightedByActiveConnections(
-            Map<CassandraServer, CassandraClientPoolingContainer> pools) {
+            ImmutableMap<CassandraServer, CassandraClientPoolingContainer> pools) {
 
         Map<CassandraServer, Integer> openRequestsByHost = Maps.newHashMapWithExpectedSize(pools.size());
         int totalOpenRequests = 0;

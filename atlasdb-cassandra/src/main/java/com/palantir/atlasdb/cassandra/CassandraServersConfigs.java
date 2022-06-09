@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -51,16 +52,17 @@ public final class CassandraServersConfigs {
         T visit(CqlCapableConfig cqlCapableConfig);
     }
 
-    public static final class ThriftHostsExtractingVisitor implements Visitor<Set<InetSocketAddress>> {
+    public enum ThriftHostsExtractingVisitor implements Visitor<ImmutableSet<InetSocketAddress>> {
+        INSTANCE;
 
         @Override
-        public Set<InetSocketAddress> visit(DefaultConfig defaultConfig) {
-            return defaultConfig.thriftHosts();
+        public ImmutableSet<InetSocketAddress> visit(DefaultConfig defaultConfig) {
+            return ImmutableSet.copyOf(defaultConfig.thriftHosts());
         }
 
         @Override
-        public Set<InetSocketAddress> visit(CqlCapableConfig cqlCapableConfig) {
-            return cqlCapableConfig.thriftHosts();
+        public ImmutableSet<InetSocketAddress> visit(CqlCapableConfig cqlCapableConfig) {
+            return ImmutableSet.copyOf(cqlCapableConfig.thriftHosts());
         }
     }
 
