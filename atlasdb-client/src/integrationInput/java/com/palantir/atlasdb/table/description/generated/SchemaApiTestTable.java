@@ -323,7 +323,7 @@ public final class SchemaApiTestTable implements
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(new com.palantir.atlasdb.table.description.test.StringValuePersister().persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(REUSABLE_PERSISTER.persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
@@ -331,6 +331,7 @@ public final class SchemaApiTestTable implements
         public byte[] persistColumnName() {
             return PtBytes.toCachedBytes("d");
         }
+        private final com.palantir.atlasdb.table.description.test.StringValuePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.table.description.test.StringValuePersister();
 
         public static final Hydrator<Column2> BYTES_HYDRATOR = new Hydrator<Column2>() {
             @Override
@@ -871,5 +872,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Yc3wzX0toIULZ5f1HiKrbw==";
+    static String __CLASS_HASH = "wX/FaKJz8W8PXrcy5U5qlg==";
 }
