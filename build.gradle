@@ -7,6 +7,8 @@ buildscript {
     }
 
     dependencies {
+        classpath 'com.palantir.gradle.jdks:gradle-jdks:0.17.0'
+        classpath 'com.palantir.gradle.jdkslatest:gradle-jdks-latest:0.2.0'
         classpath 'com.netflix.nebula:gradle-info-plugin:11.3.3'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:18.4.0'
         classpath 'com.palantir.baseline:gradle-baseline-java:4.139.0'
@@ -40,6 +42,7 @@ javaVersions {
 }
 
 apply from: 'gradle/versions.gradle'
+apply plugin: 'com.palantir.jdks.latest'
 
 group = 'com.palantir.atlasdb'
 version = sanitizeVersion()
