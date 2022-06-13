@@ -78,6 +78,7 @@ public class TableRendererTest {
         String renderedTableDefinition =
                 renderer.render("table", getTableWithUserSpecifiedPersister(TABLE_REF), NO_INDICES);
         assertThat(renderedTableDefinition)
+                .contains("REUSABLE_PERSISTER.persistToBytes")
                 .contains("REUSABLE_PERSISTER.hydrateFromBytes")
                 .contains("private final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =");
     }
