@@ -122,6 +122,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1977,6 +1978,34 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throw e;
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    @Override
+    public void multiCheckAndSet(List<CheckAndSetRequest> request) {
+        // todo(gmaretic) make parameter better
+        TableReference tableReference = request.get(0).table();
+        ByteBuffer row = ByteBuffer.wrap(request.get(0).cell().getRowName());
+        Map<Cell, byte[]> oldMap = new LinkedHashMap<>();
+        Map<Cell, byte[]> newMap = new LinkedHashMap<>();
+        for (CheckAndSetRequest singleRequest : request) {
+            Cell cell = singleRequest.cell();
+            byte[] old = singleRequest.oldValue().get();
+            byte[] val = singleRequest.newValue();
+            oldMap.put(cell, old);
+            newMap.put(cell, val);
+        }
+        List<Column> oldCol = oldMap.entrySet().stream()
+                .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                .collect(Collectors.toList());
+        List<Column> newCol = newMap.entrySet().stream()
+                .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                .collect(Collectors.toList());
+        try {
+            clientPool.runWithRetry(client -> client.cas(
+                    tableReference, row, oldCol, newCol, ConsistencyLevel.SERIAL, ConsistencyLevel.EACH_QUORUM));
+        } catch (Exception e) {
+            log.error("error", e);
         }
     }
 

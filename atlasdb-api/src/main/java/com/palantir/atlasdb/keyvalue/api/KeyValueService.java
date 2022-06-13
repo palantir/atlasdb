@@ -308,6 +308,9 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Timed
     void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
 
+    @Timed
+    void multiCheckAndSet(List<CheckAndSetRequest> request) throws CheckAndSetException;
+
     /**
      * Deletes values from the key-value store.
      * <p>
