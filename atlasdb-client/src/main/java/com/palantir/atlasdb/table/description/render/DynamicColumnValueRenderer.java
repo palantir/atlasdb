@@ -47,6 +47,7 @@ public class DynamicColumnValueRenderer extends Renderer {
         javaDoc();
         line("public static final class ", ColumnValue, " implements ColumnValue<", Value, "> {");
         {
+            addReusablePersisterIfApplicable();
             fields();
             line();
             staticFactories();
@@ -142,6 +143,13 @@ public class DynamicColumnValueRenderer extends Renderer {
         line("}");
     }
 
+    private void addReusablePersisterIfApplicable() {
+        if (val.isReusablePersister()) {
+            line(val.getInstantiateReusablePersisterCode(true));
+            line();
+        }
+    }
+
     private void persistValue() {
         line("@Override");
         line("public byte[] persistValue() {");
@@ -168,10 +176,6 @@ public class DynamicColumnValueRenderer extends Renderer {
                     ");");
         }
         line("}");
-
-        if (val.isReusablePersister()) {
-            line(val.getInstantiateReusablePersisterCode(true));
-        }
     }
 
     private void hydrateValue() {
@@ -207,10 +211,6 @@ public class DynamicColumnValueRenderer extends Renderer {
             }
         }
         line("}");
-
-        if (val.isReusablePersister()) {
-            line(val.getInstantiateReusablePersisterCode(true));
-        }
     }
 
     private void getColumnNameFun() {

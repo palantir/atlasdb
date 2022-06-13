@@ -40,6 +40,7 @@ public class NamedColumnValueRenderer extends Renderer {
         javaDoc();
         line("public static final class ", Name, " implements ", tableName, "NamedColumnValue<", TypeName(col), "> {");
         {
+            addReusablePersisterIfApplicable();
             fields();
             line();
             staticFactories();
@@ -156,6 +157,13 @@ public class NamedColumnValueRenderer extends Renderer {
         line("}");
     }
 
+    private void addReusablePersisterIfApplicable() {
+        if (col.getValue().isReusablePersister()) {
+            line(col.getValue().getInstantiateReusablePersisterCode(true));
+            line();
+        }
+    }
+
     private void persistColumnName() {
         line("@Override");
         line("public byte[] persistColumnName() {");
@@ -163,9 +171,6 @@ public class NamedColumnValueRenderer extends Renderer {
             line("return PtBytes.toCachedBytes(", short_name(col), ");");
         }
         line("}");
-        if (col.getValue().isReusablePersister()) {
-            line(col.getValue().getInstantiateReusablePersisterCode(false));
-        }
     }
 
     private void bytesHydrator() {
@@ -205,10 +210,6 @@ public class NamedColumnValueRenderer extends Renderer {
                 }
             }
             line("}");
-
-            if (col.getValue().isReusablePersister()) {
-                line(col.getValue().getInstantiateReusablePersisterCode(false));
-            }
         }
         line("};");
     }

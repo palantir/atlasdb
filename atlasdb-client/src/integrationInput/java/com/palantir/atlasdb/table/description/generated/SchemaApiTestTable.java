@@ -296,6 +296,8 @@ public final class SchemaApiTestTable implements
      * </pre>
      */
     public static final class Column2 implements SchemaApiTestNamedColumnValue<com.palantir.atlasdb.table.description.test.StringValue> {
+        private static final com.palantir.atlasdb.table.description.test.StringValuePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.table.description.test.StringValuePersister();
+
         private final com.palantir.atlasdb.table.description.test.StringValue value;
 
         public static Column2 of(com.palantir.atlasdb.table.description.test.StringValue value) {
@@ -331,7 +333,6 @@ public final class SchemaApiTestTable implements
         public byte[] persistColumnName() {
             return PtBytes.toCachedBytes("d");
         }
-        private final com.palantir.atlasdb.table.description.test.StringValuePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.table.description.test.StringValuePersister();
 
         public static final Hydrator<Column2> BYTES_HYDRATOR = new Hydrator<Column2>() {
             @Override
@@ -339,7 +340,6 @@ public final class SchemaApiTestTable implements
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
                 return of(REUSABLE_PERSISTER.hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
             }
-            private final com.palantir.atlasdb.table.description.test.StringValuePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.table.description.test.StringValuePersister();
         };
 
         @Override
@@ -872,5 +872,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "wX/FaKJz8W8PXrcy5U5qlg==";
+    static String __CLASS_HASH = "QMyMGvXpBPDuoeuIdJeLPg==";
 }
