@@ -52,7 +52,7 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
     }
 
     @Value.Default
-    public int replicationFactor() {
+    public Integer replicationFactor() {
         // Temporary sentinel while users may provide replication factor in install or runtime config, and we don't want
         // to break existing runtime configs just yet by making this mandatory.
         // The merged config `CassandraReloadableKeyValueServiceRuntimeConfig` verifies that at least 1 of the install
