@@ -76,6 +76,7 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -521,6 +522,11 @@ public final class JdbcKeyValueService implements KeyValueService {
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         throw new UnsupportedOperationException("Check and set is not supported for JDBC KVS");
+    }
+
+    @Override
+    public void multiCheckAndSet(List<CheckAndSetRequest> request) throws CheckAndSetException {
+        throw new UnsupportedOperationException("Multi check and set is not supported for JDBC KVS");
     }
 
     @Override

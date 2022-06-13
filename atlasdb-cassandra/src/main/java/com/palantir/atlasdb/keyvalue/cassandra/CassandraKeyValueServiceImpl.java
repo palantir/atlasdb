@@ -103,6 +103,7 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
@@ -2002,10 +2003,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
                 .collect(Collectors.toList());
         try {
-            clientPool.runWithRetry(client -> client.cas(
+            CASResult casResult = clientPool.runWithRetry(client -> client.cas(
                     tableReference, row, oldCol, newCol, ConsistencyLevel.SERIAL, ConsistencyLevel.EACH_QUORUM));
+            if (!casResult.isSuccess()) {
+                throw new SafeIllegalStateException("I could not Cas", SafeArg.of("failures", casResult));
+            }
         } catch (Exception e) {
             log.error("error", e);
+            throw new RuntimeException(e);
         }
     }
 

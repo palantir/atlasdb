@@ -564,6 +564,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         }
     }
 
+    @Override
+    public void multiCheckAndSet(List<CheckAndSetRequest> request) throws CheckAndSetException {
+        multiCheckAndSet(request);
+    }
+
     private void executeCheckAndSet(CheckAndSetRequest request) {
         Preconditions.checkArgument(request.oldValue().isPresent());
 
