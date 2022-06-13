@@ -494,6 +494,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         }
     }
 
+    @Override
+    public void multiCheckAndSet(List<CheckAndSetRequest> request) throws CheckAndSetException {
+        throw new UnsupportedOperationException("multiCheckAndSet on inMemory is not supported yet!");
+    }
+
     // Returns the existing contents, if any, and null otherwise
     private byte[] putIfAbsent(Table table, Key key, final byte[] contents) {
         return table.entries.putIfAbsent(key, copyOf(contents));

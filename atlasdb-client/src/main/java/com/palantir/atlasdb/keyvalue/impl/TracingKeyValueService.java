@@ -105,6 +105,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public void multiCheckAndSet(List<CheckAndSetRequest> request) throws CheckAndSetException {
+        delegate().multiCheckAndSet(request);
+    }
+
+    @Override
     public void close() {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.close")) {

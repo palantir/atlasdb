@@ -89,6 +89,9 @@ public abstract class AbstractKeyValueServiceTest {
             TableReference.createFromFullyQualifiedName("ns2.some_nonexisting_table");
 
     private static final Cell TEST_CELL = Cell.create(row(0), column(0));
+    private static final Cell TEST_CELL_2 = Cell.create(row(0), column(1));
+    private static final Cell TEST_CELL_3 = Cell.create(row(0), column(2));
+    private static final Cell TEST_CELL_4 = Cell.create(row(0), column(3));
     private static final long TEST_TIMESTAMP = 1000000L;
     private final Function<KeyValueService, KeyValueService> keyValueServiceWrapper;
 
@@ -1564,6 +1567,47 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.checkAndSet(request);
 
         verifyCheckAndSet(TEST_CELL, val(0, 0));
+    }
+
+    @Test
+    public void testMultiCheckAndSetExactColumns() {
+        assumeTrue(checkAndSetSupported());
+
+        // put the columns - cannot check and set without this
+        byte[] oldVal = val(0, 0);
+        byte[] newVal = val(0, 1);
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, oldVal, TEST_CELL_2, oldVal));
+
+        CheckAndSetRequest request1 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, oldVal, newVal);
+        CheckAndSetRequest request2 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_2, oldVal, newVal);
+        keyValueService.multiCheckAndSet(ImmutableList.of(request1, request2));
+
+        verifyCheckAndSet(TEST_CELL, newVal);
+        verifyCheckAndSet(TEST_CELL_2, newVal);
+    }
+
+    @Test
+    public void testMultiCheckAndSetSubsetColumns() {
+        assumeTrue(checkAndSetSupported());
+
+        // put the columns - cannot check and set without this
+        byte[] oldVal = val(0, 0);
+        byte[] newVal = val(0, 1);
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, oldVal, TEST_CELL_2, oldVal,
+                TEST_CELL_3, oldVal, TEST_CELL_4, oldVal));
+
+        CheckAndSetRequest request1 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_2, oldVal, newVal);
+        CheckAndSetRequest request2 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_4, oldVal, newVal);
+
+        keyValueService.multiCheckAndSet(ImmutableList.of(request1, request2));
+
+        verifyCheckAndSet(TEST_CELL, oldVal);
+        verifyCheckAndSet(TEST_CELL_3, oldVal);
+
+        verifyCheckAndSet(TEST_CELL_2, newVal);
+        verifyCheckAndSet(TEST_CELL_4, newVal);
     }
 
     @Test
