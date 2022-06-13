@@ -80,7 +80,7 @@ public class TableRendererTest {
         assertThat(renderedTableDefinition)
                 .contains("REUSABLE_PERSISTER.persistToBytes")
                 .contains("REUSABLE_PERSISTER.hydrateFromBytes")
-                .contains("private final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =");
+                .contains("private static final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =");
     }
 
     private TableDefinition getTableWithUserSpecifiedPersister(TableReference tableRef) {
