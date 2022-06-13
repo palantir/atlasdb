@@ -196,7 +196,8 @@ final class CellLoader {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on "
-                            + cassandraServer.cassandraHostName() + " via proxy " + cassandraServer.proxy(),
+                            + cassandraServer.cassandraHostName() + " via proxy "
+                            + CassandraLogHelper.host(cassandraServer.proxy()),
                     multiGetCallable));
         }
         return tasks;
