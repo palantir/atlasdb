@@ -566,7 +566,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
 
     @Override
     public void multiCheckAndSet(List<CheckAndSetRequest> request) throws CheckAndSetException {
-        multiCheckAndSet(request);
+        throw new UnsupportedOperationException("Not supported ye!");
     }
 
     private void executeCheckAndSet(CheckAndSetRequest request) {
