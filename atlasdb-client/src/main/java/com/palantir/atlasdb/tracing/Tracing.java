@@ -32,7 +32,30 @@ public interface Tracing {
 
     static CloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
-        return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
+        return CloseableTracer.startSpan(
+                operation,
+                FunctionalTagTranslator.INSTANCE,
+                new TraceAddingTagConsumer(TraceStatistics.get(), tagTranslator));
+    }
+
+    class TraceAddingTagConsumer implements Consumer<TagConsumer> {
+        private final TraceStatistic before;
+        private final Consumer<TagConsumer> delegate;
+
+        TraceAddingTagConsumer(TraceStatistic before, Consumer<TagConsumer> delegate) {
+            this.before = before;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void accept(TagConsumer tagConsumer) {
+            delegate.accept(tagConsumer);
+
+            TraceStatistic current = TraceStatistics.get();
+            current.minus(before);
+
+            tagConsumer.accept("atlasDbEmptyReads", Long.toString(current.emptyReads()));
+        }
     }
 
     interface TagConsumer extends BiConsumer<String, String> {

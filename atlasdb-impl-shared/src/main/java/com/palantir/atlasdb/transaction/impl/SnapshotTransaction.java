@@ -21,7 +21,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
@@ -79,6 +78,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -170,6 +170,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -618,6 +619,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Iterators.filter(unfiltered, entry -> {
             if (entry.getValue().length == 0) {
                 emptyValueCounter.inc();
+                TraceStatistics.incEmptyValues(1);
                 return false;
             }
             return true;
@@ -766,8 +768,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
+
+        int emptyValues = unfiltered.size() - filtered.size();
         getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
-                .inc(unfiltered.size() - filtered.size());
+                .inc(emptyValues);
+        TraceStatistics.incEmptyValues(emptyValues);
+
         return filtered;
     }
 
@@ -878,7 +884,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getFromKeyValueService(tableRef, cells, immediateKeyValueService, immediateTransactionService);
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
-        return Maps.filterValues(Futures.getUnchecked(result), Predicates.not(Value::isTombstone));
+        Map<Cell, byte[]> unfiltered = Futures.getUnchecked(result);
+        Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
+
+        TraceStatistics.incEmptyValues(unfiltered.size() - filtered.size());
+
+        return filtered;
     }
 
     /**
@@ -1168,8 +1179,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Iterators.transform(unfilteredRows, unfilteredRow -> {
             SortedMap<byte[], byte[]> filteredColumns =
                     Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value::isTombstone));
+
+            int emptyValues = unfilteredRow.getColumns().size() - filteredColumns.size();
             getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
-                    .inc(unfilteredRow.getColumns().size() - filteredColumns.size());
+                    .inc(emptyValues);
+            TraceStatistics.incEmptyValues(emptyValues);
+
             return RowResult.create(unfilteredRow.getRowName(), filteredColumns);
         });
     }
@@ -1200,6 +1215,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
         getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef).inc(numEmptyValues);
+        TraceStatistics.incEmptyValues(numEmptyValues);
+
         return mergedWritesWithoutEmptyValues;
     }
 
