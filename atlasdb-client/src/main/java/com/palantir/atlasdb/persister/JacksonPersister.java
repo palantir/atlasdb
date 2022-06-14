@@ -17,8 +17,6 @@ package com.palantir.atlasdb.persister;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.persist.api.ReusablePersister;
 import java.io.IOException;
@@ -30,19 +28,17 @@ import java.io.IOException;
 public abstract class JacksonPersister<T> implements ReusablePersister<T> {
 
     private final Class<T> typeRef;
-    private final ObjectReader reader;
-    private final ObjectWriter writer;
+    private final ObjectMapper mapper;
 
     public JacksonPersister(Class<T> typeRef, ObjectMapper mapper) {
         this.typeRef = typeRef;
-        this.reader = mapper.readerFor(typeRef);
-        this.writer = mapper.writerFor(typeRef);
+        this.mapper = mapper;
     }
 
     @Override
     public final T hydrateFromBytes(byte[] input) {
         try {
-            return reader.readValue(input);
+            return mapper.readValue(input, typeRef);
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
@@ -51,7 +47,7 @@ public abstract class JacksonPersister<T> implements ReusablePersister<T> {
     @Override
     public final byte[] persistToBytes(T value) {
         try {
-            return writer.writeValueAsBytes(value);
+            return mapper.writeValueAsBytes(value);
         } catch (JsonProcessingException e) {
             throw Throwables.propagate(e);
         }
