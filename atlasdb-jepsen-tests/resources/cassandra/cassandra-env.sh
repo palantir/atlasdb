@@ -240,9 +240,9 @@ JVM_OPTS="$JVM_OPTS -XX:+PrintGCApplicationStoppedTime"
 JVM_OPTS="$JVM_OPTS -XX:+PrintPromotionFailure"
 #JVM_OPTS="$JVM_OPTS -XX:PrintFLSStatistics=1"
 
-JVM_OPTS="$JVM_OPTS -Xlog:gc:/var/log/cassandra/gc.log"
+JVM_OPTS="$JVM_OPTS -Xloggc:/var/log/cassandra/gc.log"
 # if using version before JDK 6u34 or 7u2 use this instead of log rotation
-# JVM_OPTS="$JVM_OPTS -Xlog:gc:/var/log/cassandra/gc-`date +%s`.log"
+# JVM_OPTS="$JVM_OPTS -Xloggc:/var/log/cassandra/gc-`date +%s`.log"
 
 # uncomment to have Cassandra JVM listen for remote debuggers/profilers on port 1414
 # JVM_OPTS="$JVM_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=1414"
