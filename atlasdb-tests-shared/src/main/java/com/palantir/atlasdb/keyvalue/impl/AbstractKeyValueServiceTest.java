@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.streams.KeyedStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -77,7 +76,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.assertj.core.data.MapEntry;
@@ -1573,88 +1571,88 @@ public abstract class AbstractKeyValueServiceTest {
         verifyCheckAndSet(TEST_CELL, val(0, 0));
     }
 
-    @Test
-    public void testMultiCheckAndSetExactColumns() {
-        assumeTrue(checkAndSetSupported());
-
-        // put the columns - cannot check and set without this
-        byte[] oldVal = val(0, 0);
-        byte[] newVal = val(0, 1);
-
-        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, oldVal, TEST_CELL_2, oldVal));
-
-        CheckAndSetRequest request1 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, oldVal, newVal);
-        CheckAndSetRequest request2 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_2, oldVal, newVal);
-        keyValueService.multiCheckAndSet(ImmutableList.of(request1, request2));
-
-        verifyCheckAndSet(TEST_CELL, newVal);
-        verifyCheckAndSet(TEST_CELL_2, newVal);
-    }
-
-    @Test
-    public void testMultiCheckAndSetSubsetColumns() {
-        assumeTrue(checkAndSetSupported());
-
-        // put the columns - cannot check and set without this
-        byte[] oldVal = val(0, 0);
-        byte[] newVal = val(0, 1);
-
-        keyValueService.putUnlessExists(
-                TEST_TABLE,
-                ImmutableMap.of(TEST_CELL, oldVal, TEST_CELL_2, oldVal, TEST_CELL_3, oldVal, TEST_CELL_4, oldVal));
-
-        CheckAndSetRequest request1 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_2, oldVal, newVal);
-        CheckAndSetRequest request2 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_4, oldVal, newVal);
-
-        keyValueService.multiCheckAndSet(ImmutableList.of(request1, request2));
-
-        verifyCheckAndSet(TEST_CELL, oldVal);
-        verifyCheckAndSet(TEST_CELL_3, oldVal);
-
-        verifyCheckAndSet(TEST_CELL_2, newVal);
-        verifyCheckAndSet(TEST_CELL_4, newVal);
-    }
-
-    @Test
-    public void benchmarkMultiCasAndPue() {
-        System.out.println("Pue ------------------------------ Mcas");
-        assumeTrue(checkAndSetSupported());
-
-        // put the columns - cannot check and set without this
-        byte[] oldVal = val(0, 0);
-        byte[] newVal = val(0, 1);
-
-        // Check how to pre-populate this table to get perf impact
-
-        Map<Cell, byte[]> cellsToDiscard = KeyedStream.of(
-                        IntStream.range(1001, 2000).boxed())
-                .mapKeys(ind -> Cell.create(row(0), column(ind)))
-                .map(_ind -> oldVal)
-                .collectToMap();
-        keyValueService.putUnlessExists(TEST_TABLE, cellsToDiscard);
-
-        List<CheckAndSetRequest> checkAndSetRequests = cellsToDiscard.keySet().stream()
-                .map(cell -> CheckAndSetRequest.singleCell(TEST_TABLE, cell, oldVal, newVal))
-                .collect(Collectors.toUnmodifiableList());
-
-        timed(() -> keyValueService.multiCheckAndSet(checkAndSetRequests));
-
-        Map<Cell, byte[]> originalCells = KeyedStream.of(
-                        IntStream.range(0, 1000).boxed())
-                .mapKeys(ind -> Cell.create(row(0), column(ind)))
-                .map(_ind -> oldVal)
-                .collectToMap();
-
-        long pue = timed(() -> keyValueService.putUnlessExists(TEST_TABLE, originalCells));
-
-        List<CheckAndSetRequest> checkAndSetRequests2 = originalCells.keySet().stream()
-                .map(cell -> CheckAndSetRequest.singleCell(TEST_TABLE, cell, oldVal, newVal))
-                .collect(Collectors.toUnmodifiableList());
-
-        long mcas = timed(() -> keyValueService.multiCheckAndSet(checkAndSetRequests2));
-        System.out.format("%d ------------------------------ %d", pue, mcas);
-        System.out.println();
-    }
+    // @Test
+    // public void testMultiCheckAndSetExactColumns() {
+    //     assumeTrue(checkAndSetSupported());
+    //
+    //     // put the columns - cannot check and set without this
+    //     byte[] oldVal = val(0, 0);
+    //     byte[] newVal = val(0, 1);
+    //
+    //     keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, oldVal, TEST_CELL_2, oldVal));
+    //
+    //     CheckAndSetRequest request1 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, oldVal, newVal);
+    //     CheckAndSetRequest request2 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_2, oldVal, newVal);
+    //     keyValueService.multiCheckAndSet(ImmutableList.of(request1, request2));
+    //
+    //     verifyCheckAndSet(TEST_CELL, newVal);
+    //     verifyCheckAndSet(TEST_CELL_2, newVal);
+    // }
+    //
+    // @Test
+    // public void testMultiCheckAndSetSubsetColumns() {
+    //     assumeTrue(checkAndSetSupported());
+    //
+    //     // put the columns - cannot check and set without this
+    //     byte[] oldVal = val(0, 0);
+    //     byte[] newVal = val(0, 1);
+    //
+    //     keyValueService.putUnlessExists(
+    //             TEST_TABLE,
+    //             ImmutableMap.of(TEST_CELL, oldVal, TEST_CELL_2, oldVal, TEST_CELL_3, oldVal, TEST_CELL_4, oldVal));
+    //
+    //     CheckAndSetRequest request1 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_2, oldVal, newVal);
+    //     CheckAndSetRequest request2 = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_4, oldVal, newVal);
+    //
+    //     keyValueService.multiCheckAndSet(ImmutableList.of(request1, request2));
+    //
+    //     verifyCheckAndSet(TEST_CELL, oldVal);
+    //     verifyCheckAndSet(TEST_CELL_3, oldVal);
+    //
+    //     verifyCheckAndSet(TEST_CELL_2, newVal);
+    //     verifyCheckAndSet(TEST_CELL_4, newVal);
+    // }
+    //
+    // @Test
+    // public void benchmarkMultiCasAndPue() {
+    //     System.out.println("Pue ------------------------------ Mcas");
+    //     assumeTrue(checkAndSetSupported());
+    //
+    //     // put the columns - cannot check and set without this
+    //     byte[] oldVal = val(0, 0);
+    //     byte[] newVal = val(0, 1);
+    //
+    //     // Check how to pre-populate this table to get perf impact
+    //
+    //     Map<Cell, byte[]> cellsToDiscard = KeyedStream.of(
+    //                     IntStream.range(1001, 2000).boxed())
+    //             .mapKeys(ind -> Cell.create(row(0), column(ind)))
+    //             .map(_ind -> oldVal)
+    //             .collectToMap();
+    //     keyValueService.putUnlessExists(TEST_TABLE, cellsToDiscard);
+    //
+    //     List<CheckAndSetRequest> checkAndSetRequests = cellsToDiscard.keySet().stream()
+    //             .map(cell -> CheckAndSetRequest.singleCell(TEST_TABLE, cell, oldVal, newVal))
+    //             .collect(Collectors.toUnmodifiableList());
+    //
+    //     timed(() -> keyValueService.multiCheckAndSet(checkAndSetRequests));
+    //
+    //     Map<Cell, byte[]> originalCells = KeyedStream.of(
+    //                     IntStream.range(0, 1000).boxed())
+    //             .mapKeys(ind -> Cell.create(row(0), column(ind)))
+    //             .map(_ind -> oldVal)
+    //             .collectToMap();
+    //
+    //     long pue = timed(() -> keyValueService.putUnlessExists(TEST_TABLE, originalCells));
+    //
+    //     List<CheckAndSetRequest> checkAndSetRequests2 = originalCells.keySet().stream()
+    //             .map(cell -> CheckAndSetRequest.singleCell(TEST_TABLE, cell, oldVal, newVal))
+    //             .collect(Collectors.toUnmodifiableList());
+    //
+    //     long mcas = timed(() -> keyValueService.multiCheckAndSet(checkAndSetRequests2));
+    //     System.out.format("%d ------------------------------ %d", pue, mcas);
+    //     System.out.println();
+    // }
 
     private long timed(Runnable runnable) {
         Stopwatch stopwatch = Stopwatch.createStarted();
