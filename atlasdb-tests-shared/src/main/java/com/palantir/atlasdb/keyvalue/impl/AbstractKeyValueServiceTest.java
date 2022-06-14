@@ -1633,16 +1633,14 @@ public abstract class AbstractKeyValueServiceTest {
                 .collectToMap();
         keyValueService.putUnlessExists(TEST_TABLE, cellsToDiscard);
 
-
         List<CheckAndSetRequest> checkAndSetRequests = cellsToDiscard.keySet().stream()
                 .map(cell -> CheckAndSetRequest.singleCell(TEST_TABLE, cell, oldVal, newVal))
                 .collect(Collectors.toUnmodifiableList());
 
         timed(() -> keyValueService.multiCheckAndSet(checkAndSetRequests));
 
-
-
-        Map<Cell, byte[]> originalCells = KeyedStream.of(IntStream.range(0, 1000).boxed())
+        Map<Cell, byte[]> originalCells = KeyedStream.of(
+                        IntStream.range(0, 1000).boxed())
                 .mapKeys(ind -> Cell.create(row(0), column(ind)))
                 .map(_ind -> oldVal)
                 .collectToMap();
@@ -2023,7 +2021,7 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     private static byte[] val(int row, int col) {
-        return PtBytes.toBytes(Long.MAX_VALUE - (row+col));
+        return PtBytes.toBytes(Long.MAX_VALUE - (row + col));
     }
 
     private static byte[] dynamicColumn(long columnId) {

@@ -17,9 +17,11 @@
 package com.palantir.atlasdb.http.v2;
 
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Unsafe;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+@Unsafe
 @Value.Immutable
 interface ResultOrThrowable {
     boolean isSuccessful();
