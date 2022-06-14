@@ -18,17 +18,15 @@ package com.palantir.atlasdb.persister;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.atlasdb.annotation.Reusable;
-import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.persist.api.ReusablePersister;
 import com.palantir.common.base.Throwables;
 import java.io.IOException;
 
-@Reusable
-public class JsonNodePersister implements Persister<JsonNode> {
+public class JsonNodePersister implements ReusablePersister<JsonNode> {
     static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public byte[] persistToBytes(JsonNode jsonNode) {
+    public final byte[] persistToBytes(JsonNode jsonNode) {
         try {
             return mapper.writeValueAsBytes(jsonNode);
         } catch (JsonProcessingException e) {
@@ -37,7 +35,7 @@ public class JsonNodePersister implements Persister<JsonNode> {
     }
 
     @Override
-    public JsonNode hydrateFromBytes(byte[] input) {
+    public final JsonNode hydrateFromBytes(byte[] input) {
         try {
             return mapper.readTree(input);
         } catch (IOException e) {
@@ -46,7 +44,7 @@ public class JsonNodePersister implements Persister<JsonNode> {
     }
 
     @Override
-    public Class<JsonNode> getPersistingClassType() {
+    public final Class<JsonNode> getPersistingClassType() {
         return JsonNode.class;
     }
 }

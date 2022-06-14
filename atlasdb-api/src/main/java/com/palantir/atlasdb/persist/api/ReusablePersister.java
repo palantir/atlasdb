@@ -18,12 +18,9 @@ package com.palantir.atlasdb.persist.api;
 import com.palantir.common.persist.Persistable.Hydrator;
 
 /**
- * {@link Persister}s are required to have a no arg constructor.
- *
- * @deprecated Use {@link ReusablePersister} instead.
+ * {@link ReusablePersister}s are required to have a no arg constructor and will be re-used across executions.
  */
-@Deprecated
-public interface Persister<T> extends Hydrator<T> {
+public interface ReusablePersister<T> extends Hydrator<T> {
     byte[] persistToBytes(T objectToPersist);
 
     Class<T> getPersistingClassType();

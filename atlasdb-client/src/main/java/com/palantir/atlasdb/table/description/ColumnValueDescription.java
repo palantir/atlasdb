@@ -25,6 +25,7 @@ import com.google.protobuf.Message;
 import com.palantir.atlasdb.annotation.Reusable;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.persist.api.ReusablePersister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto;
 import com.palantir.atlasdb.table.generation.ColumnValues;
@@ -50,7 +51,8 @@ public final class ColumnValueDescription {
         PROTO,
         PERSISTABLE,
         VALUE_TYPE,
-        PERSISTER;
+        PERSISTER,
+        REUSABLE_PERSISTER;
 
         public TableMetadataPersistence.ColumnValueFormat persistToProto() {
             return TableMetadataPersistence.ColumnValueFormat.valueOf(name());
@@ -115,13 +117,37 @@ public final class ColumnValueDescription {
                 Format.PERSISTABLE, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
+    /**
+     * Construct a column value description given a persister.
+     *
+     * @deprecated Convert your persister to a {@link ReusablePersister} and call
+     *             {@link ColumnValueDescription}.forReusablePersister instead.
+     */
+    @Deprecated
     public static ColumnValueDescription forPersister(Class<? extends Persister<?>> clazz) {
         return forPersister(clazz, Compression.NONE);
     }
 
+    /**
+     * Construct a column value description given a persister.
+     *
+     * @deprecated Convert your persister to a {@link ReusablePersister} and call
+     *             {@link ColumnValueDescription}.forReusablePersister instead.
+     */
+    @Deprecated
     public static ColumnValueDescription forPersister(Class<? extends Persister<?>> clazz, Compression compression) {
         return new ColumnValueDescription(
                 Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
+    }
+
+    public static ColumnValueDescription forReusablePersister(Class<? extends ReusablePersister<?>> clazz) {
+        return forReusablePersister(clazz, Compression.NONE);
+    }
+
+    public static ColumnValueDescription forReusablePersister(
+            Class<? extends ReusablePersister<?>> clazz, Compression compression) {
+        return new ColumnValueDescription(
+                Format.REUSABLE_PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
     public static ColumnValueDescription forProtoMessage(Class<? extends AbstractMessage> clazz) {
@@ -189,6 +215,9 @@ public final class ColumnValueDescription {
         if (format == Format.PERSISTER) {
             return getPersister().getPersistingClassType().getCanonicalName();
         }
+        if (format == Format.REUSABLE_PERSISTER) {
+            return getReusablePersister().getPersistingClassType().getCanonicalName();
+        }
         if (canonicalClassName != null) {
             return canonicalClassName;
         }
@@ -198,6 +227,9 @@ public final class ColumnValueDescription {
     public Class<?> getJavaTypeClass() {
         if (format == Format.PERSISTER) {
             return getPersister().getPersistingClassType();
+        }
+        if (format == Format.REUSABLE_PERSISTER) {
+            return getReusablePersister().getPersistingClassType();
         }
         if (canonicalClassName != null) {
             try {
@@ -210,7 +242,7 @@ public final class ColumnValueDescription {
     }
 
     public Class<?> getJavaObjectTypeClass() {
-        if (format == Format.PERSISTER || canonicalClassName != null) {
+        if (format == Format.PERSISTER || format == Format.REUSABLE_PERSISTER || canonicalClassName != null) {
             return getJavaTypeClass();
         }
         return type.getJavaObjectClass();
@@ -220,6 +252,22 @@ public final class ColumnValueDescription {
         Preconditions.checkArgument(Format.PERSISTER == format);
         @SuppressWarnings("unchecked")
         Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
+        try {
+            return persisterClass.getConstructor().newInstance();
+        } catch (InstantiationException
+                | IllegalAccessException
+                | IllegalArgumentException
+                | InvocationTargetException
+                | NoSuchMethodException
+                | SecurityException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    public ReusablePersister<?> getReusablePersister() {
+        Preconditions.checkArgument(Format.REUSABLE_PERSISTER == format);
+        @SuppressWarnings("unchecked")
+        Class<ReusablePersister<?>> persisterClass = (Class<ReusablePersister<?>>) getImportClass();
         try {
             return persisterClass.getConstructor().newInstance();
         } catch (InstantiationException
@@ -244,6 +292,8 @@ public final class ColumnValueDescription {
             } else {
                 result = "new " + canonicalClassName + "().persistToBytes(" + varName + ")";
             }
+        } else if (format == Format.REUSABLE_PERSISTER) {
+            result = "REUSABLE_PERSISTER.persistToBytes(" + varName + ")";
         } else {
             result = type.getPersistCode(varName);
         }
@@ -271,6 +321,9 @@ public final class ColumnValueDescription {
             Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
             return persisterClass.isAnnotationPresent(Reusable.class);
         }
+        if (format == Format.REUSABLE_PERSISTER) {
+            return true;
+        }
         return false;
     }
 
@@ -285,6 +338,8 @@ public final class ColumnValueDescription {
             } else {
                 return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")";
             }
+        } else if (format == Format.REUSABLE_PERSISTER) {
+            return "REUSABLE_PERSISTER.hydrateFromBytes(" + varName + ")";
         } else if (format == Format.PROTO) {
             return "new Supplier<" + canonicalClassName + ">() { " + "@Override "
                     + "public "

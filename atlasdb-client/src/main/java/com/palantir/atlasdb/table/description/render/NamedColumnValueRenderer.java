@@ -140,6 +140,7 @@ public class NamedColumnValueRenderer extends Renderer {
                     line("byte[] bytes = value.toByteArray();");
                     break;
                 case PERSISTER:
+                case REUSABLE_PERSISTER:
                     line("byte[] bytes = ", col.getValue().getPersistCode("value"), ";");
                     break;
                 case VALUE_TYPE:
@@ -199,6 +200,7 @@ public class NamedColumnValueRenderer extends Renderer {
                         line("}");
                         break;
                     case PERSISTER:
+                    case REUSABLE_PERSISTER:
                         line("return of(", col.getValue().getHydrateCode("bytes"), ");");
                         break;
                     case VALUE_TYPE:

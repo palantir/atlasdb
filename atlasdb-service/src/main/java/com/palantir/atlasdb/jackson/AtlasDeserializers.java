@@ -192,6 +192,7 @@ public final class AtlasDeserializers {
         switch (description.getFormat()) {
             case PERSISTABLE:
             case PERSISTER:
+            case REUSABLE_PERSISTER:
                 bytes = node.asToken().asByteArray();
                 break;
             case PROTO:
