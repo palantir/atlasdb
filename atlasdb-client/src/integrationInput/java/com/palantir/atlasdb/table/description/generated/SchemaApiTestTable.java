@@ -296,6 +296,8 @@ public final class SchemaApiTestTable implements
      * </pre>
      */
     public static final class Column2 implements SchemaApiTestNamedColumnValue<com.palantir.atlasdb.table.description.test.StringValue> {
+        private static final com.palantir.atlasdb.table.description.test.StringValuePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.table.description.test.StringValuePersister();
+
         private final com.palantir.atlasdb.table.description.test.StringValue value;
 
         public static Column2 of(com.palantir.atlasdb.table.description.test.StringValue value) {
@@ -323,7 +325,7 @@ public final class SchemaApiTestTable implements
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(new com.palantir.atlasdb.table.description.test.StringValuePersister().persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(REUSABLE_PERSISTER.persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
@@ -338,7 +340,6 @@ public final class SchemaApiTestTable implements
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
                 return of(REUSABLE_PERSISTER.hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
             }
-            private final com.palantir.atlasdb.table.description.test.StringValuePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.table.description.test.StringValuePersister();
         };
 
         @Override
@@ -871,5 +872,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Yc3wzX0toIULZ5f1HiKrbw==";
+    static String __CLASS_HASH = "QMyMGvXpBPDuoeuIdJeLPg==";
 }
