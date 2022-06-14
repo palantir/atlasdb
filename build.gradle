@@ -158,4 +158,6 @@ allprojects {
     tasks.withType(Test) {
         systemProperty 'RUNNING_IN_GRADLE', 'true'
     }
+
+    tasks.javadoc.enabled = false
 }
