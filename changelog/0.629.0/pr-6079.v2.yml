@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Enable re-use of persisters on the write path.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6079

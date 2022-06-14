@@ -91,8 +91,8 @@ class CellRangeDeleter {
 
                 @Override
                 public String toString() {
-                    return "delete_timestamp_ranges_batch_mutate(" + server + ", " + tableRef.getQualifiedName() + ", "
-                            + deletes.size() + " column timestamp ranges)";
+                    return "delete_timestamp_ranges_batch_mutate(" + server.cassandraHostName() + ", "
+                            + tableRef.getQualifiedName() + ", " + deletes.size() + " column timestamp ranges)";
                 }
             });
         } catch (RetryLimitReachedException e) {

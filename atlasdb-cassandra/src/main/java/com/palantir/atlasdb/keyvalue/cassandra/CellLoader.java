@@ -189,14 +189,15 @@ final class CellLoader {
 
                         @Override
                         public String toString() {
-                            return "multiget_multislice(" + cassandraServer + ", " + colFam + ", " + partition.size()
-                                    + " cells)";
+                            return "multiget_multislice(" + cassandraServer.cassandraHostName() + ", " + colFam + ", "
+                                    + partition.size() + " cells)";
                         }
                     });
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on "
-                            + cassandraServer.cassandraHostName() + " via proxy " + cassandraServer.proxy(),
+                            + cassandraServer.cassandraHostName() + " via proxy "
+                            + CassandraLogHelper.host(cassandraServer.proxy()),
                     multiGetCallable));
         }
         return tasks;

@@ -33,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
@@ -47,6 +48,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -259,15 +261,26 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
 
     @Test
     public void changingNumberOfShardsDoesNotAffectExistingWritesButAffectsFuture() {
-        useSingleShard();
-        assertThat(readConservative(0, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS)
-                        .writes())
-                .isEmpty();
+        Cell anotherCell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
+        boolean initialWriteToFirstPartition = shardCons == 0;
 
-        writeToDefaultCellCommitted(sweepableCells, TS, TABLE_CONS);
+        useSingleShard();
+        List<WriteInfo> existingWriteInfo =
+                readConservative(0, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS).writes();
+        if (initialWriteToFirstPartition) {
+            assertThat(existingWriteInfo).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
+        } else {
+            assertThat(existingWriteInfo).isEmpty();
+        }
+
+        writeToCellCommitted(sweepableCells, TS + 1, anotherCell, TABLE_CONS);
+
+        List<WriteInfo> expectedWriteInfo = Streams.concat(
+                        existingWriteInfo.stream(), Stream.of(WriteInfo.write(TABLE_CONS, anotherCell, TS + 1)))
+                .collect(Collectors.toList());
         assertThat(readConservative(0, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS)
                         .writes())
-                .containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
+                .containsExactlyElementsOf(expectedWriteInfo);
     }
 
     // We read 5 dedicated entries until we pass SWEEP_BATCH_SIZE, for a total of SWEEP_BATCH_SIZE + 5 writes
