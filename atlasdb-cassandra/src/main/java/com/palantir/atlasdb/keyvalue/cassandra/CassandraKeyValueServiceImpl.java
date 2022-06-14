@@ -727,7 +727,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                     @Override
                     public String toString() {
-                        return "multiget_multislice(" + host + ", " + tableRef + ", " + query.size() + " cells)";
+                        return "multiget_multislice(" + host.cassandraHostName() + ", " + tableRef + ", " + query.size()
+                                + " cells)";
                     }
                 });
     }
@@ -1239,7 +1240,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             @Override
             public String toString() {
-                return "batch_mutate(" + host + ", " + tableRefs + ", " + batch.size() + " values)";
+                return "batch_mutate(" + host.cassandraHostName() + ", " + tableRefs + ", " + batch.size() + " values)";
             }
         });
     }

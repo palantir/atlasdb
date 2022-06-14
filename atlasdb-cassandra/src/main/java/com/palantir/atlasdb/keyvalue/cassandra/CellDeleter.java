@@ -109,8 +109,8 @@ class CellDeleter {
 
                 @Override
                 public String toString() {
-                    return "delete_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", " + numVersions
-                            + " total versions of " + cellVersionsMap.size() + " keys)";
+                    return "delete_batch_mutate(" + host.cassandraHostName() + ", " + tableRef.getQualifiedName() + ", "
+                            + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
         } catch (RetryLimitReachedException e) {
