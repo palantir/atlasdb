@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Timelock Client Configuration &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -97,13 +98,13 @@
            <div itemprop="articleBody">
              
   <section id="timelock-client-configuration">
-<span id="id1"></span><h1>Timelock Client Configuration<a class="headerlink" href="#timelock-client-configuration" title="Permalink to this headline"></a></h1>
+<span id="id1"></span><h1>Timelock Client Configuration<a class="headerlink" href="#timelock-client-configuration" title="Permalink to this heading"></a></h1>
 <p>You will need to update your AtlasDB configuration in order to have said clients request timestamps and locks from
 external Timelock Servers as opposed to their embedded services. This is an extension of the leader block configuration
 options discussed at <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
 <p>TimeLock client configuration spans both <code class="docutils literal notranslate"><span class="pre">install</span></code> and <code class="docutils literal notranslate"><span class="pre">runtime</span></code> configuration.</p>
 <section id="install-time-configuration">
-<h2>Install-Time Configuration<a class="headerlink" href="#install-time-configuration" title="Permalink to this headline"></a></h2>
+<h2>Install-Time Configuration<a class="headerlink" href="#install-time-configuration" title="Permalink to this heading"></a></h2>
 <p>Instead of configuring a <code class="docutils literal notranslate"><span class="pre">leader</span></code> block, or both a <code class="docutils literal notranslate"><span class="pre">timestamp</span></code> and <code class="docutils literal notranslate"><span class="pre">lock</span></code> block, one must instead specify a
 single <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block if your product uses the Timelock Server. The <code class="docutils literal notranslate"><span class="pre">leader</span></code> block and the <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>/<code class="docutils literal notranslate"><span class="pre">lock</span></code>
 blocks must be absent from the config if you are using the Timelock Server.</p>
@@ -115,7 +116,7 @@ Doing this safely requires a fast forward of the new client to at least the high
 Please contact the AtlasDB team for assistance on such an operation.</p>
 </div>
 <p>Required parameters:</p>
-<table class="colwidths-given docutils align-default">
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 11%" />
 <col style="width: 89%" />
@@ -153,7 +154,7 @@ configuration as soon as possible.</p>
 configuration if it exists. In other words, if you want to specify a dynamic list of TimeLock nodes but a static
 security configuration, the static security configuration <strong>must</strong> be placed in the runtime configuration block.</p>
 </div>
-<table class="colwidths-given docutils align-default">
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 11%" />
 <col style="width: 89%" />
@@ -183,7 +184,7 @@ library.</p></td>
 </table>
 </section>
 <section id="runtime-configuration">
-<h2>Runtime Configuration<a class="headerlink" href="#runtime-configuration" title="Permalink to this headline"></a></h2>
+<h2>Runtime Configuration<a class="headerlink" href="#runtime-configuration" title="Permalink to this heading"></a></h2>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
@@ -200,7 +201,7 @@ TimeLock.</p>
 <p>We support live reloading of the <code class="docutils literal notranslate"><span class="pre">ServerListConfiguration</span></code> for TimeLock. This can be optionally configured in the
 <code class="docutils literal notranslate"><span class="pre">timelockRuntime</span></code> block under AtlasDB’s runtime configuration root.</p>
 <p>Note that if this block is present, then the <code class="docutils literal notranslate"><span class="pre">ServerListConfiguration</span></code> in the install configuration will be ignored.</p>
-<table class="colwidths-given docutils align-default">
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 11%" />
 <col style="width: 89%" />
@@ -229,7 +230,7 @@ library.</p></td>
 </tbody>
 </table>
 <section id="semantics-for-live-reloading">
-<span id="id2"></span><h3>Semantics for Live Reloading<a class="headerlink" href="#semantics-for-live-reloading" title="Permalink to this headline"></a></h3>
+<span id="id2"></span><h3>Semantics for Live Reloading<a class="headerlink" href="#semantics-for-live-reloading" title="Permalink to this heading"></a></h3>
 <p>Feign and OkHttp do not appear to come with out-of-the-box for live reloading of proxy endpoints. Thus, when we
 detect that the runtime config has changed, we create a new dynamic proxy.</p>
 <p>Creating this proxy is a two step process. We first <em>resolve</em> the <code class="docutils literal notranslate"><span class="pre">serversList</span></code> configuration to be used - if there
@@ -250,7 +251,7 @@ continue to retry on nodes which have been removed from the cluster owing to tra
 </section>
 </section>
 <section id="timelock-configuration-examples">
-<span id="timelock-config-examples"></span><h2>Timelock Configuration Examples<a class="headerlink" href="#timelock-configuration-examples" title="Permalink to this headline"></a></h2>
+<span id="timelock-config-examples"></span><h2>Timelock Configuration Examples<a class="headerlink" href="#timelock-configuration-examples" title="Permalink to this heading"></a></h2>
 <p>Here is an example of an AtlasDB configuration with the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -259,7 +260,7 @@ If you are using another key-value-service, then you MUST ensure that you have m
 adding a <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block to the config.</p>
 </div>
 <section id="install-configuration">
-<h3>Install Configuration<a class="headerlink" href="#install-configuration" title="Permalink to this headline"></a></h3>
+<h3>Install Configuration<a class="headerlink" href="#install-configuration" title="Permalink to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In versions of AtlasDB before 0.74.0, you will need to specify an empty <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block as a child of the
@@ -291,7 +292,7 @@ adding a <code class="docutils literal notranslate"><span class="pre">timelock</
 We don’t know the URLs of the TimeLock servers nor how we will talk to them, but that is okay.</p>
 </section>
 <section id="id3">
-<h3>Runtime Configuration<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
+<h3>Runtime Configuration<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In versions of AtlasDB before 0.74.0, if the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block was absent in the install configuration, then this

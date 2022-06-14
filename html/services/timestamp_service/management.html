@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Service Management &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -93,9 +94,9 @@
            <div itemprop="articleBody">
              
   <section id="service-management">
-<span id="timestamp-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline"></a></h1>
+<span id="timestamp-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this heading"></a></h1>
 <section id="fast-forward">
-<h2>Fast Forward<a class="headerlink" href="#fast-forward" title="Permalink to this headline"></a></h2>
+<h2>Fast Forward<a class="headerlink" href="#fast-forward" title="Permalink to this heading"></a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>In general, caution should be used when using Fast Forward, especially with user input data (since fast forwarding
@@ -111,7 +112,7 @@ on the Timelock Server. Fast forward operates by updating the last known issued 
 TS.</p>
 <p>Note that fast forward is idempotent, since we use maximums. Also, fast forwarding to the past is a no-op.</p>
 <section id="fast-forward-on-timelock">
-<h3>Fast Forward on TimeLock<a class="headerlink" href="#fast-forward-on-timelock" title="Permalink to this headline"></a></h3>
+<h3>Fast Forward on TimeLock<a class="headerlink" href="#fast-forward-on-timelock" title="Permalink to this heading"></a></h3>
 <p>The following command needs to be run on the TimeLock leader, and will fast forward the timestamp to TS.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST localhost:8080/timelock/api/namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
 </pre></div>

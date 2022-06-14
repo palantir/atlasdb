@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cassandra Best Practices &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -92,14 +93,14 @@
            <div itemprop="articleBody">
              
   <section id="cassandra-best-practices">
-<h1>Cassandra Best Practices<a class="headerlink" href="#cassandra-best-practices" title="Permalink to this headline"></a></h1>
+<h1>Cassandra Best Practices<a class="headerlink" href="#cassandra-best-practices" title="Permalink to this heading"></a></h1>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
 <p>This section is intended to provide guidelines for maintaining good performance for atlasdb queries when using Cassandra as a backing store.</p>
 <p>The advice here is meant to serve as a safeguard against using atlas in ways that are known to cause performance issues, but it is not all encompassing. In general, you can feel safe if you follow the guidelines below; however, if you need to bend any of these rules, you should make sure that you understand why it’s ok to do so.</p>
 </section>
 <section id="range-scans">
-<h2>Range Scans<a class="headerlink" href="#range-scans" title="Permalink to this headline"></a></h2>
+<h2>Range Scans<a class="headerlink" href="#range-scans" title="Permalink to this heading"></a></h2>
 <p><strong>Range Scans vs Exact Key Lookups</strong></p>
 <ul class="simple">
 <li><dl class="simple">
@@ -164,7 +165,7 @@
 </ul>
 </section>
 <section id="stream-stores">
-<h2>Stream Stores<a class="headerlink" href="#stream-stores" title="Permalink to this headline"></a></h2>
+<h2>Stream Stores<a class="headerlink" href="#stream-stores" title="Permalink to this heading"></a></h2>
 <p>The use of <code class="docutils literal notranslate"><span class="pre">hashRowComponents</span></code> for stream stores is strongly recommended as this avoids hotspotting.
 This is because the row key of a stream store value table is an ordered pair (stream ID, block ID).
 Hashing the first row component is not enough, because it still means that every block of the same stream will (likely)

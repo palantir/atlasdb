@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Multinode Cassandra HA Guarantees &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -92,7 +93,7 @@
            <div itemprop="articleBody">
              
   <section id="multinode-cassandra-ha-guarantees">
-<h1>Multinode Cassandra HA Guarantees<a class="headerlink" href="#multinode-cassandra-ha-guarantees" title="Permalink to this headline"></a></h1>
+<h1>Multinode Cassandra HA Guarantees<a class="headerlink" href="#multinode-cassandra-ha-guarantees" title="Permalink to this heading"></a></h1>
 <p>A multinode Cassandra cluster can generally be in one of three states:</p>
 <blockquote>
 <div><ol class="arabic simple">
@@ -103,9 +104,9 @@
 </div></blockquote>
 <p>In the case where all nodes are up, the entire Cassandra Key Value Service (KVS) API can be used. In the latter two cases, in order to guarantee consistency and correctness, usage of the KVS API is restricted as documented below.</p>
 <section id="a-minority-of-nodes-are-down">
-<h2>A minority of nodes are down<a class="headerlink" href="#a-minority-of-nodes-are-down" title="Permalink to this headline"></a></h2>
+<h2>A minority of nodes are down<a class="headerlink" href="#a-minority-of-nodes-are-down" title="Permalink to this heading"></a></h2>
 <p>The following behaviour is guaranteed when interacting with a Cassandra cluster with three nodes, RF three, and one node down. More generally, the following is the expected behaviour for a cluster that has nodes down, but can still always satisfy QUORUM requests (i.e. fewer than RF/2 nodes are down).</p>
-<table class="colwidths-given docutils align-default">
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 50%" />
 <col style="width: 50%" />
@@ -204,7 +205,7 @@
 </table>
 </section>
 <section id="less-than-a-quorum-of-nodes-are-up">
-<h2>Less than a quorum of nodes are up<a class="headerlink" href="#less-than-a-quorum-of-nodes-are-up" title="Permalink to this headline"></a></h2>
+<h2>Less than a quorum of nodes are up<a class="headerlink" href="#less-than-a-quorum-of-nodes-are-up" title="Permalink to this heading"></a></h2>
 <p>All of the above operations should fail.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AtlasDB Sweep &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -92,7 +93,7 @@
            <div itemprop="articleBody">
              
   <section id="atlasdb-sweep">
-<span id="sweep"></span><h1>AtlasDB Sweep<a class="headerlink" href="#atlasdb-sweep" title="Permalink to this headline"></a></h1>
+<span id="sweep"></span><h1>AtlasDB Sweep<a class="headerlink" href="#atlasdb-sweep" title="Permalink to this heading"></a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>If you’re using sweep through either a) the deprecated Sweep CLI or b) the background sweeper on AtlasDB &lt; 0.32.0, it can cause <strong>SEVERE DATA CORRUPTION</strong> to any ongoing backups.</p>
@@ -103,7 +104,7 @@ The old row is left untouched. When that row is later read, only the version wit
 Deletions in AtlasDB are similar; in practice they are the same as updates with an empty value.</p>
 <p>To prevent an AtlasDB database from growing in size indefinitely, old versions of rows can be deleted through a process called sweeping.</p>
 <section id="reasons-to-sweep">
-<h2>Reasons to Sweep<a class="headerlink" href="#reasons-to-sweep" title="Permalink to this headline"></a></h2>
+<h2>Reasons to Sweep<a class="headerlink" href="#reasons-to-sweep" title="Permalink to this heading"></a></h2>
 <ol class="arabic simple">
 <li><dl class="simple">
 <dt>Freeing up Disk Space</dt><dd><ul class="simple">
@@ -130,7 +131,7 @@ This situation could have been mitigated by sweeping the table in question.</p><
 </ol>
 </section>
 <section id="ways-to-sweep">
-<h2>Ways to Sweep<a class="headerlink" href="#ways-to-sweep" title="Permalink to this headline"></a></h2>
+<h2>Ways to Sweep<a class="headerlink" href="#ways-to-sweep" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="sweep/standard-sweep.html#standard-sweep"><span class="std std-ref">Standard sweep</span></a>:
 Standard sweep scans a table to find rows with multiple versions, then deletes the older versions from the database.</p></li>

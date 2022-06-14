@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Manual Migration to Timelock Server &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -97,7 +98,7 @@
            <div itemprop="articleBody">
              
   <section id="manual-migration-to-timelock-server">
-<span id="manual-timelock-migration"></span><h1>Manual Migration to Timelock Server<a class="headerlink" href="#manual-migration-to-timelock-server" title="Permalink to this headline"></a></h1>
+<span id="manual-timelock-migration"></span><h1>Manual Migration to Timelock Server<a class="headerlink" href="#manual-migration-to-timelock-server" title="Permalink to this heading"></a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This is not a recommended way to migrate to external timelock server.
@@ -124,7 +125,7 @@ new timestamp service).</p>
 <p>Ensure that no AtlasDB clients are running during the migration process. Failure to ensure this can result in
 <strong>SEVERE DATA CORRUPTION</strong> as we are unable to guarantee that timestamps are monotonically increasing!</p>
 </div>
-<div class="contents local topic" id="contents">
+<nav class="contents local" id="contents">
 <ul class="simple">
 <li><p><a class="reference internal" href="#step-0-shutdown-your-atlasdb-clients" id="id1">Step 0: Shutdown your AtlasDB Clients</a></p></li>
 <li><p><a class="reference internal" href="#step-1-setting-up-the-timelock-server" id="id2">Step 1: Setting up the Timelock Server</a></p></li>
@@ -133,26 +134,26 @@ new timestamp service).</p>
 <li><p><a class="reference internal" href="#step-4-invalidating-the-old-atlasdb-timestamp" id="id5">Step 4: Invalidating the Old AtlasDB Timestamp</a></p></li>
 <li><p><a class="reference internal" href="#steps-5-and-6-client-configuration-and-restart" id="id6">Steps 5 and 6: Client Configuration and Restart</a></p></li>
 </ul>
-</div>
+</nav>
 <section id="step-0-shutdown-your-atlasdb-clients">
-<h2><a class="toc-backref" href="#id1">Step 0: Shutdown your AtlasDB Clients</a><a class="headerlink" href="#step-0-shutdown-your-atlasdb-clients" title="Permalink to this headline"></a></h2>
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Step 0: Shutdown your AtlasDB Clients</a><a class="headerlink" href="#step-0-shutdown-your-atlasdb-clients" title="Permalink to this heading"></a></h2>
 <p>Make sure that all of your AtlasDB clients are shut down. Failure to do this can result in severe data corruption,
 because we cannot guarantee that the Timelock Server and the embedded AtlasDB timestamp services will together issue
 monotonically increasing timestamps. (In fact, they almost certainly will not!)</p>
 </section>
 <section id="step-1-setting-up-the-timelock-server">
-<h2><a class="toc-backref" href="#id2">Step 1: Setting up the Timelock Server</a><a class="headerlink" href="#step-1-setting-up-the-timelock-server" title="Permalink to this headline"></a></h2>
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Step 1: Setting up the Timelock Server</a><a class="headerlink" href="#step-1-setting-up-the-timelock-server" title="Permalink to this heading"></a></h2>
 <p>First, setup the Timelock Server following the instructions in <a class="reference internal" href="installation.html#timelock-installation"><span class="std std-ref">Timelock Server Installation</span></a>.</p>
 </section>
 <section id="step-2-determining-the-atlasdb-timestamp">
-<h2><a class="toc-backref" href="#id3">Step 2: Determining the AtlasDB Timestamp</a><a class="headerlink" href="#step-2-determining-the-atlasdb-timestamp" title="Permalink to this headline"></a></h2>
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Step 2: Determining the AtlasDB Timestamp</a><a class="headerlink" href="#step-2-determining-the-atlasdb-timestamp" title="Permalink to this heading"></a></h2>
 <p>One can use the <a class="reference internal" href="../../cluster_management/clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a> (specifically, the <code class="docutils literal notranslate"><span class="pre">timestamp</span> <span class="pre">fetch</span></code> command) to obtain a timestamp which is guaranteed
 to be greater than all timestamps issued so far. Make sure that you are requesting for a fresh timestamp as opposed to
 an immutable timestamp (the output should say <code class="docutils literal notranslate"><span class="pre">The</span> <span class="pre">Fresh</span> <span class="pre">timestamp</span> <span class="pre">is:</span> <span class="pre">TS</span></code>). Note down the value of this timestamp;
 from here on out, we’ll refer to it as <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
 </section>
 <section id="step-3-fast-forwarding-the-timelock-server">
-<h2><a class="toc-backref" href="#id4">Step 3: Fast-Forwarding the Timelock Server</a><a class="headerlink" href="#step-3-fast-forwarding-the-timelock-server" title="Permalink to this headline"></a></h2>
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Step 3: Fast-Forwarding the Timelock Server</a><a class="headerlink" href="#step-3-fast-forwarding-the-timelock-server" title="Permalink to this heading"></a></h2>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>Throughout this document, <code class="docutils literal notranslate"><span class="pre">curl</span></code> commands that make requests to TimeLock may receive a 308 indicating the location
@@ -195,7 +196,7 @@ As fast-forward is idempotent (it sets the timestamp to be the maximum of its cu
 <p>The value returned should be (assuming no one else is using the Timelock Server) 1 higher than <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
 </section>
 <section id="step-4-invalidating-the-old-atlasdb-timestamp">
-<h2><a class="toc-backref" href="#id5">Step 4: Invalidating the Old AtlasDB Timestamp</a><a class="headerlink" href="#step-4-invalidating-the-old-atlasdb-timestamp" title="Permalink to this headline"></a></h2>
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Step 4: Invalidating the Old AtlasDB Timestamp</a><a class="headerlink" href="#step-4-invalidating-the-old-atlasdb-timestamp" title="Permalink to this heading"></a></h2>
 <p>The steps for invalidating the old AtlasDB timestamp will vary, depending on your choice of underlying key value store.</p>
 <ul>
 <li><p>If using Postgres or Oracle, it suffices to rename the relevant column in the timestamp table (use <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span></code>).
@@ -233,7 +234,7 @@ overflow, and although ordinarily the first timestamp AtlasDB issues is 1 we do 
 TransactionManagers.create() is called, throwing a runtime exception.</p>
 </section>
 <section id="steps-5-and-6-client-configuration-and-restart">
-<h2><a class="toc-backref" href="#id6">Steps 5 and 6: Client Configuration and Restart</a><a class="headerlink" href="#steps-5-and-6-client-configuration-and-restart" title="Permalink to this headline"></a></h2>
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Steps 5 and 6: Client Configuration and Restart</a><a class="headerlink" href="#steps-5-and-6-client-configuration-and-restart" title="Permalink to this heading"></a></h2>
 <p>Configure your clients to use the Timelock Server following the instructions in <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock Client Configuration</span></a>.
 You may then restart your clients; they should now communicate with the Timelock Server when requesting timestamps
 and locks. This completes the migration process.</p>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Asynchronous Initialization &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -88,7 +89,7 @@
            <div itemprop="articleBody">
              
   <section id="asynchronous-initialization">
-<h1>Asynchronous Initialization<a class="headerlink" href="#asynchronous-initialization" title="Permalink to this headline"></a></h1>
+<h1>Asynchronous Initialization<a class="headerlink" href="#asynchronous-initialization" title="Permalink to this heading"></a></h1>
 <p>If the <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> parameter of the AtlasDB configuration is set to true, AtlasDB will be able to start even when some of
 the necessary resources are not ready yet. The main use of this feature is to avoid race conditions when starting multiple
 services simultaneously and allow AtlasDB to start even if, e.g., the KVS is still starting up.</p>
@@ -104,7 +105,7 @@ Note that calls to the transaction manager from the callback at this time bypass
 <li><p>If the callback is successful, the transaction manager then becomes initialized.</p></li>
 </ol>
 <section id="using-callbacks">
-<h2>Using Callbacks<a class="headerlink" href="#using-callbacks" title="Permalink to this headline"></a></h2>
+<h2>Using Callbacks<a class="headerlink" href="#using-callbacks" title="Permalink to this heading"></a></h2>
 <p>For an example of using callbacks, refer to <code class="docutils literal notranslate"><span class="pre">TargetedSweeper</span></code>. The simplest way of using this functionality is to
 implement the <code class="docutils literal notranslate"><span class="pre">CallbackInitializable</span></code> interface. The <code class="docutils literal notranslate"><span class="pre">initialize</span></code> method should initialize all the
 resources that require an initialized transaction manager, and the <code class="docutils literal notranslate"><span class="pre">onInitializationFailureCleanup</span></code> should specify any

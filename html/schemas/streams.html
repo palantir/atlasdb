@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Streams &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -92,9 +93,9 @@
            <div itemprop="articleBody">
              
   <section id="streams">
-<span id="schemas-streams"></span><h1>Streams<a class="headerlink" href="#streams" title="Permalink to this headline"></a></h1>
+<span id="schemas-streams"></span><h1>Streams<a class="headerlink" href="#streams" title="Permalink to this heading"></a></h1>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
 <p>When storing large objects in an AtlasDB database, the underlying
 database can impose limits on the size of the object and its performance
 characteristics. Postgres has a 1GB entry limit, and Cassandra generally
@@ -116,7 +117,7 @@ does not count toward your byte limit for your local trasaction.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">valueType</span></code> specifies the value type of the id for each stored object.</p></li>
 </ul>
 <p>Additional options for the builder include:</p>
-<table class="colwidths-given docutils align-default">
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 20%" />
 <col style="width: 80%" />
@@ -162,7 +163,7 @@ does not count toward your byte limit for your local trasaction.</p>
 </div>
 </section>
 <section id="storing-streams">
-<h2>Storing Streams<a class="headerlink" href="#storing-streams" title="Permalink to this headline"></a></h2>
+<h2>Storing Streams<a class="headerlink" href="#storing-streams" title="Permalink to this heading"></a></h2>
 <p>Users have two options to store streams.</p>
 <ol class="arabic simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">getByHashOrStoreStreamAndMarkAsUsed(Transaction</span> <span class="pre">t,</span> <span class="pre">Sha256Hash</span> <span class="pre">hash,</span> <span class="pre">InputStream</span> <span class="pre">stream,</span> <span class="pre">byte[]</span> <span class="pre">reference)</span></code> is called <em>within</em> a transaction. It will store the stream and mark it as used by <code class="docutils literal notranslate"><span class="pre">reference</span></code>. This method is the preferred method to store small (&lt;100 MB) streams.</p></li>
@@ -175,7 +176,7 @@ does not count toward your byte limit for your local trasaction.</p>
 </div>
 </section>
 <section id="performance">
-<h2>Performance<a class="headerlink" href="#performance" title="Permalink to this headline"></a></h2>
+<h2>Performance<a class="headerlink" href="#performance" title="Permalink to this heading"></a></h2>
 <p>Streams are marked as <code class="docutils literal notranslate"><span class="pre">cachePriority(CachePriority.COLD)</span></code> by default.
 This is a hint to the key value store that these can potentially be
 stored on different media than regular tables. One simple way to handle
@@ -186,7 +187,7 @@ one and other tables to another.</p>
 <code class="docutils literal notranslate"><span class="pre">compressStreamsInClient</span></code> option on the <code class="docutils literal notranslate"><span class="pre">StreamStoreDefinitionBuilder</span></code>.</p>
 </section>
 <section id="transactionality">
-<h2>Transactionality<a class="headerlink" href="#transactionality" title="Permalink to this headline"></a></h2>
+<h2>Transactionality<a class="headerlink" href="#transactionality" title="Permalink to this heading"></a></h2>
 <p>When you call <code class="docutils literal notranslate"><span class="pre">loadStream(transaction,</span> <span class="pre">id)</span></code>, only the first section of the stream data is pre-loaded as part of that transaction.
 The amount loaded is determined by the block size (1MB) and the in-memory threshold (4MiB by default); we load at least one block,
 a whole number of blocks, and (if the in-memory threshold is at least the block size) as many blocks as fit inside the in-memory threshold.
@@ -200,7 +201,7 @@ In this case, streaming of the original stream will continue and complete succes
 <p>If you wish to guard against this case, you should kick off another read transaction after closing the stream, to verify that <code class="docutils literal notranslate"><span class="pre">key</span></code> still maps to <code class="docutils literal notranslate"><span class="pre">stream_id_1</span></code>.</p>
 </section>
 <section id="non-duplication">
-<h2>Non-Duplication<a class="headerlink" href="#non-duplication" title="Permalink to this headline"></a></h2>
+<h2>Non-Duplication<a class="headerlink" href="#non-duplication" title="Permalink to this heading"></a></h2>
 <p>A single stream of bytes may be stored multiple times and have many
 references to it, but will only be stored once under the covers. When
 all references to a stream are removed it will be cleaned up by the

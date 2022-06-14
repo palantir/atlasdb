@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AtlasDB Sweep Endpoints &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
         <script src="../../../_static/jquery.js"></script>
         <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
@@ -100,7 +101,7 @@
            <div itemprop="articleBody">
              
   <section id="atlasdb-sweep-endpoints">
-<span id="id1"></span><h1>AtlasDB Sweep Endpoints<a class="headerlink" href="#atlasdb-sweep-endpoints" title="Permalink to this headline"></a></h1>
+<span id="id1"></span><h1>AtlasDB Sweep Endpoints<a class="headerlink" href="#atlasdb-sweep-endpoints" title="Permalink to this heading"></a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Sweeps can be resource-intensive (especially if batching parameters are generous and/or cells have very large
@@ -111,7 +112,7 @@ careful when using the sweep endpoint in non-HA configurations.</p>
 <p>If you ever need to force a particular table to be swept immediately, you can run sweep by making a POST request to the
 <code class="docutils literal notranslate"><span class="pre">/sweep/sweep-table</span></code> endpoint. Sweep runs initiated via the endpoint are configurable via standard HTTP query
 parameters.</p>
-<table class="colwidths-given docutils align-default">
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 20%" />
 <col style="width: 50%" />

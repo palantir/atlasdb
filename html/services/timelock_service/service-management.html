@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Service Management &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -97,9 +98,9 @@
            <div itemprop="articleBody">
              
   <section id="service-management">
-<span id="timelock-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline"></a></h1>
+<span id="timelock-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this heading"></a></h1>
 <section id="namespace-changes">
-<h2>Namespace Changes<a class="headerlink" href="#namespace-changes" title="Permalink to this headline"></a></h2>
+<h2>Namespace Changes<a class="headerlink" href="#namespace-changes" title="Permalink to this heading"></a></h2>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Be careful when changing namespaces - doing this process incorrectly may result in <strong>SEVERE DATA CORRUPTION</strong>.
@@ -111,13 +112,13 @@ documentation for how to do this; external users can use <a class="reference int
 old timestamp bound is carried over to the new namespace. This is to preserve the guarantee of the timestamp service
 that timestamps must be increasing.</p>
 <section id="step-1-shut-down-clients">
-<h3>Step 1: Shut Down Clients<a class="headerlink" href="#step-1-shut-down-clients" title="Permalink to this headline"></a></h3>
+<h3>Step 1: Shut Down Clients<a class="headerlink" href="#step-1-shut-down-clients" title="Permalink to this heading"></a></h3>
 <p>Shut down all instances of the TimeLock client for which you wish to change the namespace.
 This is done to ensure that the timestamp bound does not advance further while we are doing the other steps.
 Leave TimeLock running; you’ll need it for the remaining steps.</p>
 </section>
 <section id="step-2-get-a-fresh-timestamp-for-the-old-namespace">
-<h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this headline"></a></h3>
+<h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this heading"></a></h3>
 <p>If we get a fresh timestamp for the old namespace, we know that all timestamps old clients have seen must be strictly
 less than the fresh timestamp. This may be obtained through the fresh timestamp endpoint.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/old_namespace <span class="se">\</span>
@@ -129,7 +130,7 @@ either a HTTP 503 or 308. In this case, try the same request on other nodes unti
 <p>Note down the value of the timestamp returned. From here on out, we’ll refer to this as <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
 </section>
 <section id="step-3-fast-forward-on-the-new-namespace">
-<h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this headline"></a></h3>
+<h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this heading"></a></h3>
 <p>We now want to fast forward the new namespace to <code class="docutils literal notranslate"><span class="pre">TS</span></code>. This may be done through the timestamp management endpoints
 on TimeLock.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST &lt;protocol&gt;://&lt;host:&lt;port&gt;/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
@@ -143,7 +144,7 @@ a value strictly larger than <code class="docutils literal notranslate"><span cl
 of the timestamp service as far as clients are concerned have been preserved.</p>
 </section>
 <section id="step-4-optional-cleanup-on-timelock">
-<h3>Step 4 (Optional): Cleanup on TimeLock<a class="headerlink" href="#step-4-optional-cleanup-on-timelock" title="Permalink to this headline"></a></h3>
+<h3>Step 4 (Optional): Cleanup on TimeLock<a class="headerlink" href="#step-4-optional-cleanup-on-timelock" title="Permalink to this heading"></a></h3>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This section is written under the assumption you are using Paxos for timestamp bound persistence.</p>

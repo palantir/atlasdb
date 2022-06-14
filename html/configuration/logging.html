@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Logging Configuration &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -92,9 +93,9 @@
            <div itemprop="articleBody">
              
   <section id="logging-configuration">
-<span id="id1"></span><h1>Logging Configuration<a class="headerlink" href="#logging-configuration" title="Permalink to this headline"></a></h1>
+<span id="id1"></span><h1>Logging Configuration<a class="headerlink" href="#logging-configuration" title="Permalink to this heading"></a></h1>
 <section id="profiling-a-key-value-service">
-<h2>Profiling a Key Value Service<a class="headerlink" href="#profiling-a-key-value-service" title="Permalink to this headline"></a></h2>
+<h2>Profiling a Key Value Service<a class="headerlink" href="#profiling-a-key-value-service" title="Permalink to this heading"></a></h2>
 <p>All Key Value Services created using <code class="docutils literal notranslate"><span class="pre">TransactionManagers.create()</span></code> will
 be wrapped in a <code class="docutils literal notranslate"><span class="pre">ProfilingKeyValueService</span></code>.  This service will log out timing
 and metadata for requests made against the underlying KVS.  In order to activate
@@ -104,7 +105,7 @@ the logging, simply enable <code class="docutils literal notranslate"><span clas
 For more information, see <a class="reference internal" href="enabling_cassandra_tracing.html#enabling-cassandra-tracing"><span class="std std-ref">Enabling Cassandra Tracing</span></a>.</p>
 </section>
 <section id="debug-logging-for-multiple-timestamp-services-error">
-<span id="debug-logging"></span><h2>Debug Logging for Multiple Timestamp Services Error<a class="headerlink" href="#debug-logging-for-multiple-timestamp-services-error" title="Permalink to this headline"></a></h2>
+<span id="debug-logging"></span><h2>Debug Logging for Multiple Timestamp Services Error<a class="headerlink" href="#debug-logging-for-multiple-timestamp-services-error" title="Permalink to this heading"></a></h2>
 <p>This logging is available from version 0.23.0.  It is intended for targeted use only
 (read: when you have consistent reproduction) as it is particularly verbose.
 Due to the volume, it is recommended that you send logging related to the timestamp service to a separate appender.</p>

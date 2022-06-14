@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Paxos and AtlasDB &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -97,9 +98,9 @@
            <div itemprop="articleBody">
              
   <section id="paxos-and-atlasdb">
-<span id="timelock-paxos"></span><h1>Paxos and AtlasDB<a class="headerlink" href="#paxos-and-atlasdb" title="Permalink to this headline"></a></h1>
+<span id="timelock-paxos"></span><h1>Paxos and AtlasDB<a class="headerlink" href="#paxos-and-atlasdb" title="Permalink to this heading"></a></h1>
 <section id="the-paxos-algorithm">
-<h2>The Paxos Algorithm<a class="headerlink" href="#the-paxos-algorithm" title="Permalink to this headline"></a></h2>
+<h2>The Paxos Algorithm<a class="headerlink" href="#the-paxos-algorithm" title="Permalink to this heading"></a></h2>
 <p><a class="reference external" href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/paxos-simple-Copy.pdf">Paxos</a> is an algorithm
 for <em>distributed consensus</em> - that is, getting servers to agree on a value that some server <em>proposes</em>, in the presence
 of communication and server failures. Its guarantees include:</p>
@@ -124,7 +125,7 @@ and learner roles) behaves in the same way. However, this can potentially lead t
 <p>This can be (and is in AtlasDB) mitigated by having a random backoff between proposals.</p>
 </section>
 <section id="how-we-use-paxos">
-<h2>How we use Paxos<a class="headerlink" href="#how-we-use-paxos" title="Permalink to this headline"></a></h2>
+<h2>How we use Paxos<a class="headerlink" href="#how-we-use-paxos" title="Permalink to this heading"></a></h2>
 <p>The TimeLock servers may use a Paxos based algorithm for two purposes:</p>
 <ol class="arabic simple">
 <li><p><strong>Leadership election:</strong> We choose who will be the leader in the TimeLock cluster. The leader is the only server capable

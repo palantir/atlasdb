@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KVS Migration &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -87,7 +88,7 @@
            <div itemprop="articleBody">
              
   <section id="kvs-migration">
-<span id="id1"></span><h1>KVS Migration<a class="headerlink" href="#kvs-migration" title="Permalink to this headline"></a></h1>
+<span id="id1"></span><h1>KVS Migration<a class="headerlink" href="#kvs-migration" title="Permalink to this heading"></a></h1>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Ensure you have backups before attempting a KVS migration.
@@ -95,7 +96,7 @@ Double check that <code class="docutils literal notranslate"><span class="pre">m
 dropped.</p>
 </div>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
 <p>KVS migration involves moving all transactional data from one KVS which we call the <em>source KVS</em> to another, which
 we call the <em>destination KVS</em>. Generally speaking, this includes all user data.</p>
 <p>There are some AtlasDB internal tables which will not be migrated, for various reasons:</p>
@@ -137,9 +138,9 @@ the start timestamp. As data is copied over, we also update a checkpoint table, 
 migration without starting from scratch.</p>
 </section>
 <section id="running-a-kvs-migration">
-<h2>Running a KVS Migration<a class="headerlink" href="#running-a-kvs-migration" title="Permalink to this headline"></a></h2>
+<h2>Running a KVS Migration<a class="headerlink" href="#running-a-kvs-migration" title="Permalink to this heading"></a></h2>
 <section id="preconditions">
-<h3>Preconditions<a class="headerlink" href="#preconditions" title="Permalink to this headline"></a></h3>
+<h3>Preconditions<a class="headerlink" href="#preconditions" title="Permalink to this heading"></a></h3>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Read this section carefully before performing any migrations! The KVS migration CLI makes some assumptions;
@@ -154,7 +155,7 @@ obtain migration timestamps.</p>
 configuration for the purposes of migration.</p>
 </section>
 <section id="migration-cli">
-<h3>Migration CLI<a class="headerlink" href="#migration-cli" title="Permalink to this headline"></a></h3>
+<h3>Migration CLI<a class="headerlink" href="#migration-cli" title="Permalink to this heading"></a></h3>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>If you are migrating to/from Oracle KVS and are using a version of AtlasDB before 0.240.10, the standard AtlasDB
@@ -192,7 +193,7 @@ you restart your service with the new KVS.</p>
 </div>
 </section>
 <section id="setup">
-<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline"></a></h3>
+<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this heading"></a></h3>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>All tables in the destination KVS will be dropped as part of setup! Please ensure that data there may be safely
@@ -207,7 +208,7 @@ Then, for each table in the source KVS except atomic tables and Cassandra hidden
 metadata is created in the target KVS.</p>
 </section>
 <section id="migrate">
-<h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this headline"></a></h3>
+<h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --migrate
 </pre></div>
 </div>
@@ -228,7 +229,7 @@ Running setup at this point will reset the migration state and force a fresh mig
 </div>
 </section>
 <section id="validate">
-<h3>Validate<a class="headerlink" href="#validate" title="Permalink to this headline"></a></h3>
+<h3>Validate<a class="headerlink" href="#validate" title="Permalink to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --validate
 </pre></div>
 </div>

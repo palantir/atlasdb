@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DB KVS (Oracle - beta) Configuration &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -99,9 +100,9 @@
            <div itemprop="articleBody">
              
   <section id="db-kvs-oracle-beta-configuration">
-<span id="oracle-configuration"></span><h1>DB KVS (Oracle - beta) Configuration<a class="headerlink" href="#db-kvs-oracle-beta-configuration" title="Permalink to this headline"></a></h1>
+<span id="oracle-configuration"></span><h1>DB KVS (Oracle - beta) Configuration<a class="headerlink" href="#db-kvs-oracle-beta-configuration" title="Permalink to this heading"></a></h1>
 <section id="enabling-oracle-for-your-application">
-<h2>Enabling Oracle for your Application<a class="headerlink" href="#enabling-oracle-for-your-application" title="Permalink to this headline"></a></h2>
+<h2>Enabling Oracle for your Application<a class="headerlink" href="#enabling-oracle-for-your-application" title="Permalink to this heading"></a></h2>
 <p>To enable your application to be backed by Oracle, you just need to add AtlasDB DbKvs and the OracleJDBC driver as a
 runtime dependency. In gradle this looks like:</p>
 <div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span><span class="w"> </span><span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span><span class="w"></span>
@@ -109,13 +110,13 @@ runtime dependency. In gradle this looks like:</p>
 </pre></div>
 </div>
 <p>e.g.</p>
-<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span><span class="w"> </span><span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.619.0&#39;</span><span class="w"></span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span><span class="w"> </span><span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.627.0&#39;</span><span class="w"></span>
 <span class="n">runtime</span><span class="w"> </span><span class="s1">&#39;com.palantir.atlasdb:dbkvs-oracle-driver:0.3.0&#39;</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
 <section id="configuring-a-running-application-to-use-oracle">
-<h2>Configuring a Running Application to Use Oracle<a class="headerlink" href="#configuring-a-running-application-to-use-oracle" title="Permalink to this headline"></a></h2>
+<h2>Configuring a Running Application to Use Oracle<a class="headerlink" href="#configuring-a-running-application-to-use-oracle" title="Permalink to this heading"></a></h2>
 <p>A minimal AtlasDB configuration for running against Oracle will look like the below.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
@@ -153,11 +154,11 @@ runtime dependency. In gradle this looks like:</p>
 <p>For more details on the leader block, see <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
 </section>
 <section id="configuration-parameters">
-<span id="oracle-config-params"></span><h2>Configuration Parameters<a class="headerlink" href="#configuration-parameters" title="Permalink to this headline"></a></h2>
+<span id="oracle-config-params"></span><h2>Configuration Parameters<a class="headerlink" href="#configuration-parameters" title="Permalink to this heading"></a></h2>
 <p>The Oracle Configuration has 2 major blocks.</p>
 <section id="ddl-parameters">
-<h3>DDL parameters<a class="headerlink" href="#ddl-parameters" title="Permalink to this headline"></a></h3>
-<table class="colwidths-given docutils align-default">
+<h3>DDL parameters<a class="headerlink" href="#ddl-parameters" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 8%" />
 <col style="width: 67%" />
@@ -209,7 +210,7 @@ defaults to 1000.</p></td>
 </table>
 </section>
 <section id="connection-parameters">
-<h3>Connection parameters<a class="headerlink" href="#connection-parameters" title="Permalink to this headline"></a></h3>
+<h3>Connection parameters<a class="headerlink" href="#connection-parameters" title="Permalink to this heading"></a></h3>
 <p>If you would like to customize the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
@@ -222,7 +223,7 @@ An example is shown below; for full documentation on which parameters are availa
 </pre></div>
 </div>
 <p>These are the required parameters:</p>
-<table class="colwidths-given docutils align-default">
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 8%" />
 <col style="width: 67%" />
@@ -270,7 +271,7 @@ it may be set arbitrarily (but <em>must</em> be set to some value).</p></td>
 </table>
 </section>
 <section id="migrating-connection-methods">
-<h3>Migrating Connection Methods<a class="headerlink" href="#migrating-connection-methods" title="Permalink to this headline"></a></h3>
+<h3>Migrating Connection Methods<a class="headerlink" href="#migrating-connection-methods" title="Permalink to this heading"></a></h3>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Improperly migrating from one method of connecting to Oracle to another can result in <strong>SEVERE DATA CORRUPTION</strong>!

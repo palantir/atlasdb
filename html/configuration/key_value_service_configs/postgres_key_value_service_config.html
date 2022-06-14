@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DB KVS (Postgres) Configuration &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -99,9 +100,9 @@
            <div itemprop="articleBody">
              
   <section id="db-kvs-postgres-configuration">
-<span id="postgres-configuration"></span><h1>DB KVS (Postgres) Configuration<a class="headerlink" href="#db-kvs-postgres-configuration" title="Permalink to this headline"></a></h1>
+<span id="postgres-configuration"></span><h1>DB KVS (Postgres) Configuration<a class="headerlink" href="#db-kvs-postgres-configuration" title="Permalink to this heading"></a></h1>
 <section id="enabling-postgres-for-your-application">
-<h2>Enabling Postgres for your Application<a class="headerlink" href="#enabling-postgres-for-your-application" title="Permalink to this headline"></a></h2>
+<h2>Enabling Postgres for your Application<a class="headerlink" href="#enabling-postgres-for-your-application" title="Permalink to this heading"></a></h2>
 <p>To enable your application to be backed by postgres, you just need to add DB KVS as a runtime dependency. In gradle this looks like:</p>
 <div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span><span class="w"> </span><span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span><span class="w"></span>
 </pre></div>
@@ -112,7 +113,7 @@
 </div>
 </section>
 <section id="configuring-a-running-application-to-use-postgres">
-<h2>Configuring a Running Application to Use Postgres<a class="headerlink" href="#configuring-a-running-application-to-use-postgres" title="Permalink to this headline"></a></h2>
+<h2>Configuring a Running Application to Use Postgres<a class="headerlink" href="#configuring-a-running-application-to-use-postgres" title="Permalink to this heading"></a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>If you have multiple products using the same Postgres instance, they <em>must</em> use different databases.</p>
@@ -150,9 +151,9 @@
 </div>
 <p>For more details on the leader block, see <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
 <section id="hikari-connection-parameters">
-<h3>Hikari Connection parameters<a class="headerlink" href="#hikari-connection-parameters" title="Permalink to this headline"></a></h3>
+<h3>Hikari Connection parameters<a class="headerlink" href="#hikari-connection-parameters" title="Permalink to this heading"></a></h3>
 <p>We also provide the following options, which are mapped to <a class="reference external" href="https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby">Hikari connection options</a>:</p>
-<table class="colwidths-given docutils align-default">
+<table class="docutils align-default">
 <colgroup>
 <col style="width: 14%" />
 <col style="width: 14%" />
@@ -211,7 +212,7 @@
 </div>
 </section>
 <section id="jdbc-connection-parameters">
-<h3>JDBC Connection parameters<a class="headerlink" href="#jdbc-connection-parameters" title="Permalink to this headline"></a></h3>
+<h3>JDBC Connection parameters<a class="headerlink" href="#jdbc-connection-parameters" title="Permalink to this heading"></a></h3>
 <p>If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>

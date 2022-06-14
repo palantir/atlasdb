@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Using The AtlasDB Perf Cli &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -86,7 +87,7 @@
            <div itemprop="articleBody">
              
   <section id="using-the-atlasdb-perf-cli">
-<span id="perf-cli"></span><h1>Using The AtlasDB Perf Cli<a class="headerlink" href="#using-the-atlasdb-perf-cli" title="Permalink to this headline"></a></h1>
+<span id="perf-cli"></span><h1>Using The AtlasDB Perf Cli<a class="headerlink" href="#using-the-atlasdb-perf-cli" title="Permalink to this heading"></a></h1>
 <ol class="arabic simple">
 <li><p>Follow the steps provided in <a class="reference internal" href="../overview/getting_started.html#running-from-source"><span class="std std-ref">Running from Source</span></a>.</p></li>
 </ol>
@@ -95,7 +96,7 @@
 <p>The Cassandra container in the above instructions has resource constraints and is not suitable for performance testing without modification. The heap size has been manually decreased in <code class="code docutils literal notranslate"><span class="pre">cassandra-env.sh</span></code>. Replace the line <code class="code docutils literal notranslate"><span class="pre">MAX_HEAP_SIZE=&quot;128M&quot;`with</span> <span class="pre">the</span> <span class="pre">commented</span> <span class="pre">line</span> <span class="pre">directly</span> <span class="pre">above</span> <span class="pre">it</span> <span class="pre">and</span> <span class="pre">delete</span> <span class="pre">the</span> <span class="pre">line</span> <span class="pre">:code:`HEAP_NEWSIZE=&quot;24M&quot;</span></code> to get more natural behavior.</p>
 </div>
 <section id="running-from-command-line">
-<h2>Running from Command Line<a class="headerlink" href="#running-from-command-line" title="Permalink to this headline"></a></h2>
+<h2>Running from Command Line<a class="headerlink" href="#running-from-command-line" title="Permalink to this heading"></a></h2>
 <ol class="arabic" start="2">
 <li><p>Build the performance cli:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./gradlew atlasdb-perf:installDist
@@ -111,7 +112,7 @@
 </ol>
 </section>
 <section id="running-in-an-ide">
-<h2>Running in an IDE<a class="headerlink" href="#running-in-an-ide" title="Permalink to this headline"></a></h2>
+<h2>Running in an IDE<a class="headerlink" href="#running-in-an-ide" title="Permalink to this heading"></a></h2>
 <ol class="arabic simple">
 <li><p>Generate the configuration files your your IDE (either <cite>./gradlew idea</cite> or <cite>./gradlew eclipse</cite>).</p></li>
 <li><p>Run <cite>AtlasDbPerfCli.java</cite> (run with <cite>–help</cite> option for help).  You may need to add enviornment variables to the run configuration when using the <cite>–backend</cite> option to allow the program to communicate with a local docker instance.</p></li>

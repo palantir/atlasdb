@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Writing Benchmarks &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -86,11 +87,11 @@
            <div itemprop="articleBody">
              
   <section id="writing-benchmarks">
-<span id="performance-writing"></span><h1>Writing Benchmarks<a class="headerlink" href="#writing-benchmarks" title="Permalink to this headline"></a></h1>
+<span id="performance-writing"></span><h1>Writing Benchmarks<a class="headerlink" href="#writing-benchmarks" title="Permalink to this heading"></a></h1>
 <p>The benchmarks are written using the <a class="reference external" href="http://openjdk.java.net/projects/code-tools/jmh/">Java Benchmarking Harness</a> (JMH) bundled with OpenJDK.  To get started understanding JMH take a look at the <a class="reference external" href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/">JMH Samples</a>.  Our benchmarks are found in the <code class="docutils literal notranslate"><span class="pre">atlasdb-perf</span></code> project.</p>
 <p>Be sure to read <a class="reference internal" href="understanding.html#understanding"><span class="std std-ref">Understanding Performance Benchmarking</span></a> before attempting to write a benchmark.</p>
 <section id="how-the-atlasdb-perf-cli-works">
-<h2>How the AtlasDB-Perf CLI Works<a class="headerlink" href="#how-the-atlasdb-perf-cli-works" title="Permalink to this headline"></a></h2>
+<h2>How the AtlasDB-Perf CLI Works<a class="headerlink" href="#how-the-atlasdb-perf-cli-works" title="Permalink to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.java</span></code> contains the main method that the CLI runs.
 It checks the provided options, sets up docker containers (if needed), and gathers the URIs of benchmarks via reflection.
 Once it does all that, it kicks off JMH in the method <code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.runJmh()</span></code>.
@@ -122,7 +123,7 @@ Similarly, methods in a State object can have functions marked as <code class="d
 Check the JMH source code for <code class="docutils literal notranslate"><span class="pre">Scope</span></code> and <code class="docutils literal notranslate"><span class="pre">Level</span></code> for more information.</p>
 </section>
 <section id="writing-a-new-benchmark">
-<h2>Writing a New Benchmark<a class="headerlink" href="#writing-a-new-benchmark" title="Permalink to this headline"></a></h2>
+<h2>Writing a New Benchmark<a class="headerlink" href="#writing-a-new-benchmark" title="Permalink to this heading"></a></h2>
 <p>When writing a new benchmark, first consider exactly what you want to test.
 If you are looking to test an API endpoint, it might be appropriate to write several benchmarks with each one covering a relevant case.
 A good example is the <code class="docutils literal notranslate"><span class="pre">KvsGetRangeBenchmarks.java</span></code> suite, which tests AtlasDB’s <code class="docutils literal notranslate"><span class="pre">getRange()</span></code> in several different ways.</p>
@@ -136,7 +137,7 @@ Validation that does not include client/server calls generally has a negligible 
 </div>
 </section>
 <section id="benchmarking-with-a-custom-key-value-store-kvs">
-<h2>Benchmarking With a Custom Key Value Store (KVS)<a class="headerlink" href="#benchmarking-with-a-custom-key-value-store-kvs" title="Permalink to this headline"></a></h2>
+<h2>Benchmarking With a Custom Key Value Store (KVS)<a class="headerlink" href="#benchmarking-with-a-custom-key-value-store-kvs" title="Permalink to this heading"></a></h2>
 <p>To run the benchmark suite on a custom KVS, simply follow these steps:</p>
 <ol class="arabic simple">
 <li><p>Extend <code class="docutils literal notranslate"><span class="pre">KeyValueServiceInstrumentation</span></code> with the proper configurations, e.g., see <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceInstrumentation.java</span></code>.</p></li>

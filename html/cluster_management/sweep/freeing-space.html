@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Freeing space after sweep &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -93,15 +94,15 @@
            <div itemprop="articleBody">
              
   <section id="freeing-space-after-sweep">
-<span id="freeing-space"></span><h1>Freeing space after sweep<a class="headerlink" href="#freeing-space-after-sweep" title="Permalink to this headline"></a></h1>
+<span id="freeing-space"></span><h1>Freeing space after sweep<a class="headerlink" href="#freeing-space-after-sweep" title="Permalink to this heading"></a></h1>
 <p>The sweep job issues KVS-level deletes to remove stale data.
 However, this does not immediately free data, and for Oracle KVS, manual action may be required in order to gain space.</p>
 <section id="dbkvs">
-<h2>DbKvs<a class="headerlink" href="#dbkvs" title="Permalink to this headline"></a></h2>
+<h2>DbKvs<a class="headerlink" href="#dbkvs" title="Permalink to this heading"></a></h2>
 <p>DbKvs uses a background compaction thread to free up disk space. Similar to the background sweeper, the background
-compactor periodically chooses a table <a class="footnote-reference brackets" href="#tablechoice" id="id1">1</a>, and runs <code class="docutils literal notranslate"><span class="pre">KeyValueService.compactInternally</span></code> on that table.</p>
+compactor periodically chooses a table <a class="footnote-reference brackets" href="#tablechoice" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>, and runs <code class="docutils literal notranslate"><span class="pre">KeyValueService.compactInternally</span></code> on that table.</p>
 <section id="oracle-standard-edition">
-<h3>Oracle - Standard Edition<a class="headerlink" href="#oracle-standard-edition" title="Permalink to this headline"></a></h3>
+<h3>Oracle - Standard Edition<a class="headerlink" href="#oracle-standard-edition" title="Permalink to this heading"></a></h3>
 <p>The background compaction thread runs one of two commands, depending on whether the system is in maintenance mode.
 Maintenance mode indicates that users are unlikely to be accessing the system, and so blocking operations can safely be run.
 They are configured by a live-reloaded boolean <code class="docutils literal notranslate"><span class="pre">inMaintenanceMode</span></code> (config path <code class="docutils literal notranslate"><span class="pre">runtime/compact/inMaintenanceMode</span></code>)</p>
@@ -124,25 +125,24 @@ Again, note that this will lock the entire table until the operation completes.<
 </div>
 </section>
 <section id="oracle-enterprise">
-<h3>Oracle - Enterprise<a class="headerlink" href="#oracle-enterprise" title="Permalink to this headline"></a></h3>
+<h3>Oracle - Enterprise<a class="headerlink" href="#oracle-enterprise" title="Permalink to this heading"></a></h3>
 <p>The background compaction thread runs <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span> <span class="pre">table</span> <span class="pre">MOVE</span> <span class="pre">ONLINE</span></code> on the chosen table.
 This runs online, and no user action is required.</p>
 </section>
 <section id="postgres">
-<h3>Postgres<a class="headerlink" href="#postgres" title="Permalink to this headline"></a></h3>
+<h3>Postgres<a class="headerlink" href="#postgres" title="Permalink to this heading"></a></h3>
 <p>The background compaction thread runs <code class="docutils literal notranslate"><span class="pre">VACUUM</span> <span class="pre">ANALYZE</span></code> on the chosen table.
 This runs online, and no user action is required.</p>
 </section>
 </section>
 <section id="cassandra-kvs">
-<h2>Cassandra KVS<a class="headerlink" href="#cassandra-kvs" title="Permalink to this headline"></a></h2>
+<h2>Cassandra KVS<a class="headerlink" href="#cassandra-kvs" title="Permalink to this heading"></a></h2>
 <p>The delete operation on Cassandra KVS creates a Cassandra tombstone that prevents the data from being read.
 Cassandra uses compactions to free up disk space, which will eventually happen without manual intervention.</p>
-<dl class="footnote brackets">
-<dt class="label" id="tablechoice"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
-<dd><p>The compactor tracks when each table was last compacted (Tc), and compares those times with the last swept times (Ts), choosing the table with greatest (Ts-Tc), i.e. largest gap between compaction and sweep.</p>
-</dd>
-</dl>
+<aside class="footnote brackets" id="tablechoice" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>The compactor tracks when each table was last compacted (Tc), and compares those times with the last swept times (Ts), choosing the table with greatest (Ts-Tc), i.e. largest gap between compaction and sweep.</p>
+</aside>
 </section>
 </section>
 

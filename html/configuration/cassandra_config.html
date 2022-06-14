@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cassandra Configuration &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -92,9 +93,9 @@
            <div itemprop="articleBody">
              
   <section id="cassandra-configuration">
-<h1>Cassandra Configuration<a class="headerlink" href="#cassandra-configuration" title="Permalink to this headline"></a></h1>
+<h1>Cassandra Configuration<a class="headerlink" href="#cassandra-configuration" title="Permalink to this heading"></a></h1>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
 <p>Make sure to run Cassandra with ByteOrderPartitioner (yes, I know
 everyone disagrees, read below) and batch commit. Without batch commit,
 your durability and transactional guarantees are non-existent and you
@@ -112,7 +113,7 @@ This means you effectively need 1K threads to get any write throughput.</p>
 </div>
 </section>
 <section id="in-defense-of-byteorderedpartitioner">
-<h2>In Defense of ByteOrderedPartitioner<a class="headerlink" href="#in-defense-of-byteorderedpartitioner" title="Permalink to this headline"></a></h2>
+<h2>In Defense of ByteOrderedPartitioner<a class="headerlink" href="#in-defense-of-byteorderedpartitioner" title="Permalink to this heading"></a></h2>
 <p>The Cassandra community has historically shunned the
 ByteOrderedPartitioner and with good reasons. However I think that all
 the valid reasons were fixed in 1.2 once vnodes were implemented. The

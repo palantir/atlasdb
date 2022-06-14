@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Enabling Cassandra Tracing &mdash; OSS AtlasDB develop documentation</title>
@@ -16,6 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -92,9 +93,9 @@
            <div itemprop="articleBody">
              
   <section id="enabling-cassandra-tracing">
-<span id="id1"></span><h1>Enabling Cassandra Tracing<a class="headerlink" href="#enabling-cassandra-tracing" title="Permalink to this headline"></a></h1>
+<span id="id1"></span><h1>Enabling Cassandra Tracing<a class="headerlink" href="#enabling-cassandra-tracing" title="Permalink to this heading"></a></h1>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
 <p>Sometimes in order to do deeper performance analysis of queries hitting
 your Cassandra cluster, you’ll want to enable tracing.  To learn more
 about tracing itself check out DataStax’s <a class="reference external" href="http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2">Request tracing in Cassandra
@@ -111,7 +112,7 @@ Ensure you disable tracing after your performance profiling is completed.</p>
 </div>
 </section>
 <section id="example-cassandra-config-with-tracing-enabled">
-<h2>Example Cassandra Config with Tracing Enabled<a class="headerlink" href="#example-cassandra-config-with-tracing-enabled" title="Permalink to this headline"></a></h2>
+<h2>Example Cassandra Config with Tracing Enabled<a class="headerlink" href="#example-cassandra-config-with-tracing-enabled" title="Permalink to this heading"></a></h2>
 <p>Consult the documentation for your service for where the Cassandra runtime
 config is located. Assuming the Atlas runtime config is located at
 <code class="docutils literal notranslate"><span class="pre">conf.runtime.atlas</span></code>, you can control tracing with the following config:</p>
@@ -146,7 +147,7 @@ has to take to actually be logged. This is a post-filter and so the trace is
 still done (and thus still incurs a performance hit) even if you do not log it.</p>
 </section>
 <section id="understanding-namespaced-tables-in-cassandra">
-<h2>Understanding Namespaced Tables in Cassandra<a class="headerlink" href="#understanding-namespaced-tables-in-cassandra" title="Permalink to this headline"></a></h2>
+<h2>Understanding Namespaced Tables in Cassandra<a class="headerlink" href="#understanding-namespaced-tables-in-cassandra" title="Permalink to this heading"></a></h2>
 <p>In Cassandra, an AtlasDB namespaced table will look like <code class="docutils literal notranslate"><span class="pre">&lt;keyspace&gt;.&lt;namespace&gt;__&lt;table-name&gt;</span></code>.
 As described above, to trace said table you would want to write it in the form
 of <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.&lt;table-name&gt;</span></code> in the <code class="docutils literal notranslate"><span class="pre">tables-to-trace</span></code> list.</p>
