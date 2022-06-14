@@ -1627,24 +1627,33 @@ public abstract class AbstractKeyValueServiceTest {
         // Check how to pre-populate this table to get perf impact
 
         Map<Cell, byte[]> cellsToDiscard = KeyedStream.of(
-                        IntStream.range(101, 200).boxed())
+                        IntStream.range(1001, 2000).boxed())
                 .mapKeys(ind -> Cell.create(row(0), column(ind)))
                 .map(_ind -> oldVal)
                 .collectToMap();
         keyValueService.putUnlessExists(TEST_TABLE, cellsToDiscard);
 
-        Map<Cell, byte[]> originalCells = KeyedStream.of(IntStream.range(0, 100).boxed())
+
+        List<CheckAndSetRequest> checkAndSetRequests = cellsToDiscard.keySet().stream()
+                .map(cell -> CheckAndSetRequest.singleCell(TEST_TABLE, cell, oldVal, newVal))
+                .collect(Collectors.toUnmodifiableList());
+
+        timed(() -> keyValueService.multiCheckAndSet(checkAndSetRequests));
+
+
+
+        Map<Cell, byte[]> originalCells = KeyedStream.of(IntStream.range(0, 1000).boxed())
                 .mapKeys(ind -> Cell.create(row(0), column(ind)))
                 .map(_ind -> oldVal)
                 .collectToMap();
 
         long pue = timed(() -> keyValueService.putUnlessExists(TEST_TABLE, originalCells));
 
-        List<CheckAndSetRequest> checkAndSetRequests = originalCells.values().stream()
-                .map(cell -> CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL_2, oldVal, newVal))
+        List<CheckAndSetRequest> checkAndSetRequests2 = originalCells.keySet().stream()
+                .map(cell -> CheckAndSetRequest.singleCell(TEST_TABLE, cell, oldVal, newVal))
                 .collect(Collectors.toUnmodifiableList());
 
-        long mcas = timed(() -> keyValueService.multiCheckAndSet(checkAndSetRequests));
+        long mcas = timed(() -> keyValueService.multiCheckAndSet(checkAndSetRequests2));
         System.out.format("%d ------------------------------ %d", pue, mcas);
         System.out.println();
     }
@@ -2014,7 +2023,7 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     private static byte[] val(int row, int col) {
-        return PtBytes.toBytes("value" + row + col);
+        return PtBytes.toBytes(Long.MAX_VALUE - (row+col));
     }
 
     private static byte[] dynamicColumn(long columnId) {
