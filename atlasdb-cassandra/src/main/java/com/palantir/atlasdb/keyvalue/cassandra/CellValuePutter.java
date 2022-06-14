@@ -159,8 +159,8 @@ public class CellValuePutter {
 
             @Override
             public String toString() {
-                return "batch_mutate(" + server + ", " + tableRef.getQualifiedName() + ", " + Iterables.size(values)
-                        + " values)";
+                return "batch_mutate(" + server.cassandraHostName() + ", " + tableRef.getQualifiedName() + ", "
+                        + Iterables.size(values) + " values)";
             }
         });
     }
