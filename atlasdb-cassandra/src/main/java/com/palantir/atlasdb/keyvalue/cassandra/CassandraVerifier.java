@@ -215,9 +215,8 @@ public final class CassandraVerifier {
     }
 
     private static boolean attemptToCreateKeyspace(CassandraVerifierConfig verifierConfig) {
-        Set<InetSocketAddress> thriftHosts = verifierConfig.servers().accept(new ThriftHostsExtractingVisitor());
-
-        return thriftHosts.stream().anyMatch(host -> attemptToCreateIfNotExists(host, verifierConfig));
+        return verifierConfig.servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
+                .anyMatch(host -> attemptToCreateIfNotExists(host, verifierConfig));
     }
 
     private static boolean attemptToCreateIfNotExists(InetSocketAddress host, CassandraVerifierConfig verifierConfig) {

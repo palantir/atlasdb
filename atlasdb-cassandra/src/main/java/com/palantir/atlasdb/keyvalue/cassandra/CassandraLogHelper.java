@@ -49,7 +49,7 @@ public final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    public static List<String> tokenMap(RangeMap<LightweightOppToken, List<CassandraServer>> tokenMap) {
+    public static List<String> tokenMap(RangeMap<LightweightOppToken, ? extends Collection<CassandraServer>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format(
                         "range from %s to %s is on host %s",

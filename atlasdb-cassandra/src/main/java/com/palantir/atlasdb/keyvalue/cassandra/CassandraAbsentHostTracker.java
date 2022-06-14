@@ -26,13 +26,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import javax.annotation.concurrent.GuardedBy;
 import org.immutables.value.Value;
 
 public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
 
     private final int absenceLimit;
+
+    @GuardedBy("this")
     private final Map<CassandraServer, PoolAndCount> absentCassandraServers;
 
     public CassandraAbsentHostTracker(int absenceLimit) {
@@ -59,20 +61,20 @@ public final class CassandraAbsentHostTracker {
         absentCassandraServers.clear();
     }
 
-    private Set<CassandraServer> cleanupAbsentServer(Set<CassandraServer> absentServersSnapshot) {
+    private ImmutableSet<CassandraServer> cleanupAbsentServer(ImmutableSet<CassandraServer> absentServersSnapshot) {
         absentServersSnapshot.forEach(this::incrementAbsenceCountIfPresent);
         return absentServersSnapshot.stream()
                 .map(this::removeIfAbsenceThresholdReached)
                 .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
-    private void incrementAbsenceCountIfPresent(CassandraServer cassandraServer) {
+    private synchronized void incrementAbsenceCountIfPresent(CassandraServer cassandraServer) {
         absentCassandraServers.computeIfPresent(
                 cassandraServer, (_host, poolAndCount) -> poolAndCount.incrementCount());
     }
 
-    private Optional<CassandraServer> removeIfAbsenceThresholdReached(CassandraServer cassandraServer) {
+    private synchronized Optional<CassandraServer> removeIfAbsenceThresholdReached(CassandraServer cassandraServer) {
         if (absentCassandraServers.get(cassandraServer).timesAbsent() <= absenceLimit) {
             return Optional.empty();
         } else {
