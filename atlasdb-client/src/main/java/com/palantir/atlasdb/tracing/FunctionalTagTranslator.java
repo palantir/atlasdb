@@ -19,7 +19,7 @@ package com.palantir.atlasdb.tracing;
 import com.palantir.tracing.TagTranslator;
 import java.util.function.Consumer;
 
-enum FunctionalTagTranslator implements TagTranslator<Consumer<TagConsumer>> {
+public enum FunctionalTagTranslator implements TagTranslator<Consumer<TagConsumer>> {
     INSTANCE;
 
     @Override

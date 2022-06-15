@@ -16,20 +16,36 @@
 
 package com.palantir.atlasdb.tracing;
 
-public interface TraceStatistic {
-    void incEmptyReads(long count);
+import java.util.concurrent.atomic.AtomicLong;
 
-    long emptyReads();
+public final class TraceStatistic {
+    private final AtomicLong emptyReads;
 
-    TraceStatistic copy();
+    private TraceStatistic(long emptyReads) {
+        this.emptyReads = new AtomicLong(emptyReads);
+    }
 
-    boolean isEmpty();
+    public boolean isEmpty() {
+        return emptyReads.get() == 0;
+    }
+
+    public TraceStatistic copy() {
+        return of(emptyReads());
+    }
+
+    public long emptyReads() {
+        return emptyReads.get();
+    }
+
+    public void incEmptyReads(long count) {
+        emptyReads.addAndGet(count);
+    }
 
     static TraceStatistic empty() {
         return of(0L);
     }
 
     static TraceStatistic of(long emptyReads) {
-        return new TraceStatisticImpl(emptyReads);
+        return new TraceStatistic(emptyReads);
     }
 }

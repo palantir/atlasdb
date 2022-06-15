@@ -91,8 +91,6 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.tracing.AtlasCloseableTracer;
-import com.palantir.atlasdb.tracing.Tracing;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -816,7 +814,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             ImmutableMap.Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, ts);
-                try (AtlasCloseableTracer tracer = Tracing.startLocalTrace("loadWithTs")) {
+                try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
                     cellLoader.loadWithTs(
                             "get",
                             tableRef,

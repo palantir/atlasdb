@@ -16,7 +16,22 @@
 
 package com.palantir.atlasdb.tracing;
 
+import com.palantir.tracing.Tracer;
+
 public interface AtlasCloseableTracer extends AutoCloseable {
     @Override
     void close();
+
+    static Simple simple() {
+        return Simple.INSTANCE;
+    }
+
+    enum Simple implements AtlasCloseableTracer {
+        INSTANCE;
+
+        @Override
+        public void close() {
+            Tracer.fastCompleteSpan();
+        }
+    }
 }
