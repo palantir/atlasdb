@@ -274,7 +274,7 @@ public final class ColumnValueDescription {
         Class<?> importClass = getImportClass();
 
         if (isLegacyPersister(importClass)) {
-            // Handle back-compat
+            // Handle legacy persisters which might still be referenced in the code using this library
             return ReusablePersisters.wrapLegacyPersister(getPersister());
         }
 
