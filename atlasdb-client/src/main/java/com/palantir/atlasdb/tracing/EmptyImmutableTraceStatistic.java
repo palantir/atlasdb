@@ -16,20 +16,24 @@
 
 package com.palantir.atlasdb.tracing;
 
-public interface TraceStatistic {
-    void incEmptyReads(long count);
+enum EmptyImmutableTraceStatistic implements TraceStatistic {
+    INSTANCE;
 
-    long emptyReads();
+    @Override
+    public void incEmptyReads(long count) {}
 
-    TraceStatistic copy();
-
-    boolean isEmpty();
-
-    static TraceStatistic empty() {
-        return of(0L);
+    @Override
+    public long emptyReads() {
+        return 0;
     }
 
-    static TraceStatistic of(long emptyReads) {
-        return new TraceStatisticImpl(emptyReads);
+    @Override
+    public TraceStatistic copy() {
+        return this;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return true;
     }
 }

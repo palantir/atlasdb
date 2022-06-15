@@ -16,20 +16,21 @@
 
 package com.palantir.atlasdb.tracing;
 
-public interface TraceStatistic {
-    void incEmptyReads(long count);
+import java.util.function.Consumer;
 
-    long emptyReads();
+class TraceAddingTagConsumer implements Consumer<TagConsumer> {
+    private final Consumer<TagConsumer> delegate;
 
-    TraceStatistic copy();
-
-    boolean isEmpty();
-
-    static TraceStatistic empty() {
-        return of(0L);
+    TraceAddingTagConsumer(Consumer<TagConsumer> delegate) {
+        this.delegate = delegate;
     }
 
-    static TraceStatistic of(long emptyReads) {
-        return new TraceStatisticImpl(emptyReads);
+    @Override
+    public void accept(TagConsumer tagConsumer) {
+        delegate.accept(tagConsumer);
+
+        TraceStatistic current = TraceStatistics.get();
+
+        tagConsumer.accept("atlasDbEmptyReads", Long.toString(current.emptyReads()));
     }
 }

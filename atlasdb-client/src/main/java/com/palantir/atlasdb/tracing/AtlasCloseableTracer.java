@@ -16,20 +16,7 @@
 
 package com.palantir.atlasdb.tracing;
 
-public interface TraceStatistic {
-    void incEmptyReads(long count);
-
-    long emptyReads();
-
-    TraceStatistic copy();
-
-    boolean isEmpty();
-
-    static TraceStatistic empty() {
-        return of(0L);
-    }
-
-    static TraceStatistic of(long emptyReads) {
-        return new TraceStatisticImpl(emptyReads);
-    }
+public interface AtlasCloseableTracer extends AutoCloseable {
+    @Override
+    void close();
 }

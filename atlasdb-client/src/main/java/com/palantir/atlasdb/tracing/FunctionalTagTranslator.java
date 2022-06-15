@@ -16,20 +16,14 @@
 
 package com.palantir.atlasdb.tracing;
 
-public interface TraceStatistic {
-    void incEmptyReads(long count);
+import com.palantir.tracing.TagTranslator;
+import java.util.function.Consumer;
 
-    long emptyReads();
+enum FunctionalTagTranslator implements TagTranslator<Consumer<TagConsumer>> {
+    INSTANCE;
 
-    TraceStatistic copy();
-
-    boolean isEmpty();
-
-    static TraceStatistic empty() {
-        return of(0L);
-    }
-
-    static TraceStatistic of(long emptyReads) {
-        return new TraceStatisticImpl(emptyReads);
+    @Override
+    public <T> void translate(TagAdapter<T> adapter, T target, Consumer<TagConsumer> data) {
+        data.accept((key, value) -> adapter.tag(target, key, value));
     }
 }

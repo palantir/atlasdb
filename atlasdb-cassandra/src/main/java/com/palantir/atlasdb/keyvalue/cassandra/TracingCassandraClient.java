@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static com.palantir.atlasdb.tracing.Tracing.startLocalTrace;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.tracing.CloseableTracer;
+import com.palantir.atlasdb.tracing.AtlasCloseableTracer;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +64,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         int numberOfKeys = keys.size();
         int numberOfColumns = predicate.slice_range.count;
 
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.multiget_slice", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.multiget_slice", sink -> {
             sink.tableRef(tableRef);
             sink.integer("keys", numberOfKeys);
             sink.integer("columns", numberOfColumns);
@@ -84,12 +84,13 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfKeyPredicates = keyPredicates.size();
 
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.multiget_multislice", sink -> {
-            sink.tableRef(tableRef);
-            sink.size("key_predicates", keyPredicates);
-            sink.accept("consistency", consistency_level.name());
-            sink.accept("kvs", kvsMethodName);
-        })) {
+        try (AtlasCloseableTracer trace =
+                startLocalTrace("cassandra-thrift-client.client.multiget_multislice", sink -> {
+                    sink.tableRef(tableRef);
+                    sink.size("key_predicates", keyPredicates);
+                    sink.accept("consistency", consistency_level.name());
+                    sink.accept("kvs", kvsMethodName);
+                })) {
             return client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency_level);
         }
     }
@@ -105,7 +106,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         int numberOfColumns = predicate.slice_range.count;
         int batchHint = range.count;
 
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.get_range_slices", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.get_range_slices", sink -> {
             sink.tableRef(tableRef);
             sink.integer("columns", numberOfColumns);
             sink.integer("batchHint", batchHint);
@@ -124,7 +125,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             long timestamp,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.remove", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.remove", sink -> {
             sink.accept("consistency", consistency_level.name());
             sink.accept("kvs", kvsMethodName);
         })) {
@@ -140,7 +141,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfRowsMutated = mutation_map.size();
 
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.batch_mutate", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.batch_mutate", sink -> {
             sink.integer("numberOfRowsMutated", numberOfRowsMutated);
             sink.accept("consistency", consistency_level.name());
             sink.accept("kvs", kvsMethodName);
@@ -153,7 +154,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     public ColumnOrSuperColumn get(
             TableReference tableReference, ByteBuffer key, byte[] column, ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.get", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.get", sink -> {
             sink.tableRef(tableReference);
             sink.accept("consistency", consistency_level.name());
         })) {
@@ -170,7 +171,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.cas", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.cas", sink -> {
             sink.tableRef(tableReference);
         })) {
             return client.cas(
@@ -182,9 +183,10 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
                     TException {
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.cqlExecutor.execute_cql3_query", sink -> {
-            sink.accept("query", cqlQuery.getSafeLog());
-        })) {
+        try (AtlasCloseableTracer trace =
+                startLocalTrace("cassandra-thrift-client.cqlExecutor.execute_cql3_query", sink -> {
+                    sink.accept("query", cqlQuery.getSafeLog());
+                })) {
             return client.execute_cql3_query(cqlQuery, compression, consistency);
         }
     }

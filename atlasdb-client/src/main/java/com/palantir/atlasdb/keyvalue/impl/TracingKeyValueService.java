@@ -45,9 +45,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.tracing.AtlasCloseableTracer;
+import com.palantir.atlasdb.tracing.FunctionalTagTranslator;
+import com.palantir.atlasdb.tracing.TagConsumer;
 import com.palantir.atlasdb.tracing.Tracing;
-import com.palantir.atlasdb.tracing.Tracing.FunctionalTagTranslator;
-import com.palantir.atlasdb.tracing.Tracing.TagConsumer;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
@@ -90,7 +91,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.addGarbageCollectionSentinelValues", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.addGarbageCollectionSentinelValues", sink -> {
             sink.tableRef(tableRef);
             sink.size("cells", cells);
         })) {
@@ -101,7 +102,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.checkAndSet", checkAndSetRequest.table())) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.checkAndSet", checkAndSetRequest.table())) {
             delegate().checkAndSet(checkAndSetRequest);
         }
     }
@@ -117,7 +118,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void close() {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.close")) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.close")) {
             delegate().close();
         }
         tracingExecutorService.shutdown();
@@ -126,7 +127,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void compactInternally(TableReference tableRef) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.compactInternally", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.compactInternally", tableRef)) {
             delegate().compactInternally(tableRef);
         }
     }
@@ -134,7 +135,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getClusterAvailabilityStatus")) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getClusterAvailabilityStatus")) {
             return delegate().getClusterAvailabilityStatus();
         }
     }
@@ -142,7 +143,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.compactInternally", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.compactInternally", tableRef)) {
             delegate().compactInternally(tableRef, inMaintenanceMode);
         }
     }
@@ -155,7 +156,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.createTable", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.createTable", tableRef)) {
             delegate().createTable(tableRef, tableMetadata);
         }
     }
@@ -163,7 +164,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void createTables(Map<TableReference, byte[]> tableNamesToTableMetadata) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.createTables", tableNamesToTableMetadata.keySet())) {
+        try (AtlasCloseableTracer trace =
+                startLocalTrace("atlasdb-kvs.createTables", tableNamesToTableMetadata.keySet())) {
             delegate().createTables(tableNamesToTableMetadata);
         }
     }
@@ -171,7 +173,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.delete", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.delete", sink -> {
             sink.tableRef(tableRef);
             sink.size("keys", keys);
         })) {
@@ -182,7 +184,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteRange", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteRange", tableRef)) {
             delegate().deleteRange(tableRef, range);
         }
     }
@@ -190,7 +192,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteRows", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteRows", tableRef)) {
             delegate().deleteRows(tableRef, rows);
         }
     }
@@ -198,7 +200,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteAllTimestamps", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteAllTimestamps", tableRef)) {
             delegate().deleteAllTimestamps(tableRef, deletes);
         }
     }
@@ -206,7 +208,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void dropTable(TableReference tableRef) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.dropTable", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.dropTable", tableRef)) {
             delegate().dropTable(tableRef);
         }
     }
@@ -214,7 +216,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.dropTables", tableRefs)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.dropTables", tableRefs)) {
             delegate().dropTables(tableRefs);
         }
     }
@@ -222,7 +224,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.get", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.get", sink -> {
             sink.tableRef(tableRef);
             sink.size("cells", timestampByCell);
         })) {
@@ -233,7 +235,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Set<TableReference> getAllTableNames() {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getAllTableNames")) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getAllTableNames")) {
             return delegate().getAllTableNames();
         }
     }
@@ -241,7 +243,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getAllTimestamps", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getAllTimestamps", sink -> {
             sink.tableRef(tableRef);
             sink.size("keys", keys);
             sink.timestamp(timestamp);
@@ -253,7 +255,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Collection<? extends KeyValueService> getDelegates() {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getDelegates")) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getDelegates")) {
             return ImmutableList.copyOf(
                     Iterables.concat(ImmutableList.of(delegate()), delegate().getDelegates()));
         }
@@ -263,7 +265,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getFirstBatchForRanges", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getFirstBatchForRanges", sink -> {
             sink.tableRef(tableRef);
             sink.size("ranges", rangeRequests);
             sink.timestamp(timestamp);
@@ -275,7 +277,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getLatestTimestamps", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getLatestTimestamps", sink -> {
             sink.tableRef(tableRef);
             sink.size("cells", timestampByCell);
         })) {
@@ -286,7 +288,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getMetadataForTable", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getMetadataForTable", tableRef)) {
             return delegate().getMetadataForTable(tableRef);
         }
     }
@@ -294,7 +296,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getMetadataForTables")) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getMetadataForTables")) {
             return delegate().getMetadataForTables();
         }
     }
@@ -324,7 +326,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getRows", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getRows", sink -> {
             sink.tableRef(tableRef);
             sink.size("rows", rows);
             sink.timestamp(timestamp);
@@ -340,7 +342,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getRowsColumnRange", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getRowsColumnRange", sink -> {
             sink.tableRef(tableRef);
             sink.size("rows", rows);
             sink.timestamp(timestamp);
@@ -363,7 +365,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.multiPut", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.multiPut", sink -> {
             sink.size("values", valuesByTable);
             sink.timestamp(timestamp);
         })) {
@@ -374,7 +376,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.put", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.put", sink -> {
             sink.tableRef(tableRef);
             sink.size("values", values);
             sink.timestamp(timestamp);
@@ -386,7 +388,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.putMetadataForTable", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.putMetadataForTable", sink -> {
             sink.tableRef(tableRef);
             int size = (metadata == null) ? 0 : metadata.length;
             sink.integer("bytes", size);
@@ -398,7 +400,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.putMetadataForTables", tableRefToMetadata.keySet())) {
+        try (AtlasCloseableTracer trace =
+                startLocalTrace("atlasdb-kvs.putMetadataForTables", tableRefToMetadata.keySet())) {
             delegate().putMetadataForTables(tableRefToMetadata);
         }
     }
@@ -406,7 +409,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.putUnlessExists", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.putUnlessExists", sink -> {
             sink.tableRef(tableRef);
             sink.size("values", values);
         })) {
@@ -417,7 +420,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.setOnce", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.setOnce", sink -> {
             sink.tableRef(tableRef);
             sink.size("values", values);
         })) {
@@ -433,7 +436,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.putWithTimestamps", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.putWithTimestamps", sink -> {
             sink.tableRef(tableRef);
             sink.size("values", values);
         })) {
@@ -444,7 +447,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void truncateTable(TableReference tableRef) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.truncateTable", tableRef)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.truncateTable", tableRef)) {
             delegate().truncateTable(tableRef);
         }
     }
@@ -452,7 +455,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void truncateTables(Set<TableReference> tableRefs) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.truncateTables", tableRefs)) {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.truncateTables", tableRefs)) {
             delegate().truncateTables(tableRefs);
         }
     }
@@ -464,7 +467,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
-        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getRowKeysInRange", sink -> {
+        try (AtlasCloseableTracer trace = startLocalTrace("atlasdb-kvs.getRowKeysInRange", sink -> {
             sink.tableRef(tableRef);
             sink.integer("maxResults", maxResults);
         })) {
@@ -483,24 +486,24 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @MustBeClosed
-    private static CloseableTracer startLocalTrace(@CompileTimeConstant final String operation) {
+    private static AtlasCloseableTracer startLocalTrace(@CompileTimeConstant final String operation) {
         return CloseableTracer.startSpan(operation);
     }
 
     @MustBeClosed
-    private static CloseableTracer startLocalTrace(
+    private static AtlasCloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, TableReference tableReference) {
         return CloseableTracer.startSpan(operation, TableReferenceTagTranslator.INSTANCE, tableReference);
     }
 
     @MustBeClosed
-    private static CloseableTracer startLocalTrace(
+    private static AtlasCloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
         return Tracing.startLocalTrace(operation, tagTranslator);
     }
 
     @MustBeClosed
-    private static CloseableTracer startLocalTrace(
+    private static AtlasCloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, Collection<TableReference> tableReferences) {
         return CloseableTracer.startSpan(operation, TableReferencesTagTranslator.INSTANCE, tableReferences);
     }

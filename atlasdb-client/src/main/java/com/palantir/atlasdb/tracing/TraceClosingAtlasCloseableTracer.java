@@ -16,20 +16,20 @@
 
 package com.palantir.atlasdb.tracing;
 
-public interface TraceStatistic {
-    void incEmptyReads(long count);
+import com.palantir.tracing.CloseableTracer;
 
-    long emptyReads();
+class TraceClosingAtlasCloseableTracer implements AtlasCloseableTracer {
+    private final TraceStatistic oldValue;
+    private final CloseableTracer delegate;
 
-    TraceStatistic copy();
-
-    boolean isEmpty();
-
-    static TraceStatistic empty() {
-        return of(0L);
+    TraceClosingAtlasCloseableTracer(TraceStatistic oldValue, CloseableTracer delegate) {
+        this.oldValue = oldValue;
+        this.delegate = delegate;
     }
 
-    static TraceStatistic of(long emptyReads) {
-        return new TraceStatisticImpl(emptyReads);
+    @Override
+    public void close() {
+        delegate.close();
+        TraceStatistics.restore(oldValue);
     }
 }

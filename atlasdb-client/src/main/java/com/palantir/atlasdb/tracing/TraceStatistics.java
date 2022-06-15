@@ -16,16 +16,45 @@
 
 package com.palantir.atlasdb.tracing;
 
+import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
+import com.palantir.tracing.Tracer;
+
 public class TraceStatistics {
     private TraceStatistics() {}
 
-    private static final ThreadLocal<TraceStatistic> traceStatistic = ThreadLocal.withInitial(TraceStatistic::empty);
+    // The `TraceStatistic` object is mutable, and should be shared between the parent thread & any child threads/work
+    // that get created.
+    private static final ExecutorInheritableThreadLocal<TraceStatistic> traceStatistic =
+            new ExecutorInheritableThreadLocal<>() {
+                @Override
+                protected TraceStatistic initialValue() {
+                    return TraceStatistic.empty();
+                }
+            };
+
+    static TraceStatistic clearAndGetOld() {
+        TraceStatistic current = traceStatistic.get();
+        traceStatistic.remove();
+        return current;
+    }
 
     static TraceStatistic get() {
         return traceStatistic.get().copy();
     }
 
     public static void incEmptyValues(long emptyValues) {
+        if (!Tracer.isTraceObservable()) {
+            return;
+        }
+
         traceStatistic.get().incEmptyReads(emptyValues);
+    }
+
+    public static void restore(TraceStatistic oldValue) {
+        if (oldValue.isEmpty()) {
+            traceStatistic.remove();
+        } else {
+            traceStatistic.set(oldValue);
+        }
     }
 }
