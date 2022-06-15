@@ -16,10 +16,8 @@
 package com.palantir.atlasdb.table.description.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.atlasdb.annotation.Reusable;
 import com.palantir.atlasdb.persister.JacksonPersister;
 
-@Reusable
 public class StringValuePersister extends JacksonPersister<StringValue> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
