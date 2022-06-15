@@ -305,6 +305,11 @@ public abstract class AtlasDbConfig {
         return false;
     }
 
+    @Value.Default
+    public boolean collectThreadDumpOnInit() {
+        return true;
+    }
+
     @Value.Check
     protected final void check() {
         checkLeaderAndTimelockBlocks();

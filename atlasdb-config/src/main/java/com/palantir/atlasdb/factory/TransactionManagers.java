@@ -299,6 +299,7 @@ public abstract class TransactionManagers {
             Set<Schema> schemas, Optional<LockAndTimestampServiceFactory> maybeFactory) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
+                .collectThreadDumpOnInit(false)
                 .build();
         return builder()
                 .config(config)
@@ -364,6 +365,7 @@ public abstract class TransactionManagers {
                 config().namespace(),
                 Optional.empty(),
                 config().initializeAsync(),
+                config().collectThreadDumpOnInit(),
                 adapter);
         DerivedSnapshotConfig derivedSnapshotConfig = atlasFactory.getDerivedSnapshotConfig();
 
