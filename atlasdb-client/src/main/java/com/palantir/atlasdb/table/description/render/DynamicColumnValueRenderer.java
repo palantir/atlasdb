@@ -162,7 +162,6 @@ public class DynamicColumnValueRenderer extends Renderer {
                     line("byte[] bytes = value.toByteArray();");
                     break;
                 case PERSISTER:
-                case REUSABLE_PERSISTER:
                     line("byte[] bytes = ", val.getPersistCode("value"), ";");
                     break;
                 case VALUE_TYPE:
@@ -202,7 +201,6 @@ public class DynamicColumnValueRenderer extends Renderer {
                     line("}");
                     break;
                 case PERSISTER:
-                case REUSABLE_PERSISTER:
                     line("return ", val.getHydrateCode("bytes"), ";");
                     break;
                 case VALUE_TYPE:

@@ -97,7 +97,6 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
         switch (value.getFormat()) {
             case PERSISTABLE:
             case PERSISTER:
-            case REUSABLE_PERSISTER:
                 jgen.writeObjectField("type", value.getJavaObjectTypeName());
                 break;
             case PROTO:

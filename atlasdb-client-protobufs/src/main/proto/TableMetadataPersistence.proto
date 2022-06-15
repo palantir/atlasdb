@@ -92,7 +92,6 @@ enum ColumnValueFormat {
     PERSISTABLE = 2;
     VALUE_TYPE = 3;
     PERSISTER = 4;
-    REUSABLE_PERSISTER = 5;
 }
 
 enum ValueByteOrder {

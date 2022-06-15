@@ -38,7 +38,6 @@ public final class ColumnRenderers {
     static String typeName(NamedColumnDescription col) {
         switch (col.getValue().getFormat()) {
             case PERSISTER:
-            case REUSABLE_PERSISTER:
             case PERSISTABLE:
             case PROTO:
                 return col.getValue().getJavaObjectTypeName();

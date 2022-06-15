@@ -105,7 +105,6 @@ public final class AtlasSerializers {
         switch (description.getFormat()) {
             case PERSISTABLE:
             case PERSISTER:
-            case REUSABLE_PERSISTER:
                 jgen.writeBinary(val);
                 break;
             case PROTO:

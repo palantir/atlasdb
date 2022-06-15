@@ -18,7 +18,11 @@ package com.palantir.atlasdb.persist.api;
 import com.palantir.common.persist.Persistable.Hydrator;
 
 /**
- * {@link ReusablePersister}s are required to have a no arg constructor and will be re-used across executions.
+ * {@link ReusablePersister}s are required to have a no arg constructor and be thread-safe. It will be re-used across
+ * executions.
+ *
+ * If persisters need state while (de)serializing, create a (de)serializer class and instantiate it in the relevant
+ * class in the hydrate/persist method.
  */
 public interface ReusablePersister<T> extends Hydrator<T> {
     byte[] persistToBytes(T objectToPersist);

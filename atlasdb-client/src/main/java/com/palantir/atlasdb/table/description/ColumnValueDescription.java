@@ -51,8 +51,7 @@ public final class ColumnValueDescription {
         PROTO,
         PERSISTABLE,
         VALUE_TYPE,
-        PERSISTER,
-        REUSABLE_PERSISTER;
+        PERSISTER;
 
         public TableMetadataPersistence.ColumnValueFormat persistToProto() {
             return TableMetadataPersistence.ColumnValueFormat.valueOf(name());
@@ -147,7 +146,7 @@ public final class ColumnValueDescription {
     public static ColumnValueDescription forReusablePersister(
             Class<? extends ReusablePersister<?>> clazz, Compression compression) {
         return new ColumnValueDescription(
-                Format.REUSABLE_PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
+                Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
     public static ColumnValueDescription forProtoMessage(Class<? extends AbstractMessage> clazz) {
@@ -213,9 +212,6 @@ public final class ColumnValueDescription {
      */
     public String getJavaObjectTypeName() {
         if (format == Format.PERSISTER) {
-            return getPersister().getPersistingClassType().getCanonicalName();
-        }
-        if (format == Format.REUSABLE_PERSISTER) {
             return getReusablePersister().getPersistingClassType().getCanonicalName();
         }
         if (canonicalClassName != null) {
@@ -226,9 +222,6 @@ public final class ColumnValueDescription {
 
     public Class<?> getJavaTypeClass() {
         if (format == Format.PERSISTER) {
-            return getPersister().getPersistingClassType();
-        }
-        if (format == Format.REUSABLE_PERSISTER) {
             return getReusablePersister().getPersistingClassType();
         }
         if (canonicalClassName != null) {
@@ -242,16 +235,28 @@ public final class ColumnValueDescription {
     }
 
     public Class<?> getJavaObjectTypeClass() {
-        if (format == Format.PERSISTER || format == Format.REUSABLE_PERSISTER || canonicalClassName != null) {
+        if (format == Format.PERSISTER || canonicalClassName != null) {
             return getJavaTypeClass();
         }
         return type.getJavaObjectClass();
     }
 
+    /**
+     * Legacy persister method; will fail for reusable persisters.
+     *
+     * @deprecated Use `getReusablePersister` instead.
+     */
+    @Deprecated
     public Persister<?> getPersister() {
         Preconditions.checkArgument(Format.PERSISTER == format);
+        Class<?> importClass = getImportClass();
+
+        if (!isLegacyPersister(importClass)) {
+            return ReusablePersisters.backcompat(getReusablePersister());
+        }
+
         @SuppressWarnings("unchecked")
-        Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
+        Class<Persister<?>> persisterClass = (Class<Persister<?>>) importClass;
         try {
             return persisterClass.getConstructor().newInstance();
         } catch (InstantiationException
@@ -265,9 +270,17 @@ public final class ColumnValueDescription {
     }
 
     public ReusablePersister<?> getReusablePersister() {
-        Preconditions.checkArgument(Format.REUSABLE_PERSISTER == format);
+        Preconditions.checkArgument(Format.PERSISTER == format);
+        Class<?> importClass = getImportClass();
+
+        if (isLegacyPersister(importClass)) {
+            // Handle back-compat
+            return ReusablePersisters.wrapLegacyPersister(getPersister());
+        }
+
+        // We have a new type of persister
         @SuppressWarnings("unchecked")
-        Class<ReusablePersister<?>> persisterClass = (Class<ReusablePersister<?>>) getImportClass();
+        Class<ReusablePersister<?>> persisterClass = (Class<ReusablePersister<?>>) importClass;
         try {
             return persisterClass.getConstructor().newInstance();
         } catch (InstantiationException
@@ -278,6 +291,12 @@ public final class ColumnValueDescription {
                 | SecurityException e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private boolean isLegacyPersister(Class<?> importClass) {
+        Preconditions.checkArgument(Format.PERSISTER == format);
+
+        return importClass.isAssignableFrom(Persister.class);
     }
 
     public String getPersistCode(String varName) {
@@ -292,8 +311,6 @@ public final class ColumnValueDescription {
             } else {
                 result = "new " + canonicalClassName + "().persistToBytes(" + varName + ")";
             }
-        } else if (format == Format.REUSABLE_PERSISTER) {
-            result = "REUSABLE_PERSISTER.persistToBytes(" + varName + ")";
         } else {
             result = type.getPersistCode(varName);
         }
@@ -318,11 +335,14 @@ public final class ColumnValueDescription {
 
     public boolean isReusablePersister() {
         if (format == Format.PERSISTER) {
-            Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
-            return persisterClass.isAnnotationPresent(Reusable.class);
-        }
-        if (format == Format.REUSABLE_PERSISTER) {
-            return true;
+            Class<?> importClass = getImportClass();
+
+            if (isLegacyPersister(importClass)) {
+                Class<Persister<?>> persisterClass = (Class<Persister<?>>) importClass;
+                return persisterClass.isAnnotationPresent(Reusable.class);
+            } else {
+                return true;
+            }
         }
         return false;
     }
@@ -338,8 +358,6 @@ public final class ColumnValueDescription {
             } else {
                 return "new " + canonicalClassName + "().hydrateFromBytes(" + varName + ")";
             }
-        } else if (format == Format.REUSABLE_PERSISTER) {
-            return "REUSABLE_PERSISTER.hydrateFromBytes(" + varName + ")";
         } else if (format == Format.PROTO) {
             return "new Supplier<" + canonicalClassName + ">() { " + "@Override "
                     + "public "

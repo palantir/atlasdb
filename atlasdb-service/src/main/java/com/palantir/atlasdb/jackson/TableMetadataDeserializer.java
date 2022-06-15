@@ -128,24 +128,22 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     private ColumnValueDescription deserializeValue(JsonNode node) {
         Format format = Format.valueOf(node.get("format").asText());
         switch (format) {
-            case REUSABLE_PERSISTER:
+            case PERSISTER:
                 String className = node.get("type").asText();
                 try {
-                    @SuppressWarnings("unchecked")
-                    Class<? extends ReusablePersister<?>> asSubclass = (Class<? extends ReusablePersister<?>>)
-                            Class.forName(className).asSubclass(ReusablePersister.class);
-                    return ColumnValueDescription.forReusablePersister(asSubclass);
-                } catch (Exception e) {
-                    // Also wrong, but what else can you do?
-                    return ColumnValueDescription.forType(ValueType.BLOB);
-                }
-            case PERSISTER:
-                className = node.get("type").asText();
-                try {
-                    @SuppressWarnings("unchecked")
-                    Class<? extends Persister<?>> asSubclass = (Class<? extends Persister<?>>)
-                            Class.forName(className).asSubclass(Persister.class);
-                    return ColumnValueDescription.forPersister(asSubclass);
+                    Class<?> rawPersister = Class.forName(className);
+
+                    if (rawPersister.isAssignableFrom(Persister.class)) {
+                        @SuppressWarnings("unchecked")
+                        Class<? extends Persister<?>> asSubclass = (Class<? extends Persister<?>>)
+                                Class.forName(className).asSubclass(Persister.class);
+                        return ColumnValueDescription.forPersister(asSubclass);
+                    } else {
+                        @SuppressWarnings("unchecked")
+                        Class<? extends ReusablePersister<?>> asSubclass = (Class<? extends ReusablePersister<?>>)
+                                Class.forName(className).asSubclass(ReusablePersister.class);
+                        return ColumnValueDescription.forReusablePersister(asSubclass);
+                    }
                 } catch (Exception e) {
                     // Also wrong, but what else can you do?
                     return ColumnValueDescription.forType(ValueType.BLOB);
