@@ -401,9 +401,8 @@ public final class StackTraceUtils {
     }
 
     private static class StackTraceBuilder {
-        private final String lineEnding;
         private final boolean abridged;
-        private String header;
+        private final String header;
         private final String subheader;
         private final List<String> summarizedNames;
         private final List<String> fullTraces;
@@ -423,7 +422,6 @@ public final class StackTraceUtils {
             // subheader is used by the samurai automated thread dump analyzer to start parsing a thread dump.
             // The exact phrase "Full thread dump" must appear.
             this.subheader = "Full thread dump of ";
-            this.lineEnding = LINE_ENDING + LINE_ENDING;
             this.header = createHeader(serverName);
         }
 
@@ -443,12 +441,12 @@ public final class StackTraceUtils {
             }
             Collections.sort(summarizedNames);
             if (abridged) {
-                resultStackTrace.append(lineEnding);
+                resultStackTrace.append(LINE_ENDING + LINE_ENDING);
                 appendSummarizedNamesToResult(resultStackTrace);
             }
             int dumpCount = incorporatedTracesCount - summarizedNames.size() - boringCount;
-            return header + subheader + dumpCount + " " + pluralizeWord("thread", dumpCount) + ":" + lineEnding
-                    + resultStackTrace;
+            return header + subheader + dumpCount + " " + pluralizeWord("thread", dumpCount) + ":" + LINE_ENDING
+                    + LINE_ENDING + resultStackTrace;
         }
 
         public String getStackTraceForNoIncorporatedTraces() {
@@ -463,7 +461,7 @@ public final class StackTraceUtils {
                     .append(" summarized");
             if (!summarizedNames.isEmpty()) {
                 resultStackTrace.append(": ");
-                resultStackTrace.append(lineEnding);
+                resultStackTrace.append(LINE_ENDING + LINE_ENDING);
                 for (int i = 0; i < summarizedNames.size() - 1; i++) {
                     String currSummarizedName = summarizedNames.get(i);
                     resultStackTrace.append("\t").append(currSummarizedName).append("\n");
@@ -472,21 +470,18 @@ public final class StackTraceUtils {
                 resultStackTrace.append("\t").append(lastSummarizedName);
             }
             resultStackTrace
-                    .append(lineEnding)
+                    .append(LINE_ENDING + LINE_ENDING)
                     .append(boringCount)
                     .append(" ")
                     .append(pluralizeWord("thread", boringCount))
                     .append(" omitted");
         }
 
-        private String createHeader(String serverName) {
-            header = "Trace of " + serverName + " taken at " + Instant.now().toString();
-            StringBuilder dashes = new StringBuilder();
-            for (int i = 0; i < header.length(); i++) {
-                dashes.append("-");
-            }
-            header = dashes + LINE_ENDING + header + LINE_ENDING + dashes + this.lineEnding;
-            return header;
+        private static String createHeader(String serverName) {
+            String header =
+                    "Trace of " + serverName + " taken at " + Instant.now().toString();
+            String dashes = "-".repeat(header.length());
+            return dashes + LINE_ENDING + header + LINE_ENDING + dashes + LINE_ENDING + LINE_ENDING;
         }
 
         private void updateUsingSummarizationRules(String trace) {
