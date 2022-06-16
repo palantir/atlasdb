@@ -496,8 +496,11 @@ public final class StackTraceUtils {
         }
 
         private String getFirstLineOfTrace(String trace) {
-            String[] traceLines = trace.split("\n");
-            return traceLines[0];
+            int index = trace.indexOf('\n');
+            if (index > -1) {
+                return trace.substring(0, index);
+            }
+            return "";
         }
     }
 }
