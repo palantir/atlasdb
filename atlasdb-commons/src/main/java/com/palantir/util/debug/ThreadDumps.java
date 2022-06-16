@@ -22,7 +22,7 @@ import java.lang.management.ThreadMXBean;
 import javax.management.JMException;
 
 @SuppressWarnings("checkstyle")
-// WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great
+// WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great,
 // and we lack tests, however this is covered by testing in the internal product
 // DO NOT CHANGE THIS CLASS!
 public class ThreadDumps {
@@ -33,9 +33,7 @@ public class ThreadDumps {
                     serverName, //$NON-NLS-1$
                     StackTraceUtils.getStackTraceForConnection(ManagementFactory.getPlatformMBeanServer()),
                     false);
-        } catch (JMException e) {
-            return fallbackThreadDump(serverName);
-        } catch (IOException e) {
+        } catch (JMException | IOException e) {
             return fallbackThreadDump(serverName);
         }
     }

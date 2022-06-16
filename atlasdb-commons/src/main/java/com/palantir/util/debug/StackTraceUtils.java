@@ -84,16 +84,13 @@ public final class StackTraceUtils {
             monitorInfoClass = Class.forName("java.lang.management.MonitorInfo");
             getLockedMonitorsMethod = ThreadInfo.class.getMethod("getLockedMonitors");
             getLockedStackDepthMethod = monitorInfoClass.getMethod("getLockedStackDepth");
-        } catch (ClassNotFoundException e) {
-            // ignored
-            /**/
-        } catch (NoSuchMethodException e) {
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
             // ignored
             /**/
         }
         boolean java16 = monitorInfoClass != null;
 
-        CompositeData[] threadData = null;
+        CompositeData[] threadData;
         if (java16) {
             threadData = (CompositeData[])
                     connection.invoke(THREAD_MXBEAN, "dumpAllThreads", new Object[] {true, true}, new String[] {
@@ -285,7 +282,8 @@ public final class StackTraceUtils {
         return score;
     }
 
-    private static final class StackTraceComparator implements Comparator<String>, Serializable {
+    private enum StackTraceComparator implements Comparator<String>, Serializable {
+        INSTANCE;
         private static final long serialVersionUID = 1L;
 
         // higher scores come earlier
@@ -303,7 +301,7 @@ public final class StackTraceUtils {
         if (split.length == 1) {
             split = traces.split("\r\n\\s*\r\n");
         }
-        List<String> filteredTraces = new ArrayList<String>();
+        List<String> filteredTraces = new ArrayList<>();
         for (String trace : split) {
             if (!trace.replaceAll("\\s", "").isEmpty()) {
                 filteredTraces.add(trace + "\r\r");
@@ -317,7 +315,7 @@ public final class StackTraceUtils {
         if (traces == null) {
             return stackTraceBuilder.getStackTraceForNoIncorporatedTraces();
         }
-        Arrays.sort(traces, new StackTraceComparator());
+        Arrays.sort(traces, StackTraceComparator.INSTANCE);
         for (String trace : traces) {
             stackTraceBuilder.incorporateTrace(trace);
         }
@@ -381,12 +379,12 @@ public final class StackTraceUtils {
     }
 
     private static class StackTraceBuilder {
-        private String lineEnding;
-        private boolean abridged;
+        private final String lineEnding;
+        private final boolean abridged;
         private String header;
-        private String subheader;
-        private List<String> summarizedNames;
-        private List<String> fullTraces;
+        private final String subheader;
+        private final List<String> summarizedNames;
+        private final List<String> fullTraces;
         private int boringCount;
         private int incorporatedTracesCount;
 
@@ -394,8 +392,8 @@ public final class StackTraceUtils {
         private static final int PRINT_SUMMARY_THRESHOLD = POINTS_PER_PALANTIR;
 
         StackTraceBuilder(String serverName, boolean abridged) {
-            this.summarizedNames = new ArrayList<String>();
-            this.fullTraces = new ArrayList<String>();
+            this.summarizedNames = new ArrayList<>();
+            this.fullTraces = new ArrayList<>();
             this.boringCount = 0;
             this.abridged = abridged;
             this.incorporatedTracesCount = 0;
@@ -428,7 +426,7 @@ public final class StackTraceUtils {
             }
             int dumpCount = incorporatedTracesCount - summarizedNames.size() - boringCount;
             return header + subheader + dumpCount + " " + pluralizeWord("thread", dumpCount) + ":" + lineEnding
-                    + resultStackTrace.toString();
+                    + resultStackTrace;
         }
 
         public String getStackTraceForNoIncorporatedTraces() {
