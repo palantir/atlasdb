@@ -47,6 +47,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -110,7 +111,6 @@ import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.common.streams.KeyedStream;
@@ -460,8 +460,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
-            Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
+
+            // Sadly we can't close properly here without an ABI break :/
+            @SuppressWarnings("MustBeClosedChecker")
+            ClosableIterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
+
             postFilteredResultsBuilder.put(row, scopeToTransaction(postFilteredIterator));
         }
         SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = postFilteredResultsBuilder.build();
@@ -508,21 +512,24 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
         Iterator<Map.Entry<Cell, byte[]>> localWrites =
                 getSortedColumnsLocalWrites(tableRef, distinctRows, batchColumnRangeSelection, cellComparator);
-        Iterator<Map.Entry<Cell, byte[]>> merged = mergeLocalAndRemoteWrites(localWrites, remoteWrites, cellComparator);
+        Iterator<Map.Entry<Cell, byte[]>> merged = mergeLocalAndRemoteWrites(
+                localWrites, ClosableIterators.wrapWithEmptyClose(remoteWrites), cellComparator);
 
         return filterDeletedValues(merged, tableRef);
     }
 
-    private static Iterator<Map.Entry<Cell, byte[]>> mergeLocalAndRemoteWrites(
+    private static ClosableIterator<Map.Entry<Cell, byte[]>> mergeLocalAndRemoteWrites(
             Iterator<Map.Entry<Cell, byte[]>> localWrites,
-            Iterator<Map.Entry<Cell, byte[]>> remoteWrites,
+            ClosableIterator<Map.Entry<Cell, byte[]>> remoteWrites,
             Comparator<Cell> cellComparator) {
         // always override remote values with locally written values
-        return IteratorUtils.mergeIterators(
-                localWrites,
-                remoteWrites,
-                Comparator.comparing(Map.Entry::getKey, cellComparator),
-                com.palantir.util.Pair::getLhSide);
+        return ClosableIterators.wrap(
+                IteratorUtils.mergeIterators(
+                        localWrites,
+                        remoteWrites,
+                        Comparator.comparing(Map.Entry::getKey, cellComparator),
+                        com.palantir.util.Pair::getLhSide),
+                remoteWrites);
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getSortedColumnsLocalWrites(
@@ -577,18 +584,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 .collect(toList());
     }
 
-    private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
+    @MustBeClosed
+    private ClosableIterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
             byte[] row,
             RowColumnRangeIterator rawIterator) {
-        Iterator<Map.Entry<Cell, byte[]>> postFilterIterator =
+        // This isn't ideal (any exception in the method means close won't be called), but we can't practically
+        // guarantee that
+        @SuppressWarnings("MustBeClosedChecker")
+        ClosableIterator<Map.Entry<Cell, byte[]>> postFilterIterator =
                 getRowColumnRangePostFiltered(tableRef, row, batchColumnRangeSelection, rawIterator);
+
         SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, batchColumnRangeSelection, row);
         Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
-        Iterator<Map.Entry<Cell, byte[]>> mergedIterator =
+        ClosableIterator<Map.Entry<Cell, byte[]>> mergedIterator =
                 mergeLocalAndRemoteWrites(localIterator, postFilterIterator, Cell.COLUMN_COMPARATOR);
-        return filterDeletedValues(mergedIterator, tableRef);
+        return ClosableIterators.wrap(filterDeletedValues(mergedIterator, tableRef), mergedIterator);
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
@@ -607,7 +619,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
             Iterator<Map.Entry<Cell, byte[]>> localIterator =
                     localWrites.entrySet().iterator();
-            return mergeLocalAndRemoteWrites(localIterator, remoteIterator, Cell.COLUMN_COMPARATOR);
+            return mergeLocalAndRemoteWrites(
+                    localIterator, ClosableIterators.wrapWithEmptyClose(remoteIterator), Cell.COLUMN_COMPARATOR);
         }));
 
         return filterDeletedValues(merged, tableRef);
@@ -639,7 +652,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }));
     }
 
-    private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
+    @MustBeClosed
+    private ClosableIterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
             TableReference tableRef,
             byte[] row,
             BatchColumnRangeSelection columnRangeSelection,
@@ -1130,17 +1144,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             AbortingVisitor<List<RowResult<byte[]>>, K> visitor,
             int preFilterBatchSize)
             throws K {
-        ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE);
-        try {
+        try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
+                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(
                     getLocalWritesForRange(tableRef, range.getStartInclusive(), range.getEndExclusive())
                             .entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
             return BatchingVisitableFromIterable.create(mergeIterators).batchAccept(userRequestedSize, visitor);
-        } finally {
-            postFilterIterator.close();
         }
     }
 
@@ -1195,8 +1206,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterator<Map.Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
         Comparator<Cell> cellComparator = isReverse ? Comparator.reverseOrder() : Comparator.naturalOrder();
-        Iterator<Map.Entry<Cell, byte[]>> mergeIterators =
-                mergeLocalAndRemoteWrites(localWritesInRange, postFilterIterator, cellComparator);
+        Iterator<Map.Entry<Cell, byte[]>> mergeIterators = mergeLocalAndRemoteWrites(
+                localWritesInRange, ClosableIterators.wrapWithEmptyClose(postFilterIterator), cellComparator);
         return postFilterEmptyValues(tableRef, mergeIterators);
     }
 
@@ -1220,6 +1231,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return mergedWritesWithoutEmptyValues;
     }
 
+    @MustBeClosed
     protected <T> ClosableIterator<RowResult<T>> postFilterIterator(
             TableReference tableRef, RangeRequest range, int preFilterBatchSize, Function<Value, T> transformer) {
         RowRangeBatchProvider batchProvider =
@@ -1242,17 +1254,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         };
 
         final Iterator<RowResult<T>> rows = Iterators.concat(batchedPostFiltered);
-        return new ForwardingClosableIterator<RowResult<T>>() {
-            @Override
-            protected ClosableIterator<RowResult<T>> delegate() {
-                return ClosableIterators.wrapWithEmptyClose(rows);
-            }
 
-            @Override
-            public void close() {
-                results.close();
-            }
-        };
+        return ClosableIterators.wrap(rows, results);
     }
 
     private ConcurrentNavigableMap<Cell, byte[]> getLocalWrites(TableReference tableRef) {

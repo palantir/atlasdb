@@ -20,15 +20,18 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 
 final class GetRowsColumnRangeIterator extends AbstractIterator<Iterator<Map.Entry<Cell, byte[]>>> {
@@ -60,7 +63,8 @@ final class GetRowsColumnRangeIterator extends AbstractIterator<Iterator<Map.Ent
      * This <em>may</em> request more elements than the specified batch hint inside {@code columnRangeSelection} if
      * there is detection of many deleted values.
      */
-    public static Iterator<Map.Entry<Cell, byte[]>> iterator(
+    @MustBeClosed
+    public static ClosableIterator<Entry<Cell, byte[]>> iterator(
             BatchProvider<Map.Entry<Cell, Value>> batchProvider,
             RowColumnRangeIterator rawIterator,
             BatchColumnRangeSelection columnRangeSelection,
@@ -70,7 +74,8 @@ final class GetRowsColumnRangeIterator extends AbstractIterator<Iterator<Map.Ent
                 batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrapWithEmptyClose(rawIterator));
         GetRowsColumnRangeIterator postFilteredIterator =
                 new GetRowsColumnRangeIterator(batchIterator, batchValidationStep, postFilterer);
-        return Iterators.concat(postFilteredIterator);
+
+        return ClosableIterators.wrap(Iterators.concat(postFilteredIterator), batchIterator);
     }
 
     @Override
