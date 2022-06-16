@@ -66,14 +66,34 @@ public final class StackTraceUtils {
         }
     }
 
+    enum DumpDetail {
+        ThreadStackTracesOnly(false),
+        IncludeLockedMonitorsAndSynchronizers(true);
+
+        final boolean includeLockedMonitorsAndSynchronizers;
+
+        DumpDetail(boolean includeLockedMonitorsAndSynchronizers) {
+            this.includeLockedMonitorsAndSynchronizers = includeLockedMonitorsAndSynchronizers;
+        }
+    }
+
     public static String[] getStackTraceForConnection(MBeanServerConnection connection)
             throws JMException, IOException {
-        return getStackTraceForConnection(connection, false);
+        return getStackTraceForConnection(connection, false, DumpDetail.ThreadStackTracesOnly);
+    }
+
+    /**
+     * @deprecated use {@link #getStackTraceForConnection(MBeanServerConnection, boolean, DumpDetail)}
+     */
+    @Deprecated
+    public static String[] getStackTraceForConnection(MBeanServerConnection connection, boolean redact)
+            throws JMException, IOException {
+        return getStackTraceForConnection(connection, redact, DumpDetail.ThreadStackTracesOnly);
     }
 
     @SuppressWarnings("BadAssert") // performance sensitive
-    public static String[] getStackTraceForConnection(MBeanServerConnection connection, boolean redact)
-            throws JMException, IOException {
+    public static String[] getStackTraceForConnection(
+            MBeanServerConnection connection, boolean redact, DumpDetail detail) throws JMException, IOException {
         long[] threadIDs = (long[]) connection.getAttribute(THREAD_MXBEAN, "AllThreadIds");
         MemoryUsage.from((CompositeData) connection.getAttribute(MEMORY_MXBEAN, "HeapMemoryUsage"));
 
@@ -86,16 +106,18 @@ public final class StackTraceUtils {
             getLockedStackDepthMethod = monitorInfoClass.getMethod("getLockedStackDepth");
         } catch (ClassNotFoundException | NoSuchMethodException e) {
             // ignored
-            /**/
         }
         boolean java16 = monitorInfoClass != null;
 
         CompositeData[] threadData;
         if (java16) {
-            threadData = (CompositeData[])
-                    connection.invoke(THREAD_MXBEAN, "dumpAllThreads", new Object[] {true, true}, new String[] {
-                        boolean.class.getName(), boolean.class.getName()
-                    });
+            threadData = (CompositeData[]) connection.invoke(
+                    THREAD_MXBEAN,
+                    "dumpAllThreads",
+                    new Object[] {
+                        detail.includeLockedMonitorsAndSynchronizers, detail.includeLockedMonitorsAndSynchronizers
+                    },
+                    new String[] {boolean.class.getName(), boolean.class.getName()});
         } else {
             threadData = (CompositeData[]) connection.invoke(
                     THREAD_MXBEAN, "getThreadInfo", new Object[] {threadIDs, Integer.MAX_VALUE}, new String[] {
@@ -107,7 +129,7 @@ public final class StackTraceUtils {
         for (int i = 0; i < resultData.length; i++) {
             ThreadInfo info = ThreadInfo.from(threadData[i]);
             Object[] lockedMonitors = new Object[0];
-            if (java16) {
+            if (java16 && detail.includeLockedMonitorsAndSynchronizers) {
                 try {
                     lockedMonitors = (Object[]) getLockedMonitorsMethod.invoke(info);
                 } catch (InvocationTargetException e) {
@@ -117,7 +139,7 @@ public final class StackTraceUtils {
                 }
             }
             int[] stackDepths = new int[lockedMonitors.length];
-            if (lockedMonitors.length != 0) {
+            if (lockedMonitors.length != 0 && detail.includeLockedMonitorsAndSynchronizers) {
                 try {
                     for (int j = 0; j < stackDepths.length; j++) {
                         stackDepths[j] = ((Integer) getLockedStackDepthMethod.invoke(lockedMonitors[j])).intValue();

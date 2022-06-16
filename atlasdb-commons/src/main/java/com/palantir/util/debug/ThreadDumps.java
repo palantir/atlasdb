@@ -27,6 +27,10 @@ import javax.management.JMException;
 // DO NOT CHANGE THIS CLASS!
 public class ThreadDumps {
     public static String programmaticThreadDump() {
+        return programmaticThreadDump(/* include locks and synchronizers= */ true);
+    }
+
+    public static String programmaticThreadDump(boolean includeLockedMonitorsAndSynchronizers) {
         String serverName = "Stack Trace"; // $NON-NLS-1$
         try {
             return StackTraceUtils.processTrace(
@@ -42,7 +46,7 @@ public class ThreadDumps {
         StringBuilder dump = new StringBuilder();
         dump.append(dumpName);
         ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-        for (ThreadInfo info : threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 500)) {
+        for (ThreadInfo info : threadMXBean.dumpAllThreads(false, false, 500)) {
             if (info == null) {
                 continue;
             }
