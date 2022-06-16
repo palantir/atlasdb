@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -165,6 +166,7 @@ public class DualWriteKeyValueService implements KeyValueService {
         delegate2.truncateTables(tableRefs);
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
@@ -229,12 +231,14 @@ public class DualWriteKeyValueService implements KeyValueService {
         return delegate1.getAllTimestamps(tableRef, cells, timestamp);
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return delegate1.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {

@@ -1245,7 +1245,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return new ForwardingClosableIterator<RowResult<T>>() {
             @Override
             protected ClosableIterator<RowResult<T>> delegate() {
-                return ClosableIterators.wrap(rows);
+                return ClosableIterators.wrapWithEmptyClose(rows);
             }
 
             @Override

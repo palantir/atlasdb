@@ -29,6 +29,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -220,6 +221,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         });
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
@@ -252,7 +254,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         }
         final PeekingIterator<Map.Entry<Key, byte[]>> it =
                 Iterators.peekingIterator(tableMap.entrySet().iterator());
-        return ClosableIterators.wrap(new AbstractIterator<RowResult<T>>() {
+        return ClosableIterators.wrapWithEmptyClose(new AbstractIterator<RowResult<T>>() {
             @Override
             protected RowResult<T> computeNext() {
                 while (true) {

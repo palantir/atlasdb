@@ -88,7 +88,8 @@ public class BatchSizeIncreasingIterator<T> {
 
         // If the last row we got was the maximal row, then we are done.
         if (!batchProvider.hasNext(lastToken)) {
-            currentResults = ClosableIterators.wrap(ImmutableList.<T>of().iterator());
+            currentResults =
+                    ClosableIterators.wrapWithEmptyClose(ImmutableList.<T>of().iterator());
             return;
         }
 

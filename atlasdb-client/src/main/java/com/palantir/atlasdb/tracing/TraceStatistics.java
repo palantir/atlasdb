@@ -19,7 +19,7 @@ package com.palantir.atlasdb.tracing;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.tracing.Tracer;
 
-public class TraceStatistics {
+public final class TraceStatistics {
     private TraceStatistics() {}
 
     // The `TraceStatistic` object is mutable, and should be shared between the parent thread & any child threads/work

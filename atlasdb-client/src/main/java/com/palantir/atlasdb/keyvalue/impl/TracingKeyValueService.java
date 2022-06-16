@@ -300,6 +300,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    @MustBeClosed
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
@@ -307,6 +308,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    @MustBeClosed
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
@@ -314,6 +316,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    @MustBeClosed
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
         // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.

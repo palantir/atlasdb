@@ -67,7 +67,7 @@ final class GetRowsColumnRangeIterator extends AbstractIterator<Iterator<Map.Ent
             Runnable batchValidationStep,
             PostFilterer postFilterer) {
         BatchSizeIncreasingIterator<Map.Entry<Cell, Value>> batchIterator = new BatchSizeIncreasingIterator<>(
-                batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrap(rawIterator));
+                batchProvider, columnRangeSelection.getBatchHint(), ClosableIterators.wrapWithEmptyClose(rawIterator));
         GetRowsColumnRangeIterator postFilteredIterator =
                 new GetRowsColumnRangeIterator(batchIterator, batchValidationStep, postFilterer);
         return Iterators.concat(postFilteredIterator);

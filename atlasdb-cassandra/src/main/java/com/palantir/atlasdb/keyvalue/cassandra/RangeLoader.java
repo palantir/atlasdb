@@ -85,12 +85,13 @@ public class RangeLoader {
             throw new UnsupportedOperationException();
         }
         if (rangeRequest.isEmptyRange()) {
-            return ClosableIterators.wrap(ImmutableList.<RowResult<T>>of().iterator());
+            return ClosableIterators.wrapWithEmptyClose(
+                    ImmutableList.<RowResult<T>>of().iterator());
         }
 
         CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
                 rowGetter, slicePredicate, columnGetter, rangeRequest, resultsExtractor, startTs);
 
-        return ClosableIterators.wrap(rowResults.iterator());
+        return ClosableIterators.wrapWithEmptyClose(rowResults.iterator());
     }
 }
