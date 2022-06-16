@@ -299,7 +299,7 @@ public abstract class TransactionManagers {
             Set<Schema> schemas, Optional<LockAndTimestampServiceFactory> maybeFactory) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
-                .collectThreadDumpOnInit(false)
+                .collectThreadDumpOnTimestampServiceInit(false)
                 .build();
         return builder()
                 .config(config)
