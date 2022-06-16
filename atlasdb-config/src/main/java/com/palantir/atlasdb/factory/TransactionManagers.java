@@ -365,7 +365,7 @@ public abstract class TransactionManagers {
                 config().namespace(),
                 Optional.empty(),
                 config().initializeAsync(),
-                config().collectThreadDumpOnInit(),
+                config().collectThreadDumpOnTimestampServiceInit(),
                 adapter);
         DerivedSnapshotConfig derivedSnapshotConfig = atlasFactory.getDerivedSnapshotConfig();
 
