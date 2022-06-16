@@ -54,13 +54,13 @@ public class ThreadDumps {
             if (info.getLockName() != null) {
                 switch (info.getThreadState()) {
                     case BLOCKED:
-                        dump.append("\r\n\t-  blocked on " + info.getLockName()); // $NON-NLS-1$
+                        dump.append("\r\n\t-  blocked on ").append(info.getLockName()); // $NON-NLS-1$
                         break;
                     case WAITING:
-                        dump.append("\r\n\t-  waiting on " + info.getLockName()); // $NON-NLS-1$
+                        dump.append("\r\n\t-  waiting on ").append(info.getLockName()); // $NON-NLS-1$
                         break;
                     case TIMED_WAITING:
-                        dump.append("\r\n\t-  waiting on " + info.getLockName()); // $NON-NLS-1$
+                        dump.append("\r\n\t-  timed waiting on ").append(info.getLockName()); // $NON-NLS-1$
                         break;
                     default:
                         break;

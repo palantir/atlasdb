@@ -162,12 +162,16 @@ public final class StackTraceUtils {
         StackTraceElement[] stackTrace = info.getStackTrace();
         for (int i = 0; i < stackTrace.length && i < MAX_FRAMES; i++) {
             StackTraceElement ste = stackTrace[i];
-            sb.append(INDENT + "at " + ste.toString());
+            sb.append(INDENT + "at ").append(ste.toString());
             sb.append(LINE_ENDING);
 
             while (curLock < stackDepths.length && i == stackDepths[curLock]) {
                 String[] lockName = lockedMonitors[curLock].toString().split("@");
-                sb.append(INDENT + " - locked <" + lockName[1] + "> (a " + lockName[0] + ")");
+                sb.append(INDENT + " - locked <")
+                        .append(lockName[1])
+                        .append("> (a ")
+                        .append(lockName[0])
+                        .append(")");
                 sb.append(LINE_ENDING);
                 curLock++;
             }
@@ -185,8 +189,12 @@ public final class StackTraceUtils {
         // The thread priority here is a lie, but automated thread dump analyzer samurai
         // requires it and ThreadInfo does not provide it. The nid is also a lie, but
         // Thread Dump Analyzer requires it.
-        dump.append("\"" + ti.getThreadName() + "\" prio=10 tid=0x" + Long.toHexString(ti.getThreadId()) + " nid="
-                + ti.getThreadId());
+        dump.append("\"")
+                .append(ti.getThreadName())
+                .append("\" prio=10 tid=0x")
+                .append(Long.toHexString(ti.getThreadId()))
+                .append(" nid=")
+                .append(ti.getThreadId());
 
         // These are a best effort match to what kill -3 would report as the status. It's not perfect, but
         // samurai will parse it correctly.
@@ -221,15 +229,27 @@ public final class StackTraceUtils {
                 dump.append(" terminated");
                 break;
         }
-        dump.append(LINE_ENDING + "  java.lang.Thread.State: " + ti.getThreadState());
+        dump.append(LINE_ENDING + "  java.lang.Thread.State: ").append(ti.getThreadState());
 
         if (ti.getLockName() != null) {
             String[] lockName = ti.getLockName().split("@");
             if (ti.getThreadState() == Thread.State.BLOCKED) {
-                dump.append(LINE_ENDING + INDENT + " - waiting to lock <" + lockName[1] + "> (a " + lockName[0] + ")");
+                dump.append(LINE_ENDING + INDENT + " - waiting to lock <")
+                        .append(lockName[1])
+                        .append("> (a ")
+                        .append(lockName[0])
+                        .append(")");
             } else {
-                dump.append(LINE_ENDING + INDENT + " - waiting on <" + lockName[1] + "> (a " + lockName[0] + ")");
-                dump.append(LINE_ENDING + INDENT + " - locked <" + lockName[1] + "> (a " + lockName[0] + ")");
+                dump.append(LINE_ENDING + INDENT + " - waiting on <")
+                        .append(lockName[1])
+                        .append("> (a ")
+                        .append(lockName[0])
+                        .append(")");
+                dump.append(LINE_ENDING + INDENT + " - locked <")
+                        .append(lockName[1])
+                        .append("> (a ")
+                        .append(lockName[0])
+                        .append(")");
             }
         }
         if (ti.isSuspended()) {
@@ -240,7 +260,10 @@ public final class StackTraceUtils {
         }
         dump.append(LINE_ENDING);
         if (ti.getLockOwnerName() != null) {
-            dump.append(INDENT + " owned by " + ti.getLockOwnerName() + " tid=" + ti.getLockOwnerId());
+            dump.append(INDENT + " owned by ")
+                    .append(ti.getLockOwnerName())
+                    .append(" tid=")
+                    .append(ti.getLockOwnerId());
             dump.append(LINE_ENDING);
         }
     }
@@ -413,19 +436,27 @@ public final class StackTraceUtils {
         }
 
         private void appendSummarizedNamesToResult(StringBuilder resultStackTrace) {
-            resultStackTrace.append(
-                    summarizedNames.size() + " " + pluralizeWord("thread", summarizedNames.size()) + " summarized");
+            resultStackTrace
+                    .append(summarizedNames.size())
+                    .append(" ")
+                    .append(pluralizeWord("thread", summarizedNames.size()))
+                    .append(" summarized");
             if (!summarizedNames.isEmpty()) {
                 resultStackTrace.append(": ");
                 resultStackTrace.append(lineEnding);
                 for (int i = 0; i < summarizedNames.size() - 1; i++) {
                     String currSummarizedName = summarizedNames.get(i);
-                    resultStackTrace.append("\t" + currSummarizedName + "\n");
+                    resultStackTrace.append("\t").append(currSummarizedName).append("\n");
                 }
                 String lastSummarizedName = summarizedNames.get(summarizedNames.size() - 1);
-                resultStackTrace.append("\t" + lastSummarizedName);
+                resultStackTrace.append("\t").append(lastSummarizedName);
             }
-            resultStackTrace.append(lineEnding + boringCount + " " + pluralizeWord("thread", boringCount) + " omitted");
+            resultStackTrace
+                    .append(lineEnding)
+                    .append(boringCount)
+                    .append(" ")
+                    .append(pluralizeWord("thread", boringCount))
+                    .append(" omitted");
         }
 
         private String createHeader(String serverName) {
