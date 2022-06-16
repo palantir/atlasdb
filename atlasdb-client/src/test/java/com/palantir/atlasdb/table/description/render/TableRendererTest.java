@@ -17,10 +17,14 @@ package com.palantir.atlasdb.table.description.render;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
+import com.palantir.atlasdb.annotation.Reusable;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.persist.api.ReusablePersister;
 import com.palantir.atlasdb.persister.JsonNodePersister;
 import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.OptionalType;
@@ -33,6 +37,11 @@ import org.junit.Test;
 public class TableRendererTest {
 
     private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace("TestTable");
+
+    private static final Persister<String> LEGACY_PERSISTER = new LegacyNonReusableStringPersister();
+    private static final Persister<String> LEGACY_REUSABLE_PERSISTER = new LegacyReusableStringPersister();
+    private static final ReusablePersister<JsonNode> REUSABLE_PERSISTER = new JsonNodePersister();
+
     private static SortedSet<IndexMetadata> NO_INDICES =
             new TreeSet<>(Ordering.natural().onResultOf((Function<IndexMetadata, String>) IndexMetadata::getIndexName));
 
@@ -73,24 +82,48 @@ public class TableRendererTest {
     }
 
     @Test
+    public void testLegacyPersisters() {
+        TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
+        String renderedTableDefinition = renderer.render(
+                "table", getTableWithUserSpecifiedPersister(TABLE_REF, LEGACY_PERSISTER.getClass()), NO_INDICES);
+        assertThat(renderedTableDefinition).doesNotContain("REUSABLE_PERSISTER");
+    }
+
+    @Test
+    public void testLegacyReusablePersisters() {
+        TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
+        String renderedTableDefinition = renderer.render(
+                "table",
+                getTableWithUserSpecifiedPersister(TABLE_REF, LEGACY_REUSABLE_PERSISTER.getClass()),
+                NO_INDICES);
+        assertThat(renderedTableDefinition)
+                .contains("REUSABLE_PERSISTER.persistToBytes")
+                .contains("REUSABLE_PERSISTER.hydrateFromBytes")
+                .contains("private static final "
+                        + "com.palantir.atlasdb.table.description.render."
+                        + "TableRendererTest.LegacyReusableStringPersister"
+                        + " REUSABLE_PERSISTER =");
+    }
+
+    @Test
     public void testReusablePersisters() {
         TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
-        String renderedTableDefinition =
-                renderer.render("table", getTableWithUserSpecifiedPersister(TABLE_REF), NO_INDICES);
+        String renderedTableDefinition = renderer.render(
+                "table", getTableWithUserSpecifiedPersister(TABLE_REF, JsonNodePersister.class), NO_INDICES);
         assertThat(renderedTableDefinition)
                 .contains("REUSABLE_PERSISTER.persistToBytes")
                 .contains("REUSABLE_PERSISTER.hydrateFromBytes")
                 .contains("private static final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =");
     }
 
-    private TableDefinition getTableWithUserSpecifiedPersister(TableReference tableRef) {
+    private TableDefinition getTableWithUserSpecifiedPersister(TableReference tableRef, Class<?> persister) {
         return new TableDefinition() {
             {
                 javaTableName(tableRef.getTableName());
                 rowName();
                 rowComponent("rowName", ValueType.STRING);
                 columns();
-                column("col1", "1", JsonNodePersister.class);
+                column("col1", "1", persister);
             }
         };
     }
@@ -115,5 +148,40 @@ public class TableRendererTest {
                 value(JsonNodePersister.class);
             }
         };
+    }
+
+    public static final class LegacyNonReusableStringPersister implements Persister<String> {
+        @Override
+        public byte[] persistToBytes(String objectToPersist) {
+            return null;
+        }
+
+        @Override
+        public Class<String> getPersistingClassType() {
+            return String.class;
+        }
+
+        @Override
+        public String hydrateFromBytes(byte[] input) {
+            return null;
+        }
+    }
+
+    @Reusable
+    public static final class LegacyReusableStringPersister implements Persister<String> {
+        @Override
+        public byte[] persistToBytes(String objectToPersist) {
+            return null;
+        }
+
+        @Override
+        public Class<String> getPersistingClassType() {
+            return String.class;
+        }
+
+        @Override
+        public String hydrateFromBytes(byte[] input) {
+            return null;
+        }
     }
 }

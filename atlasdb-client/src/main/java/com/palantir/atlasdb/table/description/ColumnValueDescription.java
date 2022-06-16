@@ -296,7 +296,7 @@ public final class ColumnValueDescription {
     private boolean isLegacyPersister(Class<?> importClass) {
         Preconditions.checkArgument(Format.PERSISTER == format);
 
-        return importClass.isAssignableFrom(Persister.class);
+        return Persister.class.isAssignableFrom(importClass);
     }
 
     public String getPersistCode(String varName) {

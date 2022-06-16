@@ -133,7 +133,7 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
                 try {
                     Class<?> rawPersister = Class.forName(className);
 
-                    if (rawPersister.isAssignableFrom(Persister.class)) {
+                    if (Persister.class.isAssignableFrom(rawPersister)) {
                         @SuppressWarnings("unchecked")
                         Class<? extends Persister<?>> asSubclass = (Class<? extends Persister<?>>)
                                 Class.forName(className).asSubclass(Persister.class);
