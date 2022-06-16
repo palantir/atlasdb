@@ -93,6 +93,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 
+@SuppressWarnings("MustBeClosedChecker")
 @RunWith(Parameterized.class)
 public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Parameterized.Parameters(name = "readBatchSize = {0}")

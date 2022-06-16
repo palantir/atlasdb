@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 import org.junit.Test;
 
+@SuppressWarnings("MustBeClosedChecker")
 public class TwoNodesDownGetTest extends AbstractDegradedClusterTest {
 
     @Override
