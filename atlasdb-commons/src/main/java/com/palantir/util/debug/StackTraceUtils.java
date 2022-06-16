@@ -258,7 +258,7 @@ public final class StackTraceUtils {
             int nextStartingIndex = index + 1;
             index = trace.indexOf("com.palantir", nextStartingIndex);
         }
-        score += POINTS_PER_LINE * trace.split(LINE_ENDING).length;
+        score += POINTS_PER_LINE * trace.chars().filter(x -> x == '\n').sum();
         return score;
     }
 
