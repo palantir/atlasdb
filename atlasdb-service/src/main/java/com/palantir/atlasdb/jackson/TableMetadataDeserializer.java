@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.persist.api.ReusablePersister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
@@ -125,7 +126,8 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
         return new ColumnMetadataDescription(cols);
     }
 
-    private ColumnValueDescription deserializeValue(JsonNode node) {
+    @VisibleForTesting
+    ColumnValueDescription deserializeValue(JsonNode node) {
         Format format = Format.valueOf(node.get("format").asText());
         switch (format) {
             case PERSISTER:
