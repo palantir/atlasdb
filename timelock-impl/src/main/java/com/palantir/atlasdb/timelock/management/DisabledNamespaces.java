@@ -61,6 +61,8 @@ public class DisabledNamespaces {
 
     private void initialize() {
         execute(Queries::createTable);
+        log.warn("Firebreak: re-enabling all namespaces on startup!");
+        execute(Queries::deleteAll);
         disabledNamespaces = disabledNamespaces();
     }
 
@@ -127,6 +129,9 @@ public class DisabledNamespaces {
     public interface Queries {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS disabled (namespace TEXT PRIMARY KEY, lockId UUID)")
         boolean createTable();
+
+        @SqlUpdate("TRUNCATE TABLE disabled")
+        boolean deleteAll();
 
         @Transaction
         default Map<Namespace, String> getNamespacesWithLockConflict(Set<Namespace> namespaces, String expectedLockId) {
