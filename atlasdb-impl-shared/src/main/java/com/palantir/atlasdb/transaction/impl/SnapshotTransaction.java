@@ -495,7 +495,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults));
     }
 
-    private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredSortedColumns(
+    private ClosableIterator<Map.Entry<Cell, byte[]>> getPostFilteredSortedColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
             Iterable<byte[]> distinctRows,
@@ -512,10 +512,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
         Iterator<Map.Entry<Cell, byte[]>> localWrites =
                 getSortedColumnsLocalWrites(tableRef, distinctRows, batchColumnRangeSelection, cellComparator);
-        Iterator<Map.Entry<Cell, byte[]>> merged = mergeLocalAndRemoteWrites(
+        ClosableIterator<Map.Entry<Cell, byte[]>> merged = mergeLocalAndRemoteWrites(
                 localWrites, ClosableIterators.wrapWithEmptyClose(remoteWrites), cellComparator);
 
-        return filterDeletedValues(merged, tableRef);
+        return ClosableIterators.wrap(filterDeletedValues(merged, tableRef), merged);
     }
 
     private static ClosableIterator<Map.Entry<Cell, byte[]>> mergeLocalAndRemoteWrites(

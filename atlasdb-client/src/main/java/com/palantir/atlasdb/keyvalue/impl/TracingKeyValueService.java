@@ -49,6 +49,7 @@ import com.palantir.atlasdb.tracing.FunctionalTagTranslator;
 import com.palantir.atlasdb.tracing.TagConsumer;
 import com.palantir.atlasdb.tracing.Tracing;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.CloseableTracer;
@@ -303,24 +304,44 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @MustBeClosed
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
-        return delegate().getRange(tableRef, rangeRequest, timestamp);
+        DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getRange");
+
+        @SuppressWarnings("MustBeClosedChecker")
+        ClosableIterator<RowResult<Value>> result = delegate().getRange(tableRef, rangeRequest, timestamp);
+
+        return attachDetachedSpanCompletion(detachedSpan, result, sink -> {
+            sink.tableRef(tableRef);
+        });
     }
 
     @Override
     @MustBeClosed
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
-        return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+        DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getRangeOfTimestamps");
+
+        @SuppressWarnings("MustBeClosedChecker")
+        ClosableIterator<RowResult<Set<Long>>> result =
+                delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+
+        return attachDetachedSpanCompletion(detachedSpan, result, sink -> {
+            sink.tableRef(tableRef);
+        });
     }
 
     @Override
     @MustBeClosed
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
-        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
-        return delegate().getCandidateCellsForSweeping(tableRef, request);
+        DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getCandidateCellsForSweeping");
+
+        @SuppressWarnings("MustBeClosedChecker")
+        ClosableIterator<List<CandidateCellForSweeping>> result =
+                delegate().getCandidateCellsForSweeping(tableRef, request);
+
+        return attachDetachedSpanCompletion(detachedSpan, result, sink -> {
+            sink.tableRef(tableRef);
+        });
     }
 
     @Override
@@ -532,6 +553,19 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
                 },
                 tracingExecutorService);
         return future;
+    }
+
+    /**
+     * Attach a detached span to the close of a closable iterator.
+     *
+     * Note: due to legacy code this span is not guaranteed to close. This will mean that some logs will be lost/missed.
+     */
+    @MustBeClosed
+    private static <V> ClosableIterator<V> attachDetachedSpanCompletion(
+            DetachedSpan detachedSpan, ClosableIterator<V> closableIterator, Consumer<TagConsumer> tagTranslator) {
+        return ClosableIterators.appendOnClose(closableIterator, () -> {
+            detachedSpan.complete(FunctionalTagTranslator.INSTANCE, tagTranslator);
+        });
     }
 
     private enum TableReferenceTagTranslator implements TagTranslator<TableReference> {
