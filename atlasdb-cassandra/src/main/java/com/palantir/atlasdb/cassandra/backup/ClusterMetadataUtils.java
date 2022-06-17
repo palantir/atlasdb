@@ -56,10 +56,11 @@ public final class ClusterMetadataUtils {
     }
 
     public static TableMetadata getTableMetadata(CqlMetadata metadata, Namespace namespace, String table) {
-        KeyspaceMetadata keyspaceMetadata = metadata.getKeyspaceMetadata(namespace);
-        Optional<TableMetadata> maybeTable = keyspaceMetadata.getTables().stream()
-                .filter(tableMetadata -> tableMetadata.getName().equals(table))
-                .collect(MoreCollectors.toOptional());
+        Optional<KeyspaceMetadata> keyspaceMetadata = Optional.ofNullable(metadata.getKeyspaceMetadata(namespace));
+        Optional<TableMetadata> maybeTable =
+                keyspaceMetadata.flatMap(existingMetadata -> existingMetadata.getTables().stream()
+                        .filter(tableMetadata -> tableMetadata.getName().equals(table))
+                        .collect(MoreCollectors.toOptional()));
         return maybeTable.orElseThrow(() -> new SafeIllegalArgumentException(
                 "Can't find table",
                 SafeArg.of("keyspace", namespace),
