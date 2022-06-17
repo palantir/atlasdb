@@ -105,6 +105,7 @@ public final class AtlasDbConstants {
     public static final ImmutableSet<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
+            TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS,
             PUNCH_TABLE,
             OLD_SCRUB_TABLE,
             SCRUB_TABLE,
@@ -123,6 +124,7 @@ public final class AtlasDbConstants {
     public static final ImmutableSet<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
+            TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS,
             NAMESPACE_TABLE,
             PERSISTED_LOCKS_TABLE,
             COORDINATION_TABLE);
@@ -138,7 +140,7 @@ public final class AtlasDbConstants {
      * limitations for the {@link TransactionConstants#TRANSACTIONS2_TABLE}.
      */
     public static final ImmutableSet<TableReference> SERIAL_CONSISTENCY_ATOMIC_TABLES =
-            ImmutableSet.of(COORDINATION_TABLE);
+            ImmutableSet.of(COORDINATION_TABLE, TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS);
 
     /**
      * These tables are atomic tables, but are not intended to be read in a high-cost mode. The intention of this set
