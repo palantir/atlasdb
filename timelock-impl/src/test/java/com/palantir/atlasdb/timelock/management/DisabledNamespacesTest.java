@@ -42,13 +42,23 @@ public class DisabledNamespacesTest {
     private static final Namespace FIRST = Namespace.of("fst");
     private static final Namespace SECOND = Namespace.of("snd");
 
+    private DataSource dataSource;
     private DisabledNamespaces disabledNamespaces;
 
     @Before
     public void setup() {
-        DataSource dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath());
         disabledNamespaces = DisabledNamespaces.create(dataSource);
+    }
+
+    @Test
+    public void disabledDoesNotPersistThroughStartup() {
+        disabledNamespaces.disable(disableNamespacesRequest(FIRST));
+        assertThat(disabledNamespaces.isDisabled(FIRST)).isTrue();
+
+        DisabledNamespaces otherDisabled = DisabledNamespaces.create(dataSource);
+        assertThat(otherDisabled.isDisabled(FIRST)).isFalse();
     }
 
     @Test

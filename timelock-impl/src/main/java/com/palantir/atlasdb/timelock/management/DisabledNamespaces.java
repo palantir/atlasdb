@@ -130,7 +130,7 @@ public class DisabledNamespaces {
         @SqlUpdate("CREATE TABLE IF NOT EXISTS disabled (namespace TEXT PRIMARY KEY, lockId UUID)")
         boolean createTable();
 
-        @SqlUpdate("TRUNCATE TABLE disabled")
+        @SqlUpdate("DELETE FROM disabled")
         boolean deleteAll();
 
         @Transaction
