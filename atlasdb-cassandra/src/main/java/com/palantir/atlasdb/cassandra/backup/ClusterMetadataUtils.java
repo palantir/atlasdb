@@ -56,7 +56,7 @@ public final class ClusterMetadataUtils {
     }
 
     public static TableMetadata getTableMetadata(CqlMetadata metadata, Namespace namespace, String table) {
-        Optional<KeyspaceMetadata> keyspaceMetadata = Optional.ofNullable(metadata.getKeyspaceMetadata(namespace));
+        Optional<KeyspaceMetadata> keyspaceMetadata = metadata.getKeyspaceMetadata(namespace);
         Optional<TableMetadata> maybeTable =
                 keyspaceMetadata.flatMap(existingMetadata -> existingMetadata.getTables().stream()
                         .filter(tableMetadata -> tableMetadata.getName().equals(table))

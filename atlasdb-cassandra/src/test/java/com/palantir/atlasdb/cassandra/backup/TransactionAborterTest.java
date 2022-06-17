@@ -37,7 +37,6 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntries;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -45,6 +44,7 @@ import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Before;
@@ -65,9 +65,6 @@ public class TransactionAborterTest {
 
     @Mock
     private CqlSession cqlSession;
-
-    @Mock
-    private CassandraKeyValueServiceConfig config;
 
     @Mock
     private TransactionsTableInteraction transactionInteraction;
@@ -108,7 +105,7 @@ public class TransactionAborterTest {
         KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
         when(keyspaceMetadata.getTables()).thenReturn(ImmutableList.of(tableMetadata));
         CqlMetadata cqlMetadata = mock(CqlMetadata.class);
-        when(cqlMetadata.getKeyspaceMetadata(NAMESPACE)).thenReturn(keyspaceMetadata);
+        when(cqlMetadata.getKeyspaceMetadata(NAMESPACE)).thenReturn(Optional.of(keyspaceMetadata));
         when(cqlSession.getMetadata()).thenReturn(cqlMetadata);
 
         doReturn(ImmutableList.of(selectStatement))

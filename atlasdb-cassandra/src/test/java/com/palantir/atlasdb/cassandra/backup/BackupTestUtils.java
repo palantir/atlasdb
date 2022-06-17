@@ -32,6 +32,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.xml.bind.DatatypeConverter;
 
@@ -84,7 +85,7 @@ final class BackupTestUtils {
     static KeyspaceMetadata mockKeyspaceMetadata(CqlMetadata cqlMetadata) {
         KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
         when(keyspaceMetadata.getName()).thenReturn(NAMESPACE.value());
-        when(cqlMetadata.getKeyspaceMetadata(NAMESPACE)).thenReturn(keyspaceMetadata);
+        when(cqlMetadata.getKeyspaceMetadata(NAMESPACE)).thenReturn(Optional.of(keyspaceMetadata));
         return keyspaceMetadata;
     }
 
