@@ -104,7 +104,7 @@ public final class DefaultKnownCommittedTimestamps implements KnownCommittedTime
                 .iterator()
                 .next();
         Preconditions.checkState(
-                highestRange.hasUpperBound(), "Infinite ranges not allowed in " + "KnownCommittedTimestamps");
+                highestRange.hasUpperBound(), "Infinite ranges not allowed in KnownCommittedTimestamps");
         long maxBound = highestRange.upperBoundType() == BoundType.CLOSED
                 ? highestRange.upperEndpoint()
                 : highestRange.upperEndpoint() - 1;
@@ -148,6 +148,7 @@ public final class DefaultKnownCommittedTimestamps implements KnownCommittedTime
 
                     // DB write success!
                     knownCommittedTimestamps = withNewInterval;
+                    return;
                 } catch (CheckAndSetException checkAndSetException) {
                     // DB updated under us. If the DB value contains our thing we're ok
                     byte[] actualValue = Iterables.getOnlyElement(checkAndSetException.getActualValues());
@@ -156,6 +157,7 @@ public final class DefaultKnownCommittedTimestamps implements KnownCommittedTime
                         SerializableTimestampSet inDbSet =
                                 OBJECT_MAPPER.readValue(actualValue, SerializableTimestampSet.class);
                         if (inDbSet.rangeSetView().enclosesAll(withNewInterval.rangeSetView())) {
+                            knownCommittedTimestamps = inDbSet;
                             return;
                         }
                         // Need to try the whole CAS process again
