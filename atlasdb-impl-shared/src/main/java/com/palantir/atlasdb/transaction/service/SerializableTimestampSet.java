@@ -43,6 +43,8 @@ public interface SerializableTimestampSet {
     static SerializableTimestampSet copyWithRange(SerializableTimestampSet base, Range<Long> newRange) {
         RangeSet<Long> newRangeSet = TreeRangeSet.create(base.rangeSetView());
         newRangeSet.add(newRange);
-        return ImmutableSerializableTimestampSet.builder().longRanges(newRangeSet.asRanges()).build();
+        return ImmutableSerializableTimestampSet.builder()
+                .longRanges(newRangeSet.asRanges())
+                .build();
     }
 }

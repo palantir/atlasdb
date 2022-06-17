@@ -33,8 +33,12 @@ public final class TransactionConstants {
     public static final TableReference TRANSACTIONS2_TABLE = TableReference.createWithEmptyNamespace("_transactions2");
 
     // Transactions4
-    public static final TableReference KNOWN_COMMITTED_TIMESTAMPS = TableReference.createWithEmptyNamespace(
-            "_known_committed_timestamps");
+    public static final TableReference KNOWN_COMMITTED_TIMESTAMPS =
+            TableReference.createWithEmptyNamespace("_known_committed_timestamps");
+    public static final TableReference KNOWN_ABORTED_TIMESTAMPS =
+            TableReference.createWithEmptyNamespace("_known_aborted_timestamps");
+    public static final TableReference KNOWN_ABORTED_RANGES =
+            TableReference.createWithEmptyNamespace("_known_aborted_ranges");
 
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);

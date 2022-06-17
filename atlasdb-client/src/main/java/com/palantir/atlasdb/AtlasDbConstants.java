@@ -106,6 +106,8 @@ public final class AtlasDbConstants {
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
             TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS,
+            TransactionConstants.KNOWN_ABORTED_TIMESTAMPS,
+            TransactionConstants.KNOWN_ABORTED_RANGES,
             PUNCH_TABLE,
             OLD_SCRUB_TABLE,
             SCRUB_TABLE,

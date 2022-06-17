@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -39,7 +40,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
-public class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps {
+public final class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps {
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newSmileServerObjectMapper();
     private static final Cell MAGIC_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
 
@@ -47,7 +48,7 @@ public class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
 
-    // A bit naughty. Need to clean up sychronization
+    // A bit naughty. Need to clean up synchronization
     private final CoalescingSupplier<byte[]> databaseMapLoader = new CoalescingSupplier<>(this::loadMapFromDatabase);
 
     @GuardedBy("lock")
@@ -55,7 +56,8 @@ public class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps
 
     public DefaultKnownCommittedTimestamps(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
-        this.knownCommittedTimestamps = ImmutableSerializableTimestampSet.builder().build();
+        this.knownCommittedTimestamps =
+                ImmutableSerializableTimestampSet.builder().build();
     }
 
     @Override
@@ -84,10 +86,9 @@ public class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps
     }
 
     private byte[] loadMapFromDatabase() {
-        Map<Cell, Value> dbRead = keyValueService.get(TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS,
-                ImmutableMap.of(
-                        MAGIC_CELL,
-                        Long.MAX_VALUE));
+        Map<Cell, Value> dbRead = keyValueService.get(
+                TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS,
+                ImmutableMap.of(MAGIC_CELL, AtlasDbConstants.TRANSACTION_TS));
         return dbRead.get(MAGIC_CELL).getContents();
     }
 
@@ -97,11 +98,16 @@ public class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps
         }
 
         // Bad Demeter. This logic should be in SerializableTimestampSet in the prod version
-        Range<Long> highestRange = knownCommittedTimestamps.rangeSetView().asDescendingSetOfRanges().iterator().next();
-        Preconditions.checkState(highestRange.hasUpperBound(), "Infinite ranges not allowed in "
-                + "KnownCommittedTimestamps");
-        long maxBound = highestRange.upperBoundType() == BoundType.CLOSED ? highestRange.upperEndpoint() :
-                highestRange.upperEndpoint() - 1;
+        Range<Long> highestRange = knownCommittedTimestamps
+                .rangeSetView()
+                .asDescendingSetOfRanges()
+                .iterator()
+                .next();
+        Preconditions.checkState(
+                highestRange.hasUpperBound(), "Infinite ranges not allowed in " + "KnownCommittedTimestamps");
+        long maxBound = highestRange.upperBoundType() == BoundType.CLOSED
+                ? highestRange.upperEndpoint()
+                : highestRange.upperEndpoint() - 1;
         return timestamp > maxBound;
     }
 
@@ -134,17 +140,10 @@ public class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps
                     if (knownCommittedTimestamps.longRanges().isEmpty()) {
                         // Put new cell in
                         keyValueService.checkAndSet(CheckAndSetRequest.newCell(
-                                TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS,
-                                MAGIC_CELL,
-                                newValue
-                        ));
+                                TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS, MAGIC_CELL, newValue));
                     } else {
                         keyValueService.checkAndSet(CheckAndSetRequest.singleCell(
-                                TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS,
-                                MAGIC_CELL,
-                                oldValue,
-                                newValue
-                        ));
+                                TransactionConstants.KNOWN_COMMITTED_TIMESTAMPS, MAGIC_CELL, oldValue, newValue));
                     }
 
                     // DB write success!
@@ -154,8 +153,8 @@ public class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps
                     byte[] actualValue = Iterables.getOnlyElement(checkAndSetException.getActualValues());
 
                     try {
-                        SerializableTimestampSet inDbSet = OBJECT_MAPPER.readValue(actualValue,
-                                SerializableTimestampSet.class);
+                        SerializableTimestampSet inDbSet =
+                                OBJECT_MAPPER.readValue(actualValue, SerializableTimestampSet.class);
                         if (inDbSet.rangeSetView().enclosesAll(withNewInterval.rangeSetView())) {
                             return;
                         }
@@ -164,7 +163,6 @@ public class DefaultKnownCommittedTimestamps implements KnownCommittedTimestamps
                         throw new RuntimeException(e);
                     }
                 }
-
             }
         } finally {
             writeLock.unlock();
