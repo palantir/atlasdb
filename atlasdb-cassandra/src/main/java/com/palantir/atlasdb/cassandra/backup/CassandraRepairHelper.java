@@ -38,7 +38,6 @@ import com.palantir.atlasdb.schema.TargetedSweepTables;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -81,8 +80,6 @@ public class CassandraRepairHelper {
             AtlasService atlasService,
             ReloadingCloseableContainer<CqlCluster> reloadingCloseableContainer,
             RemovalCause _removalCause) {
-        Exception exceptionJustForLogging = new SafeRuntimeException("I exist to show you the stack trace");
-        log.info("Closing cql cluster container", SafeArg.of("atlasService", atlasService), exceptionJustForLogging);
         try {
             reloadingCloseableContainer.close();
         } catch (Exception e) {

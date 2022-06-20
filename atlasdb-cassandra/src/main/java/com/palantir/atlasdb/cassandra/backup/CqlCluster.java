@@ -31,6 +31,9 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFact
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -40,6 +43,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public final class CqlCluster implements Closeable {
+    private static final SafeLogger log = SafeLoggerFactory.get(CqlCluster.class);
+
     private static final int RETRY_COUNT = 5;
 
     private final Cluster cluster;
@@ -54,7 +59,7 @@ public final class CqlCluster implements Closeable {
         this.namespace = namespace;
         this.cqlSessionRetryer = new Retryer<>(
                 StopStrategies.stopAfterAttempt(RETRY_COUNT),
-                WaitStrategies.fixedWait(10L, TimeUnit.SECONDS),
+                WaitStrategies.fixedWait(1L, TimeUnit.MINUTES),
                 Attempt::hasResult);
     }
 
@@ -69,6 +74,8 @@ public final class CqlCluster implements Closeable {
 
     @Override
     public void close() throws IOException {
+        Exception exceptionJustForLogging = new SafeRuntimeException("I exist to show you the stack trace");
+        log.info("Closing cql cluster container", SafeArg.of("namespace", namespace), exceptionJustForLogging);
         cluster.close();
     }
 
