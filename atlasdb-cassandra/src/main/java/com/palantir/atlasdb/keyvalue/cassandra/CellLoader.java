@@ -110,7 +110,8 @@ final class CellLoader {
         }
         int totalPartitions = hostsAndCells.keySet().size();
 
-        if (log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace(
                     "Loading {} cells from {} {}starting at timestamp {}, partitioned across {} nodes.",
                     SafeArg.of("cells", cells.size()),
@@ -120,12 +121,12 @@ final class CellLoader {
                     SafeArg.of("totalPartitions", totalPartitions));
         }
 
-        List<Callable<Void>> tasks = new ArrayList<>();
+        List<Callable<Void>> tasks = new ArrayList<>(hostsAndCells.size());
         for (Map.Entry<CassandraServer, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace(
                         "Requesting {} cells from {} {}starting at timestamp {} on {}",
-                        SafeArg.of("cells", hostsAndCells.values().size()),
+                        SafeArg.of("cells", hostAndCells.getValue().size()),
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                         SafeArg.of("startTs", startTs),
@@ -159,8 +160,9 @@ final class CellLoader {
             final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        List<Callable<Void>> tasks = new ArrayList<>();
-        for (final List<Cell> partition : batcher.partitionIntoBatches(cells, cassandraServer, tableRef)) {
+        List<List<Cell>> batches = batcher.partitionIntoBatches(cells, cassandraServer, tableRef);
+        List<Callable<Void>> tasks = new ArrayList<>(batches.size());
+        for (final List<Cell> partition : batches) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnServer(
                     cassandraServer, new FunctionCheckedException<CassandraClient, Void, Exception>() {
                         @Override
@@ -187,14 +189,15 @@ final class CellLoader {
 
                         @Override
                         public String toString() {
-                            return "multiget_multislice(" + cassandraServer + ", " + colFam + ", " + partition.size()
-                                    + " cells)";
+                            return "multiget_multislice(" + cassandraServer.cassandraHostName() + ", " + colFam + ", "
+                                    + partition.size() + " cells)";
                         }
                     });
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on "
-                            + cassandraServer.cassandraHostName() + " via proxy " + cassandraServer.proxy(),
+                            + cassandraServer.cassandraHostName() + " via proxy "
+                            + CassandraLogHelper.host(cassandraServer.proxy()),
                     multiGetCallable));
         }
         return tasks;

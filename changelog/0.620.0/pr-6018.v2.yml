@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Don't let Hikari treat SQLTimeoutException an evictable
+    Allow empty testQuery (and use Connection.isValid() in that case). Oracle connections will default to using isValid()
+    Allow control of whether connections are re-tested before being handed out from the connection pool. Default remains true.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6018

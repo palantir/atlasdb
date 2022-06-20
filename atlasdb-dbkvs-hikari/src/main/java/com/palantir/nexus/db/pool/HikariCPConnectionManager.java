@@ -32,9 +32,9 @@ import com.zaxxer.hikari.HikariPoolMXBean;
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import java.lang.management.ManagementFactory;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.TimeZone;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -135,7 +135,9 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             profiler.logAcquisitionAndRestart();
 
             try {
-                testConnection(conn);
+                if (connConfig.testConnectionBeforeHandout()) {
+                    testConnection(conn);
+                }
                 profiler.logConnectionTest();
                 return conn;
             } catch (SQLException e) {
@@ -244,12 +246,18 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
      * @throws SQLException if connection is invalid and cannot be used.
      */
     private void testConnection(Connection connection) throws SQLException {
-        try (Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery(connConfig.getTestQuery())) {
-            if (!rs.next()) {
-                throw new SQLException(String.format(
-                        "Connection %s could not be validated as it did not return any results for test query %s",
-                        connection, connConfig.getTestQuery()));
+        if (connConfig.getTestQuery().isEmpty()) {
+            if (!connection.isValid(connConfig.getSocketTimeoutSeconds())) {
+                throw new SQLException(String.format("Connection %s is not valid", connection));
+            }
+        } else {
+            try (PreparedStatement stmt = connection.prepareStatement(connConfig.getTestQuery())) {
+                ResultSet rs = stmt.executeQuery();
+                if (!rs.next()) {
+                    throw new SQLException(String.format(
+                            "Connection %s could not be validated as it did not return any results for test query %s",
+                            connection, connConfig.getTestQuery()));
+                }
             }
         }
     }

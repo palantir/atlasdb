@@ -618,7 +618,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
-                            + hostAndRows.getKey(),
+                            + hostAndRows.getKey().cassandraHostName(),
                     () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
         }
         List<Map<Cell, Value>> perHostResults = taskRunner.runAllTasksCancelOnFailure(tasks);
@@ -727,7 +727,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                     @Override
                     public String toString() {
-                        return "multiget_multislice(" + host + ", " + tableRef + ", " + query.size() + " cells)";
+                        return "multiget_multislice(" + host.cassandraHostName() + ", " + tableRef + ", " + query.size()
+                                + " cells)";
                     }
                 });
     }
@@ -874,7 +875,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas getRowsColumnRange " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
-                            + hostAndRows.getKey(),
+                            + hostAndRows.getKey().cassandraHostName(),
                     () -> getRowsColumnRangeIteratorForSingleHost(
                             hostAndRows.getKey(),
                             tableRef,
@@ -1210,7 +1211,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final Set<TableReference> tableRefs = extractTableNames(batch);
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
-                    "Atlas multiPut of " + batch.size() + " cells into " + tableRefs + " on " + host,
+                    "Atlas multiPut of " + batch.size() + " cells into " + tableRefs + " on "
+                            + host.cassandraHostName(),
                     () -> multiPutForSingleHostInternal(host, tableRefs, batch, timestamp)));
         }
         return tasks;
@@ -1239,7 +1241,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             @Override
             public String toString() {
-                return "batch_mutate(" + host + ", " + tableRefs + ", " + batch.size() + " values)";
+                return "batch_mutate(" + host.cassandraHostName() + ", " + tableRefs + ", " + batch.size() + " values)";
             }
         });
     }

@@ -23,6 +23,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.RangeSet;
@@ -278,7 +279,7 @@ public final class CassandraRepairEteTest {
 
     @SuppressWarnings("UnstableApiUsage")
     private Map<CassandraServer, Set<Range<LightweightOppToken>>> invert(
-            RangeMap<LightweightOppToken, List<CassandraServer>> tokenMap) {
+            RangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> tokenMap) {
         Map<CassandraServer, Set<Range<LightweightOppToken>>> invertedMap = new HashMap<>();
         tokenMap.asMapOfRanges()
                 .forEach((range, addresses) -> addresses.forEach(address -> {

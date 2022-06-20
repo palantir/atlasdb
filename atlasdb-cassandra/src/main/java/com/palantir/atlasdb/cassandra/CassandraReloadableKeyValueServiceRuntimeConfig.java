@@ -33,7 +33,10 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
         this.runtimeConfig = runtimeConfig;
     }
 
-    public static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
+    /**
+     * Use {@link CassandraKeyValueServiceConfigs} to construct a reloading config where necessary.
+     */
+    static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
             CassandraKeyValueServiceConfig installConfig,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
         return runtimeConfigRefreshable.map(runtimeConfig ->
@@ -78,7 +81,7 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
     }
 
     @Override
-    public int replicationFactor() {
+    public Integer replicationFactor() {
         return installConfig.replicationFactor().orElseGet(runtimeConfig::replicationFactor);
     }
 

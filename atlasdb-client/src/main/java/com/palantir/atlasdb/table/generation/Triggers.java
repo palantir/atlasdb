@@ -16,21 +16,26 @@
 package com.palantir.atlasdb.table.generation;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Triggers {
     public static <T, U extends T> List<T> getAllTriggers(
             Transaction t, List<Function<? super Transaction, U>> sharedTriggers, T[] triggers) {
+        int totalTriggers = sharedTriggers.size() + triggers.length;
+        if (totalTriggers == 0) {
+            // common case is there are no shared or transaction specific triggers
+            return ImmutableList.of();
+        }
 
-        List<T> allTriggers = new ArrayList<>(sharedTriggers.size() + triggers.length);
-        for (T trigger : triggers) {
-            allTriggers.add(trigger);
+        Stream<U> sharedTriggerStream = sharedTriggers.stream().map(trigger -> trigger.apply(t));
+        if (triggers.length == 0) {
+            return sharedTriggerStream.collect(Collectors.toList());
         }
-        for (Function<? super Transaction, ? extends T> sharedTrigger : sharedTriggers) {
-            allTriggers.add(sharedTrigger.apply(t));
-        }
-        return allTriggers;
+        return Stream.concat(Arrays.stream(triggers), sharedTriggerStream).collect(Collectors.toList());
     }
 }

@@ -20,6 +20,14 @@ import com.palantir.logsafe.SafeArg;
 
 public class NotInitializedException extends AtlasDbDependencyException {
     public NotInitializedException(String objectNotInitialized) {
-        super(String.format("The %s is not initialized yet", SafeArg.of("objectName", objectNotInitialized)));
+        super(exceptionMessage(objectNotInitialized));
+    }
+
+    public NotInitializedException(String objectNotInitialized, Throwable throwable) {
+        super(exceptionMessage(objectNotInitialized), throwable);
+    }
+
+    private static String exceptionMessage(String objectNotInitialized) {
+        return String.format("The %s is not initialized yet", SafeArg.of("objectName", objectNotInitialized));
     }
 }

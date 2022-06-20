@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Targeted Sweep shard allocation for writes now changes every day. This
+    should alleviate issues caused by skewed write patterns where too many writes
+    consistently go to the same shard.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6066

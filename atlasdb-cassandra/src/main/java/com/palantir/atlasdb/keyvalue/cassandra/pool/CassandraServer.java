@@ -22,7 +22,7 @@ import java.net.InetSocketAddress;
 import java.util.Set;
 import org.immutables.value.Value;
 
-@Value.Immutable
+@Value.Immutable(lazyhash = true)
 public interface CassandraServer {
     @Value.Parameter
     String cassandraHostName();
@@ -38,14 +38,15 @@ public interface CassandraServer {
      * The only proxy that will be used to reach the Cassandra host.
      * */
     @Value.Lazy
+    @Value.Redacted // exclude from toString for thread names & logs
     default InetSocketAddress proxy() {
         // we know the set of proxies contains at least one element
-        return reachableProxyIps().stream().findAny().orElseThrow();
+        return reachableProxyIps().iterator().next();
     }
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(reachableProxyIps().size() > 0, "Must have at least one reachable IP.");
+        Preconditions.checkState(!reachableProxyIps().isEmpty(), "Must have at least one reachable IP.");
     }
 
     static CassandraServer of(InetSocketAddress addr) {

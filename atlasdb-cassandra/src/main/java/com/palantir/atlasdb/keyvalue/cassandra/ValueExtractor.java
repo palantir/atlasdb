@@ -42,9 +42,8 @@ class ValueExtractor extends ResultsExtractor<Value> {
             long startTs, ColumnSelection selection, byte[] row, byte[] col, byte[] val, long ts) {
         if (ts < startTs && selection.contains(col)) {
             Cell cell = Cell.create(row, col);
-            if (!collector.containsKey(cell)) {
-                collector.put(cell, Value.create(val, ts));
-            } else {
+            Value value = collector.computeIfAbsent(cell, _cell -> Value.create(val, ts));
+            if (value.getTimestamp() != ts) {
                 notLatestVisibleValueCellFilterCounter.inc();
             }
         } else {

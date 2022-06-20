@@ -193,9 +193,11 @@ import org.apache.commons.lang3.tuple.Pair;
 public class SnapshotTransaction extends AbstractTransaction implements ConstraintCheckingTransaction {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
+    private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
     private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
+    private static final long TXN_LENGTH_THRESHOLD = Duration.ofMinutes(30).toMillis();
 
     @VisibleForTesting
     static final int MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD = 100;
@@ -1695,12 +1697,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
                 transactionOutcomeMetrics.markAbort();
-                if (perfLogger.isDebugEnabled()) {
+                if (transactionLengthLogger.isDebugEnabled()) {
                     long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
-                    perfLogger.debug(
-                            "Aborted transaction {} in {} ms",
-                            SafeArg.of("startTimestamp", getStartTimestamp()),
-                            SafeArg.of("transactionTimeMillis", transactionMillis));
+
+                    if (transactionMillis > TXN_LENGTH_THRESHOLD) {
+                        transactionLengthLogger.debug(
+                                "Aborted transaction {} in {} ms",
+                                SafeArg.of("startTimestamp", getStartTimestamp()),
+                                SafeArg.of("transactionLengthMillis", transactionMillis),
+                                SafeArg.of("transactionDuration", Duration.ofMillis(transactionMillis)));
+                    }
                 }
                 return;
             }

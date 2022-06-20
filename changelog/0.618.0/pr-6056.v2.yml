@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Triggers.getAllTriggers does not allocate when there are no triggers
+
+    The common case is that a table and transaction does not have any
+    triggers, so we should avoid unnecessary ArrayList allocations.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6056
