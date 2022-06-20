@@ -17,11 +17,11 @@
 package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Cluster;
-import com.github.rholder.retry.Attempt;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -37,6 +37,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -45,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 public final class CqlCluster implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCluster.class);
 
+    private static final Duration RETRY_DURATION = Duration.ofMinutes(1L);
     private static final int RETRY_COUNT = 5;
 
     private final Cluster cluster;
@@ -54,13 +56,22 @@ public final class CqlCluster implements Closeable {
 
     // VisibleForTesting
     public CqlCluster(Cluster cluster, CassandraServersConfig cassandraServersConfig, Namespace namespace) {
+        this(cluster, cassandraServersConfig, namespace, RETRY_DURATION);
+    }
+
+    // VisibleForTesting
+    public CqlCluster(
+            Cluster cluster,
+            CassandraServersConfig cassandraServersConfig,
+            Namespace namespace,
+            Duration retryDuration) {
         this.cluster = cluster;
         this.cassandraServersConfig = cassandraServersConfig;
         this.namespace = namespace;
         this.cqlSessionRetryer = new Retryer<>(
                 StopStrategies.stopAfterAttempt(RETRY_COUNT),
-                WaitStrategies.fixedWait(1L, TimeUnit.MINUTES),
-                Attempt::hasResult);
+                WaitStrategies.fixedWait(retryDuration.toMillis(), TimeUnit.MILLISECONDS),
+                attempt -> !attempt.hasResult());
     }
 
     public static CqlCluster create(
@@ -69,7 +80,7 @@ public final class CqlCluster implements Closeable {
             Namespace namespace) {
         Cluster cluster =
                 new ClusterFactory(Cluster::builder).constructCluster(cassandraClusterConfig, cassandraServersConfig);
-        return new CqlCluster(cluster, cassandraServersConfig, namespace);
+        return new CqlCluster(cluster, cassandraServersConfig, namespace, RETRY_DURATION);
     }
 
     @Override
@@ -99,7 +110,8 @@ public final class CqlCluster implements Closeable {
         }
     }
 
-    private CqlSession createSessionWithRetry() {
+    @VisibleForTesting
+    CqlSession createSessionWithRetry() {
         try {
             return cqlSessionRetryer.call(() -> new CqlSession(cluster.connect()));
         } catch (ExecutionException e) {
