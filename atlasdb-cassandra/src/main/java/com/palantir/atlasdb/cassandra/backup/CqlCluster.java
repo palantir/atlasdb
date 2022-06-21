@@ -85,8 +85,10 @@ public final class CqlCluster implements Closeable {
 
     @Override
     public void close() throws IOException {
-        Exception exceptionJustForLogging = new SafeRuntimeException("I exist to show you the stack trace");
-        log.info("Closing cql cluster container", SafeArg.of("namespace", namespace), exceptionJustForLogging);
+        log.info(
+                "Closing cql cluster container",
+                SafeArg.of("namespace", namespace),
+                new SafeRuntimeException("I exist to show you the stack trace"));
         cluster.close();
     }
 
