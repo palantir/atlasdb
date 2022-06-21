@@ -116,7 +116,10 @@ public class CqlSession implements Closeable {
             return maybeTableMetadata.get();
         }
 
-        log.info("Couldn't find table metadata; we will refresh and retry");
+        log.info(
+                "Couldn't find table metadata; we will refresh and retry",
+                SafeArg.of("namespace", namespace),
+                SafeArg.of("tableName", tableName));
         return getTableMetadataWithRetry(tableName);
     }
 
