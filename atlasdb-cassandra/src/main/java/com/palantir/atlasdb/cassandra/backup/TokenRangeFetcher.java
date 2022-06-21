@@ -17,12 +17,10 @@
 package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
@@ -34,7 +32,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -59,22 +56,7 @@ final class TokenRangeFetcher {
     }
 
     public Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRange(String tableName) {
-        Optional<KeyspaceMetadata> keyspaceMetadata = cqlMetadata.getKeyspaceMetadata(namespace);
-        if (keyspaceMetadata.isEmpty()) {
-            log.error(
-                    "Could not find metadata for a keyspace that is supposed to exist",
-                    SafeArg.of("keyspace", namespace));
-            return ImmutableMap.of();
-        }
-
-        TableMetadata tableMetadata = keyspaceMetadata.get().getTable(tableName);
-        if (tableMetadata == null) {
-            log.error(
-                    "Could not find metadata for table that is supposed to exist",
-                    SafeArg.of("keyspace", namespace),
-                    SafeArg.of("tableName", tableName));
-            return ImmutableMap.of();
-        }
+        TableMetadata tableMetadata = cqlSession.getTableMetadata(tableName);
 
         Set<LightweightOppToken> partitionTokens = getPartitionTokens(tableMetadata);
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode = ClusterMetadataUtils.getTokenMapping(

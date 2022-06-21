@@ -18,19 +18,14 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import static com.google.common.collect.ImmutableRangeSet.toImmutableRangeSet;
 
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.TableMetadata;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -40,7 +35,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,19 +48,6 @@ import java.util.stream.Stream;
 public final class ClusterMetadataUtils {
     private ClusterMetadataUtils() {
         // util class
-    }
-
-    // TODO(gs): more usages of this to a place where we can retry
-    public static TableMetadata getTableMetadata(CqlMetadata metadata, Namespace namespace, String table) {
-        Optional<KeyspaceMetadata> keyspaceMetadata = metadata.getKeyspaceMetadata(namespace);
-        Optional<TableMetadata> maybeTable =
-                keyspaceMetadata.map(KeyspaceMetadata::getTables).orElseGet(HashSet::new).stream()
-                        .filter(tableMetadata -> tableMetadata.getName().equals(table))
-                        .collect(MoreCollectors.toOptional());
-        return maybeTable.orElseThrow(() -> new SafeIllegalArgumentException(
-                "Can't find table",
-                SafeArg.of("keyspace", namespace),
-                LoggingArgs.tableRef("table", TableReference.fromString(table))));
     }
 
     /**

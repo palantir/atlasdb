@@ -66,21 +66,17 @@ final class TransactionAborter {
     }
 
     public void abortTransactions(long timestamp, List<TransactionsTableInteraction> transactionsTableInteractions) {
-        CqlMetadata clusterMetadata = cqlSession.getMetadata();
-        transactionsTableInteractions.forEach(
-                txnInteraction -> abortTransactions(clusterMetadata, timestamp, txnInteraction));
+        transactionsTableInteractions.forEach(txnInteraction -> abortTransactions(timestamp, txnInteraction));
     }
 
-    private void abortTransactions(
-            CqlMetadata clusterMetadata, long timestamp, TransactionsTableInteraction txnInteraction) {
+    private void abortTransactions(long timestamp, TransactionsTableInteraction txnInteraction) {
         log.info(
                 "Aborting transactions after backup timestamp",
                 SafeArg.of("backupTimestamp", timestamp),
                 SafeArg.of("keyspace", namespace),
                 SafeArg.of("table", txnInteraction.getTransactionsTableName()));
 
-        TableMetadata transactionsTable = ClusterMetadataUtils.getTableMetadata(
-                clusterMetadata, namespace, txnInteraction.getTransactionsTableName());
+        TableMetadata transactionsTable = cqlSession.getTableMetadata(txnInteraction.getTransactionsTableName());
 
         PreparedStatement preparedAbortStatement = txnInteraction.prepareAbortStatement(transactionsTable, cqlSession);
         PreparedStatement preparedCheckStatement = txnInteraction.prepareCheckStatement(transactionsTable, cqlSession);

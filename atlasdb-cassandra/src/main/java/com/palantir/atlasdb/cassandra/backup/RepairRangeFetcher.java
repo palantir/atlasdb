@@ -86,8 +86,7 @@ final class RepairRangeFetcher {
     }
 
     private Set<LightweightOppToken> getPartitionTokensForTransactionsTable(TransactionsTableInteraction interaction) {
-        TableMetadata transactionsTableMetadata =
-                ClusterMetadataUtils.getTableMetadata(cqlMetadata, namespace, interaction.getTransactionsTableName());
+        TableMetadata transactionsTableMetadata = cqlSession.getTableMetadata(interaction.getTransactionsTableName());
         List<Statement> selectStatements =
                 interaction.createSelectStatementsForScanningFullTimestampRange(transactionsTableMetadata);
         return cqlSession.retrieveRowKeysAtConsistencyAll(selectStatements);

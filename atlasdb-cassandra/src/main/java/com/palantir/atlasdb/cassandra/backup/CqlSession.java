@@ -54,13 +54,19 @@ public class CqlSession implements Closeable {
 
     private final Cluster cluster;
     private final Namespace namespace;
+    private final Retryer<TableMetadata> tableMetadataRetryer;
 
     private Session session;
 
-    private CqlSession(Cluster cluster, Session session, Namespace namespace) {
+    private CqlSession(Cluster cluster, Session session, Namespace namespace, Duration retryDuration) {
         this.cluster = cluster;
         this.session = session;
         this.namespace = namespace;
+
+        this.tableMetadataRetryer = new Retryer<>(
+                StopStrategies.stopAfterAttempt(RETRY_COUNT),
+                WaitStrategies.fixedWait(retryDuration.toMillis(), TimeUnit.MILLISECONDS),
+                attempt -> attempt == null || !attempt.hasResult());
     }
 
     public static CqlSession create(Cluster cluster, Namespace namespace) {
@@ -74,7 +80,7 @@ public class CqlSession implements Closeable {
                 WaitStrategies.fixedWait(retryDuration.toMillis(), TimeUnit.MILLISECONDS),
                 attempt -> attempt == null || !attempt.hasResult());
         try {
-            return creationRetryer.call(() -> createSessionEnsuringMetadataExists(cluster, namespace));
+            return creationRetryer.call(() -> createSessionEnsuringMetadataExists(cluster, namespace, retryDuration));
         } catch (ExecutionException e) {
             throw new SafeIllegalStateException(
                     "Failed to execute CqlSession connect", e, SafeArg.of("namespace", namespace));
@@ -84,8 +90,9 @@ public class CqlSession implements Closeable {
         }
     }
 
-    private static CqlSession createSessionEnsuringMetadataExists(Cluster cluster, Namespace namespace) {
-        CqlSession cqlSession = new CqlSession(cluster, cluster.connect(), namespace);
+    private static CqlSession createSessionEnsuringMetadataExists(
+            Cluster cluster, Namespace namespace, Duration retryDuration) {
+        CqlSession cqlSession = new CqlSession(cluster, cluster.connect(), namespace, retryDuration);
         Optional<KeyspaceMetadata> keyspaceMetadata = cqlSession.getMetadata().getKeyspaceMetadata(namespace);
         if (keyspaceMetadata.isEmpty()) {
             throw new SafeIllegalStateException(
@@ -110,8 +117,28 @@ public class CqlSession implements Closeable {
         }
 
         log.info("Couldn't find table metadata; we will refresh and retry");
-        refreshSession();
-        return maybeGetTableMetadata(tableName).orElseThrow();
+        return getTableMetadataWithRetry(tableName);
+    }
+
+    private TableMetadata getTableMetadataWithRetry(String tableName) {
+        try {
+            return tableMetadataRetryer.call(() -> {
+                refreshSession();
+                return maybeGetTableMetadata(tableName).orElseThrow();
+            });
+        } catch (ExecutionException e) {
+            throw new SafeIllegalStateException(
+                    "Failed to get table metadata",
+                    e,
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("tableName", tableName));
+        } catch (RetryException e) {
+            throw new SafeIllegalStateException(
+                    "Failed to execute CqlSession connect even with retry",
+                    e,
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("tableName", tableName));
+        }
     }
 
     private void refreshSession() {
