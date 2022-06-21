@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class CqlSession implements Closeable {
+public final class CqlSession implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(CqlSession.class);
 
     private static final Duration RETRY_DURATION = Duration.ofMinutes(1L);
