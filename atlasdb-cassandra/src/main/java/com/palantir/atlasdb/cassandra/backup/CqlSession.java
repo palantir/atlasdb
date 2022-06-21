@@ -23,6 +23,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.TableMetadata;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
@@ -33,6 +34,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
@@ -44,13 +47,20 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class CqlSession implements Closeable {
+    private static final SafeLogger log = SafeLoggerFactory.get(CqlSession.class);
+
     private static final Duration RETRY_DURATION = Duration.ofMinutes(1L);
     private static final int RETRY_COUNT = 5;
 
-    private final Session session;
+    private final Cluster cluster;
+    private final Namespace namespace;
 
-    private CqlSession(Session session) {
+    private Session session;
+
+    private CqlSession(Cluster cluster, Session session, Namespace namespace) {
+        this.cluster = cluster;
         this.session = session;
+        this.namespace = namespace;
     }
 
     public static CqlSession create(Cluster cluster, Namespace namespace) {
@@ -75,7 +85,7 @@ public class CqlSession implements Closeable {
     }
 
     private static CqlSession createSessionEnsuringMetadataExists(Cluster cluster, Namespace namespace) {
-        CqlSession cqlSession = new CqlSession(cluster.connect());
+        CqlSession cqlSession = new CqlSession(cluster, cluster.connect(), namespace);
         Optional<KeyspaceMetadata> keyspaceMetadata = cqlSession.getMetadata().getKeyspaceMetadata(namespace);
         if (keyspaceMetadata.isEmpty()) {
             throw new SafeIllegalStateException(
@@ -91,6 +101,31 @@ public class CqlSession implements Closeable {
 
     public CqlMetadata getMetadata() {
         return new CqlMetadata(session.getCluster().getMetadata());
+    }
+
+    public TableMetadata getTableMetadata(String tableName) {
+        Optional<TableMetadata> maybeTableMetadata = maybeGetTableMetadata(tableName);
+        if (maybeTableMetadata.isPresent()) {
+            return maybeTableMetadata.get();
+        }
+
+        log.info("Couldn't find table metadata; we will refresh and retry");
+        refreshSession();
+        return maybeGetTableMetadata(tableName).orElseThrow();
+    }
+
+    private void refreshSession() {
+        session.closeAsync();
+        session = cluster.connect();
+    }
+
+    private Optional<TableMetadata> maybeGetTableMetadata(String tableName) {
+        Optional<KeyspaceMetadata> keyspaceMetadata = getMetadata().getKeyspaceMetadata(namespace);
+        if (keyspaceMetadata.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(keyspaceMetadata.get().getTable(tableName));
     }
 
     public Set<LightweightOppToken> retrieveRowKeysAtConsistencyAll(List<Statement> selectStatements) {
