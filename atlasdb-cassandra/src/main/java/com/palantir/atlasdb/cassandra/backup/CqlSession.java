@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cassandra.backup;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
@@ -47,7 +48,7 @@ public class CqlSession implements Closeable {
 
     private final Session session;
 
-    public CqlSession(Session session) {
+    private CqlSession(Session session) {
         this.session = session;
     }
 
@@ -62,7 +63,7 @@ public class CqlSession implements Closeable {
                 WaitStrategies.fixedWait(retryDuration.toMillis(), TimeUnit.MILLISECONDS),
                 attempt -> attempt == null || !attempt.hasResult());
         try {
-            return creationRetryer.call(() -> new CqlSession(cluster.connect()));
+            return creationRetryer.call(() -> createSessionEnsuringMetadataExists(cluster, namespace));
         } catch (ExecutionException e) {
             throw new SafeIllegalStateException(
                     "Failed to execute CqlSession connect", e, SafeArg.of("namespace", namespace));
@@ -72,14 +73,14 @@ public class CqlSession implements Closeable {
         }
     }
 
-    //    private static CqlSession createSessionEnsuringMetadataExists(Cluster cluster, Namespace namespace) {
-    //        CqlSession cqlSession = new CqlSession(cluster.connect());
-    //        KeyspaceMetadata keyspaceMetadata = cqlSession.getMetadata().getKeyspaceMetadata(namespace);
-    //        if (keyspaceMetadata == null) {
-    //            throw new SafeIllegalStateException("Metadata not found for keyspace. We'll retry the connection");
-    //        }
-    //        return cqlSession;
-    //    }
+    private static CqlSession createSessionEnsuringMetadataExists(Cluster cluster, Namespace namespace) {
+        CqlSession cqlSession = new CqlSession(cluster.connect());
+        KeyspaceMetadata keyspaceMetadata = cqlSession.getMetadata().getKeyspaceMetadata(namespace);
+        if (keyspaceMetadata == null) {
+            throw new SafeIllegalStateException("Metadata not found for keyspace. We'll retry the connection");
+        }
+        return cqlSession;
+    }
 
     @Override
     public void close() {
