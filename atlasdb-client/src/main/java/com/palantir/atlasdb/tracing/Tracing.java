@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 public interface Tracing {
 
     @MustBeClosed
-    static CloseableTracer startLocalSpan(
+    static CloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
         return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
     }
