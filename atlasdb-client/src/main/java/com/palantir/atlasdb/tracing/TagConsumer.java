@@ -63,7 +63,14 @@ public interface TagConsumer extends BiConsumer<String, String> {
     }
 
     default void statistics(TraceStatistic statistics) {
-        longValue("atlasdb.emptyReads", statistics.emptyReads());
-        longValue("atlasdb.bytesRead", statistics.bytesReadFromDb());
+        long emptyReads = statistics.emptyReads();
+        if (emptyReads != 0) {
+            longValue("atlasdb.emptyReads", emptyReads);
+        }
+
+        long bytesReadFromDb = statistics.bytesReadFromDb();
+        if (bytesReadFromDb != 0) {
+            longValue("atlasdb.bytesRead", bytesReadFromDb);
+        }
     }
 }
