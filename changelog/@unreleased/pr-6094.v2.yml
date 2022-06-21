@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Increased the connection cache size during restores, and added retry
+    logic when establlishing connections.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6094
