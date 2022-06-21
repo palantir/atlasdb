@@ -29,6 +29,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,9 +41,8 @@ public class CqlMetadata {
         this.metadata = metadata;
     }
 
-    // TODO(gs): Optional.ofNullable
-    public KeyspaceMetadata getKeyspaceMetadata(Namespace namespace) {
-        return metadata.getKeyspace(namespace.value());
+    public Optional<KeyspaceMetadata> getKeyspaceMetadata(Namespace namespace) {
+        return Optional.ofNullable(metadata.getKeyspace(namespace.value()));
     }
 
     // This needs to be a Set<Range>, because we don't want to merge the token ranges.

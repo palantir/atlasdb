@@ -36,6 +36,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -75,8 +76,8 @@ public class CqlSession implements Closeable {
 
     private static CqlSession createSessionEnsuringMetadataExists(Cluster cluster, Namespace namespace) {
         CqlSession cqlSession = new CqlSession(cluster.connect());
-        KeyspaceMetadata keyspaceMetadata = cqlSession.getMetadata().getKeyspaceMetadata(namespace);
-        if (keyspaceMetadata == null) {
+        Optional<KeyspaceMetadata> keyspaceMetadata = cqlSession.getMetadata().getKeyspaceMetadata(namespace);
+        if (keyspaceMetadata.isEmpty()) {
             throw new SafeIllegalStateException("Metadata not found for keyspace. We'll retry the connection");
         }
         return cqlSession;
