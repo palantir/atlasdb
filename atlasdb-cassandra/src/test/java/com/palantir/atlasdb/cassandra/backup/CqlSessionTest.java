@@ -21,6 +21,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.google.common.collect.ImmutableMap;
@@ -38,13 +40,20 @@ public class CqlSessionTest {
 
     @Test
     public void retriesCreation() {
+        Namespace namespace = Namespace.of("namespace");
+
         Session session = mock(Session.class);
+        Metadata metadata = mock(Metadata.class);
+        when(session.getCluster()).thenReturn(cluster);
+        when(cluster.getMetadata()).thenReturn(metadata);
+        KeyspaceMetadata keyspaceMetadata = mock(KeyspaceMetadata.class);
+        when(metadata.getKeyspace(namespace.value())).thenReturn(keyspaceMetadata);
 
         when(cluster.connect())
                 .thenThrow(new NoHostAvailableException(ImmutableMap.of()))
                 .thenReturn(session);
 
-        assertThatCode(() -> CqlSession.create(cluster, Namespace.of("namespace"), Duration.ofMillis(50L)))
+        assertThatCode(() -> CqlSession.create(cluster, namespace, Duration.ofMillis(50L)))
                 .doesNotThrowAnyException();
     }
 }
