@@ -29,11 +29,11 @@ public final class TraceStatistic {
         this.bytesReadFromDb = new AtomicLong(bytesReadFromDb);
     }
 
-    public boolean isEmpty() {
+    boolean isEmpty() {
         return emptyReads.get() == 0 && bytesReadFromDb.get() == 0;
     }
 
-    public TraceStatistic copy() {
+    TraceStatistic copy() {
         return of(emptyReads.get(), bytesReadFromDb.get());
     }
 
@@ -45,11 +45,11 @@ public final class TraceStatistic {
         return bytesReadFromDb.get();
     }
 
-    public void incEmptyReads(long count) {
+    void incEmptyReads(long count) {
         emptyReads.addAndGet(count);
     }
 
-    public void incBytesReadFromDb(long bytes) {
+    void incBytesReadFromDb(long bytes) {
         bytesReadFromDb.addAndGet(bytes);
     }
 

@@ -19,6 +19,10 @@ package com.palantir.atlasdb.tracing;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.tracing.Tracer;
 
+/**
+ * Helper to track trace/span-level statistics. This relies on {@link ExecutorInheritableThreadLocal} for the tracking
+ * of values.
+ */
 public final class TraceStatistics {
     private TraceStatistics() {}
 
@@ -32,6 +36,11 @@ public final class TraceStatistics {
                 }
             };
 
+    /**
+     * Get the current trace statistic instance and clear it. This resets the statistics for the current thread.
+     *
+     * Use `getCopyAndRestoreOriginal` to restore the instance returned by this method.
+     */
     public static TraceStatistic getCurrentAndClear() {
         if (!Tracer.isTraceObservable()) {
             return TraceStatistic.notObserved();
@@ -66,7 +75,7 @@ public final class TraceStatistics {
     }
 
     /**
-     * Increment the number of bytes that have been read.
+     * Increment the number of bytes that have been read from the underlying database.
      */
     public static void incBytesRead(long bytes) {
         if (!Tracer.isTraceObservable()) {
@@ -76,6 +85,9 @@ public final class TraceStatistics {
         traceStatistic.get().incBytesReadFromDb(bytes);
     }
 
+    /**
+     * Get a copy of the current statistics and restore the original statistics. A companion to `getCurrentAndClear`.
+     */
     public static TraceStatistic getCopyAndRestoreOriginal(TraceStatistic original) {
         if (!Tracer.isTraceObservable()) {
             return TraceStatistic.notObserved();
