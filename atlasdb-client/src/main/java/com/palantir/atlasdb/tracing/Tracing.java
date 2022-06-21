@@ -24,17 +24,6 @@ import java.util.function.Consumer;
 public interface Tracing {
 
     @MustBeClosed
-    static AtlasCloseableTracer startLocalStatAwareSpan(
-            @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
-        TraceStatistic oldValue = TraceStatistics.clearAndGetOld();
-
-        return new TraceClosingAtlasCloseableTracer(
-                oldValue,
-                CloseableTracer.startSpan(
-                        operation, FunctionalTagTranslator.INSTANCE, new TraceAddingTagConsumer(tagTranslator)));
-    }
-
-    @MustBeClosed
     static CloseableTracer startLocalSpan(
             @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
         return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);

@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -49,12 +50,19 @@ public abstract class ResultsExtractor<T> {
         byte[] maxRow = null;
         for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
+            TraceStatistics.incBytesRead(row.length);
+
             maxRow = updatedMaxRow(maxRow, row);
 
             for (ColumnOrSuperColumn c : colEntry.getValue()) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
-                internalExtractResult(
-                        startTs, selection, row, pair.lhSide, c.getColumn().getValue(), pair.rhSide);
+                byte[] value = c.getColumn().getValue();
+
+                // Read the value & the column name size; we're not currently trying to model all the overheads
+                TraceStatistics.incBytesRead(pair.lhSide.length);
+                TraceStatistics.incBytesRead(value.length);
+
+                internalExtractResult(startTs, selection, row, pair.lhSide, value, pair.rhSide);
             }
         }
         return maxRow;

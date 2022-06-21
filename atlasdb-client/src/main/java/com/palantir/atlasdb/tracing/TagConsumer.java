@@ -30,6 +30,10 @@ public interface TagConsumer extends BiConsumer<String, String> {
         accept("table", LoggingArgs.safeTableOrPlaceholder(tableReference).toString());
     }
 
+    default void tableRefs(Collection<TableReference> tableReferences) {
+        accept("tables", LoggingArgs.safeTablesOrPlaceholder(tableReferences).toString());
+    }
+
     default void timestamp(long ts) {
         accept("ts", Long.toString(ts));
     }
@@ -52,5 +56,14 @@ public interface TagConsumer extends BiConsumer<String, String> {
 
     default void integer(@CompileTimeConstant final String name, int value) {
         accept(name, Integer.toString(value));
+    }
+
+    default void longValue(@CompileTimeConstant final String name, long value) {
+        accept(name, Long.toString(value));
+    }
+
+    default void statistics(TraceStatistic statistics) {
+        longValue("atlasdb.emptyReads", statistics.emptyReads());
+        longValue("atlasdb.bytesRead", statistics.bytesReadFromDb());
     }
 }

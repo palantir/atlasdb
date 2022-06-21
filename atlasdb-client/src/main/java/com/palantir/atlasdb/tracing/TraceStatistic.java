@@ -19,33 +19,49 @@ package com.palantir.atlasdb.tracing;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class TraceStatistic {
-    private final AtomicLong emptyReads;
+    private static final TraceStatistic NOT_OBSERVED_TRACE = empty();
 
-    private TraceStatistic(long emptyReads) {
+    private final AtomicLong emptyReads;
+    private final AtomicLong bytesReadFromDb;
+
+    private TraceStatistic(long emptyReads, long bytesReadFromDb) {
         this.emptyReads = new AtomicLong(emptyReads);
+        this.bytesReadFromDb = new AtomicLong(bytesReadFromDb);
     }
 
     public boolean isEmpty() {
-        return emptyReads.get() == 0;
+        return emptyReads.get() == 0 && bytesReadFromDb.get() == 0;
     }
 
     public TraceStatistic copy() {
-        return of(emptyReads());
+        return of(emptyReads.get(), bytesReadFromDb.get());
     }
 
     public long emptyReads() {
         return emptyReads.get();
     }
 
+    public long bytesReadFromDb() {
+        return bytesReadFromDb.get();
+    }
+
     public void incEmptyReads(long count) {
         emptyReads.addAndGet(count);
     }
 
-    static TraceStatistic empty() {
-        return of(0L);
+    public void incBytesReadFromDb(long bytes) {
+        bytesReadFromDb.addAndGet(bytes);
     }
 
-    static TraceStatistic of(long emptyReads) {
-        return new TraceStatistic(emptyReads);
+    static TraceStatistic empty() {
+        return of(0L, 0L);
+    }
+
+    static TraceStatistic notObserved() {
+        return NOT_OBSERVED_TRACE;
+    }
+
+    static TraceStatistic of(long emptyReads, long bytesReadFromDb) {
+        return new TraceStatistic(emptyReads, bytesReadFromDb);
     }
 }

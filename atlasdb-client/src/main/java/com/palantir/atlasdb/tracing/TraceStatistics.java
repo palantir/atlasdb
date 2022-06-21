@@ -32,16 +32,31 @@ public final class TraceStatistics {
                 }
             };
 
-    static TraceStatistic clearAndGetOld() {
+    public static TraceStatistic getCurrentAndClear() {
+        if (!Tracer.isTraceObservable()) {
+            return TraceStatistic.notObserved();
+        }
+
         TraceStatistic current = traceStatistic.get();
         traceStatistic.remove();
         return current;
     }
 
-    static TraceStatistic get() {
-        return traceStatistic.get().copy();
+    /**
+     * Get a direct reference to the mutable statistic. Only use this when the original thread can't be reached when
+     * the span finishes. Prefer using {@link TraceStatistics}.getCopyAndRestoreOriginal().
+     */
+    public static TraceStatistic getReferenceToCurrent() {
+        if (!Tracer.isTraceObservable()) {
+            return TraceStatistic.notObserved();
+        }
+
+        return traceStatistic.get();
     }
 
+    /**
+     * Increment the number of empty values that have been read.
+     */
     public static void incEmptyValues(long emptyValues) {
         if (!Tracer.isTraceObservable()) {
             return;
@@ -50,11 +65,30 @@ public final class TraceStatistics {
         traceStatistic.get().incEmptyReads(emptyValues);
     }
 
-    public static void restore(TraceStatistic oldValue) {
-        if (oldValue.isEmpty()) {
+    /**
+     * Increment the number of bytes that have been read.
+     */
+    public static void incBytesRead(long bytes) {
+        if (!Tracer.isTraceObservable()) {
+            return;
+        }
+
+        traceStatistic.get().incBytesReadFromDb(bytes);
+    }
+
+    public static TraceStatistic getCopyAndRestoreOriginal(TraceStatistic original) {
+        if (!Tracer.isTraceObservable()) {
+            return TraceStatistic.notObserved();
+        }
+
+        TraceStatistic current = traceStatistic.get().copy();
+
+        if (original.isEmpty()) {
             traceStatistic.remove();
         } else {
-            traceStatistic.set(oldValue);
+            traceStatistic.set(original);
         }
+
+        return current;
     }
 }
