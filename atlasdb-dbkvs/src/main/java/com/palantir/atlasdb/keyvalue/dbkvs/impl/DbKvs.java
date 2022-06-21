@@ -89,6 +89,7 @@ import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -348,9 +349,16 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
+
+                TraceStatistics.incBytesRead(cell.getRowName().length);
+                TraceStatistics.incBytesRead(cell.getColumnName().length);
+
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
                 if (overflowId == null) {
                     Value value = Value.create(row.getBytes(VAL), row.getLong(TIMESTAMP));
+
+                    TraceStatistics.incBytesRead(value.getContents().length);
+
                     Value oldValue = results.put(cell, value);
                     if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
                         results.put(cell, oldValue);
