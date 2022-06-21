@@ -78,7 +78,8 @@ public class CqlSession implements Closeable {
         CqlSession cqlSession = new CqlSession(cluster.connect());
         Optional<KeyspaceMetadata> keyspaceMetadata = cqlSession.getMetadata().getKeyspaceMetadata(namespace);
         if (keyspaceMetadata.isEmpty()) {
-            throw new SafeIllegalStateException("Metadata not found for keyspace. We'll retry the connection");
+            throw new SafeIllegalStateException(
+                    "Metadata not found for keyspace while attempting to connect", SafeArg.of("namespace", namespace));
         }
         return cqlSession;
     }
