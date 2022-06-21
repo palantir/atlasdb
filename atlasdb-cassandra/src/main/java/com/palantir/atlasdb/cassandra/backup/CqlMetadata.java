@@ -40,6 +40,7 @@ public class CqlMetadata {
         this.metadata = metadata;
     }
 
+    // TODO(gs): Optional.ofNullable
     public KeyspaceMetadata getKeyspaceMetadata(Namespace namespace) {
         return metadata.getKeyspace(namespace.value());
     }

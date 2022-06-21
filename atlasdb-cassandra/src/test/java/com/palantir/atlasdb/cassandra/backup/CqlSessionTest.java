@@ -32,24 +32,19 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CqlClusterTest {
+public class CqlSessionTest {
     @Mock
     private Cluster cluster;
 
     @Test
-    public void retriesSessionFetching() {
+    public void retriesCreation() {
         Session session = mock(Session.class);
 
         when(cluster.connect())
                 .thenThrow(new NoHostAvailableException(ImmutableMap.of()))
                 .thenReturn(session);
 
-        CqlCluster cqlCluster = new CqlCluster(
-                cluster,
-                BackupTestUtils.cqlCapableConfig("host1", "host2"),
-                Namespace.of("namespace"),
-                Duration.ofMillis(50L));
-
-        assertThatCode(cqlCluster::createSessionWithRetry).doesNotThrowAnyException();
+        assertThatCode(() -> CqlSession.create(cluster, Namespace.of("namespace"), Duration.ofMillis(50L)))
+                .doesNotThrowAnyException();
     }
 }
