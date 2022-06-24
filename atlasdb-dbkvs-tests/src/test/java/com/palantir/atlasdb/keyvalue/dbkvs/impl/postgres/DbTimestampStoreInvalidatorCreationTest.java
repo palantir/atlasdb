@@ -128,6 +128,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
                 Optional.empty(),
                 tableReference,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                true,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 }
