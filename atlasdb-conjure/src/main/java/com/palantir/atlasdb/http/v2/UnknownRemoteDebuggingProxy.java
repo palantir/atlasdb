@@ -18,6 +18,7 @@ package com.palantir.atlasdb.http.v2;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.RateLimiter;
+import com.palantir.common.base.Throwables;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -44,8 +45,9 @@ public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationH
     protected Object handleInvocation(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
         try {
             return method.invoke(delegate, args);
-        } catch (UnknownRemoteException e) {
-            if (rateLimiter.tryAcquire()) {
+        } catch (Throwable th) {
+            Throwable e = Throwables.unwrapIfPossible(th);
+            if (e instanceof UnknownRemoteException && rateLimiter.tryAcquire()) {
                 log.warn(
                         "Encountered UnknownRemoteException; logging current state of refreshable",
                         safeLoggableRefreshable.get(),
