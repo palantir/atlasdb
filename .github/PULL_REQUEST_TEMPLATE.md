@@ -17,7 +17,7 @@
 
 **Does this PR change the persisted format of any data - if so, do we have forward and backward compatibility?**:
 
-**The code in this PR may be part of a blue-green deploy. Can upgrades from previous versions safely coexist?**:
+**The code in this PR may be part of a blue-green deploy. Can upgrades from previous versions safely coexist? (Consider restarts of blue or green nodes.)**:
 
 **Does this PR rely on statements being true about other products at a deployment - if so, do we have correct product dependencies on these products (or other ways of verifying that these statements are true)?**:
 
