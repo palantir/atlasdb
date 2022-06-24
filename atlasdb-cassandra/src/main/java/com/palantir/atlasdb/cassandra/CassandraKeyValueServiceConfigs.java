@@ -87,7 +87,7 @@ public interface CassandraKeyValueServiceConfigs {
                 .build();
     }
 
-    default CassandraKeyValueServiceConfig copyWithKeyspace(
+    static CassandraKeyValueServiceConfig copyWithKeyspace(
             CassandraKeyValueServiceConfig config, String recommendedKeyspace) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(config)
