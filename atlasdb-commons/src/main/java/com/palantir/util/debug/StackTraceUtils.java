@@ -67,8 +67,8 @@ public final class StackTraceUtils {
     }
 
     enum DumpDetail {
-        ThreadStackTracesOnly(false),
-        IncludeLockedMonitorsAndSynchronizers(true);
+        THREAD_STACK_TRACES_ONLY(false),
+        INCLUDE_LOCKED_MONITORS_AND_SYNCHRONIZERS(true);
 
         final boolean includeLockedMonitorsAndSynchronizers;
 
@@ -79,7 +79,7 @@ public final class StackTraceUtils {
 
     public static String[] getStackTraceForConnection(MBeanServerConnection connection)
             throws JMException, IOException {
-        return getStackTraceForConnection(connection, false, DumpDetail.ThreadStackTracesOnly);
+        return getStackTraceForConnection(connection, false, DumpDetail.THREAD_STACK_TRACES_ONLY);
     }
 
     /**
@@ -88,7 +88,7 @@ public final class StackTraceUtils {
     @Deprecated
     public static String[] getStackTraceForConnection(MBeanServerConnection connection, boolean redact)
             throws JMException, IOException {
-        return getStackTraceForConnection(connection, redact, DumpDetail.ThreadStackTracesOnly);
+        return getStackTraceForConnection(connection, redact, DumpDetail.THREAD_STACK_TRACES_ONLY);
     }
 
     @SuppressWarnings("BadAssert") // performance sensitive
