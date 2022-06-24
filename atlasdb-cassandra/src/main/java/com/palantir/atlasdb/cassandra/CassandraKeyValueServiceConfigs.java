@@ -87,6 +87,14 @@ public interface CassandraKeyValueServiceConfigs {
                 .build();
     }
 
+    default CassandraKeyValueServiceConfig copyWithKeyspace(
+            CassandraKeyValueServiceConfig config, String recommendedKeyspace) {
+        return ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(config)
+                .keyspace(recommendedKeyspace)
+                .build();
+    }
+
     /***
      * 1. If the keyspace on the install config matches a non-empty keyspace provided, then the install config will
      * use that keyspace.

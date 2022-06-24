@@ -36,7 +36,7 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
     /**
      * Use {@link CassandraKeyValueServiceConfigs} to construct a reloading config where necessary.
      */
-    static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
+    public static Refreshable<CassandraReloadableKeyValueServiceRuntimeConfig> fromConfigs(
             CassandraKeyValueServiceConfig installConfig,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
         return runtimeConfigRefreshable.map(runtimeConfig ->
