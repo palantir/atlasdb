@@ -24,6 +24,8 @@
 **Does this PR need a schema migration?**
 
 ## Testing and Correctness
+**What, if any, assumptions are made about the current state of the world? If they change over time, how will we find out?**:
+
 **What was existing testing like? What have you done to improve it?**:
 
 **If this PR contains complex concurrent or asynchronous code, is it correct? The onus is on the PR writer to demonstrate this.**:
@@ -41,7 +43,7 @@
 
 **If this PR does not work as expected, how do I fix that state? Would rollback be straightforward?**:
 
-**If the above plan is more complex than “recall and rollback”, please tag the support PoC here**:
+**If the above plan is more complex than “recall and rollback”, please tag the support PoC here (if it is the end of the week, tag both the current and next PoC)**:
 
 ## Scale
 **Would this PR be expected to pose a risk at scale? Think of the shopping product at our largest stack.**:
