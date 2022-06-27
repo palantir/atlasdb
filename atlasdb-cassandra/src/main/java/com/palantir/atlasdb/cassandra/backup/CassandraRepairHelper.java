@@ -70,8 +70,8 @@ public class CassandraRepairHelper {
         this.refreshableCassandraServersConfigFactory = refreshableCassandraServersConfigFactory;
 
         this.cqlClusterContainers = Caffeine.newBuilder()
-                .maximumSize(100)
-                .expireAfterAccess(Duration.ofMinutes(20L))
+                .maximumSize(300)
+                .expireAfterAccess(Duration.ofMinutes(30L))
                 .removalListener(CassandraRepairHelper::onRemoval)
                 .build(this::getCqlClusterUncached);
     }
@@ -80,7 +80,6 @@ public class CassandraRepairHelper {
             AtlasService atlasService,
             ReloadingCloseableContainer<CqlCluster> reloadingCloseableContainer,
             RemovalCause _removalCause) {
-        log.info("Closing cql cluster container", SafeArg.of("atlasService", atlasService));
         try {
             reloadingCloseableContainer.close();
         } catch (Exception e) {
@@ -89,6 +88,7 @@ public class CassandraRepairHelper {
     }
 
     private ReloadingCloseableContainer<CqlCluster> getCqlClusterUncached(AtlasService atlasService) {
+        log.info("Creating CQL cluster for Atlas service", SafeArg.of("atlasService", atlasService));
         CassandraClusterConfig cassandraClusterConfig = cassandraClusterConfigFactory.apply(atlasService);
         Refreshable<CassandraServersConfig> cassandraServersConfigRefreshable =
                 refreshableCassandraServersConfigFactory.apply(atlasService);

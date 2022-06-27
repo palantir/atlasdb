@@ -239,7 +239,11 @@ public final class ColumnValueDescription {
         } else if (format == Format.PROTO) {
             result = varName + ".toByteArray()";
         } else if (format == Format.PERSISTER) {
-            result = "new " + canonicalClassName + "().persistToBytes(" + varName + ")";
+            if (isReusablePersister()) {
+                result = "REUSABLE_PERSISTER.persistToBytes(" + varName + ")";
+            } else {
+                result = "new " + canonicalClassName + "().persistToBytes(" + varName + ")";
+            }
         } else {
             result = type.getPersistCode(varName);
         }

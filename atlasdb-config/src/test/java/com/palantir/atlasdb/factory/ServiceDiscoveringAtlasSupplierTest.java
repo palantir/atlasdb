@@ -98,6 +98,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 Optional.empty(),
                 Optional.empty(),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                true,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 }

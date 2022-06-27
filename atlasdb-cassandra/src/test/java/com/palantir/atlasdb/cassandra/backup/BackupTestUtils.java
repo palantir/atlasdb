@@ -33,10 +33,14 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.xml.bind.DatatypeConverter;
 
 @SuppressWarnings("DnsLookup")
-final class BackupTestUtils {
+public final class BackupTestUtils {
+    public static final int TEST_THRIFT_PORT = 44;
+    public static final int TEST_CQL_PORT = 45;
+
     static final InetSocketAddress HOST_1 = new InetSocketAddress("cassandra-1", 9042);
     static final InetSocketAddress HOST_2 = new InetSocketAddress("cassandra-2", 9042);
     static final InetSocketAddress HOST_3 = new InetSocketAddress("cassandra-3", 9042);
@@ -54,6 +58,15 @@ final class BackupTestUtils {
 
     private BackupTestUtils() {
         // utility
+    }
+
+    public static CassandraServersConfigs.CqlCapableConfig cqlCapableConfig(String... hosts) {
+        Iterable<InetSocketAddress> thriftHosts = constructHosts(TEST_THRIFT_PORT, hosts);
+        Iterable<InetSocketAddress> cqlHosts = constructHosts(TEST_CQL_PORT, hosts);
+        return ImmutableCqlCapableConfig.builder()
+                .cqlHosts(cqlHosts)
+                .thriftHosts(thriftHosts)
+                .build();
     }
 
     static LightweightOppToken lightweightOppToken(String hexString) {
@@ -75,10 +88,9 @@ final class BackupTestUtils {
     }
 
     static List<TableMetadata> mockTableMetadatas(KeyspaceMetadata keyspaceMetadata, String... tableNames) {
-        List<TableMetadata> tableMetadatas = Arrays.stream(tableNames)
+        return Arrays.stream(tableNames)
                 .map(tableName -> mockTableMetadata(keyspaceMetadata, tableName))
                 .collect(Collectors.toList());
-        return tableMetadatas;
     }
 
     static KeyspaceMetadata mockKeyspaceMetadata(CqlMetadata cqlMetadata) {
@@ -93,5 +105,11 @@ final class BackupTestUtils {
         when(tableMetadata.getKeyspace()).thenReturn(keyspaceMetadata);
         when(tableMetadata.getName()).thenReturn(tableName);
         return tableMetadata;
+    }
+
+    private static List<InetSocketAddress> constructHosts(int port, String[] hosts) {
+        return Stream.of(hosts)
+                .map(host -> InetSocketAddress.createUnresolved(host, port))
+                .collect(Collectors.toList());
     }
 }

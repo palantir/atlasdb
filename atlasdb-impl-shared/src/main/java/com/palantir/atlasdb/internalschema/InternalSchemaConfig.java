@@ -56,7 +56,7 @@ public abstract class InternalSchemaConfig {
     @JsonProperty("acceptStagingReadsOnVersionThreeDangerousIKnowWhatIAmDoing")
     @Value.Default
     public boolean acceptStagingReadsOnVersionThree() {
-        return false;
+        return true;
     }
 
     @Value.Check

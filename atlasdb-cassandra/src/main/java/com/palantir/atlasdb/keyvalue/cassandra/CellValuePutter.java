@@ -99,7 +99,8 @@ public class CellValuePutter {
         for (final Map.Entry<CassandraServer, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
-                    "Atlas put " + entry.getValue().size() + " cell values to " + tableRef + " on " + entry.getKey(),
+                    "Atlas put " + entry.getValue().size() + " cell values to " + tableRef + " on "
+                            + entry.getKey().cassandraHostName(),
                     () -> {
                         putForSingleHost(
                                 kvsMethodName,
@@ -159,8 +160,8 @@ public class CellValuePutter {
 
             @Override
             public String toString() {
-                return "batch_mutate(" + server + ", " + tableRef.getQualifiedName() + ", " + Iterables.size(values)
-                        + " values)";
+                return "batch_mutate(" + server.cassandraHostName() + ", " + tableRef.getQualifiedName() + ", "
+                        + Iterables.size(values) + " values)";
             }
         });
     }
