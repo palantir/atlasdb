@@ -16,8 +16,4 @@ atlasdb:
         keyStorePath: var/security/keyStore.jks
         keyStorePassword: 1234567890
 
-  persistentStorage:
-    type: rocksdb
-    storagePath: atlasdb/rocksdb
-
   enableSweep: true
