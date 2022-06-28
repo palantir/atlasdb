@@ -38,12 +38,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.junit.Test;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
-public class TimestampRangeSetStoreConcurrencyTest {
+public class KnownConcludedTransactionsStoreConcurrencyTest {
     private final AtomicBoolean blockCalls = new AtomicBoolean(false);
     private final CountDownLatch latch = new CountDownLatch(1);
 
@@ -59,22 +61,19 @@ public class TimestampRangeSetStoreConcurrencyTest {
         }
         return delegateKeyValueService;
     };
-    private final TimestampRangeSetStore timestampRangeSetStore =
-            TimestampRangeSetStore.create(blockingKeyValueService);
+    private final KnownConcludedTransactionsStore knownConcludedTransactionsStore =
+            KnownConcludedTransactionsStore.create(blockingKeyValueService);
     private final ExecutorService taskExecutor = PTExecutors.newCachedThreadPool();
 
     @Test
     public void batchesReadsUnderHighConcurrency() throws InterruptedException {
-        timestampRangeSetStore.supplement(Range.closedOpen(10L, 50L));
+        knownConcludedTransactionsStore.supplement(Range.closedOpen(10L, 50L));
 
         startBlockingKeyValueServiceCalls();
         int numThreads = 100;
 
-        List<Future<Optional<TimestampRangeSet>>> readFutures = new ArrayList<>(numThreads);
-        for (int i = 0; i < numThreads; i++) {
-            Future<Optional<TimestampRangeSet>> rangeSetFuture = taskExecutor.submit(timestampRangeSetStore::get);
-            readFutures.add(rangeSetFuture);
-        }
+        List<Future<Optional<TimestampRangeSet>>> readFutures =
+                scheduleTasksInParallel(numThreads, taskIndex -> knownConcludedTransactionsStore.get());
 
         List<Optional<TimestampRangeSet>> reads = letTasksRunToCompletion(readFutures, false);
         for (Optional<TimestampRangeSet> read : reads) {
@@ -94,19 +93,14 @@ public class TimestampRangeSetStoreConcurrencyTest {
                 .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
                 .collect(Collectors.toList());
 
-        List<Future<Void>> supplementFutures = new ArrayList<>(numThreads);
-        for (int thread = 0; thread < numThreads; thread++) {
-            int threadIndex = thread;
-            Future<Void> supplementFuture = taskExecutor.submit(() -> {
-                timestampRangeSetStore.supplement(candidateTimestampRanges.get(threadIndex));
-                return null;
-            });
-            supplementFutures.add(supplementFuture);
-        }
+        List<Future<Void>> supplementFutures = scheduleTasksInParallel(numThreads, taskIndex -> {
+            knownConcludedTransactionsStore.supplement(candidateTimestampRanges.get(taskIndex));
+            return null;
+        });
 
         letTasksRunToCompletion(supplementFutures, true);
 
-        Optional<TimestampRangeSet> rangesInDb = timestampRangeSetStore.get();
+        Optional<TimestampRangeSet> rangesInDb = knownConcludedTransactionsStore.get();
         assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
                         timestampRangeSet.timestampRanges().asRanges())
                 .isSubsetOf(candidateTimestampRanges));
@@ -122,19 +116,14 @@ public class TimestampRangeSetStoreConcurrencyTest {
                 .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
                 .collect(Collectors.toList());
 
-        List<Future<Void>> supplementFutures = new ArrayList<>(numThreads);
-        for (int thread = 0; thread < numThreads; thread++) {
-            int threadIndex = thread;
-            Future<Void> supplementFuture = taskExecutor.submit(() -> {
-                timestampRangeSetStore.supplement(candidateTimestampRanges.get(threadIndex / threadsPerRange));
-                return null;
-            });
-            supplementFutures.add(supplementFuture);
-        }
+        List<Future<Void>> supplementFutures = scheduleTasksInParallel(numThreads, taskIndex -> {
+            knownConcludedTransactionsStore.supplement(candidateTimestampRanges.get(taskIndex / threadsPerRange));
+            return null;
+        });
 
         letTasksRunToCompletion(supplementFutures, true);
 
-        Optional<TimestampRangeSet> rangesInDb = timestampRangeSetStore.get();
+        Optional<TimestampRangeSet> rangesInDb = knownConcludedTransactionsStore.get();
         assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
                         timestampRangeSet.timestampRanges().asRanges())
                 .as("Given similarity of ranges, concurrency should be handled smoothly")
@@ -166,5 +155,11 @@ public class TimestampRangeSetStoreConcurrencyTest {
             }
         }
         return resultAccumulator;
+    }
+
+    private <T> List<Future<T>> scheduleTasksInParallel(int tasks, Function<Integer, T> taskFactory) {
+        return IntStream.range(0, tasks)
+                .mapToObj(index -> taskExecutor.submit(() -> taskFactory.apply(index)))
+                .collect(Collectors.toList());
     }
 }

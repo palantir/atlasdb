@@ -25,33 +25,36 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import org.junit.Test;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
-public class TimestampRangeSetStoreTest {
+public class KnownConcludedTransactionsStoreTest {
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
-    private final TimestampRangeSetStore timestampRangeSetStore = TimestampRangeSetStore.create(keyValueService);
+    private final KnownConcludedTransactionsStore knownConcludedTransactionsStore =
+            KnownConcludedTransactionsStore.create(keyValueService);
 
     @Test
     public void storeBeginsEmpty() {
-        assertThat(timestampRangeSetStore.get()).isEmpty();
+        assertThat(knownConcludedTransactionsStore.get()).isEmpty();
     }
 
     @Test
     public void canRetrieveStoredRange() {
-        timestampRangeSetStore.supplement(Range.closedOpen(1L, 100L));
-        assertThat(timestampRangeSetStore.get()).contains(TimestampRangeSet.singleRange(Range.closedOpen(1L, 100L)));
+        knownConcludedTransactionsStore.supplement(Range.closedOpen(1L, 100L));
+        assertThat(knownConcludedTransactionsStore.get())
+                .contains(TimestampRangeSet.singleRange(Range.closedOpen(1L, 100L)));
     }
 
     @Test
     public void coalescesRangesBeforeStorage() {
-        timestampRangeSetStore.supplement(Range.closedOpen(1L, 100L));
-        timestampRangeSetStore.supplement(Range.closedOpen(50L, 200L));
-        assertThat(timestampRangeSetStore.get()).contains(TimestampRangeSet.singleRange(Range.closedOpen(1L, 200L)));
+        knownConcludedTransactionsStore.supplement(Range.closedOpen(1L, 100L));
+        knownConcludedTransactionsStore.supplement(Range.closedOpen(50L, 200L));
+        assertThat(knownConcludedTransactionsStore.get())
+                .contains(TimestampRangeSet.singleRange(Range.closedOpen(1L, 200L)));
     }
 
     @Test
     public void tracksDistinctRanges() {
-        timestampRangeSetStore.supplement(Range.closedOpen(1L, 100L));
-        timestampRangeSetStore.supplement(Range.closedOpen(150L, 200L));
-        assertThat(timestampRangeSetStore.get())
+        knownConcludedTransactionsStore.supplement(Range.closedOpen(1L, 100L));
+        knownConcludedTransactionsStore.supplement(Range.closedOpen(150L, 200L));
+        assertThat(knownConcludedTransactionsStore.get())
                 .contains(ImmutableTimestampRangeSet.builder()
                         .timestampRanges(ImmutableRangeSet.<Long>builder()
                                 .add(Range.closedOpen(1L, 100L))

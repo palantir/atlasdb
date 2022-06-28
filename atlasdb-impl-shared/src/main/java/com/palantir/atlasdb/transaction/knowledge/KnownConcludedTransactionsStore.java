@@ -45,8 +45,8 @@ import javax.annotation.concurrent.ThreadSafe;
  * key-value-service.
  */
 @ThreadSafe
-public final class TimestampRangeSetStore {
-    private static final SafeLogger log = SafeLoggerFactory.get(TimestampRangeSetStore.class);
+public final class KnownConcludedTransactionsStore {
+    private static final SafeLogger log = SafeLoggerFactory.get(KnownConcludedTransactionsStore.class);
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newSmileServerObjectMapper();
     private static final Cell DEFAULT_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
     private static final int MAX_ATTEMPTS = 20;
@@ -56,15 +56,16 @@ public final class TimestampRangeSetStore {
     private final Cell valueCell;
     private final CoalescingSupplier<Optional<ReadResult>> valueReader;
 
-    private TimestampRangeSetStore(KeyValueService keyValueService, TableReference tableReference, Cell valueCell) {
+    private KnownConcludedTransactionsStore(
+            KeyValueService keyValueService, TableReference tableReference, Cell valueCell) {
         this.keyValueService = keyValueService;
         this.tableReference = tableReference;
         this.valueCell = valueCell;
         this.valueReader = new CoalescingSupplier<>(this::getInternal);
     }
 
-    public static TimestampRangeSetStore create(KeyValueService keyValueService) {
-        return new TimestampRangeSetStore(
+    public static KnownConcludedTransactionsStore create(KeyValueService keyValueService) {
+        return new KnownConcludedTransactionsStore(
                 keyValueService, TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE, DEFAULT_CELL);
     }
 
