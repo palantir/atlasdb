@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -72,6 +73,16 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     @Override
     public void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         delegate.putUnlessExists(values);
+    }
+
+    @Override
+    public void markAsInProgress(Cell cell) {
+        // do nothing
+    }
+
+    @Override
+    public void markAsInProgress(Collection<Cell> cells) {
+        // do nothing
     }
 
     @Override

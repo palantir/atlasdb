@@ -26,6 +26,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,16 @@ public class PreStartHandlingTransactionService implements TransactionService {
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.getUnchecked(getInternal(startTimestamps, synchronousAsyncTransactionService));
+    }
+
+    @Override
+    public void markAsInProgress(long startTimestamp) {
+        delegate.markAsInProgress(startTimestamp);
+    }
+
+    @Override
+    public void markAsInProgress(Collection<Long> startTimestamps) {
+        delegate.markAsInProgress(startTimestamps);
     }
 
     @Override

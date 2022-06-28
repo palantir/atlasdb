@@ -21,7 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.pue.ConsensusForgettingStore;
 import com.palantir.atlasdb.pue.InstrumentedConsensusForgettingStore;
-import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
+import com.palantir.atlasdb.pue.PueKvsConsensusForgettingStore;
 import com.palantir.atlasdb.pue.PutUnlessExistsTable;
 import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.pue.SimpleCommitTimestampPutUnlessExistsTable;
@@ -80,7 +80,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
-                new KvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
+                new PueKvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
         PutUnlessExistsTable<Long, Long> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted);
         return new SimpleTransactionService(pueTable, encodingStrategy);

@@ -84,6 +84,16 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
+    public void markAsInProgress(long startTimestamp) {
+        delegate.markAsInProgress(startTimestamp);
+    }
+
+    @Override
+    public void markAsInProgress(Collection<Long> startTimestamps) {
+        delegate.markAsInProgress(startTimestamps);
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return delegate.getAsync(startTimestamp);
     }

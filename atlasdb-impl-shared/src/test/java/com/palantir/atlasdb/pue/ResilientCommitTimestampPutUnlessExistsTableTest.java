@@ -54,7 +54,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     private final UnreliableInMemoryKvs kvs = new UnreliableInMemoryKvs();
     private final ConsensusForgettingStore spiedStore =
-            spy(new KvsConsensusForgettingStore(kvs, TableReference.createFromFullyQualifiedName("test.table")));
+            spy(new PueKvsConsensusForgettingStore(kvs, TableReference.createFromFullyQualifiedName("test.table")));
 
     private final PutUnlessExistsTable<Long, Long> pueTable;
 

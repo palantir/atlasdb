@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
-import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
+import com.palantir.atlasdb.pue.PueKvsConsensusForgettingStore;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
@@ -43,7 +43,7 @@ import org.apache.cassandra.thrift.Mutation;
 public class CellValuePutter {
     /**
      * This value has been chosen so that, in case of internal KVS inconsistency, the value stored with
-     * {@link KvsConsensusForgettingStore#put(Cell, byte[])} is always considered as the latest value. It is the
+     * {@link PueKvsConsensusForgettingStore#put(Cell, byte[])} is always considered as the latest value. It is the
      * responsibility of the user of this class to verify that this is true for the particular KVS implementation,
      * which it is and must remain so for the Cassandra KVS.
      */

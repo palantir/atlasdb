@@ -20,6 +20,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
@@ -38,10 +39,16 @@ public interface ConsensusForgettingStore {
      *   1. A subsequent PUE may succeed or fail non-deterministically
      *   2. A subsequent get may return Optional.of(value), Optional.empty(), or even Optional.of(other_value) if
      *   another PUE has failed in the past non-deterministically
+     *
+     *   The implementation of this method may not internally use
      */
-    void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException;
+    void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException, CheckAndSetException;
 
-    void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+    void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException, CheckAndSetException;
+
+    void markAsInProgress(Cell cell);
+
+    void markAsInProgress(Collection<Cell> cells);
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a

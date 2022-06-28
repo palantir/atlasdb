@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,47 +18,59 @@ package com.palantir.atlasdb.pue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
+public class CasConsensusForgettingStore implements ConsensusForgettingStore {
+    private final byte[] inProgressMarker;
     private final KeyValueService kvs;
     private final TableReference tableRef;
 
-    public KvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
+    public CasConsensusForgettingStore(byte[] inProgressMarker, KeyValueService kvs, TableReference tableRef) {
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
+        this.inProgressMarker = inProgressMarker;
         this.kvs = kvs;
         this.tableRef = tableRef;
     }
 
     @Override
-    public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        putUnlessExists(ImmutableMap.of(cell, value));
+    public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException, CheckAndSetException {
+        // use CAS
     }
 
     @Override
-    public void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        kvs.putUnlessExists(tableRef, values);
+    public void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException, CheckAndSetException {
+        // use multiCAS
+    }
+
+    @Override
+    public void markAsInProgress(Cell cell) {
+        markAsInProgress(ImmutableSet.of(cell));
+    }
+
+    @Override
+    public void markAsInProgress(Collection<Cell> cells) {
+        kvs.put(tableRef, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> inProgressMarker)), 0L);
     }
 
     @Override
     public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, value, value);
-        kvs.checkAndSet(request);
+        // bebetter
     }
 
     @Override
