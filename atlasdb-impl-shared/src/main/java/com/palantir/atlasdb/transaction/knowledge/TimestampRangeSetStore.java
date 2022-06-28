@@ -41,6 +41,10 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.concurrent.ThreadSafe;
 
+/**
+ * Stores information about a {@link TimestampRangeSet} in a single cell in a single table in an underlying
+ * key-value-service.
+ */
 @ThreadSafe
 public final class TimestampRangeSetStore {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampRangeSetStore.class);

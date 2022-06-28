@@ -19,7 +19,9 @@ package com.palantir.atlasdb.transaction.knowledge;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.google.common.collect.Sets;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -35,18 +37,21 @@ public interface TimestampRangeSet {
     }
 
     default TimestampRangeSet copyAndAdd(Range<Long> additionalTimestampRange) {
-        ImmutableRangeSet<Long> newTimestampRanges = ImmutableRangeSet.<Long>builder()
-                .addAll(timestampRanges())
-                .add(additionalTimestampRange)
+        return ImmutableTimestampRangeSet.builder()
+                .timestampRanges(ImmutableRangeSet.unionOf(
+                        Sets.union(timestampRanges().asRanges(), ImmutableSet.of(additionalTimestampRange))))
                 .build();
-        return ImmutableTimestampRangeSet.builder().timestampRanges(newTimestampRanges).build();
     }
 
     static TimestampRangeSet singleRange(Range<Long> timestampRange) {
-        return ImmutableTimestampRangeSet.builder().timestampRanges(ImmutableRangeSet.of(timestampRange)).build();
+        return ImmutableTimestampRangeSet.builder()
+                .timestampRanges(ImmutableRangeSet.of(timestampRange))
+                .build();
     }
 
     static TimestampRangeSet empty() {
-        return ImmutableTimestampRangeSet.builder().timestampRanges(ImmutableRangeSet.of()).build();
+        return ImmutableTimestampRangeSet.builder()
+                .timestampRanges(ImmutableRangeSet.of())
+                .build();
     }
 }

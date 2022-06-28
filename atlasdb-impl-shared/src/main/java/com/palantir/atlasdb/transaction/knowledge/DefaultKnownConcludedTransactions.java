@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
-public class DefaultKnownConcludedTransactions implements KnownConcludedTransactions {
+public final class DefaultKnownConcludedTransactions implements KnownConcludedTransactions {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultKnownConcludedTransactions.class);
     private static final int MAX_ATTEMPTS = 10;
 
@@ -40,11 +40,10 @@ public class DefaultKnownConcludedTransactions implements KnownConcludedTransact
      */
     private final AtomicReference<ImmutableRangeSet<Long>> cachedConcludedTimestamps;
 
-    private final CoalescingSupplier<Void> cacheUpdater =
-            new CoalescingSupplier<>(() -> {
-                updateCacheFromRemote();
-                return null;
-            });
+    private final CoalescingSupplier<Void> cacheUpdater = new CoalescingSupplier<>(() -> {
+        updateCacheFromRemote();
+        return null;
+    });
 
     public DefaultKnownConcludedTransactions(TimestampRangeSetStore timestampRangeSetStore) {
         this.timestampRangeSetStore = timestampRangeSetStore;
@@ -74,7 +73,10 @@ public class DefaultKnownConcludedTransactions implements KnownConcludedTransact
     }
 
     private void updateCacheFromRemote() {
-        ensureRangesCached(() -> timestampRangeSetStore.get().map(TimestampRangeSet::timestampRanges).orElse(ImmutableRangeSet.of()));
+        ensureRangesCached(() -> timestampRangeSetStore
+                .get()
+                .map(TimestampRangeSet::timestampRanges)
+                .orElse(ImmutableRangeSet.of()));
     }
 
     private void ensureRangesCached(Supplier<RangeSet<Long>> timestampRangesSupplier) {
@@ -93,7 +95,8 @@ public class DefaultKnownConcludedTransactions implements KnownConcludedTransact
             }
             // Concurrent update; can try again.
         }
-        log.warn("Unable to ensure ranges of known concluded transactions were cached.",
+        log.warn(
+                "Unable to ensure ranges of known concluded transactions were cached.",
                 SafeArg.of("numAttempts", MAX_ATTEMPTS));
         throw new SafeIllegalStateException("Unable to ensure ranges of known concluded transactions were cached.");
     }
