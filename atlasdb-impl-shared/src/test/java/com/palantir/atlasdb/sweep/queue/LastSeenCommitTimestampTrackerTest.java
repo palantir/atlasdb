@@ -35,7 +35,7 @@ import java.util.function.LongSupplier;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 
-public class OldestTargetedSweepTrackedTimestampTest {
+public class LastSeenCommitTimestampTrackerTest {
     private final KeyValueService kvs = spy(new InMemoryKeyValueService(true));
     private final LongSupplier timestampSupplier = mock(LongSupplier.class);
     private final AtomicBoolean schedulerShutDown = new AtomicBoolean(false);
@@ -46,8 +46,8 @@ public class OldestTargetedSweepTrackedTimestampTest {
             return ImmutableList.of();
         }
     };
-    private final OldestTargetedSweepTrackedTimestamp tracker =
-            new OldestTargetedSweepTrackedTimestamp(kvs, timestampSupplier, deterministicScheduler);
+    private final LastSeenCommitTimestampTracker tracker =
+            new LastSeenCommitTimestampTracker(kvs, deterministicScheduler);
 
     @Test
     public void persistsValidTimestampAndShutsDown() {
@@ -56,7 +56,7 @@ public class OldestTargetedSweepTrackedTimestampTest {
         tracker.start();
         deterministicScheduler.tick(0, TimeUnit.SECONDS);
 
-        assertThat(tracker.getOldestTimestamp()).hasValue(42L);
+        assertThat(tracker.getLastSeenCommitTimestamp()).hasValue(42L);
         assertThat(schedulerShutDown).isTrue();
 
         clearInvocations(kvs);
@@ -71,61 +71,61 @@ public class OldestTargetedSweepTrackedTimestampTest {
         tracker.start();
         deterministicScheduler.tick(0, TimeUnit.SECONDS);
 
-        assertThat(tracker.getOldestTimestamp()).isEmpty();
+        assertThat(tracker.getLastSeenCommitTimestamp()).isEmpty();
 
         deterministicScheduler.tick(1, TimeUnit.SECONDS);
-        assertThat(tracker.getOldestTimestamp()).hasValue(17L);
+        assertThat(tracker.getLastSeenCommitTimestamp()).hasValue(17L);
         assertThat(schedulerShutDown).isTrue();
     }
 
     @Test
     public void doesNotIncreaseExistingTimestamp() {
-        OldestTargetedSweepTrackedTimestamp otherTracker =
-                new OldestTargetedSweepTrackedTimestamp(kvs, () -> 1L, deterministicScheduler);
+        LastSeenCommitTimestampTracker otherTracker =
+                new LastSeenCommitTimestampTracker(kvs, () -> 1L, deterministicScheduler);
 
         otherTracker.start();
         deterministicScheduler.tick(0, TimeUnit.SECONDS);
 
-        assertThat(tracker.getOldestTimestamp()).hasValue(1L);
+        assertThat(tracker.getLastSeenCommitTimestamp()).hasValue(1L);
 
         when(timestampSupplier.getAsLong()).thenReturn(100L);
         tracker.start();
         deterministicScheduler.tick(1, TimeUnit.SECONDS);
 
-        assertThat(tracker.getOldestTimestamp()).hasValue(1L);
+        assertThat(tracker.getLastSeenCommitTimestamp()).hasValue(1L);
     }
 
     @Test
     public void doesReduceExistingTimestamp() {
-        OldestTargetedSweepTrackedTimestamp otherTracker =
-                new OldestTargetedSweepTrackedTimestamp(kvs, () -> 100L, deterministicScheduler);
+        LastSeenCommitTimestampTracker otherTracker =
+                new LastSeenCommitTimestampTracker(kvs, () -> 100L, deterministicScheduler);
 
         otherTracker.start();
         deterministicScheduler.tick(0, TimeUnit.SECONDS);
 
-        assertThat(tracker.getOldestTimestamp()).hasValue(100L);
+        assertThat(tracker.getLastSeenCommitTimestamp()).hasValue(100L);
 
         when(timestampSupplier.getAsLong()).thenReturn(13L);
         tracker.start();
         deterministicScheduler.tick(1, TimeUnit.SECONDS);
 
-        assertThat(tracker.getOldestTimestamp()).hasValue(13L);
+        assertThat(tracker.getLastSeenCommitTimestamp()).hasValue(13L);
     }
 
     @Test
     public void resilientToKvsFailures() {
         KeyValueService nonInitialisedKvs = new InMemoryKeyValueService(false);
-        OldestTargetedSweepTrackedTimestamp otherTracker =
-                new OldestTargetedSweepTrackedTimestamp(nonInitialisedKvs, () -> 1L, deterministicScheduler);
+        LastSeenCommitTimestampTracker otherTracker =
+                new LastSeenCommitTimestampTracker(nonInitialisedKvs, () -> 1L, deterministicScheduler);
 
         otherTracker.start();
         deterministicScheduler.tick(1, TimeUnit.SECONDS);
 
-        assertThatThrownBy(otherTracker::getOldestTimestamp).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(otherTracker::getLastSeenCommitTimestamp).isInstanceOf(RuntimeException.class);
 
         nonInitialisedKvs.createTable(
                 ShardProgress.TABLE_REF, TableMetadata.allDefault().persistToBytes());
         deterministicScheduler.tick(1, TimeUnit.SECONDS);
-        assertThat(otherTracker.getOldestTimestamp()).hasValue(1L);
+        assertThat(otherTracker.getLastSeenCommitTimestamp()).hasValue(1L);
     }
 }

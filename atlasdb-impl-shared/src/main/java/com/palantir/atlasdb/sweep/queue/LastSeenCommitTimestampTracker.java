@@ -18,49 +18,31 @@ package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
 
-/**
- * WARNING: The correctness of using this information depends on
- * {@link TargetedSweepInstallConfig#enableSweepQueueWrites()} being true on every service node since the moment
- * this is first scheduled.
- */
-public class OldestTargetedSweepTrackedTimestamp implements AutoCloseable {
-    private static final SafeLogger log = SafeLoggerFactory.get(OldestTargetedSweepTrackedTimestamp.class);
+public class LastSeenCommitTimestampTracker implements AutoCloseable {
+    private static final SafeLogger log = SafeLoggerFactory.get(LastSeenCommitTimestampTracker.class);
 
     private final ShardProgress shardProgress;
-    private final LongSupplier timestampService;
     private final ScheduledExecutorService executor;
 
+    // Todo(snanda)
     private volatile OptionalLong oldestTimestamp = OptionalLong.empty();
 
     @VisibleForTesting
-    OldestTargetedSweepTrackedTimestamp(
-            KeyValueService kvs, LongSupplier timestampService, ScheduledExecutorService executor) {
+    public LastSeenCommitTimestampTracker(KeyValueService kvs, ScheduledExecutorService executor) {
         this.shardProgress = new ShardProgress(kvs);
-        this.timestampService = timestampService;
         this.executor = executor;
     }
 
-    public static OldestTargetedSweepTrackedTimestamp createStarted(
-            KeyValueService kvs, TimestampService timestampService, ScheduledExecutorService executor) {
-        OldestTargetedSweepTrackedTimestamp timestampTracker =
-                new OldestTargetedSweepTrackedTimestamp(kvs, timestampService::getFreshTimestamp, executor);
-        timestampTracker.start();
-        return timestampTracker;
-    }
-
-    public OptionalLong getOldestTimestamp() {
-        return shardProgress.getOldestSeenTimestamp().map(OptionalLong::of).orElseGet(OptionalLong::empty);
+    public OptionalLong getLastSeenCommitTimestamp() {
+        return shardProgress.getLastSeenCommitTimestamp().map(OptionalLong::of).orElseGet(OptionalLong::empty);
     }
 
     @VisibleForTesting
@@ -77,21 +59,24 @@ public class OldestTargetedSweepTrackedTimestamp implements AutoCloseable {
     private boolean tryToPersist() {
         try {
             if (oldestTimestamp.isEmpty()) {
-                oldestTimestamp = OptionalLong.of(timestampService.getAsLong());
+                // todo(snanda)
             }
-            persist();
+            persistLastSeenCommitTimestamp();
             executor.shutdownNow();
             return true;
         } catch (Exception e) {
-            log.info("Failed to persist timestamp", SafeArg.of("oldestSeenTs", oldestTimestamp), e);
+            log.info(
+                    "Failed to persist last seen commit timestamp by sweep",
+                    SafeArg.of("lastSeenCommitTs", oldestTimestamp),
+                    e);
             return false;
         }
     }
 
-    private void persist() {
-        Optional<Long> persisted = shardProgress.getOldestSeenTimestamp();
+    private void persistLastSeenCommitTimestamp() {
+        Optional<Long> persisted = shardProgress.getLastSeenCommitTimestamp();
         if (persisted.map(actual -> actual > oldestTimestamp.getAsLong()).orElse(true)) {
-            shardProgress.tryUpdateOldestSeenTimestamp(persisted, oldestTimestamp.getAsLong());
+            shardProgress.tryUpdateLastSeenCommitTimestamp(persisted, oldestTimestamp.getAsLong());
         }
     }
 
