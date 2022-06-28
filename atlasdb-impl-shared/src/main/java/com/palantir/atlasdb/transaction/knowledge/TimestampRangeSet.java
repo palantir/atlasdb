@@ -18,18 +18,35 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.TreeRangeSet;
+import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.Range;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableTimestampRangeSet.class)
 @JsonDeserialize(as = ImmutableTimestampRangeSet.class)
+@SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public interface TimestampRangeSet {
-    /**
-     * Ranges of timestamps included in this set. Depending on the concrete type {@link TreeRangeSet} is not ideal,
-     * but is required to ensure that ranges are serialized in a deterministic way (because this happens by iterating
-     * through the map), and there does not exist a generic interface for a sorted range-set.
-     */
     @Value.Parameter
-    TreeRangeSet<Long> timestampRanges();
+    ImmutableRangeSet<Long> timestampRanges();
+
+    default boolean encloses(Range<Long> timestampRange) {
+        return timestampRanges().encloses(timestampRange);
+    }
+
+    default TimestampRangeSet copyAndAdd(Range<Long> additionalTimestampRange) {
+        ImmutableRangeSet<Long> newTimestampRanges = ImmutableRangeSet.<Long>builder()
+                .addAll(timestampRanges())
+                .add(additionalTimestampRange)
+                .build();
+        return ImmutableTimestampRangeSet.builder().timestampRanges(newTimestampRanges).build();
+    }
+
+    static TimestampRangeSet singleRange(Range<Long> timestampRange) {
+        return ImmutableTimestampRangeSet.builder().timestampRanges(ImmutableRangeSet.of(timestampRange)).build();
+    }
+
+    static TimestampRangeSet empty() {
+        return ImmutableTimestampRangeSet.builder().timestampRanges(ImmutableRangeSet.of()).build();
+    }
 }
