@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Make thread dump configurable
+  links:
+  - https://github.com/palantir/atlasdb/pull/6084

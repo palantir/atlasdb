@@ -54,6 +54,7 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<ManagedTimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
     private final DerivedSnapshotConfig derivedSnapshotConfig;
+    private final boolean collectThreadDumps;
 
     public ServiceDiscoveringAtlasSupplier(
             MetricsManager metricsManager,
@@ -63,8 +64,10 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<String> namespace,
             Optional<TableReference> tableReferenceOverride,
             boolean initializeAsync,
+            boolean collectThreadDumpOnInit,
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
+        this.collectThreadDumps = collectThreadDumpOnInit;
 
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
@@ -90,10 +93,12 @@ public class ServiceDiscoveringAtlasSupplier {
                         + "thread {}. This should only happen once.",
                 SafeArg.of("threadName", Thread.currentThread().getName()));
 
-        if (timestampServiceCreationInfo == null) {
-            timestampServiceCreationInfo = ThreadDumps.programmaticThreadDump();
-        } else {
-            handleMultipleTimestampFetch();
+        if (collectThreadDumps) {
+            if (timestampServiceCreationInfo == null) {
+                timestampServiceCreationInfo = ThreadDumps.programmaticThreadDump();
+            } else {
+                handleMultipleTimestampFetch();
+            }
         }
 
         return timestampService.get();
