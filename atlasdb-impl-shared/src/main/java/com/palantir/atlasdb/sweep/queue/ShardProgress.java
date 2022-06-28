@@ -42,7 +42,7 @@ public class ShardProgress {
     private static final int SHARD_COUNT_INDEX = -1;
     static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
 
-    // This is unused but the constant is NEVER to be re-used.
+    // This is unused but the constant value is NEVER to be re-used.
     private static final int UNUSED_OLDEST_SEEN_INDEX = -2;
 
     private static final int LAST_SEEN_COMMIT_TS_INDEX = -3;
@@ -92,18 +92,24 @@ public class ShardProgress {
      * @return the latest known persisted sweep timestamp for the shard and strategy
      */
     public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
-        return increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
+        long lastSeenCommitTs =
+                increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
+        tryUpdateLastSeenCommitTimestamp(lastSeenCommitTs);
+        return lastSeenCommitTs;
     }
 
     public Optional<Long> getLastSeenCommitTimestamp() {
         return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP);
     }
 
-    public void tryUpdateLastSeenCommitTimestamp(Optional<Long> previous, long next) {
-        byte[] colValNew = createColumnValue(next);
-        CheckAndSetRequest casRequest = createRequest(
-                LAST_SEEN_COMMIT_TIMESTAMP, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
-        kvs.checkAndSet(casRequest);
+    public void tryUpdateLastSeenCommitTimestamp(long lastSeenCommitTs) {
+        Optional<Long> previous = getLastSeenCommitTimestamp();
+        if (previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true)) {
+            byte[] colValNew = createColumnValue(lastSeenCommitTs);
+            CheckAndSetRequest casRequest = createRequest(
+                    LAST_SEEN_COMMIT_TIMESTAMP, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
+            kvs.checkAndSet(casRequest);
+        }
     }
 
     private Optional<Long> maybeGet(ShardAndStrategy shardAndStrategy) {

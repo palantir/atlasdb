@@ -81,7 +81,6 @@ import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
-import com.palantir.atlasdb.sweep.queue.LastSeenCommitTimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
@@ -113,7 +112,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -422,13 +420,6 @@ public abstract class TransactionManagers {
                             MetricRegistry.name(KeyValueService.class));
                     return ValidatingQueryRewritingKeyValueService.create(kvs);
                 },
-                closeables);
-
-        // Todo(snanda)
-        initializeCloseable(
-                () -> new LastSeenCommitTimestampTracker(
-                        keyValueService,
-                        PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("LastSeenCommitTs", true))),
                 closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
