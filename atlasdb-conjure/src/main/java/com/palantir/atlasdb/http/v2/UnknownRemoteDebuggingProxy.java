@@ -46,14 +46,14 @@ public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationH
         try {
             return method.invoke(delegate, args);
         } catch (Throwable th) {
-            Throwable e = Throwables.unwrapIfPossible(th);
-            if (e instanceof UnknownRemoteException && rateLimiter.tryAcquire()) {
+            Throwable ex = Throwables.unwrapIfPossible(th);
+            if (ex instanceof UnknownRemoteException && rateLimiter.tryAcquire()) {
                 log.warn(
                         "Encountered UnknownRemoteException; logging current state of refreshable",
                         safeLoggableRefreshable.get(),
-                        e);
+                        ex);
             }
-            throw e;
+            throw ex;
         }
     }
 

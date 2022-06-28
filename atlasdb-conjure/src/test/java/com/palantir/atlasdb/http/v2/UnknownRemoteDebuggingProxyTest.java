@@ -50,6 +50,9 @@ public class UnknownRemoteDebuggingProxyTest {
         when(binaryOperator.apply(1, 2)).thenThrow(ex);
 
         assertThatThrownBy(() -> debuggingProxy.apply(1, 2)).isEqualTo(ex);
+
+        // The time limit for retrying is FastFailoverProxy#TIME_LIMIT which is 10s. We add 1 second to the close
+        // each time we retry to get a total of 10 retries for failing requests.
         verify(binaryOperator, times(10)).apply(1, 2);
     }
 
