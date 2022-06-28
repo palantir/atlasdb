@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public final class DefaultKnownConcludedTransactions implements KnownConcludedTransactions {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultKnownConcludedTransactions.class);
-    private static final int MAX_ATTEMPTS = 10;
+    private static final int MAX_ATTEMPTS = 20;
 
     private final TimestampRangeSetStore timestampRangeSetStore;
 

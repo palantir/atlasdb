@@ -32,9 +32,8 @@ public class TimestampRangeSetTest {
             .add(Range.openClosed(10L, 20L))
             .add(Range.openClosed(30L, 40L))
             .build();
-    private static final TimestampRangeSet BASE_RANGE_SET = ImmutableTimestampRangeSet.builder()
-            .timestampRanges(BASE_RANGES)
-            .build();
+    private static final TimestampRangeSet BASE_RANGE_SET =
+            ImmutableTimestampRangeSet.builder().timestampRanges(BASE_RANGES).build();
 
     @Test
     public void enclosesIdentifiesDirectMatch() {
@@ -75,19 +74,18 @@ public class TimestampRangeSetTest {
 
     @Test
     public void copyAndAddExtendsExistingRangesIfOverlapping() {
-        assertThat(BASE_RANGE_SET.copyAndAdd(Range.openClosed(35L, 55L)).timestampRanges()).isEqualTo(
-                ImmutableRangeSet.<Long>builder()
+        assertThat(BASE_RANGE_SET.copyAndAdd(Range.openClosed(35L, 55L)).timestampRanges())
+                .isEqualTo(ImmutableRangeSet.<Long>builder()
                         .add(Range.openClosed(10L, 20L))
                         .add(Range.openClosed(30L, 55L))
                         .build());
     }
 
-
     @Test
     public void copyAndAddAddsSeparateRangeIfDisjoint() {
         Range<Long> outsideRange = Range.openClosed(50L, 55L);
-        assertThat(BASE_RANGE_SET.copyAndAdd(outsideRange).timestampRanges()).isEqualTo(
-                ImmutableRangeSet.<Long>builder()
+        assertThat(BASE_RANGE_SET.copyAndAdd(outsideRange).timestampRanges())
+                .isEqualTo(ImmutableRangeSet.<Long>builder()
                         .addAll(BASE_RANGES)
                         .add(outsideRange)
                         .build());

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import org.immutables.value.Value;
 
@@ -30,7 +31,7 @@ import org.immutables.value.Value;
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public interface TimestampRangeSet {
     @Value.Parameter
-    ImmutableRangeSet<Long> timestampRanges();
+    RangeSet<Long> timestampRanges();
 
     default boolean encloses(Range<Long> timestampRange) {
         return timestampRanges().encloses(timestampRange);

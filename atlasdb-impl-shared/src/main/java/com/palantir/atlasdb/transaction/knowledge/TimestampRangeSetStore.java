@@ -20,7 +20,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -50,7 +49,7 @@ public final class TimestampRangeSetStore {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampRangeSetStore.class);
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newSmileServerObjectMapper();
     private static final Cell DEFAULT_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
-    private static final int MAX_ATTEMPTS = 10;
+    private static final int MAX_ATTEMPTS = 20;
 
     private final KeyValueService keyValueService;
     private final TableReference tableReference;
@@ -138,8 +137,7 @@ public final class TimestampRangeSetStore {
     }
 
     private Optional<ReadResult> getInternal() {
-        Map<Cell, Value> read =
-                keyValueService.get(tableReference, ImmutableMap.of(valueCell, AtlasDbConstants.TRANSACTION_TS));
+        Map<Cell, Value> read = keyValueService.get(tableReference, ImmutableMap.of(valueCell, Long.MAX_VALUE));
         return read.values().stream().findAny().map(Value::getContents).map(bytes -> ImmutableReadResult.builder()
                 .valueReadFromDatabase(bytes)
                 .build());
