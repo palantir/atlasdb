@@ -59,7 +59,7 @@
 
 **Please tag any other people who should be aware of this PR**:
 @jeremyk-91
-(TODO: add SV's OSS GH)
+@sverma30
 @raiju
 
 <!---
