@@ -74,10 +74,10 @@ public final class KnownConcludedTransactionsStore {
 
     /**
      * If this method completes non-exceptionally, it is guaranteed that the {@link TimestampRangeSet} persisted in
-     * the database contains the provided {@param timestampRangeToAdd}.
+     * the database contains the provided {@code timestampRangeToAdd}.
      *
      * In the event of multiple concurrent calls to this method, it is guaranteed that if they all resolve, then all
-     * of the {@param timestampRangeToAdd} arguments will be enclosed in the final state of the
+     * of the {@code timestampRangeToAdd} arguments will be enclosed in the final state of the
      * {@link TimestampRangeSet} that has been persisted in the database.
      */
     public void supplement(Range<Long> timestampRangeToAdd) {
