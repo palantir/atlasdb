@@ -111,7 +111,7 @@ public final class CqlSession implements Closeable {
     }
 
     public TableMetadata getTableMetadata(String tableName) {
-        Optional<TableMetadata> maybeTableMetadata = maybeGetTableMetadata(tableName);
+        Optional<TableMetadata> maybeTableMetadata = getTableMetadataIfPresent(tableName);
         if (maybeTableMetadata.isPresent()) {
             return maybeTableMetadata.get();
         }
@@ -127,7 +127,7 @@ public final class CqlSession implements Closeable {
         try {
             return tableMetadataRetryer.call(() -> {
                 refreshSession();
-                return maybeGetTableMetadata(tableName).orElseThrow();
+                return getTableMetadataIfPresent(tableName).orElseThrow();
             });
         } catch (ExecutionException e) {
             throw new SafeIllegalStateException(
@@ -149,7 +149,7 @@ public final class CqlSession implements Closeable {
         session = cluster.connect();
     }
 
-    private Optional<TableMetadata> maybeGetTableMetadata(String tableName) {
+    public Optional<TableMetadata> getTableMetadataIfPresent(String tableName) {
         Optional<KeyspaceMetadata> keyspaceMetadata = getMetadata().getKeyspaceMetadata(namespace);
         if (keyspaceMetadata.isEmpty()) {
             return Optional.empty();

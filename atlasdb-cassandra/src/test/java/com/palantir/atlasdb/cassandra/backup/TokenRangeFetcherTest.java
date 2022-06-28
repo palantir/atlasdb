@@ -56,7 +56,7 @@ public class TokenRangeFetcherTest {
     @Before
     public void setUp() {
         KeyspaceMetadata keyspaceMetadata = BackupTestUtils.mockKeyspaceMetadata();
-        BackupTestUtils.mockTableMetadatas(cqlSession, keyspaceMetadata, TABLE_NAME);
+        BackupTestUtils.mockTableMetadataIfPresent(cqlSession, keyspaceMetadata, TABLE_NAME);
 
         BackupTestUtils.mockConfig(runtimeConfig);
         BackupTestUtils.mockTokenRanges(cqlSession, cqlMetadata);

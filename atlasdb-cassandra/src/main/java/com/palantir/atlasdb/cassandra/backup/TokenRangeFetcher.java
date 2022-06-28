@@ -21,6 +21,7 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
@@ -32,6 +33,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +58,16 @@ final class TokenRangeFetcher {
     }
 
     public Map<InetSocketAddress, RangeSet<LightweightOppToken>> getTokenRange(String tableName) {
-        TableMetadata tableMetadata = cqlSession.getTableMetadata(tableName);
+        Optional<TableMetadata> maybeTableMetadata = cqlSession.getTableMetadataIfPresent(tableName);
+        if (maybeTableMetadata.isEmpty()) {
+            log.info(
+                    "Ignoring empty table metadata for internal table",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("tableName", tableName));
+            return ImmutableMap.of();
+        }
+
+        TableMetadata tableMetadata = maybeTableMetadata.get();
 
         Set<LightweightOppToken> partitionTokens = getPartitionTokens(tableMetadata);
         Map<InetSocketAddress, RangeSet<LightweightOppToken>> tokenRangesByNode = ClusterMetadataUtils.getTokenMapping(
