@@ -31,7 +31,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -155,7 +154,7 @@ public final class KnownConcludedTransactionsStore {
             } catch (IOException e) {
                 log.warn(
                         "Error occurred when deserializing a timestamp range-set from the database",
-                        UnsafeArg.of("value", valueReadFromDatabase()),
+                        SafeArg.of("value", valueReadFromDatabase()),
                         e);
                 throw new RuntimeException(e);
             }
