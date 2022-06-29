@@ -103,7 +103,7 @@ public class ShardProgress {
     }
 
     public void tryUpdateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long lastSeenCommitTs) {
-        if (shardAndStrategy.isThorough()) {
+        if (!shardAndStrategy.isConservative()) {
             return;
         }
 
