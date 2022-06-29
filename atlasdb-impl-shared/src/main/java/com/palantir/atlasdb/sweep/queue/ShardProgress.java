@@ -94,7 +94,7 @@ public class ShardProgress {
     public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
         long lastSeenCommitTs =
                 increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
-        tryUpdateLastSeenCommitTimestamp(lastSeenCommitTs);
+        tryUpdateLastSeenCommitTimestamp(shardAndStrategy, lastSeenCommitTs);
         return lastSeenCommitTs;
     }
 
@@ -102,7 +102,11 @@ public class ShardProgress {
         return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP);
     }
 
-    public void tryUpdateLastSeenCommitTimestamp(long lastSeenCommitTs) {
+    public void tryUpdateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long lastSeenCommitTs) {
+        if (shardAndStrategy.isThorough()) {
+            return;
+        }
+
         Optional<Long> previous = getLastSeenCommitTimestamp();
         if (previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true)) {
             byte[] colValNew = createColumnValue(lastSeenCommitTs);
