@@ -35,7 +35,7 @@ import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.common.concurrent.PTExecutors;
@@ -208,8 +208,8 @@ public final class LockWatchEventIntegrationTest {
                     return null;
                 }))
                 .isInstanceOf(TransactionFailedRetriableException.class)
-                .isExactlyInstanceOf(TransactionLockTimeoutException.class)
-                .hasMessageContaining("Locks acquired as part of the transaction protocol are no longer valid.");
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Start timestamp missing from map");
 
         assertThatCode(() -> performWriteTransactionLockingAndUnlockingCells(ImmutableMap.of(CELL_1, DATA_1)))
                 .doesNotThrowAnyException();
