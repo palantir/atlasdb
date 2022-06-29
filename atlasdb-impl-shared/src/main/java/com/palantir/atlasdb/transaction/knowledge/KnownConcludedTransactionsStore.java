@@ -106,27 +106,29 @@ public final class KnownConcludedTransactionsStore {
     }
 
     private boolean isRangeContained(Optional<ReadResult> containingRanges, Range<Long> timestampRangeToTest) {
-        if (containingRanges.isEmpty()) {
-            return false;
-        }
-        return containingRanges.get().timestampRangeSet().encloses(timestampRangeToTest);
+        return containingRanges.map(ReadResult::timestampRangeSet)
+                .map(ranges -> ranges.encloses(timestampRangeToTest))
+                .orElse(false);
     }
 
     private CheckAndSetRequest getCheckAndSetRequest(Optional<ReadResult> oldValue, Range<Long> timestampRangeToAdd) {
-        TimestampRangeSet targetSet = getTargetSet(oldValue.map(ReadResult::timestampRangeSet), timestampRangeToAdd);
-        byte[] serializedTargetSet;
-        try {
-            serializedTargetSet = OBJECT_MAPPER.writeValueAsBytes(targetSet);
-        } catch (JsonProcessingException e) {
-            log.warn("Error serializing timestamp range set", SafeArg.of("targetSet", targetSet), e);
-            throw new RuntimeException(e);
-        }
+        byte[] serializedTargetSet = serializeTimestampRangeSet(
+                getTargetSet(oldValue.map(ReadResult::timestampRangeSet), timestampRangeToAdd));
 
         if (oldValue.isEmpty()) {
             return CheckAndSetRequest.newCell(tableReference, valueCell, serializedTargetSet);
         }
         return CheckAndSetRequest.singleCell(
                 tableReference, valueCell, oldValue.get().valueReadFromDatabase(), serializedTargetSet);
+    }
+
+    private byte[] serializeTimestampRangeSet(TimestampRangeSet targetSet) {
+        try {
+            return OBJECT_MAPPER.writeValueAsBytes(targetSet);
+        } catch (JsonProcessingException e) {
+            log.warn("Error serializing timestamp range set", SafeArg.of("targetSet", targetSet), e);
+            throw new RuntimeException(e);
+        }
     }
 
     private TimestampRangeSet getTargetSet(Optional<TimestampRangeSet> originalSet, Range<Long> timestampRangeToAdd) {
