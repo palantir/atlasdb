@@ -87,7 +87,9 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
             verify(delegateKeyValueService, atMost(10))
                     .get(eq(TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE), anyMap());
-            int invocations = Mockito.mockingDetails(delegateKeyValueService).getInvocations().size();
+            int invocations = Mockito.mockingDetails(delegateKeyValueService)
+                    .getInvocations()
+                    .size();
             System.err.println(invocations);
             invocationCounts.put(invocations, invocationCounts.getOrDefault(invocations, 0) + 1);
         }
