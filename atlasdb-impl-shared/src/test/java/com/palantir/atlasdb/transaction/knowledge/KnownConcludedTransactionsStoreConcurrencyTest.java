@@ -66,7 +66,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
     };
     private final KnownConcludedTransactionsStore knownConcludedTransactionsStore =
             KnownConcludedTransactionsStore.create(blockingKeyValueService);
-    private final ExecutorService taskExecutor = PTExecutors.newCachedThreadPool();
+    private ExecutorService taskExecutor = PTExecutors.newCachedThreadPool();
 
     @Test
     public void batchesReadsUnderHighConcurrency() throws InterruptedException {
@@ -92,6 +92,9 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
                     .size();
             System.err.println(invocations);
             invocationCounts.put(invocations, invocationCounts.getOrDefault(invocations, 0) + 1);
+
+            taskExecutor = PTExecutors.newCachedThreadPool();
+            Mockito.reset(delegateKeyValueService);
         }
         System.err.println(invocationCounts);
     }
