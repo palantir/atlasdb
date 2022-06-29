@@ -31,6 +31,8 @@ public interface SweepBatch {
 
     long lastSweptTimestamp();
 
+    long lastSeenCommitTimestamp();
+
     boolean hasNext();
 
     @Value.Default
@@ -52,11 +54,14 @@ public interface SweepBatch {
     }
 
     static SweepBatch of(
-            Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp, boolean next, long entriesRead) {
+            Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp, long lastSeenCommitTimestamp,
+            boolean next,
+            long entriesRead) {
         return ImmutableSweepBatch.builder()
                 .writes(writes)
                 .dedicatedRows(dedicatedRows)
                 .lastSweptTimestamp(timestamp)
+                .lastSeenCommitTimestamp(lastSeenCommitTimestamp)
                 .hasNext(next)
                 .entriesRead(entriesRead)
                 .build();

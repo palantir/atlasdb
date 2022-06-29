@@ -57,7 +57,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class SweepableCells extends SweepQueueTable {
@@ -171,7 +173,9 @@ public class SweepableCells extends SweepQueueTable {
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
         DedicatedRows filteredDedicatedRows = getDedicatedRowsToClear(writeBatch.dedicatedRows, tsToSweep);
         long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
-        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs, tsToSweep.processedAll(), entriesRead);
+        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs, writeBatch.maxCommitTs.get(),
+                tsToSweep.processedAll(),
+                entriesRead);
     }
 
     private DedicatedRows getDedicatedRowsToClear(List<SweepableCellsRow> rows, TimestampsToSweep tsToSweep) {
@@ -193,8 +197,10 @@ public class SweepableCells extends SweepQueueTable {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             long startTs = getTimestamp(row, col);
-            if (knownToBeCommittedAfterSweepTs(startTs, sweepTs)) {
-                writeBatch.add(ImmutableList.of(getWriteInfo(startTs, entry.getValue())));
+            // todo(snanda): why are we only loading form cache?????
+            Optional<Long> maybeCommitTs = commitTsCache.loadIfCached(startTs);
+            if (knownToBeCommittedAfterSweepTs(maybeCommitTs, sweepTs)) {
+                writeBatch.add(ImmutableList.of(getWriteInfo(startTs, maybeCommitTs, entry.getValue())));
                 return writeBatch;
             }
             writeBatch.merge(getWrites(row, col, entry.getValue()));
@@ -218,16 +224,27 @@ public class SweepableCells extends SweepQueueTable {
     private static final class WriteBatch {
         private final Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         private final List<SweepableCellsRow> dedicatedRows = new ArrayList<>();
+        private final AtomicLong maxCommitTs = new AtomicLong(-1L);
+
+        static WriteBatch single(WriteInfo writeInfo) {
+            WriteBatch batch = new WriteBatch();
+            batch.updateMaxCommitTs(writeInfo.commitTimestamp());
+            return batch.add(ImmutableList.of(writeInfo));
+        }
 
         WriteBatch merge(WriteBatch other) {
             writesByStartTs.putAll(other.writesByStartTs);
             dedicatedRows.addAll(other.dedicatedRows);
+            updateMaxCommitTs(Optional.of(other.maxCommitTs.get()));
             return this;
         }
 
-        static WriteBatch single(WriteInfo writeInfo) {
-            WriteBatch batch = new WriteBatch();
-            return batch.add(ImmutableList.of(writeInfo));
+        void updateMaxCommitTs(Optional<Long> maybeCommitTs) {
+            maybeCommitTs.ifPresent(commitTs -> {
+                if (maxCommitTs.get() < commitTs) {
+                    maxCommitTs.set(commitTs);
+                }
+            });
         }
 
         WriteBatch add(List<SweepableCellsRow> newDedicatedRows, List<WriteInfo> writeInfos) {
@@ -236,7 +253,10 @@ public class SweepableCells extends SweepQueueTable {
         }
 
         WriteBatch add(List<WriteInfo> writeInfos) {
-            writeInfos.forEach(info -> writesByStartTs.put(info.timestamp(), info));
+            writeInfos.forEach(info -> {
+                writesByStartTs.put(info.timestamp(), info);
+                updateMaxCommitTs(info.commitTimestamp());
+            });
             return this;
         }
     }
@@ -336,7 +356,8 @@ public class SweepableCells extends SweepQueueTable {
         if (isReferenceToDedicatedRows(col)) {
             return writesFromDedicated(row, col);
         } else {
-            return WriteBatch.single(getWriteInfo(getTimestamp(row, col), value));
+            long startTs = getTimestamp(row, col);
+            return WriteBatch.single(getWriteInfo(startTs, commitTsCache.loadIfCached(startTs), value));
         }
     }
 
@@ -352,7 +373,10 @@ public class SweepableCells extends SweepQueueTable {
         return batch.add(
                 dedicatedRows,
                 Streams.stream(iterator)
-                        .map(entry -> getWriteInfo(getTimestamp(row, col), entry.getValue()))
+                        .map(entry -> {
+                            long timestamp = getTimestamp(row, col);
+                            return getWriteInfo(timestamp, commitTsCache.loadIfCached(timestamp), entry.getValue());
+                        })
                         .collect(Collectors.toList()));
     }
 
@@ -379,9 +403,8 @@ public class SweepableCells extends SweepQueueTable {
         return row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
     }
 
-    private boolean knownToBeCommittedAfterSweepTs(long startTs, long sweepTs) {
-        return commitTsCache
-                .loadIfCached(startTs)
+    private boolean knownToBeCommittedAfterSweepTs(Optional<Long> maybeCommitTs, long sweepTs) {
+        return maybeCommitTs
                 .map(commitTs -> commitTs >= sweepTs)
                 .orElse(false);
     }
@@ -394,10 +417,11 @@ public class SweepableCells extends SweepQueueTable {
         return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.BATCH_SIZE_KVS);
     }
 
-    private WriteInfo getWriteInfo(long timestamp, Value value) {
+    private WriteInfo getWriteInfo(long timestamp, Optional<Long> commitTs, Value value) {
         return WriteInfo.of(
                 writeReferencePersister.unpersist(SweepableCellsColumnValue.hydrateValue(value.getContents())),
-                timestamp);
+                timestamp,
+                commitTs);
     }
 
     private boolean exhaustedAllColumns(Iterator<Map.Entry<Cell, Value>> resultIterator) {

@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public final class SweepQueueUtils {
@@ -86,7 +87,8 @@ public final class SweepQueueUtils {
     public static WriteInfo toWriteInfo(TableReference tableRef, Map.Entry<Cell, byte[]> write, long timestamp) {
         Cell cell = write.getKey();
         boolean isTombstone = Arrays.equals(write.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
-        return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
+        // todo(snanda)
+        return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp, Optional.empty());
     }
 
     public static void validateNumberOfCellsWritten(Collection<List<WriteInfo>> writes) {

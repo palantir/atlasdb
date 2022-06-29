@@ -153,6 +153,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 shardStrategy,
                 batchWithInfo.partitionsForPreviousLastSweptTs(lastSweptTs),
                 sweepBatch.lastSweptTimestamp(),
+                sweepBatch.lastSeenCommitTimestamp(),
                 sweepBatch.dedicatedRows());
 
         metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
