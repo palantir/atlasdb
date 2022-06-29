@@ -17,17 +17,12 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,8 +80,6 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
                 assertThat(read).contains(TimestampRangeSet.singleRange(Range.closedOpen(10L, 50L)));
             }
 
-            verify(delegateKeyValueService, atMost(10))
-                    .get(eq(TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE), anyMap());
             int invocations = Mockito.mockingDetails(delegateKeyValueService)
                     .getInvocations()
                     .size();
