@@ -106,7 +106,8 @@ public final class KnownConcludedTransactionsStore {
     }
 
     private boolean isRangeContained(Optional<ReadResult> containingRanges, Range<Long> timestampRangeToTest) {
-        return containingRanges.map(ReadResult::timestampRangeSet)
+        return containingRanges
+                .map(ReadResult::timestampRangeSet)
                 .map(ranges -> ranges.encloses(timestampRangeToTest))
                 .orElse(false);
     }
