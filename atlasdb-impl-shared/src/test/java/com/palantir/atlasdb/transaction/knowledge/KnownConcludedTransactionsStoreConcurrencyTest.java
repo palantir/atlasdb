@@ -30,7 +30,9 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -43,6 +45,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public class KnownConcludedTransactionsStoreConcurrencyTest {
@@ -67,21 +70,28 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
     @Test
     public void batchesReadsUnderHighConcurrency() throws InterruptedException {
-        knownConcludedTransactionsStore.supplement(Range.closedOpen(10L, 50L));
+        Map<Integer, Integer> invocationCounts = new HashMap<>();
+        for (int i = 1; i < 101; i++) {
+            knownConcludedTransactionsStore.supplement(Range.closedOpen(10L, 50L));
 
-        startBlockingKeyValueServiceCalls();
-        int numThreads = 100;
+            startBlockingKeyValueServiceCalls();
+            int numThreads = 100;
 
-        List<Future<Optional<TimestampRangeSet>>> readFutures =
-                scheduleTasksInParallel(numThreads, taskIndex -> knownConcludedTransactionsStore.get());
+            List<Future<Optional<TimestampRangeSet>>> readFutures =
+                    scheduleTasksInParallel(numThreads, taskIndex -> knownConcludedTransactionsStore.get());
 
-        List<Optional<TimestampRangeSet>> reads = letTasksRunToCompletion(readFutures, false);
-        for (Optional<TimestampRangeSet> read : reads) {
-            assertThat(read).contains(TimestampRangeSet.singleRange(Range.closedOpen(10L, 50L)));
+            List<Optional<TimestampRangeSet>> reads = letTasksRunToCompletion(readFutures, false);
+            for (Optional<TimestampRangeSet> read : reads) {
+                assertThat(read).contains(TimestampRangeSet.singleRange(Range.closedOpen(10L, 50L)));
+            }
+
+            verify(delegateKeyValueService, atMost(10))
+                    .get(eq(TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE), anyMap());
+            int invocations = Mockito.mockingDetails(delegateKeyValueService).getInvocations().size();
+            System.err.println(invocations);
+            invocationCounts.put(invocations, invocationCounts.getOrDefault(invocations, 0) + 1);
         }
-
-        verify(delegateKeyValueService, atMost(10))
-                .get(eq(TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE), anyMap());
+        System.err.println(invocationCounts);
     }
 
     @Test
