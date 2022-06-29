@@ -26,7 +26,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public final class DefaultKnownConcludedTransactions implements KnownConcludedTransactions {
@@ -36,7 +35,7 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
     private final KnownConcludedTransactionsStore knownConcludedTransactionsStore;
 
     /**
-     * Concurrency: All updates go through {@link #ensureRangesCached(Supplier)} and perform CASes to atomically
+     * Concurrency: All updates go through {@link #ensureRangesCached(RangeSet)}} and perform CASes to atomically
      * evolve the value here. Copy on write should be acceptable given these range-sets are not expected to be large.
      */
     private final AtomicReference<ImmutableRangeSet<Long>> cachedConcludedTimestamps;
@@ -77,7 +76,7 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
         ensureRangesCached(knownConcludedTransactionsStore
                 .get()
                 .map(TimestampRangeSet::timestampRanges)
-                .orElse(ImmutableRangeSet.of()));
+                .orElseGet(ImmutableRangeSet::of));
     }
 
     private void ensureRangesCached(RangeSet<Long> timestampRanges) {
@@ -86,7 +85,8 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
             if (cache.enclosesAll(timestampRanges)) {
                 return;
             }
-            ImmutableRangeSet<Long> targetCacheValue = ImmutableRangeSet.unionOf(Sets.union(cache.asRanges(), timestampRanges.asRanges()));
+            ImmutableRangeSet<Long> targetCacheValue =
+                    ImmutableRangeSet.unionOf(Sets.union(cache.asRanges(), timestampRanges.asRanges()));
             if (cachedConcludedTimestamps.compareAndSet(cache, targetCacheValue)) {
                 return;
             }

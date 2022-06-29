@@ -55,31 +55,39 @@ public class DefaultKnownConcludedTransactionsTest {
 
     @Test
     public void isKnownConcludedDoesNotPerformDatabaseReadsOnLocalReadConsistency() {
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.LOCAL_READ)).isFalse();
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(84L, Consistency.LOCAL_READ)).isFalse();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.LOCAL_READ))
+                .isFalse();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(84L, Consistency.LOCAL_READ))
+                .isFalse();
 
         verify(knownConcludedTransactionsStore, never()).get();
     }
 
     @Test
     public void isKnownConcludedPerformsDatabaseReadOnRemoteReadConsistencyAndCanReturnInconclusive() {
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ)).isFalse();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
+                .isFalse();
         verify(knownConcludedTransactionsStore).get();
     }
 
     @Test
     public void isKnownConcludedPerformsDatabaseReadOnRemoteReadConsistencyAndCanReturnConcluded() {
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(85L, Consistency.REMOTE_READ)).isTrue();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(85L, Consistency.REMOTE_READ))
+                .isTrue();
         verify(knownConcludedTransactionsStore).get();
     }
 
     @Test
     public void isKnownConcludedDoesNotPerformDatabaseReadIfAnswerAlreadyKnown() {
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(85L, Consistency.REMOTE_READ)).isTrue();
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(47L, Consistency.REMOTE_READ)).isTrue();
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(62L, Consistency.REMOTE_READ)).isTrue();
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(DEFAULT_RANGE.upperEndpoint(),
-                Consistency.REMOTE_READ)).isTrue();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(85L, Consistency.REMOTE_READ))
+                .isTrue();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(47L, Consistency.REMOTE_READ))
+                .isTrue();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(62L, Consistency.REMOTE_READ))
+                .isTrue();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(
+                        DEFAULT_RANGE.upperEndpoint(), Consistency.REMOTE_READ))
+                .isTrue();
         verify(knownConcludedTransactionsStore).get();
     }
 
@@ -87,13 +95,18 @@ public class DefaultKnownConcludedTransactionsTest {
     public void isKnownConcludedAttemptsToLoadNewInformationIfAnswerNotCurrentlyKnown() {
         // In each instance, it is possible that external factors have modified the database so that the transaction
         // becomes known to have concluded, so a remote read is needed on each attempt.
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ)).isFalse();
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ)).isFalse();
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ)).isFalse();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
+                .isFalse();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
+                .isFalse();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
+                .isFalse();
         verify(knownConcludedTransactionsStore, times(3)).get();
 
-        when(knownConcludedTransactionsStore.get()).thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L))));
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ)).isTrue();
+        when(knownConcludedTransactionsStore.get())
+                .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L))));
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
+                .isTrue();
         verify(knownConcludedTransactionsStore, times(4)).get();
     }
 
@@ -106,10 +119,12 @@ public class DefaultKnownConcludedTransactionsTest {
     @Test
     public void addConcludedTimestampsFlushesWritesToTheCache() {
         defaultKnownConcludedTransactions.addConcludedTimestamps(ADDITIONAL_RANGE);
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(DEFAULT_RANGE.upperEndpoint() + 1,
-                Consistency.LOCAL_READ)).isTrue();
-        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(DEFAULT_RANGE.upperEndpoint() + 1,
-                Consistency.REMOTE_READ)).isTrue();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(
+                        DEFAULT_RANGE.upperEndpoint() + 1, Consistency.LOCAL_READ))
+                .isTrue();
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(
+                        DEFAULT_RANGE.upperEndpoint() + 1, Consistency.REMOTE_READ))
+                .isTrue();
         verify(knownConcludedTransactionsStore, never()).get();
     }
 
@@ -126,24 +141,24 @@ public class DefaultKnownConcludedTransactionsTest {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                    defaultKnownConcludedTransactions.addConcludedTimestamps(Range.closed(
-                            index * 10L,
-                            index * 10L + 9));
+                    defaultKnownConcludedTransactions.addConcludedTimestamps(
+                            Range.closed(index * 10L, index * 10L + 9));
                     return null;
-                })).collect(Collectors.toList());
+                }))
+                .collect(Collectors.toList());
 
         startTaskLatch.countDown();
         taskExecutor.shutdown();
         taskExecutor.awaitTermination(5, TimeUnit.SECONDS);
         futures.forEach(Futures::getUnchecked);
 
-        IntStream.range(0, numThreads * 10)
-                .forEach(timestamp -> assertThat(defaultKnownConcludedTransactions.isKnownConcluded(timestamp,
-                        Consistency.LOCAL_READ)).isTrue());
+        IntStream.range(0, numThreads * 10).forEach(timestamp -> assertThat(
+                        defaultKnownConcludedTransactions.isKnownConcluded(timestamp, Consistency.LOCAL_READ))
+                .isTrue());
     }
 
     private void setupStoreWithDefaultRange() {
-        when(knownConcludedTransactionsStore.get()).thenReturn(Optional.of(
-                TimestampRangeSet.singleRange(DEFAULT_RANGE)));
+        when(knownConcludedTransactionsStore.get())
+                .thenReturn(Optional.of(TimestampRangeSet.singleRange(DEFAULT_RANGE)));
     }
 }
