@@ -35,7 +35,7 @@ public interface KnownConcludedTransactions {
 
     /**
      * Registers the fact that any transactions that had started in the provided range have concluded, including
-     * writing this to the database.
+     * writing this to the database. This endpoint is costly, and must not be called with a high level of concurrency.
      *
      * @param knownConcludedInterval range of timestamps in which all transactions must have concluded
      */

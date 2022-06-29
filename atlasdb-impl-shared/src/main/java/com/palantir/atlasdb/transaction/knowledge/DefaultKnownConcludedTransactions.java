@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -64,7 +65,7 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
     @Override
     public void addConcludedTimestamps(Range<Long> knownConcludedInterval) {
         knownConcludedTransactionsStore.supplement(knownConcludedInterval);
-        ensureRangesCached(() -> ImmutableRangeSet.of(knownConcludedInterval));
+        ensureRangesCached(ImmutableRangeSet.of(knownConcludedInterval));
     }
 
     private boolean performRemoteReadAndCheckConcluded(long startTimestamp) {
@@ -73,23 +74,19 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
     }
 
     private void updateCacheFromRemote() {
-        ensureRangesCached(() -> knownConcludedTransactionsStore
+        ensureRangesCached(knownConcludedTransactionsStore
                 .get()
                 .map(TimestampRangeSet::timestampRanges)
                 .orElse(ImmutableRangeSet.of()));
     }
 
-    private void ensureRangesCached(Supplier<RangeSet<Long>> timestampRangesSupplier) {
+    private void ensureRangesCached(RangeSet<Long> timestampRanges) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-            RangeSet<Long> rangesToAdd = timestampRangesSupplier.get();
             ImmutableRangeSet<Long> cache = cachedConcludedTimestamps.get();
-            if (cache.enclosesAll(rangesToAdd)) {
+            if (cache.enclosesAll(timestampRanges)) {
                 return;
             }
-            ImmutableRangeSet<Long> targetCacheValue = ImmutableRangeSet.<Long>builder()
-                    .addAll(cache)
-                    .addAll(rangesToAdd)
-                    .build();
+            ImmutableRangeSet<Long> targetCacheValue = ImmutableRangeSet.unionOf(Sets.union(cache.asRanges(), timestampRanges.asRanges()));
             if (cachedConcludedTimestamps.compareAndSet(cache, targetCacheValue)) {
                 return;
             }
