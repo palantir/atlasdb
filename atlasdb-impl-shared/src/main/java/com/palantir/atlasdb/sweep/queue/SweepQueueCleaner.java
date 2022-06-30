@@ -102,6 +102,7 @@ public class SweepQueueCleaner {
                     SafeArg.of("timestamp", lastTs));
             return;
         }
+        progress.updateLastSweptTimestamp(shardStrategy, lastTs);
         if (log.isDebugEnabled()) {
             log.debug(
                     "Progressed last swept timestamp for {} to {}.",
@@ -110,7 +111,7 @@ public class SweepQueueCleaner {
         }
     }
 
-    private void updateLastCommitTs(ShardAndStrategy shardStrategy, long lastTs) {
-        progress.updateLastSweptTimestamp(shardStrategy, lastTs);
+    private void updateLastCommitTs(ShardAndStrategy shardStrategy, long lastSeenCommitTs) {
+        progress.updateLastSeenCommitTimestamp(shardStrategy, lastSeenCommitTs);
     }
 }

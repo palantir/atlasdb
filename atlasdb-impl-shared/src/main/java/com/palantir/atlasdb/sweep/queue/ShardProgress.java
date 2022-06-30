@@ -43,7 +43,7 @@ public class ShardProgress {
     static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
 
     // This is unused but the constant value is NEVER to be re-used.
-    private static final int UNUSED_OLDEST_SEEN_INDEX = -2;
+    private static final int _UNUSED_OLDEST_SEEN_INDEX = -2;
 
     private static final int LAST_SEEN_COMMIT_TS_INDEX = -3;
     private static final ShardAndStrategy LAST_SEEN_COMMIT_TIMESTAMP =
@@ -89,13 +89,14 @@ public class ShardProgress {
      *
      * @param shardAndStrategy shard and strategy to update for
      * @param timestamp timestamp to update to
-     * @return the latest known persisted sweep timestamp for the shard and strategy
+     * @return the latest seen commit timestamp for the shard and strategy
      */
     public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
-        long lastSeenCommitTs =
-                increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
-        tryUpdateLastSeenCommitTimestamp(shardAndStrategy, lastSeenCommitTs);
-        return lastSeenCommitTs;
+        return increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
+    }
+
+    public void updateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long commitTimestamp) {
+        tryUpdateLastSeenCommitTimestamp(shardAndStrategy, commitTimestamp);
     }
 
     public Optional<Long> getLastSeenCommitTimestamp() {

@@ -59,7 +59,7 @@ class SweepBatchAccumulator {
         accumulatedDedicatedRows.addAll(sweepBatch.dedicatedRows().getDedicatedRows());
         addRelevantFinePartitions(sweepBatch);
         progressTimestamp = Math.max(progressTimestamp, sweepBatch.lastSweptTimestamp());
-        lastSeenCommitTimestamp = Math.max(lastSeenCommitTimestamp, sweepBatch.lastSweptTimestamp());
+        lastSeenCommitTimestamp = Math.max(lastSeenCommitTimestamp, sweepBatch.lastSeenCommitTimestamp());
         anyBatchesPresent = true;
         nextBatchAvailable = sweepBatch.hasNext();
         entriesRead += sweepBatch.entriesRead();
@@ -74,7 +74,6 @@ class SweepBatchAccumulator {
                 getLatestWritesByCellReference(),
                 DedicatedRows.of(accumulatedDedicatedRows),
                 getLastSweptTimestamp(),
-                // todo(snanda)
                 lastSeenCommitTimestamp,
                 nextBatchAvailable,
                 entriesRead);

@@ -201,7 +201,7 @@ public class SweepableCells extends SweepQueueTable {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             long startTs = getTimestamp(row, col);
-            // todo(snanda): why are we only loading form cache?????
+            // todo(snanda): why are we only loading from cache
             Optional<Long> maybeCommitTs = commitTsCache.loadIfCached(startTs);
             if (knownToBeCommittedAfterSweepTs(maybeCommitTs, sweepTs)) {
                 writeBatch.add(ImmutableList.of(getWriteInfo(startTs, maybeCommitTs, entry.getValue())));

@@ -87,7 +87,7 @@ public final class SweepQueueUtils {
     public static WriteInfo toWriteInfo(TableReference tableRef, Map.Entry<Cell, byte[]> write, long timestamp) {
         Cell cell = write.getKey();
         boolean isTombstone = Arrays.equals(write.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
-        // Todo(snanda): we do not have a commitTs at this point. This is being used to enqueue sweep queue.
+        // We do not have a commitTs at this point. This is being used to enqueue sweep queue.
         return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp, Optional.empty());
     }
 
