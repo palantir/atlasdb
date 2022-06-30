@@ -127,18 +127,6 @@
 <td><p>12c</p></td>
 <td><p>Amazon RDS explicitly supported, RAC not currently supported</p></td>
 </tr>
-<tr class="row-odd"><td><p>CQL KVS</p></td>
-<td><p>Unsupported</p></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p>JDBC KVS</p></td>
-<td><p>Unsupported</p></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
 </tbody>
 </table>
 </section>
@@ -146,35 +134,36 @@
 <h2>Details<a class="headerlink" href="#details" title="Permalink to this heading"></a></h2>
 <nav class="contents local" id="contents">
 <ul class="simple">
-<li><p><a class="reference internal" href="#cassandra-kvs" id="id5">Cassandra KVS</a></p></li>
-<li><p><a class="reference internal" href="#db-kvs" id="id6">DB KVS</a></p></li>
-<li><p><a class="reference internal" href="#cql-kvs" id="id7">CQL KVS</a></p></li>
-<li><p><a class="reference internal" href="#jdbc-kvs" id="id8">JDBC KVS</a></p></li>
+<li><p><a class="reference internal" href="#cassandra-kvs" id="id6">Cassandra KVS</a></p></li>
+<li><p><a class="reference internal" href="#db-kvs" id="id7">DB KVS</a></p></li>
 </ul>
 </nav>
 <section id="cassandra-kvs">
-<span id="id1"></span><h3><a class="toc-backref" href="#id5" role="doc-backlink">Cassandra KVS</a><a class="headerlink" href="#cassandra-kvs" title="Permalink to this heading"></a></h3>
+<span id="id1"></span><h3><a class="toc-backref" href="#id6" role="doc-backlink">Cassandra KVS</a><a class="headerlink" href="#cassandra-kvs" title="Permalink to this heading"></a></h3>
 <p>The Cassandra KVS allows AtlasDB to use <a class="reference external" href="http://cassandra.apache.org/">Apache Cassandra</a> as it’s backing key value service.
 For it to be sole backing KVS for AtlasDB needs Cassandra Lightweight Transactions, otherwise earlier version of Cassandra can be used to back AtlasDB.</p>
 </section>
 <section id="db-kvs">
-<span id="id2"></span><h3><a class="toc-backref" href="#id6" role="doc-backlink">DB KVS</a><a class="headerlink" href="#db-kvs" title="Permalink to this heading"></a></h3>
+<span id="id2"></span><h3><a class="toc-backref" href="#id7" role="doc-backlink">DB KVS</a><a class="headerlink" href="#db-kvs" title="Permalink to this heading"></a></h3>
 <p>DB KVS allows AtlasDB to use Postgres and Oracle as a backing store.</p>
-</section>
-<section id="cql-kvs">
-<span id="id3"></span><h3><a class="toc-backref" href="#id7" role="doc-backlink">CQL KVS</a><a class="headerlink" href="#cql-kvs" title="Permalink to this heading"></a></h3>
-<p>CQL KVS is not currently supported, but we plan on supporting this KVS eventually.</p>
-</section>
-<section id="jdbc-kvs">
-<span id="id4"></span><h3><a class="toc-backref" href="#id8" role="doc-backlink">JDBC KVS</a><a class="headerlink" href="#jdbc-kvs" title="Permalink to this heading"></a></h3>
-<p>JDBC KVS existed prior to DB KVS and was the primary means for deploying applications on Postgres.
-JDBC KVS has been deprecated in favor of DB KVS.</p>
 </section>
 </section>
 <section id="deleted">
 <h2>Deleted<a class="headerlink" href="#deleted" title="Permalink to this heading"></a></h2>
-<p>ClusterKeyValueService.java - Intended to be run on top of a MySQL/Cluster
-RocksDbKVS - Removed in 0.44</p>
+<section id="cql-kvs">
+<span id="id3"></span><h3>CQL KVS<a class="headerlink" href="#cql-kvs" title="Permalink to this heading"></a></h3>
+<p>CQL KVS was an alternative to Cassandra KVS that used CQL instead of Thrift.
+CQL KVS was removed because it was not used widely due to a lack of migration path from Cassandra KVS.</p>
+</section>
+<section id="jdbc-kvs">
+<span id="id4"></span><h3>JDBC KVS<a class="headerlink" href="#jdbc-kvs" title="Permalink to this heading"></a></h3>
+<p>JDBC KVS existed prior to DB KVS and was the primary means for deploying applications on Postgres.
+JDBC KVS was removed in favor of DB KVS.</p>
+</section>
+<section id="rocksdb-kvs">
+<span id="id5"></span><h3>RocksDB KVS<a class="headerlink" href="#rocksdb-kvs" title="Permalink to this heading"></a></h3>
+<p>RocksDB KVS allowed AtlasDB to use RocksDB as a backing store.</p>
+</section>
 </section>
 </section>
 

@@ -35,18 +35,6 @@ This matrix details the current state of available Key Value Services supported 
          - 12c
          - Amazon RDS explicitly supported, RAC not currently supported
 
-    *    - CQL KVS
-         - Unsupported
-         -
-         -
-         -
-
-    *    - JDBC KVS
-         - Unsupported
-         -
-         -
-         -
-
 Details
 =======
 
@@ -68,12 +56,16 @@ DB KVS
 
 DB KVS allows AtlasDB to use Postgres and Oracle as a backing store.
 
+Deleted
+=======
+
 .. _cql-kvs:
 
 CQL KVS
 -------
 
-CQL KVS is not currently supported, but we plan on supporting this KVS eventually.
+CQL KVS was an alternative to Cassandra KVS that used CQL instead of Thrift.
+CQL KVS was removed because it was not used widely due to a lack of migration path from Cassandra KVS.
 
 .. _jdbc-kvs:
 
@@ -81,10 +73,11 @@ JDBC KVS
 --------
 
 JDBC KVS existed prior to DB KVS and was the primary means for deploying applications on Postgres.
-JDBC KVS has been deprecated in favor of DB KVS.
+JDBC KVS was removed in favor of DB KVS.
 
-Deleted
-=======
+.. _rocksdb-kvs:
 
-ClusterKeyValueService.java - Intended to be run on top of a MySQL/Cluster
-RocksDbKVS - Removed in 0.44
+RocksDB KVS
+-----------
+
+RocksDB KVS allowed AtlasDB to use RocksDB as a backing store.
