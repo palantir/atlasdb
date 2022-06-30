@@ -110,14 +110,14 @@ public class ShardProgressTest {
 
     @Test
     public void canUpdateSweptTimestamp() {
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
 
     @Test
     public void attemptingToDecreaseSweptTimestampIsNoop() {
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 512L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 512L);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
 
@@ -125,10 +125,10 @@ public class ShardProgressTest {
     public void updatingTimestampForOneShardDoesNotAffectOthers() {
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 1024L);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(INITIAL_TIMESTAMP);
 
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TWENTY, 512L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TWENTY, 512L);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(512L);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(1024L);
     }
@@ -137,10 +137,10 @@ public class ShardProgressTest {
     public void updatingTimestampForOneConsistencyDoesNotAffectOther() {
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
         assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 128L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 128L);
         assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
-        progress.updateLastSeenCommitTimestamp(THOROUGH_TEN, 32L);
+        progress.updateLastSweptTimestamp(THOROUGH_TEN, 32L);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(128L);
         assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(32L);
     }
@@ -152,8 +152,8 @@ public class ShardProgressTest {
         assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
         progress.updateNumberOfShards(64);
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 32L);
-        progress.updateLastSeenCommitTimestamp(THOROUGH_TEN, 128L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 32L);
+        progress.updateLastSweptTimestamp(THOROUGH_TEN, 128L);
 
         assertThat(progress.getNumberOfShards()).isEqualTo(64);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(32L);
@@ -171,7 +171,7 @@ public class ShardProgressTest {
         doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
         ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
 
-        assertThat(instrumentedProgress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 12L))
+        assertThat(instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
                 .isEqualTo(15L);
     }
 
@@ -186,14 +186,14 @@ public class ShardProgressTest {
         doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
         ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
 
-        assertThatThrownBy(() -> instrumentedProgress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 12L))
+        assertThatThrownBy(() -> instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
                 .isInstanceOf(CheckAndSetException.class);
     }
 
     @Test
     public void canResetProgressForSpecificShards() {
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 8888L);
-        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TWENTY, 8888L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 8888L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TWENTY, 8888L);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(8888L);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(8888L);
 

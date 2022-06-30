@@ -59,7 +59,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedSet;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class SweepableCells extends SweepQueueTable {
@@ -177,7 +176,7 @@ public class SweepableCells extends SweepQueueTable {
                 writes,
                 filteredDedicatedRows,
                 lastSweptTs,
-                writeBatch.maxCommitTs.get(),
+                writeBatch.maxCommitTs,
                 tsToSweep.processedAll(),
                 entriesRead);
     }
@@ -228,7 +227,7 @@ public class SweepableCells extends SweepQueueTable {
     private static final class WriteBatch {
         private final Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         private final List<SweepableCellsRow> dedicatedRows = new ArrayList<>();
-        private final AtomicLong maxCommitTs = new AtomicLong(-1L);
+        private long maxCommitTs = -1L;
 
         static WriteBatch single(WriteInfo writeInfo) {
             WriteBatch batch = new WriteBatch();
@@ -239,15 +238,13 @@ public class SweepableCells extends SweepQueueTable {
         WriteBatch merge(WriteBatch other) {
             writesByStartTs.putAll(other.writesByStartTs);
             dedicatedRows.addAll(other.dedicatedRows);
-            updateMaxCommitTs(Optional.of(other.maxCommitTs.get()));
+            updateMaxCommitTs(Optional.of(other.maxCommitTs));
             return this;
         }
 
         void updateMaxCommitTs(Optional<Long> maybeCommitTs) {
             maybeCommitTs.ifPresent(commitTs -> {
-                if (maxCommitTs.get() < commitTs) {
-                    maxCommitTs.set(commitTs);
-                }
+                maxCommitTs = Math.max(maxCommitTs, commitTs);
             });
         }
 

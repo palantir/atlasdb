@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -103,7 +104,7 @@ public final class DefaultTableClearerTests {
     }
 
     private static WriteInfo writeInfo(long timestamp) {
-        return WriteInfo.write(TABLE, CELL, timestamp);
+        return WriteInfo.write(TABLE, CELL, timestamp, Optional.empty());
     }
 
     private void createTable(SweepStrategy sweepStrategy) {

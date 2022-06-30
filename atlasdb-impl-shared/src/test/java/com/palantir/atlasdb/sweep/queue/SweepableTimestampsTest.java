@@ -125,53 +125,53 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
 
     @Test
     public void canReadNextIfNotProgressedBeyondForConservative() {
-        progress.updateLastSeenCommitTimestamp(conservative(shardCons), TS - 1);
+        progress.updateLastSweptTimestamp(conservative(shardCons), TS - 1);
         assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
     }
 
     @Test
     public void canReadNextTimestampIfProgressedBeyondButInSamePartitionForConservative() {
-        progress.updateLastSeenCommitTimestamp(conservative(shardCons), maxTsForFinePartition(TS_FINE_PARTITION) - 1);
+        progress.updateLastSweptTimestamp(conservative(shardCons), maxTsForFinePartition(TS_FINE_PARTITION) - 1);
         assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
     }
 
     @Test
     public void noNextTimestampIfProgressedToEndOfPartitionForConservative() {
-        progress.updateLastSeenCommitTimestamp(conservative(shardCons), maxTsForFinePartition(TS_FINE_PARTITION));
+        progress.updateLastSweptTimestamp(conservative(shardCons), maxTsForFinePartition(TS_FINE_PARTITION));
         assertThat(readConservative(shardCons)).isEmpty();
     }
 
     @Test
     public void canReadNextWhenOtherShardsAndStrategiesProgressToEndOfPartitionForConservative() {
-        progress.updateLastSeenCommitTimestamp(thorough(shardCons), maxTsForFinePartition(TS_FINE_PARTITION));
-        progress.updateLastSeenCommitTimestamp(conservative(shardThor), maxTsForFinePartition(TS_FINE_PARTITION));
-        progress.updateLastSeenCommitTimestamp(thorough(shardThor), maxTsForFinePartition(TS_FINE_PARTITION));
+        progress.updateLastSweptTimestamp(thorough(shardCons), maxTsForFinePartition(TS_FINE_PARTITION));
+        progress.updateLastSweptTimestamp(conservative(shardThor), maxTsForFinePartition(TS_FINE_PARTITION));
+        progress.updateLastSweptTimestamp(thorough(shardThor), maxTsForFinePartition(TS_FINE_PARTITION));
         assertThat(readConservative(shardCons)).contains(TS_FINE_PARTITION);
     }
 
     @Test
     public void canReadNextIfNotProgressedBeyondForThorough() {
-        progress.updateLastSeenCommitTimestamp(thorough(shardThor), TS2 - 1);
+        progress.updateLastSweptTimestamp(thorough(shardThor), TS2 - 1);
         assertThat(readThorough(shardThor)).contains(TS2_FINE_PARTITION);
     }
 
     @Test
     public void canReadNextTimestampIfProgressedBeyondButInSamePartitionForForThorough() {
-        progress.updateLastSeenCommitTimestamp(thorough(shardThor), maxTsForFinePartition(TS2_FINE_PARTITION) - 1);
+        progress.updateLastSweptTimestamp(thorough(shardThor), maxTsForFinePartition(TS2_FINE_PARTITION) - 1);
         assertThat(readThorough(shardThor)).contains(TS2_FINE_PARTITION);
     }
 
     @Test
     public void noNextTimestampIfProgressedToEndOfPartitionForThorough() {
-        progress.updateLastSeenCommitTimestamp(thorough(shardThor), maxTsForFinePartition(TS2_FINE_PARTITION));
+        progress.updateLastSweptTimestamp(thorough(shardThor), maxTsForFinePartition(TS2_FINE_PARTITION));
         assertThat(readThorough(shardThor)).isEmpty();
     }
 
     @Test
     public void canReadNextWhenOtherShardsAndStrategiesProgressToEndOfPartitionForThorough() {
-        progress.updateLastSeenCommitTimestamp(thorough(shardCons), maxTsForFinePartition(TS2_FINE_PARTITION));
-        progress.updateLastSeenCommitTimestamp(conservative(shardThor), maxTsForFinePartition(TS2_FINE_PARTITION));
-        progress.updateLastSeenCommitTimestamp(conservative(shardCons), maxTsForFinePartition(TS2_FINE_PARTITION));
+        progress.updateLastSweptTimestamp(thorough(shardCons), maxTsForFinePartition(TS2_FINE_PARTITION));
+        progress.updateLastSweptTimestamp(conservative(shardThor), maxTsForFinePartition(TS2_FINE_PARTITION));
+        progress.updateLastSweptTimestamp(conservative(shardCons), maxTsForFinePartition(TS2_FINE_PARTITION));
         assertThat(readThorough(shardThor)).contains(TS2_FINE_PARTITION);
     }
 
@@ -182,7 +182,7 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
         }
         assertThat(readConservative(shardCons)).contains(tsPartitionFine(1000L));
 
-        progress.updateLastSeenCommitTimestamp(conservative(shardCons), 2L * TS_FINE_GRANULARITY);
+        progress.updateLastSweptTimestamp(conservative(shardCons), 2L * TS_FINE_GRANULARITY);
         assertThat(readConservative(shardCons)).contains(tsPartitionFine(2L * TS_FINE_GRANULARITY + 1000L));
 
         setSweepTimestampAndGet(4 * TS_FINE_GRANULARITY);

@@ -68,6 +68,10 @@ public interface WriteInfo {
         return hash;
     }
 
+    static WriteInfo of(WriteReference writeRef, long timestamp) {
+        return of(writeRef, timestamp, Optional.empty());
+    }
+
     static WriteInfo of(WriteReference writeRef, long timestamp, Optional<Long> commitTimestamp) {
         return ImmutableWriteInfo.builder()
                 .writeRef(writeRef)
@@ -76,8 +80,16 @@ public interface WriteInfo {
                 .build();
     }
 
+    static WriteInfo tombstone(TableReference tableRef, Cell cell, long timestamp) {
+        return tombstone(tableRef, cell, timestamp, Optional.empty());
+    }
+
     static WriteInfo tombstone(TableReference tableRef, Cell cell, long timestamp, Optional<Long> commitTimestamp) {
         return WriteInfo.of(WriteReference.of(tableRef, cell, true), timestamp, commitTimestamp);
+    }
+
+    static WriteInfo write(TableReference tableRef, Cell cell, long timestamp) {
+        return write(tableRef, cell, timestamp, Optional.empty());
     }
 
     static WriteInfo write(TableReference tableRef, Cell cell, long timestamp, Optional<Long> commitTimestamp) {
