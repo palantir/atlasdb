@@ -1,0 +1,5 @@
+type: deprecation
+deprecation:
+  description: The JDBC KVS has been removed.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6104

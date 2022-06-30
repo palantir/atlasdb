@@ -36,7 +36,6 @@ dependencies {
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-coordination-impl')
     implementation project(':atlasdb-ete-test-utils')
-    implementation project(':atlasdb-hikari')
     implementation project(':atlasdb-impl-shared')
     implementation project(':atlasdb-tests-shared')
     implementation project(':leader-election-impl')
