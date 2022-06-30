@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -377,6 +378,19 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     .table(tableMapper.getMappedTableName(checkAndSetRequest.table()))
                     .build();
             delegate().checkAndSet(request);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) {
+        try {
+            MultiCheckAndSetRequest request = MultiCheckAndSetRequest.builder()
+                    .from(multiCheckAndSetRequest)
+                    .tableRef(tableMapper.getMappedTableName(multiCheckAndSetRequest.tableRef()))
+                    .build();
+            delegate().multiCheckAndSet(request);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

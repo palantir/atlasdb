@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -476,7 +477,29 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         Cell cell = request.cell();
         Optional<byte[]> oldValue = request.oldValue();
         byte[] contents = request.newValue();
+        checkAndSetInternal(tableRef, table, cell, oldValue, contents);
+    }
 
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws CheckAndSetException {
+        TableReference tableRef = multiCheckAndSetRequest.tableRef();
+        Table table = getTableMap(tableRef);
+
+        multiCheckAndSetRequest.newValueMap().forEach((cell, val) -> {
+            Optional<byte[]> oldVal =
+                    Optional.ofNullable(multiCheckAndSetRequest.oldValueMap().get(cell));
+            checkAndSetInternal(tableRef, table, cell, oldVal, val);
+        });
+    }
+
+    // Returns the existing contents, if any, and null otherwise
+
+    private byte[] putIfAbsent(Table table, Key key, final byte[] contents) {
+        return table.entries.putIfAbsent(key, copyOf(contents));
+    }
+
+    private void checkAndSetInternal(
+            TableReference tableRef, Table table, Cell cell, Optional<byte[]> oldValue, byte[] contents) {
         Key key = getKey(table, cell, AtlasDbConstants.TRANSACTION_TS);
         if (oldValue.isPresent()) {
             byte[] storedValue = table.entries.get(key);
@@ -492,11 +515,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 throwCheckAndSetException(cell, tableRef, null, oldContents);
             }
         }
-    }
-
-    // Returns the existing contents, if any, and null otherwise
-    private byte[] putIfAbsent(Table table, Key key, final byte[] contents) {
-        return table.entries.putIfAbsent(key, copyOf(contents));
     }
 
     private Key getKey(Table table, Cell cell, long timestamp) {

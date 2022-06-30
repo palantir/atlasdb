@@ -31,9 +31,14 @@ public interface MultiCheckAndSetRequest {
     @Value.Parameter
     byte[] rowName();
 
+    // todo(snanda): need to enforce that old vals are a subset of new vals
     @Value.Parameter
     Map<Cell, byte[]> oldValueMap();
 
     @Value.Parameter
     Map<Cell, byte[]> newValueMap();
+
+    static ImmutableMultiCheckAndSetRequest.Builder builder() {
+        return ImmutableMultiCheckAndSetRequest.builder();
+    }
 }
