@@ -54,7 +54,10 @@ public interface SweepBatch {
     }
 
     static SweepBatch of(
-            Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp, long lastSeenCommitTimestamp,
+            Collection<WriteInfo> writes,
+            DedicatedRows dedicatedRows,
+            long timestamp,
+            long lastSeenCommitTimestamp,
             boolean next,
             long entriesRead) {
         return ImmutableSweepBatch.builder()

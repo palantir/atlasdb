@@ -33,7 +33,7 @@ class SweepBatchAccumulator {
     private final int batchSizeThreshold;
 
     private long progressTimestamp;
-    private long lastSeenCommitTimestamp  = -1L;
+    private long lastSeenCommitTimestamp = -1L;
     private long entriesRead = 0;
     private boolean anyBatchesPresent = false;
     private boolean nextBatchAvailable = true;

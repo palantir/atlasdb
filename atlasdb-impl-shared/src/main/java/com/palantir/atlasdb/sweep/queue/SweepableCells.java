@@ -173,7 +173,11 @@ public class SweepableCells extends SweepQueueTable {
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
         DedicatedRows filteredDedicatedRows = getDedicatedRowsToClear(writeBatch.dedicatedRows, tsToSweep);
         long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
-        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs, writeBatch.maxCommitTs.get(),
+        return SweepBatch.of(
+                writes,
+                filteredDedicatedRows,
+                lastSweptTs,
+                writeBatch.maxCommitTs.get(),
                 tsToSweep.processedAll(),
                 entriesRead);
     }
@@ -404,9 +408,7 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     private boolean knownToBeCommittedAfterSweepTs(Optional<Long> maybeCommitTs, long sweepTs) {
-        return maybeCommitTs
-                .map(commitTs -> commitTs >= sweepTs)
-                .orElse(false);
+        return maybeCommitTs.map(commitTs -> commitTs >= sweepTs).orElse(false);
     }
 
     private int writeIndexToNumberOfDedicatedRows(long writeIndex) {
