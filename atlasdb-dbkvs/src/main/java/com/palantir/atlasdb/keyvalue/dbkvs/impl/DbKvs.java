@@ -45,11 +45,13 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -562,6 +564,22 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         } else {
             executePutUnlessExists(checkAndSetRequest);
         }
+    }
+
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws CheckAndSetException {
+        TableReference tableReference = multiCheckAndSetRequest.tableRef();
+        Map<Cell, byte[]> oldValueMap = multiCheckAndSetRequest.oldValueMap();
+
+        multiCheckAndSetRequest.newValueMap().forEach((cell, newVal) -> {
+            CheckAndSetRequest checkAndSetRequest = new Builder()
+                    .table(tableReference)
+                    .cell(cell)
+                    .oldValue(Optional.ofNullable(oldValueMap.get(cell)))
+                    .newValue(newVal)
+                    .build();
+            checkAndSet(checkAndSetRequest);
+        });
     }
 
     private void executeCheckAndSet(CheckAndSetRequest request) {
