@@ -59,6 +59,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingReques
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
@@ -103,6 +104,7 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
@@ -1979,6 +1981,30 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throw e;
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws CheckAndSetException {
+        TableReference tableReference = multiCheckAndSetRequest.tableRef();
+        ByteBuffer row = ByteBuffer.wrap(multiCheckAndSetRequest.rowName());
+
+        List<Column> oldCol = multiCheckAndSetRequest.oldValueMap().entrySet().stream()
+                .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                .collect(Collectors.toList());
+        List<Column> newCol = multiCheckAndSetRequest.newValueMap().entrySet().stream()
+                .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                .collect(Collectors.toList());
+        try {
+            CASResult casResult = clientPool.runWithRetry(client -> client.cas(
+                    tableReference, row, oldCol, newCol, ConsistencyLevel.SERIAL, ConsistencyLevel.EACH_QUORUM));
+            if (!casResult.isSuccess()) {
+                throw new SafeIllegalStateException(
+                        "Could not perform multi-checkAndSet", SafeArg.of("failedColumns", casResult));
+            }
+        } catch (Exception e) {
+            log.error("Error while executing multi-checkAndSet operation.", e);
+            throw new RuntimeException(e);
         }
     }
 

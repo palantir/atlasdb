@@ -308,6 +308,10 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Timed
     void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
 
+    // Todo(snanda): docs
+    @Timed
+    void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws CheckAndSetException;
+
     /**
      * Deletes values from the key-value store.
      * <p>
