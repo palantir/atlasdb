@@ -39,7 +39,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.IntStream;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
@@ -140,7 +139,7 @@ public abstract class AbstractSweepQueueTest {
     }
 
     private int write(SweepQueueTable writer, long ts, Cell cell, boolean isTombstone, TableReference tableRef) {
-        WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), ts, Optional.empty());
+        WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), ts);
         writer.enqueue(ImmutableList.of(write));
         return write.toShard(numShards);
     }
