@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Objects;
 import org.junit.Test;
 
 public class TableReferenceTest {
@@ -41,5 +42,18 @@ public class TableReferenceTest {
 
         assertThat(Namespace.EMPTY_NAMESPACE).isEqualTo(lower.getNamespace());
         assertThat(upperBar.toLowerCase()).isEqualTo(lower.getTableName());
+    }
+
+    @Test
+    public void hashCodeShouldBeCompatibleWithObjectsHash() {
+        assertThat(TableReference.create(Namespace.create("test"), "table"))
+                .describedAs("Should have hashCode compatible with Objects.hash(Object...)")
+                .hasSameHashCodeAs(new Object() {
+                    @Override
+                    public int hashCode() {
+                        return Objects.hash(Namespace.create("test"), "table");
+                    }
+                })
+                .doesNotHaveSameHashCodeAs(TableReference.create(Namespace.create("table"), "test"));
     }
 }
