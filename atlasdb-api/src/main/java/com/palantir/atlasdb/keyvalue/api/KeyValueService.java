@@ -318,9 +318,6 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * If a {@link MultiCheckAndSetException} is thrown, it is likely that the values stored in the cells were not as
      * you expected.
      * In this case, you may want to check the stored values and determine why it was different from the expected value.
-     * It is possible that a subset of your cells were overwritten. You will have to rely on
-     * {@link MultiCheckAndSetException} to get information on cells that were different to what was expected and
-     * hence, were not updated and handle these missed updates.
      *
      * @param multiCheckAndSetRequest the request, including table, rowName, old values and new values.
      * @throws MultiCheckAndSetException if the stored values for the cells were not as expected.
