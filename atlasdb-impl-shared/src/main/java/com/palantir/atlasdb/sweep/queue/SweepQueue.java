@@ -137,9 +137,9 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
         SweepBatchWithPartitionInfo batchWithInfo = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
         SweepBatch sweepBatch = batchWithInfo.sweepBatch();
-        metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
-
+        // todo(gmaretic): update last seen commit ts here
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
+        metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
 
         if (!sweepBatch.isEmpty()) {
             log.debug(

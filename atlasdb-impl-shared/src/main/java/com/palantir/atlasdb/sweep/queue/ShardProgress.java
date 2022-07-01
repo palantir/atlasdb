@@ -109,11 +109,30 @@ public class ShardProgress {
         }
 
         Optional<Long> previous = getLastSeenCommitTimestamp();
-        if (previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true)) {
+        boolean updateNeeded =
+                previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
+        while (updateNeeded) {
             byte[] colValNew = createColumnValue(lastSeenCommitTs);
             CheckAndSetRequest casRequest = createRequest(
                     LAST_SEEN_COMMIT_TIMESTAMP, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
-            kvs.checkAndSet(casRequest);
+            try {
+                kvs.checkAndSet(casRequest);
+                updateNeeded = false;
+            } catch (CheckAndSetException exception) {
+                Optional<Long> current = getLastSeenCommitTimestamp();
+                if (current.equals(previous)) {
+                    log.warn(
+                            "Failed to update last seen commit timestamp. Values before and after CAS match.",
+                            SafeArg.of("previous", previous),
+                            SafeArg.of("current", current),
+                            SafeArg.of("last seen", lastSeenCommitTs),
+                            exception);
+                    throw exception;
+                }
+                previous = current;
+                updateNeeded =
+                        previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
+            }
         }
     }
 
