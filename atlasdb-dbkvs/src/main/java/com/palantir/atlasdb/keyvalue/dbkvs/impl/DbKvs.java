@@ -45,7 +45,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest.Builder;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -573,7 +572,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         Map<Cell, byte[]> oldValueMap = multiCheckAndSetRequest.expected();
 
         multiCheckAndSetRequest.updates().forEach((cell, newVal) -> {
-            CheckAndSetRequest checkAndSetRequest = new Builder()
+            CheckAndSetRequest checkAndSetRequest = new CheckAndSetRequest.Builder()
                     .table(tableReference)
                     .cell(cell)
                     .oldValue(Optional.ofNullable(oldValueMap.get(cell)))

@@ -52,7 +52,7 @@ public interface MultiCheckAndSetRequest {
         Preconditions.checkState(
                 rowsForExpectedCells.size() == 1
                         && Arrays.equals(Iterables.getOnlyElement(rowsForExpectedCells), rowName()),
-                "Only expect values for cells in the same row.");
+                "Only expects values for cells in the same row.");
 
         Set<byte[]> rowsForUpdates = getRowsForCells(updates());
         Preconditions.checkState(
@@ -61,7 +61,7 @@ public interface MultiCheckAndSetRequest {
     }
 
     private Set<byte[]> getRowsForCells(Map<Cell, byte[]> cellMap) {
-        return expected().keySet().stream().map(Cell::getRowName).collect(Collectors.toSet());
+        return cellMap.keySet().stream().map(Cell::getRowName).collect(Collectors.toSet());
     }
 
     static ImmutableMultiCheckAndSetRequest.Builder builder() {
