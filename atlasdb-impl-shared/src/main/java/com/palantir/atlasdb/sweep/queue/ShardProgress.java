@@ -42,7 +42,7 @@ public class ShardProgress {
     private static final int SHARD_COUNT_INDEX = -1;
     static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
 
-    // This is unused but the constant value is NEVER to be re-used.
+    // The constant value is NEVER to be re-used.
     private static final int _UNUSED_OLDEST_SEEN_INDEX = -2;
 
     private static final int LAST_SEEN_COMMIT_TS_INDEX = -3;

@@ -7,12 +7,8 @@ apply from: "../gradle/non-client-dist.gradle"
 dependencies {
   runtimeOnly project(':atlasdb-console')
 
-  // Supported KVSs
   runtimeOnly project(':atlasdb-cassandra')
   runtimeOnly project(':atlasdb-dbkvs')
-
-  // Unsupported KVSs (included for migration purposes)
-  runtimeOnly project(':atlasdb-jdbc')
 }
 
 distribution {

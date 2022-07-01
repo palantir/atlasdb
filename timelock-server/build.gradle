@@ -78,15 +78,11 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
     testCompileOnly 'org.immutables:value::annotations'
 
-    runtimeOnly project(':atlasdb-jdbc')
-    runtimeOnly project(':atlasdb-hikari')
     runtimeOnly (project(':atlasdb-cassandra')) {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')
     }
     runtimeOnly project(':atlasdb-dbkvs')
-    // TODO:   runtimeOnly "org.postgresql:postgresql:${postgresJdbcDriverVersion}"
-    // TODO:   add runtimeOnly depencency on the dbkvs-oracle-driver internally
 
     testImplementation 'com.github.tomakehurst:wiremock-standalone'
     testImplementation 'com.google.guava:guava'
