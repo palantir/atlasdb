@@ -231,6 +231,58 @@ public class ShardProgressTest {
         verify(mockKvs, times(3)).checkAndSet(any());
     }
 
+    @Test
+    public void initialLastSeenCommitTimestampIsEmpty() {
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+    }
+
+    @Test
+    public void canUpdateLastCommitTimestamp() {
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+    }
+
+    @Test
+    public void attemptingToDecreaseLastSeenCommitTimestampIsNoop() {
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 512L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+    }
+
+    @Test
+    public void updatingLastSeenTimestampForOneShardUpdatesGlobalValue() {
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TWENTY, 2048L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(2048L);
+    }
+
+    @Test
+    public void onlyUpdatesLastSeenCommitTsForThorough() {
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 128L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(128L);
+
+        progress.updateLastSeenCommitTimestamp(THOROUGH_TEN, 256L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(128L);
+    }
+
+    @Test
+    public void updatingLastSeenCommitTimestampsDoesNotAffectShardsAndViceVersa() {
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+
+        progress.updateNumberOfShards(64);
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 32L);
+
+        assertThat(progress.getNumberOfShards()).isEqualTo(64);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(32L);
+    }
+
     private Value createValue(long num) {
         SweepShardProgressTable.Value value = SweepShardProgressTable.Value.of(num);
         return Value.create(value.persistValue(), 0L);
