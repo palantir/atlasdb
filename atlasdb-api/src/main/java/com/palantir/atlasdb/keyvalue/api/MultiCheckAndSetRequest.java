@@ -28,6 +28,7 @@ public interface MultiCheckAndSetRequest {
     @Value.Parameter
     TableReference tableRef();
 
+    // todo(snanda): enforce that call cells are in one row
     @Value.Parameter
     byte[] rowName();
 
