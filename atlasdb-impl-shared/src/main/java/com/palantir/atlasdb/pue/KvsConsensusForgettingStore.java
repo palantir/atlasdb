@@ -61,6 +61,15 @@ public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
         kvs.checkAndSet(request);
     }
 
+    /**
+     * Note that changing this method may invalidate existing tests in
+     * ResilientCommitTimestampPutUnlessExistsTableTest.
+     */
+    @Override
+    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+        values.forEach(this::checkAndTouch);
+    }
+
     @Override
     public ListenableFuture<Optional<byte[]>> get(Cell cell) {
         return Futures.transform(
