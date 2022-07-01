@@ -85,7 +85,8 @@ public class PersistentTimestampServiceMockingTest {
         TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
         when(timestampBoundStore.getUpperLimit()).thenReturn(INITIAL_TIMESTAMP);
 
-        PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(timestampBoundStore);
+        PersistentTimestampService persistentTimestampService =
+                PersistentTimestampServiceImpl.create(timestampBoundStore);
         long freshTimestamp = persistentTimestampService.getFreshTimestamp();
 
         assertThat(freshTimestamp).isGreaterThan(INITIAL_TIMESTAMP);
