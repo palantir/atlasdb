@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
 import java.util.List;
 import org.immutables.value.Value;
@@ -44,11 +45,13 @@ public interface SweepBatch {
         return writes().isEmpty();
     }
 
+    @VisibleForTesting
     static SweepBatch of(Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp) {
         return ImmutableSweepBatch.builder()
                 .writes(writes)
                 .dedicatedRows(dedicatedRows)
                 .lastSweptTimestamp(timestamp)
+                .lastSeenCommitTimestamp(0)
                 .hasNext(true)
                 .build();
     }

@@ -49,11 +49,12 @@ public class SweepQueueCleaner {
             long lastTs,
             long lastCommitTs,
             DedicatedRows dedicatedRows) {
+        // The order must not be changed without thinking about correctness of txn4
+        updateLastCommitTs(shardStrategy, lastCommitTs);
         cleanDedicatedRows(dedicatedRows);
         cleanSweepableCells(shardStrategy, partitions);
         cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
         progressTo(shardStrategy, lastTs);
-        updateLastCommitTs(shardStrategy, lastCommitTs);
     }
 
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {

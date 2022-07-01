@@ -227,7 +227,7 @@ public class SweepableCells extends SweepQueueTable {
     private static final class WriteBatch {
         private final Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         private final List<SweepableCellsRow> dedicatedRows = new ArrayList<>();
-        private long maxCommitTs = -1L;
+        private long maxCommitTs = 0L;
 
         static WriteBatch single(WriteInfo writeInfo) {
             WriteBatch batch = new WriteBatch();
