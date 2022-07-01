@@ -390,7 +390,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         "multiCheckAndSet",
                         multiCheckAndSetRequest.tableRef(),
                         1,
-                        multiCheckAndSetRequest.newValueMap().size()));
+                        multiCheckAndSetRequest.updates().size()));
     }
 
     @Override

@@ -485,9 +485,9 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         TableReference tableRef = multiCheckAndSetRequest.tableRef();
         Table table = getTableMap(tableRef);
 
-        multiCheckAndSetRequest.newValueMap().forEach((cell, val) -> {
+        multiCheckAndSetRequest.updates().forEach((cell, val) -> {
             Optional<byte[]> oldVal =
-                    Optional.ofNullable(multiCheckAndSetRequest.oldValueMap().get(cell));
+                    Optional.ofNullable(multiCheckAndSetRequest.expected().get(cell));
             checkAndSetInternal(tableRef, table, cell, oldVal, val);
         });
     }

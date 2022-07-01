@@ -1999,10 +1999,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         TableReference tableReference = request.tableRef();
         ByteBuffer row = ByteBuffer.wrap(request.rowName());
 
-        List<Column> oldCol = request.oldValueMap().entrySet().stream()
+        List<Column> oldCol = request.expected().entrySet().stream()
                 .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
                 .collect(Collectors.toList());
-        List<Column> newCol = request.newValueMap().entrySet().stream()
+        List<Column> newCol = request.updates().entrySet().stream()
                 .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
                 .collect(Collectors.toList());
         try {
@@ -2016,7 +2016,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         .collectToMap();
 
                 throw new MultiCheckAndSetException(
-                        request.tableRef(), request.rowName(), request.oldValueMap(), currentValues);
+                        request.tableRef(), request.rowName(), request.expected(), currentValues);
             }
         } catch (MultiCheckAndSetException e) {
             throw e;

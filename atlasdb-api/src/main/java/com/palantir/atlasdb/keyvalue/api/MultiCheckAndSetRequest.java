@@ -16,28 +16,53 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.google.common.collect.Iterables;
+import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 /**
- * A request to be supplied to KeyValueService.multiCheckAndSet.
+ * A request to be supplied to KeyValueService.mulitCheckAndSet.
+ *
+ * {@link #tableRef()} the {@link TableReference} on which updates are to be performed.
+ * {@link #rowName()} the {@link Cell} row to update.
+ * {@link #expected()} expected current values of cells.
+ * {@link #updates()} the desired values for cells.
  */
-// Todo(snanda): docs
 @Value.Immutable
 public interface MultiCheckAndSetRequest {
     @Value.Parameter
     TableReference tableRef();
 
-    // todo(snanda): enforce that call cells are in one row
     @Value.Parameter
     byte[] rowName();
 
-    // todo(snanda): need to enforce that old vals are a subset of new vals
     @Value.Parameter
-    Map<Cell, byte[]> oldValueMap();
+    Map<Cell, byte[]> expected();
 
     @Value.Parameter
-    Map<Cell, byte[]> newValueMap();
+    Map<Cell, byte[]> updates();
+
+    @Value.Check
+    default void check() {
+        Set<byte[]> rowsForExpectedCells = getRowsForCells(expected());
+        Preconditions.checkState(
+                rowsForExpectedCells.size() == 1
+                        && Arrays.equals(Iterables.getOnlyElement(rowsForExpectedCells), rowName()),
+                "Only expect values for cells in the same row.");
+
+        Set<byte[]> rowsForUpdates = getRowsForCells(updates());
+        Preconditions.checkState(
+                rowsForUpdates.size() == 1 && Arrays.equals(Iterables.getOnlyElement(rowsForUpdates), rowName()),
+                "Can only update cells in one row.");
+    }
+
+    private Set<byte[]> getRowsForCells(Map<Cell, byte[]> cellMap) {
+        return expected().keySet().stream().map(Cell::getRowName).collect(Collectors.toSet());
+    }
 
     static ImmutableMultiCheckAndSetRequest.Builder builder() {
         return ImmutableMultiCheckAndSetRequest.builder();

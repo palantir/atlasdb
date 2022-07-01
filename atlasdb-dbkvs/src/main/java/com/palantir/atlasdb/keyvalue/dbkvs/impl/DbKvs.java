@@ -569,9 +569,9 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     @Override
     public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws CheckAndSetException {
         TableReference tableReference = multiCheckAndSetRequest.tableRef();
-        Map<Cell, byte[]> oldValueMap = multiCheckAndSetRequest.oldValueMap();
+        Map<Cell, byte[]> oldValueMap = multiCheckAndSetRequest.expected();
 
-        multiCheckAndSetRequest.newValueMap().forEach((cell, newVal) -> {
+        multiCheckAndSetRequest.updates().forEach((cell, newVal) -> {
             CheckAndSetRequest checkAndSetRequest = new Builder()
                     .table(tableReference)
                     .cell(cell)
