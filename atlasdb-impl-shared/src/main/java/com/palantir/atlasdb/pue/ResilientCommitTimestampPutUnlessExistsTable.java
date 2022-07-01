@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.pue;
 
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
@@ -25,33 +29,96 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.common.time.Clock;
+import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import java.util.HashMap;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.RateLimitedLogger;
+import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nonnull;
+import org.immutables.value.Value;
 
 public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
+    private static final RateLimitedLogger log = new RateLimitedLogger(
+            SafeLoggerFactory.get(ResilientCommitTimestampPutUnlessExistsTable.class), 1.0 / 3600);
+    private static final int TOUCH_CACHE_SIZE = 1000;
+    private static final Duration COMMIT_THRESHOLD = Duration.ofSeconds(1);
+
     private final ConsensusForgettingStore store;
     private final TwoPhaseEncodingStrategy encodingStrategy;
     private final Supplier<Boolean> acceptStagingReadsAsCommitted;
+    private final Clock clock;
+    private final PutUnlessExistsTableMetrics metrics;
+    private final Map<ByteBuffer, Object> rowLocks = new ConcurrentHashMap<>();
+    private final AtomicLong fallbacks = new AtomicLong(0);
+
+    private final LoadingCache<CellInfo, Long> touchCache = Caffeine.newBuilder()
+            .maximumSize(TOUCH_CACHE_SIZE)
+            .build(new CacheLoader<>() {
+                @Override
+                @Nonnull
+                public Long load(@Nonnull CellInfo cellInfo) {
+                    metrics.touchCacheLoad().time(() -> {
+                        FollowUpAction followUpAction = FollowUpAction.PUT;
+                        if (shouldTouch()) {
+                            synchronized (
+                                    rowLocks.computeIfAbsent(
+                                            ByteBuffer.wrap(cellInfo.cell().getRowName()), x -> x)) {
+                                followUpAction = touchAndReturn(cellInfo);
+                            }
+                        }
+                        if (followUpAction == FollowUpAction.PUT) {
+                            store.put(ImmutableMap.of(
+                                    cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
+                        }
+                    });
+                    return cellInfo.commitTs();
+                }
+            });
+
+    private volatile Instant acceptStagingUntil = Instant.EPOCH;
 
     public ResilientCommitTimestampPutUnlessExistsTable(
-            ConsensusForgettingStore store, TwoPhaseEncodingStrategy encodingStrategy) {
-        this(store, encodingStrategy, () -> false);
+            ConsensusForgettingStore store,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            TaggedMetricRegistry metricRegistry) {
+        this(store, encodingStrategy, () -> false, metricRegistry);
     }
 
     public ResilientCommitTimestampPutUnlessExistsTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
-            Supplier<Boolean> acceptStagingReadsAsCommitted) {
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            TaggedMetricRegistry metricRegistry) {
+        this(store, encodingStrategy, acceptStagingReadsAsCommitted, new SystemClock(), metricRegistry);
+    }
+
+    @VisibleForTesting
+    ResilientCommitTimestampPutUnlessExistsTable(
+            ConsensusForgettingStore store,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            Clock clock,
+            TaggedMetricRegistry metricRegistry) {
         this.store = store;
         this.encodingStrategy = encodingStrategy;
         this.acceptStagingReadsAsCommitted = acceptStagingReadsAsCommitted;
+        this.clock = clock;
+        this.metrics = PutUnlessExistsTableMetrics.of(metricRegistry);
+        metrics.acceptStagingTriggered(fallbacks::get);
     }
 
     @Override
@@ -79,8 +146,32 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 MoreExecutors.directExecutor());
     }
 
+    private FollowUpAction touchAndReturn(CellInfo cellAndValue) {
+        if (!shouldTouch()) {
+            return FollowUpAction.PUT;
+        }
+        Cell cell = cellAndValue.cell();
+        byte[] actual = cellAndValue.value();
+        try {
+            store.checkAndTouch(cell, actual);
+            return FollowUpAction.PUT;
+        } catch (CheckAndSetException e) {
+            long startTs = cellAndValue.startTs();
+            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            Long commitTs = currentValue.value();
+            PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+                    startTs, Iterables.getOnlyElement(e.getActualValues()));
+            Preconditions.checkState(
+                    kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
+                    "Failed to persist a staging value for commit timestamp because an unexpected value "
+                            + "was found in the KVS",
+                    SafeArg.of("kvsValue", kvsValue),
+                    SafeArg.of("stagingValue", currentValue));
+            return FollowUpAction.NONE;
+        }
+    }
+
     private Map<Long, Long> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
-        Map<Cell, byte[]> checkAndTouch = new HashMap<>();
         ImmutableMap.Builder<Long, Long> resultBuilder = ImmutableMap.builder();
         for (Map.Entry<Long, Cell> startTsAndCell : startTsToCell.entrySet()) {
             Cell cell = startTsAndCell.getValue();
@@ -98,30 +189,59 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
-            // if we reach here, actual is guaranteed to be a staging value
             try {
-                if (!acceptStagingReadsAsCommitted.get()) {
-                    store.checkAndTouch(cell, actual);
+                Instant startTime = clock.instant();
+                resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
+                Duration timeTaken = Duration.between(startTime, clock.instant());
+                if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
+                    acceptStagingUntil = clock.instant().plusSeconds(60);
+                    log.log(logger -> logger.warn(
+                            "Committing a staging value for the transactions table took too long. "
+                                    + "Treating staging values as committed for 60 seconds to ensure liveness.",
+                            SafeArg.of("startTs", startTs),
+                            SafeArg.of("commitTs", commitTs),
+                            SafeArg.of("timeTaken", timeTaken)));
+                    fallbacks.incrementAndGet();
                 }
-                checkAndTouch.put(cell, actual);
-            } catch (CheckAndSetException e) {
-                PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
-                        startTs, Iterables.getOnlyElement(e.getActualValues()));
-                Preconditions.checkState(
-                        kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
-                        "Failed to persist a staging value for commit timestamp because an unexpected value "
-                                + "was found in the KVS",
-                        SafeArg.of("kvsValue", kvsValue),
-                        SafeArg.of("stagingValue", currentValue));
-            } finally {
-                // If we got here after catching CheckAndSetException, then some other thread committed this
-                // transaction, and we must therefore return the commit timestamp.
-                resultBuilder.put(startTs, commitTs);
+                /**
+                 * This in particular catches {@link com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException}
+                 */
+            } catch (AtlasDbDependencyException e) {
+                acceptStagingUntil = clock.instant().plusSeconds(60);
+                log.log(logger -> logger.warn(
+                        "Encountered exception attempting to commit a staging value for the transactions table. "
+                                + "Treating staging values as committed for 60 seconds to ensure liveness.",
+                        SafeArg.of("startTs", startTs),
+                        SafeArg.of("commitTs", commitTs),
+                        e));
+                fallbacks.incrementAndGet();
+                throw e;
             }
         }
-        store.put(KeyedStream.stream(checkAndTouch)
-                .map(encodingStrategy::transformStagingToCommitted)
-                .collectToMap());
         return resultBuilder.build();
+    }
+
+    private boolean shouldTouch() {
+        return clock.instant().isAfter(acceptStagingUntil) && !acceptStagingReadsAsCommitted.get();
+    }
+
+    @Value.Immutable
+    interface CellInfo {
+        @Value.Parameter
+        Cell cell();
+
+        @Value.Parameter
+        long startTs();
+
+        @Value.Parameter
+        long commitTs();
+
+        @Value.Parameter
+        byte[] value();
+    }
+
+    private enum FollowUpAction {
+        PUT,
+        NONE;
     }
 }
