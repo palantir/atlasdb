@@ -89,12 +89,21 @@ public class ShardProgress {
      *
      * @param shardAndStrategy shard and strategy to update for
      * @param timestamp timestamp to update to
-     * @return the latest seen commit timestamp for the shard and strategy
+     * @return the latest known persisted sweep for the shard and strategy
      */
     public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
         return increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
     }
 
+    /**
+     * Updates the persisted last seen commitTimestamp for the given shard to timestamp if it is greater than
+     * the currently persisted last seen commitTimestamp.
+     * Note that this is only done for Conservative sweep strategy.
+     *
+     * @param shardAndStrategy shard and strategy to update for
+     * @param commitTimestamp timestamp to update to
+     * @return the latest seen commit timestamp for the shard and strategy
+     */
     public void updateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long commitTimestamp) {
         tryUpdateLastSeenCommitTimestamp(shardAndStrategy, commitTimestamp);
     }

@@ -47,7 +47,13 @@ public interface SweepBatch {
 
     @VisibleForTesting
     static SweepBatch of(Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp) {
-        return of(writes, dedicatedRows, timestamp, 0, writes.isEmpty(), writes.size());
+        return ImmutableSweepBatch.builder()
+                .writes(writes)
+                .dedicatedRows(dedicatedRows)
+                .lastSweptTimestamp(timestamp)
+                .lastSeenCommitTimestamp(0)
+                .hasNext(true)
+                .build();
     }
 
     static SweepBatch of(

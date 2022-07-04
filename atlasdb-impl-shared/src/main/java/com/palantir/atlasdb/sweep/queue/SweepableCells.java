@@ -225,15 +225,15 @@ public class SweepableCells extends SweepQueueTable {
         private final Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         private final List<SweepableCellsRow> dedicatedRows = new ArrayList<>();
 
-        static WriteBatch single(WriteInfo writeInfo) {
-            WriteBatch batch = new WriteBatch();
-            return batch.add(ImmutableList.of(writeInfo));
-        }
-
         WriteBatch merge(WriteBatch other) {
             writesByStartTs.putAll(other.writesByStartTs);
             dedicatedRows.addAll(other.dedicatedRows);
             return this;
+        }
+
+        static WriteBatch single(WriteInfo writeInfo) {
+            WriteBatch batch = new WriteBatch();
+            return batch.add(ImmutableList.of(writeInfo));
         }
 
         WriteBatch add(List<SweepableCellsRow> newDedicatedRows, List<WriteInfo> writeInfos) {
@@ -242,9 +242,7 @@ public class SweepableCells extends SweepQueueTable {
         }
 
         WriteBatch add(List<WriteInfo> writeInfos) {
-            writeInfos.forEach(info -> {
-                writesByStartTs.put(info.timestamp(), info);
-            });
+            writeInfos.forEach(info -> writesByStartTs.put(info.timestamp(), info));
             return this;
         }
     }
