@@ -363,9 +363,7 @@ public class SweepableCells extends SweepQueueTable {
         return batch.add(
                 dedicatedRows,
                 Streams.stream(iterator)
-                        .map(entry -> {
-                            return getWriteInfo(getTimestamp(row, col), entry.getValue());
-                        })
+                        .map(entry -> getWriteInfo(getTimestamp(row, col), entry.getValue()))
                         .collect(Collectors.toList()));
     }
 

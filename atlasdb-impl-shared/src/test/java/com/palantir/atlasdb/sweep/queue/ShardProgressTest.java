@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,7 +54,7 @@ public class ShardProgressTest {
 
     @Before
     public void setup() {
-        kvs = new InMemoryKeyValueService(true);
+        kvs = spy(new InMemoryKeyValueService(true));
         progress = new ShardProgress(kvs);
     }
 
@@ -245,7 +246,12 @@ public class ShardProgressTest {
     @Test
     public void attemptingToDecreaseLastSeenCommitTimestampIsNoop() {
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        // checkAndSet is invoked
+        verify(kvs).checkAndSet(any());
+
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 512L);
+        // checkAndSet is only called the one time
+        verify(kvs).checkAndSet(any());
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
     }
 
