@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -126,6 +127,7 @@ public class ScrubberTest {
                         .put(cell2, Value.create(new byte[] {6}, 50))
                         .put(cell3, Value.create(new byte[] {7}, 60))
                         .build());
+        transactions.markInProgress(ImmutableSet.of(10L, 20L, 30L, 50L, 60L));
         transactions.putUnlessExists(10, 15);
         transactions.putUnlessExists(20, 25);
         transactions.putUnlessExists(30, 35);

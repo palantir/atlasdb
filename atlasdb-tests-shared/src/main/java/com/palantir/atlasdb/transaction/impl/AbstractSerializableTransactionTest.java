@@ -1438,6 +1438,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
                     // This orchestrates a transaction that writes "B" to the cell
                     keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_TWO), myTs + 1);
+                    transactionService.markInProgress(myTs + 1);
                     transactionService.putUnlessExists(myTs + 1, myTs + 2);
 
                     // Avoid clashes between myTs+1 and commitTimestamp-1
@@ -1452,6 +1453,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                     // It is imperative that we do NOT read this transaction's writes!
                     keyValueService.put(
                             TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE), commitTimestamp - 1);
+                    transactionService.markInProgress(commitTimestamp - 1);
                     transactionService.putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
                     return null;
                 }))

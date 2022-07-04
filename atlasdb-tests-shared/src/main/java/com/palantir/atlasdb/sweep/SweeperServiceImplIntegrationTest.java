@@ -90,9 +90,9 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 .map(PtBytes::toBytes)
                 .collectToMap();
         kvs.put(TABLE_1, writes, 100L);
-        txService.putUnlessExists(100L, 101L);
+        commitTimestamp(100L, 101L);
         kvs.put(TABLE_1, writes, 103L);
-        txService.putUnlessExists(103L, 104L);
+        commitTimestamp(103L, 104L);
         Map<Cell, Long> readMap =
                 KeyedStream.stream(writes).map(_ignore -> 102L).collectToMap();
 
@@ -148,9 +148,9 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 .map(count -> count < 500 ? PtBytes.toBytes(count) : PtBytes.EMPTY_BYTE_ARRAY)
                 .collectToMap();
         kvs.put(TABLE_1, writes, 100L);
-        txService.putUnlessExists(100L, 101L);
+        commitTimestamp(100L, 101L);
         kvs.put(TABLE_1, writes, 103L);
-        txService.putUnlessExists(103L, 104L);
+        commitTimestamp(103L, 104L);
 
         Map<Cell, Long> readMap =
                 KeyedStream.stream(writes).map(_ignore -> 102L).collectToMap();
@@ -197,7 +197,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                             ThreadLocalRandom.current().nextBoolean() ? cell.getRowName() : PtBytes.EMPTY_BYTE_ARRAY)
                     .collectToMap();
             kvs.put(TABLE_1, writes, 100L + 2L * i);
-            txService.putUnlessExists(100L + 2L * i, 101L + 2L * i);
+            commitTimestamp(100L + 2L * i, 101L + 2L * i);
         }
 
         Map<Cell, Long> readMap = KeyedStream.of(cells).map(_ignore -> 102L).collectToMap();
@@ -226,6 +226,11 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
         assertThat(latestVisibleVersions.size())
                 .as("expected number of cells that are fully deleted is ~45.22%, ~5500 remaining")
                 .isBetween(4500, 6500);
+    }
+
+    private void commitTimestamp(long startTs, long commitTs) {
+        txService.markInProgress(startTs);
+        txService.putUnlessExists(startTs, commitTs);
     }
 
     @Override

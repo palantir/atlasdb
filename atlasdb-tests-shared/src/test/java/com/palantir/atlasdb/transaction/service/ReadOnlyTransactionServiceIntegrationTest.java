@@ -50,7 +50,7 @@ public class ReadOnlyTransactionServiceIntegrationTest {
 
     @Test
     public void canReadAlreadyAgreedValuesEvenAfterAdditionalCoordinations() {
-        writeTransactionService.putUnlessExists(1L, 8L);
+        commitTransaction(1L, 8L);
 
         assertThat(readOnlyTransactionService.get(1L)).isEqualTo(8L);
         assertThat(readOnlyTransactionService.get(8L)).isNull();
@@ -58,7 +58,7 @@ public class ReadOnlyTransactionServiceIntegrationTest {
 
         timestampService.fastForwardTimestamp(COORDINATION_QUANTUM);
 
-        writeTransactionService.putUnlessExists(COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L);
+        commitTransaction(COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L);
         assertThat(readOnlyTransactionService.get(COORDINATION_QUANTUM + 1L)).isEqualTo(COORDINATION_QUANTUM + 5L);
         assertThat(readOnlyTransactionService.get(Long.MAX_VALUE)).isNull();
     }
@@ -66,12 +66,17 @@ public class ReadOnlyTransactionServiceIntegrationTest {
     @Test
     public void canReadMultipleAgreedValuesEvenAfterAdditionalCoordinations() {
         timestampService.fastForwardTimestamp(COORDINATION_QUANTUM);
-        writeTransactionService.putUnlessExists(1L, 8L);
-        writeTransactionService.putUnlessExists(COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L);
+        commitTransaction(1L, 8L);
+        commitTransaction(COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L);
 
         assertThat(readOnlyTransactionService.get(
                         ImmutableList.of(1L, COORDINATION_QUANTUM + 1L, 2 * COORDINATION_QUANTUM + 1L)))
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(1L, 8L, COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L));
+    }
+
+    private void commitTransaction(long startTs, long commitTs) {
+        writeTransactionService.markInProgress(startTs);
+        writeTransactionService.putUnlessExists(startTs, commitTs);
     }
 }

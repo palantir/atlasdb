@@ -1853,6 +1853,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         "commitCheckingForConflicts",
                         () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
 
+                timedAndTraced("markingInProgress", () -> transactionService.markInProgress(getStartTimestamp()));
+
                 // Write to the targeted sweep queue. We must do this before writing to the key value service -
                 // otherwise we may have hanging values that targeted sweep won't know about.
                 timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));

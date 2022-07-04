@@ -21,7 +21,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
-import com.palantir.atlasdb.transaction.service.TransactionService;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,7 +45,7 @@ public final class DbKvsTestUtils {
       |  --  |    --    |      --      | ... | (90, ... , 98)|
        ------------------------------------------------------
     */
-    static void setupTestTable(KeyValueService kvs, TableReference tableName, TransactionService txService) {
+    static void setupTestTable(KeyValueService kvs, TableReference tableName) {
         for (int col = 1; col < 10; ++col) {
             Map<Cell, byte[]> toPut = new HashMap<>();
             for (int row = 1; row <= col; ++row) {
@@ -55,9 +54,6 @@ public final class DbKvsTestUtils {
             }
             for (int ts = 10 * col; ts < 11 * col; ++ts) {
                 kvs.put(tableName, toPut, ts);
-                if (txService != null) {
-                    txService.putUnlessExists(ts, ts);
-                }
             }
         }
     }

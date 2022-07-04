@@ -26,10 +26,10 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.CheckForNull;
@@ -67,13 +67,13 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     @Override
-    public void markAsInProgress(long startTimestamp) {
-        delegate.markAsInProgress(startTimestamp);
+    public void markInProgress(long startTimestamp) {
+        delegate.markInProgress(startTimestamp);
     }
 
     @Override
-    public void markAsInProgress(Collection<Long> startTimestamps) {
-        delegate.markAsInProgress(startTimestamps);
+    public void markInProgress(Set<Long> startTimestamps) {
+        delegate.markInProgress(startTimestamps);
     }
 
     @Override

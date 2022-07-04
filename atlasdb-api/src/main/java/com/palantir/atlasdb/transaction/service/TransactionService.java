@@ -17,8 +17,8 @@ package com.palantir.atlasdb.transaction.service;
 
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.metrics.Timed;
-import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 
 /**
@@ -56,14 +56,18 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      * This method MUST be called for each start timestamp before {@link #putUnlessExists(long, long) is ever called}.
      * In practice, this means that a transaction must call this method before any information about its start timestamp
      * is persisted into the KVS; i.e. KVS writes, writing to the sweep queue, etc.
+     *
+     * For safety, it is advisable that implementations of this method result in a no-op if this method is called after
+     * a successful call of {@link #putUnlessExists(long, long)} for the same startTimestamp.
      */
-    void markAsInProgress(long startTimestamp);
+    void markInProgress(long startTimestamp);
 
-    void markAsInProgress(Collection<Long> startTimestamps);
+    void markInProgress(Set<Long> startTimestamps);
 
     /**
      * This operation is guaranteed to be atomic and only set the value if it hasn't already been
-     * set. This operation may only be called after the start timestamp has successfully been marked as in progress.
+     * set. Implementations of this method may throw if this method is called before
+     * {@link #markInProgress(long)} was ever called for this startTimestamp.
      *
      * @throws KeyAlreadyExistsException If this value was already set, but {@link #get(long)} should
      * be called to check what the value was set to.  This may throw spuriously due to retry.

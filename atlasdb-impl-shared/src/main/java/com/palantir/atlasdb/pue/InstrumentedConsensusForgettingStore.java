@@ -22,9 +22,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -76,12 +76,12 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
-    public void markAsInProgress(Cell cell) {
+    public void markInProgress(Cell cell) {
         // do nothing
     }
 
     @Override
-    public void markAsInProgress(Collection<Cell> cells) {
+    public void markInProgress(Set<Cell> cells) {
         // do nothing
     }
 

@@ -183,6 +183,6 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
 
     private void setupTestTable() {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        DbKvsTestUtils.setupTestTable(keyValueService, TEST_TABLE, null);
+        DbKvsTestUtils.setupTestTable(keyValueService, TEST_TABLE);
     }
 }

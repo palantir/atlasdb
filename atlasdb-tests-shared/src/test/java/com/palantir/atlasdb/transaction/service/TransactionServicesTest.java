@@ -76,7 +76,7 @@ public class TransactionServicesTest {
     @Test
     public void valuesPutMayBeSubsequentlyRetrievedV1() {
         initializeTimestamps();
-        transactionService.putUnlessExists(startTs, commitTs);
+        commitTransaction();
         assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
     }
 
@@ -84,7 +84,7 @@ public class TransactionServicesTest {
     public void valuesPutMayBeSubsequentlyRetrievedV2() {
         forceInstallV2();
         initializeTimestamps();
-        transactionService.putUnlessExists(startTs, commitTs);
+        commitTransaction();
         assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
     }
 
@@ -102,7 +102,7 @@ public class TransactionServicesTest {
     }
 
     private void assertCannotPutValuesTwice() {
-        transactionService.putUnlessExists(startTs, commitTs);
+        commitTransaction();
         assertThatThrownBy(() -> transactionService.putUnlessExists(startTs, commitTs))
                 .isInstanceOf(KeyAlreadyExistsException.class)
                 .hasMessageContaining("already have a value for this timestamp");
@@ -112,7 +112,7 @@ public class TransactionServicesTest {
     @Test
     public void commitsV1TransactionByDefault() {
         initializeTimestamps();
-        transactionService.putUnlessExists(startTs, commitTs);
+        commitTransaction();
 
         Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTION_TABLE);
         assertExpectedArgument(actualArgument, V1EncodingStrategy.INSTANCE);
@@ -124,7 +124,7 @@ public class TransactionServicesTest {
     public void canCommitV2Transaction() {
         forceInstallV2();
         initializeTimestamps();
-        transactionService.putUnlessExists(startTs, commitTs);
+        commitTransaction();
 
         Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS2_TABLE);
         assertExpectedArgument(actualArgument, TicketsEncodingStrategy.INSTANCE);
@@ -160,5 +160,10 @@ public class TransactionServicesTest {
 
         assertThat(actualArgument.keySet()).containsExactly(cell);
         assertThat(actualArgument.get(cell)).containsExactly(value);
+    }
+
+    private void commitTransaction() {
+        transactionService.markInProgress(startTs);
+        transactionService.putUnlessExists(startTs, commitTs);
     }
 }

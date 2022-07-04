@@ -215,6 +215,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             }
         }
         kvs.put(tableRef, cells, startTs);
+        txService.markInProgress(startTs);
         txService.putUnlessExists(startTs, commitTs);
     }
 

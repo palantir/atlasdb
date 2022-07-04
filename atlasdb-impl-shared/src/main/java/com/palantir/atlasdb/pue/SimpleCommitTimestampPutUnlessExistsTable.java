@@ -28,6 +28,7 @@ import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -41,6 +42,11 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
         this.kvs = kvs;
         this.tableRef = tableRef;
         this.encodingStrategy = encodingStrategy;
+    }
+
+    @Override
+    public void markInProgress(Set<Long> keys) {
+        // no-op
     }
 
     @Override

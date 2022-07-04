@@ -31,6 +31,7 @@ import com.palantir.logsafe.SafeArg;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -52,6 +53,12 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
         this.store = store;
         this.encodingStrategy = encodingStrategy;
         this.acceptStagingReadsAsCommitted = acceptStagingReadsAsCommitted;
+    }
+
+    @Override
+    public void markInProgress(Set<Long> keys) {
+        store.markInProgress(
+                keys.stream().map(encodingStrategy::encodeStartTimestampAsCell).collect(Collectors.toSet()));
     }
 
     @Override

@@ -134,6 +134,7 @@ public class TableTasksTest {
                 key++;
             }
         }
+        txService.markInProgress(1);
         txService.putUnlessExists(1, 1);
         AtomicLong rowsOnlyInSource = new AtomicLong();
         AtomicLong rowsPartiallyInCommon = new AtomicLong();

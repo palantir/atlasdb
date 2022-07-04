@@ -24,15 +24,15 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -49,22 +49,24 @@ public class CasConsensusForgettingStore implements ConsensusForgettingStore {
     }
 
     @Override
-    public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException, CheckAndSetException {
+    public void putUnlessExists(Cell cell, byte[] value) throws CheckAndSetException {
+        CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, inProgressMarker, value);
+        kvs.checkAndSet(request);
         // use CAS
     }
 
     @Override
-    public void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException, CheckAndSetException {
-        // use multiCAS
+    public void putUnlessExists(Map<Cell, byte[]> values) throws CheckAndSetException {
+        // use multiCAS which is not implemented yet
     }
 
     @Override
-    public void markAsInProgress(Cell cell) {
-        markAsInProgress(ImmutableSet.of(cell));
+    public void markInProgress(Cell cell) {
+        markInProgress(ImmutableSet.of(cell));
     }
 
     @Override
-    public void markAsInProgress(Collection<Cell> cells) {
+    public void markInProgress(Set<Cell> cells) {
         kvs.put(tableRef, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> inProgressMarker)), 0L);
     }
 

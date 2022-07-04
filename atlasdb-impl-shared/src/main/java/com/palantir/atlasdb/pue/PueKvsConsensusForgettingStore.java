@@ -30,9 +30,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -57,12 +57,12 @@ public class PueKvsConsensusForgettingStore implements ConsensusForgettingStore 
     }
 
     @Override
-    public void markAsInProgress(Cell cell) {
+    public void markInProgress(Cell cell) {
         // do nothing
     }
 
     @Override
-    public void markAsInProgress(Collection<Cell> cells) {
+    public void markInProgress(Set<Cell> cells) {
         // do nothing
     }
 

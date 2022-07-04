@@ -76,15 +76,15 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
-    public void markAsInProgress(long startTimestamp) {
+    public void markInProgress(long startTimestamp) {
         TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp)
                 .orElseThrow(() ->
                         new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
-        service.markAsInProgress(startTimestamp);
+        service.markInProgress(startTimestamp);
     }
 
     @Override
-    public void markAsInProgress(Collection<Long> startTimestamps) {
+    public void markInProgress(Set<Long> startTimestamps) {
         // todo (gmaretic): implement
     }
 

@@ -51,6 +51,8 @@ import org.immutables.value.Value;
  * Delegates are expected to throw {@link KeyAlreadyExistsException}s that have meaningful values for
  * {@link KeyAlreadyExistsException#getExistingKeys()}.
  */
+// todo(gmaretic): this is no longer the correct level of abstraction for auto-batching, this should happen in the
+// PuE table layer probably
 public final class WriteBatchingTransactionService implements TransactionService {
     private static final SafeLogger log = SafeLoggerFactory.get(WriteBatchingTransactionService.class);
 
@@ -84,13 +86,13 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
-    public void markAsInProgress(long startTimestamp) {
-        delegate.markAsInProgress(startTimestamp);
+    public void markInProgress(long startTimestamp) {
+        delegate.markInProgress(startTimestamp);
     }
 
     @Override
-    public void markAsInProgress(Collection<Long> startTimestamps) {
-        delegate.markAsInProgress(startTimestamps);
+    public void markInProgress(Set<Long> startTimestamps) {
+        delegate.markInProgress(startTimestamps);
     }
 
     @Override
@@ -158,6 +160,7 @@ public final class WriteBatchingTransactionService implements TransactionService
                 handleFailedTimestamps(delegate, startTimestampKeyedBatchElements, batch, exception);
                 handleSuccessfulTimestamps(delegate, startTimestampKeyedBatchElements, batch, exception);
             }
+            // todo(gamretic) : catch multiCAS exception
         }
     }
 

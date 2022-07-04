@@ -496,6 +496,7 @@ public abstract class AbstractSweepTest {
     }
 
     private void putTimestampIntoTransactionTable(long ts) {
+        txService.markInProgress(ts);
         txService.putUnlessExists(ts, ts);
     }
 

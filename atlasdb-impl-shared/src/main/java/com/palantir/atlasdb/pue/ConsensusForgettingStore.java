@@ -20,9 +20,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * A table that supports atomic put unless exists and check and touch operations, but explicitly does NOT guarantee
@@ -40,15 +40,20 @@ public interface ConsensusForgettingStore {
      *   2. A subsequent get may return Optional.of(value), Optional.empty(), or even Optional.of(other_value) if
      *   another PUE has failed in the past non-deterministically
      *
-     *   The implementation of this method may not internally use
+     *   Implementations of this method may throw either a {@link KeyAlreadyExistsException} or a
+     *   {@link CheckAndSetException} on failure, and should declare which one.
      */
     void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException, CheckAndSetException;
 
+    // todo(gmaretic): update when the MultiCas PR merges
+    /**
+     * Similar to {@link #putUnlessExists(Cell, byte[])}, but the CAS exception is a multicas exception
+     */
     void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException, CheckAndSetException;
 
-    void markAsInProgress(Cell cell);
+    void markInProgress(Cell cell);
 
-    void markAsInProgress(Collection<Cell> cells);
+    void markInProgress(Set<Cell> cells);
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a

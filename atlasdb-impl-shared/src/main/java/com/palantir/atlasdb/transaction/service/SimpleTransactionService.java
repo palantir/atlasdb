@@ -33,6 +33,7 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
@@ -94,6 +95,16 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.getUnchecked(getAsync(startTimestamps));
+    }
+
+    @Override
+    public void markInProgress(long startTimestamp) {
+        txnTable.markInProgress(startTimestamp);
+    }
+
+    @Override
+    public void markInProgress(Set<Long> startTimestamps) {
+        txnTable.markInProgress(startTimestamps);
     }
 
     @Override
