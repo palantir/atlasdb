@@ -57,7 +57,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
@@ -176,7 +175,7 @@ public class SweepableCells extends SweepQueueTable {
                 writes,
                 filteredDedicatedRows,
                 lastSweptTs,
-                writeBatch.maxCommitTs,
+                tsToSweep.lastSeenCommitTs(),
                 tsToSweep.processedAll(),
                 entriesRead);
     }
@@ -200,10 +199,8 @@ public class SweepableCells extends SweepQueueTable {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             long startTs = getTimestamp(row, col);
-            // todo(snanda): why are we only loading from cache
-            Optional<Long> maybeCommitTs = commitTsCache.loadIfCached(startTs);
-            if (knownToBeCommittedAfterSweepTs(maybeCommitTs, sweepTs)) {
-                writeBatch.add(ImmutableList.of(getWriteInfo(startTs, maybeCommitTs, entry.getValue())));
+            if (knownToBeCommittedAfterSweepTs(startTs, sweepTs)) {
+                writeBatch.add(ImmutableList.of(getWriteInfo(startTs, entry.getValue())));
                 return writeBatch;
             }
             writeBatch.merge(getWrites(row, col, entry.getValue()));
@@ -227,25 +224,16 @@ public class SweepableCells extends SweepQueueTable {
     private static final class WriteBatch {
         private final Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         private final List<SweepableCellsRow> dedicatedRows = new ArrayList<>();
-        private long maxCommitTs = 0L;
 
         static WriteBatch single(WriteInfo writeInfo) {
             WriteBatch batch = new WriteBatch();
-            batch.updateMaxCommitTs(writeInfo.commitTimestamp());
             return batch.add(ImmutableList.of(writeInfo));
         }
 
         WriteBatch merge(WriteBatch other) {
             writesByStartTs.putAll(other.writesByStartTs);
             dedicatedRows.addAll(other.dedicatedRows);
-            updateMaxCommitTs(Optional.of(other.maxCommitTs));
             return this;
-        }
-
-        void updateMaxCommitTs(Optional<Long> maybeCommitTs) {
-            maybeCommitTs.ifPresent(commitTs -> {
-                maxCommitTs = Math.max(maxCommitTs, commitTs);
-            });
         }
 
         WriteBatch add(List<SweepableCellsRow> newDedicatedRows, List<WriteInfo> writeInfos) {
@@ -256,7 +244,6 @@ public class SweepableCells extends SweepQueueTable {
         WriteBatch add(List<WriteInfo> writeInfos) {
             writeInfos.forEach(info -> {
                 writesByStartTs.put(info.timestamp(), info);
-                updateMaxCommitTs(info.commitTimestamp());
             });
             return this;
         }
@@ -279,6 +266,7 @@ public class SweepableCells extends SweepQueueTable {
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
         List<Long> committedTimestamps = new ArrayList<>();
         long lastSweptTs = minTsExclusive;
+        long lastSeenCommitTs = -1L;
         boolean processedAll = true;
 
         List<Long> sortedStartTimestamps =
@@ -293,6 +281,7 @@ public class SweepableCells extends SweepQueueTable {
             } else if (commitTs < sweepTs) {
                 lastSweptTs = startTs;
                 committedTimestamps.add(startTs);
+                lastSeenCommitTs = Math.max(lastSeenCommitTs, commitTs);
             } else {
                 processedAll = false;
                 lastSweptTs = startTs - 1;
@@ -325,7 +314,10 @@ public class SweepableCells extends SweepQueueTable {
         });
 
         return TimestampsToSweep.of(
-                ImmutableSortedSet.copyOf(committedTimestamps).descendingSet(), lastSweptTs, processedAll);
+                ImmutableSortedSet.copyOf(committedTimestamps).descendingSet(),
+                lastSweptTs,
+                lastSeenCommitTs,
+                processedAll);
     }
 
     private boolean tableWasDropped(TableReference tableRef) {
@@ -357,8 +349,7 @@ public class SweepableCells extends SweepQueueTable {
         if (isReferenceToDedicatedRows(col)) {
             return writesFromDedicated(row, col);
         } else {
-            long startTs = getTimestamp(row, col);
-            return WriteBatch.single(getWriteInfo(startTs, commitTsCache.loadIfCached(startTs), value));
+            return WriteBatch.single(getWriteInfo(getTimestamp(row, col), value));
         }
     }
 
@@ -375,8 +366,7 @@ public class SweepableCells extends SweepQueueTable {
                 dedicatedRows,
                 Streams.stream(iterator)
                         .map(entry -> {
-                            long timestamp = getTimestamp(row, col);
-                            return getWriteInfo(timestamp, commitTsCache.loadIfCached(timestamp), entry.getValue());
+                            return getWriteInfo(getTimestamp(row, col), entry.getValue());
                         })
                         .collect(Collectors.toList()));
     }
@@ -404,8 +394,11 @@ public class SweepableCells extends SweepQueueTable {
         return row.getTimestampPartition() * SweepQueueUtils.TS_FINE_GRANULARITY + col.getTimestampModulus();
     }
 
-    private boolean knownToBeCommittedAfterSweepTs(Optional<Long> maybeCommitTs, long sweepTs) {
-        return maybeCommitTs.map(commitTs -> commitTs >= sweepTs).orElse(false);
+    private boolean knownToBeCommittedAfterSweepTs(long startTs, long sweepTs) {
+        return commitTsCache
+                .loadIfCached(startTs)
+                .map(commitTs -> commitTs >= sweepTs)
+                .orElse(false);
     }
 
     private int writeIndexToNumberOfDedicatedRows(long writeIndex) {
@@ -416,11 +409,10 @@ public class SweepableCells extends SweepQueueTable {
         return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.BATCH_SIZE_KVS);
     }
 
-    private WriteInfo getWriteInfo(long timestamp, Optional<Long> commitTs, Value value) {
+    private WriteInfo getWriteInfo(long timestamp, Value value) {
         return WriteInfo.of(
                 writeReferencePersister.unpersist(SweepableCellsColumnValue.hydrateValue(value.getContents())),
-                timestamp,
-                commitTs);
+                timestamp);
     }
 
     private boolean exhaustedAllColumns(Iterator<Map.Entry<Cell, Value>> resultIterator) {

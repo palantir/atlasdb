@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
@@ -32,8 +31,6 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface WriteInfo {
     long timestamp();
-
-    Optional<Long> commitTimestamp();
 
     WriteReference writeRef();
 
@@ -69,31 +66,18 @@ public interface WriteInfo {
     }
 
     static WriteInfo of(WriteReference writeRef, long timestamp) {
-        return of(writeRef, timestamp, Optional.empty());
-    }
-
-    static WriteInfo of(WriteReference writeRef, long timestamp, Optional<Long> commitTimestamp) {
         return ImmutableWriteInfo.builder()
                 .writeRef(writeRef)
                 .timestamp(timestamp)
-                .commitTimestamp(commitTimestamp)
                 .build();
     }
 
     static WriteInfo tombstone(TableReference tableRef, Cell cell, long timestamp) {
-        return tombstone(tableRef, cell, timestamp, Optional.empty());
-    }
-
-    static WriteInfo tombstone(TableReference tableRef, Cell cell, long timestamp, Optional<Long> commitTimestamp) {
-        return WriteInfo.of(WriteReference.of(tableRef, cell, true), timestamp, commitTimestamp);
+        return WriteInfo.of(WriteReference.of(tableRef, cell, true), timestamp);
     }
 
     static WriteInfo write(TableReference tableRef, Cell cell, long timestamp) {
-        return write(tableRef, cell, timestamp, Optional.empty());
-    }
-
-    static WriteInfo write(TableReference tableRef, Cell cell, long timestamp, Optional<Long> commitTimestamp) {
-        return WriteInfo.of(WriteReference.of(tableRef, cell, false), timestamp, commitTimestamp);
+        return WriteInfo.of(WriteReference.of(tableRef, cell, false), timestamp);
     }
 
     static WriteInfo higherTimestamp(WriteInfo fst, WriteInfo snd) {
