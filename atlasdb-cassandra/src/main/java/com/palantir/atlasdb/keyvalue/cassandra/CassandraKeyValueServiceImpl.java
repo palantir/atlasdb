@@ -1988,7 +1988,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Performs a check-and-set for multiple cells in a row into the key-value store.
      * Please see {@link MultiCheckAndSetRequest} for information about how to create this request,
      * and {@link KeyValueService} for more detailed documentation.
-     * <p>
+     *
+     * If the call completes successfully, then you know that the old cells initially had the values you expected.
+     * In this case, you can be sure that all your cells have been updated to their new values.
+     * If the old cells initially did not have the values you expected, none of the cells will be updated and
+     * {@link MultiCheckAndSetException} will be thrown.
+     *
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *
      * @param request the request, including table, rowName, old values and new values.

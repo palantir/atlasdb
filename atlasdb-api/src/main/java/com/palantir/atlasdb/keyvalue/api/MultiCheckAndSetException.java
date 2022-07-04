@@ -30,8 +30,8 @@ public class MultiCheckAndSetException extends RuntimeException {
             Map<Cell, byte[]> expectedValue,
             Map<Cell, byte[]> actualValues) {
         super(String.format(
-                "Unexpected value observed in table %s while performing multiCheckAndSet."
-                        + "If this is happening repeatedly, your program may be out of sync with the database.",
+                "Current values in the database do not match the expected values specified in multi-checkAndSet "
+                        + "request.",
                 tableReference));
         this.tableReference = tableReference;
         this.rowName = rowName;

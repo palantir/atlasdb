@@ -476,9 +476,10 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         TableReference tableRef = request.table();
         Table table = getTableMap(tableRef);
         Cell cell = request.cell();
-        Optional<byte[]> oldValue = request.oldValue();
+        Optional<byte[]> expectedCurrentValue = request.oldValue();
         byte[] contents = request.newValue();
-        checkAndSetInternal(tableRef, table, cell, oldValue, contents);
+        CheckAndSetResult checkAndSetResult = checkAndSetInternal(table, cell, expectedCurrentValue, contents);
+        throwIfCheckAndSetException(tableRef, cell, expectedCurrentValue, checkAndSetResult);
     }
 
     @Override
@@ -487,20 +488,19 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         Table table = getTableMap(tableRef);
 
         multiCheckAndSetRequest.updates().forEach((cell, val) -> {
-            Optional<byte[]> oldVal =
+            Optional<byte[]> expectedVal =
                     Optional.ofNullable(multiCheckAndSetRequest.expected().get(cell));
-            checkAndSetInternal(tableRef, table, cell, oldVal, val);
+            CheckAndSetResult result = checkAndSetInternal(table, cell, expectedVal, val);
+            throwIfCheckAndSetException(tableRef, cell, expectedVal, result);
         });
     }
 
     // Returns the existing contents, if any, and null otherwise
-
     private byte[] putIfAbsent(Table table, Key key, final byte[] contents) {
         return table.entries.putIfAbsent(key, copyOf(contents));
     }
 
-    private void checkAndSetInternal(
-            TableReference tableRef, Table table, Cell cell, Optional<byte[]> oldValue, byte[] contents) {
+    private CheckAndSetResult checkAndSetInternal(Table table, Cell cell, Optional<byte[]> oldValue, byte[] contents) {
         Key key = getKey(table, cell, AtlasDbConstants.TRANSACTION_TS);
         if (oldValue.isPresent()) {
             byte[] storedValue = table.entries.get(key);
@@ -508,14 +508,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     && table.entries.replace(key, storedValue, copyOf(contents));
             if (!succeeded) {
                 byte[] actual = table.entries.get(key); // Re-fetch, something may have happened between get and replace
-                throwCheckAndSetException(cell, tableRef, oldValue.get(), actual);
+                return CheckAndSetResult.of(false, ImmutableList.of(actual));
             }
         } else {
             byte[] oldContents = putIfAbsent(table, key, contents);
             if (oldContents != null) {
-                throwCheckAndSetException(cell, tableRef, null, oldContents);
+                return CheckAndSetResult.of(false, ImmutableList.of(oldContents));
             }
         }
+        return CheckAndSetResult.of(true, ImmutableList.of());
     }
 
     private Key getKey(Table table, Cell cell, long timestamp) {
@@ -530,9 +531,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return new Key(row, col, timestamp);
     }
 
-    private void throwCheckAndSetException(Cell cell, TableReference tableRef, byte[] expected, byte[] actual) {
-        ImmutableList<byte[]> actuals = actual == null ? ImmutableList.of() : ImmutableList.of(actual);
-        throw new CheckAndSetException(cell, tableRef, expected, actuals);
+    private void throwIfCheckAndSetException(
+            TableReference tableRef,
+            Cell cell,
+            Optional<byte[]> expectedCurrentValue,
+            CheckAndSetResult checkAndSetResult) {
+        if (!checkAndSetResult.successful()) {
+            throw new CheckAndSetException(
+                    cell, tableRef, expectedCurrentValue.orElse(null), checkAndSetResult.existingValues());
+        }
     }
 
     @Override

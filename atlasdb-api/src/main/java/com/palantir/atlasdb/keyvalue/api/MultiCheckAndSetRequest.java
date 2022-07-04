@@ -46,14 +46,15 @@ public interface MultiCheckAndSetRequest {
     default void check() {
         Set<byte[]> rowsForExpectedCells = getRowsForCells(expected());
         Preconditions.checkState(
-                rowsForExpectedCells.isEmpty() || (rowsForExpectedCells.size() == 1
-                        && Arrays.equals(Iterables.getOnlyElement(rowsForExpectedCells), rowName())),
+                rowsForExpectedCells.isEmpty() || hasConsistentRowName(rowsForExpectedCells),
                 "Only expects values for cells in the same row.");
 
-        Set<byte[]> rowsForUpdates = getRowsForCells(updates());
-        Preconditions.checkState(
-                rowsForUpdates.size() == 1 && Arrays.equals(Iterables.getOnlyElement(rowsForUpdates), rowName()),
-                "Can only update cells in one row.");
+        Preconditions.checkState(hasConsistentRowName(getRowsForCells(updates())), "Can only update cells in one row.");
+    }
+
+    private boolean hasConsistentRowName(Set<byte[]> rowsForExpectedCells) {
+        return rowsForExpectedCells.size() == 1
+                && Arrays.equals(Iterables.getOnlyElement(rowsForExpectedCells), rowName());
     }
 
     private Set<byte[]> getRowsForCells(Map<Cell, byte[]> cellMap) {
@@ -64,8 +65,8 @@ public interface MultiCheckAndSetRequest {
         return builder().tableRef(table).rowName(rowName).updates(updates).build();
     }
 
-    static MultiCheckAndSetRequest multipleCells(TableReference table, byte[] rowName, Map<Cell, byte[]> expected,
-            Map<Cell, byte[]> updates) {
+    static MultiCheckAndSetRequest multipleCells(
+            TableReference table, byte[] rowName, Map<Cell, byte[]> expected, Map<Cell, byte[]> updates) {
         return builder()
                 .tableRef(table)
                 .rowName(rowName)

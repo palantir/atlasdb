@@ -1862,9 +1862,7 @@ public abstract class AbstractKeyValueServiceTest {
     public void testMultiCheckAndSetFromEmpty() {
         Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 0));
 
-        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.newCells(TEST_TABLE,
-                TEST_CELL.getRowName(),
-                updates);
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.newCells(TEST_TABLE, TEST_CELL.getRowName(), updates);
         keyValueService.multiCheckAndSet(request);
 
         verifyMultiCheckAndSet(updates);
@@ -1876,10 +1874,8 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.put(TEST_TABLE, expected, AtlasDbConstants.TRANSACTION_TS);
 
         Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 1));
-        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(TEST_TABLE,
-                TEST_CELL.getRowName(),
-                expected,
-                updates);
+        MultiCheckAndSetRequest request =
+                MultiCheckAndSetRequest.multipleCells(TEST_TABLE, TEST_CELL.getRowName(), expected, updates);
         keyValueService.multiCheckAndSet(request);
 
         verifyMultiCheckAndSet(updates);
@@ -1892,10 +1888,8 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, byte[]> expected = ImmutableMap.of(TEST_CELL, val(0, 1));
         Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 0));
 
-        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(TEST_TABLE,
-                TEST_CELL.getRowName(),
-                expected,
-                updates);
+        MultiCheckAndSetRequest request =
+                MultiCheckAndSetRequest.multipleCells(TEST_TABLE, TEST_CELL.getRowName(), expected, updates);
         keyValueService.multiCheckAndSet(request);
 
         verifyMultiCheckAndSet(updates);
@@ -1918,7 +1912,8 @@ public abstract class AbstractKeyValueServiceTest {
     //     CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
     //     keyValueService.checkAndSet(request);
     //
-    //     CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 1), val(0, 0));
+    //     CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 1), val(0,
+    // 0));
     //     Throwable throwable = catchThrowable(() -> keyValueService.checkAndSet(secondRequest));
     //     if (throwable != null) {
     //         assertThat(throwable)
