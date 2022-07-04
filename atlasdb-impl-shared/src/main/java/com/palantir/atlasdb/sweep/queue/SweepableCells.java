@@ -264,7 +264,7 @@ public class SweepableCells extends SweepQueueTable {
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
         List<Long> committedTimestamps = new ArrayList<>();
         long lastSweptTs = minTsExclusive;
-        long lastSeenCommitTs = -1L;
+        long lastSeenCommitTs = 0L;
         boolean processedAll = true;
 
         List<Long> sortedStartTimestamps =

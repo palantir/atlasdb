@@ -261,14 +261,13 @@ public class ShardProgressTest {
     }
 
     @Test
-    public void onlyUpdatesLastSeenCommitTsForThorough() {
+    public void onlyUpdatesLastSeenCommitTsForConservative() {
         assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
 
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 128L);
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(128L);
 
         progress.updateLastSeenCommitTimestamp(THOROUGH_TEN, 256L);
-        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(128L);
     }
 
     @Test

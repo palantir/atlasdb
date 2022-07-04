@@ -89,7 +89,7 @@ public class ShardProgress {
      *
      * @param shardAndStrategy shard and strategy to update for
      * @param timestamp timestamp to update to
-     * @return the latest known persisted sweep for the shard and strategy
+     * @return the latest known persisted sweep timestamp for the shard and strategy
      */
     public long updateLastSweptTimestamp(ShardAndStrategy shardAndStrategy, long timestamp) {
         return increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
