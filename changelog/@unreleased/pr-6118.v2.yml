@@ -1,6 +1,6 @@
 type: improvement
 improvement:
-  description: A new transactions schema version is not installed until *15 minutes*
-    after startup, if the first installation failed.
+  description: A new transactions schema version is now installed *15 minutes* after
+    startup, if the first installation failed.
   links:
   - https://github.com/palantir/atlasdb/pull/6118
