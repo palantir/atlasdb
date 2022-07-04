@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[TTS] Sweep must process writes done by a transaction.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6088
