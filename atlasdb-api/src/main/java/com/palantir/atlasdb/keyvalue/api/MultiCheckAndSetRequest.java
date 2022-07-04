@@ -34,24 +34,20 @@ import org.immutables.value.Value;
  */
 @Value.Immutable
 public interface MultiCheckAndSetRequest {
-    @Value.Parameter
     TableReference tableRef();
 
-    @Value.Parameter
     byte[] rowName();
 
-    @Value.Parameter
     Map<Cell, byte[]> expected();
 
-    @Value.Parameter
     Map<Cell, byte[]> updates();
 
     @Value.Check
     default void check() {
         Set<byte[]> rowsForExpectedCells = getRowsForCells(expected());
         Preconditions.checkState(
-                rowsForExpectedCells.size() == 1
-                        && Arrays.equals(Iterables.getOnlyElement(rowsForExpectedCells), rowName()),
+                rowsForExpectedCells.isEmpty() || (rowsForExpectedCells.size() == 1
+                        && Arrays.equals(Iterables.getOnlyElement(rowsForExpectedCells), rowName())),
                 "Only expects values for cells in the same row.");
 
         Set<byte[]> rowsForUpdates = getRowsForCells(updates());
@@ -62,6 +58,20 @@ public interface MultiCheckAndSetRequest {
 
     private Set<byte[]> getRowsForCells(Map<Cell, byte[]> cellMap) {
         return cellMap.keySet().stream().map(Cell::getRowName).collect(Collectors.toSet());
+    }
+
+    static MultiCheckAndSetRequest newCells(TableReference table, byte[] rowName, Map<Cell, byte[]> updates) {
+        return builder().tableRef(table).rowName(rowName).updates(updates).build();
+    }
+
+    static MultiCheckAndSetRequest multipleCells(TableReference table, byte[] rowName, Map<Cell, byte[]> expected,
+            Map<Cell, byte[]> updates) {
+        return builder()
+                .tableRef(table)
+                .rowName(rowName)
+                .expected(expected)
+                .updates(updates)
+                .build();
     }
 
     static ImmutableMultiCheckAndSetRequest.Builder builder() {

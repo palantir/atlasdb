@@ -315,6 +315,9 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * If the call completes successfully, then you know that the old cells initially had the values you expected.
      * In this case, you can be sure that all your cells have been updated to their new values.
      *
+     * In case of failure, there are no guarantees that the operation was not partially applied but the
+     * implementations may offer such a guarantee.
+     *
      * If a {@link MultiCheckAndSetException} is thrown, it is likely that the values stored in the cells were not as
      * you expected.
      * In this case, you may want to check the stored values and determine why it was different from the expected value.

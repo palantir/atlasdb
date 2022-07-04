@@ -45,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -1599,27 +1600,6 @@ public abstract class AbstractKeyValueServiceTest {
         verifyCheckAndSet(TEST_CELL, megabyteValue);
     }
 
-    private void verifyCheckAndSet(Cell key, byte[] expectedValue) {
-        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(key), 1L);
-
-        assertThat(timestamps).hasSize(1);
-        assertThat(timestamps.get(key)).containsExactly(AtlasDbConstants.TRANSACTION_TS);
-
-        ClosableIterator<RowResult<Value>> result =
-                keyValueService.getRange(TEST_TABLE, RangeRequest.all(), AtlasDbConstants.TRANSACTION_TS + 1);
-
-        // Check result is right
-        byte[] actual = result.next().getColumns().get(key.getColumnName()).getContents();
-        assertThat(actual)
-                .describedAs(
-                        "Value \"%s\" different from expected \"%s\"",
-                        new String(actual, StandardCharsets.UTF_8), new String(expectedValue, StandardCharsets.UTF_8))
-                .isEqualTo(expectedValue);
-
-        // Check no more results
-        assertThat(result).isExhausted();
-    }
-
     @Test
     public void testCheckAndSetFromWrongValue() {
         assumeTrue(checkAndSetSupported());
@@ -1781,44 +1761,6 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(getOnlyItemInTableRange()).isEqualTo(originalData);
     }
 
-    private static void modifyValue(byte[] retrievedValue) {
-        retrievedValue[0] = (byte) 50;
-    }
-
-    private static byte[] copyOf(byte[] contents) {
-        return Arrays.copyOf(contents, contents.length);
-    }
-
-    private void writeToCell(Cell cell, byte[] data) {
-        Value val = Value.create(data, TEST_TIMESTAMP + 1);
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val));
-    }
-
-    private byte[] getRowsForCell(Cell cell) {
-        return keyValueService
-                .getRows(TEST_TABLE, ImmutableSet.of(cell.getRowName()), ColumnSelection.all(), TEST_TIMESTAMP + 3)
-                .get(cell)
-                .getContents();
-    }
-
-    private byte[] getForCell(Cell cell) {
-        return keyValueService
-                .get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 3))
-                .get(cell)
-                .getContents();
-    }
-
-    private byte[] getOnlyItemInTableRange() {
-        try (ClosableIterator<RowResult<Value>> rangeIterator =
-                keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3)) {
-            byte[] contents = rangeIterator.next().getOnlyColumnValue().getContents();
-            assertThat(rangeIterator)
-                    .describedAs("There should only be one row in the table")
-                    .isExhausted();
-            return contents;
-        }
-    }
-
     @Test
     public void shouldAllowNotHavingAnyDynamicColumns() {
         keyValueService.createTable(DynamicColumnTable.reference(), DynamicColumnTable.metadata());
@@ -1916,6 +1858,137 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(keyValueService.getClusterAvailabilityStatus()).isEqualTo(ClusterAvailabilityStatus.ALL_AVAILABLE);
     }
 
+    @Test
+    public void testMultiCheckAndSetFromEmpty() {
+        Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 0));
+
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.newCells(TEST_TABLE,
+                TEST_CELL.getRowName(),
+                updates);
+        keyValueService.multiCheckAndSet(request);
+
+        verifyMultiCheckAndSet(updates);
+    }
+
+    @Test
+    public void testMultiCheckAndSetFromOtherValue() {
+        Map<Cell, byte[]> expected = ImmutableMap.of(TEST_CELL, val(0, 0));
+        keyValueService.put(TEST_TABLE, expected, AtlasDbConstants.TRANSACTION_TS);
+
+        Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 1));
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(TEST_TABLE,
+                TEST_CELL.getRowName(),
+                expected,
+                updates);
+        keyValueService.multiCheckAndSet(request);
+
+        verifyMultiCheckAndSet(updates);
+    }
+
+    @Test
+    public void testMultiCheckAndSetAndBackAgain() {
+        testMultiCheckAndSetFromOtherValue();
+
+        Map<Cell, byte[]> expected = ImmutableMap.of(TEST_CELL, val(0, 1));
+        Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 0));
+
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(TEST_TABLE,
+                TEST_CELL.getRowName(),
+                expected,
+                updates);
+        keyValueService.multiCheckAndSet(request);
+
+        verifyMultiCheckAndSet(updates);
+    }
+    //
+    // @Test
+    // public void testCheckAndSetLargeValue() {
+    //     assumeTrue(checkAndSetSupported());
+    //     byte[] megabyteValue = new byte[1048576];
+    //     CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, megabyteValue);
+    //
+    //     keyValueService.checkAndSet(request);
+    //     verifyCheckAndSet(TEST_CELL, megabyteValue);
+    // }
+    //
+    // @Test
+    // public void testCheckAndSetFromWrongValue() {
+    //     assumeTrue(checkAndSetSupported());
+    //
+    //     CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
+    //     keyValueService.checkAndSet(request);
+    //
+    //     CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 1), val(0, 0));
+    //     Throwable throwable = catchThrowable(() -> keyValueService.checkAndSet(secondRequest));
+    //     if (throwable != null) {
+    //         assertThat(throwable)
+    //                 .isInstanceOf(CheckAndSetException.class)
+    //                 .asInstanceOf(type(CheckAndSetException.class))
+    //                 .satisfies(ex -> assertThat(ex.getActualValues()).containsExactlyInAnyOrder(val(0, 0)));
+    //     }
+    // }
+    //
+    // @Test
+    // public void testCheckAndSetFromValueWhenNoValue() {
+    //     assumeTrue(checkAndSetSupported());
+    //
+    //     CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 0), val(0, 1));
+    //     assertThatThrownBy(() -> keyValueService.checkAndSet(request)).isInstanceOf(CheckAndSetException.class);
+    // }
+    //
+    // @Test
+    // public void testCheckAndSetFromNoValueWhenValueIsPresent() {
+    //     assumeTrue(checkAndSetSupported());
+    //
+    //     CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
+    //     keyValueService.checkAndSet(request);
+    //     assertThatThrownBy(() -> keyValueService.checkAndSet(request)).isInstanceOf(CheckAndSetException.class);
+    // }
+    //
+    // @Test
+    // public void testCheckAndSetToNewCellsInDistinctRows() {
+    //     assumeTrue(checkAndSetSupported());
+    //     Cell firstTestCell = Cell.create(row(0), column(0));
+    //     Cell nextTestCell = Cell.create(row(0), column(1));
+    //
+    //     keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, firstTestCell, val(0, 0)));
+    //     keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, nextTestCell, val(0, 1)));
+    //
+    //     verifyCheckAndSet(firstTestCell, val(0, 0));
+    //     verifyCheckAndSet(nextTestCell, val(0, 1));
+    // }
+    //
+    // @Test
+    // public void testCheckAndSetIndependentlyWorks() {
+    //     assumeTrue(checkAndSetSupported());
+    //     Cell firstTestCell = Cell.create(row(0), column(0));
+    //     Cell nextTestCell = Cell.create(row(0), column(1));
+    //
+    //     keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, firstTestCell, val(0, 0)));
+    //     keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, nextTestCell, val(0, 1)));
+    //     keyValueService.checkAndSet(CheckAndSetRequest.singleCell(TEST_TABLE, firstTestCell, val(0, 0), val(0, 1)));
+    //
+    //     verifyCheckAndSet(firstTestCell, val(0, 1));
+    //     verifyCheckAndSet(nextTestCell, val(0, 1));
+    // }
+    //
+    // @Test
+    // public void testCheckAndSetIndependentlyFails() {
+    //     assumeTrue(checkAndSetSupported());
+    //     Cell firstTestCell = Cell.create(row(0), column(0));
+    //     Cell nextTestCell = Cell.create(row(0), column(1));
+    //
+    //     keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, firstTestCell, val(0, 0)));
+    //     keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, nextTestCell, val(0, 1)));
+    //
+    //     assertThatThrownBy(() -> keyValueService.checkAndSet(
+    //             CheckAndSetRequest.singleCell(TEST_TABLE, nextTestCell, val(0, 0), val(0, 1))))
+    //             .isInstanceOf(CheckAndSetException.class);
+    //
+    //     verifyCheckAndSet(firstTestCell, val(0, 0));
+    //     verifyCheckAndSet(nextTestCell, val(0, 1));
+    // }
+
     protected static byte[] row(int number) {
         return PtBytes.toBytes("row" + number);
     }
@@ -1999,5 +2072,68 @@ public abstract class AbstractKeyValueServiceTest {
     private void assumeDetailOnFailureSupported() {
         assumeTrue(checkAndSetSupported());
         assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsDetailOnFailure());
+    }
+
+    private static void modifyValue(byte[] retrievedValue) {
+        retrievedValue[0] = (byte) 50;
+    }
+
+    private static byte[] copyOf(byte[] contents) {
+        return Arrays.copyOf(contents, contents.length);
+    }
+
+    private void writeToCell(Cell cell, byte[] data) {
+        Value val = Value.create(data, TEST_TIMESTAMP + 1);
+        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val));
+    }
+
+    private byte[] getRowsForCell(Cell cell) {
+        return keyValueService
+                .getRows(TEST_TABLE, ImmutableSet.of(cell.getRowName()), ColumnSelection.all(), TEST_TIMESTAMP + 3)
+                .get(cell)
+                .getContents();
+    }
+
+    private byte[] getForCell(Cell cell) {
+        return keyValueService
+                .get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 3))
+                .get(cell)
+                .getContents();
+    }
+
+    private byte[] getOnlyItemInTableRange() {
+        try (ClosableIterator<RowResult<Value>> rangeIterator =
+                keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3)) {
+            byte[] contents = rangeIterator.next().getOnlyColumnValue().getContents();
+            assertThat(rangeIterator)
+                    .describedAs("There should only be one row in the table")
+                    .isExhausted();
+            return contents;
+        }
+    }
+
+    private void verifyMultiCheckAndSet(Map<Cell, byte[]> expectedValues) {
+        expectedValues.forEach(this::verifyCheckAndSet);
+    }
+
+    private void verifyCheckAndSet(Cell key, byte[] expectedValue) {
+        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(key), 1L);
+
+        assertThat(timestamps).hasSize(1);
+        assertThat(timestamps.get(key)).containsExactly(AtlasDbConstants.TRANSACTION_TS);
+
+        ClosableIterator<RowResult<Value>> result =
+                keyValueService.getRange(TEST_TABLE, RangeRequest.all(), AtlasDbConstants.TRANSACTION_TS + 1);
+
+        // Check result is right
+        byte[] actual = result.next().getColumns().get(key.getColumnName()).getContents();
+        assertThat(actual)
+                .describedAs(
+                        "Value \"%s\" different from expected \"%s\"",
+                        new String(actual, StandardCharsets.UTF_8), new String(expectedValue, StandardCharsets.UTF_8))
+                .isEqualTo(expectedValue);
+
+        // Check no more results
+        assertThat(result).isExhausted();
     }
 }
