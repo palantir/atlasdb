@@ -101,8 +101,7 @@ public class ShardProgress {
      * Note that this is only done for Conservative sweep strategy.
      *
      * @param shardAndStrategy shard and strategy to update for
-     * @param commitTimestamp timestamp to update to
-     * @return the latest seen commit timestamp for the shard and strategy
+     * @param commitTimestamp commit timestamp to update to
      */
     public void updateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long commitTimestamp) {
         tryUpdateLastSeenCommitTimestamp(shardAndStrategy, commitTimestamp);
