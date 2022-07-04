@@ -43,14 +43,7 @@ public class SweepQueueCleaner {
      * @param lastTs last swept timestamp for this iteration of sweep.
      * @param dedicatedRows the dedicated rows that have now been swept that should now be removed.
      */
-    public void clean(
-            ShardAndStrategy shardStrategy,
-            Set<Long> partitions,
-            long lastTs,
-            long lastCommitTs,
-            DedicatedRows dedicatedRows) {
-        // The order must not be changed without thinking about correctness of txn4
-        updateLastCommitTs(shardStrategy, lastCommitTs);
+    public void clean(ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs, DedicatedRows dedicatedRows) {
         cleanDedicatedRows(dedicatedRows);
         cleanSweepableCells(shardStrategy, partitions);
         cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
@@ -110,9 +103,5 @@ public class SweepQueueCleaner {
                     SafeArg.of("shardStrategy", shardStrategy.toText()),
                     SafeArg.of("timestamp", lastTs));
         }
-    }
-
-    private void updateLastCommitTs(ShardAndStrategy shardStrategy, long lastSeenCommitTs) {
-        progress.updateLastSeenCommitTimestamp(shardStrategy, lastSeenCommitTs);
     }
 }
