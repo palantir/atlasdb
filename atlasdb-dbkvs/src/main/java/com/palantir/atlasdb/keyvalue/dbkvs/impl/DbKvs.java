@@ -586,7 +586,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
      */
     @Override
     public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
-        TableReference tableReference = request.tableRef();
+        TableReference tableRef = request.tableRef();
         Map<Cell, byte[]> oldValueMap = request.expected();
 
         Map<Cell, byte[]> mismatchedExpectedValues = new HashMap<>();
@@ -598,7 +598,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
 
             try {
                 CheckAndSetRequest checkAndSetRequest = new CheckAndSetRequest.Builder()
-                        .table(tableReference)
+                        .table(tableRef)
                         .cell(cell)
                         .oldValue(Optional.ofNullable(oldValueMap.get(cell)))
                         .newValue(update)
@@ -613,7 +613,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
 
         if (!mismatchedExpectedValues.isEmpty() || !mismatchedActualValues.isEmpty()) {
             throw new MultiCheckAndSetException(
-                    request.tableRef(), request.rowName(), mismatchedExpectedValues, mismatchedActualValues);
+                    LoggingArgs.tableRef(request.tableRef()),
+                    request.rowName(),
+                    mismatchedExpectedValues,
+                    mismatchedActualValues,
+                    LoggingArgs.isSafe(tableRef));
         }
     }
 

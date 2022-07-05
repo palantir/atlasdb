@@ -2001,7 +2001,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
-        TableReference tableReference = request.tableRef();
+        TableReference tableRef = request.tableRef();
         ByteBuffer row = ByteBuffer.wrap(request.rowName());
 
         List<Column> oldCol = request.expected().entrySet().stream()
@@ -2011,8 +2011,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
                 .collect(Collectors.toList());
         try {
-            CASResult casResult = clientPool.runWithRetry(client -> client.cas(
-                    tableReference, row, oldCol, newCol, ConsistencyLevel.SERIAL, ConsistencyLevel.EACH_QUORUM));
+            CASResult casResult = clientPool.runWithRetry(client ->
+                    client.cas(tableRef, row, oldCol, newCol, ConsistencyLevel.SERIAL, ConsistencyLevel.EACH_QUORUM));
             if (!casResult.isSuccess()) {
                 Map<Cell, byte[]> currentValues = KeyedStream.of(casResult.getCurrent_values())
                         .mapKeys(column -> Cell.create(
@@ -2021,7 +2021,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         .collectToMap();
 
                 throw new MultiCheckAndSetException(
-                        request.tableRef(), request.rowName(), request.expected(), currentValues);
+                        LoggingArgs.tableRef(tableRef),
+                        request.rowName(),
+                        request.expected(),
+                        currentValues,
+                        LoggingArgs.isSafe(tableRef));
             }
         } catch (MultiCheckAndSetException e) {
             throw e;

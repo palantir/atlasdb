@@ -16,42 +16,45 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Map;
 
 public class MultiCheckAndSetException extends RuntimeException {
-    private final TableReference tableReference;
     private final byte[] rowName;
     private final Map<Cell, byte[]> expectedValue;
     private final Map<Cell, byte[]> actualValues;
+    private final boolean isSafe;
 
     public MultiCheckAndSetException(
-            TableReference tableReference,
+            Arg<String> tableReference,
             byte[] rowName,
             Map<Cell, byte[]> expectedValue,
-            Map<Cell, byte[]> actualValues) {
-        super(String.format(
-                "Current values in the database do not match the expected values specified in multi-checkAndSet "
-                        + "request.",
+            Map<Cell, byte[]> actualValues,
+            boolean isSafe) {
+        super(new SafeRuntimeException(
+                "Current values in the database do not match the expected values specified in multi-checkAndSet"
+                        + " request.",
                 tableReference));
-        this.tableReference = tableReference;
         this.rowName = rowName;
         this.expectedValue = expectedValue;
         this.actualValues = actualValues;
-    }
-
-    public TableReference getTableReference() {
-        return tableReference;
+        this.isSafe = isSafe;
     }
 
     public byte[] getRowName() {
-        return rowName;
+        return getValIfSafe(rowName);
     }
 
     public Map<Cell, byte[]> getExpectedValue() {
-        return expectedValue;
+        return getValIfSafe(expectedValue);
     }
 
     public Map<Cell, byte[]> getActualValues() {
-        return actualValues;
+        return getValIfSafe(actualValues);
+    }
+
+    private <T> T getValIfSafe(T val) {
+        return isSafe ? val : null;
     }
 }

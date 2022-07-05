@@ -52,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -532,7 +533,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
         if (!mismatchedExpectedValues.isEmpty() || !mismatchedActualValues.isEmpty()) {
             throw new MultiCheckAndSetException(
-                    tableRef, request.rowName(), mismatchedExpectedValues, mismatchedActualValues);
+                    LoggingArgs.tableRef(tableRef),
+                    request.rowName(),
+                    mismatchedExpectedValues,
+                    mismatchedActualValues,
+                    LoggingArgs.isSafe(tableRef));
         }
     }
 
