@@ -242,7 +242,7 @@ public final class ColumnValueDescription {
     }
 
     /**
-     * Legacy persister method; will fail for reusable persisters.
+     * Legacy persister method.
      *
      * @deprecated Use `getReusablePersister` instead.
      */
@@ -251,21 +251,21 @@ public final class ColumnValueDescription {
         Preconditions.checkArgument(Format.PERSISTER == format);
         Class<?> importClass = getImportClass();
 
-        if (!isLegacyPersister(importClass)) {
+        if (isLegacyPersister(importClass)) {
+            @SuppressWarnings("unchecked")
+            Class<Persister<?>> persisterClass = (Class<Persister<?>>) importClass;
+            try {
+                return persisterClass.getConstructor().newInstance();
+            } catch (InstantiationException
+                    | IllegalAccessException
+                    | IllegalArgumentException
+                    | InvocationTargetException
+                    | NoSuchMethodException
+                    | SecurityException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        } else {
             return ReusablePersisters.backcompat(getReusablePersister());
-        }
-
-        @SuppressWarnings("unchecked")
-        Class<Persister<?>> persisterClass = (Class<Persister<?>>) importClass;
-        try {
-            return persisterClass.getConstructor().newInstance();
-        } catch (InstantiationException
-                | IllegalAccessException
-                | IllegalArgumentException
-                | InvocationTargetException
-                | NoSuchMethodException
-                | SecurityException e) {
-            throw Throwables.throwUncheckedException(e);
         }
     }
 
