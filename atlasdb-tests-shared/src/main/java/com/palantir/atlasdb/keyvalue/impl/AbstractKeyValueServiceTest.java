@@ -85,10 +85,11 @@ public abstract class AbstractKeyValueServiceTest {
     private final KvsManager kvsManager;
 
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
+    protected static final Cell TEST_CELL = Cell.create(row(0), column(0));
+
     private static final TableReference TEST_NONEXISTING_TABLE =
             TableReference.createFromFullyQualifiedName("ns2.some_nonexisting_table");
 
-    private static final Cell TEST_CELL = Cell.create(row(0), column(0));
     private static final long TEST_TIMESTAMP = 1000000L;
     private final Function<KeyValueService, KeyValueService> keyValueServiceWrapper;
 
@@ -1924,7 +1925,7 @@ public abstract class AbstractKeyValueServiceTest {
         return PtBytes.toBytes("column" + number);
     }
 
-    private static byte[] val(int row, int col) {
+    protected static byte[] val(int row, int col) {
         return PtBytes.toBytes("value" + row + col);
     }
 
