@@ -18,8 +18,9 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import com.google.common.collect.Iterables;
 import com.palantir.logsafe.Preconditions;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
@@ -44,7 +45,7 @@ public interface MultiCheckAndSetRequest {
 
     @Value.Check
     default void check() {
-        Set<byte[]> rowsForExpectedCells = getRowsForCells(expected());
+        Set<ByteBuffer> rowsForExpectedCells = getRowsForCells(expected());
         Preconditions.checkState(
                 rowsForExpectedCells.isEmpty() || hasConsistentRowName(rowsForExpectedCells),
                 "Only expects values for cells in the same row.");
@@ -52,13 +53,18 @@ public interface MultiCheckAndSetRequest {
         Preconditions.checkState(hasConsistentRowName(getRowsForCells(updates())), "Can only update cells in one row.");
     }
 
-    private boolean hasConsistentRowName(Set<byte[]> rowsForExpectedCells) {
-        return rowsForExpectedCells.size() == 1
-                && Arrays.equals(Iterables.getOnlyElement(rowsForExpectedCells), rowName());
+    private boolean hasConsistentRowName(Set<ByteBuffer> rowsForExpectedCells) {
+        if (rowsForExpectedCells.size() == 1) {
+            return Objects.equals(Iterables.getOnlyElement(rowsForExpectedCells), ByteBuffer.wrap(rowName()));
+        }
+        return false;
     }
 
-    private Set<byte[]> getRowsForCells(Map<Cell, byte[]> cellMap) {
-        return cellMap.keySet().stream().map(Cell::getRowName).collect(Collectors.toSet());
+    private Set<ByteBuffer> getRowsForCells(Map<Cell, byte[]> cellMap) {
+        return cellMap.keySet().stream()
+                .map(Cell::getRowName)
+                .map(ByteBuffer::wrap)
+                .collect(Collectors.toSet());
     }
 
     static MultiCheckAndSetRequest newCells(TableReference table, byte[] rowName, Map<Cell, byte[]> updates) {
