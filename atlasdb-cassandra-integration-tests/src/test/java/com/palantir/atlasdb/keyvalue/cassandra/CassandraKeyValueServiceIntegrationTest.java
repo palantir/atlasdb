@@ -36,7 +36,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -76,6 +75,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -676,7 +676,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, expectedValues.keySet(), 1L);
 
         assertThat(timestamps.size()).isEqualTo(expectedValues.size());
-        assertThat(Sets.newHashSet(timestamps.values())).containsExactly(AtlasDbConstants.TRANSACTION_TS);
+        assertThat(new HashSet<>(timestamps.values())).containsExactly(AtlasDbConstants.TRANSACTION_TS);
 
         Map<Cell, Long> cellsToFetch = KeyedStream.stream(expectedValues)
                 .map(_unused -> AtlasDbConstants.TRANSACTION_TS + 1)
