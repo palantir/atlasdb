@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[TTS] | Introduce multiCheckAndSet for CassandraKeyValueService.'''
+  links:
+  - https://github.com/palantir/atlasdb/pull/6119
