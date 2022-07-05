@@ -20,6 +20,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
@@ -482,17 +483,50 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         throwIfCheckAndSetException(tableRef, cell, expectedCurrentValue, checkAndSetResult);
     }
 
+    /**
+     * Serially performs multiple check-and-set operations in a row into the in-memory key-value store.
+     * Please see {@link MultiCheckAndSetRequest} for information about how to create this request.
+     *
+     * If the call completes successfully, then you know that the old cells initially had the values you expected.
+     * In this case, you can be sure that all your cells have been updated to their new values.
+     *
+     * In case of failure, it is possible that the updates were partially applied. In this case you will need to
+     * manually handle successful checkAndSet operations, as data will have been overwritten.
+     *
+     * If a {@link MultiCheckAndSetException} is thrown, it is likely that some values stored in the cells were
+     * not as you expected. For the cells that did have a matching value, the updates would have most likely applied.
+     * As in case of other failures, you will need to manually handle successful checkAndSet operations, as data will
+     * have been overwritten.
+     *
+     * @param request the request, including table, rowName, old values and new values.
+     * @throws MultiCheckAndSetException if the stored values for the cells were not as expected.
+     */
     @Override
-    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
-        TableReference tableRef = multiCheckAndSetRequest.tableRef();
+    public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
+        TableReference tableRef = request.tableRef();
         Table table = getTableMap(tableRef);
 
-        multiCheckAndSetRequest.updates().forEach((cell, val) -> {
-            Optional<byte[]> expectedVal =
-                    Optional.ofNullable(multiCheckAndSetRequest.expected().get(cell));
-            CheckAndSetResult result = checkAndSetInternal(table, cell, expectedVal, val);
-            throwIfCheckAndSetException(tableRef, cell, expectedVal, result);
+        Map<Cell, byte[]> mismatchedExpectedValues = new HashMap<>();
+        Map<Cell, byte[]> actualValues = new HashMap<>();
+
+        request.updates().forEach((cell, update) -> {
+            try {
+                Optional<byte[]> expectedVal =
+                        Optional.ofNullable(request.expected().get(cell));
+                CheckAndSetResult<byte[]> result = checkAndSetInternal(table, cell, expectedVal, update);
+                throwIfCheckAndSetException(tableRef, cell, expectedVal, result);
+            } catch (CheckAndSetException ex) {
+                if (ex.getExpectedValue() != null) {
+                    mismatchedExpectedValues.put(cell, ex.getExpectedValue());
+                }
+                // todo(snanda): when do we have a list of values
+                actualValues.put(cell, Iterables.getOnlyElement(ex.getActualValues()));
+            }
         });
+
+        if (!mismatchedExpectedValues.isEmpty()) {
+            throw new MultiCheckAndSetException(tableRef, request.rowName(), mismatchedExpectedValues, actualValues);
+        }
     }
 
     // Returns the existing contents, if any, and null otherwise
@@ -500,7 +534,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return table.entries.putIfAbsent(key, copyOf(contents));
     }
 
-    private CheckAndSetResult checkAndSetInternal(Table table, Cell cell, Optional<byte[]> oldValue, byte[] contents) {
+    private CheckAndSetResult<byte[]> checkAndSetInternal(
+            Table table, Cell cell, Optional<byte[]> oldValue, byte[] contents) {
         Key key = getKey(table, cell, AtlasDbConstants.TRANSACTION_TS);
         if (oldValue.isPresent()) {
             byte[] storedValue = table.entries.get(key);
