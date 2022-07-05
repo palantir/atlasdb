@@ -566,20 +566,55 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         }
     }
 
+    /**
+     * Serially performs multiple check-and-set operations in a row into the in-memory key-value store.
+     * Please see {@link MultiCheckAndSetRequest} for information about how to create this request.
+     *
+     * If the call completes successfully, then you know that the old cells initially had the values you expected.
+     * In this case, you can be sure that all your cells have been updated to their new values.
+     *
+     * In case of failure, it is possible that the updates were partially applied. In this case you will need to
+     * manually handle successful checkAndSet operations, as data will have been overwritten.
+     *
+     * If a {@link MultiCheckAndSetException} is thrown, it is likely that some values stored in the cells were
+     * not as you expected. For the cells that did have a matching value, the updates would have most likely applied.
+     * As in case of other failures, you will need to manually handle successful checkAndSet operations, as data will
+     * have been overwritten.
+     *
+     * @param request the request, including table, rowName, old values and new values.
+     * @throws MultiCheckAndSetException if the stored values for the cells were not as expected.
+     */
     @Override
-    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
-        TableReference tableReference = multiCheckAndSetRequest.tableRef();
-        Map<Cell, byte[]> oldValueMap = multiCheckAndSetRequest.expected();
+    public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
+        TableReference tableReference = request.tableRef();
+        Map<Cell, byte[]> oldValueMap = request.expected();
 
-        multiCheckAndSetRequest.updates().forEach((cell, newVal) -> {
-            CheckAndSetRequest checkAndSetRequest = new CheckAndSetRequest.Builder()
-                    .table(tableReference)
-                    .cell(cell)
-                    .oldValue(Optional.ofNullable(oldValueMap.get(cell)))
-                    .newValue(newVal)
-                    .build();
-            checkAndSet(checkAndSetRequest);
-        });
+        Map<Cell, byte[]> mismatchedExpectedValues = new HashMap<>();
+        Map<Cell, byte[]> mismatchedActualValues = new HashMap<>();
+
+        for (Map.Entry<Cell, byte[]> entry : request.updates().entrySet()) {
+            Cell cell = entry.getKey();
+            byte[] update = entry.getValue();
+
+            try {
+                CheckAndSetRequest checkAndSetRequest = new CheckAndSetRequest.Builder()
+                        .table(tableReference)
+                        .cell(cell)
+                        .oldValue(Optional.ofNullable(oldValueMap.get(cell)))
+                        .newValue(update)
+                        .build();
+                checkAndSet(checkAndSetRequest);
+            } catch (CheckAndSetException ex) {
+                // todo(snanda): this data might be absent for PUE :(
+                mismatchedExpectedValues.put(cell, ex.getExpectedValue());
+                mismatchedActualValues.put(cell, Iterables.getOnlyElement(ex.getActualValues()));
+            }
+        }
+
+        if (!mismatchedExpectedValues.isEmpty() || !mismatchedActualValues.isEmpty()) {
+            throw new MultiCheckAndSetException(
+                    request.tableRef(), request.rowName(), mismatchedExpectedValues, mismatchedActualValues);
+        }
     }
 
     private void executeCheckAndSet(CheckAndSetRequest request) {

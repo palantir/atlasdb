@@ -383,14 +383,14 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
+    public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
         maybeLog(
-                () -> delegate.multiCheckAndSet(multiCheckAndSetRequest),
+                () -> delegate.multiCheckAndSet(request),
                 logCellsAndSize(
                         "multiCheckAndSet",
-                        multiCheckAndSetRequest.tableRef(),
-                        1,
-                        multiCheckAndSetRequest.updates().size()));
+                        request.tableRef(),
+                        request.updates().size(),
+                        byteSize(request.expected()) + byteSize(request.updates())));
     }
 
     @Override

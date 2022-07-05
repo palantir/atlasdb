@@ -507,9 +507,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         Table table = getTableMap(tableRef);
 
         Map<Cell, byte[]> mismatchedExpectedValues = new HashMap<>();
-        Map<Cell, byte[]> actualValues = new HashMap<>();
+        Map<Cell, byte[]> mismatchedActualValues = new HashMap<>();
 
-        request.updates().forEach((cell, update) -> {
+        for (Map.Entry<Cell, byte[]> entry : request.updates().entrySet()) {
+            Cell cell = entry.getKey();
+            byte[] update = entry.getValue();
+
             try {
                 Optional<byte[]> expectedVal =
                         Optional.ofNullable(request.expected().get(cell));
@@ -519,13 +522,17 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 if (ex.getExpectedValue() != null) {
                     mismatchedExpectedValues.put(cell, ex.getExpectedValue());
                 }
-                // todo(snanda): when do we have a list of values
-                actualValues.put(cell, Iterables.getOnlyElement(ex.getActualValues()));
-            }
-        });
 
-        if (!mismatchedExpectedValues.isEmpty()) {
-            throw new MultiCheckAndSetException(tableRef, request.rowName(), mismatchedExpectedValues, actualValues);
+                if (!ex.getActualValues().isEmpty()) {
+                    // todo(snanda): when do we have a list of values
+                    mismatchedActualValues.put(cell, Iterables.getOnlyElement(ex.getActualValues()));
+                }
+            }
+        }
+
+        if (!mismatchedExpectedValues.isEmpty() || !mismatchedActualValues.isEmpty()) {
+            throw new MultiCheckAndSetException(
+                    tableRef, request.rowName(), mismatchedExpectedValues, mismatchedActualValues);
         }
     }
 
@@ -543,7 +550,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     && table.entries.replace(key, storedValue, copyOf(contents));
             if (!succeeded) {
                 byte[] actual = table.entries.get(key); // Re-fetch, something may have happened between get and replace
-                return CheckAndSetResult.of(false, ImmutableList.of(actual));
+                return CheckAndSetResult.of(false, actual == null ? ImmutableList.of() : ImmutableList.of(actual));
             }
         } else {
             byte[] oldContents = putIfAbsent(table, key, contents);
