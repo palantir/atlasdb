@@ -59,6 +59,8 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingReques
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
@@ -1978,6 +1980,57 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (CheckAndSetException e) {
             throw e;
         } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    /**
+     * Performs a check-and-set for multiple cells in a row into the key-value store.
+     * Please see {@link MultiCheckAndSetRequest} for information about how to create this request,
+     * and {@link KeyValueService} for more detailed documentation.
+     *
+     * If the call completes successfully, then you know that the old cells initially had the values you expected.
+     * In this case, you can be sure that all your cells have been updated to their new values.
+     * If the old cells initially did not have the values you expected, none of the cells will be updated and
+     * {@link MultiCheckAndSetException} will be thrown.
+     *
+     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
+     *
+     * @param request the request, including table, rowName, old values and new values.
+     * @throws MultiCheckAndSetException if the stored values for the cells were not as expected.
+     */
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
+        TableReference tableRef = request.tableRef();
+        ByteBuffer row = ByteBuffer.wrap(request.rowName());
+
+        List<Column> oldCol = request.expected().entrySet().stream()
+                .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                .collect(Collectors.toList());
+        List<Column> newCol = request.updates().entrySet().stream()
+                .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                .collect(Collectors.toList());
+        try {
+            CASResult casResult = clientPool.runWithRetry(client ->
+                    client.cas(tableRef, row, oldCol, newCol, ConsistencyLevel.SERIAL, ConsistencyLevel.EACH_QUORUM));
+            if (!casResult.isSuccess()) {
+                Map<Cell, byte[]> currentValues = KeyedStream.of(casResult.getCurrent_values())
+                        .mapKeys(column -> Cell.create(
+                                request.rowName(), CassandraKeyValueServices.decompose(column.bufferForName()).lhSide))
+                        .map(Column::getValue)
+                        .collectToMap();
+
+                throw new MultiCheckAndSetException(
+                        LoggingArgs.tableRef(tableRef),
+                        request.rowName(),
+                        request.expected(),
+                        currentValues,
+                        LoggingArgs.isSafe(tableRef));
+            }
+        } catch (MultiCheckAndSetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error while executing multi-checkAndSet operation.", e);
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
