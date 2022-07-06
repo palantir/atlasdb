@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,7 +54,7 @@ public class ShardProgressTest {
 
     @Before
     public void setup() {
-        kvs = new InMemoryKeyValueService(true);
+        kvs = spy(new InMemoryKeyValueService(true));
         progress = new ShardProgress(kvs);
     }
 
@@ -229,6 +230,62 @@ public class ShardProgressTest {
         assertThatCode(() -> instrumentedProgress.resetProgressForShard(CONSERVATIVE_TEN))
                 .isInstanceOf(CheckAndSetException.class);
         verify(mockKvs, times(3)).checkAndSet(any());
+    }
+
+    @Test
+    public void initialLastSeenCommitTimestampIsEmpty() {
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+    }
+
+    @Test
+    public void canUpdateLastCommitTimestamp() {
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+    }
+
+    @Test
+    public void attemptingToDecreaseLastSeenCommitTimestampIsNoop() {
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        // checkAndSet is invoked
+        verify(kvs).checkAndSet(any());
+
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 512L);
+        // checkAndSet is only called the one time
+        verify(kvs).checkAndSet(any());
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+    }
+
+    @Test
+    public void updatingLastSeenTimestampForOneShardUpdatesGlobalValue() {
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TWENTY, 2048L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(2048L);
+    }
+
+    @Test
+    public void onlyUpdatesLastSeenCommitTsForConservative() {
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 128L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(128L);
+
+        progress.updateLastSeenCommitTimestamp(THOROUGH_TEN, 256L);
+    }
+
+    @Test
+    public void updatingLastSeenCommitTimestampsDoesNotAffectShardsAndViceVersa() {
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+
+        progress.updateNumberOfShards(64);
+        progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 32L);
+
+        assertThat(progress.getNumberOfShards()).isEqualTo(64);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(32L);
     }
 
     private Value createValue(long num) {
