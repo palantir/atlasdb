@@ -403,7 +403,7 @@ public abstract class TransactionManagers {
                     // to
                     // at least retain the option to perform background sweep, which requires updating the priority
                     // table.
-                    if (!targetedSweepIsFullyEnabled(config(), runtime)) {
+                    if (isTargetedSweepDisabled(runtime)) {
                         kvs = SweepStatsKeyValueService.create(
                                 kvs,
                                 new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
@@ -659,10 +659,8 @@ public abstract class TransactionManagers {
                         || transactionConfig.lockImmutableTsOnReadOnlyTransactions());
     }
 
-    private static boolean targetedSweepIsFullyEnabled(
-            AtlasDbConfig installConfig, Supplier<AtlasDbRuntimeConfig> runtime) {
-        return installConfig.targetedSweep().enableSweepQueueWrites()
-                && runtime.get().targetedSweep().enabled();
+    private static boolean isTargetedSweepDisabled(Supplier<AtlasDbRuntimeConfig> runtime) {
+        return runtime.get().targetedSweep().temporarilyDisabled();
     }
 
     private TransactionComponents createTransactionComponents(
@@ -826,12 +824,11 @@ public abstract class TransactionManagers {
                 config.initializeAsync(),
                 sweepBatchConfigSource);
 
-        boolean sweepQueueWritesEnabled = config.targetedSweep().enableSweepQueueWrites();
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
                 metricsManager,
                 sweepBatchConfigSource,
                 new ShouldRunBackgroundSweepSupplier(
-                        () -> runtimeConfigSupplier.get().sweep(), sweepQueueWritesEnabled)::getAsBoolean,
+                        () -> runtimeConfigSupplier.get().sweep())::getAsBoolean,
                 () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
@@ -956,9 +953,6 @@ public abstract class TransactionManagers {
             TargetedSweepInstallConfig install,
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
-        if (!install.enableSweepQueueWrites()) {
-            return MultiTableSweepQueueWriter.NO_OP;
-        }
         return TargetedSweeper.createUninitialized(metricsManager, runtime, install, ImmutableList.of(follower));
     }
 

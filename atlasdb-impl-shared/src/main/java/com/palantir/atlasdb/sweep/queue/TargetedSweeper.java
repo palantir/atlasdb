@@ -267,7 +267,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
 
         private SweepIterationResult runOneIteration() {
-            if (!runtime.get().enabled()) {
+            if (runtime.get().temporarilyDisabled()) {
                 return SweepIterationResults.disabled();
             }
 

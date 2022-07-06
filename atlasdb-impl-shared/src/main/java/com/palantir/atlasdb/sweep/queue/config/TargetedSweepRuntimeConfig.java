@@ -15,7 +15,9 @@
  */
 package com.palantir.atlasdb.sweep.queue.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -31,13 +33,18 @@ import org.immutables.value.Value.Default;
 @JsonIgnoreProperties("batchShardIterations")
 @Value.Immutable
 public abstract class TargetedSweepRuntimeConfig {
-    /**
-     * If true, targeted sweep will be performed in the background. Setting this to false will cause the background
-     * threads to skip running sweeps, effectively pausing targeted sweep.
-     */
+
+    @Deprecated
+    @JsonIgnore
     @Value.Default
     public boolean enabled() {
-        return AtlasDbConstants.DEFAULT_ENABLE_TARGETED_SWEEP;
+        return true;
+    }
+
+    @Value.Default
+    @JsonProperty("temporarily-disable-targeted-sweep-i-know-what-i-am-doing")
+    public boolean temporarilyDisabled() {
+        return false;
     }
 
     /**
@@ -133,6 +140,8 @@ public abstract class TargetedSweepRuntimeConfig {
     }
 
     public static TargetedSweepRuntimeConfig disabled() {
-        return ImmutableTargetedSweepRuntimeConfig.builder().enabled(false).build();
+        return ImmutableTargetedSweepRuntimeConfig.builder()
+                .temporarilyDisabled(true)
+                .build();
     }
 }

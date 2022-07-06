@@ -675,39 +675,36 @@ public class TransactionManagersTest {
 
     @Test
     public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesDisabledButTargetedSweepEnabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, true);
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, false);
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isFalse();
     }
 
-    private KeyValueService initializeKeyValueServiceWithSweepSettings(
-            boolean enableSweepQueueWrites, boolean enableTargetedSweep) {
+    private KeyValueService initializeKeyValueServiceWithSweepSettings(boolean enableTargetedSweep) {
         AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
-                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder()
-                        .enableSweepQueueWrites(enableSweepQueueWrites)
-                        .build())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
         AtlasDbRuntimeConfig atlasDbRuntimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
                 .targetedSweep(ImmutableTargetedSweepRuntimeConfig.builder()
-                        .enabled(enableTargetedSweep)
+                        .temporarilyDisabled(!enableTargetedSweep)
                         .build())
                 .build();
 

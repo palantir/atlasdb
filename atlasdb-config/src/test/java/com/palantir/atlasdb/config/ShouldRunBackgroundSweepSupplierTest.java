@@ -38,9 +38,13 @@ public class ShouldRunBackgroundSweepSupplierTest {
                     .build();
 
     private static final TargetedSweepRuntimeConfig TARGETED_SWEEP_ENABLED =
-            ImmutableTargetedSweepRuntimeConfig.builder().enabled(true).build();
+            ImmutableTargetedSweepRuntimeConfig.builder()
+                    .temporarilyDisabled(true)
+                    .build();
     private static final TargetedSweepRuntimeConfig TARGETED_SWEEP_DISABLED =
-            ImmutableTargetedSweepRuntimeConfig.builder().enabled(false).build();
+            ImmutableTargetedSweepRuntimeConfig.builder()
+                    .temporarilyDisabled(false)
+                    .build();
 
     private static final SweepConfig BACKGROUND_SWEEP_ENABLED =
             ImmutableSweepConfig.builder().enabled(true).build();
@@ -91,7 +95,7 @@ public class ShouldRunBackgroundSweepSupplierTest {
                 .thenReturn(createRuntimeConfig(TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED));
 
         ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
-                () -> runtimeConfigSupplier.get().sweep(), SWEEP_QUEUE_WRITES_ENABLED.enableSweepQueueWrites());
+                () -> runtimeConfigSupplier.get().sweep());
 
         assertThat(supplier.getAsBoolean())
                 .as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET")
@@ -107,7 +111,7 @@ public class ShouldRunBackgroundSweepSupplierTest {
     private static boolean runBackgroundSweep(
             TargetedSweepInstallConfig tsInstall, TargetedSweepRuntimeConfig tsRuntime, SweepConfig bgSweepConfig) {
         return new ShouldRunBackgroundSweepSupplier(
-                        () -> createRuntimeConfig(tsRuntime, bgSweepConfig).sweep(), tsInstall.enableSweepQueueWrites())
+                        () -> createRuntimeConfig(tsRuntime, bgSweepConfig).sweep())
                 .getAsBoolean();
     }
 

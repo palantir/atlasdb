@@ -115,7 +115,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private TargetedSweepFollower mockFollower;
     private TimelockService timelockService;
     private PuncherStore puncherStore;
-    private boolean enabled = true;
+    private boolean disabled = false;
     private boolean enableAutoTuning = false;
 
     public TargetedSweeperTest(int readBatchSize) {
@@ -127,7 +127,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void setup() {
         super.setup();
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
-                .enabled(enabled)
+                .temporarilyDisabled(disabled)
                 .enableAutoTuning(enableAutoTuning)
                 .maximumPartitionsToBatchInSingleRead(readBatchSize)
                 .shards(DEFAULT_SHARDS)

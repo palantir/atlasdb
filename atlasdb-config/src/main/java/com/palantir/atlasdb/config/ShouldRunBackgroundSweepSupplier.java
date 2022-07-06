@@ -30,15 +30,13 @@ import java.util.function.Supplier;
  */
 public class ShouldRunBackgroundSweepSupplier implements BooleanSupplier {
     private final Supplier<SweepConfig> runtimeConfigSupplier;
-    private final boolean sweepQueueWritesEnabled;
 
-    public ShouldRunBackgroundSweepSupplier(Supplier<SweepConfig> runtimeConfig, boolean sweepQueueWritesEnabled) {
+    public ShouldRunBackgroundSweepSupplier(Supplier<SweepConfig> runtimeConfig) {
         this.runtimeConfigSupplier = runtimeConfig;
-        this.sweepQueueWritesEnabled = sweepQueueWritesEnabled;
     }
 
     @Override
     public boolean getAsBoolean() {
-        return runtimeConfigSupplier.get().enabled().orElse(!sweepQueueWritesEnabled);
+        return runtimeConfigSupplier.get().enabled().orElse(false);
     }
 }
