@@ -722,7 +722,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .collectToMap();
 
         // Check result is right
-        assertThat(result).containsExactlyEntriesOf(expectedValues);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
 
     private static CassandraKeyValueService createKvs(
