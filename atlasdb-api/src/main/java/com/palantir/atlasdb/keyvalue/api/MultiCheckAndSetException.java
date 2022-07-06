@@ -22,39 +22,32 @@ import java.util.Map;
 
 public class MultiCheckAndSetException extends RuntimeException {
     private final byte[] rowName;
-    private final Map<Cell, byte[]> expectedValue;
+    private final Map<Cell, byte[]> expectedValues;
     private final Map<Cell, byte[]> actualValues;
-    private final boolean isSafe;
 
     public MultiCheckAndSetException(
             Arg<String> tableReference,
             byte[] rowName,
             Map<Cell, byte[]> expectedValue,
-            Map<Cell, byte[]> actualValues,
-            boolean isSafe) {
+            Map<Cell, byte[]> actualValues) {
         super(new SafeRuntimeException(
                 "Current values in the database do not match the expected values specified in multi-checkAndSet"
                         + " request.",
                 tableReference));
         this.rowName = rowName;
-        this.expectedValue = expectedValue;
+        this.expectedValues = expectedValue;
         this.actualValues = actualValues;
-        this.isSafe = isSafe;
     }
 
     public byte[] getRowName() {
-        return getValIfSafe(rowName);
+        return rowName;
     }
 
-    public Map<Cell, byte[]> getExpectedValue() {
-        return getValIfSafe(expectedValue);
+    public Map<Cell, byte[]> getExpectedValues() {
+        return expectedValues;
     }
 
     public Map<Cell, byte[]> getActualValues() {
-        return getValIfSafe(actualValues);
-    }
-
-    private <T> T getValIfSafe(T val) {
-        return isSafe ? val : null;
+        return actualValues;
     }
 }

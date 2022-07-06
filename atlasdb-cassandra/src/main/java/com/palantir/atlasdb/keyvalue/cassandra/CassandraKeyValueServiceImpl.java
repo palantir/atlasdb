@@ -2021,11 +2021,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         .collectToMap();
 
                 throw new MultiCheckAndSetException(
-                        LoggingArgs.tableRef(tableRef),
-                        request.rowName(),
-                        request.expected(),
-                        currentValues,
-                        LoggingArgs.isSafe(tableRef));
+                        LoggingArgs.tableRef(tableRef), request.rowName(), request.expected(), currentValues);
             }
         } catch (MultiCheckAndSetException e) {
             throw e;
