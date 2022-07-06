@@ -1994,6 +1994,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * If the old cells initially did not have the values you expected, none of the cells will be updated and
      * {@link MultiCheckAndSetException} will be thrown.
      *
+     * Another thing to note is that the check operation will **only be performed on values of cells that are declared
+     * in the set of expected values** i.e. the check operation DOES NOT take updates into account.
+     *
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *
      * @param request the request, including table, rowName, old values and new values.
