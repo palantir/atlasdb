@@ -45,7 +45,7 @@ dependencies {
     implementation project(':timelock-api:timelock-api-undertow')
     implementation project(':timelock-impl')
     implementation project(':timestamp-api')
-    implementation (group: 'org.apache.thrift', name: 'libthrift') {
+    implementation ('org.apache.thrift:libthrift') {
         exclude group: 'org.apache.httpcomponents'
     }
 
@@ -62,9 +62,9 @@ dependencies {
     testImplementation 'commons-io:commons-io'
     testImplementation 'joda-time:joda-time'
     testImplementation 'org.slf4j:slf4j-api'
-    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    testImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    testImplementation 'io.dropwizard:dropwizard-testing'
+    testImplementation 'org.assertj:assertj-core'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-cassandra')
     testImplementation project(':atlasdb-cassandra').sourceSets.test.output
@@ -78,7 +78,7 @@ dependencies {
     testImplementation project(':lock-api-objects')
     testImplementation project(':timestamp-api')
     testImplementation project(':timestamp-impl')
-    testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+    testImplementation ('com.palantir.cassandra:cassandra-thrift') {
         exclude group: 'commons-logging'
         exclude module: 'junit'
         exclude group: 'org.apache.httpcomponents'
@@ -87,11 +87,11 @@ dependencies {
     runtimeOnly project(':atlasdb-dbkvs')
     runtimeOnly project(':atlasdb-cassandra')
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     annotationProcessor project(':atlasdb-processors')
     compileOnly 'org.immutables:value::annotations'
     compileOnly project(':atlasdb-processors')
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
 }
 

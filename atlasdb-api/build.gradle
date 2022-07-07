@@ -6,17 +6,17 @@ dependencies {
   api project(":timestamp-api")
   implementation project(":atlasdb-commons")
 
-  implementation group: 'org.apache.commons', name: 'commons-lang3'
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  implementation group: 'jakarta.annotation', name: 'jakarta.annotation-api'
-  implementation group: 'jakarta.validation', name: 'jakarta.validation-api'
-  implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'jakarta.annotation:jakarta.annotation-api'
+  implementation 'jakarta.validation:jakarta.validation-api'
+  implementation 'jakarta.xml.bind:jakarta.xml.bind-api'
 
   implementation 'com.github.ben-manes.caffeine:caffeine'
-  implementation group: 'com.palantir.conjure.java.api', name: 'ssl-config'
-  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
-  implementation (group: 'com.palantir.tritium', name: 'tritium-registry') {
+  implementation 'com.palantir.conjure.java.api:ssl-config'
+  implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
+  implementation ('com.palantir.tritium:tritium-registry') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
@@ -39,7 +39,7 @@ dependencies {
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation project(':lock-api-objects')
 
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
   annotationProcessor project(":atlasdb-processors")
@@ -47,7 +47,7 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
 
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation 'junit:junit'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
 }

@@ -25,10 +25,10 @@ dependencies {
   explicitShadow project(":atlasdb-processors")
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')
-  explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+  explicitShadow ('com.palantir.cassandra:cassandra-thrift') {
     exclude group: 'org.apache.httpcomponents'
   }
-  explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+  explicitShadow ('com.datastax.cassandra:cassandra-driver-core') {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
 
@@ -77,10 +77,10 @@ dependencies {
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')
   testImplementation project(':commons-executors')
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
-  testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+  testImplementation ('com.palantir.cassandra:cassandra-thrift') {
     exclude group: 'commons-logging'
     exclude module: 'junit'
     exclude group: 'org.apache.httpcomponents'
