@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    [TTS] Make TS sweep queue writes mandatory. This PR turns on sweep for everyone by ignoring the config for `TargetedSweepRuntimeConfig#enabled()`.
+    Note that we have introduced a new flag - `temporarily-disable-targeted-sweep-i-know-what-i-am-doing` that can still disable sweep if it is necessary.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6123
