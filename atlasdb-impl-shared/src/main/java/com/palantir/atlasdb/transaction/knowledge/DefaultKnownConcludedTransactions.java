@@ -51,19 +51,21 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
         return null;
     });
 
-    private DefaultKnownConcludedTransactions(KnownConcludedTransactionsStore knownConcludedTransactionsStore,
+    private DefaultKnownConcludedTransactions(
+            KnownConcludedTransactionsStore knownConcludedTransactionsStore,
             KnownConcludedTransactionsMetrics metrics) {
         this.knownConcludedTransactionsStore = knownConcludedTransactionsStore;
         this.cachedConcludedTimestamps = new AtomicReference<>(ImmutableRangeSet.of());
         this.knownConcludedTransactionsMetrics = metrics;
-        metrics.disjointCacheIntervals(() -> cachedConcludedTimestamps.get().asRanges().size());
+        metrics.disjointCacheIntervals(
+                () -> cachedConcludedTimestamps.get().asRanges().size());
     }
 
-    public static KnownConcludedTransactions create(KnownConcludedTransactionsStore knownConcludedTransactionsStore,
+    public static KnownConcludedTransactions create(
+            KnownConcludedTransactionsStore knownConcludedTransactionsStore,
             TaggedMetricRegistry taggedMetricRegistry) {
         DefaultKnownConcludedTransactions store = new DefaultKnownConcludedTransactions(
-                knownConcludedTransactionsStore,
-                KnownConcludedTransactionsMetrics.of(taggedMetricRegistry));
+                knownConcludedTransactionsStore, KnownConcludedTransactionsMetrics.of(taggedMetricRegistry));
         return store;
     }
 
