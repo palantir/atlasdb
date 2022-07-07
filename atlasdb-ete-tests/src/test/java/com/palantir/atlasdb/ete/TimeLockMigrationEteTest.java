@@ -221,7 +221,7 @@ public class TimeLockMigrationEteTest {
     private static void waitUntil(Callable<Boolean> condition) {
         Awaitility.await()
                 .ignoreExceptions()
-                .atMost(Duration.ofMinutes(5))
+                .atMost(Duration.ofMinutes(3))
                 .pollInterval(Duration.ofSeconds(2))
                 .until(condition);
     }
