@@ -80,7 +80,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
             assertThat(read).contains(TimestampRangeSet.singleRange(Range.closedOpen(10L, 50L)));
         }
 
-        verify(delegateKeyValueService, atMost(10))
+        verify(delegateKeyValueService, atMost(50))
                 .get(eq(TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE), anyMap());
     }
 
