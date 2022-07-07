@@ -652,23 +652,24 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testMcasChecksAllColumnsIfExpectedIsEmpty() {
         Cell firstTestCell = Cell.create(row(0), column(25));
-        Cell nextTestCell = Cell.create(row(0), column(27));
 
         byte[] firstVal = val(0, 0);
         byte[] secondVal = val(0, 1);
-        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
-                TEST_TABLE,
-                firstTestCell.getRowName(),
-                ImmutableMap.of(firstTestCell, firstVal, nextTestCell, firstVal)));
-        verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, firstVal, nextTestCell, firstVal));
+
+        Map<Cell, byte[]> firstPut = ImmutableMap.of(firstTestCell, firstVal);
+
+        keyValueService.multiCheckAndSet(
+                MultiCheckAndSetRequest.newCells(TEST_TABLE, firstTestCell.getRowName(), firstPut));
+        verifyMultiCheckAndSet(firstPut);
 
         MultiCheckAndSetException ex = assertThrows(
                 MultiCheckAndSetException.class,
                 () -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
-                        TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, secondVal))));
+                        TEST_TABLE, firstTestCell.getRowName(), ImmutableMap.of(firstTestCell, secondVal))));
 
+        verifyMultiCheckAndSet(firstPut);
         assertThat(ex.getExpectedValues()).isEmpty();
-        assertThat(ex.getActualValues()).isNotEmpty();
+        assertThat(ex.getActualValues()).containsExactlyEntriesOf(firstPut);
     }
 
     @Test
