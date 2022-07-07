@@ -29,7 +29,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public class TargetedSweepInstallConfig {
     /**
-     * Disabling sweep queue writes is not supported anymore in order to maintain correctness while running
+     * @deprecated Disabling sweep queue writes is not supported anymore in order to maintain correctness while running
      * transactions4.
      * If you wish to pause targeted sweep, that can be done by setting the live reloadable
      * {@link TargetedSweepRuntimeConfig#temporarilyDisabled()} parameter to true.
