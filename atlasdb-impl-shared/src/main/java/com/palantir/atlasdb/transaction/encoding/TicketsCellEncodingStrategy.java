@@ -22,6 +22,15 @@ import com.palantir.atlasdb.table.description.ValueType;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
+/**
+ * We divide the first PARTITIONING_QUANTUM timestamps among the first ROW_PER_QUANTUM rows.
+ * We aim to distribute start timestamps as evenly as possible among these rows as numbers increase, by taking the
+ * least significant bits of the timestamp and using that as the row number. For example, we would store values that
+ * might be associated with the timestamps 1, ROW_PER_QUANTUM + 1, 2 * ROW_PER_QUANTUM + 1 etc. in the same row.
+ *
+ * We store the row name as a bit-wise reversed version of the row number to ensure even distribution in key-value
+ * services that rely on consistent hashing or similar mechanisms for partitioning.
+ */
 public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
     private final long partitioningQuantum;
     private final long rowsPerQuantum;

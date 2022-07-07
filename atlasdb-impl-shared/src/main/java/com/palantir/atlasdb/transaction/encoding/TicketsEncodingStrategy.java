@@ -25,15 +25,8 @@ import java.util.stream.Stream;
 /**
  * The ticketing algorithm distributes timestamps among rows and dynamic columns to avoid hot-spotting.
  *
- * We divide the first PARTITIONING_QUANTUM timestamps among the first ROW_PER_QUANTUM rows.
- * We aim to distribute start timestamps as evenly as possible among these rows as numbers increase, by taking the
- * least significant bits of the timestamp and using that as the row number. For example, we would store timestamps
- * 1, ROW_PER_QUANTUM + 1, 2 * ROW_PER_QUANTUM + 1 etc. in the same row.
- *
- * We store the row name as a bit-wise reversed version of the row number to ensure even distribution in key-value
- * services that rely on consistent hashing or similar mechanisms for partitioning.
- *
- * We also use a delta encoding for the commit timestamp as these differences are expected to be small.
+ * For the row and column partitioning, please consult {@link TicketsCellEncodingStrategy} for more details.
+ * We use a delta encoding for the commit timestamp as these differences are expected to be small.
  *
  * A long is 9 bytes at most, so one row here consists of at most 4 longs -> 36 bytes, and an individual row
  * is probabilistically below 1M dynamic column keys. A row is expected to be less than 14M (56M worst case).
