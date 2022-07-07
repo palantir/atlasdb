@@ -83,7 +83,6 @@ uk.org.lidalia:slf4j-test = 1.1.0
 # DB KVS
 #
 # Database drivers can have unexpected breaking changes and should be upgraded with caution
-com.h2database:h2 = 1.4.190
 com.oracle.database.jdbc:ojdbc11 = 21.5.0.0
 org.postgresql:postgresql = 42.3.3
 

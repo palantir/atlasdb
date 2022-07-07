@@ -18,7 +18,6 @@ dependencies {
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.slf4j:slf4j-api'
 
-  runtimeOnly 'com.h2database:h2'
   runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
   runtimeOnly 'org.postgresql:postgresql'
 
