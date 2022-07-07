@@ -18,10 +18,8 @@ package com.palantir.atlasdb.transaction.encoding;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Arrays;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 /**
@@ -52,21 +50,17 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
     public static final long PARTITIONING_QUANTUM = 25_000_000;
     public static final int ROWS_PER_QUANTUM = TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS;
 
+    private static final TicketsCellEncodingStrategy CELL_ENCODING_STRATEGY =
+            new TicketsCellEncodingStrategy(PARTITIONING_QUANTUM, ROWS_PER_QUANTUM);
+
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
-        byte[] rowName = encodeRowName(startTimestamp);
-        byte[] columnName = encodeColumnName(startTimestamp);
-        return Cell.create(rowName, columnName);
+        return CELL_ENCODING_STRATEGY.encodeStartTimestampAsCell(startTimestamp);
     }
 
     @Override
     public long decodeCellAsStartTimestamp(Cell cell) {
-        long rowComponent = decodeRowName(cell.getRowName());
-        long columnComponent = decodeColumnName(cell.getColumnName());
-
-        return (rowComponent / ROWS_PER_QUANTUM) * PARTITIONING_QUANTUM
-                + columnComponent * ROWS_PER_QUANTUM
-                + rowComponent % ROWS_PER_QUANTUM;
+        return CELL_ENCODING_STRATEGY.decodeCellAsStartTimestamp(cell);
     }
 
     @Override
@@ -85,37 +79,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
         return startTimestamp + TransactionConstants.getTimestampForValue(value);
     }
 
-    private static byte[] encodeRowName(long startTimestamp) {
-        return rowToBytes(startTimestampToRow(startTimestamp));
-    }
-
     public Stream<byte[]> getRowSetCoveringTimestampRange(long fromInclusive, long toInclusive) {
-        long startRow =
-                startTimestampToRow(fromInclusive - ((fromInclusive % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM));
-        long endRow = startTimestampToRow(
-                toInclusive + ROWS_PER_QUANTUM - ((toInclusive % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM) - 1);
-        return LongStream.rangeClosed(startRow, endRow).mapToObj(TicketsEncodingStrategy::rowToBytes);
-    }
-
-    private static long startTimestampToRow(long startTimestamp) {
-        return (startTimestamp / PARTITIONING_QUANTUM) * ROWS_PER_QUANTUM
-                + (startTimestamp % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM;
-    }
-
-    private static byte[] rowToBytes(long row) {
-        return PtBytes.toBytes(Long.reverse(row));
-    }
-
-    private static byte[] encodeColumnName(long startTimestamp) {
-        long column = (startTimestamp % PARTITIONING_QUANTUM) / ROWS_PER_QUANTUM;
-        return ValueType.VAR_LONG.convertFromJava(column);
-    }
-
-    private static long decodeRowName(byte[] rowName) {
-        return Long.reverse(PtBytes.toLong(rowName));
-    }
-
-    private static long decodeColumnName(byte[] columnName) {
-        return (long) ValueType.VAR_LONG.convertToJava(columnName, 0);
+        return CELL_ENCODING_STRATEGY.getRowSetCoveringTimestampRange(fromInclusive, toInclusive);
     }
 }
