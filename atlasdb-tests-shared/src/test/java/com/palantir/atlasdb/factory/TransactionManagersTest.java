@@ -674,37 +674,25 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
-    }
-
-    @Test
-    public void kvsRecordsSweepStatsIfSweepQueueWritesDisabledButTargetedSweepEnabled() {
+    public void kvsRecordsSweepStatsIfTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
-    public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
+    public void kvsDoesNotRecordSweepStatsIfTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
-    }
-
-    @Test
-    public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isFalse();
     }
 
-    private KeyValueService initializeKeyValueServiceWithSweepSettings(boolean enableTargetedSweep) {
+    private KeyValueService initializeKeyValueServiceWithSweepSettings(boolean disableTargetedSweep) {
         AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
         AtlasDbRuntimeConfig atlasDbRuntimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
                 .targetedSweep(ImmutableTargetedSweepRuntimeConfig.builder()
-                        .temporarilyDisabled(!enableTargetedSweep)
+                        .temporarilyDisabled(disableTargetedSweep)
                         .build())
                 .build();
 
