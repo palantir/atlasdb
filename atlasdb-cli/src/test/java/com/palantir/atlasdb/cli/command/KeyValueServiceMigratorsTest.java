@@ -163,7 +163,8 @@ public class KeyValueServiceMigratorsTest {
                 .containsExactlyInAnyOrder(
                         TransactionConstants.TRANSACTION_TABLE,
                         TransactionConstants.TRANSACTIONS2_TABLE,
-                        AtlasDbConstants.COORDINATION_TABLE);
+                        AtlasDbConstants.COORDINATION_TABLE,
+                        TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE);
     }
 
     @Test

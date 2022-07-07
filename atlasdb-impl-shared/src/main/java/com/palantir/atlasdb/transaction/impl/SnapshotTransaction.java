@@ -1859,6 +1859,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // otherwise we may have hanging values that targeted sweep won't know about.
                 timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));
 
+                // Introduced for txn4 - Prevents sweep from making progress beyond immutableTs before entries were
+                // put into the sweep queue. This ensures that sweep must process writes to the sweep queue done by
+                // this transaction before making progress.
+                traced("postSweepEnqueueLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
                 timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));

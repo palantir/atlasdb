@@ -75,9 +75,9 @@ public class AtlasDbConfigTest {
         when(CASSANDRA_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
         when(CASSANDRA_CONFIG_WITH_NAMESPACE.namespace()).thenReturn(Optional.of(TEST_NAMESPACE));
 
-        when(KVS_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn("rocksdb");
-        when(KVS_CONFIG_WITH_OTHER_NAMESPACE.type()).thenReturn("database");
-        when(KVS_CONFIG_WITH_NAMESPACE.type()).thenReturn("sqlite");
+        when(KVS_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn("type");
+        when(KVS_CONFIG_WITH_OTHER_NAMESPACE.type()).thenReturn("type");
+        when(KVS_CONFIG_WITH_NAMESPACE.type()).thenReturn("type");
         when(CASSANDRA_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn(CASSANDRA);
         when(CASSANDRA_CONFIG_WITH_NAMESPACE.type()).thenReturn(CASSANDRA);
     }

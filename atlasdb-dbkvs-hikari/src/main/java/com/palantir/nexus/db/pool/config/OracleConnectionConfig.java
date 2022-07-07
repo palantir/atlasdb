@@ -176,8 +176,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     }
 
     @Override
-    @Value.Derived
-    public DBType getDbType() {
+    public final DBType getDbType() {
         return DBType.ORACLE;
     }
 

@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: We now try to install transaction schema versions every 15 minutes
+    as opposed to 3 days. This means that changes to the transaction schema version
+    should be attempted 15 minutes after startup if the first installation failed.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6118

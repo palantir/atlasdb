@@ -135,7 +135,10 @@ public final class TableReference {
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, tableName);
+        int result = 1;
+        result = 31 * result + Objects.hashCode(namespace);
+        result = 31 * result + Objects.hashCode(tableName);
+        return result;
     }
 
     @Override

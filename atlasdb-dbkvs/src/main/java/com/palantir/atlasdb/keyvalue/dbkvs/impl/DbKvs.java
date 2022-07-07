@@ -50,6 +50,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -562,6 +564,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         } else {
             executePutUnlessExists(checkAndSetRequest);
         }
+    }
+
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
+        throw new UnsupportedOperationException("DbKvs does not support multi-checkAndSet operation!");
     }
 
     private void executeCheckAndSet(CheckAndSetRequest request) {

@@ -22,7 +22,6 @@ com.google.guava:* = 31.1-jre
 com.google.protobuf:protobuf-java = 3.21.2
 com.googlecode.protobuf-java-format:* = 1.4
 com.lmax:disruptor = 3.4.2
-com.oracle.database.jdbc:ojdbc11 = 21.5.0.0
 com.palantir.common:streams = 2.0.0
 com.palantir.config.crypto:* = 4.0.0
 com.palantir.conjure.java.api:* = 2.25.0
@@ -81,7 +80,14 @@ uk.org.lidalia:slf4j-test = 1.1.0
 # Manually upgraded versions
 # dependency-upgrader:OFF
 
+# DB KVS
+#
+# Database drivers can have unexpected breaking changes and should be upgraded with caution
+com.oracle.database.jdbc:ojdbc11 = 21.5.0.0
+org.postgresql:postgresql = 42.3.3
+
 # transitive dep with API breaks in 0.14.0
 org.apache.thrift:libthrift = 0.12.0
+
 # Large internal product uses 2.x
 org.codehaus.groovy:* = 2.5.14

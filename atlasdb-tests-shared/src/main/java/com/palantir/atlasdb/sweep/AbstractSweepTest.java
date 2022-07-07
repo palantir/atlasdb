@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.sweep.queue.ShardProgress;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -77,6 +78,7 @@ public abstract class AbstractSweepTest {
     protected TransactionManager txManager;
     protected TransactionService txService;
     protected SweepStrategyManager ssm;
+    protected ShardProgress shardProgress;
 
     @ClassRule
     public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
@@ -96,6 +98,7 @@ public abstract class AbstractSweepTest {
         ssm = SweepStrategyManagers.create(kvs, getSsmCacheWarming());
         txManager = createAndRegisterManager();
         txService = TransactionServices.createRaw(kvs, txManager.getTimestampService(), false);
+        shardProgress = new ShardProgress(kvs);
         SweepTestUtils.setupTables(kvs);
     }
 
@@ -522,5 +525,9 @@ public abstract class AbstractSweepTest {
                         sweepStrategy(sweepStrategy);
                     }
                 }.toTableMetadata().persistToBytes());
+    }
+
+    protected Optional<Long> getLastSeenCommitTimestamp() {
+        return shardProgress.getLastSeenCommitTimestamp();
     }
 }

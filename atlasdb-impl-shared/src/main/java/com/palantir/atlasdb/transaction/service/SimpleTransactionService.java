@@ -83,7 +83,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueKvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
         PutUnlessExistsTable<Long, Long> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
-                store, encodingStrategy, acceptStagingReadsAsCommitted);
+                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
 

@@ -102,8 +102,7 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     }
 
     @Override
-    @Value.Derived
-    public DBType getDbType() {
+    public final DBType getDbType() {
         return DBType.POSTGRESQL;
     }
 

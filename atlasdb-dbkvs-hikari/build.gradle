@@ -8,18 +8,18 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   implementation group: 'io.dropwizard.metrics', name: 'metrics-core'
 
-  implementation 'com.h2database:h2'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
-  implementation 'com.oracle.database.jdbc:ojdbc11'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.zaxxer:HikariCP'
   implementation 'commons-io:commons-io'
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'org.postgresql:postgresql'
   implementation 'org.slf4j:slf4j-api'
+
+  runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
+  runtimeOnly 'org.postgresql:postgresql'
 
   testImplementation group: 'org.mockito', name: 'mockito-core'
   testImplementation 'com.google.guava:guava'

@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Bump rescue dependency for transactions3
+  links:
+  - https://github.com/palantir/atlasdb/pull/6106

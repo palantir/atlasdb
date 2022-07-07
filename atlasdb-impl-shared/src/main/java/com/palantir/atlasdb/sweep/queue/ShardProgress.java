@@ -41,8 +41,13 @@ public class ShardProgress {
 
     private static final int SHARD_COUNT_INDEX = -1;
     static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
-    private static final int OLDEST_SEEN_INDEX = -2;
-    private static final ShardAndStrategy OLDEST_SEEN_SAS = ShardAndStrategy.conservative(OLDEST_SEEN_INDEX);
+
+    // The constant value is NEVER to be re-used.
+    private static final int _UNUSED_OLDEST_SEEN_INDEX = -2;
+
+    private static final int LAST_SEEN_COMMIT_TS_INDEX = -3;
+    private static final ShardAndStrategy LAST_SEEN_COMMIT_TIMESTAMP =
+            ShardAndStrategy.conservative(LAST_SEEN_COMMIT_TS_INDEX);
 
     private final KeyValueService kvs;
 
@@ -90,15 +95,53 @@ public class ShardProgress {
         return increaseValueFromToAtLeast(shardAndStrategy, getLastSweptTimestamp(shardAndStrategy), timestamp);
     }
 
-    public Optional<Long> getOldestSeenTimestamp() {
-        return maybeGet(OLDEST_SEEN_SAS);
+    /**
+     * Updates the persisted last seen commitTimestamp for the given shard to timestamp if it is greater than
+     * the currently persisted last seen commitTimestamp.
+     * Note that this is only done for Conservative sweep strategy.
+     *
+     * @param shardAndStrategy shard and strategy to update for
+     * @param commitTimestamp commit timestamp to update to
+     */
+    public void updateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long commitTimestamp) {
+        tryUpdateLastSeenCommitTimestamp(shardAndStrategy, commitTimestamp);
     }
 
-    public void tryUpdateOldestSeenTimestamp(Optional<Long> previous, long next) {
-        byte[] colValNew = createColumnValue(next);
-        CheckAndSetRequest casRequest =
-                createRequest(OLDEST_SEEN_SAS, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
-        kvs.checkAndSet(casRequest);
+    public Optional<Long> getLastSeenCommitTimestamp() {
+        return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP);
+    }
+
+    private void tryUpdateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long lastSeenCommitTs) {
+        if (!shardAndStrategy.isConservative()) {
+            return;
+        }
+
+        Optional<Long> previous = getLastSeenCommitTimestamp();
+        boolean updateNeeded =
+                previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
+        while (updateNeeded) {
+            byte[] colValNew = createColumnValue(lastSeenCommitTs);
+            CheckAndSetRequest casRequest = createRequest(
+                    LAST_SEEN_COMMIT_TIMESTAMP, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
+            try {
+                kvs.checkAndSet(casRequest);
+                updateNeeded = false;
+            } catch (CheckAndSetException exception) {
+                Optional<Long> current = getLastSeenCommitTimestamp();
+                if (current.equals(previous)) {
+                    log.warn(
+                            "Failed to update last seen commit timestamp. Values before and after CAS match.",
+                            SafeArg.of("previous", previous),
+                            SafeArg.of("current", current),
+                            SafeArg.of("last seen", lastSeenCommitTs),
+                            exception);
+                    throw exception;
+                }
+                previous = current;
+                updateNeeded =
+                        previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
+            }
+        }
     }
 
     private Optional<Long> maybeGet(ShardAndStrategy shardAndStrategy) {
