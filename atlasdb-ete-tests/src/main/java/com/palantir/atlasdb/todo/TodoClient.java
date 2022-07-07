@@ -121,11 +121,13 @@ public class TodoClient {
             return rowResults.build();
         });
 
-        return results.stream()
+        List<Todo> todos = results.stream()
                 .map(RowResult::getOnlyColumnValue)
                 .map(ValueType.STRING::convertToString)
                 .map(ImmutableTodo::of)
                 .collect(Collectors.toList());
+        System.out.println(todos);
+        return todos;
     }
 
     // Stores a new snapshot, marking the previous one as unused. We thus have at most one used stream at any time
