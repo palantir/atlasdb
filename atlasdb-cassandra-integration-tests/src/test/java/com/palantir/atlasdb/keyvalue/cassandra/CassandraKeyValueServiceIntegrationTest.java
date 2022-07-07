@@ -19,7 +19,9 @@ import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTe
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -34,6 +36,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -46,6 +49,8 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -63,6 +68,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
@@ -70,6 +76,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -512,6 +519,211 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                         .size())
                 .isEqualTo(1);
         keyValueService.truncateTable(userTable);
+    }
+
+    @Test
+    public void testMultiCheckAndSetFromEmpty() {
+        Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 0));
+
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.newCells(TEST_TABLE, TEST_CELL.getRowName(), updates);
+        keyValueService.multiCheckAndSet(request);
+
+        verifyMultiCheckAndSet(updates);
+    }
+
+    @Test
+    public void testMultiCheckAndSetFromOtherValue() {
+        Map<Cell, byte[]> expected = ImmutableMap.of(TEST_CELL, val(0, 0));
+        keyValueService.put(TEST_TABLE, expected, AtlasDbConstants.TRANSACTION_TS);
+
+        Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 1));
+        MultiCheckAndSetRequest request =
+                MultiCheckAndSetRequest.multipleCells(TEST_TABLE, TEST_CELL.getRowName(), expected, updates);
+        keyValueService.multiCheckAndSet(request);
+
+        verifyMultiCheckAndSet(updates);
+    }
+
+    @Test
+    public void testMultiCheckAndSetAndBackAgain() {
+        testMultiCheckAndSetFromOtherValue();
+
+        Map<Cell, byte[]> expected = ImmutableMap.of(TEST_CELL, val(0, 1));
+        Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 0));
+
+        MultiCheckAndSetRequest request =
+                MultiCheckAndSetRequest.multipleCells(TEST_TABLE, TEST_CELL.getRowName(), expected, updates);
+        keyValueService.multiCheckAndSet(request);
+
+        verifyMultiCheckAndSet(updates);
+    }
+
+    @Test
+    public void testMultiCheckAndSetLargeValue() {
+        byte[] megabyteValue = new byte[1048576];
+        Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, megabyteValue);
+
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.newCells(TEST_TABLE, TEST_CELL.getRowName(), updates);
+        keyValueService.multiCheckAndSet(request);
+    }
+
+    @Test
+    public void testMultiCheckAndSetFromValueWhenNoValue() {
+        Map<Cell, byte[]> expected = ImmutableMap.of(TEST_CELL, val(0, 0));
+        Map<Cell, byte[]> updates = ImmutableMap.of(TEST_CELL, val(0, 1));
+
+        MultiCheckAndSetRequest request =
+                MultiCheckAndSetRequest.multipleCells(TEST_TABLE, TEST_CELL.getRowName(), expected, updates);
+
+        MultiCheckAndSetException ex =
+                assertThrows(MultiCheckAndSetException.class, () -> keyValueService.multiCheckAndSet(request));
+
+        assertThat(ex.getExpectedValues()).containsExactlyEntriesOf(expected);
+        assertThat(ex.getActualValues()).isEmpty();
+    }
+
+    @Test
+    public void testMcasUpdateColumnsWorksIndependently() {
+        Cell firstTestCell = Cell.create(row(0), column(0));
+        Cell nextTestCell = Cell.create(row(0), column(1));
+
+        byte[] firstVal = val(0, 0);
+        byte[] secondVal = val(0, 1);
+
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                TEST_TABLE, firstTestCell.getRowName(), ImmutableMap.of(firstTestCell, firstVal)));
+        verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, firstVal));
+
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.multipleCells(
+                TEST_TABLE,
+                firstTestCell.getRowName(),
+                ImmutableMap.of(firstTestCell, firstVal),
+                ImmutableMap.of(nextTestCell, secondVal)));
+        verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, firstVal, nextTestCell, secondVal));
+
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.multipleCells(
+                TEST_TABLE,
+                firstTestCell.getRowName(),
+                ImmutableMap.of(firstTestCell, firstVal, nextTestCell, secondVal),
+                ImmutableMap.of(firstTestCell, secondVal)));
+        verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, secondVal, nextTestCell, secondVal));
+    }
+
+    @Test
+    public void testMcasOnlyChecksExpectedColumns() {
+        Cell firstTestCell = Cell.create(row(0), column(0));
+        Cell nextTestCell = Cell.create(row(0), column(1));
+
+        byte[] firstVal = val(0, 0);
+        byte[] secondVal = val(0, 1);
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                TEST_TABLE,
+                firstTestCell.getRowName(),
+                ImmutableMap.of(firstTestCell, firstVal, nextTestCell, firstVal)));
+        verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, firstVal, nextTestCell, firstVal));
+
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.multipleCells(
+                TEST_TABLE,
+                firstTestCell.getRowName(),
+                ImmutableMap.of(firstTestCell, firstVal),
+                ImmutableMap.of(nextTestCell, secondVal)));
+        verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, firstVal, nextTestCell, secondVal));
+    }
+
+    @Test
+    public void testMultiCheckAndSetCanPutAndUpdate() {
+        Cell checkAndSetMe = Cell.create(row(0), column(0));
+        Cell putUnlessExistMe = Cell.create(row(0), column(1));
+
+        byte[] firstVal = val(0, 0);
+        byte[] secondVal = val(0, 1);
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                TEST_TABLE, checkAndSetMe.getRowName(), ImmutableMap.of(checkAndSetMe, firstVal)));
+        verifyMultiCheckAndSet(ImmutableMap.of(checkAndSetMe, firstVal));
+
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.multipleCells(
+                TEST_TABLE,
+                checkAndSetMe.getRowName(),
+                ImmutableMap.of(checkAndSetMe, firstVal),
+                ImmutableMap.of(checkAndSetMe, secondVal, putUnlessExistMe, firstVal)));
+        verifyMultiCheckAndSet(ImmutableMap.of(checkAndSetMe, secondVal, putUnlessExistMe, firstVal));
+    }
+
+    @Test
+    public void testMcasChecksAllColumnsIfExpectedIsEmpty() {
+        Cell firstTestCell = Cell.create(row(0), column(25));
+
+        byte[] firstVal = val(0, 0);
+        byte[] secondVal = val(0, 1);
+
+        Map<Cell, byte[]> firstPut = ImmutableMap.of(firstTestCell, firstVal);
+
+        keyValueService.multiCheckAndSet(
+                MultiCheckAndSetRequest.newCells(TEST_TABLE, firstTestCell.getRowName(), firstPut));
+        verifyMultiCheckAndSet(firstPut);
+
+        MultiCheckAndSetException ex = assertThrows(
+                MultiCheckAndSetException.class,
+                () -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                        TEST_TABLE, firstTestCell.getRowName(), ImmutableMap.of(firstTestCell, secondVal))));
+
+        verifyMultiCheckAndSet(firstPut);
+        assertThat(ex.getExpectedValues()).isEmpty();
+        assertThat(ex.getActualValues()).containsExactlyEntriesOf(firstPut);
+    }
+
+    @Test
+    public void testMultiCheckAndSetCannotUpdateAcrossMultipleRows() {
+        Cell firstTestCell = Cell.create(row(0), column(0));
+        Cell nextTestCell = Cell.create(row(1), column(1));
+
+        assertThatThrownBy(() -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                        TEST_TABLE,
+                        firstTestCell.getRowName(),
+                        ImmutableMap.of(firstTestCell, val(0, 0), nextTestCell, val(0, 1)))))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Can only update cells in one row.");
+    }
+
+    @Test
+    public void testMultiCheckAndSetIndependentlyFails() {
+        Cell firstTestCell = Cell.create(row(0), column(0));
+        Cell nextTestCell = Cell.create(row(1), column(1));
+
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                TEST_TABLE, firstTestCell.getRowName(), ImmutableMap.of(firstTestCell, val(0, 0))));
+        keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 1))));
+
+        assertThatThrownBy(() -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                        TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))))
+                .isInstanceOf(MultiCheckAndSetException.class);
+
+        MultiCheckAndSetException ex = assertThrows(
+                MultiCheckAndSetException.class,
+                () -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                        TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))));
+        assertThat(ex.getExpectedValues()).isEmpty();
+        assertThat(ex.getActualValues()).containsExactlyEntriesOf(ImmutableMap.of(nextTestCell, val(0, 1)));
+
+        verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, val(0, 0), nextTestCell, val(0, 1)));
+    }
+
+    private void verifyMultiCheckAndSet(Map<Cell, byte[]> expectedValues) {
+        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, expectedValues.keySet(), 1L);
+
+        assertThat(timestamps.size()).isEqualTo(expectedValues.size());
+        assertThat(new HashSet<>(timestamps.values())).containsExactly(AtlasDbConstants.TRANSACTION_TS);
+
+        Map<Cell, Long> cellsToFetch = KeyedStream.stream(expectedValues)
+                .map(_unused -> AtlasDbConstants.TRANSACTION_TS + 1)
+                .collectToMap();
+        Map<Cell, byte[]> result = KeyedStream.stream(keyValueService.get(TEST_TABLE, cellsToFetch))
+                .map(Value::getContents)
+                .collectToMap();
+
+        // Check result is right
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
 
     private static CassandraKeyValueService createKvs(
