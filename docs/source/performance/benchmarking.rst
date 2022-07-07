@@ -29,6 +29,6 @@ Running in an IDE
 
 1. Generate the configuration files your your IDE (either `./gradlew idea` or `./gradlew eclipse`).
 
-2. Run `AtlasDbPerfCli.java` (run with `--help` option for help).  You may need to add enviornment variables to the run configuration when using the `--backend` option to allow the program to communicate with a local docker instance.
+2. Run `AtlasDbPerfCli.java` (run with `--help` option for help).  You may need to add environment variables to the run configuration when using the `--backend` option to allow the program to communicate with a local docker instance.
 
 .. note:: If you are getting unexpected behavior from your benchmark when running in an IDE, try deleting the generated_src directory and rebuilding. These files are not always automatically cleaned out when they should be.
