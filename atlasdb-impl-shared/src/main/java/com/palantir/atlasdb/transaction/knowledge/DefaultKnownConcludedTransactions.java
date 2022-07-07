@@ -25,6 +25,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
@@ -40,14 +41,30 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
      */
     private final AtomicReference<ImmutableRangeSet<Long>> cachedConcludedTimestamps;
 
+    private final KnownConcludedTransactionsMetrics knownConcludedTransactionsMetrics;
+
+    /**
+     * This ensures that only one outstanding read to the database per object is running at any given time.
+     */
     private final CoalescingSupplier<Void> cacheUpdater = new CoalescingSupplier<>(() -> {
         updateCacheFromRemote();
         return null;
     });
 
-    public DefaultKnownConcludedTransactions(KnownConcludedTransactionsStore knownConcludedTransactionsStore) {
+    private DefaultKnownConcludedTransactions(KnownConcludedTransactionsStore knownConcludedTransactionsStore,
+            KnownConcludedTransactionsMetrics metrics) {
         this.knownConcludedTransactionsStore = knownConcludedTransactionsStore;
         this.cachedConcludedTimestamps = new AtomicReference<>(ImmutableRangeSet.of());
+        this.knownConcludedTransactionsMetrics = metrics;
+        metrics.disjointCacheIntervals(() -> cachedConcludedTimestamps.get().asRanges().size());
+    }
+
+    public static KnownConcludedTransactions create(KnownConcludedTransactionsStore knownConcludedTransactionsStore,
+            TaggedMetricRegistry taggedMetricRegistry) {
+        DefaultKnownConcludedTransactions store = new DefaultKnownConcludedTransactions(
+                knownConcludedTransactionsStore,
+                KnownConcludedTransactionsMetrics.of(taggedMetricRegistry));
+        return store;
     }
 
     @Override

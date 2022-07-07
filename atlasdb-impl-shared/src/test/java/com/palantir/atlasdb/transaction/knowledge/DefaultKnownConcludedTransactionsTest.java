@@ -21,11 +21,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Range;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -43,10 +46,11 @@ public class DefaultKnownConcludedTransactionsTest {
     private static final Range<Long> DEFAULT_RANGE = Range.closed(10L, 100L);
     private static final Range<Long> ADDITIONAL_RANGE = Range.closed(88L, 200L);
 
+    private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
     private final KnownConcludedTransactionsStore knownConcludedTransactionsStore =
             mock(KnownConcludedTransactionsStore.class);
-    private final DefaultKnownConcludedTransactions defaultKnownConcludedTransactions =
-            new DefaultKnownConcludedTransactions(knownConcludedTransactionsStore);
+    private final KnownConcludedTransactions defaultKnownConcludedTransactions =
+            DefaultKnownConcludedTransactions.create(knownConcludedTransactionsStore, taggedMetricRegistry);
 
     @Before
     public void setUp() {
@@ -81,6 +85,7 @@ public class DefaultKnownConcludedTransactionsTest {
     public void isKnownConcludedDoesNotPerformDatabaseReadIfAnswerAlreadyKnown() {
         assertThat(defaultKnownConcludedTransactions.isKnownConcluded(85L, Consistency.REMOTE_READ))
                 .isTrue();
+        verify(knownConcludedTransactionsStore).get();
         assertThat(defaultKnownConcludedTransactions.isKnownConcluded(47L, Consistency.REMOTE_READ))
                 .isTrue();
         assertThat(defaultKnownConcludedTransactions.isKnownConcluded(62L, Consistency.REMOTE_READ))
@@ -88,7 +93,7 @@ public class DefaultKnownConcludedTransactionsTest {
         assertThat(defaultKnownConcludedTransactions.isKnownConcluded(
                         DEFAULT_RANGE.upperEndpoint(), Consistency.REMOTE_READ))
                 .isTrue();
-        verify(knownConcludedTransactionsStore).get();
+        verifyNoMoreInteractions(knownConcludedTransactionsStore);
     }
 
     @Test
@@ -114,6 +119,22 @@ public class DefaultKnownConcludedTransactionsTest {
     public void addConcludedTimestampsSupplementsUnderlyingStore() {
         defaultKnownConcludedTransactions.addConcludedTimestamps(ADDITIONAL_RANGE);
         verify(knownConcludedTransactionsStore).supplement(ADDITIONAL_RANGE);
+    }
+
+    @Test
+    public void metricPublishesNumberOfDisjointCachedRanges() {
+        when(knownConcludedTransactionsStore.get())
+                .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L))));
+        assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
+                .isTrue();
+        assertDisjointCacheIntervalMetricIsPublishedAndHasValue(1);
+
+        defaultKnownConcludedTransactions.addConcludedTimestamps(Range.closed(150L, 250L));
+        defaultKnownConcludedTransactions.addConcludedTimestamps(Range.closed(350L, 450L));
+        assertDisjointCacheIntervalMetricIsPublishedAndHasValue(3);
+
+        defaultKnownConcludedTransactions.addConcludedTimestamps(Range.closed(0L, 888L));
+        assertDisjointCacheIntervalMetricIsPublishedAndHasValue(1);
     }
 
     @Test
@@ -160,5 +181,11 @@ public class DefaultKnownConcludedTransactionsTest {
     private void setupStoreWithDefaultRange() {
         when(knownConcludedTransactionsStore.get())
                 .thenReturn(Optional.of(TimestampRangeSet.singleRange(DEFAULT_RANGE)));
+    }
+
+    private void assertDisjointCacheIntervalMetricIsPublishedAndHasValue(int expected) {
+        assertThat(taggedMetricRegistry.gauge(KnownConcludedTransactionsMetrics.disjointCacheIntervalsMetricName()))
+                .isPresent()
+                .hasValueSatisfying(gauge -> assertThat(gauge.getValue()).isEqualTo(expected));
     }
 }
