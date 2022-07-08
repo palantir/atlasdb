@@ -13,16 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.table.description.test;
+package com.palantir.atlasdb.persist.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.atlasdb.persister.JacksonPersister;
+import com.palantir.common.persist.Persistable.Hydrator;
 
-public class StringValuePersister extends JacksonPersister<StringValue> {
+/**
+ * {@link ReusablePersister}s are required to have a no arg constructor and be thread-safe. It will be re-used across
+ * executions.
+ *
+ * If persisters need state while (de)serializing, create a (de)serializer class and instantiate it in the relevant
+ * hydrate/persist method.
+ */
+public interface ReusablePersister<T> extends Hydrator<T> {
+    byte[] persistToBytes(T objectToPersist);
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    public StringValuePersister() {
-        super(StringValue.class, MAPPER);
-    }
+    Class<T> getPersistingClassType();
 }

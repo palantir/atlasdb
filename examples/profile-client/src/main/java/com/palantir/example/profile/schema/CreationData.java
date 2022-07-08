@@ -28,7 +28,7 @@ public class CreationData {
         return timeCreated;
     }
 
-    public static class Persister implements com.palantir.atlasdb.persist.api.Persister<CreationData> {
+    public static class Persister implements com.palantir.atlasdb.persist.api.ReusablePersister<CreationData> {
         @Override
         public Class<CreationData> getPersistingClassType() {
             return CreationData.class;

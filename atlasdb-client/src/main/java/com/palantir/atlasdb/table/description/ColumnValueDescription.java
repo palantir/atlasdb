@@ -25,6 +25,7 @@ import com.google.protobuf.Message;
 import com.palantir.atlasdb.annotation.Reusable;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.persist.api.ReusablePersister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.FileDescriptorTreeProto;
 import com.palantir.atlasdb.table.generation.ColumnValues;
@@ -115,11 +116,35 @@ public final class ColumnValueDescription {
                 Format.PERSISTABLE, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
+    /**
+     * Construct a column value description given a persister.
+     *
+     * @deprecated Convert your persister to a {@link ReusablePersister} and call
+     *             {@link ColumnValueDescription}.forReusablePersister instead.
+     */
+    @Deprecated
     public static ColumnValueDescription forPersister(Class<? extends Persister<?>> clazz) {
         return forPersister(clazz, Compression.NONE);
     }
 
+    /**
+     * Construct a column value description given a persister.
+     *
+     * @deprecated Convert your persister to a {@link ReusablePersister} and call
+     *             {@link ColumnValueDescription}.forReusablePersister instead.
+     */
+    @Deprecated
     public static ColumnValueDescription forPersister(Class<? extends Persister<?>> clazz, Compression compression) {
+        return new ColumnValueDescription(
+                Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
+    }
+
+    public static ColumnValueDescription forReusablePersister(Class<? extends ReusablePersister<?>> clazz) {
+        return forReusablePersister(clazz, Compression.NONE);
+    }
+
+    public static ColumnValueDescription forReusablePersister(
+            Class<? extends ReusablePersister<?>> clazz, Compression compression) {
         return new ColumnValueDescription(
                 Format.PERSISTER, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
@@ -187,7 +212,7 @@ public final class ColumnValueDescription {
      */
     public String getJavaObjectTypeName() {
         if (format == Format.PERSISTER) {
-            return getPersister().getPersistingClassType().getCanonicalName();
+            return getReusablePersister().getPersistingClassType().getCanonicalName();
         }
         if (canonicalClassName != null) {
             return canonicalClassName;
@@ -197,7 +222,7 @@ public final class ColumnValueDescription {
 
     public Class<?> getJavaTypeClass() {
         if (format == Format.PERSISTER) {
-            return getPersister().getPersistingClassType();
+            return getReusablePersister().getPersistingClassType();
         }
         if (canonicalClassName != null) {
             try {
@@ -216,10 +241,46 @@ public final class ColumnValueDescription {
         return type.getJavaObjectClass();
     }
 
+    /**
+     * Legacy persister method.
+     *
+     * @deprecated Use `getReusablePersister` instead.
+     */
+    @Deprecated
     public Persister<?> getPersister() {
         Preconditions.checkArgument(Format.PERSISTER == format);
+        Class<?> importClass = getImportClass();
+
+        if (isLegacyPersister(importClass)) {
+            @SuppressWarnings("unchecked")
+            Class<Persister<?>> persisterClass = (Class<Persister<?>>) importClass;
+            try {
+                return persisterClass.getConstructor().newInstance();
+            } catch (InstantiationException
+                    | IllegalAccessException
+                    | IllegalArgumentException
+                    | InvocationTargetException
+                    | NoSuchMethodException
+                    | SecurityException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        } else {
+            return ReusablePersisters.backcompat(getReusablePersister());
+        }
+    }
+
+    public ReusablePersister<?> getReusablePersister() {
+        Preconditions.checkArgument(Format.PERSISTER == format);
+        Class<?> importClass = getImportClass();
+
+        if (isLegacyPersister(importClass)) {
+            // Handle legacy persisters which might still be referenced in the code using this library
+            return ReusablePersisters.wrapLegacyPersister(getPersister());
+        }
+
+        // We have a new type of persister
         @SuppressWarnings("unchecked")
-        Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
+        Class<ReusablePersister<?>> persisterClass = (Class<ReusablePersister<?>>) importClass;
         try {
             return persisterClass.getConstructor().newInstance();
         } catch (InstantiationException
@@ -230,6 +291,12 @@ public final class ColumnValueDescription {
                 | SecurityException e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private boolean isLegacyPersister(Class<?> importClass) {
+        Preconditions.checkArgument(Format.PERSISTER == format);
+
+        return Persister.class.isAssignableFrom(importClass);
     }
 
     public String getPersistCode(String varName) {
@@ -268,8 +335,14 @@ public final class ColumnValueDescription {
 
     public boolean isReusablePersister() {
         if (format == Format.PERSISTER) {
-            Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
-            return persisterClass.isAnnotationPresent(Reusable.class);
+            Class<?> importClass = getImportClass();
+
+            if (isLegacyPersister(importClass)) {
+                Class<Persister<?>> persisterClass = (Class<Persister<?>>) importClass;
+                return persisterClass.isAnnotationPresent(Reusable.class);
+            } else {
+                return true;
+            }
         }
         return false;
     }

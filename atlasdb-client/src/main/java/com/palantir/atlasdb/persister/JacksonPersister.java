@@ -18,14 +18,14 @@ package com.palantir.atlasdb.persister;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
-import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.persist.api.ReusablePersister;
 import java.io.IOException;
 
 /**
- * A {@link Persister} that uses an {@link ObjectMapper} to serialize and deserialize objects
+ * A {@link ReusablePersister} that uses an {@link ObjectMapper} to serialize and deserialize objects
  * of type {@code T}.
  */
-public abstract class JacksonPersister<T> implements Persister<T> {
+public abstract class JacksonPersister<T> implements ReusablePersister<T> {
 
     private final Class<T> typeRef;
     private final ObjectMapper mapper;
