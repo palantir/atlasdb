@@ -26,6 +26,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.streams.KeyedStream;
@@ -52,12 +54,15 @@ public class CasConsensusForgettingStore implements ConsensusForgettingStore {
     public void putUnlessExists(Cell cell, byte[] value) throws CheckAndSetException {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, inProgressMarker, value);
         kvs.checkAndSet(request);
-        // use CAS
     }
 
     @Override
     public void putUnlessExists(Map<Cell, byte[]> values) throws CheckAndSetException {
-        // use multiCAS which is not implemented yet
+        byte[] row = values.keySet().iterator().next().getRowName();
+        Map<Cell, byte[]> expected =
+                values.keySet().stream().collect(Collectors.toMap(cell -> cell, _ignore -> inProgressMarker));
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(tableRef, row, expected, values);
+        kvs.multiCheckAndSet(request);
     }
 
     @Override
@@ -72,7 +77,15 @@ public class CasConsensusForgettingStore implements ConsensusForgettingStore {
 
     @Override
     public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
-        // bebetter
+        CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, value, value);
+        kvs.checkAndSet(request);
+    }
+
+    @Override
+    public void checkAndTouch(Map<Cell, byte[]> values) throws MultiCheckAndSetException {
+        byte[] row = values.keySet().iterator().next().getRowName();
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(tableRef, row, values, values);
+        kvs.multiCheckAndSet(request);
     }
 
     @Override

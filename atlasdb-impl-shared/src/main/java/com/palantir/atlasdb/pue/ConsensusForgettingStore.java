@@ -20,6 +20,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,11 +46,10 @@ public interface ConsensusForgettingStore {
      */
     void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException, CheckAndSetException;
 
-    // todo(gmaretic): update when the MultiCas PR merges
     /**
-     * Similar to {@link #putUnlessExists(Cell, byte[])}, but the CAS exception is a multicas exception
+     * Similar to {@link #putUnlessExists(Cell, byte[])}, but  the CAS exception is a multicas exception
      */
-    void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException, CheckAndSetException;
+    void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException, MultiCheckAndSetException;
 
     void markInProgress(Cell cell);
 
@@ -62,7 +62,7 @@ public interface ConsensusForgettingStore {
      */
     void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
 
-    default void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+    default void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException, MultiCheckAndSetException {
         values.forEach(this::checkAndTouch);
     }
 
