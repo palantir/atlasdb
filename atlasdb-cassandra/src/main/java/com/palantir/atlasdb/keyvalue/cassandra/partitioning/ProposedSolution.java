@@ -41,7 +41,11 @@ public final class ProposedSolution {
     public void addTrivialDistribution(List<TokenRingSlice> allSlices) {
         int INDEX = 0;
         for (Map.Entry<SweepShard, List<TokenRingSlice>> e: proposedSolution.entrySet()) {
-            e.getValue().add(allSlices.get(INDEX));
+            try {
+                e.getValue().add(allSlices.get(INDEX));
+            } catch (Exception ex) {
+                //
+            }
             INDEX++;
         }
     }

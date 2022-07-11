@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.partitioning;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,7 +39,6 @@ public final class MathUtils {
         return result;
     }
 
-    // todo(snanda): only works for exact partitions  | Also only works for RF = 3
     public static List<IdealHostPartition> partitionForIdealDistribution(int numHostsperAz, int shards) {
         int elemsPerSetForIdealDistribution = (int) Math.cbrt(shards);
         List<IdealHostPartition> result = new ArrayList<>();
@@ -46,19 +46,42 @@ public final class MathUtils {
         for (int i = 0; i < numHostsperAz ; i+=elemsPerSetForIdealDistribution) {
             for (int j = 0; j < numHostsperAz; j+=elemsPerSetForIdealDistribution) {
                 for (int k = 0; k < numHostsperAz; k+=elemsPerSetForIdealDistribution) {
+                    List<CassandraHost> setA = getIdealHostsSubset("a", i, elemsPerSetForIdealDistribution, numHostsperAz);
+                    List<CassandraHost> setB = getIdealHostsSubset("b", j, elemsPerSetForIdealDistribution, numHostsperAz);
+                    List<CassandraHost> setC = getIdealHostsSubset("c", k, elemsPerSetForIdealDistribution, numHostsperAz);
+
+                    if (setA.size() < elemsPerSetForIdealDistribution
+                            || setB.size() < elemsPerSetForIdealDistribution
+                                || setC.size() < elemsPerSetForIdealDistribution) {
+                        continue;
+                    }
+
                     IdealHostPartition idealHostPartition = ImmutableIdealHostPartition.builder()
-                            .addAllSetA(getIdealHostsSubset("a", i, elemsPerSetForIdealDistribution))
-                            .addAllSetB(getIdealHostsSubset("b", j, elemsPerSetForIdealDistribution))
-                            .addAllSetC(getIdealHostsSubset("c", k, elemsPerSetForIdealDistribution))
+                            .addAllSetA(setA)
+                            .addAllSetB(setB)
+                            .addAllSetC(setC)
                                     .build();
                     result.add(idealHostPartition);
                 }
             }
         }
+
+        int remainderHosts = numHostsperAz % elemsPerSetForIdealDistribution;
+
+        IdealHostPartition idealHostPartition = ImmutableIdealHostPartition.builder()
+                .addAllSetA(getIdealHostsSubset("a", numHostsperAz - remainderHosts, remainderHosts, numHostsperAz))
+                .addAllSetB(getIdealHostsSubset("b", numHostsperAz - remainderHosts, remainderHosts, numHostsperAz))
+                .addAllSetC(getIdealHostsSubset("c", numHostsperAz - remainderHosts, remainderHosts, numHostsperAz))
+                .build();
+        result.add(idealHostPartition);
+
         return result;
     }
 
-    private static List<CassandraHost> getIdealHostsSubset(String az, int index, int elems) {
+    private static List<CassandraHost> getIdealHostsSubset(String az, int index, int elems, int numHostsperAz) {
+        if (index + elems > numHostsperAz) {
+            return ImmutableList.of();
+        }
         return IntStream.range(index, index + elems).mapToObj(idx -> ImmutableCassandraHost.of(az + idx)).collect(Collectors.toList());
     }
 }

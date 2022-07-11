@@ -30,7 +30,7 @@ public class HostPartitionings {
     }
 
     public static void main(String[] args) {
-        partitionHosts(16, 64);
+        partitionHosts(8, 125);
     }
 
     // assume rf 3
@@ -71,12 +71,6 @@ public class HostPartitionings {
                 .max(Comparator.naturalOrder())
                 .get();
 
-        // if (isBadDistribution(numShards, maxShardsKilled, minPermutations, maxPermutations)) {
-        //     return;
-        // }
-
-        // Print out acceptable distributions
-
         List<String> distribution = hostToShards.values()
                 .stream()
                 .sorted()
@@ -84,9 +78,7 @@ public class HostPartitionings {
                 .collect(Collectors.toList());
 
         System.out.println("Distribution of shards killed by loss of host " + distribution);
-
         System.out.println("Max number of shards killed by loss of host " + maxShardsKilled.get() + ", " + ((double)maxShardsKilled.get() / numShards) * 100 + "%");
-
         System.out.println("Min number of shards killed by loss of host " + minShardsKilled.get() + ", " + ((double)minShardsKilled.get() / numShards) * 100 + "%");
         System.out.println("Min assigned permutations " + minPermutations);
         System.out.println("Max assigned permutations " + maxPermutations);
