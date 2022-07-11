@@ -16,7 +16,7 @@
 
 package com.palantir.lock.client;
 
-import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.lock.v2.Lease;
 
 /**
@@ -28,7 +28,7 @@ public final class LeasedLockTokenCreator {
         // no-op
     }
 
-    public static LeasedLockToken of(ConjureLockToken serverToken, Lease lease) {
+    public static LeasedLockToken of(ConjureLockTokenV2 serverToken, Lease lease) {
         return LeasedLockToken.of(serverToken, lease);
     }
 }

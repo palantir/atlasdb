@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.time.NanoTime;
@@ -585,7 +586,7 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
 
         // simulates the actual lock token that the client receives
-        ConjureLockToken serverToken = ConjureLockToken.of(COMMIT_TOKEN.getRequestId());
+        ConjureLockTokenV2 serverToken = ConjureLockTokenV2.of(COMMIT_TOKEN.getRequestId());
         LockToken commitToken = LeasedLockTokenCreator.of(
                 serverToken,
                 Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(1L)), Duration.ZERO));

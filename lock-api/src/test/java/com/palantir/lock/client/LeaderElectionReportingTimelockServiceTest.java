@@ -30,8 +30,8 @@ import static org.mockito.Mockito.when;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
@@ -63,8 +63,8 @@ public class LeaderElectionReportingTimelockServiceTest {
 
     private ConjureStartTransactionsRequest startTransactionsRequest = mock(ConjureStartTransactionsRequest.class);
     private ConjureStartTransactionsResponse startTransactionsResponse = mock(ConjureStartTransactionsResponse.class);
-    private ConjureRefreshLocksRequest refreshLocksRequest = mock(ConjureRefreshLocksRequest.class);
-    private ConjureRefreshLocksResponse refreshLocksResponse = mock(ConjureRefreshLocksResponse.class);
+    private ConjureRefreshLocksRequestV2 refreshLocksRequest = mock(ConjureRefreshLocksRequestV2.class);
+    private ConjureRefreshLocksResponseV2 refreshLocksResponse = mock(ConjureRefreshLocksResponseV2.class);
     private GetCommitTimestampsRequest commitTimestampsRequest = mock(GetCommitTimestampsRequest.class);
     private GetCommitTimestampsResponse commitTimestampsResponse = mock(GetCommitTimestampsResponse.class);
     private NamespacedConjureTimelockService mockedDelegate = mock(NamespacedConjureTimelockService.class);
