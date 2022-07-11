@@ -95,7 +95,7 @@ final class BlockEnforcingLockService {
     }
 
     private LockResponse performSingleLockRequest(ConjureLockRequest request) {
-        return namespacedConjureTimelockService.lock(request).accept(ToLeasedLockResponse.INSTANCE);
+        return namespacedConjureTimelockService.lockV2(request).accept(ToLeasedLockResponse.INSTANCE);
     }
 
     private WaitForLocksResponse performSingleWaitForLocksRequest(ConjureLockRequest request) {

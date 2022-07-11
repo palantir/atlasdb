@@ -19,15 +19,20 @@ package com.palantir.lock.client;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
@@ -105,22 +110,37 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
     }
 
     @Override
-    public ConjureLockResponseV2 lock(ConjureLockRequest request) {
+    public ConjureLockResponse lock(ConjureLockRequest request) {
+        return conjureTimelockService.lock(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public ConjureLockResponseV2 lockV2(ConjureLockRequest request) {
         return conjureTimelockService.lockV2(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public ConjureUnlockResponse unlock(ConjureUnlockRequest request) {
+        return conjureTimelockService.unlock(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public ConjureUnlockResponseV2 unlockV2(ConjureUnlockRequestV2 request) {
+        return conjureTimelockService.unlockV2(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request) {
+        return conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public ConjureRefreshLocksResponseV2 refreshLocksV2(ConjureRefreshLocksRequestV2 request) {
+        return conjureTimelockService.refreshLocksV2(AUTH_HEADER, namespace, request);
     }
 
     @Override
     public ConjureWaitForLocksResponse waitForLocks(ConjureLockRequest request) {
         return conjureTimelockService.waitForLocks(AUTH_HEADER, namespace, request);
-    }
-
-    @Override
-    public ConjureRefreshLocksResponseV2 refreshLocks(ConjureRefreshLocksRequestV2 request) {
-        return conjureTimelockService.refreshLocksV2(AUTH_HEADER, namespace, request);
-    }
-
-    @Override
-    public ConjureUnlockResponseV2 unlock(ConjureUnlockRequestV2 request) {
-        return conjureTimelockService.unlockV2(AUTH_HEADER, namespace, request);
     }
 }
