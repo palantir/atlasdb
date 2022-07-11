@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -47,7 +47,7 @@ public final class ClientLogEventsTest {
     private static final UUID LEADER = UUID.randomUUID();
     private static final LockToken LOCK_TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken LOCK_TOKEN_2 = LockToken.of(UUID.randomUUID());
-    private static final ConjureLockToken CONJURE_TOKEN_1 = ConjureLockToken.of(LOCK_TOKEN_1.getRequestId());
+    private static final ConjureLockTokenV2 CONJURE_TOKEN_1 = ConjureLockTokenV2.of(LOCK_TOKEN_1.getRequestId());
 
     private static final long SEQUENCE_1 = 1;
     private static final long SEQUENCE_2 = 2;

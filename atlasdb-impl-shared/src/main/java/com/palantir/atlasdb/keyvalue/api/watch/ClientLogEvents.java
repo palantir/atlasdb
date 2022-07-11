@@ -128,7 +128,7 @@ interface ClientLogEvents {
             commitRequestId = commitLocksToken
                     .filter(lockToken -> lockToken instanceof LeasedLockToken)
                     .map(lockToken ->
-                            ((LeasedLockToken) lockToken).serverToken().getRequestId());
+                            ((LeasedLockToken) lockToken).serverToken().get());
         }
 
         @Override

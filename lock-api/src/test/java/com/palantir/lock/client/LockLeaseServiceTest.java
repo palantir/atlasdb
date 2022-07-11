@@ -26,14 +26,15 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
-import com.palantir.atlasdb.timelock.api.ConjureLockToken;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
-import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponseV2;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
@@ -78,7 +79,7 @@ public class LockLeaseServiceTest {
 
     private static final Exception TIMEOUT_EXCEPTION = new RuntimeException(new SocketTimeoutException("timeout"));
 
-    private static final ConjureLockToken LOCK_TOKEN = ConjureLockToken.of(UUID.randomUUID());
+    private static final ConjureLockTokenV2 LOCK_TOKEN = ConjureLockTokenV2.of(UUID.randomUUID());
 
     private LockLeaseService lockLeaseService;
     private AtomicLong currentTime = new AtomicLong(123);
@@ -99,7 +100,7 @@ public class LockLeaseServiceTest {
     public void lockResponseHasCorrectLeasedLock() {
         Lease lease = getLease();
         when(timelock.lock(any()))
-                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, lease)));
+                .thenReturn(ConjureLockResponseV2.successful(SuccessfulLockResponseV2.of(LOCK_TOKEN, lease)));
 
         LockResponse clientResponse = lockLeaseService.lock(lockRequest);
 
@@ -111,7 +112,7 @@ public class LockLeaseServiceTest {
 
     @Test
     public void shouldHandleUnsuccessfulLockResponses() {
-        when(timelock.lock(any())).thenReturn(ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()));
+        when(timelock.lock(any())).thenReturn(ConjureLockResponseV2.unsuccessful(UnsuccessfulLockResponse.of()));
 
         LockResponse clientResponse = lockLeaseService.lock(lockRequest);
         assertThat(clientResponse.wasSuccessful()).isFalse();
@@ -135,7 +136,7 @@ public class LockLeaseServiceTest {
     @Test
     public void returnedTokenShouldHaveCorrectServerToken() {
         when(timelock.lock(any()))
-                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
+                .thenReturn(ConjureLockResponseV2.successful(SuccessfulLockResponseV2.of(LOCK_TOKEN, getLease())));
 
         LockResponse lockResponse = lockLeaseService.lock(lockRequest);
         LeasedLockToken leasedToken = (LeasedLockToken) lockResponse.getToken();
@@ -145,7 +146,7 @@ public class LockLeaseServiceTest {
     @Test
     public void leasedTokenShouldHaveValidLeaseForTheLeasePeriod() {
         when(timelock.lock(any()))
-                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
+                .thenReturn(ConjureLockResponseV2.successful(SuccessfulLockResponseV2.of(LOCK_TOKEN, getLease())));
 
         LockResponse lockResponse = lockLeaseService.lock(lockRequest);
         assertValid(lockResponse.getToken());
@@ -155,7 +156,7 @@ public class LockLeaseServiceTest {
     public void lockAcquireTimeoutIsBounded() {
         when(lockRequest.getAcquireTimeoutMs()).thenReturn(TIMEOUT_GREATER_THAN_MAX_PERMISSIBLE_TIMEOUT.toMillis());
         when(timelock.lock(any()))
-                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
+                .thenReturn(ConjureLockResponseV2.successful(SuccessfulLockResponseV2.of(LOCK_TOKEN, getLease())));
         LockResponse lockResponse = lockLeaseService.lock(lockRequest);
         assertValid(lockResponse.getToken());
         verify(timelock)
@@ -168,7 +169,7 @@ public class LockLeaseServiceTest {
         when(lockRequest.getAcquireTimeoutMs()).thenReturn(TIMEOUT_GREATER_THAN_MAX_PERMISSIBLE_TIMEOUT.toMillis());
         when(timelock.lock(any()))
                 .thenThrow(TIMEOUT_EXCEPTION)
-                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
+                .thenReturn(ConjureLockResponseV2.successful(SuccessfulLockResponseV2.of(LOCK_TOKEN, getLease())));
 
         LockResponse lockResponse = lockLeaseService.lock(lockRequest);
         assertValid(lockResponse.getToken());
@@ -181,7 +182,7 @@ public class LockLeaseServiceTest {
         assertValid(token);
         lockLeaseService.unlock(ImmutableSet.of(token));
 
-        verify(timelock).unlock(ConjureUnlockRequest.of(ImmutableSet.of(token.serverToken())));
+        verify(timelock).unlock(ConjureUnlockRequestV2.of(ImmutableSet.of(token.serverToken())));
     }
 
     @Test
@@ -192,7 +193,7 @@ public class LockLeaseServiceTest {
         assertInvalid(token);
 
         lockLeaseService.unlock(ImmutableSet.of(token));
-        verify(timelock).unlock(ConjureUnlockRequest.of(ImmutableSet.of(token.serverToken())));
+        verify(timelock).unlock(ConjureUnlockRequestV2.of(ImmutableSet.of(token.serverToken())));
     }
 
     @Test
@@ -217,11 +218,11 @@ public class LockLeaseServiceTest {
         LeasedLockToken leasedLockToken = LeasedLockToken.of(LOCK_TOKEN, getLease(Duration.ZERO));
         assertInvalid(leasedLockToken);
 
-        when(timelock.refreshLocks(ConjureRefreshLocksRequest.of(ImmutableSet.of(LOCK_TOKEN))))
-                .thenReturn(ConjureRefreshLocksResponse.of(ImmutableSet.of(LOCK_TOKEN), getLease()));
+        when(timelock.refreshLocks(ConjureRefreshLocksRequestV2.of(ImmutableSet.of(LOCK_TOKEN))))
+                .thenReturn(ConjureRefreshLocksResponseV2.of(ImmutableSet.of(LOCK_TOKEN), getLease()));
 
         Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(ImmutableSet.of(leasedLockToken));
-        verify(timelock).refreshLocks(ConjureRefreshLocksRequest.of(ImmutableSet.of(leasedLockToken.serverToken())));
+        verify(timelock).refreshLocks(ConjureRefreshLocksRequestV2.of(ImmutableSet.of(leasedLockToken.serverToken())));
 
         LeasedLockToken refreshedLeasedLockToken =
                 (LeasedLockToken) refreshed.iterator().next();
@@ -230,9 +231,9 @@ public class LockLeaseServiceTest {
         assertThat(refreshedLeasedLockToken).isEqualTo(leasedLockToken);
     }
 
-    private ConjureStartTransactionsResponse startTransactionsResponseWith(ConjureLockToken lockToken, Lease lease) {
+    private ConjureStartTransactionsResponse startTransactionsResponseWith(ConjureLockTokenV2 lockToken, Lease lease) {
         return ConjureStartTransactionsResponse.builder()
-                .immutableTimestamp(LockImmutableTimestampResponse.of(1L, LockToken.of(lockToken.getRequestId())))
+                .immutableTimestamp(LockImmutableTimestampResponse.of(1L, LockToken.of(lockToken.get())))
                 .timestamps(partitionedTimestamps)
                 .lease(lease)
                 .lockWatchUpdate(LockWatchStateUpdate.snapshot(

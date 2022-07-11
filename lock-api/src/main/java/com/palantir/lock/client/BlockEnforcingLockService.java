@@ -19,8 +19,8 @@ package com.palantir.lock.client;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
-import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
-import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponseV2;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponseV2;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -102,11 +102,11 @@ final class BlockEnforcingLockService {
         return ConjureLockRequests.fromConjure(namespacedConjureTimelockService.waitForLocks(request));
     }
 
-    private enum ToLeasedLockResponse implements ConjureLockResponse.Visitor<LockResponse> {
+    private enum ToLeasedLockResponse implements ConjureLockResponseV2.Visitor<LockResponse> {
         INSTANCE;
 
         @Override
-        public LockResponse visitSuccessful(SuccessfulLockResponse value) {
+        public LockResponse visitSuccessful(SuccessfulLockResponseV2 value) {
             return LockResponse.successful(LeasedLockToken.of(value.getLockToken(), value.getLease()));
         }
 

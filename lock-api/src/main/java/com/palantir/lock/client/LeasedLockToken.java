@@ -16,7 +16,7 @@
 
 package com.palantir.lock.client;
 
-import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
@@ -26,7 +26,7 @@ import java.util.UUID;
 import javax.annotation.concurrent.GuardedBy;
 
 public final class LeasedLockToken implements LockToken {
-    private final ConjureLockToken serverToken;
+    private final ConjureLockTokenV2 serverToken;
     private final UUID requestId;
 
     @GuardedBy("this")
@@ -35,17 +35,17 @@ public final class LeasedLockToken implements LockToken {
     @GuardedBy("this")
     private boolean invalidated = false;
 
-    static LeasedLockToken of(ConjureLockToken serverToken, Lease lease) {
+    static LeasedLockToken of(ConjureLockTokenV2 serverToken, Lease lease) {
         return new LeasedLockToken(serverToken, UUID.randomUUID(), lease);
     }
 
-    private LeasedLockToken(ConjureLockToken serverToken, UUID requestId, Lease lease) {
+    private LeasedLockToken(ConjureLockTokenV2 serverToken, UUID requestId, Lease lease) {
         this.serverToken = serverToken;
         this.requestId = requestId;
         this.lease = lease;
     }
 
-    public ConjureLockToken serverToken() {
+    public ConjureLockTokenV2 serverToken() {
         return serverToken;
     }
 
