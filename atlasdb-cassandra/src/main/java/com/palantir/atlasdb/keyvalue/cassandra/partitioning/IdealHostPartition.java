@@ -16,12 +16,19 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.partitioning;
 
+import java.util.List;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Parameter;
 
 @Value.Immutable
-public interface CassandraHost {
+public interface IdealHostPartition {
 
     @Parameter
-    String id();
+    List<CassandraHost> setA();
+
+    @Parameter
+    List<CassandraHost> setB();
+
+    @Parameter
+    List<CassandraHost> setC();
 }

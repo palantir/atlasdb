@@ -16,12 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.partitioning;
 
+import java.util.List;
 import org.immutables.value.Value;
-import org.immutables.value.Value.Parameter;
 
+/**
+ * Represents combination of hosts that uniquely handle a slice of Cassandra token ring.
+ * */
 @Value.Immutable
-public interface CassandraHost {
+public interface TokenRingSlice {
 
-    @Parameter
-    String id();
+    @Value.Parameter
+    List<CassandraHost> hosts();
 }
