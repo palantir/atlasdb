@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.partitioning;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.common.streams.KeyedStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,9 +28,12 @@ import java.util.stream.IntStream;
 
 public final class ProposedSolution {
     private final Map<SweepShard, List<TokenRingSlice>> proposedSolution;
+    private final int numShards;
+    private int INDEX = 0;
 
     public ProposedSolution(int numShards) {
         proposedSolution = new HashMap<>();
+        this.numShards = numShards;
         IntStream.range(0, numShards)
                 .forEach(shard -> proposedSolution.put(ImmutableSweepShard.of(shard), new ArrayList<>()));
     }
@@ -39,15 +43,12 @@ public final class ProposedSolution {
     }
 
     public void addTrivialDistribution(List<TokenRingSlice> allSlices) {
-        int INDEX = 0;
-        for (Map.Entry<SweepShard, List<TokenRingSlice>> e: proposedSolution.entrySet()) {
-            try {
-                e.getValue().add(allSlices.get(INDEX));
-            } catch (Exception ex) {
-                //
-            }
-            INDEX++;
-        }
+        List<List<TokenRingSlice>> values = ImmutableList.copyOf(proposedSolution.values());
+
+        allSlices.forEach(slice -> {
+            values.get(INDEX).add(slice);
+            INDEX = (INDEX + 1) % numShards;
+        });
     }
 
     public Map<SweepShard, Set<CassandraHost>> getHostsAssignedToShards() {

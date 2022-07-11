@@ -40,7 +40,7 @@ public final class MathUtils {
     }
 
     public static List<IdealHostPartition> partitionForIdealDistribution(int numHostsperAz, int shards) {
-        int elemsPerSetForIdealDistribution = (int) Math.cbrt(shards);
+        int elemsPerSetForIdealDistribution = (int) Math.ceil(Math.cbrt(shards));
         List<IdealHostPartition> result = new ArrayList<>();
 
         for (int i = 0; i < numHostsperAz ; i+=elemsPerSetForIdealDistribution) {

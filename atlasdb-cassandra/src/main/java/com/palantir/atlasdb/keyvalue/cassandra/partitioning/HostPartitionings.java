@@ -30,7 +30,7 @@ public class HostPartitionings {
     }
 
     public static void main(String[] args) {
-        partitionHosts(8, 125);
+        partitionHosts(8, 25);
     }
 
     // assume rf 3
@@ -80,6 +80,8 @@ public class HostPartitionings {
         System.out.println("Distribution of shards killed by loss of host " + distribution);
         System.out.println("Max number of shards killed by loss of host " + maxShardsKilled.get() + ", " + ((double)maxShardsKilled.get() / numShards) * 100 + "%");
         System.out.println("Min number of shards killed by loss of host " + minShardsKilled.get() + ", " + ((double)minShardsKilled.get() / numShards) * 100 + "%");
+
+        System.out.println("Distribution of tokenRange slices per shard " + shardToNumAcceptedPermutations.values());
         System.out.println("Min assigned permutations " + minPermutations);
         System.out.println("Max assigned permutations " + maxPermutations);
         System.out.println();
