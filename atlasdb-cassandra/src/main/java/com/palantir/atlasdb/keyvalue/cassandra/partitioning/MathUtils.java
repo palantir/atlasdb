@@ -38,32 +38,6 @@ public final class MathUtils {
         return result;
     }
 
-
-    public static List<List<Integer>> generatePartitions(int rf, int hosts) {
-        List<List<Integer>> tt = new ArrayList<>();
-        tt.add(new ArrayList<>());
-        List<List<Integer>> allPerms = partitionGenerator(hosts, rf, 0, tt);
-        return allPerms.stream().filter(x -> x.size() == rf).collect(Collectors.toList());
-    }
-
-    private static List<List<Integer>> partitionGenerator(int num, int rf, int idx, List<List<Integer>> answer) {
-        if (idx == num) {
-            return answer;
-        }
-
-        int size = answer.size();
-
-        for (int i = 0; i < size; i++) {
-            List<Integer> temp = new ArrayList<>(answer.get(i));
-            if (temp.size() < rf) {
-                temp.add(idx);
-                answer.add(temp);
-            }
-        }
-
-        return partitionGenerator(num, rf, idx + 1, answer);
-    }
-
     // todo(snanda): only works for exact partitions  | Also only works for RF = 3
     public static List<IdealHostPartition> partitionForIdealDistribution(int numHostsperAz, int shards) {
         int elemsPerSetForIdealDistribution = (int) Math.cbrt(shards);
