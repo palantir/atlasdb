@@ -56,6 +56,7 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
     @Override
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         if (request.getNumTransactions() == 1) {
+            // TODO (jkong): Interval shouldn't be here. API should probably serialise the interval... :(
             ConjureStartOneTransactionResponse conjureStartOneTransactionResponse =
                     conjureTimelockService.startOneTransaction(
                             AUTH_HEADER,
@@ -70,7 +71,7 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
                     .immutableTimestamp(conjureStartOneTransactionResponse.getImmutableTimestamp())
                     .timestamps(ImmutablePartitionedTimestamps.builder()
                             .start(conjureStartOneTransactionResponse.getTimestamp())
-                            .interval(0)
+                            .interval(16) // This doesn't really matter
                             .count(1)
                             .build())
                     .lockWatchUpdate(conjureStartOneTransactionResponse.getLockWatchUpdate())
