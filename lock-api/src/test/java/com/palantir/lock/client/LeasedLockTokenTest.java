@@ -19,7 +19,7 @@ package com.palantir.lock.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
@@ -29,7 +29,7 @@ import java.util.UUID;
 import org.junit.Test;
 
 public class LeasedLockTokenTest {
-    private static final ConjureLockToken LOCK_TOKEN = ConjureLockToken.of(UUID.randomUUID());
+    private static final ConjureLockTokenV2 LOCK_TOKEN = ConjureLockTokenV2.of(UUID.randomUUID());
     private static final LeadershipId LEADER_ID = LeadershipId.random();
     private static final LeadershipId OTHER_LEADER_ID = LeadershipId.random();
 
