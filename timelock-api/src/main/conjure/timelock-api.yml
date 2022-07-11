@@ -80,15 +80,25 @@ types:
       ConjureLockToken:
         fields:
           requestId: uuid
+      ConjureLockTokenV2:
+        alias: uuid
       SuccessfulLockResponse:
         fields:
           lockToken: ConjureLockToken
+          lease: Lease
+      SuccessfulLockResponseV2:
+        fields:
+          lockToken: ConjureLockTokenV2
           lease: Lease
       UnsuccessfulLockResponse:
         fields: {}
       ConjureLockResponse:
         union:
           successful: SuccessfulLockResponse
+          unsuccessful: UnsuccessfulLockResponse
+      ConjureLockResponseV2:
+        union:
+          successful: SuccessfulLockResponseV2
           unsuccessful: UnsuccessfulLockResponse
       ConjureWaitForLocksResponse:
         fields:
@@ -106,6 +116,16 @@ types:
       ConjureUnlockResponse:
         fields:
           tokens: set<ConjureLockToken>
+      ConjureRefreshLocksRequestV2:
+        alias: set<ConjureLockTokenV2>
+      ConjureRefreshLocksResponseV2:
+        fields:
+          refreshedTokens: set<ConjureLockTokenV2>
+          lease: Lease
+      ConjureUnlockRequestV2:
+        alias: set<ConjureLockTokenV2>
+      ConjureUnlockResponseV2:
+        alias: set<ConjureLockTokenV2>
       GetCommitTimestampsRequest:
         fields:
           numTimestamps: integer
@@ -239,10 +259,18 @@ services:
         returns: LeaderTime
       lock:
         http: POST /l/{namespace}
+        deprecated: |
+          This endpoint is deprecated; please use lockV2 which uses more efficient serialisation.
         args:
           namespace: string
           request: ConjureLockRequest
         returns: ConjureLockResponse
+      lockV2:
+        http: POST /l2/{namespace}
+        args:
+          namespace: string
+          request: ConjureLockRequest
+        returns: ConjureLockResponseV2
       waitForLocks:
         http: POST /wl/{namespace}
         args:
@@ -251,16 +279,32 @@ services:
         returns: ConjureWaitForLocksResponse
       refreshLocks:
         http: POST /rl/{namespace}
+        deprecated: |
+          This endpoint is deprecated; please use refreshLocksV2 which uses more efficient serialisation.
         args:
           namespace: string
           request: ConjureRefreshLocksRequest
         returns: ConjureRefreshLocksResponse
+      refreshLocksV2:
+        http: POST /rl2/{namespace}
+        args:
+          namespace: string
+          request: ConjureRefreshLocksRequestV2
+        returns: ConjureRefreshLocksResponseV2
       unlock:
         http: POST /ul/{namespace}
+        deprecated: |
+          This endpoint is deprecated; please use unlockV2 which uses more efficient serialisation.
         args:
           namespace: string
           request: ConjureUnlockRequest
         returns: ConjureUnlockResponse
+      unlockV2:
+        http: POST /ul2/{namespace}
+        args:
+          namespace: string
+          request: ConjureUnlockRequestV2
+        returns: ConjureUnlockResponseV2
       getCommitTimestamps:
         http: POST /gct/{namespace}
         args:
