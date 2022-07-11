@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
@@ -36,6 +37,8 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
@@ -47,6 +50,8 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampRequest;
+import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponseV2;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
@@ -106,6 +111,42 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             return Futures.transform(
                     rangeFuture,
                     range -> ConjureGetFreshTimestampsResponse.of(range.getLowerBound(), range.getUpperBound()),
+                    MoreExecutors.directExecutor());
+        });
+    }
+
+    @Override
+    public ListenableFuture<ConjureStartOneTransactionResponse> startOneTransaction(
+            AuthHeader authHeader, String namespace, ConjureStartOneTransactionRequest request) {
+        return handleExceptions(() -> {
+            ListenableFuture<ConjureStartTransactionsResponse> startTransactionsResponse = forNamespace(namespace)
+                    .startTransactionsWithWatches(ConjureStartTransactionsRequest.builder()
+                            .lastKnownVersion(request.getLastKnownVersion())
+                            .requestorId(request.getRequestorId())
+                            .requestId(request.getRequestId())
+                            .numTransactions(1)
+                            .build());
+            return Futures.transform(
+                    startTransactionsResponse,
+                    multiTransactionResponse -> ConjureStartOneTransactionResponse.builder()
+                            .lease(multiTransactionResponse.getLease())
+                            .timestamp(multiTransactionResponse.getTimestamps().start())
+                            .immutableTimestamp(multiTransactionResponse.getImmutableTimestamp())
+                            .lockWatchUpdate(multiTransactionResponse.getLockWatchUpdate())
+                            .build(),
+                    MoreExecutors.directExecutor());
+        });
+    }
+
+    @Override
+    public ListenableFuture<ConjureGetFreshTimestampResponse> getFreshTimestamp(
+            AuthHeader authHeader, String namespace) {
+        return handleExceptions(() -> {
+            ListenableFuture<TimestampRange> rangeFuture =
+                    forNamespace(namespace).getFreshTimestampsAsync(1);
+            return Futures.transform(
+                    rangeFuture,
+                    range -> ConjureGetFreshTimestampResponse.of(range.getLowerBound()),
                     MoreExecutors.directExecutor());
         });
     }
@@ -265,6 +306,21 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                 .getCommitTimestamps(
                         request.getNumTimestamps(),
                         request.getLastKnownVersion().map(this::toIdentifiedVersion)));
+    }
+
+    @Override
+    public ListenableFuture<GetOneCommitTimestampResponse> getOneCommitTimestamp(
+            AuthHeader authHeader, String namespace, GetOneCommitTimestampRequest request) {
+        return handleExceptions(() -> {
+            ListenableFuture<GetCommitTimestampsResponse> response = forNamespace(namespace)
+                    .getCommitTimestamps(1, request.getLastKnownVersion().map(this::toIdentifiedVersion));
+            return Futures.transform(
+                    response,
+                    getCommitTimestampsResponse -> GetOneCommitTimestampResponse.of(
+                            getCommitTimestampsResponse.getInclusiveLower(),
+                            getCommitTimestampsResponse.getLockWatchUpdate()),
+                    MoreExecutors.directExecutor());
+        });
     }
 
     private AsyncTimelockService forNamespace(String namespace) {
