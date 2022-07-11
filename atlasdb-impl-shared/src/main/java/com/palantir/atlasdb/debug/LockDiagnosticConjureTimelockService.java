@@ -16,23 +16,40 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponseV2.Visitor;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampRequest;
+import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponseV2;
+import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
+import java.util.stream.LongStream;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -71,6 +88,23 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
+    public ConjureStartOneTransactionResponse startOneTransaction(
+            AuthHeader authHeader, String namespace, ConjureStartOneTransactionRequest request) {
+        ConjureStartOneTransactionResponse response =
+                conjureDelegate.startOneTransaction(authHeader, namespace, request);
+        lockDiagnosticCollector.collect(
+                LongStream.of(response.getTimestamp()),
+                response.getImmutableTimestamp().getImmutableTimestamp(),
+                request.getRequestId());
+        return response;
+    }
+
+    @Override
+    public ConjureGetFreshTimestampResponse getFreshTimestamp(AuthHeader authHeader, String namespace) {
+        return conjureDelegate.getFreshTimestamp(authHeader, namespace);
+    }
+
+    @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
         return conjureDelegate.leaderTime(authHeader, namespace);
     }
@@ -83,6 +117,33 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
                         startTimestamp, request.getRequestId(), request.getLockDescriptors()));
         ConjureLockResponse response = conjureDelegate.lock(authHeader, namespace, request);
         localLockTracker.logLockResponse(request.getLockDescriptors(), response);
+        return response;
+    }
+
+    @Override
+    public ConjureLockResponseV2 lockV2(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        request.getClientDescription()
+                .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
+                .ifPresent(startTimestamp -> lockDiagnosticCollector.collect(
+                        startTimestamp, request.getRequestId(), request.getLockDescriptors()));
+        ConjureLockResponseV2 response = conjureDelegate.lockV2(authHeader, namespace, request);
+        localLockTracker.logLockResponse(request.getLockDescriptors(), response.accept(new Visitor<>() {
+            @Override
+            public ConjureLockResponse visitSuccessful(SuccessfulLockResponseV2 value) {
+                return ConjureLockResponse.successful(SuccessfulLockResponse.of(
+                        ConjureLockToken.of(value.getLockToken().get()), value.getLease()));
+            }
+
+            @Override
+            public ConjureLockResponse visitUnsuccessful(UnsuccessfulLockResponse value) {
+                return ConjureLockResponse.unsuccessful(value);
+            }
+
+            @Override
+            public ConjureLockResponse visitUnknown(String unknownType) {
+                throw new SafeIllegalStateException("Encountered unknown lock response type");
+            }
+        }));
         return response;
     }
 
@@ -107,6 +168,14 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
+    public ConjureRefreshLocksResponseV2 refreshLocksV2(
+            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
+        ConjureRefreshLocksResponseV2 response = conjureDelegate.refreshLocksV2(authHeader, namespace, request);
+        localLockTracker.logRefreshResponse(request.get(), response.getRefreshedTokens());
+        return response;
+    }
+
+    @Override
     public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
         ConjureUnlockResponse response = conjureDelegate.unlock(authHeader, namespace, request);
         localLockTracker.logUnlockResponse(request.getTokens(), response);
@@ -114,9 +183,22 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
+    public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
+        ConjureUnlockResponseV2 response = conjureDelegate.unlockV2(authHeader, namespace, request);
+        localLockTracker.logUnlockResponse(request.get(), response.get());
+        return response;
+    }
+
+    @Override
     public GetCommitTimestampsResponse getCommitTimestamps(
             AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return conjureDelegate.getCommitTimestamps(authHeader, namespace, request);
+    }
+
+    @Override
+    public GetOneCommitTimestampResponse getOneCommitTimestamp(
+            AuthHeader authHeader, String namespace, GetOneCommitTimestampRequest request) {
+        return conjureDelegate.getOneCommitTimestamp(authHeader, namespace, request);
     }
 
     private static Optional<Long> tryParseStartTimestamp(String description) {

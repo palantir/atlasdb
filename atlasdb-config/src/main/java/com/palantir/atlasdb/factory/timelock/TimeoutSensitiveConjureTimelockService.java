@@ -16,20 +16,30 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampRequest;
+import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -60,6 +70,17 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     }
 
     @Override
+    public ConjureStartOneTransactionResponse startOneTransaction(
+            AuthHeader authHeader, String namespace, ConjureStartOneTransactionRequest request) {
+        return shortTimeoutProxy.startOneTransaction(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureGetFreshTimestampResponse getFreshTimestamp(AuthHeader authHeader, String namespace) {
+        return shortTimeoutProxy.getFreshTimestamp(authHeader, namespace);
+    }
+
+    @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
         return shortTimeoutProxy.leaderTime(authHeader, namespace);
     }
@@ -67,6 +88,11 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     @Override
     public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
         return longTimeoutProxy.lock(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureLockResponseV2 lockV2(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        return longTimeoutProxy.lockV2(authHeader, namespace, request);
     }
 
     @Override
@@ -82,13 +108,30 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     }
 
     @Override
+    public ConjureRefreshLocksResponseV2 refreshLocksV2(
+            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
+        return shortTimeoutProxy.refreshLocksV2(authHeader, namespace, request);
+    }
+
+    @Override
     public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
         return shortTimeoutProxy.unlock(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
+        return shortTimeoutProxy.unlockV2(authHeader, namespace, request);
     }
 
     @Override
     public GetCommitTimestampsResponse getCommitTimestamps(
             AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return shortTimeoutProxy.getCommitTimestamps(authHeader, namespace, request);
+    }
+
+    @Override
+    public GetOneCommitTimestampResponse getOneCommitTimestamp(
+            AuthHeader authHeader, String namespace, GetOneCommitTimestampRequest request) {
+        return shortTimeoutProxy.getOneCommitTimestamp(authHeader, namespace, request);
     }
 }

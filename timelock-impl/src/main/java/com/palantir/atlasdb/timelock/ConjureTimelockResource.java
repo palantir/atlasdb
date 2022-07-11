@@ -351,6 +351,17 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
 
         @Override
+        public ConjureStartOneTransactionResponse startOneTransaction(
+                AuthHeader authHeader, String namespace, ConjureStartOneTransactionRequest request) {
+            return unwrap(resource.startOneTransaction(authHeader, namespace, request));
+        }
+
+        @Override
+        public ConjureGetFreshTimestampResponse getFreshTimestamp(AuthHeader authHeader, String namespace) {
+            return unwrap(resource.getFreshTimestamp(authHeader, namespace));
+        }
+
+        @Override
         public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
             return unwrap(resource.leaderTime(authHeader, namespace));
         }
@@ -398,6 +409,12 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         public GetCommitTimestampsResponse getCommitTimestamps(
                 AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
             return unwrap(resource.getCommitTimestamps(authHeader, namespace, request));
+        }
+
+        @Override
+        public GetOneCommitTimestampResponse getOneCommitTimestamp(
+                AuthHeader authHeader, String namespace, GetOneCommitTimestampRequest request) {
+            return unwrap(resource.getOneCommitTimestamp(authHeader, namespace, request));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
