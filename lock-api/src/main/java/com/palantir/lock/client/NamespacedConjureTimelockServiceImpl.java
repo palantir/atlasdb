@@ -22,6 +22,8 @@ import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartOneTransactionResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
@@ -30,6 +32,9 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampRequest;
+import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampResponse;
+import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -45,16 +50,52 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
 
     @Override
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
+        if (request.getNumTransactions() == 1) {
+            ConjureStartOneTransactionResponse conjureStartOneTransactionResponse =
+                    conjureTimelockService.startOneTransaction(
+                            AUTH_HEADER,
+                            namespace,
+                            ConjureStartOneTransactionRequest.builder()
+                                    .requestId(request.getRequestId())
+                                    .requestorId(request.getRequestorId())
+                                    .lastKnownVersion(request.getLastKnownVersion())
+                                    .build());
+            return ConjureStartTransactionsResponse.builder()
+                    .lease(conjureStartOneTransactionResponse.getLease())
+                    .immutableTimestamp(conjureStartOneTransactionResponse.getImmutableTimestamp())
+                    .timestamps(ImmutablePartitionedTimestamps.builder()
+                            .start(conjureStartOneTransactionResponse.getTimestamp())
+                            .interval(0)
+                            .count(1)
+                            .build())
+                    .lockWatchUpdate(conjureStartOneTransactionResponse.getLockWatchUpdate())
+                    .build();
+        }
         return conjureTimelockService.startTransactions(AUTH_HEADER, namespace, request);
     }
 
     @Override
     public ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request) {
+        if (request.getNumTimestamps() == 1) {
+            long timestamp = conjureTimelockService
+                    .getFreshTimestamp(AUTH_HEADER, namespace)
+                    .get();
+            return ConjureGetFreshTimestampsResponse.of(timestamp, timestamp);
+        }
         return conjureTimelockService.getFreshTimestamps(AUTH_HEADER, namespace, request);
     }
 
     @Override
     public GetCommitTimestampsResponse getCommitTimestamps(GetCommitTimestampsRequest request) {
+        if (request.getNumTimestamps() == 1) {
+            GetOneCommitTimestampResponse response = conjureTimelockService.getOneCommitTimestamp(
+                    AUTH_HEADER,
+                    namespace,
+                    GetOneCommitTimestampRequest.builder()
+                            .lastKnownVersion(request.getLastKnownVersion())
+                            .build());
+            return GetCommitTimestampsResponse.of(response.getTs(), response.getTs(), response.getLockWatchUpdate());
+        }
         return conjureTimelockService.getCommitTimestamps(AUTH_HEADER, namespace, request);
     }
 

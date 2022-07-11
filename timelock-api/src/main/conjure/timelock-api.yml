@@ -276,13 +276,13 @@ services:
         http: POST /s1t/{namespace}
         args:
           namespace: string
-          request: ConjureStartTransactionsRequest
-        returns: ConjureStartTransactionsResponse
+          request: ConjureStartOneTransactionRequest
+        returns: ConjureStartOneTransactionResponse
       getFreshTimestamp:
         http: POST /ts1/{namespace}
         args:
           namespace: string
-        returns: ConjureGetFreshTimestampsResponse
+        returns: ConjureGetFreshTimestampResponse
       leaderTime:
         http: POST /lt/{namespace}
         args:
