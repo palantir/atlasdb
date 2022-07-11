@@ -221,7 +221,8 @@ public class LockLeaseServiceTest {
                 .thenReturn(ConjureRefreshLocksResponseV2.of(ImmutableSet.of(LOCK_TOKEN), getLease()));
 
         Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(ImmutableSet.of(leasedLockToken));
-        verify(timelock).refreshLocksV2(ConjureRefreshLocksRequestV2.of(ImmutableSet.of(leasedLockToken.serverToken())));
+        verify(timelock)
+                .refreshLocksV2(ConjureRefreshLocksRequestV2.of(ImmutableSet.of(leasedLockToken.serverToken())));
 
         LeasedLockToken refreshedLeasedLockToken =
                 (LeasedLockToken) refreshed.iterator().next();
