@@ -56,15 +56,28 @@ types:
           requestorId: uuid
           numTransactions: integer
           lastKnownVersion: optional<ConjureIdentifiedVersion>
+      ConjureStartOneTransactionRequest:
+        fields:
+          requestId: uuid
+          requestorId: uuid
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
       ConjureStartTransactionsResponse:
         fields:
           immutableTimestamp: LockImmutableTimestampResponse
           timestamps: PartitionedTimestamps
           lease: Lease
           lockWatchUpdate: LockWatchStateUpdate
+      ConjureStartOneTransactionResponse:
+        fields:
+          immutableTimestamp: LockImmutableTimestampResponse
+          timestamp: Long
+          lease: Lease
+          lockWatchUpdate: LockWatchStateUpdate
       ConjureGetFreshTimestampsRequest:
         fields:
           numTimestamps: integer
+      ConjureGetFreshTimestampResponse:
+        alias: Long
       ConjureGetFreshTimestampsResponse:
         fields:
           inclusiveLower: Long
@@ -134,6 +147,13 @@ types:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
+          lockWatchUpdate: LockWatchStateUpdate
+      GetOneCommitTimestampRequest:
+        fields:
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
+      GetOneCommitTimestampResponse:
+        fields:
+          ts: Long
           lockWatchUpdate: LockWatchStateUpdate
       LockWatchRequest:
         fields:
@@ -252,6 +272,17 @@ services:
           namespace: string
           request: ConjureGetFreshTimestampsRequest
         returns: ConjureGetFreshTimestampsResponse
+      startOneTransaction:
+        http: POST /s1t/{namespace}
+        args:
+          namespace: string
+          request: ConjureStartTransactionsRequest
+        returns: ConjureStartTransactionsResponse
+      getFreshTimestamp:
+        http: POST /ts1/{namespace}
+        args:
+          namespace: string
+        returns: ConjureGetFreshTimestampsResponse
       leaderTime:
         http: POST /lt/{namespace}
         args:
@@ -314,6 +345,14 @@ services:
         docs: |
           Batched endpoint for acquiring commit timestamps (a list of fresh timestamps) and the list of all lock watch
           events since the last known version up to after the commit timestamps have been issued.
+      getOneCommitTimestamp:
+        http: POST /g1ct/{namespace}
+        args:
+          namespace: string
+          request: GetOneCommitTimestampRequest
+        returns: GetOneCommitTimestampResponse
+        docs: |
+          More efficient endpoint in terms of data usage when not many transactions are concluding.
   ConjureLockWatchingService:
     name: Lock Watching service
     default-auth: header
