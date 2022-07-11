@@ -29,19 +29,26 @@ import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.SuccessfulLockResponseV2;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
@@ -111,6 +118,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     @Override
     public ListenableFuture<ConjureLockResponse> lock(
             AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        // TODO (jkong): Call V2 and translate back to a V1 response
         return handleExceptions(() -> {
             IdentifiedLockRequest lockRequest = ImmutableIdentifiedLockRequest.builder()
                     .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
@@ -126,6 +134,28 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                             success -> ConjureLockResponse.successful(SuccessfulLockResponse.of(
                                     ConjureLockToken.of(success.getToken().getRequestId()), success.getLease())),
                             failure -> ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()))),
+                    MoreExecutors.directExecutor());
+        });
+    }
+
+    @Override
+    public ListenableFuture<ConjureLockResponseV2> lockV2(
+            AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        return handleExceptions(() -> {
+            IdentifiedLockRequest lockRequest = ImmutableIdentifiedLockRequest.builder()
+                    .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
+                    .clientDescription(request.getClientDescription())
+                    .requestId(request.getRequestId())
+                    .acquireTimeoutMs(request.getAcquireTimeoutMs())
+                    .build();
+            ListenableFuture<LockResponseV2> tokenFuture =
+                    forNamespace(namespace).lock(lockRequest);
+            return Futures.transform(
+                    tokenFuture,
+                    token -> token.accept(Visitor.of(
+                            success -> ConjureLockResponseV2.successful(SuccessfulLockResponseV2.of(
+                                    ConjureLockTokenV2.of(success.getToken().getRequestId()), success.getLease())),
+                            failure -> ConjureLockResponseV2.unsuccessful(UnsuccessfulLockResponse.of()))),
                     MoreExecutors.directExecutor());
         });
     }
@@ -160,10 +190,21 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     @Override
     public ListenableFuture<ConjureRefreshLocksResponse> refreshLocks(
             AuthHeader authHeader, String namespace, ConjureRefreshLocksRequest request) {
+        // TODO (jkong): Call V2 and translate back to a V1 response
         return handleExceptions(() -> Futures.transform(
                 forNamespace(namespace).refreshLockLeases(fromConjureLockTokens(request.getTokens())),
                 refreshed -> ConjureRefreshLocksResponse.of(
                         toConjureLockTokens(refreshed.refreshedTokens()), refreshed.getLease()),
+                MoreExecutors.directExecutor()));
+    }
+
+    @Override
+    public ListenableFuture<ConjureRefreshLocksResponseV2> refreshLocksV2(
+            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
+        return handleExceptions(() -> Futures.transform(
+                forNamespace(namespace).refreshLockLeases(fromConjureLockTokensV2(request.get())),
+                refreshed -> ConjureRefreshLocksResponseV2.of(
+                        toConjureLockTokensV2(refreshed.refreshedTokens()), refreshed.getLease()),
                 MoreExecutors.directExecutor()));
     }
 
@@ -176,6 +217,15 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                 MoreExecutors.directExecutor()));
     }
 
+    @Override
+    public ListenableFuture<ConjureUnlockResponseV2> unlockV2(
+            AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
+        return handleExceptions(() -> Futures.transform(
+                forNamespace(namespace).unlock(fromConjureLockTokensV2(request.get())),
+                unlocked -> ConjureUnlockResponseV2.of(toConjureLockTokensV2(unlocked)),
+                MoreExecutors.directExecutor()));
+    }
+
     private static Set<LockToken> fromConjureLockTokens(Set<ConjureLockToken> lockTokens) {
         Set<LockToken> tokens = Sets.newHashSetWithExpectedSize(lockTokens.size());
         for (ConjureLockToken token : lockTokens) {
@@ -184,10 +234,26 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         return tokens;
     }
 
+    private static Set<LockToken> fromConjureLockTokensV2(Set<ConjureLockTokenV2> lockTokens) {
+        Set<LockToken> tokens = Sets.newHashSetWithExpectedSize(lockTokens.size());
+        for (ConjureLockTokenV2 token : lockTokens) {
+            tokens.add(LockToken.of(token.get()));
+        }
+        return tokens;
+    }
+
     private static Set<ConjureLockToken> toConjureLockTokens(Set<LockToken> lockTokens) {
         Set<ConjureLockToken> tokens = Sets.newHashSetWithExpectedSize(lockTokens.size());
         for (LockToken token : lockTokens) {
             tokens.add(ConjureLockToken.of(token.getRequestId()));
+        }
+        return tokens;
+    }
+
+    private static Set<ConjureLockTokenV2> toConjureLockTokensV2(Set<LockToken> lockTokens) {
+        Set<ConjureLockTokenV2> tokens = Sets.newHashSetWithExpectedSize(lockTokens.size());
+        for (LockToken token : lockTokens) {
+            tokens.add(ConjureLockTokenV2.of(token.getRequestId()));
         }
         return tokens;
     }
@@ -239,6 +305,11 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
 
         @Override
+        public ConjureLockResponseV2 lockV2(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+            return unwrap(resource.lockV2(authHeader, namespace, request));
+        }
+
+        @Override
         public ConjureWaitForLocksResponse waitForLocks(
                 AuthHeader authHeader, String namespace, ConjureLockRequest request) {
             return unwrap(resource.waitForLocks(authHeader, namespace, request));
@@ -251,8 +322,20 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
 
         @Override
+        public ConjureRefreshLocksResponseV2 refreshLocksV2(
+                AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
+            return unwrap(resource.refreshLocksV2(authHeader, namespace, request));
+        }
+
+        @Override
         public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
             return unwrap(resource.unlock(authHeader, namespace, request));
+        }
+
+        @Override
+        public ConjureUnlockResponseV2 unlockV2(
+                AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
+            return unwrap(resource.unlockV2(authHeader, namespace, request));
         }
 
         @Override
